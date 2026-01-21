@@ -122,6 +122,55 @@
             cursor: auto;
         }
 
+        #loadingOverlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 20, 30, 0.92);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10001;
+            color: #fff;
+            font-family: 'Trebuchet MS', Verdana, sans-serif;
+        }
+
+        .loading-card {
+            width: min(520px, 90vw);
+            padding: 28px 32px;
+            border-radius: 16px;
+            background: rgba(18, 30, 42, 0.95);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+            text-align: center;
+        }
+
+        .loading-title {
+            font-size: 22px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+
+        .loading-bar {
+            height: 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.12);
+            overflow: hidden;
+        }
+
+        .loading-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--ui-accent), var(--ui-accent-2));
+            transition: width 0.2s ease;
+        }
+
+        .loading-text {
+            margin-top: 12px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
         #startScreen * {
             cursor: auto;
         }
@@ -214,6 +263,16 @@
                 <div><strong>Mobile</strong> - левый круг: ходьба, правая сторона: обзор</div>
                 <div><strong>Mobile</strong> - кнопки: Прыжок / Атака / Действие</div>
             </div>
+        </div>
+    </div>
+
+    <div id="loadingOverlay">
+        <div class="loading-card">
+            <div class="loading-title">Загрузка...</div>
+            <div class="loading-bar">
+                <div class="loading-fill" id="loadingFill"></div>
+            </div>
+            <div class="loading-text" id="loadingText">0%</div>
         </div>
     </div>
 
