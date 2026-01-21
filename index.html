@@ -87,6 +87,34 @@
             user-select: none;
         }
 
+        .mobile #touchStick,
+        .mobile #touchArea,
+        .mobile .touch-btn {
+            display: block;
+        }
+
+        #rotateOverlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 16, 22, 0.92);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10002;
+            color: #fff;
+            font-family: 'Trebuchet MS', Verdana, sans-serif;
+            text-align: center;
+            padding: 24px;
+        }
+
+        #rotateOverlay .rotate-card {
+            background: rgba(14, 26, 36, 0.9);
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            border-radius: 16px;
+            padding: 24px 28px;
+            max-width: 420px;
+        }
+
         #touchJump {
             bottom: 10vh;
             left: 26vw;
@@ -106,7 +134,9 @@
         }
 
         @media (pointer: coarse) {
-            #touchStick, #touchArea, .touch-btn {
+            body.mobile #touchStick,
+            body.mobile #touchArea,
+            body.mobile .touch-btn {
                 display: block;
             }
         }
@@ -283,6 +313,12 @@
                 <div class="loading-fill" id="loadingFill"></div>
             </div>
             <div class="loading-text" id="loadingText">0%</div>
+        </div>
+    </div>
+
+    <div id="rotateOverlay">
+        <div class="rotate-card">
+            Поверните телефон в альбомную ориентацию
         </div>
     </div>
 

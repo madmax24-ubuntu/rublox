@@ -86,6 +86,14 @@ class Game {
         }
     }
 
+    updateOrientationUI() {
+        if (!this.isMobile()) return;
+        const rotateOverlay = document.getElementById('rotateOverlay');
+        if (!rotateOverlay) return;
+        const isPortrait = window.innerHeight > window.innerWidth;
+        rotateOverlay.style.display = isPortrait ? 'flex' : 'none';
+    }
+
     initializeGame() {
         this.scene = new THREE.Scene();
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
@@ -173,6 +181,7 @@ class Game {
             this.camera.aspect = window.innerWidth / window.innerHeight;
             this.camera.updateProjectionMatrix();
             this.renderer.setSize(window.innerWidth, window.innerHeight);
+            this.updateOrientationUI();
         });
     }
 
@@ -448,6 +457,7 @@ class Game {
         if (this.isMobile()) {
             await this.enterFullscreen();
             await this.lockOrientation();
+            this.updateOrientationUI();
         } else {
             await this.enterFullscreen();
         }
@@ -473,6 +483,11 @@ class Game {
 
 window.addEventListener('DOMContentLoaded', () => {
     const game = new Game();
+    if (game.isMobile()) {
+        document.body.classList.add('mobile');
+        game.updateOrientationUI();
+        window.addEventListener('orientationchange', () => game.updateOrientationUI());
+    }
 
     const startButton = document.getElementById('startButton');
     if (startButton) {
