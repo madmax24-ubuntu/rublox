@@ -29,6 +29,10 @@ class Game {
         this.isStarted = false;
         this.initializeGame();
     }
+
+    isMobile() {
+        return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+    }
     
     initializeGame() {
         // Р‘Р°Р·РѕРІР°СЏ РЅР°СЃС‚СЂРѕР№РєР° Three.js
@@ -454,9 +458,15 @@ class Game {
         this.hud.showCountdown(this.countdownTime);
         
         // РђРєС‚РёРІРёСЂСѓРµРј СѓРїСЂР°РІР»РµРЅРёРµ
-        setTimeout(() => {
-            this.controls.lock();
-        }, 100);
+        if (!this.isMobile()) {
+            setTimeout(() => {
+                try {
+                    this.controls.lock();
+                } catch (err) {
+                    console.log('Pointer lock not available:', err);
+                }
+            }, 100);
+        }
         
         // Р—Р°РїСѓСЃРєР°РµРј РёРіСЂРѕРІРѕР№ С†РёРєР»
         this.gameLoop.start();
@@ -473,6 +483,10 @@ window.addEventListener('DOMContentLoaded', () => {
         startButton.addEventListener('click', async () => {
             await game.startGame();
         });
+        startButton.addEventListener('touchstart', async (e) => {
+            e.preventDefault();
+            await game.startGame();
+        }, { passive: false });
     }
 });
 

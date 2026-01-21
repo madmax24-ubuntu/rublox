@@ -65,6 +65,8 @@ export class Input {
         void touchArea;
 
         document.addEventListener('touchstart', (e) => {
+            const startScreen = document.getElementById('startScreen');
+            if (startScreen && startScreen.style.display !== 'none') return;
             e.preventDefault();
             for (const touch of e.changedTouches) {
                 if (touch.clientX < window.innerWidth / 2 && this.touch.moveId === null) {
@@ -81,6 +83,8 @@ export class Input {
         }, { passive: false });
 
         document.addEventListener('touchmove', (e) => {
+            const startScreen = document.getElementById('startScreen');
+            if (startScreen && startScreen.style.display !== 'none') return;
             e.preventDefault();
             for (const touch of e.changedTouches) {
                 if (this.touch.moveId === touch.identifier) {
@@ -96,6 +100,8 @@ export class Input {
         }, { passive: false });
 
         document.addEventListener('touchend', (e) => {
+            const startScreen = document.getElementById('startScreen');
+            if (startScreen && startScreen.style.display !== 'none') return;
             e.preventDefault();
             for (const touch of e.changedTouches) {
                 if (this.touch.moveId === touch.identifier) {
@@ -110,6 +116,8 @@ export class Input {
         }, { passive: false });
 
         document.addEventListener('touchcancel', (e) => {
+            const startScreen = document.getElementById('startScreen');
+            if (startScreen && startScreen.style.display !== 'none') return;
             e.preventDefault();
             for (const touch of e.changedTouches) {
                 if (this.touch.moveId === touch.identifier) {
