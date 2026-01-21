@@ -4,6 +4,7 @@ export class Input {
     constructor() {
         this.keys = {};
         this.mouse = { x: 0, y: 0, deltaX: 0, deltaY: 0 };
+        this.isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
         this.touch = {
             startX: 0,
             startY: 0,
@@ -15,7 +16,9 @@ export class Input {
             lookDeltaX: 0,
             lookDeltaY: 0,
             lastLookX: 0,
-            lastLookY: 0
+            lastLookY: 0,
+            deadzone: 8,
+            radius: 60
         };
 
         this.setupKeyboard();
@@ -56,24 +59,43 @@ export class Input {
 
     setupTouch() {
         const touchStick = document.getElementById('touchStick');
-        const touchArea = document.getElementById('touchArea');
+        const touchKnob = document.getElementById('touchKnob');
         const touchJump = document.getElementById('touchJump');
         const touchAttack = document.getElementById('touchAttack');
         const touchInteract = document.getElementById('touchInteract');
 
-        void touchStick;
-        void touchArea;
+        const setStick = (x, y, dx, dy) => {
+            if (!touchStick || !touchKnob) return;
+            touchStick.style.left = `${x - this.touch.radius}px`;
+            touchStick.style.top = `${y - this.touch.radius}px`;
+            touchStick.style.display = 'block';
+            touchKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+        };
+
+        const resetStick = () => {
+            if (!touchStick || !touchKnob) return;
+            touchStick.style.display = 'none';
+            touchKnob.style.transform = 'translate(0px, 0px)';
+        };
+
+        const isButtonTarget = (touch) => {
+            const target = touch?.target;
+            if (!target || !target.closest) return false;
+            return Boolean(target.closest('.touch-btn'));
+        };
 
         document.addEventListener('touchstart', (e) => {
             const startScreen = document.getElementById('startScreen');
             if (startScreen && startScreen.style.display !== 'none') return;
             e.preventDefault();
             for (const touch of e.changedTouches) {
+                if (isButtonTarget(touch)) continue;
                 if (touch.clientX < window.innerWidth / 2 && this.touch.moveId === null) {
                     this.touch.startX = touch.clientX;
                     this.touch.startY = touch.clientY;
                     this.touch.isActive = true;
                     this.touch.moveId = touch.identifier;
+                    setStick(touch.clientX, touch.clientY, 0, 0);
                 } else if (this.touch.lookId === null) {
                     this.touch.lookId = touch.identifier;
                     this.touch.lastLookX = touch.clientX;
@@ -88,11 +110,23 @@ export class Input {
             e.preventDefault();
             for (const touch of e.changedTouches) {
                 if (this.touch.moveId === touch.identifier) {
-                    this.touch.currentX = touch.clientX - this.touch.startX;
-                    this.touch.currentY = touch.clientY - this.touch.startY;
+                    let dx = touch.clientX - this.touch.startX;
+                    let dy = touch.clientY - this.touch.startY;
+                    const dist = Math.hypot(dx, dy);
+                    const max = this.touch.radius;
+                    if (dist > max) {
+                        const ratio = max / dist;
+                        dx *= ratio;
+                        dy *= ratio;
+                    }
+                    this.touch.currentX = dx;
+                    this.touch.currentY = dy;
+                    setStick(this.touch.startX, this.touch.startY, dx, dy);
                 } else if (this.touch.lookId === touch.identifier) {
-                    this.touch.lookDeltaX += touch.clientX - this.touch.lastLookX;
-                    this.touch.lookDeltaY += touch.clientY - this.touch.lastLookY;
+                    const dx = touch.clientX - this.touch.lastLookX;
+                    const dy = touch.clientY - this.touch.lastLookY;
+                    this.touch.lookDeltaX += dx;
+                    this.touch.lookDeltaY += dy;
                     this.touch.lastLookX = touch.clientX;
                     this.touch.lastLookY = touch.clientY;
                 }
@@ -109,6 +143,7 @@ export class Input {
                     this.touch.currentX = 0;
                     this.touch.currentY = 0;
                     this.touch.moveId = null;
+                    resetStick();
                 } else if (this.touch.lookId === touch.identifier) {
                     this.touch.lookId = null;
                 }
@@ -125,6 +160,7 @@ export class Input {
                     this.touch.currentX = 0;
                     this.touch.currentY = 0;
                     this.touch.moveId = null;
+                    resetStick();
                 } else if (this.touch.lookId === touch.identifier) {
                     this.touch.lookId = null;
                 }
@@ -168,7 +204,8 @@ export class Input {
     }
 
     getLookDelta() {
-        const delta = { x: this.touch.lookDeltaX, y: this.touch.lookDeltaY };
+        const scale = this.isMobile ? 0.4 : 1.0;
+        const delta = { x: this.touch.lookDeltaX * scale, y: this.touch.lookDeltaY * scale };
         this.touch.lookDeltaX = 0;
         this.touch.lookDeltaY = 0;
         return delta;
@@ -183,8 +220,13 @@ export class Input {
         if (this.isKeyPressed('KeyD')) move.x += 1;
 
         if (this.touch.isActive) {
-            move.x += this.touch.currentX * 0.01;
-            move.z += this.touch.currentY * 0.01;
+            const dx = this.touch.currentX;
+            const dy = this.touch.currentY;
+            const dist = Math.hypot(dx, dy);
+            if (dist > this.touch.deadzone) {
+                move.x += dx / this.touch.radius;
+                move.z += dy / this.touch.radius;
+            }
         }
 
         return move.normalize();

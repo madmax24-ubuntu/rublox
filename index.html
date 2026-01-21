@@ -37,8 +37,6 @@
 
         #touchStick {
             position: fixed;
-            bottom: 100px;
-            left: 50px;
             width: 120px;
             height: 120px;
             background: rgba(255, 255, 255, 0.2);
@@ -46,6 +44,18 @@
             border: 3px solid rgba(255, 255, 255, 0.5);
             display: none;
             z-index: 999;
+            pointer-events: none;
+        }
+
+        #touchKnob {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 56px;
+            height: 56px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
         }
 
         #touchArea {
@@ -78,24 +88,24 @@
         }
 
         #touchJump {
-            bottom: 60px;
-            left: 200px;
+            bottom: 10vh;
+            left: 26vw;
         }
 
         #touchAttack {
-            bottom: 70px;
-            right: 70px;
+            bottom: 10vh;
+            right: 10vw;
         }
 
         #touchInteract {
-            bottom: 160px;
-            right: 90px;
+            bottom: 22vh;
+            right: 12vw;
             width: 64px;
             height: 64px;
             font-size: 14px;
         }
 
-        @media (max-width: 768px) {
+        @media (pointer: coarse) {
             #touchStick, #touchArea, .touch-btn {
                 display: block;
             }
@@ -276,7 +286,7 @@
         </div>
     </div>
 
-    <div id="touchStick"></div>
+    <div id="touchStick"><div id="touchKnob"></div></div>
     <div id="touchArea"></div>
     <div id="touchJump" class="touch-btn">Прыжок</div>
     <div id="touchAttack" class="touch-btn">Удар</div>
