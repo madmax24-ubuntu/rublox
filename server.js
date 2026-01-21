@@ -2,25 +2,28 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Получаем директорию текущего модуля
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Создаем экземпляр приложения Express
 const app = express();
-const PORT = process.env.PORT || 3001; // Меняем порт с 3000 на 3001, т.к. 3000 уже занят
+const PORT = process.env.PORT || 3001;
 
-// Устанавливаем статический каталог
-app.use(express.static(__dirname));
+app.use(express.static(__dirname, {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.js') || filePath.endsWith('.mjs')) {
+      res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
+    } else if (filePath.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css; charset=UTF-8');
+    } else if (filePath.endsWith('.json')) {
+      res.setHeader('Content-Type', 'application/json; charset=UTF-8');
+    }
+  }
+}));
 
-// Маршрут для корневого пути - отдаем index.html
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Запускаем сервер
 app.listen(PORT, () => {
-  console.log(`Сервер запущен на http://localhost:${PORT}`);
-  console.log('Rublox Hunger Games в стиле Roblox готов к игре!');
-  console.log('Нажмите Ctrl+C для завершения сервера');
+  console.log(`Server running at http://localhost:${PORT}`);
 });
