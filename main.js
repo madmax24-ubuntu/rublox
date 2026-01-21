@@ -64,7 +64,7 @@ class Game {
 
     async enterFullscreen() {
         try {
-            const elem = document.documentElement;
+            const elem = this.renderer?.domElement || document.documentElement;
             if (elem.requestFullscreen) {
                 await elem.requestFullscreen();
             } else if (elem.webkitRequestFullscreen) {
@@ -458,6 +458,15 @@ class Game {
             await this.enterFullscreen();
             await this.lockOrientation();
             this.updateOrientationUI();
+            const retry = async () => {
+                if (!document.fullscreenElement) {
+                    await this.enterFullscreen();
+                    await this.lockOrientation();
+                    this.updateOrientationUI();
+                }
+                window.removeEventListener('touchend', retry);
+            };
+            window.addEventListener('touchend', retry, { passive: false });
         } else {
             await this.enterFullscreen();
         }

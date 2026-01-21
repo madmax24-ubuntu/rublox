@@ -223,10 +223,10 @@ export class Player {
         } else {
             const look = this.input.getLookDelta();
             if (look.x !== 0 || look.y !== 0) {
-                const maxDelta = 30;
+                const maxDelta = 60;
                 const dx = Math.max(-maxDelta, Math.min(maxDelta, look.x));
                 const dy = Math.max(-maxDelta, Math.min(maxDelta, look.y));
-                const sensitivity = this.input.isMobile ? this.mouseSensitivity * 0.9 : this.mouseSensitivity * 1.4;
+                const sensitivity = this.input.isMobile ? this.mouseSensitivity * 2.2 : this.mouseSensitivity * 1.4;
                 this.rotation.y -= dx * sensitivity;
                 this.rotation.x -= dy * sensitivity;
                 const maxPitch = Math.PI / 2.4;
