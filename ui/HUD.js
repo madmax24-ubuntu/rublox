@@ -1,9 +1,16 @@
-﻿export class HUD {
+export class HUD {
     constructor() {
         this.createHUD();
     }
 
     createHUD() {
+        const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+        const shortSide = Math.min(window.innerWidth, window.innerHeight);
+        const scale = isMobile
+            ? (shortSide < 420 ? 0.7 : shortSide < 600 ? 0.8 : 0.9)
+            : 1;
+        const px = (value) => Math.round(value * scale);
+
         const hud = document.createElement('div');
         hud.id = 'hud';
         hud.style.cssText = `
@@ -23,11 +30,11 @@
         const topBar = document.createElement('div');
         topBar.style.cssText = `
             position: absolute;
-            top: 20px;
+            top: ${px(16)}px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
-            gap: 18px;
+            gap: ${px(12)}px;
             align-items: center;
         `;
         hud.appendChild(topBar);
@@ -36,10 +43,10 @@
         playersCount.id = 'playersCount';
         playersCount.style.cssText = `
             background: rgba(14, 26, 36, 0.88);
-            padding: 10px 22px;
-            border-radius: 12px;
+            padding: ${px(8)}px ${px(18)}px;
+            border-radius: ${px(10)}px;
             border: 2px solid rgba(255, 255, 255, 0.12);
-            font-size: 22px;
+            font-size: ${px(18)}px;
             font-weight: 700;
         `;
         playersCount.textContent = '\u0418\u0433\u0440\u043e\u043a\u043e\u0432: 32';
@@ -49,10 +56,10 @@
         zoneInfo.id = 'zoneInfo';
         zoneInfo.style.cssText = `
             background: rgba(14, 26, 36, 0.88);
-            padding: 10px 18px;
-            border-radius: 12px;
+            padding: ${px(8)}px ${px(16)}px;
+            border-radius: ${px(10)}px;
             border: 2px solid rgba(255, 255, 255, 0.12);
-            font-size: 16px;
+            font-size: ${px(14)}px;
         `;
         zoneInfo.textContent = '\u0417\u043e\u043d\u0430: \u0411\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u0430\u044f';
         topBar.appendChild(zoneInfo);
@@ -60,20 +67,23 @@
         const leftPanel = document.createElement('div');
         leftPanel.style.cssText = `
             position: absolute;
-            bottom: 120px;
-            left: 20px;
+            bottom: ${px(isMobile ? 150 : 120)}px;
+            left: ${px(14)}px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: ${px(8)}px;
         `;
         hud.appendChild(leftPanel);
 
+        const barWidth = px(260);
+        const barHeight = px(26);
+
         const healthBar = document.createElement('div');
         healthBar.style.cssText = `
-            width: 280px;
-            height: 30px;
+            width: ${barWidth}px;
+            height: ${barHeight}px;
             background: rgba(14, 26, 36, 0.88);
-            border-radius: 8px;
+            border-radius: ${px(8)}px;
             overflow: hidden;
             border: 2px solid rgba(255, 255, 255, 0.2);
             box-shadow: 0 6px 16px rgba(0,0,0,0.3);
@@ -94,19 +104,20 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 18px;
+            font-size: ${px(16)}px;
             font-weight: 700;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            display: none;
         `;
         healthBar.appendChild(healthText);
         leftPanel.appendChild(healthBar);
 
         const armorBar = document.createElement('div');
         armorBar.style.cssText = `
-            width: 280px;
-            height: 30px;
+            width: ${barWidth}px;
+            height: ${barHeight}px;
             background: rgba(14, 26, 36, 0.88);
-            border-radius: 8px;
+            border-radius: ${px(8)}px;
             overflow: hidden;
             border: 2px solid rgba(255, 255, 255, 0.2);
             box-shadow: 0 6px 16px rgba(0,0,0,0.3);
@@ -127,9 +138,10 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 18px;
+            font-size: ${px(16)}px;
             font-weight: 700;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            display: none;
         `;
         armorBar.appendChild(armorText);
         leftPanel.appendChild(armorBar);
@@ -138,31 +150,32 @@
         inventory.id = 'inventory';
         inventory.style.cssText = `
             position: absolute;
-            bottom: 20px;
+            bottom: ${px(isMobile ? 90 : 20)}px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
-            gap: 5px;
+            gap: ${px(4)}px;
             background: rgba(14, 26, 36, 0.88);
-            padding: 10px 12px;
-            border-radius: 12px;
+            padding: ${px(8)}px ${px(10)}px;
+            border-radius: ${px(10)}px;
             border: 2px solid rgba(255, 255, 255, 0.12);
         `;
         hud.appendChild(inventory);
 
+        const slotSize = px(isMobile ? 44 : 56);
         for (let i = 0; i < 10; i++) {
             const slot = document.createElement('div');
             slot.id = `slot${i}`;
             slot.style.cssText = `
-                width: 56px;
-                height: 56px;
+                width: ${slotSize}px;
+                height: ${slotSize}px;
                 background: rgba(255, 255, 255, 0.1);
                 border: 2px solid rgba(255, 255, 255, 0.25);
-                border-radius: 8px;
+                border-radius: ${px(8)}px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                font-size: 18px;
+                font-size: ${px(16)}px;
                 font-weight: 700;
                 position: relative;
             `;
@@ -171,9 +184,9 @@
             const slotNumber = document.createElement('div');
             slotNumber.style.cssText = `
                 position: absolute;
-                bottom: 2px;
-                right: 4px;
-                font-size: 12px;
+                bottom: ${px(2)}px;
+                right: ${px(4)}px;
+                font-size: ${px(10)}px;
                 color: rgba(255, 255, 255, 0.7);
             `;
             slotNumber.textContent = i;
@@ -189,7 +202,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 72px;
+            font-size: ${px(64)}px;
             font-weight: 800;
             color: #ffb300;
             text-shadow: 4px 4px 8px rgba(0,0,0,0.8);
@@ -204,7 +217,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 48px;
+            font-size: ${px(40)}px;
             font-weight: 800;
             text-shadow: 4px 4px 8px rgba(0,0,0,0.8);
             display: none;
@@ -215,15 +228,15 @@
         countdown.id = 'countdown';
         countdown.style.cssText = `
             position: absolute;
-            top: 120px;
+            top: ${px(90)}px;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 48px;
+            font-size: ${px(42)}px;
             font-weight: 800;
             color: #ffb300;
             background: rgba(14, 26, 36, 0.9);
-            padding: 15px 40px;
-            border-radius: 12px;
+            padding: ${px(12)}px ${px(32)}px;
+            border-radius: ${px(10)}px;
             border: 2px solid rgba(255, 255, 255, 0.12);
             text-shadow: 0 0 10px rgba(255,215,0,0.8);
             display: none;
@@ -237,13 +250,13 @@
             top: 30%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 36px;
+            font-size: ${px(30)}px;
             font-weight: 800;
             color: #ffffff;
             text-shadow: 4px 4px 8px rgba(0,0,0,0.9);
             background: rgba(14, 26, 36, 0.9);
-            padding: 20px 40px;
-            border-radius: 12px;
+            padding: ${px(16)}px ${px(28)}px;
+            border-radius: ${px(10)}px;
             border: 2px solid rgba(255, 255, 255, 0.12);
             display: none;
         `;
@@ -261,18 +274,16 @@
 
     updateHealth(health, maxHealth) {
         const healthFill = document.getElementById('healthFill');
-        const healthText = document.getElementById('healthText');
+        if (!healthFill) return;
         const percent = (health / maxHealth) * 100;
         healthFill.style.width = `${percent}%`;
-        healthText.textContent = `${Math.ceil(health)}/${maxHealth}`;
     }
 
     updateArmor(armor, maxArmor) {
         const armorFill = document.getElementById('armorFill');
-        const armorText = document.getElementById('armorText');
+        if (!armorFill) return;
         const percent = (armor / maxArmor) * 100;
         armorFill.style.width = `${percent}%`;
-        armorText.textContent = `${Math.ceil(armor)}/${maxArmor}`;
     }
 
     updatePlayersCount(count) {
@@ -300,7 +311,7 @@
                 const icon = slot.querySelector('.weapon-icon') || document.createElement('div');
                 icon.className = 'weapon-icon';
                 icon.style.cssText = `
-                    font-size: 14px;
+                    font-size: 12px;
                     font-weight: 800;
                     color: #ffffff;
                 `;
@@ -360,10 +371,11 @@
         const gameMessage = document.getElementById('gameMessage');
         gameMessage.textContent = message;
         gameMessage.style.display = 'block';
+        gameMessage.style.animation = 'pulse 1.5s infinite';
 
         setTimeout(() => {
             gameMessage.style.display = 'none';
+            gameMessage.style.animation = 'none';
         }, 3000);
     }
 }
-

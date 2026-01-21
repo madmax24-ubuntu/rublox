@@ -223,9 +223,12 @@ export class Player {
         } else {
             const look = this.input.getLookDelta();
             if (look.x !== 0 || look.y !== 0) {
-                const sensitivity = this.mouseSensitivity * 2.5;
-                this.rotation.y -= look.x * sensitivity;
-                this.rotation.x -= look.y * sensitivity;
+                const maxDelta = 45;
+                const dx = Math.max(-maxDelta, Math.min(maxDelta, look.x));
+                const dy = Math.max(-maxDelta, Math.min(maxDelta, look.y));
+                const sensitivity = this.mouseSensitivity * 1.4;
+                this.rotation.y -= dx * sensitivity;
+                this.rotation.x -= dy * sensitivity;
                 const maxPitch = Math.PI / 2.4;
                 this.rotation.x = Math.max(-maxPitch, Math.min(maxPitch, this.rotation.x));
             }
