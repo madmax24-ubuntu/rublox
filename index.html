@@ -1,0 +1,227 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RUBLOX - Hunger Games</title>
+    <style>
+        :root {
+            --ui-dark: #0e1a24;
+            --ui-mid: #1c2a36;
+            --ui-light: #e9f0f6;
+            --ui-accent: #ffb300;
+            --ui-accent-2: #ff7043;
+            --ui-green: #6ddc91;
+            --ui-blue: #4bb3ff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #000;
+            touch-action: none;
+            cursor: none;
+            font-family: 'Trebuchet MS', Verdana, sans-serif;
+        }
+
+        canvas {
+            cursor: none !important;
+            display: block;
+        }
+
+        #touchStick {
+            position: fixed;
+            bottom: 100px;
+            left: 50px;
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.5);
+            display: none;
+            z-index: 999;
+        }
+
+        #touchArea {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 998;
+            display: none;
+        }
+
+        .touch-btn {
+            position: fixed;
+            width: 74px;
+            height: 74px;
+            border-radius: 50%;
+            background: rgba(14, 26, 36, 0.65);
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            font-weight: 700;
+            font-size: 16px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            user-select: none;
+        }
+
+        #touchJump {
+            bottom: 60px;
+            left: 200px;
+        }
+
+        #touchAttack {
+            bottom: 70px;
+            right: 70px;
+        }
+
+        #touchInteract {
+            bottom: 160px;
+            right: 90px;
+            width: 64px;
+            height: 64px;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            #touchStick, #touchArea, .touch-btn {
+                display: block;
+            }
+        }
+
+        #startScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(circle at 20% 20%, rgba(255, 179, 0, 0.12), transparent 45%),
+                radial-gradient(circle at 80% 10%, rgba(79, 195, 247, 0.18), transparent 40%),
+                radial-gradient(circle at 50% 80%, rgba(255, 112, 67, 0.12), transparent 45%),
+                linear-gradient(135deg, #0b1722 0%, #152636 50%, #0c1f2c 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            color: var(--ui-light);
+            padding: 24px;
+            cursor: auto;
+        }
+
+        #startScreen * {
+            cursor: auto;
+        }
+
+        .start-card {
+            background: rgba(14, 26, 36, 0.88);
+            border: 3px solid rgba(255, 255, 255, 0.12);
+            border-radius: 18px;
+            padding: 36px 44px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(6px);
+        }
+
+        #startScreen h1 {
+            font-size: 64px;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 6px;
+            color: #ffffff;
+            text-shadow: 0 6px 0 rgba(0, 0, 0, 0.4);
+        }
+
+        #startScreen p {
+            font-size: 20px;
+            margin-bottom: 28px;
+            opacity: 0.85;
+        }
+
+        #startButton {
+            padding: 16px 56px;
+            font-size: 26px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--ui-accent), var(--ui-accent-2));
+            border: none;
+            border-radius: 12px;
+            color: #1c1c1c;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 10px 24px rgba(255, 179, 0, 0.35);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        #startButton:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 14px 28px rgba(255, 179, 0, 0.5);
+        }
+
+        #startButton:active {
+            transform: translateY(1px) scale(0.98);
+        }
+
+        .controls-info {
+            margin-top: 26px;
+            text-align: center;
+            opacity: 0.75;
+            font-size: 16px;
+            display: grid;
+            gap: 6px;
+        }
+
+        .controls-info strong {
+            color: var(--ui-accent);
+        }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "./node_modules/three/build/three.module.js",
+                "three/addons/": "./node_modules/three/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="startScreen">
+        <div class="start-card">
+            <h1>RUBLOX</h1>
+            <p>Hunger Games: Roblox Arena</p>
+            <button id="startButton">Начать игру</button>
+            <div class="controls-info">
+                <div><strong>WASD</strong> - движение</div>
+                <div><strong>Мышь</strong> - обзор</div>
+                <div><strong>Пробел</strong> - прыжок</div>
+                <div><strong>ЛКМ</strong> - атака</div>
+                <div><strong>E</strong> - взаимодействие</div>
+                <div><strong>1-0</strong> - инвентарь</div>
+                <div><strong>ESC</strong> - меню</div>
+                <div><strong>Mobile</strong> - левый круг: ходьба, правая сторона: обзор</div>
+                <div><strong>Mobile</strong> - кнопки: Прыжок / Атака / Действие</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="touchStick"></div>
+    <div id="touchArea"></div>
+    <div id="touchJump" class="touch-btn">Прыжок</div>
+    <div id="touchAttack" class="touch-btn">Удар</div>
+    <div id="touchInteract" class="touch-btn">E</div>
+    <script type="module" src="./main.js"></script>
+</body>
+</html>
