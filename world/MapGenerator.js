@@ -177,12 +177,12 @@ export class MapGenerator {
             flatShading: true
         });
         const grassBase = new THREE.Mesh(
-            new THREE.BoxGeometry(yardSize, 0.3, yardSize),
+            new THREE.BoxGeometry(yardSize, 0.6, yardSize),
             grassMat
         );
-        grassBase.position.set(0, 0.15, 0);
+        grassBase.position.set(0, 0.6 / 2 + 0.2, 0);
         this.scene.add(grassBase);
-        this.addColliderBox(grassBase.position, yardSize, 0.3, yardSize);
+        this.addColliderBox(grassBase.position, yardSize, 0.6, yardSize);
 
         // Courtyard kept minimal: grass base, spawn pads, walls/gate.
 
