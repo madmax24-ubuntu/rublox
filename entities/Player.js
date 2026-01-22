@@ -223,10 +223,10 @@ export class Player {
         } else {
             const look = this.input.getLookDelta();
             if (look.x !== 0 || look.y !== 0) {
-                const maxDelta = 60;
+                const maxDelta = 80;
                 const dx = Math.max(-maxDelta, Math.min(maxDelta, look.x));
                 const dy = Math.max(-maxDelta, Math.min(maxDelta, look.y));
-                const sensitivity = this.input.isMobile ? this.mouseSensitivity * 2.2 : this.mouseSensitivity * 1.4;
+                const sensitivity = this.input.isMobile ? this.mouseSensitivity * 3.0 : this.mouseSensitivity * 1.4;
                 this.rotation.y -= dx * sensitivity;
                 this.rotation.x -= dy * sensitivity;
                 const maxPitch = Math.PI / 2.4;
@@ -343,13 +343,21 @@ export class Player {
             }
         } else {
             // Стандартная камера с жёсткой фиксацией
-            this.camera.position.copy(cameraPosition);
-            const cameraRotation = new THREE.Euler(
-                Math.round(this.rotation.x * 10) / 10, // Округляем для устранения микро-дрожания
-                Math.round(this.rotation.y * 10) / 10,
-                0
+            const obj = controls?.getObject ? controls.getObject() : null;
+            if (obj) {
+                obj.position.copy(cameraPosition);
+                obj.rotation.set(0, 0, 0);
+                this.camera.position.set(0, 0, 0);
+            } else {
+                this.camera.position.copy(cameraPosition);
+            }
+            this.camera.up.set(0, 1, 0);
+            this.camera.rotation.set(
+                this.rotation.x,
+                this.rotation.y,
+                0,
+                'YXZ'
             );
-            this.camera.rotation.copy(cameraRotation);
         }
 
         const isFirstPerson = controls && controls.isLocked;
@@ -673,6 +681,7 @@ export class Player {
         }, 120);
     }
 }
+
 
 
 
