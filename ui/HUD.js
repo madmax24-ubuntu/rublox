@@ -68,7 +68,7 @@ export class HUD {
         const leftPanel = document.createElement('div');
         leftPanel.style.cssText = `
             position: absolute;
-            bottom: ${px(isMobile ? 150 : 120)}px;
+            bottom: ${px(isMobile ? 120 : 120)}px;
             left: ${px(14)}px;
             display: flex;
             flex-direction: column;
@@ -151,7 +151,7 @@ export class HUD {
         inventory.id = 'inventory';
         inventory.style.cssText = `
             position: absolute;
-            bottom: ${px(isMobile ? 30 : 20)}px;
+            bottom: ${px(isMobile ? 12 : 20)}px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
@@ -163,7 +163,7 @@ export class HUD {
         `;
         hud.appendChild(inventory);
 
-        const slotSize = px(isMobile ? 44 : 56);
+        const slotSize = px(isMobile ? 40 : 56);
         for (let i = 0; i < 10; i++) {
             const slot = document.createElement('div');
             slot.id = `slot${i}`;

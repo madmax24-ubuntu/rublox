@@ -59,7 +59,11 @@ class Game {
     }
 
     isMobile() {
-        return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+        return (
+            'ontouchstart' in window
+            || navigator.maxTouchPoints > 0
+            || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '')
+        );
     }
 
     async enterFullscreen() {
@@ -97,6 +101,7 @@ class Game {
     }
 
     initializeGame() {
+        const isMobile = this.isMobile();
         this.scene = new THREE.Scene();
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
 
@@ -120,17 +125,22 @@ class Game {
             document.body.appendChild(this.renderer.domElement);
         }
 
-        this.controls = new PointerLockControls(this.camera, this.renderer.domElement);
         this.camera.position.set(0, 1.5, 0);
-        this.scene.add(this.controls.getObject());
+        if (!isMobile) {
+            this.controls = new PointerLockControls(this.camera, this.renderer.domElement);
+            this.scene.add(this.controls.getObject());
 
-        this.controls.addEventListener('lock', () => {
-            console.log('Pointer lock enabled');
-        });
+            this.controls.addEventListener('lock', () => {
+                console.log('Pointer lock enabled');
+            });
 
-        this.controls.addEventListener('unlock', () => {
-            console.log('Pointer lock disabled');
-        });
+            this.controls.addEventListener('unlock', () => {
+                console.log('Pointer lock disabled');
+            });
+        } else {
+            this.controls = null;
+            this.scene.add(this.camera);
+        }
 
         this.input = new Input();
         this.audioSynth = new AudioSynth();
@@ -485,7 +495,7 @@ class Game {
 
         this.hud.showCountdown(this.countdownTime);
 
-        if (!this.isMobile()) {
+        if (!this.isMobile() && this.controls) {
             setTimeout(() => {
                 try {
                     this.controls.lock();

@@ -4,21 +4,25 @@ export class Input {
     constructor() {
         this.keys = {};
         this.mouse = { x: 0, y: 0, deltaX: 0, deltaY: 0 };
-        this.isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+        this.isMobile = (
+            'ontouchstart' in window
+            || navigator.maxTouchPoints > 0
+            || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '')
+        );
         this.touch = {
-            startX: 0,
-            startY: 0,
-            currentX: 0,
-            currentY: 0,
-            isActive: false,
             moveId: null,
             lookId: null,
+            moveX: 0,
+            moveY: 0,
             lookDeltaX: 0,
             lookDeltaY: 0,
             lastLookX: 0,
             lastLookY: 0,
             deadzone: 8,
-            radius: 60
+            radius: 60,
+            centerX: 0,
+            centerY: 0,
+            active: false
         };
 
         this.setupKeyboard();
@@ -58,24 +62,30 @@ export class Input {
     }
 
     setupTouch() {
-        const touchStick = document.getElementById('touchStick');
-        const touchKnob = document.getElementById('touchKnob');
+        const stick = document.getElementById('touchStick');
+        const knob = document.getElementById('touchKnob');
         const touchJump = document.getElementById('touchJump');
         const touchAttack = document.getElementById('touchAttack');
         const touchInteract = document.getElementById('touchInteract');
 
-        const setStick = (x, y, dx, dy) => {
-            if (!touchStick || !touchKnob) return;
-            touchStick.style.left = `${x - this.touch.radius}px`;
-            touchStick.style.top = `${y - this.touch.radius}px`;
-            touchStick.style.display = 'block';
-            touchKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+        const updateStickRadius = () => {
+            if (!stick) return;
+            const rect = stick.getBoundingClientRect();
+            this.touch.radius = rect.width * 0.45;
         };
 
-        const resetStick = () => {
-            if (!touchStick || !touchKnob) return;
-            touchStick.style.display = 'none';
-            touchKnob.style.transform = 'translate(0px, 0px)';
+        updateStickRadius();
+        window.addEventListener('resize', updateStickRadius);
+        window.addEventListener('orientationchange', updateStickRadius);
+
+        const setKnob = (dx, dy) => {
+            if (!knob) return;
+            knob.style.transform = `translate(${dx}px, ${dy}px)`;
+        };
+
+        const resetKnob = () => {
+            if (!knob) return;
+            knob.style.transform = 'translate(0px, 0px)';
         };
 
         const isButtonTarget = (touch) => {
@@ -91,12 +101,16 @@ export class Input {
             for (const touch of e.changedTouches) {
                 if (isButtonTarget(touch)) continue;
                 if (touch.clientX < window.innerWidth / 2 && this.touch.moveId === null) {
-                    this.touch.startX = touch.clientX;
-                    this.touch.startY = touch.clientY;
-                    this.touch.isActive = true;
                     this.touch.moveId = touch.identifier;
-                    setStick(touch.clientX, touch.clientY, 0, 0);
-                } else if (this.touch.lookId === null) {
+                    this.touch.centerX = touch.clientX;
+                    this.touch.centerY = touch.clientY;
+                    if (stick) {
+                        stick.style.left = `${this.touch.centerX}px`;
+                        stick.style.top = `${this.touch.centerY}px`;
+                        stick.style.opacity = '0.7';
+                    }
+                    this.touch.active = true;
+                } else if (touch.clientX >= window.innerWidth / 2 && this.touch.lookId === null) {
                     this.touch.lookId = touch.identifier;
                     this.touch.lastLookX = touch.clientX;
                     this.touch.lastLookY = touch.clientY;
@@ -110,8 +124,8 @@ export class Input {
             e.preventDefault();
             for (const touch of e.changedTouches) {
                 if (this.touch.moveId === touch.identifier) {
-                    let dx = touch.clientX - this.touch.startX;
-                    let dy = touch.clientY - this.touch.startY;
+                    let dx = touch.clientX - this.touch.centerX;
+                    let dy = touch.clientY - this.touch.centerY;
                     const dist = Math.hypot(dx, dy);
                     const max = this.touch.radius;
                     if (dist > max) {
@@ -119,9 +133,9 @@ export class Input {
                         dx *= ratio;
                         dy *= ratio;
                     }
-                    this.touch.currentX = dx;
-                    this.touch.currentY = dy;
-                    setStick(this.touch.startX, this.touch.startY, dx, dy);
+                    this.touch.moveX = dx;
+                    this.touch.moveY = dy;
+                    setKnob(dx, dy);
                 } else if (this.touch.lookId === touch.identifier) {
                     const dx = touch.clientX - this.touch.lastLookX;
                     const dy = touch.clientY - this.touch.lastLookY;
@@ -133,20 +147,27 @@ export class Input {
             }
         }, { passive: false });
 
+        const endTouch = (touch) => {
+            if (this.touch.moveId === touch.identifier) {
+                this.touch.moveId = null;
+                this.touch.moveX = 0;
+                this.touch.moveY = 0;
+                resetKnob();
+                this.touch.active = false;
+                if (stick) {
+                    stick.style.opacity = '0.35';
+                }
+            } else if (this.touch.lookId === touch.identifier) {
+                this.touch.lookId = null;
+            }
+        };
+
         document.addEventListener('touchend', (e) => {
             const startScreen = document.getElementById('startScreen');
             if (startScreen && startScreen.style.display !== 'none') return;
             e.preventDefault();
             for (const touch of e.changedTouches) {
-                if (this.touch.moveId === touch.identifier) {
-                    this.touch.isActive = false;
-                    this.touch.currentX = 0;
-                    this.touch.currentY = 0;
-                    this.touch.moveId = null;
-                    resetStick();
-                } else if (this.touch.lookId === touch.identifier) {
-                    this.touch.lookId = null;
-                }
+                endTouch(touch);
             }
         }, { passive: false });
 
@@ -155,15 +176,7 @@ export class Input {
             if (startScreen && startScreen.style.display !== 'none') return;
             e.preventDefault();
             for (const touch of e.changedTouches) {
-                if (this.touch.moveId === touch.identifier) {
-                    this.touch.isActive = false;
-                    this.touch.currentX = 0;
-                    this.touch.currentY = 0;
-                    this.touch.moveId = null;
-                    resetStick();
-                } else if (this.touch.lookId === touch.identifier) {
-                    this.touch.lookId = null;
-                }
+                endTouch(touch);
             }
         }, { passive: false });
 
@@ -208,12 +221,11 @@ export class Input {
     }
 
     getTouchDelta() {
-        return { x: this.touch.currentX * 0.1, y: this.touch.currentY * 0.1 };
+        return { x: this.touch.moveX * 0.1, y: this.touch.moveY * 0.1 };
     }
 
     getLookDelta() {
-        const scale = this.isMobile ? 2.4 : 1.0;
-        const delta = { x: this.touch.lookDeltaX * scale, y: this.touch.lookDeltaY * scale };
+        const delta = { x: this.touch.lookDeltaX, y: this.touch.lookDeltaY };
         this.touch.lookDeltaX = 0;
         this.touch.lookDeltaY = 0;
         return delta;
@@ -227,14 +239,12 @@ export class Input {
         if (this.isKeyPressed('KeyA')) move.x -= 1;
         if (this.isKeyPressed('KeyD')) move.x += 1;
 
-        if (this.touch.isActive) {
-            const dx = this.touch.currentX;
-            const dy = this.touch.currentY;
-            const dist = Math.hypot(dx, dy);
-            if (dist > this.touch.deadzone) {
-                move.x += dx / this.touch.radius;
-                move.z += dy / this.touch.radius;
-            }
+        const dx = this.touch.moveX;
+        const dy = this.touch.moveY;
+        const dist = Math.hypot(dx, dy);
+        if (dist > this.touch.deadzone) {
+            move.x += dx / this.touch.radius;
+            move.z += dy / this.touch.radius;
         }
 
         return move.normalize();

@@ -44,6 +44,8 @@ export class Player {
 
         this.cameraOffset = new THREE.Vector3(0, 1.5, 0);
         this.mouseSensitivity = 0.001;
+        this.mobileLookSensitivity = 0.003;
+        this.lastLookSide = 0;
         this.euler = new THREE.Euler(0, 0, 0, 'YXZ');
 
         this.animationState = 'idle';
@@ -218,10 +220,17 @@ export class Player {
         } else {
             const look = this.input.getLookDelta();
             if (look.x !== 0 || look.y !== 0) {
-                const maxDelta = 120;
+                const maxDelta = 90;
                 const dx = Math.max(-maxDelta, Math.min(maxDelta, look.x));
                 const dy = Math.max(-maxDelta, Math.min(maxDelta, look.y));
-                const sensitivity = this.input.isMobile ? this.mouseSensitivity * 4.2 : this.mouseSensitivity * 1.4;
+                if (this.input.isMobile) {
+                    const side = Math.max(window.innerWidth, window.innerHeight);
+                    if (side !== this.lastLookSide) {
+                        this.lastLookSide = side;
+                        this.mobileLookSensitivity = 1.9 / side;
+                    }
+                }
+                const sensitivity = this.input.isMobile ? this.mobileLookSensitivity : this.mouseSensitivity * 1.4;
                 this.rotation.y -= dx * sensitivity;
                 this.rotation.x -= dy * sensitivity;
                 const maxPitch = Math.PI / 2.4;
@@ -323,17 +332,8 @@ export class Player {
                 this.lastCameraPosition = cameraPosition.clone();
             }
         } else {
-            // Mobile: drive the camera holder for yaw and camera for pitch, no roll.
-            const holder = controls?.getObject ? controls.getObject() : null;
-            if (holder) {
-                holder.position.copy(cameraPosition);
-                holder.rotation.set(0, this.rotation.y, 0);
-                this.camera.position.set(0, 0, 0);
-                this.camera.rotation.set(this.rotation.x, 0, 0, 'YXZ');
-            } else {
-                this.camera.position.copy(cameraPosition);
-                this.camera.rotation.set(this.rotation.x, this.rotation.y, 0, 'YXZ');
-            }
+            this.camera.position.copy(cameraPosition);
+            this.camera.rotation.set(this.rotation.x, this.rotation.y, 0, 'YXZ');
             this.camera.up.set(0, 1, 0);
         }
 
