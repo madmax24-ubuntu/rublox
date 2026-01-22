@@ -172,15 +172,18 @@ export class MapGenerator {
         const grassMat = new THREE.MeshStandardMaterial({
             color: 0x3ea63e,
             roughness: 0.95,
-            flatShading: true
+            flatShading: true,
+            polygonOffset: true,
+            polygonOffsetFactor: -1,
+            polygonOffsetUnits: -1
         });
         const grassBase = new THREE.Mesh(
-            new THREE.BoxGeometry(yardSize, 0.6, yardSize),
+            new THREE.BoxGeometry(yardSize, 1.2, yardSize),
             grassMat
         );
-        grassBase.position.set(0, 0.6 / 2 + 0.2, 0);
+        grassBase.position.set(0, 1.2 / 2 + 0.4, 0);
         this.scene.add(grassBase);
-        this.addColliderBox(grassBase.position, yardSize, 0.6, yardSize);
+        this.addColliderBox(grassBase.position, yardSize, 1.2, yardSize);
 
         // Courtyard kept minimal: grass base, spawn pads, walls/gate.
 
@@ -250,7 +253,7 @@ export class MapGenerator {
         });
         const padRadius = yardSize * 0.45;
         const padHeight = 0.35;
-        const grassTop = grassBase.position.y + 0.6 / 2;
+        const grassTop = grassBase.position.y + 1.2 / 2;
         for (let i = 0; i < 32; i++) {
             const angle = (i / 32) * Math.PI * 2;
             const pad = new THREE.Mesh(

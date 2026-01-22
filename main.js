@@ -106,7 +106,7 @@ class Game {
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
 
         this.renderer = new THREE.WebGLRenderer({
-            antialias: true,
+            antialias: !isMobile,
             powerPreference: "high-performance",
             precision: "mediump",
             stencil: false,
@@ -115,7 +115,8 @@ class Game {
         });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.shadowMap.enabled = false;
-        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
+        const pixelRatio = isMobile ? 1 : Math.min(window.devicePixelRatio || 1, 1.25);
+        this.renderer.setPixelRatio(pixelRatio);
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
         const gameRoot = document.getElementById('gameRoot');
@@ -366,7 +367,8 @@ class Game {
         }
 
         if (this.gameState === 'playing') {
-            const targetFar = Math.max(200, Math.min(1200, this.zone.getCurrentRadius() + 120));
+            const maxFar = this.isMobile() ? 650 : 1200;
+            const targetFar = Math.max(200, Math.min(maxFar, this.zone.getCurrentRadius() + 120));
             if (this.camera.far !== targetFar) {
                 this.camera.far = targetFar;
                 this.camera.updateProjectionMatrix();
