@@ -170,33 +170,19 @@ export class MapGenerator {
     createCourtyard() {
         const yardSize = this.courtyardSize;
         const grassTex = this.getTexture('grass', () => this.createNoiseTexture(0x3f8f3f, 0x2f7a2f));
-        const tileGeo = new THREE.BoxGeometry(2.8, 0.6, 2.8);
-        const tileMat = new THREE.MeshStandardMaterial({
+        const grassMat = new THREE.MeshStandardMaterial({
             color: 0x3ea63e,
             map: grassTex,
             roughness: 0.95,
             flatShading: true
         });
-        const tiles = [];
-        const tileStep = 3;
-        for (let x = -yardSize / 2 + tileStep; x < yardSize / 2 - tileStep; x += tileStep) {
-            for (let z = -yardSize / 2 + tileStep; z < yardSize / 2 - tileStep; z += tileStep) {
-                tiles.push({ x, z });
-            }
-        }
-        if (tiles.length) {
-            const mesh = new THREE.InstancedMesh(tileGeo, tileMat, tiles.length);
-            const matrix = new THREE.Matrix4();
-            const position = new THREE.Vector3();
-            const rotation = new THREE.Quaternion();
-            const scale = new THREE.Vector3(1, 1, 1);
-            tiles.forEach((tile, index) => {
-                position.set(tile.x, 0.3, tile.z);
-                matrix.compose(position, rotation, scale);
-                mesh.setMatrixAt(index, matrix);
-            });
-            this.scene.add(mesh);
-        }
+        const grassBase = new THREE.Mesh(
+            new THREE.BoxGeometry(yardSize, 0.3, yardSize),
+            grassMat
+        );
+        grassBase.position.set(0, 0.15, 0);
+        this.scene.add(grassBase);
+        this.addColliderBox(grassBase.position, yardSize, 0.3, yardSize);
 
         const stoneTex = this.getTexture('stone', () => this.createNoiseTexture(0x8f8f8f, 0x777777));
         const stoneMat = new THREE.MeshStandardMaterial({
@@ -212,14 +198,6 @@ export class MapGenerator {
         );
         plaza.position.set(0, 0.35, 0);
         this.scene.add(plaza);
-
-        const pathWidth = 6;
-        const pathNorth = new THREE.Mesh(
-            new THREE.BoxGeometry(pathWidth, 0.55, yardSize / 2),
-            stoneMat
-        );
-        pathNorth.position.set(0, 0.28, -yardSize / 4);
-        this.scene.add(pathNorth);
 
         const liftMat = new THREE.MeshStandardMaterial({
             color: 0x607d8b,
@@ -241,39 +219,7 @@ export class MapGenerator {
         this.scene.add(liftBox);
         this.addColliderBox(liftBox.position, 3, 3, 3, false);
 
-        const addBuilding = (pos, size, color) => {
-            const mat = new THREE.MeshStandardMaterial({
-                color,
-                roughness: 0.8,
-                flatShading: true
-            });
-            const body = new THREE.Mesh(
-                new THREE.BoxGeometry(size.x, size.y, size.z),
-                mat
-            );
-            body.position.copy(pos);
-            this.scene.add(body);
-            this.addColliderBox(body.position, size.x, size.y, size.z, false);
-        };
-
-        addBuilding(new THREE.Vector3(-16, 2, -12), new THREE.Vector3(6, 4, 6), 0x8d6e63); // dorm
-        addBuilding(new THREE.Vector3(16, 2, -12), new THREE.Vector3(6, 4, 6), 0x5d4037); // map room
-        addBuilding(new THREE.Vector3(-18, 1.4, 14), new THREE.Vector3(8, 2.8, 5), 0x6d4c41); // barn
-        addBuilding(new THREE.Vector3(18, 1.4, 14), new THREE.Vector3(6, 2.8, 5), 0x455a64); // prison
-
-        const garden = new THREE.Mesh(
-            new THREE.BoxGeometry(8, 0.5, 6),
-            new THREE.MeshStandardMaterial({ color: 0x689f38, roughness: 0.9, flatShading: true })
-        );
-        garden.position.set(-6, 0.25, 16);
-        this.scene.add(garden);
-
-        const groveMat = new THREE.MeshStandardMaterial({ color: 0x2e7d32, roughness: 0.9, flatShading: true });
-        for (let i = 0; i < 6; i++) {
-            const t = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.6, 1.2), groveMat);
-            t.position.set(10 + (i % 3) * 2, 1.3, 14 + Math.floor(i / 3) * 2);
-            this.scene.add(t);
-        }
+        // Courtyard kept minimal: grass base, plaza, lift, spawn pads, walls/gate.
 
         const wallMat = new THREE.MeshStandardMaterial({
             color: 0x9e9e9e,
