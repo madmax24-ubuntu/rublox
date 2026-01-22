@@ -337,7 +337,7 @@ export class Player {
             this.camera.up.set(0, 1, 0);
         }
 
-        const isFirstPerson = controls && controls.isLocked;
+        const isFirstPerson = (controls && controls.isLocked) || this.input.isMobile;
         if (isFirstPerson) {
             this.mesh.visible = false;
             this.fpArms.visible = true;
