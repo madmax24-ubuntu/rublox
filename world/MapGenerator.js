@@ -184,42 +184,7 @@ export class MapGenerator {
         this.scene.add(grassBase);
         this.addColliderBox(grassBase.position, yardSize, 0.3, yardSize);
 
-        const stoneTex = this.getTexture('stone', () => this.createNoiseTexture(0x8f8f8f, 0x777777));
-        const stoneMat = new THREE.MeshStandardMaterial({
-            color: 0x9a9a9a,
-            map: stoneTex,
-            roughness: 0.9,
-            flatShading: true
-        });
-        const plazaSize = 14;
-        const plaza = new THREE.Mesh(
-            new THREE.BoxGeometry(plazaSize, 0.7, plazaSize),
-            stoneMat
-        );
-        plaza.position.set(0, 0.35, 0);
-        this.scene.add(plaza);
-
-        const liftMat = new THREE.MeshStandardMaterial({
-            color: 0x607d8b,
-            metalness: 0.6,
-            roughness: 0.3,
-            flatShading: true
-        });
-        const liftBase = new THREE.Mesh(
-            new THREE.BoxGeometry(4, 0.6, 4),
-            liftMat
-        );
-        liftBase.position.set(0, 0.4, 0);
-        this.scene.add(liftBase);
-        const liftBox = new THREE.Mesh(
-            new THREE.BoxGeometry(3, 3, 3),
-            liftMat
-        );
-        liftBox.position.set(0, 2.1, 0);
-        this.scene.add(liftBox);
-        this.addColliderBox(liftBox.position, 3, 3, 3, false);
-
-        // Courtyard kept minimal: grass base, plaza, lift, spawn pads, walls/gate.
+        // Courtyard kept minimal: grass base, spawn pads, walls/gate.
 
         const wallMat = new THREE.MeshStandardMaterial({
             color: 0x9e9e9e,

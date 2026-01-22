@@ -503,6 +503,7 @@ export class Player {
             this.currentWeapon = null;
             this.fists = new Weapon('fists', this.scene);
         }
+        this.updateViewWeapon();
     }
 
     pickupLoot(loot) {
@@ -516,6 +517,7 @@ export class Player {
             } else {
                 weapon.dispose();
             }
+            this.updateViewWeapon();
         } else if (loot.type === 'armor') {
             this.armor = Math.min(this.maxArmor, this.armor + loot.amount);
         }

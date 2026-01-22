@@ -160,6 +160,7 @@ export class HUD {
             padding: ${px(8)}px ${px(10)}px;
             border-radius: ${px(10)}px;
             border: 2px solid rgba(255, 255, 255, 0.12);
+            pointer-events: auto;
         `;
         hud.appendChild(inventory);
 
@@ -179,6 +180,7 @@ export class HUD {
                 font-size: ${px(16)}px;
                 font-weight: 700;
                 position: relative;
+                pointer-events: auto;
             `;
             slot.textContent = i;
 
@@ -192,6 +194,14 @@ export class HUD {
             `;
             slotNumber.textContent = i;
             slot.appendChild(slotNumber);
+
+            slot.addEventListener('click', () => {
+                document.dispatchEvent(new CustomEvent('selectSlot', { detail: i }));
+            });
+            slot.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                document.dispatchEvent(new CustomEvent('selectSlot', { detail: i }));
+            }, { passive: false });
 
             inventory.appendChild(slot);
         }

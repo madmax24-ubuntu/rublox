@@ -517,6 +517,14 @@ window.addEventListener('DOMContentLoaded', () => {
         window.addEventListener('orientationchange', () => game.updateOrientationUI());
     }
 
+    document.addEventListener('selectSlot', (event) => {
+        if (!game?.player) return;
+        const slot = typeof event.detail === 'number' ? event.detail : null;
+        if (slot === null) return;
+        game.player.selectSlot(slot);
+        game.player.updateViewWeapon();
+    });
+
     const startButton = document.getElementById('startButton');
     if (startButton) {
         startButton.addEventListener('click', async () => {
