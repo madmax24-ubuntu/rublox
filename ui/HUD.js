@@ -25,7 +25,8 @@ export class HUD {
             color: #e9f0f6;
             text-shadow: 0 2px 0 rgba(0,0,0,0.35);
         `;
-        document.body.appendChild(hud);
+        const root = document.getElementById('gameRoot') || document.body;
+        root.appendChild(hud);
 
         const topBar = document.createElement('div');
         topBar.style.cssText = `

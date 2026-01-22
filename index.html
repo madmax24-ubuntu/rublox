@@ -30,6 +30,14 @@
             font-family: 'Trebuchet MS', Verdana, sans-serif;
         }
 
+        #gameRoot {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
         canvas {
             cursor: none !important;
             display: block;
@@ -116,8 +124,8 @@
         }
 
         #touchJump {
-            bottom: 10vh;
-            left: 26vw;
+            bottom: 18vh;
+            right: 22vw;
         }
 
         #touchAttack {
@@ -126,7 +134,7 @@
         }
 
         #touchInteract {
-            bottom: 22vh;
+            bottom: 28vh;
             right: 12vw;
             width: 64px;
             height: 64px;
@@ -287,6 +295,7 @@
     </script>
 </head>
 <body>
+    <div id="gameRoot">
     <div id="startScreen">
         <div class="start-card">
             <h1>RUBLOX</h1>
@@ -327,6 +336,7 @@
     <div id="touchJump" class="touch-btn">Прыжок</div>
     <div id="touchAttack" class="touch-btn">Удар</div>
     <div id="touchInteract" class="touch-btn">E</div>
+    </div>
     <script type="module" src="./main.js"></script>
 </body>
 </html>

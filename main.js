@@ -64,13 +64,15 @@ class Game {
 
     async enterFullscreen() {
         try {
-            const elem = this.renderer?.domElement || document.documentElement;
-            if (elem.requestFullscreen) {
-                await elem.requestFullscreen();
-            } else if (elem.webkitRequestFullscreen) {
-                await elem.webkitRequestFullscreen();
-            } else if (elem.msRequestFullscreen) {
-                await elem.msRequestFullscreen();
+            const root = document.getElementById('gameRoot') || document.documentElement;
+            if (root.requestFullscreen) {
+                await root.requestFullscreen();
+            } else if (root.webkitRequestFullscreen) {
+                await root.webkitRequestFullscreen();
+            } else if (root.msRequestFullscreen) {
+                await root.msRequestFullscreen();
+            } else if (this.renderer?.domElement?.requestFullscreen) {
+                await this.renderer.domElement.requestFullscreen();
             }
         } catch (err) {
             console.log('Fullscreen failed:', err);
@@ -111,7 +113,12 @@ class Game {
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-        document.body.appendChild(this.renderer.domElement);
+        const gameRoot = document.getElementById('gameRoot');
+        if (gameRoot) {
+            gameRoot.appendChild(this.renderer.domElement);
+        } else {
+            document.body.appendChild(this.renderer.domElement);
+        }
 
         this.controls = new PointerLockControls(this.camera, this.renderer.domElement);
         this.camera.position.set(0, 1.5, 0);
@@ -455,8 +462,8 @@ class Game {
         }
 
         if (this.isMobile()) {
-            await this.enterFullscreen();
-            await this.lockOrientation();
+            this.enterFullscreen();
+            this.lockOrientation();
             this.updateOrientationUI();
             const retry = async () => {
                 if (!document.fullscreenElement) {
