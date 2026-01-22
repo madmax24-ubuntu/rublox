@@ -461,6 +461,8 @@ export class Player {
             return;
         }
 
+        if (this.viewWeapon) this.viewWeapon.visible = true;
+
         const arms = this.fpArms?.userData?.limbs;
         if (!arms) return;
 
