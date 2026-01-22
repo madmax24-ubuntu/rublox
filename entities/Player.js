@@ -227,7 +227,7 @@ export class Player {
                     const side = Math.max(window.innerWidth, window.innerHeight);
                     if (side !== this.lastLookSide) {
                         this.lastLookSide = side;
-                        this.mobileLookSensitivity = 1.9 / side;
+                        this.mobileLookSensitivity = 5.7 / side;
                     }
                 }
                 const sensitivity = this.input.isMobile ? this.mobileLookSensitivity : this.mouseSensitivity * 1.4;
@@ -266,8 +266,17 @@ export class Player {
                 moveDirection.addScaledVector(rightDirection, moveVector.x);
                 moveDirection.normalize();
             } else {
-                moveDirection.x = moveVector.x * Math.cos(this.rotation.y) - moveVector.z * Math.sin(this.rotation.y);
-                moveDirection.z = moveVector.x * Math.sin(this.rotation.y) + moveVector.z * Math.cos(this.rotation.y);
+                const cameraDirection = new THREE.Vector3();
+                this.camera.getWorldDirection(cameraDirection);
+                cameraDirection.y = 0;
+                cameraDirection.normalize();
+
+                const rightDirection = new THREE.Vector3();
+                rightDirection.crossVectors(cameraDirection, new THREE.Vector3(0, 1, 0));
+
+                moveDirection.addScaledVector(cameraDirection, -moveVector.z);
+                moveDirection.addScaledVector(rightDirection, moveVector.x);
+                moveDirection.normalize();
             }
 
             const speed = this.physics.speed * this.slowFactor;
