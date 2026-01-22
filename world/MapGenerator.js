@@ -169,10 +169,8 @@ export class MapGenerator {
 
     createCourtyard() {
         const yardSize = this.courtyardSize;
-        const grassTex = this.getTexture('grass', () => this.createNoiseTexture(0x3f8f3f, 0x2f7a2f));
         const grassMat = new THREE.MeshStandardMaterial({
             color: 0x3ea63e,
-            map: grassTex,
             roughness: 0.95,
             flatShading: true
         });

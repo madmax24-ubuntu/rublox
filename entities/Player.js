@@ -274,7 +274,8 @@ export class Player {
                 const rightDirection = new THREE.Vector3();
                 rightDirection.crossVectors(cameraDirection, new THREE.Vector3(0, 1, 0));
 
-                moveDirection.addScaledVector(cameraDirection, -moveVector.z);
+                const forwardScale = this.input.isMobile ? moveVector.z : -moveVector.z;
+                moveDirection.addScaledVector(cameraDirection, forwardScale);
                 moveDirection.addScaledVector(rightDirection, moveVector.x);
                 moveDirection.normalize();
             }

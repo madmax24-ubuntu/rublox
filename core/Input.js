@@ -244,7 +244,7 @@ export class Input {
         const dist = Math.hypot(dx, dy);
         if (dist > this.touch.deadzone) {
             move.x += dx / this.touch.radius;
-            move.z += dy / this.touch.radius;
+            move.z += -dy / this.touch.radius;
         }
 
         return move.normalize();
