@@ -598,6 +598,7 @@ export class Player {
         const source = new Weapon(weaponType, this.scene);
         if (!source.mesh) return;
         const viewClone = source.mesh.clone();
+        viewClone.visible = true;
         viewClone.scale.setScalar(1.1);
         viewClone.position.set(0.15, -0.4, -0.55);
         viewClone.rotation.set(0, Math.PI, 0);

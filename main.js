@@ -115,7 +115,7 @@ class Game {
         });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.shadowMap.enabled = false;
-        const pixelRatio = isMobile ? 1 : Math.min(window.devicePixelRatio || 1, 1.25);
+        const pixelRatio = isMobile ? 0.8 : Math.min(window.devicePixelRatio || 1, 1.25);
         this.renderer.setPixelRatio(pixelRatio);
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
@@ -188,7 +188,7 @@ class Game {
         this.gameState = 'countdown';
         this.countdownTime = 10;
         this.countdownTimer = this.countdownTime;
-        this.spawnTime = 60;
+        this.spawnTime = 20;
         this.spawnTimer = this.spawnTime;
         this.zoneShrinkTimer = 40;
         this.zoneShrinkInterval = 20;
