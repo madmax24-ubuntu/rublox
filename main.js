@@ -465,11 +465,13 @@ class Game {
             this.enterFullscreen();
             this.lockOrientation();
             this.updateOrientationUI();
+            this.player?.resetView?.();
             const retry = async () => {
                 if (!document.fullscreenElement) {
                     await this.enterFullscreen();
                     await this.lockOrientation();
                     this.updateOrientationUI();
+                    this.player?.resetView?.();
                 }
                 window.removeEventListener('touchend', retry);
             };

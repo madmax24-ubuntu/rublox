@@ -7,8 +7,7 @@ export class Player {
         this.scene = scene;
         this.camera = camera;
         this.input = input;
-        
-        // Позиция и физика
+
         this.position = new THREE.Vector3(0, 5, 0);
         this.rotation = new THREE.Euler(0, 0, 0);
         this.physics = {
@@ -18,21 +17,18 @@ export class Player {
             radius: 0.4,
             speed: 8
         };
-        
-        // Характеристики
+
         this.health = 100;
         this.maxHealth = 100;
         this.armor = 0;
         this.maxArmor = 100;
         this.isInvulnerable = false;
         this.isAlive = true;
-        
-        // Инвентарь и оружие
+
         this.inventory = new Inventory();
         this.currentWeapon = null;
         this.fists = new Weapon('fists', this.scene);
-        
-        // Визуализация
+
         this.mesh = this.createMesh();
         this.scene.add(this.mesh);
 
@@ -45,13 +41,11 @@ export class Player {
         this.punchTime = 0;
         this.punchDuration = 0.25;
         this.audioSynthRef = null;
-        
-        // Управление камерой
+
         this.cameraOffset = new THREE.Vector3(0, 1.5, 0);
-        this.mouseSensitivity = 0.001; // Уменьшаем чувствительность
+        this.mouseSensitivity = 0.001;
         this.euler = new THREE.Euler(0, 0, 0, 'YXZ');
-        
-        // Анимация
+
         this.animationState = 'idle';
         this.lastFootstepTime = 0;
         this.coyoteTime = 0;
@@ -60,6 +54,13 @@ export class Player {
         this.jumpBufferDuration = 0.12;
         this.slowTimer = 0;
         this.slowFactor = 1;
+    }
+
+    resetView() {
+        this.rotation.set(0, 0, 0);
+        if (this.input && this.input.resetLook) {
+            this.input.resetLook();
+        }
     }
 
     createFirstPersonArms() {
@@ -132,8 +133,7 @@ export class Player {
 
     createMesh() {
         const group = new THREE.Group();
-        
-        // Тело (Roblox стиль) - простой и быстрый
+
         const bodyMat = new THREE.MeshStandardMaterial({
             color: 0x4a90e2,
             roughness: 0.35,
@@ -146,8 +146,7 @@ export class Player {
         );
         body.position.y = 0.85;
         group.add(body);
-        
-        // Голова
+
         const headMat = new THREE.MeshStandardMaterial({
             color: 0xffd6b5,
             roughness: 0.4,
@@ -160,8 +159,7 @@ export class Player {
         );
         head.position.y = 1.65;
         group.add(head);
-        
-        // Руки
+
         const armMat = new THREE.MeshStandardMaterial({
             color: 0x4a90e2,
             roughness: 0.35,
@@ -181,8 +179,7 @@ export class Player {
         );
         rightArm.position.set(0.54, 0.7, 0);
         group.add(rightArm);
-        
-        // Ноги
+
         const legMat = new THREE.MeshStandardMaterial({
             color: 0x1a1a1a,
             roughness: 0.5,
@@ -202,7 +199,7 @@ export class Player {
         );
         rightLeg.position.set(0.2, 0.3, 0);
         group.add(rightLeg);
-        
+
         group.userData.isEntity = true;
         group.userData.isPlayer = true;
         group.userData.limbs = { leftArm, rightArm, leftLeg, rightLeg };
@@ -213,8 +210,6 @@ export class Player {
         if (!this.isAlive) return;
         this.audioSynthRef = audioSynth;
 
-        // КАМЕРА УПРАВЛЯЕТСЯ ТОЛЬКО PointerLockControls - НЕ ТРОГАЕМ ЕЕ!
-        // Просто получаем направление для движения
         if (controls && controls.isLocked) {
             const euler = new THREE.Euler();
             euler.setFromQuaternion(controls.getObject().quaternion);
@@ -234,7 +229,6 @@ export class Player {
             }
         }
 
-        // Движение относительно направления камеры
         const isFrozen = this.isFrozen === true;
         const moveVector = isFrozen ? new THREE.Vector3() : this.input.getMovementVector();
         if (this.slowTimer > 0) {
@@ -249,39 +243,34 @@ export class Player {
         }
         if (moveVector.length() > 0) {
             let moveDirection = new THREE.Vector3();
-            
+
             if (controls && controls.isLocked) {
-                // Используем направление камеры для движения
                 const cameraDirection = new THREE.Vector3();
                 controls.getObject().getWorldDirection(cameraDirection);
-                cameraDirection.y = 0; // Убираем вертикальную составляющую
+                cameraDirection.y = 0;
                 cameraDirection.normalize();
-                
-                // Правое направление
+
                 const rightDirection = new THREE.Vector3();
                 rightDirection.crossVectors(cameraDirection, new THREE.Vector3(0, 1, 0));
-                
-                // Комбинируем направления - ПРАВИЛЬНО (moveVector.z: W=-1, S=+1)
-                moveDirection.addScaledVector(cameraDirection, -moveVector.z); // W идет вперед
-                moveDirection.addScaledVector(rightDirection, moveVector.x); // D вправо, A влево
+
+                moveDirection.addScaledVector(cameraDirection, -moveVector.z);
+                moveDirection.addScaledVector(rightDirection, moveVector.x);
                 moveDirection.normalize();
             } else {
-                // Fallback для случая без controls
                 moveDirection.x = moveVector.x * Math.cos(this.rotation.y) - moveVector.z * Math.sin(this.rotation.y);
                 moveDirection.z = moveVector.x * Math.sin(this.rotation.y) + moveVector.z * Math.cos(this.rotation.y);
             }
-            
+
             const speed = this.physics.speed * this.slowFactor;
             this.physics.velocity.x = moveDirection.x * speed;
             this.physics.velocity.z = moveDirection.z * speed;
-            
-            // Звуки шагов
+
             const currentTime = performance.now() / 1000;
             if (this.physics.onGround && currentTime - this.lastFootstepTime > 0.5 && audioSynth) {
                 audioSynth.playFootstep();
                 this.lastFootstepTime = currentTime;
             }
-            
+
             this.animationState = 'walking';
         } else {
             this.physics.velocity.x *= 0.8;
@@ -289,7 +278,6 @@ export class Player {
             this.animationState = 'idle';
         }
 
-        // Прыжок
         if (!isFrozen && this.input.isKeyPressed('Space')) {
             this.jumpBufferTime = this.jumpBufferDuration;
         }
@@ -310,30 +298,23 @@ export class Player {
         }
         this.jumpBufferTime = Math.max(0, this.jumpBufferTime - delta);
 
-        // Обновление позиции меша
         this.mesh.position.copy(this.position);
         this.mesh.position.y = this.position.y - (this.physics.height - 0.15);
         this.mesh.rotation.y = this.rotation.y;
         this.animateLimbs();
 
-        // Полностью фиксированное позиционирование камеры
         const cameraPosition = new THREE.Vector3(
             Math.round(this.position.x * 100) / 100,
             this.position.y + this.cameraOffset.y,
             Math.round(this.position.z * 100) / 100
         );
-        
+
         if (controls && controls.isLocked) {
-            // Прямая установка позиции без интерполяции и округлений
             controls.getObject().position.copy(cameraPosition);
-            
-            // Принудительная фиксация высоты камеры (критично для предотвращения плавания)
             controls.getObject().position.y = this.position.y + this.cameraOffset.y;
-            
-            // Блокируем любые микро-движения, делая дискретные шаги
             if (this.lastCameraPosition) {
                 const dist = cameraPosition.distanceTo(this.lastCameraPosition);
-                if (dist < 0.05) { // Игнорируем микро-движения
+                if (dist < 0.05) {
                     controls.getObject().position.copy(this.lastCameraPosition);
                 } else {
                     this.lastCameraPosition.copy(cameraPosition);
@@ -342,11 +323,11 @@ export class Player {
                 this.lastCameraPosition = cameraPosition.clone();
             }
         } else {
-            // Стандартная камера с жёсткой фиксацией
+            // Mobile: drive the camera holder for yaw and camera for pitch, no roll.
             const holder = controls?.getObject ? controls.getObject() : null;
             if (holder) {
                 holder.position.copy(cameraPosition);
-                holder.rotation.set(0, this.rotation.y, 0, 'YXZ');
+                holder.rotation.set(0, this.rotation.y, 0);
                 this.camera.position.set(0, 0, 0);
                 this.camera.rotation.set(this.rotation.x, 0, 0, 'YXZ');
             } else {
@@ -368,14 +349,12 @@ export class Player {
         }
         this.animateViewModel(isFirstPerson);
 
-        // Переключение слотов инвентаря
         for (let i = 0; i <= 9; i++) {
             if (this.input.isKeyPressed(`Digit${i}`) || this.input.isKeyPressed(`Numpad${i}`)) {
                 this.selectSlot(i);
             }
         }
 
-        // Атака
         if (!isFrozen && this.input.isKeyPressed('MouseLeft')) {
             const activeWeapon = this.currentWeapon || this.fists;
             if (activeWeapon.type === 'bow' || activeWeapon.type === 'laser') {
@@ -413,13 +392,12 @@ export class Player {
             }
         }
 
-        // Взаимодействие с сундуками
         if (!isFrozen && this.input.isKeyPressed('KeyE')) {
             const nearestChest = lootManager.getChests().find(chest => {
                 if (chest.userData.isOpen) return false;
                 return this.position.distanceTo(chest.position) < 3;
             });
-            
+
             if (nearestChest) {
                 const loot = lootManager.tryOpenChest(nearestChest, this, audioSynth);
                 if (loot) {
@@ -428,16 +406,14 @@ export class Player {
             }
         }
 
-        // Проверка сундуков поблизости
         lootManager.checkNearbyChests(this.position, audioSynth);
 
-        // Обновление оружия
         if (!isFirstPerson && this.currentWeapon && this.currentWeapon.mesh) {
             const weaponPos = this.position.clone();
             weaponPos.y += 1.2;
             weaponPos.x += Math.cos(this.rotation.y) * 0.5;
             weaponPos.z += Math.sin(this.rotation.y) * 0.5;
-            
+
             this.currentWeapon.setPosition(weaponPos);
             this.currentWeapon.setRotation(this.rotation);
         }
@@ -476,52 +452,32 @@ export class Player {
             return;
         }
 
-        if (this.viewWeapon) this.viewWeapon.visible = true;
-        const speed = Math.sqrt(
-            this.physics.velocity.x * this.physics.velocity.x +
-            this.physics.velocity.z * this.physics.velocity.z
-        );
-        const speedNorm = Math.min(1, speed / this.physics.speed);
-        const time = performance.now() / 1000;
-        const bob = Math.sin(time * 10) * 0.02 * speedNorm;
-        const sway = Math.sin(time * 2.5) * 0.01;
-        const swayY = Math.cos(time * 2.0) * 0.008;
-        const punch = this.punchTime > 0 ? this.punchTime / this.punchDuration : 0;
+        const arms = this.fpArms?.userData?.limbs;
+        if (!arms) return;
 
-        this.viewKick *= 0.85;
-        if (this.viewWeapon) {
-            this.viewWeapon.position.set(
-                0.32 + sway,
-                -0.08 - bob - this.viewKick * 0.1 + swayY,
-                -0.62 + bob + punch * 0.16
-            );
-            this.viewWeapon.rotation.set(
-                -0.1 + this.viewKick + swayY - punch * 0.6,
-                -Math.PI / 2 + sway * 2,
-                0
-            );
+        const swing = Math.sin(performance.now() * 0.01) * 0.02;
+        arms.leftArm.position.copy(this.fpArms.userData.base.leftArm);
+        arms.rightArm.position.copy(this.fpArms.userData.base.rightArm);
+        arms.leftHand.position.copy(this.fpArms.userData.base.leftHand);
+        arms.rightHand.position.copy(this.fpArms.userData.base.rightHand);
+
+        const bob = Math.sin(performance.now() * 0.008) * 0.03;
+        arms.leftArm.position.y += bob;
+        arms.rightArm.position.y += bob;
+        arms.leftHand.position.y += bob;
+        arms.rightHand.position.y += bob;
+
+        if (this.punchTime > 0) {
+            const t = 1 - this.punchTime / this.punchDuration;
+            const punch = Math.sin(t * Math.PI) * 0.25;
+            arms.rightArm.position.z += punch;
+            arms.rightHand.position.z += punch;
         }
-        if (this.fpArms) {
-            this.fpArms.position.set(
-                0 + sway * 0.6,
-                -0.06 - bob * 0.25 + swayY * 0.35,
-                punch * 0.1
-            );
-            this.fpArms.rotation.x = 0;
 
-            const limbs = this.fpArms.userData?.limbs;
-            const base = this.fpArms.userData?.base;
-            if (limbs && base) {
-                const punchZ = punch * 0.18;
-                limbs.rightArm.position.copy(base.rightArm).add(new THREE.Vector3(0, 0, -punchZ));
-                limbs.rightHand.position.copy(base.rightHand).add(new THREE.Vector3(0, 0, -punchZ));
-                limbs.leftArm.position.copy(base.leftArm);
-                limbs.leftHand.position.copy(base.leftHand);
-                limbs.rightArm.rotation.set(0, 0, 0);
-                limbs.rightHand.rotation.set(0, 0, 0);
-                limbs.leftArm.rotation.set(0, 0, 0);
-                limbs.leftHand.rotation.set(0, 0, 0);
-            }
+        if (this.viewWeapon && this.viewWeapon.visible) {
+            this.viewWeapon.rotation.x = -0.1;
+            this.viewWeapon.rotation.y = 0.15;
+            this.viewWeapon.rotation.z = 0;
         }
     }
 
@@ -531,28 +487,12 @@ export class Player {
             this.currentWeapon.setVisible(false);
         }
 
-        if (this.viewWeapon) {
-            this.camera.remove(this.viewWeapon);
-            this.viewWeapon = null;
-        }
-
         if (weapon) {
             this.currentWeapon = weapon;
             this.currentWeapon.setVisible(true);
-                if (weapon.mesh) {
-                    const viewClone = weapon.mesh.clone(true);
-                    viewClone.visible = true;
-                    viewClone.position.set(0.32, -0.08, -0.62);
-                    viewClone.rotation.set(-0.12, -Math.PI / 2, 0);
-                    viewClone.scale.setScalar(1.1);
-                    this.setupViewModel(viewClone);
-                    this.camera.add(viewClone);
-                this.viewWeapon = viewClone;
-            } else {
-                this.viewWeapon = null;
-            }
         } else {
             this.currentWeapon = null;
+            this.fists = new Weapon('fists', this.scene);
         }
     }
 
@@ -576,13 +516,12 @@ export class Player {
         if (this.isInvulnerable) return false;
 
         const finalDamage = isHeadshot ? damage * 2 : damage;
-        
-        // Сначала тратится броня
+
         if (this.armor > 0) {
             const armorDamage = Math.min(this.armor, finalDamage);
             this.armor -= armorDamage;
             const remainingDamage = finalDamage - armorDamage;
-            
+
             if (remainingDamage > 0) {
                 this.health -= remainingDamage;
             }
@@ -593,7 +532,11 @@ export class Player {
         if (this.health <= 0) {
             this.health = 0;
             this.isAlive = false;
-            this.mesh.visible = false;
+            this.isFrozen = true;
+            this.physics.velocity.set(0, 0, 0);
+            this.mesh.position.copy(this.position);
+            this.mesh.position.y = this.position.y - (this.physics.height - 0.15) - 0.8;
+            this.mesh.rotation.set(-Math.PI / 2, this.rotation.y, 0);
         }
         this.flashDamage();
         if (this.audioSynthRef && this.audioSynthRef.playHurt) {
@@ -612,40 +555,44 @@ export class Player {
 
     setInvulnerable(value) {
         this.isInvulnerable = value;
-        // Визуальный эффект неуязвимости
-        if (value) {
-            this.mesh.traverse(child => {
-                if (child.material) {
-                    child.material.emissive = new THREE.Color(0xffff00);
-                    child.material.emissiveIntensity = 0.5;
-                }
-            });
-        } else {
-            this.mesh.traverse(child => {
-                if (child.material) {
-                    child.material.emissive = new THREE.Color(0x000000);
-                    child.material.emissiveIntensity = 0;
-                }
-            });
-        }
     }
 
-    dispose() {
-        if (this.mesh) {
-            this.scene.remove(this.mesh);
-            this.mesh.traverse(child => {
-                if (child.geometry) child.geometry.dispose();
-                if (child.material) child.material.dispose();
-            });
-        }
-        
-        if (this.currentWeapon) {
-            this.currentWeapon.dispose();
-        }
-        
-        this.inventory.getItems().forEach(weapon => {
-            if (weapon) weapon.dispose();
+    flashDamage() {
+        if (!this.mesh) return;
+        this.mesh.traverse((child) => {
+            if (child.isMesh) {
+                child.material.emissive = new THREE.Color(0xff0000);
+                child.material.emissiveIntensity = 0.5;
+                setTimeout(() => {
+                    if (child.material) {
+                        child.material.emissiveIntensity = 0;
+                    }
+                }, 200);
+            }
         });
+    }
+
+    animateViewModelWeapon(weaponType) {
+        if (!this.fpArms) return;
+
+        if (this.viewWeapon) {
+            this.fpArms.remove(this.viewWeapon);
+            this.viewWeapon = null;
+        }
+
+        if (!weaponType) return;
+
+        const viewClone = new Weapon(weaponType, this.scene).mesh.clone();
+        viewClone.scale.setScalar(1.1);
+        viewClone.position.set(0.15, -0.4, -0.55);
+        viewClone.rotation.set(0, Math.PI, 0);
+        this.fpArms.add(viewClone);
+        this.viewWeapon = viewClone;
+    }
+
+    updateViewWeapon() {
+        const weapon = this.currentWeapon || this.fists;
+        this.animateViewModelWeapon(weapon?.type);
     }
 
     applySlow(factor, duration) {
@@ -653,46 +600,52 @@ export class Player {
         this.slowTimer = Math.max(this.slowTimer, duration);
     }
 
-    flashDamage() {
-        const tint = (root) => {
-            root.traverse(child => {
-                if (!child.material || !child.material.color) return;
-                if (!child.userData.baseColor) {
-                    child.userData.baseColor = child.material.color.getHex();
+    attack(target, entityManager) {
+        let weapon = this.currentWeapon || this.fists;
+        if (!weapon || !target || !target.isAlive) return null;
+
+        if (weapon.type === 'knife' && weapon.durability !== null && weapon.durability <= 0) {
+            this.currentWeapon = null;
+            weapon = this.fists;
+        }
+        if ((weapon.type === 'bow' || weapon.type === 'laser') && weapon.ammo !== null && weapon.ammo <= 0) {
+            this.currentWeapon = null;
+            weapon = this.fists;
+        }
+
+        const distance = this.position.distanceTo(target.position);
+        const attackRange = weapon.type === 'laser'
+            ? 40
+            : weapon.type === 'bow'
+                ? 40
+                : weapon.type === 'fists'
+                    ? 2.5
+                    : 3;
+
+        if (distance > attackRange) return null;
+
+        if (weapon.type === 'laser' || weapon.type === 'bow') {
+            const direction = new THREE.Vector3()
+                .subVectors(target.position, this.position)
+                .normalize();
+
+            const projectileData = weapon.attack(this, null, null, direction);
+            if (projectileData && projectileData.projectile) {
+                projectileData.projectile.direction = direction;
+                projectileData.projectile.owner = this;
+                if (entityManager) {
+                    entityManager.addProjectile(projectileData.projectile);
                 }
-                child.material.color.setHex(0xff4d4d);
-            });
-        };
-        const clear = (root) => {
-            root.traverse(child => {
-                if (!child.material || !child.userData.baseColor) return;
-                child.material.color.setHex(child.userData.baseColor);
-            });
-        };
-        tint(this.mesh);
-        if (this.fpArms) tint(this.fpArms);
-        setTimeout(() => {
-            clear(this.mesh);
-            if (this.fpArms) clear(this.fpArms);
-        }, 120);
+                return { fired: true, damage: weapon.damage };
+            }
+        } else {
+            const result = weapon.attack(this, target);
+            if (result && result.hit) {
+                target.takeDamage(result.damage, result.isHeadshot, this, result.knockback || 0);
+                return { hit: true, damage: result.damage, killed: target.health <= 0 };
+            }
+        }
+
+        return null;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

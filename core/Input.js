@@ -191,6 +191,14 @@ export class Input {
         bindHoldButton(touchInteract, 'KeyE');
     }
 
+    resetLook() {
+        this.touch.lookDeltaX = 0;
+        this.touch.lookDeltaY = 0;
+        this.touch.lastLookX = 0;
+        this.touch.lastLookY = 0;
+        this.touch.lookId = null;
+    }
+
     isKeyPressed(code) {
         return this.keys[code] === true;
     }
