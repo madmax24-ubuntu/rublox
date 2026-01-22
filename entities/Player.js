@@ -343,21 +343,17 @@ export class Player {
             }
         } else {
             // Стандартная камера с жёсткой фиксацией
-            const obj = controls?.getObject ? controls.getObject() : null;
-            if (obj) {
-                obj.position.copy(cameraPosition);
-                obj.rotation.set(0, 0, 0);
+            const holder = controls?.getObject ? controls.getObject() : null;
+            if (holder) {
+                holder.position.copy(cameraPosition);
+                holder.rotation.set(0, this.rotation.y, 0);
                 this.camera.position.set(0, 0, 0);
+                this.camera.rotation.set(this.rotation.x, 0, 0, 'YXZ');
             } else {
                 this.camera.position.copy(cameraPosition);
+                this.camera.rotation.set(this.rotation.x, this.rotation.y, 0, 'YXZ');
             }
             this.camera.up.set(0, 1, 0);
-            this.camera.rotation.set(
-                this.rotation.x,
-                this.rotation.y,
-                0,
-                'YXZ'
-            );
         }
 
         const isFirstPerson = controls && controls.isLocked;
@@ -681,6 +677,8 @@ export class Player {
         }, 120);
     }
 }
+
+
 
 
 
