@@ -37,9 +37,12 @@ export class Player {
         this.setupViewModel(this.fpArms);
         this.fpArms.visible = false;
         this.viewWeapon = null;
+        this.viewWeaponType = null;
         this.viewKick = 0;
         this.punchTime = 0;
         this.punchDuration = 0.25;
+        this.weaponSwingTime = 0;
+        this.weaponSwingDuration = 0.2;
         this.audioSynthRef = null;
 
         this.cameraOffset = new THREE.Vector3(0, 1.5, 0);
@@ -394,9 +397,14 @@ export class Player {
                     }
                 }
             }
-            if (activeWeapon.type === 'fists' || activeWeapon.type === 'knife') {
+            if (activeWeapon.type === 'fists') {
                 if (this.punchTime <= 0) {
                     this.punchTime = this.punchDuration;
+                }
+            }
+            if (activeWeapon.type === 'knife') {
+                if (this.weaponSwingTime <= 0) {
+                    this.weaponSwingTime = this.weaponSwingDuration;
                 }
             }
         }
@@ -427,6 +435,8 @@ export class Player {
             this.currentWeapon.setRotation(this.rotation);
         }
         this.punchTime = Math.max(0, this.punchTime - delta);
+        this.weaponSwingTime = Math.max(0, this.weaponSwingTime - delta);
+        this.viewKick = Math.max(0, this.viewKick - delta * 6);
     }
 
     animateLimbs() {
@@ -489,6 +499,18 @@ export class Player {
             this.viewWeapon.rotation.x = -0.1;
             this.viewWeapon.rotation.y = 0.15;
             this.viewWeapon.rotation.z = 0;
+
+            if (this.viewWeaponType === 'knife' && this.weaponSwingTime > 0) {
+                const t = 1 - this.weaponSwingTime / this.weaponSwingDuration;
+                const swing = Math.sin(t * Math.PI);
+                this.viewWeapon.rotation.z -= swing * 0.6;
+                this.viewWeapon.position.z -= swing * 0.08;
+            }
+
+            if ((this.viewWeaponType === 'bow' || this.viewWeaponType === 'laser') && this.viewKick > 0) {
+                this.viewWeapon.position.z -= this.viewKick * 0.2;
+                this.viewWeapon.rotation.x -= this.viewKick * 0.6;
+            }
         }
     }
 
@@ -593,6 +615,7 @@ export class Player {
             this.viewWeapon = null;
         }
 
+        this.viewWeaponType = weaponType || null;
         if (!weaponType || weaponType === 'fists') return;
 
         const source = new Weapon(weaponType, this.scene);
