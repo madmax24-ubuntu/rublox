@@ -169,7 +169,7 @@ export class MapGenerator {
 
     createCourtyard() {
         const yardSize = this.courtyardSize;
-        const grassMat = new THREE.MeshStandardMaterial({
+        const grassMat = new THREE.MeshLambertMaterial({
             color: 0x3ea63e,
             roughness: 0.95,
             flatShading: true,
