@@ -249,16 +249,18 @@ export class MapGenerator {
             flatShading: true
         });
         const padRadius = yardSize * 0.45;
+        const padHeight = 0.35;
+        const grassTop = grassBase.position.y + 0.6 / 2;
         for (let i = 0; i < 32; i++) {
             const angle = (i / 32) * Math.PI * 2;
             const pad = new THREE.Mesh(
-                new THREE.BoxGeometry(2.1, 0.35, 2.1),
+                new THREE.BoxGeometry(2.1, padHeight, 2.1),
                 padMat
             );
-            pad.position.set(Math.cos(angle) * padRadius, 0.2, Math.sin(angle) * padRadius);
+            pad.position.set(Math.cos(angle) * padRadius, grassTop + padHeight / 2 + 0.02, Math.sin(angle) * padRadius);
             this.scene.add(pad);
             this.spawnPads.push(pad.position.clone());
-            this.addColliderBox(pad.position, 2.1, 0.35, 2.1);
+            this.addColliderBox(pad.position, 2.1, padHeight, 2.1);
         }
     }
 
