@@ -223,10 +223,10 @@ export class Player {
         } else {
             const look = this.input.getLookDelta();
             if (look.x !== 0 || look.y !== 0) {
-                const maxDelta = 80;
+                const maxDelta = 120;
                 const dx = Math.max(-maxDelta, Math.min(maxDelta, look.x));
                 const dy = Math.max(-maxDelta, Math.min(maxDelta, look.y));
-                const sensitivity = this.input.isMobile ? this.mouseSensitivity * 3.0 : this.mouseSensitivity * 1.4;
+                const sensitivity = this.input.isMobile ? this.mouseSensitivity * 4.2 : this.mouseSensitivity * 1.4;
                 this.rotation.y -= dx * sensitivity;
                 this.rotation.x -= dy * sensitivity;
                 const maxPitch = Math.PI / 2.4;
@@ -346,7 +346,7 @@ export class Player {
             const holder = controls?.getObject ? controls.getObject() : null;
             if (holder) {
                 holder.position.copy(cameraPosition);
-                holder.rotation.set(0, this.rotation.y, 0);
+                holder.rotation.set(0, this.rotation.y, 0, 'YXZ');
                 this.camera.position.set(0, 0, 0);
                 this.camera.rotation.set(this.rotation.x, 0, 0, 'YXZ');
             } else {

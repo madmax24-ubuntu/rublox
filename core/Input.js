@@ -204,7 +204,7 @@ export class Input {
     }
 
     getLookDelta() {
-        const scale = this.isMobile ? 0.9 : 1.0;
+        const scale = this.isMobile ? 2.4 : 1.0;
         const delta = { x: this.touch.lookDeltaX * scale, y: this.touch.lookDeltaY * scale };
         this.touch.lookDeltaX = 0;
         this.touch.lookDeltaY = 0;
