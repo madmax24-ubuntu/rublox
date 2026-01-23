@@ -42,40 +42,86 @@ export class Bot {
         this.escapeDir = null;
         this.escapeTimer = 0;
 
-        this.variant = id % 3;
-        this.outfit = [
+        this.variants = [
             {
-                shirt: 0x616161,
-                pants: 0x5d4037,
-                harness: 0x3e2723,
+                shirt: 0x4aa3ff,
+                pants: 0x1b263b,
+                harness: 0x263238,
                 vest: 0x2b2b2b,
                 hair: 0x1b1b1b,
                 face: 'serious',
-                gear: true
+                gear: true,
+                hat: 'cap',
+                skin: 0xffd6b5,
+                scale: 1.38
             },
             {
-                shirt: 0x757575,
-                pants: 0x6d4c41,
-                harness: 0x4e342e,
+                shirt: 0xff7043,
+                pants: 0x4e342e,
+                harness: 0x3e2723,
                 vest: 0x263238,
-                hair: 0x263238,
+                hair: 0x3e2723,
                 face: 'focused',
-                gear: true
+                gear: true,
+                hat: 'beanie',
+                skin: 0xf2c9a0,
+                scale: 1.4
             },
             {
-                shirt: 0x9e9e9e,
-                pants: 0x7b6f5b,
-                harness: 0x6d4c41,
+                shirt: 0x8e24aa,
+                pants: 0x212121,
+                harness: 0x4e342e,
                 vest: null,
                 hair: 0x5d4037,
                 face: 'worried',
-                gear: false
+                gear: false,
+                hat: null,
+                skin: 0xf5d7b2,
+                scale: 1.35
+            },
+            {
+                shirt: 0x43a047,
+                pants: 0x1b5e20,
+                harness: 0x263238,
+                vest: 0x1c313a,
+                hair: 0x263238,
+                face: 'serious',
+                gear: true,
+                hat: 'helmet',
+                skin: 0xffd1a6,
+                scale: 1.42
+            },
+            {
+                shirt: 0xfdd835,
+                pants: 0x6d4c41,
+                harness: 0x3e2723,
+                vest: null,
+                hair: 0x212121,
+                face: 'focused',
+                gear: false,
+                hat: 'hair',
+                skin: 0xf7c59f,
+                scale: 1.34
+            },
+            {
+                shirt: 0x26a69a,
+                pants: 0x004d40,
+                harness: 0x1b1b1b,
+                vest: 0x263238,
+                hair: 0x4e342e,
+                face: 'serious',
+                gear: true,
+                hat: 'cap',
+                skin: 0xeec4a0,
+                scale: 1.4
             }
-        ][this.variant];
+        ];
+        this.variant = Math.floor(Math.random() * this.variants.length);
+        this.outfit = this.variants[this.variant];
         this.color = this.outfit.shirt;
 
         this.mesh = this.createMesh();
-        this.mesh.scale.setScalar(1.4);
+        this.mesh.scale.setScalar(this.outfit.scale || 1.4);
         this.scene.add(this.mesh);
         this.updateColor();
     }
@@ -84,7 +130,7 @@ export class Bot {
         const group = new THREE.Group();
 
         const skinMat = new THREE.MeshStandardMaterial({
-            color: 0xffd6b5,
+            color: this.outfit.skin || 0xffd6b5,
             roughness: 0.4,
             metalness: 0.0,
             flatShading: true
@@ -135,12 +181,14 @@ export class Bot {
         head.position.y = 2.05;
         group.add(head);
 
-        const hair = new THREE.Mesh(
-            new THREE.BoxGeometry(0.7, 0.35, 0.7),
-            new THREE.MeshStandardMaterial({ color: this.outfit.hair, roughness: 0.6, flatShading: true })
-        );
-        hair.position.set(0, 2.35, 0);
-        group.add(hair);
+        if (this.outfit.hat !== 'helmet') {
+            const hair = new THREE.Mesh(
+                new THREE.BoxGeometry(0.7, 0.35, 0.7),
+                new THREE.MeshStandardMaterial({ color: this.outfit.hair, roughness: 0.6, flatShading: true })
+            );
+            hair.position.set(0, 2.35, 0);
+            group.add(hair);
+        }
 
         const eyeMat = new THREE.MeshStandardMaterial({ color: 0x111111, flatShading: true });
         const leftEye = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.05), eyeMat);
@@ -238,6 +286,36 @@ export class Bot {
             const sheath = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.35, 0.08), harnessMat);
             sheath.position.set(0.35, 0.85, -0.3);
             group.add(sheath);
+        }
+
+        if (this.outfit.hat === 'cap') {
+            const cap = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.36, 0.36, 0.22, 8),
+                detailMat
+            );
+            cap.position.set(0, 2.45, 0);
+            group.add(cap);
+
+            const bill = new THREE.Mesh(
+                new THREE.BoxGeometry(0.48, 0.06, 0.22),
+                detailMat
+            );
+            bill.position.set(0, 2.38, 0.34);
+            group.add(bill);
+        } else if (this.outfit.hat === 'beanie') {
+            const beanie = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.36, 0.32, 0.26, 8),
+                detailMat
+            );
+            beanie.position.set(0, 2.42, 0);
+            group.add(beanie);
+        } else if (this.outfit.hat === 'helmet') {
+            const helmet = new THREE.Mesh(
+                new THREE.BoxGeometry(0.74, 0.4, 0.74),
+                detailMat
+            );
+            helmet.position.set(0, 2.35, 0);
+            group.add(helmet);
         }
 
         group.userData.isEntity = true;

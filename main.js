@@ -46,7 +46,6 @@ import { Input } from './core/Input.js';
 import { AudioSynth } from './core/AudioSynth.js';
 import { Player } from './entities/Player.js';
 import { Bot } from './entities/Bot.js';
-import { Griever } from './entities/Griever.js';
 import { BotBrain } from './entities/BotBrain.js';
 import { EntityManager } from './entities/EntityManager.js';
 import { LootManager } from './items/LootManager.js';
@@ -174,8 +173,6 @@ class Game {
         this.bots = [];
         this.botBrains = [];
         this.spawnBots();
-        this.grievers = [];
-        this.spawnGrievers();
         this.gateClosed = false;
         this.nightNotified = false;
         this.returnNoticeShown = false;
@@ -229,30 +226,6 @@ class Game {
             this.physics.addEntity(bot);
             this.entityManager.addEntity(bot);
             this.bots.push(bot);
-        }
-    }
-
-    spawnGrievers() {
-        const grieverCount = 5;
-        const centers = this.map.getMazeCenters?.() || [];
-        for (let i = 0; i < grieverCount; i++) {
-            let x = 0;
-            let z = 0;
-            if (centers.length) {
-                const pick = centers[Math.floor(Math.random() * centers.length)];
-                x = pick.x;
-                z = pick.z;
-            } else {
-                const angle = Math.random() * Math.PI * 2;
-                const radius = 60 + Math.random() * (this.map.size * 0.28);
-                x = Math.cos(angle) * radius;
-                z = Math.sin(angle) * radius;
-            }
-            const y = this.map.getHeightAt(x, z) + 1.4;
-            const griever = new Griever(this.scene, i, new THREE.Vector3(x, y, z));
-            this.physics.addEntity(griever);
-            this.entityManager.addEntity(griever);
-            this.grievers.push(griever);
         }
     }
 
@@ -340,12 +313,6 @@ class Game {
         this.physics.update(delta);
 
         this.player.update(delta, this.audioSynth, this.lootManager, this.entityManager, this.controls);
-        if (this.grievers && this.grievers.length) {
-            for (const griever of this.grievers) {
-                griever.update(delta, this.entityManager, this.audioSynth);
-            }
-        }
-
         if (this.env && this.gameState === 'playing') {
             const night = this.env.dayTime < 0.18 || this.env.dayTime > 0.78;
             if (night) {
@@ -424,9 +391,6 @@ class Game {
             applyTrap(this.player);
             for (const bot of this.bots) {
                 applyTrap(bot);
-            }
-            for (const griever of this.grievers) {
-                applyTrap(griever);
             }
         }
 

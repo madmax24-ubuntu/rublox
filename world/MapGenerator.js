@@ -47,31 +47,69 @@ export class MapGenerator {
             rim: 0x616161
         };
 
+        this.randomizeMazeConfig();
         this.layout = this.buildLayout();
         this.generate();
     }
 
     buildLayout() {
-        const islands = [
-            { pos: new THREE.Vector2(0, 0), radius: 70 },
-            { pos: new THREE.Vector2(-70, -25), radius: 45 },
-            { pos: new THREE.Vector2(75, -15), radius: 42 },
-            { pos: new THREE.Vector2(-45, 60), radius: 38 },
-            { pos: new THREE.Vector2(55, 65), radius: 36 },
-            { pos: new THREE.Vector2(0, 85), radius: 26 }
-        ];
+        const randRange = (min, max) => min + Math.random() * (max - min);
+        const islandCount = 5 + Math.floor(Math.random() * 3);
+        const islands = [];
+        islands.push({ pos: new THREE.Vector2(0, 0), radius: randRange(60, 85) });
 
-        const lagoons = [
-            { pos: new THREE.Vector2(-10, -15), radius: 16 },
-            { pos: new THREE.Vector2(30, 10), radius: 13 },
-            { pos: new THREE.Vector2(-40, 35), radius: 12 },
-            { pos: new THREE.Vector2(40, 45), radius: 10 }
-        ];
+        for (let i = 1; i < islandCount; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = randRange(55, 110);
+            islands.push({
+                pos: new THREE.Vector2(Math.cos(angle) * distance, Math.sin(angle) * distance),
+                radius: randRange(28, 55)
+            });
+        }
 
-        const volcano = { pos: new THREE.Vector2(75, -15), radius: 12 };
-        const snowCap = { pos: new THREE.Vector2(0, 0), radius: 16 };
+        const lagoonCount = 3 + Math.floor(Math.random() * 4);
+        const lagoons = [];
+        for (let i = 0; i < lagoonCount; i++) {
+            const base = islands[Math.floor(Math.random() * islands.length)];
+            const angle = Math.random() * Math.PI * 2;
+            const distance = randRange(8, Math.max(12, base.radius * 0.6));
+            lagoons.push({
+                pos: new THREE.Vector2(base.pos.x + Math.cos(angle) * distance, base.pos.y + Math.sin(angle) * distance),
+                radius: randRange(9, 18)
+            });
+        }
 
-        return { islands, lagoons, volcano, snowCap };
+        const volcanoHost = islands[Math.floor(Math.random() * islands.length)];
+        const volcano = {
+            pos: volcanoHost.pos.clone(),
+            radius: randRange(10, 16)
+        };
+        const snowCap = {
+            pos: islands[0].pos.clone(),
+            radius: randRange(12, 20)
+        };
+
+        return {
+            islands,
+            lagoons,
+            volcano,
+            snowCap,
+            treeClusters: [],
+            rockClusters: [],
+            pits: []
+        };
+    }
+
+    randomizeMazeConfig() {
+        const gridOptions = [101, 111, 121, 131];
+        const gridCount = gridOptions[Math.floor(Math.random() * gridOptions.length)];
+        const cellSize = this.size / (gridCount - 1);
+        this.mazeConfig.gridCount = gridCount;
+        this.mazeConfig.cellSize = cellSize;
+        this.mazeConfig.wallHeight = 9 + Math.random() * 4;
+        this.mazeConfig.wallThickness = 1.8 + Math.random() * 0.8;
+        this.mazeConfig.centerClear = 28 + Math.random() * 16;
+        this.courtyardSize = 52 + Math.random() * 20;
     }
 
     randomInRing(minRadius, maxRadius) {

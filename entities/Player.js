@@ -38,6 +38,7 @@ export class Player {
         this.fpArms.visible = false;
         this.viewWeapon = null;
         this.viewWeaponType = null;
+        this.viewWeaponBase = null;
         this.viewKick = 0;
         this.punchTime = 0;
         this.punchDuration = 0.25;
@@ -185,6 +186,11 @@ export class Player {
         rightArm.position.set(0.54, 0.7, 0);
         group.add(rightArm);
 
+        const weaponSocket = new THREE.Object3D();
+        weaponSocket.position.set(0.62, 1.1, 0.2);
+        weaponSocket.rotation.set(0, Math.PI / 2, 0);
+        group.add(weaponSocket);
+
         const legMat = new THREE.MeshStandardMaterial({
             color: 0x1a1a1a,
             roughness: 0.5,
@@ -208,6 +214,7 @@ export class Player {
         group.userData.isEntity = true;
         group.userData.isPlayer = true;
         group.userData.limbs = { leftArm, rightArm, leftLeg, rightLeg };
+        group.userData.weaponSocket = weaponSocket;
         return group;
     }
 
@@ -426,13 +433,7 @@ export class Player {
         lootManager.checkNearbyChests(this.position, audioSynth);
 
         if (!isFirstPerson && this.currentWeapon && this.currentWeapon.mesh) {
-            const weaponPos = this.position.clone();
-            weaponPos.y += 1.2;
-            weaponPos.x += Math.cos(this.rotation.y) * 0.5;
-            weaponPos.z += Math.sin(this.rotation.y) * 0.5;
-
-            this.currentWeapon.setPosition(weaponPos);
-            this.currentWeapon.setRotation(this.rotation);
+            this.updateThirdPersonWeapon();
         }
         this.punchTime = Math.max(0, this.punchTime - delta);
         this.weaponSwingTime = Math.max(0, this.weaponSwingTime - delta);
@@ -496,9 +497,10 @@ export class Player {
         }
 
         if (this.viewWeapon && this.viewWeapon.visible) {
-            this.viewWeapon.rotation.x = -0.1;
-            this.viewWeapon.rotation.y = 0.15;
-            this.viewWeapon.rotation.z = 0;
+            if (this.viewWeaponBase) {
+                this.viewWeapon.position.copy(this.viewWeaponBase.position);
+                this.viewWeapon.rotation.copy(this.viewWeaponBase.rotation);
+            }
 
             if (this.viewWeaponType === 'knife' && this.weaponSwingTime > 0) {
                 const t = 1 - this.weaponSwingTime / this.weaponSwingDuration;
@@ -613,6 +615,7 @@ export class Player {
         if (this.viewWeapon) {
             this.fpArms.remove(this.viewWeapon);
             this.viewWeapon = null;
+            this.viewWeaponBase = null;
         }
 
         this.viewWeaponType = weaponType || null;
@@ -621,18 +624,59 @@ export class Player {
         const source = new Weapon(weaponType, this.scene);
         if (!source.mesh) return;
         const viewClone = source.mesh.clone();
+        this.scene.remove(source.mesh);
         viewClone.visible = true;
-        viewClone.scale.setScalar(1.1);
-        viewClone.position.set(0.15, -0.4, -0.55);
-        viewClone.rotation.set(0, Math.PI, 0);
+        const offset = this.getViewWeaponOffset(weaponType);
+        viewClone.scale.setScalar(offset.scale);
+        viewClone.position.copy(offset.position);
+        viewClone.rotation.copy(offset.rotation);
         this.setupViewModel(viewClone);
         this.fpArms.add(viewClone);
         this.viewWeapon = viewClone;
+        this.viewWeaponBase = {
+            position: offset.position.clone(),
+            rotation: offset.rotation.clone()
+        };
     }
 
     updateViewWeapon() {
         const weapon = this.currentWeapon || this.fists;
         this.animateViewModelWeapon(weapon?.type);
+    }
+
+    getViewWeaponOffset(type) {
+        const base = {
+            scale: 1.1,
+            position: new THREE.Vector3(0.18, -0.42, -0.6),
+            rotation: new THREE.Euler(0, Math.PI, 0)
+        };
+
+        if (type === 'knife') {
+            base.position.set(0.2, -0.45, -0.55);
+            base.rotation.set(0, Math.PI, Math.PI / 12);
+        } else if (type === 'bow') {
+            base.position.set(0.25, -0.35, -0.8);
+            base.rotation.set(-0.1, Math.PI * 0.98, Math.PI / 10);
+            base.scale = 1.15;
+        } else if (type === 'laser') {
+            base.position.set(0.22, -0.38, -0.7);
+            base.rotation.set(-0.08, Math.PI, Math.PI / 14);
+            base.scale = 1.12;
+        }
+
+        return base;
+    }
+
+    updateThirdPersonWeapon() {
+        const socket = this.mesh?.userData?.weaponSocket;
+        if (!socket || !this.currentWeapon?.mesh) return;
+        const worldPos = new THREE.Vector3();
+        const worldQuat = new THREE.Quaternion();
+        socket.getWorldPosition(worldPos);
+        socket.getWorldQuaternion(worldQuat);
+
+        this.currentWeapon.mesh.position.copy(worldPos);
+        this.currentWeapon.mesh.quaternion.copy(worldQuat);
     }
 
     applySlow(factor, duration) {

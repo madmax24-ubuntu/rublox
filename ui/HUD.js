@@ -256,12 +256,14 @@ export class HUD {
 
         const gameMessage = document.createElement('div');
         gameMessage.id = 'gameMessage';
+        const messageTop = isMobile ? 18 : 30;
+        const messageFont = isMobile ? Math.max(10, Math.round(px(30) / 3)) : px(30);
         gameMessage.style.cssText = `
             position: absolute;
-            top: 30%;
+            top: ${messageTop}%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: ${px(30)}px;
+            font-size: ${messageFont}px;
             font-weight: 800;
             color: #ffffff;
             text-shadow: 4px 4px 8px rgba(0,0,0,0.9);

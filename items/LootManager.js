@@ -6,6 +6,7 @@ export class LootManager {
         this.scene = scene;
         this.mapGenerator = mapGenerator;
         this.chests = [];
+        this.chestMaterials = this.createChestMaterials();
         this.generateChests();
     }
 
@@ -53,10 +54,11 @@ export class LootManager {
 
     createChest(x, y, z) {
         const group = new THREE.Group();
+        const { bodyMat, lidMat, bandMat, metalMat } = this.chestMaterials;
 
         const body = new THREE.Mesh(
             new THREE.BoxGeometry(1, 0.8, 1),
-            new THREE.MeshStandardMaterial({ color: 0x8b4513 })
+            bodyMat
         );
         body.position.y = 0.4;
         body.castShadow = true;
@@ -64,7 +66,7 @@ export class LootManager {
 
         const lid = new THREE.Mesh(
             new THREE.BoxGeometry(1, 0.1, 1),
-            new THREE.MeshStandardMaterial({ color: 0x654321 })
+            lidMat
         );
         lid.position.y = 0.85;
         lid.castShadow = true;
@@ -72,7 +74,7 @@ export class LootManager {
 
         const ring1 = new THREE.Mesh(
             new THREE.TorusGeometry(0.6, 0.05, 8, 16),
-            new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.8 })
+            metalMat
         );
         ring1.rotation.x = Math.PI / 2;
         ring1.position.y = 0.4;
@@ -80,11 +82,18 @@ export class LootManager {
 
         const ring2 = new THREE.Mesh(
             new THREE.TorusGeometry(0.6, 0.05, 8, 16),
-            new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.8 })
+            metalMat
         );
         ring2.rotation.x = Math.PI / 2;
         ring2.position.y = 0.8;
         group.add(ring2);
+
+        const band = new THREE.Mesh(
+            new THREE.BoxGeometry(1.02, 0.08, 1.02),
+            bandMat
+        );
+        band.position.y = 0.56;
+        group.add(band);
 
         const glow = new THREE.Mesh(
             new THREE.SphereGeometry(0.3, 8, 8),
@@ -106,6 +115,64 @@ export class LootManager {
 
         this.scene.add(group);
         return group;
+    }
+
+    createChestMaterials() {
+        const bodyTex = this.createChestTexture('#8a5a2b', '#6b3f1f');
+        const lidTex = this.createChestTexture('#7b4a24', '#5e3518');
+        bodyTex.wrapS = bodyTex.wrapT = THREE.RepeatWrapping;
+        lidTex.wrapS = lidTex.wrapT = THREE.RepeatWrapping;
+        bodyTex.repeat.set(2, 2);
+        lidTex.repeat.set(2, 2);
+
+        const bodyMat = new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            map: bodyTex,
+            roughness: 0.85,
+            metalness: 0.05
+        });
+        const lidMat = new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            map: lidTex,
+            roughness: 0.9,
+            metalness: 0.05
+        });
+        const bandMat = new THREE.MeshStandardMaterial({
+            color: 0x2a2a2a,
+            roughness: 0.6,
+            metalness: 0.2
+        });
+        const metalMat = new THREE.MeshStandardMaterial({
+            color: 0xb0b0b0,
+            metalness: 0.9,
+            roughness: 0.2
+        });
+
+        return { bodyMat, lidMat, bandMat, metalMat };
+    }
+
+    createChestTexture(primary, secondary) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 64;
+        canvas.height = 64;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = primary;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = secondary;
+        for (let y = 0; y < canvas.height; y += 8) {
+            ctx.fillRect(0, y, canvas.width, 4);
+        }
+
+        ctx.strokeStyle = 'rgba(20, 12, 6, 0.35)';
+        for (let x = 0; x < canvas.width; x += 12) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, canvas.height);
+            ctx.stroke();
+        }
+
+        return new THREE.CanvasTexture(canvas);
     }
 
     generateLoot() {
