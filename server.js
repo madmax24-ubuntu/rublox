@@ -10,6 +10,7 @@ const PORT = process.env.PORT || 3001;
 
 app.use(express.static(__dirname, {
   setHeaders: (res, filePath) => {
+    res.setHeader('Cache-Control', 'no-store');
     if (filePath.endsWith('.js') || filePath.endsWith('.mjs')) {
       res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
     } else if (filePath.endsWith('.css')) {
