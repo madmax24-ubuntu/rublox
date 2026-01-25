@@ -22,10 +22,20 @@ export class LootManager {
                 const spot = shuffled[i];
                 const y = this.mapGenerator.getHeightAt(spot.x, spot.z) + 0.06;
                 if (y < this.mapGenerator.waterLevel + 1) continue;
-                if (this.mapGenerator.isChestClear && !this.mapGenerator.isChestClear(spot.x, spot.z, 3)) {
-                    continue;
-                }
                 const chest = this.createChest(spot.x, y, spot.z);
+                this.chests.push(chest);
+            }
+            if (this.chests.length > 0) return;
+        }
+
+        const floorTiles = this.mapGenerator.getFloorTiles?.() || [];
+        if (floorTiles.length) {
+            const shuffled = [...floorTiles].sort(() => Math.random() - 0.5);
+            const limit = Math.min(chestCount, shuffled.length);
+            for (let i = 0; i < limit; i++) {
+                const tile = shuffled[i];
+                const y = this.mapGenerator.getHeightAt(tile.x, tile.z) + 0.06;
+                const chest = this.createChest(tile.x, y, tile.z);
                 this.chests.push(chest);
             }
             return;
@@ -39,10 +49,6 @@ export class LootManager {
             const y = this.mapGenerator.getHeightAt(x, z) + 0.06;
 
             if (y < this.mapGenerator.waterLevel + 1) {
-                i--;
-                continue;
-            }
-            if (this.mapGenerator.isChestClear && !this.mapGenerator.isChestClear(x, z, 3)) {
                 i--;
                 continue;
             }

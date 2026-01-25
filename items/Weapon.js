@@ -174,6 +174,7 @@ export class Weapon {
                 break;
 
             case 'laser':
+                const model = new THREE.Group();
                 const bodyMat = new THREE.MeshStandardMaterial({
                     color: 0x2b2b2b,
                     metalness: 0.7,
@@ -199,7 +200,7 @@ export class Weapon {
                     bodyMat
                 );
                 body.position.set(0, 0.03, 0);
-                group.add(body);
+                model.add(body);
 
                 const barrel = new THREE.Mesh(
                     new THREE.CylinderGeometry(0.06, 0.08, 0.5, 8),
@@ -207,7 +208,7 @@ export class Weapon {
                 );
                 barrel.rotation.z = Math.PI / 2;
                 barrel.position.set(0.38, 0.05, 0);
-                group.add(barrel);
+                model.add(barrel);
 
                 const muzzle = new THREE.Mesh(
                     new THREE.CylinderGeometry(0.09, 0.09, 0.06, 8),
@@ -215,28 +216,28 @@ export class Weapon {
                 );
                 muzzle.rotation.z = Math.PI / 2;
                 muzzle.position.set(0.63, 0.05, 0);
-                group.add(muzzle);
+                model.add(muzzle);
 
                 const grip = new THREE.Mesh(
                     new THREE.BoxGeometry(0.14, 0.26, 0.12),
                     gripMat
                 );
                 grip.position.set(-0.1, -0.18, 0);
-                group.add(grip);
+                model.add(grip);
 
                 const stock = new THREE.Mesh(
                     new THREE.BoxGeometry(0.22, 0.16, 0.16),
                     bodyMat
                 );
                 stock.position.set(-0.33, 0.02, 0);
-                group.add(stock);
+                model.add(stock);
 
                 const rail = new THREE.Mesh(
                     new THREE.BoxGeometry(0.42, 0.05, 0.12),
                     gripMat
                 );
                 rail.position.set(0.02, 0.16, 0);
-                group.add(rail);
+                model.add(rail);
 
                 const core = new THREE.Mesh(
                     new THREE.CylinderGeometry(0.035, 0.035, 0.42, 8),
@@ -244,14 +245,17 @@ export class Weapon {
                 );
                 core.rotation.z = Math.PI / 2;
                 core.position.set(0.18, 0.06, 0);
-                group.add(core);
+                model.add(core);
 
                 const cell = new THREE.Mesh(
                     new THREE.BoxGeometry(0.12, 0.18, 0.12),
                     accentMat
                 );
                 cell.position.set(-0.02, -0.05, 0);
-                group.add(cell);
+                model.add(cell);
+
+                model.rotation.y = -Math.PI / 2;
+                group.add(model);
                 break;
         }
 

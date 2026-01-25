@@ -61,7 +61,7 @@ export class MapGenerator {
         this.initRng(seed);
         const w = Math.max(16, Math.floor(width));
         const h = Math.max(16, Math.floor(height));
-        const biomeCellSize = 12;
+        const biomeCellSize = 24;
         this.biomeGrid = this.buildBiomeGrid(w, h, biomeCellSize);
         this.biomeCellSize = biomeCellSize;
 

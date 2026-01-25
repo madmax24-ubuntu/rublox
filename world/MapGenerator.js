@@ -68,6 +68,7 @@ export class MapGenerator {
     buildMeshes() {
         this.clearSceneObjects();
         this.colliders = [];
+        this.floorTiles = [];
 
         const floorMats = {};
         Object.entries(this.biomeColors).forEach(([key, color]) => {
@@ -108,6 +109,7 @@ export class MapGenerator {
                     const biome = tile.biome || "plains";
                     if (!floorsByBiome.has(biome)) floorsByBiome.set(biome, []);
                     floorsByBiome.get(biome).push({ x: world.x, z: world.z });
+                    this.floorTiles.push({ x: world.x, z: world.z, gx: x, gy: y, biome });
                     if (tile.prop === "tree") trees.push({ x: world.x, z: world.z });
                     if (tile.prop === "jungleTree") jungleTrees.push({ x: world.x, z: world.z });
                     if (tile.prop === "rock") rocks.push({ x: world.x, z: world.z });
@@ -154,26 +156,53 @@ export class MapGenerator {
     }
 
     buildProps(trees, jungleTrees, rocks, crates, cacti, iceSpikes) {
-        const treeMat = new THREE.MeshStandardMaterial({ color: 0x2e7d32, roughness: 0.9, flatShading: true });
-        const jungleMat = new THREE.MeshStandardMaterial({ color: 0x1f7a3a, roughness: 0.9, flatShading: true });
+        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.9, flatShading: true });
+        const leafMat = new THREE.MeshStandardMaterial({ color: 0x2e7d32, roughness: 0.9, flatShading: true });
+        const jungleLeafMat = new THREE.MeshStandardMaterial({ color: 0x1f7a3a, roughness: 0.9, flatShading: true });
         const rockMat = new THREE.MeshStandardMaterial({ color: 0x616161, roughness: 0.9, flatShading: true });
         const crateMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.85, flatShading: true });
         const cactusMat = new THREE.MeshStandardMaterial({ color: 0x2e7d32, roughness: 0.9, flatShading: true });
         const iceMat = new THREE.MeshStandardMaterial({ color: 0xb3e5fc, roughness: 0.3, flatShading: true });
 
-        const treeGeo = new THREE.BoxGeometry(2, 5, 2);
-        const jungleGeo = new THREE.BoxGeometry(2.4, 7.5, 2.4);
+        const treeTrunkGeo = new THREE.BoxGeometry(0.9, 2.6, 0.9);
+        const treeLeafGeo = new THREE.BoxGeometry(2.4, 2.2, 2.4);
+        const jungleTrunkGeo = new THREE.BoxGeometry(1.1, 4.8, 1.1);
+        const jungleLeafGeo = new THREE.BoxGeometry(3.2, 2.8, 3.2);
         const rockGeo = new THREE.BoxGeometry(2.5, 2.2, 2.5);
         const crateGeo = new THREE.BoxGeometry(2, 2, 2);
         const cactusGeo = new THREE.BoxGeometry(1.3, 4.5, 1.3);
         const iceGeo = new THREE.ConeGeometry(1.2, 4.8, 6);
 
-        this.addInstancedProps(treeGeo, treeMat, trees, 2.5, true);
-        this.addInstancedProps(jungleGeo, jungleMat, jungleTrees, 3.8, true);
+        this.addInstancedTree(treeTrunkGeo, trunkMat, treeLeafGeo, leafMat, trees, 1.3, 3.2);
+        this.addInstancedTree(jungleTrunkGeo, trunkMat, jungleLeafGeo, jungleLeafMat, jungleTrees, 2.4, 5.4);
         this.addInstancedProps(rockGeo, rockMat, rocks, 1.1, true);
         this.addInstancedProps(crateGeo, crateMat, crates, 1.0, true);
         this.addInstancedProps(cactusGeo, cactusMat, cacti, 2.2, true);
         this.addInstancedProps(iceGeo, iceMat, iceSpikes, 2.4, true);
+    }
+
+    addInstancedTree(trunkGeo, trunkMat, leafGeo, leafMat, list, trunkHeight, leafHeight) {
+        if (!list.length) return;
+        const trunkInst = new THREE.InstancedMesh(trunkGeo, trunkMat, list.length);
+        const leafInst = new THREE.InstancedMesh(leafGeo, leafMat, list.length);
+        const matrix = new THREE.Matrix4();
+        const position = new THREE.Vector3();
+        const rotation = new THREE.Quaternion();
+        const scale = new THREE.Vector3(1, 1, 1);
+        list.forEach((item, i) => {
+            position.set(item.x, trunkHeight / 2, item.z);
+            matrix.compose(position, rotation, scale);
+            trunkInst.setMatrixAt(i, matrix);
+            this.addColliderBox(new THREE.Vector3(item.x, trunkHeight / 2, item.z), trunkGeo.parameters.width, trunkGeo.parameters.height, trunkGeo.parameters.depth, false);
+
+            position.set(item.x, leafHeight, item.z);
+            matrix.compose(position, rotation, scale);
+            leafInst.setMatrixAt(i, matrix);
+        });
+        trunkInst.userData.mapGenerated = true;
+        leafInst.userData.mapGenerated = true;
+        this.scene.add(trunkInst);
+        this.scene.add(leafInst);
     }
 
     addInstancedProps(geo, mat, list, heightOffset, solid) {
@@ -250,88 +279,33 @@ export class MapGenerator {
             return Math.sqrt(dx * dx + dy * dy) <= spawnRadius;
         };
 
-        const isNearWall = (x, y, radius) => {
-            for (let dy = -radius; dy <= radius; dy++) {
-                for (let dx = -radius; dx <= radius; dx++) {
-                    const tile = this.grid[y + dy]?.[x + dx];
-                    if (!tile) continue;
-                    if (tile.type === "wall") return true;
-                }
-            }
-            return false;
-        };
-
-        const hasAdjacentProp = (x, y, radius) => {
-            for (let dy = -radius; dy <= radius; dy++) {
-                for (let dx = -radius; dx <= radius; dx++) {
-                    const tile = this.grid[y + dy]?.[x + dx];
-                    if (!tile || tile.type !== "floor") continue;
-                    if (tile.prop && tile.prop !== "enemySpawn") return true;
-                }
-            }
-            return false;
-        };
-
         const candidates = [];
         for (let y = 2; y < this.gridHeight - 2; y++) {
             for (let x = 2; x < this.gridWidth - 2; x++) {
                 const tile = this.grid[y][x];
-                if (tile.type !== "floor") continue;
+                if (!tile || tile.type !== "floor") continue;
                 if (tile.prop) continue;
                 if (inSpawn(x, y)) continue;
-                const nearWall = isNearWall(x, y, 1);
-                const nearProp = hasAdjacentProp(x, y, 2);
-                if (!nearWall && !nearProp) continue;
-
-                const biome = tile.biome || "plains";
-                let weight = 1;
-                if (biome === "forest" || biome === "rock") weight += 1.2;
-                if (biome === "sand") weight += 0.4;
-                if (biome === "snow") weight += 0.2;
-                if (nearProp) weight += 1.2;
-                if (nearWall) weight += 0.6;
-                candidates.push({ x, y, weight });
+                candidates.push({ x, y });
             }
         }
 
         if (!candidates.length) return;
-        const maxChests = Math.min(420, Math.max(140, Math.floor(candidates.length * 0.16)));
-        const clusterCount = Math.max(18, Math.floor(maxChests / 10));
+        const maxChests = Math.min(520, Math.max(220, Math.floor(candidates.length * 0.2)));
         const used = new Set();
 
-        const pickWeighted = () => {
-            const total = candidates.reduce((sum, c) => sum + c.weight, 0);
-            let roll = rand() * total;
-            for (const c of candidates) {
-                roll -= c.weight;
-                if (roll <= 0) return c;
-            }
-            return candidates[Math.floor(rand() * candidates.length)];
-        };
+        for (let i = candidates.length - 1; i > 0; i--) {
+            const j = Math.floor(rand() * (i + 1));
+            [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+        }
 
-        const addSpot = (x, y) => {
-            const key = `${x},${y}`;
-            if (used.has(key)) return false;
-            const world = this.toWorld(x, y);
+        for (const spot of candidates) {
+            if (this.chestSpots.length >= maxChests) break;
+            const key = `${spot.x},${spot.y}`;
+            if (used.has(key)) continue;
+            const world = this.toWorld(spot.x, spot.y);
             this.chestSpots.push({ x: world.x, z: world.z });
             used.add(key);
-            return true;
-        };
-
-        for (let i = 0; i < clusterCount && this.chestSpots.length < maxChests; i++) {
-            const center = pickWeighted();
-            const clusterSize = 4 + Math.floor(rand() * 6);
-            for (let j = 0; j < clusterSize && this.chestSpots.length < maxChests; j++) {
-                const ox = Math.round((rand() - 0.5) * 6);
-                const oy = Math.round((rand() - 0.5) * 6);
-                const cx = center.x + ox;
-                const cy = center.y + oy;
-                const tile = this.grid[cy]?.[cx];
-                if (!tile || tile.type !== "floor" || tile.prop) continue;
-                if (inSpawn(cx, cy)) continue;
-                if (!isNearWall(cx, cy, 1) && !hasAdjacentProp(cx, cy, 2)) continue;
-                addSpot(cx, cy);
-            }
         }
     }
 
@@ -369,6 +343,13 @@ export class MapGenerator {
         };
     }
 
+    worldToGrid(x, z) {
+        return {
+            x: Math.round(x / this.tileSize + this.gridWidth / 2),
+            y: Math.round(z / this.tileSize + this.gridHeight / 2)
+        };
+    }
+
     addColliderBox(center, width, height, depth, walkable = true, enabled = true) {
         const min = new THREE.Vector3(
             center.x - width / 2,
@@ -399,6 +380,10 @@ export class MapGenerator {
 
     getChestSpots() {
         return this.chestSpots.map(pos => ({ x: pos.x, z: pos.z }));
+    }
+
+    getFloorTiles() {
+        return (this.floorTiles || []).map(tile => ({ x: tile.x, z: tile.z }));
     }
 
     getTraps() {
@@ -435,6 +420,12 @@ export class MapGenerator {
             return false;
         }
         return true;
+    }
+
+    isWalkableAt(x, z) {
+        const grid = this.worldToGrid(x, z);
+        const tile = this.grid?.[grid.y]?.[grid.x];
+        return tile && tile.type === "floor";
     }
 
     isLavaAt() {

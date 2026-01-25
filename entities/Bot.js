@@ -570,29 +570,47 @@ export class Bot {
             direction = this.escapeDir.clone();
         }
 
-        if (this.physicsRef) {
-            const isBlocked = dir => {
-                if (!this.physicsRef.getNearbyColliders) return false;
-                const probe = this.position.clone().add(dir.clone().multiplyScalar(1.2));
-                const nearby = this.physicsRef.getNearbyColliders(probe, 1.6);
-                const bottom = this.position.y - this.physics.height + 0.2;
-                for (const box of nearby) {
-                    if (box.enabled === false) continue;
-                    if (probe.x < box.min.x - 0.1 || probe.x > box.max.x + 0.1) continue;
-                    if (probe.z < box.min.z - 0.1 || probe.z > box.max.z + 0.1) continue;
-                    if (bottom > box.max.y - 0.1) continue;
-                    return true;
-                }
-                return false;
-            };
-
-            if (isBlocked(direction)) {
-                const left = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), direction).normalize();
-                const right = left.clone().multiplyScalar(-1);
-                if (!isBlocked(left)) direction = left;
-                else if (!isBlocked(right)) direction = right;
-                else direction = direction.clone().multiplyScalar(-1);
+        const isBlocked = dir => {
+            if (!this.physicsRef?.getNearbyColliders) return false;
+            const probe = this.position.clone().add(dir.clone().multiplyScalar(1.6));
+            if (this.mapRef?.isWalkableAt && !this.mapRef.isWalkableAt(probe.x, probe.z)) {
+                return true;
             }
+            const nearby = this.physicsRef.getNearbyColliders(probe, 1.8);
+            const bottom = this.position.y - this.physics.height + 0.2;
+            for (const box of nearby) {
+                if (box.enabled === false) continue;
+                if (probe.x < box.min.x - 0.1 || probe.x > box.max.x + 0.1) continue;
+                if (probe.z < box.min.z - 0.1 || probe.z > box.max.z + 0.1) continue;
+                if (bottom > box.max.y - 0.1) continue;
+                return true;
+            }
+            return false;
+        };
+
+        if (this.physicsRef) {
+            const dirs = [];
+            dirs.push(direction);
+            const left = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), direction).normalize();
+            const right = left.clone().multiplyScalar(-1);
+            dirs.push(left);
+            dirs.push(right);
+            dirs.push(direction.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 4));
+            dirs.push(direction.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 4));
+            dirs.push(direction.clone().multiplyScalar(-1));
+
+            let bestDir = direction;
+            let bestScore = Infinity;
+            for (const dir of dirs) {
+                if (isBlocked(dir)) continue;
+                const probe = this.position.clone().add(dir.clone().multiplyScalar(2));
+                const score = probe.distanceTo(target);
+                if (score < bestScore) {
+                    bestScore = score;
+                    bestDir = dir;
+                }
+            }
+            direction = bestDir;
         }
 
         const finalSpeed = speed * this.slowFactor;
