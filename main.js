@@ -103,9 +103,10 @@ class Game {
         const isMobile = this.isMobile();
         this.scene = new THREE.Scene();
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+        this.scene.userData.camera = this.camera;
 
         this.renderer = new THREE.WebGLRenderer({
-            antialias: !isMobile,
+            antialias: true,
             powerPreference: "high-performance",
             precision: "mediump",
             stencil: false,
@@ -114,7 +115,7 @@ class Game {
         });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.shadowMap.enabled = false;
-        const pixelRatio = isMobile ? 0.8 : Math.min(window.devicePixelRatio || 1, 1.25);
+        const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.25);
         this.renderer.setPixelRatio(pixelRatio);
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
@@ -159,7 +160,7 @@ class Game {
         this.player = new Player(this.scene, this.camera, this.input);
         if (spawnPads.length) {
             const pad = spawnPads[0];
-            const padTop = pad.y + 0.2;
+            const padTop = pad.y;
             this.player.position.set(pad.x, padTop + this.player.physics.height, pad.z);
             this.player.physics.onGround = true;
         } else {
@@ -209,8 +210,8 @@ class Game {
             let spawnPos;
             if (spawnPads.length) {
                 const pad = spawnPads[(i + 1) % spawnPads.length];
-                const padTop = pad.y + 0.175;
-                spawnPos = new THREE.Vector3(pad.x, padTop + 1.8, pad.z);
+                const padTop = pad.y;
+                spawnPos = new THREE.Vector3(pad.x, padTop + 1.9, pad.z);
             } else {
                 const angle = (i / botCount) * Math.PI * 2;
                 spawnPos = new THREE.Vector3(

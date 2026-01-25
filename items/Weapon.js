@@ -73,103 +73,185 @@ export class Weapon {
                 this.mesh = null;
                 return;
             case 'knife':
+                const bladeMat = new THREE.MeshStandardMaterial({
+                    color: 0xd6d6d6,
+                    metalness: 0.85,
+                    roughness: 0.2,
+                    flatShading: true
+                });
+                const handleMat = new THREE.MeshStandardMaterial({
+                    color: 0x4e342e,
+                    roughness: 0.85,
+                    flatShading: true
+                });
+                const guardMat = new THREE.MeshStandardMaterial({
+                    color: 0x212121,
+                    roughness: 0.5,
+                    metalness: 0.3,
+                    flatShading: true
+                });
+
                 const blade = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.1, 0.3, 0.02),
-                    new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.8 })
+                    new THREE.BoxGeometry(0.08, 0.5, 0.02),
+                    bladeMat
                 );
+                blade.position.y = 0.18;
+                const tip = new THREE.Mesh(
+                    new THREE.ConeGeometry(0.05, 0.18, 6),
+                    bladeMat
+                );
+                tip.position.y = 0.5;
+
+                const guard = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.16, 0.04, 0.06),
+                    guardMat
+                );
+                guard.position.y = -0.02;
+
                 const handle = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.08, 0.1, 0.02),
-                    new THREE.MeshStandardMaterial({ color: 0x8b4513 })
+                    new THREE.BoxGeometry(0.12, 0.2, 0.06),
+                    handleMat
                 );
-                handle.position.y = -0.2;
+                handle.position.y = -0.18;
+                const pommel = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.12, 0.05, 0.06),
+                    guardMat
+                );
+                pommel.position.y = -0.32;
+
                 group.add(blade);
+                group.add(tip);
+                group.add(guard);
                 group.add(handle);
+                group.add(pommel);
                 break;
 
             case 'bow':
-                const bowMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.6 });
-                const limbGeo = new THREE.CylinderGeometry(0.04, 0.06, 0.7, 8);
-                const topLimb = new THREE.Mesh(limbGeo, bowMat);
-                topLimb.rotation.z = Math.PI / 2.2;
-                topLimb.position.set(0, 0.2, 0);
-                const bottomLimb = new THREE.Mesh(limbGeo, bowMat);
-                bottomLimb.rotation.z = -Math.PI / 2.2;
-                bottomLimb.position.set(0, -0.2, 0);
+                const bowMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.55, flatShading: true });
+                const wrapMat = new THREE.MeshStandardMaterial({ color: 0x3b2416, roughness: 0.7, flatShading: true });
+                const segmentGeo = new THREE.BoxGeometry(0.08, 0.28, 0.1);
+                const segments = 5;
+                for (let i = 0; i < segments; i++) {
+                    const t = i / (segments - 1);
+                    const angle = (-0.55 + t * 1.1);
+                    const y = 0.55 - t * 1.1;
+                    const x = 0.18 + Math.abs(Math.sin(angle)) * 0.22;
+                    const seg = new THREE.Mesh(segmentGeo, bowMat);
+                    seg.position.set(x, y, 0);
+                    seg.rotation.z = angle;
+                    group.add(seg);
+                    const segMirror = seg.clone();
+                    segMirror.position.x = -x;
+                    segMirror.rotation.z = -angle;
+                    group.add(segMirror);
+                }
                 const bowGrip = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.08, 0.2, 0.06),
-                    bowMat
+                    new THREE.BoxGeometry(0.16, 0.36, 0.12),
+                    wrapMat
                 );
+                group.add(bowGrip);
+                const gripWrap = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.18, 0.12, 0.14),
+                    wrapMat
+                );
+                gripWrap.position.set(0, 0.04, 0);
+                group.add(gripWrap);
+
                 const stringMat = new THREE.LineBasicMaterial({ color: 0x111111 });
                 const string = new THREE.Line(
                     new THREE.BufferGeometry().setFromPoints([
-                        new THREE.Vector3(0.18, 0.35, 0),
-                        new THREE.Vector3(0.1, 0, 0),
-                        new THREE.Vector3(0.18, -0.35, 0)
+                        new THREE.Vector3(0.38, 0.7, 0),
+                        new THREE.Vector3(0.08, 0, 0),
+                        new THREE.Vector3(0.38, -0.7, 0)
                     ]),
                     stringMat
                 );
-                group.add(topLimb);
-                group.add(bottomLimb);
-                group.add(bowGrip);
+                const string2 = string.clone();
+                string2.scale.x = -1;
                 group.add(string);
+                group.add(string2);
+                group.scale.setScalar(0.8);
                 break;
 
             case 'laser':
                 const bodyMat = new THREE.MeshStandardMaterial({
-                    color: 0x2f2f2f,
+                    color: 0x2b2b2b,
                     metalness: 0.7,
-                    roughness: 0.4,
+                    roughness: 0.35,
                     flatShading: true
                 });
                 const accentMat = new THREE.MeshStandardMaterial({
                     color: this.laserColor,
                     emissive: this.laserColor,
-                    emissiveIntensity: 0.6,
+                    emissiveIntensity: 0.65,
+                    roughness: 0.2,
                     flatShading: true
                 });
+                const gripMat = new THREE.MeshStandardMaterial({
+                    color: 0x1c1c1c,
+                    metalness: 0.4,
+                    roughness: 0.6,
+                    flatShading: true
+                });
+
                 const body = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.5, 0.18, 0.18),
+                    new THREE.BoxGeometry(0.62, 0.2, 0.2),
                     bodyMat
                 );
-                body.position.set(0, 0, 0);
+                body.position.set(0, 0.03, 0);
                 group.add(body);
 
                 const barrel = new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.06, 0.08, 0.45, 8),
+                    new THREE.CylinderGeometry(0.06, 0.08, 0.5, 8),
                     bodyMat
                 );
                 barrel.rotation.z = Math.PI / 2;
-                barrel.position.set(0.32, 0.02, 0);
+                barrel.position.set(0.38, 0.05, 0);
                 group.add(barrel);
 
-                const grip = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.12, 0.22, 0.1),
-                    bodyMat
+                const muzzle = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.09, 0.09, 0.06, 8),
+                    accentMat
                 );
-                grip.position.set(-0.12, -0.18, 0);
+                muzzle.rotation.z = Math.PI / 2;
+                muzzle.position.set(0.63, 0.05, 0);
+                group.add(muzzle);
+
+                const grip = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.14, 0.26, 0.12),
+                    gripMat
+                );
+                grip.position.set(-0.1, -0.18, 0);
                 group.add(grip);
 
                 const stock = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.18, 0.14, 0.14),
+                    new THREE.BoxGeometry(0.22, 0.16, 0.16),
                     bodyMat
                 );
-                stock.position.set(-0.28, 0.02, 0);
+                stock.position.set(-0.33, 0.02, 0);
                 group.add(stock);
 
+                const rail = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.42, 0.05, 0.12),
+                    gripMat
+                );
+                rail.position.set(0.02, 0.16, 0);
+                group.add(rail);
+
                 const core = new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.03, 0.03, 0.35, 8),
+                    new THREE.CylinderGeometry(0.035, 0.035, 0.42, 8),
                     accentMat
                 );
                 core.rotation.z = Math.PI / 2;
-                core.position.set(0.18, 0.04, 0);
+                core.position.set(0.18, 0.06, 0);
                 group.add(core);
 
-                const emitter = new THREE.Mesh(
-                    new THREE.SphereGeometry(0.07, 8, 8),
+                const cell = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.12, 0.18, 0.12),
                     accentMat
                 );
-                emitter.position.set(0.52, 0.02, 0);
-                group.add(emitter);
+                cell.position.set(-0.02, -0.05, 0);
+                group.add(cell);
                 break;
         }
 
@@ -255,32 +337,34 @@ export class Weapon {
             const geometry = new THREE.SphereGeometry(0.1, 8, 8);
             const material = new THREE.MeshStandardMaterial({
                 color: this.laserColor || 0x00ffff,
-                emissive: this.laserColor || 0x00ffff
+                emissive: this.laserColor || 0x00ffff,
+                emissiveIntensity: 0.6,
+                roughness: 0.2,
+                flatShading: true
             });
             mesh = new THREE.Mesh(geometry, material);
             knockback = 3;
         } else if (this.type === 'bow') {
             const group = new THREE.Group();
             const shaft = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.025, 0.025, 0.8, 6),
-                new THREE.MeshStandardMaterial({ color: 0x8b5a2b })
+                new THREE.BoxGeometry(1.1, 0.05, 0.05),
+                new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.6, flatShading: true })
             );
-            shaft.rotation.z = Math.PI / 2;
             group.add(shaft);
 
             const tip = new THREE.Mesh(
-                new THREE.ConeGeometry(0.05, 0.18, 6),
-                new THREE.MeshStandardMaterial({ color: 0x777777, metalness: 0.6 })
+                new THREE.ConeGeometry(0.05, 0.24, 6),
+                new THREE.MeshStandardMaterial({ color: 0x777777, metalness: 0.6, roughness: 0.2, flatShading: true })
             );
-            tip.position.x = 0.42;
+            tip.position.x = 0.62;
             tip.rotation.z = Math.PI / 2;
             group.add(tip);
 
             const fletch = new THREE.Mesh(
-                new THREE.BoxGeometry(0.14, 0.08, 0.02),
-                new THREE.MeshStandardMaterial({ color: 0xf5f5f5 })
+                new THREE.BoxGeometry(0.22, 0.12, 0.02),
+                new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.7, flatShading: true })
             );
-            fletch.position.x = -0.35;
+            fletch.position.x = -0.56;
             group.add(fletch);
 
             mesh = group;
@@ -288,12 +372,18 @@ export class Weapon {
             gravity = 0;
         } else {
             const geometry = new THREE.ConeGeometry(0.1, 0.3, 8);
-            const material = new THREE.MeshStandardMaterial({ color: 0x8b4513 });
+            const material = new THREE.MeshStandardMaterial({ color: 0x8b4513, roughness: 0.8, flatShading: true });
             mesh = new THREE.Mesh(geometry, material);
         }
 
         mesh.position.copy(startPos);
-        mesh.lookAt(startPos.clone().add(direction));
+        if (this.type === 'bow') {
+            const forward = new THREE.Vector3(1, 0, 0);
+            const quat = new THREE.Quaternion().setFromUnitVectors(forward, direction.clone().normalize());
+            mesh.quaternion.copy(quat);
+        } else {
+            mesh.lookAt(startPos.clone().add(direction));
+        }
 
         return {
             mesh,
@@ -304,23 +394,36 @@ export class Weapon {
             owner: null,
             knockback,
             gravity,
-            lifetime: 5
+            lifetime: 5,
+            align: this.type === 'bow' ? 'arrow' : null
         };
     }
 
     animateAttack() {
         if (!this.mesh) return;
 
-        const originalRotation = this.mesh.rotation.z;
+        const originalRotation = this.mesh.rotation.clone();
+        const originalPosition = this.mesh.position.clone();
         const animate = () => {
-            const time = performance.now() / 1000;
             if (this.type === 'knife') {
-                this.mesh.rotation.z = originalRotation + Math.sin(time * 20) * 0.5;
-            } else if (this.type === 'bow') {
-                this.mesh.rotation.z = originalRotation - 0.3;
+                this.mesh.rotation.x = originalRotation.x - 0.6;
+                this.mesh.position.z = originalPosition.z - 0.1;
                 setTimeout(() => {
-                    this.mesh.rotation.z = originalRotation;
+                    this.mesh.rotation.copy(originalRotation);
+                    this.mesh.position.copy(originalPosition);
+                }, 120);
+            } else if (this.type === 'bow') {
+                this.mesh.rotation.z = originalRotation.z - 0.2;
+                setTimeout(() => {
+                    this.mesh.rotation.copy(originalRotation);
                 }, 200);
+            } else if (this.type === 'laser') {
+                this.mesh.rotation.x = originalRotation.x - 0.25;
+                this.mesh.position.z = originalPosition.z - 0.06;
+                setTimeout(() => {
+                    this.mesh.rotation.copy(originalRotation);
+                    this.mesh.position.copy(originalPosition);
+                }, 120);
             }
         };
 

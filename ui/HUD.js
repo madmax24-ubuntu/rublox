@@ -254,6 +254,44 @@ export class HUD {
         `;
         hud.appendChild(countdown);
 
+        const crosshair = document.createElement('div');
+        crosshair.id = 'crosshair';
+        crosshair.style.cssText = `
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: ${px(18)}px;
+            height: ${px(18)}px;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 1100;
+        `;
+        const crossVert = document.createElement('div');
+        crossVert.style.cssText = `
+            position: absolute;
+            left: 50%;
+            top: 0;
+            width: ${px(2)}px;
+            height: 100%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+        `;
+        const crossHorz = document.createElement('div');
+        crossHorz.style.cssText = `
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: ${px(2)}px;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+        `;
+        crosshair.appendChild(crossVert);
+        crosshair.appendChild(crossHorz);
+        hud.appendChild(crosshair);
+
         const gameMessage = document.createElement('div');
         gameMessage.id = 'gameMessage';
         const messageTop = isMobile ? 18 : 30;

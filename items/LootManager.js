@@ -11,7 +11,7 @@ export class LootManager {
     }
 
     generateChests() {
-        const chestCount = 900;
+        const chestCount = 1400;
         const spots = this.mapGenerator.getChestSpots?.() || [];
 
         if (spots.length > 0) {
@@ -20,7 +20,7 @@ export class LootManager {
 
             for (let i = 0; i < limit; i++) {
                 const spot = shuffled[i];
-                const y = this.mapGenerator.getHeightAt(spot.x, spot.z) + 0.5;
+                const y = this.mapGenerator.getHeightAt(spot.x, spot.z) + 0.06;
                 if (y < this.mapGenerator.waterLevel + 1) continue;
                 if (this.mapGenerator.isChestClear && !this.mapGenerator.isChestClear(spot.x, spot.z, 3)) {
                     continue;
@@ -36,7 +36,7 @@ export class LootManager {
             const distance = 40 + Math.random() * 150;
             const x = Math.cos(angle) * distance;
             const z = Math.sin(angle) * distance;
-            const y = this.mapGenerator.getHeightAt(x, z) + 0.5;
+            const y = this.mapGenerator.getHeightAt(x, z) + 0.06;
 
             if (y < this.mapGenerator.waterLevel + 1) {
                 i--;
@@ -57,43 +57,48 @@ export class LootManager {
         const { bodyMat, lidMat, bandMat, metalMat } = this.chestMaterials;
 
         const body = new THREE.Mesh(
-            new THREE.BoxGeometry(1, 0.8, 1),
+            new THREE.BoxGeometry(1.2, 0.7, 0.9),
             bodyMat
         );
-        body.position.y = 0.4;
+        body.position.y = 0.35;
         body.castShadow = true;
         group.add(body);
 
         const lid = new THREE.Mesh(
-            new THREE.BoxGeometry(1, 0.1, 1),
+            new THREE.BoxGeometry(1.2, 0.18, 0.92),
             lidMat
         );
-        lid.position.y = 0.85;
+        lid.position.y = 0.72;
         lid.castShadow = true;
         group.add(lid);
 
-        const ring1 = new THREE.Mesh(
-            new THREE.TorusGeometry(0.6, 0.05, 8, 16),
-            metalMat
-        );
-        ring1.rotation.x = Math.PI / 2;
-        ring1.position.y = 0.4;
-        group.add(ring1);
-
-        const ring2 = new THREE.Mesh(
-            new THREE.TorusGeometry(0.6, 0.05, 8, 16),
-            metalMat
-        );
-        ring2.rotation.x = Math.PI / 2;
-        ring2.position.y = 0.8;
-        group.add(ring2);
-
         const band = new THREE.Mesh(
-            new THREE.BoxGeometry(1.02, 0.08, 1.02),
+            new THREE.BoxGeometry(1.24, 0.08, 0.94),
             bandMat
         );
-        band.position.y = 0.56;
+        band.position.y = 0.48;
         group.add(band);
+
+        const band2 = new THREE.Mesh(
+            new THREE.BoxGeometry(1.24, 0.08, 0.94),
+            bandMat
+        );
+        band2.position.y = 0.18;
+        group.add(band2);
+
+        const latch = new THREE.Mesh(
+            new THREE.BoxGeometry(0.18, 0.18, 0.06),
+            metalMat
+        );
+        latch.position.set(0, 0.46, 0.48);
+        group.add(latch);
+
+        const latchPlate = new THREE.Mesh(
+            new THREE.BoxGeometry(0.28, 0.12, 0.04),
+            metalMat
+        );
+        latchPlate.position.set(0, 0.32, 0.48);
+        group.add(latchPlate);
 
         const glow = new THREE.Mesh(
             new THREE.SphereGeometry(0.3, 8, 8),
@@ -118,8 +123,8 @@ export class LootManager {
     }
 
     createChestMaterials() {
-        const bodyTex = this.createChestTexture('#8a5a2b', '#6b3f1f');
-        const lidTex = this.createChestTexture('#7b4a24', '#5e3518');
+        const bodyTex = this.createChestTexture('#455a64', '#263238', '#0f1417');
+        const lidTex = this.createChestTexture('#37474f', '#1c2429', '#0c1114');
         bodyTex.wrapS = bodyTex.wrapT = THREE.RepeatWrapping;
         lidTex.wrapS = lidTex.wrapT = THREE.RepeatWrapping;
         bodyTex.repeat.set(2, 2);
@@ -151,7 +156,7 @@ export class LootManager {
         return { bodyMat, lidMat, bandMat, metalMat };
     }
 
-    createChestTexture(primary, secondary) {
+    createChestTexture(primary, secondary, dark) {
         const canvas = document.createElement('canvas');
         canvas.width = 64;
         canvas.height = 64;
@@ -160,17 +165,33 @@ export class LootManager {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         ctx.fillStyle = secondary;
-        for (let y = 0; y < canvas.height; y += 8) {
-            ctx.fillRect(0, y, canvas.width, 4);
+        for (let x = 0; x < canvas.width; x += 12) {
+            ctx.fillRect(x, 0, 7, canvas.height);
         }
 
-        ctx.strokeStyle = 'rgba(20, 12, 6, 0.35)';
+        ctx.strokeStyle = dark;
+        ctx.lineWidth = 2;
         for (let x = 0; x < canvas.width; x += 12) {
             ctx.beginPath();
             ctx.moveTo(x, 0);
             ctx.lineTo(x, canvas.height);
             ctx.stroke();
         }
+
+        ctx.strokeStyle = 'rgba(10, 10, 10, 0.45)';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(4, 4, canvas.width - 8, canvas.height - 8);
+
+        ctx.strokeStyle = 'rgba(20, 20, 20, 0.5)';
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(0, 10);
+        ctx.lineTo(canvas.width, 10);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, 52);
+        ctx.lineTo(canvas.width, 52);
+        ctx.stroke();
 
         return new THREE.CanvasTexture(canvas);
     }

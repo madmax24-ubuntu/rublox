@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Inventory } from '../items/Inventory.js';
 import { Weapon } from '../items/Weapon.js';
+import { spawnDamagePopup } from './DamagePopup.js';
 
 export class Bot {
     constructor(scene, id, spawnPosition) {
@@ -17,8 +18,8 @@ export class Bot {
             speed: 6 + Math.random() * 2
         };
 
-        this.health = 100;
-        this.maxHealth = 100;
+        this.maxHealth = 80;
+        this.health = this.maxHealth;
         this.armor = 0;
         this.maxArmor = 100;
         this.isInvulnerable = false;
@@ -41,6 +42,7 @@ export class Bot {
         this.audioSynthRef = null;
         this.escapeDir = null;
         this.escapeTimer = 0;
+        this.moveDir = new THREE.Vector3(0, 0, 1);
 
         this.variants = [
             {
@@ -122,6 +124,8 @@ export class Bot {
 
         this.mesh = this.createMesh();
         this.mesh.scale.setScalar(this.outfit.scale || 1.4);
+        this.healthBar = this.createHealthBar();
+        this.mesh.add(this.healthBar);
         this.scene.add(this.mesh);
         this.updateColor();
     }
@@ -149,7 +153,10 @@ export class Bot {
         const harnessMat = new THREE.MeshStandardMaterial({
             color: this.outfit.harness,
             roughness: 0.7,
-            flatShading: true
+            flatShading: true,
+            polygonOffset: true,
+            polygonOffsetFactor: -1,
+            polygonOffsetUnits: -1
         });
         const shoeMat = new THREE.MeshStandardMaterial({
             color: 0x3e3e3e,
@@ -164,7 +171,10 @@ export class Bot {
         const detailMat = new THREE.MeshStandardMaterial({
             color: 0x263238,
             roughness: 0.6,
-            flatShading: true
+            flatShading: true,
+            polygonOffset: true,
+            polygonOffsetFactor: -1,
+            polygonOffsetUnits: -1
         });
 
         const upperTorso = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.55, 0.5), shirtMat);
@@ -255,7 +265,14 @@ export class Bot {
         if (this.outfit.vest) {
             const vest = new THREE.Mesh(
                 new THREE.BoxGeometry(0.95, 0.5, 0.12),
-                new THREE.MeshStandardMaterial({ color: this.outfit.vest, roughness: 0.5, flatShading: true })
+                new THREE.MeshStandardMaterial({
+                    color: this.outfit.vest,
+                    roughness: 0.5,
+                    flatShading: true,
+                    polygonOffset: true,
+                    polygonOffsetFactor: -1,
+                    polygonOffsetUnits: -1
+                })
             );
             vest.position.set(0, 1.35, 0.36);
             group.add(vest);
@@ -325,6 +342,27 @@ export class Bot {
         return group;
     }
 
+    createHealthBar() {
+        const group = new THREE.Group();
+        const bgMat = new THREE.MeshBasicMaterial({ color: 0x1a1a1a, transparent: true, opacity: 0.8, depthTest: false });
+        const fillMat = new THREE.MeshBasicMaterial({ color: 0x4caf50, transparent: true, opacity: 0.95, depthTest: false });
+        const bg = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.12), bgMat);
+        const fill = new THREE.Mesh(new THREE.PlaneGeometry(0.86, 0.08), fillMat);
+        fill.position.set(-0.43, 0, 0.01);
+        fill.userData.isFill = true;
+        group.add(bg);
+        group.add(fill);
+        group.position.set(0, 2.65, 0);
+        group.renderOrder = 900;
+        group.traverse(child => {
+            if (child.material) {
+                child.material.depthTest = false;
+                child.material.depthWrite = false;
+            }
+        });
+        return group;
+    }
+
     updateColor() {
         this.mesh.traverse(child => {
             if (!child.userData?.tintable) return;
@@ -337,8 +375,10 @@ export class Bot {
     update(delta, brain, entityManager, lootManager, audioSynth, physics) {
         if (!this.isAlive) {
             this.mesh.position.copy(this.position);
+            if (this.healthBar) this.healthBar.visible = false;
             return;
         }
+        if (this.healthBar) this.healthBar.visible = true;
 
         this.physicsRef = physics;
         this.audioSynthRef = audioSynth;
@@ -376,6 +416,7 @@ export class Bot {
         this.mesh.position.y = this.position.y - (this.physics.height - 0.2);
         this.mesh.rotation.y = this.rotation.y;
         this.animateLimbs();
+        this.updateHealthBar();
 
         if (this.currentWeapon && this.currentWeapon.mesh) {
             const weaponPos = this.position.clone();
@@ -484,6 +525,7 @@ export class Bot {
             this.mesh.rotation.set(-Math.PI / 2, this.rotation.y, 0);
         }
         this.flashDamage();
+        spawnDamagePopup(this.scene, this.position, finalDamage, { color: '#ff5b5b' });
         if (this.audioSynthRef && this.audioSynthRef.playHurt) {
             this.audioSynthRef.playHurt();
         }
@@ -496,6 +538,23 @@ export class Bot {
         }
 
         return true;
+    }
+
+    updateHealthBar() {
+        if (!this.healthBar) return;
+        const ratio = Math.max(0, Math.min(1, this.health / this.maxHealth));
+        const fill = this.healthBar.children.find(child => child.userData?.isFill);
+        if (fill) {
+            fill.scale.x = ratio;
+            fill.position.x = -0.43 + 0.43 * ratio;
+            if (ratio < 0.3) fill.material.color.setHex(0xf44336);
+            else if (ratio < 0.6) fill.material.color.setHex(0xffc107);
+            else fill.material.color.setHex(0x4caf50);
+        }
+        const camera = this.scene.userData?.camera;
+        if (camera) {
+            this.healthBar.lookAt(camera.position);
+        }
     }
 
     setInvulnerable(value) {
@@ -540,14 +599,19 @@ export class Bot {
         this.physics.velocity.x = direction.x * finalSpeed;
         this.physics.velocity.z = direction.z * finalSpeed;
 
-        this.rotation.y = Math.atan2(direction.x, direction.z);
+        const targetRot = Math.atan2(direction.x, direction.z);
+        if (finalSpeed > 0.2) {
+            this.rotation.y = this.lerpAngle(this.rotation.y, targetRot, 0.25);
+            this.moveDir.copy(direction);
+        }
     }
 
     lookAt(target) {
         const direction = new THREE.Vector3()
             .subVectors(target, this.position)
             .normalize();
-        this.rotation.y = Math.atan2(direction.x, direction.z);
+        const targetRot = Math.atan2(direction.x, direction.z);
+        this.rotation.y = this.lerpAngle(this.rotation.y, targetRot, 0.25);
     }
 
     applySlow(factor, duration) {
@@ -624,17 +688,22 @@ export class Bot {
 
     flashDamage() {
         this.mesh.traverse(child => {
-            if (!child.material || !child.material.color) return;
-            if (!child.userData.baseColor) {
-                child.userData.baseColor = child.material.color.getHex();
-            }
-            child.material.color.setHex(0xff4d4d);
+            if (!child.material || !child.material.emissive) return;
+            child.material.emissive.setHex(0xff2d2d);
+            child.material.emissiveIntensity = 0.7;
         });
         setTimeout(() => {
             this.mesh.traverse(child => {
-                if (!child.material || !child.userData.baseColor) return;
-                child.material.color.setHex(child.userData.baseColor);
+                if (!child.material || !child.material.emissive) return;
+                child.material.emissiveIntensity = 0;
             });
         }, 120);
+    }
+
+    lerpAngle(a, b, t) {
+        let diff = b - a;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        return a + diff * t;
     }
 }

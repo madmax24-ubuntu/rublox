@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Inventory } from '../items/Inventory.js';
 import { Weapon } from '../items/Weapon.js';
+import { spawnDamagePopup } from './DamagePopup.js';
 
 export class Player {
     constructor(scene, camera, input) {
@@ -44,6 +45,9 @@ export class Player {
         this.punchDuration = 0.25;
         this.weaponSwingTime = 0;
         this.weaponSwingDuration = 0.2;
+        this.weaponActionTime = 0;
+        this.weaponActionDuration = 0.18;
+        this.weaponActionType = null;
         this.audioSynthRef = null;
 
         this.cameraOffset = new THREE.Vector3(0, 1.5, 0);
@@ -72,44 +76,62 @@ export class Player {
     createFirstPersonArms() {
         const group = new THREE.Group();
         const armMat = new THREE.MeshStandardMaterial({
-            color: 0x4a90e2,
+            color: 0x2f5d8f,
             roughness: 0.35,
             metalness: 0.0,
             flatShading: true
         });
         const handMat = new THREE.MeshStandardMaterial({
-            color: 0xffd6b5,
+            color: 0xffc9a6,
             roughness: 0.4,
+            metalness: 0.0,
+            flatShading: true
+        });
+        const cuffMat = new THREE.MeshStandardMaterial({
+            color: 0x2f3e55,
+            roughness: 0.5,
             metalness: 0.0,
             flatShading: true
         });
 
         const leftArm = new THREE.Mesh(
-            new THREE.BoxGeometry(0.16, 0.5, 0.16),
+            new THREE.BoxGeometry(0.18, 0.24, 0.18),
             armMat
         );
-        leftArm.position.set(-0.26, -0.45, -0.62);
+        leftArm.position.set(-0.34, -0.56, -0.86);
         group.add(leftArm);
+        const leftCuff = new THREE.Mesh(
+            new THREE.BoxGeometry(0.18, 0.06, 0.18),
+            cuffMat
+        );
+        leftCuff.position.set(-0.34, -0.7, -0.86);
+        group.add(leftCuff);
 
         const rightArm = new THREE.Mesh(
-            new THREE.BoxGeometry(0.16, 0.5, 0.16),
+            new THREE.BoxGeometry(0.18, 0.24, 0.18),
             armMat
         );
-        rightArm.position.set(0.26, -0.45, -0.62);
+        rightArm.position.set(0.34, -0.56, -0.86);
         group.add(rightArm);
+        const rightCuff = new THREE.Mesh(
+            new THREE.BoxGeometry(0.18, 0.06, 0.18),
+            cuffMat
+        );
+        rightCuff.position.set(0.34, -0.7, -0.86);
+        group.add(rightCuff);
 
         const leftHand = new THREE.Mesh(
-            new THREE.BoxGeometry(0.16, 0.16, 0.16),
+            new THREE.BoxGeometry(0.18, 0.16, 0.18),
             handMat
         );
-        leftHand.position.set(-0.26, -0.62, -0.8);
+        leftHand.position.set(-0.34, -0.66, -0.98);
         group.add(leftHand);
 
         const rightHand = new THREE.Mesh(
-            new THREE.BoxGeometry(0.16, 0.16, 0.16),
+            new THREE.BoxGeometry(0.18, 0.16, 0.18),
             handMat
         );
-        rightHand.position.set(0.26, -0.62, -0.8);
+        rightHand.position.set(0.34, -0.66, -0.98);
         group.add(rightHand);
 
         group.userData.limbs = { leftArm, rightArm, leftHand, rightHand };
@@ -167,7 +189,7 @@ export class Player {
         group.add(head);
 
         const armMat = new THREE.MeshStandardMaterial({
-            color: 0x4a90e2,
+            color: 0x3f6fa1,
             roughness: 0.35,
             metalness: 0.0,
             flatShading: true
@@ -185,6 +207,25 @@ export class Player {
         );
         rightArm.position.set(0.54, 0.7, 0);
         group.add(rightArm);
+
+        const handMat = new THREE.MeshStandardMaterial({
+            color: 0xffc9a6,
+            roughness: 0.4,
+            metalness: 0.0,
+            flatShading: true
+        });
+        const leftHand = new THREE.Mesh(
+            new THREE.BoxGeometry(0.26, 0.2, 0.26),
+            handMat
+        );
+        leftHand.position.set(-0.54, 0.2, 0);
+        group.add(leftHand);
+        const rightHand = new THREE.Mesh(
+            new THREE.BoxGeometry(0.26, 0.2, 0.26),
+            handMat
+        );
+        rightHand.position.set(0.54, 0.2, 0);
+        group.add(rightHand);
 
         const weaponSocket = new THREE.Object3D();
         weaponSocket.position.set(0.62, 1.1, 0.2);
@@ -366,6 +407,7 @@ export class Player {
             this.fpArms.visible = false;
             if (this.currentWeapon) this.currentWeapon.setVisible(true);
         }
+        this.updateFirstPersonArmsVisibility(isFirstPerson);
         this.animateViewModel(isFirstPerson);
 
         for (let i = 0; i <= 9; i++) {
@@ -393,6 +435,8 @@ export class Player {
                     result.projectile.mesh.lookAt(muzzle.clone().add(direction));
                     entityManager.addProjectile(result.projectile);
                     this.viewKick = 0.25;
+                    this.weaponActionTime = this.weaponActionDuration;
+                    this.weaponActionType = activeWeapon.type;
                 }
             } else {
                 const target = entityManager.getNearestEnemy(this.position, activeWeapon.range);
@@ -437,6 +481,10 @@ export class Player {
         }
         this.punchTime = Math.max(0, this.punchTime - delta);
         this.weaponSwingTime = Math.max(0, this.weaponSwingTime - delta);
+        this.weaponActionTime = Math.max(0, this.weaponActionTime - delta);
+        if (this.weaponActionTime === 0) {
+            this.weaponActionType = null;
+        }
         this.viewKick = Math.max(0, this.viewKick - delta * 6);
     }
 
@@ -513,7 +561,32 @@ export class Player {
                 this.viewWeapon.position.z -= this.viewKick * 0.2;
                 this.viewWeapon.rotation.x -= this.viewKick * 0.6;
             }
+
+            if (this.weaponActionTime > 0 && this.weaponActionType) {
+                const t = 1 - this.weaponActionTime / this.weaponActionDuration;
+                const ease = Math.sin(t * Math.PI);
+                if (this.weaponActionType === 'bow') {
+                    this.viewWeapon.position.z -= ease * 0.12;
+                    this.viewWeapon.rotation.y += ease * 0.08;
+                } else if (this.weaponActionType === 'laser') {
+                    this.viewWeapon.position.z -= ease * 0.1;
+                    this.viewWeapon.rotation.x -= ease * 0.35;
+                }
+            }
         }
+    }
+
+    updateFirstPersonArmsVisibility(isFirstPerson) {
+        if (!this.fpArms) return;
+        if (!isFirstPerson) return;
+        const limbs = this.fpArms.userData?.limbs;
+        if (!limbs) return;
+        const weaponType = this.currentWeapon?.type || 'fists';
+        const showArms = weaponType === 'fists';
+        limbs.leftArm.visible = showArms;
+        limbs.rightArm.visible = showArms;
+        limbs.leftHand.visible = showArms;
+        limbs.rightHand.visible = showArms;
     }
 
     selectSlot(slot) {
@@ -576,6 +649,7 @@ export class Player {
             this.mesh.rotation.set(-Math.PI / 2, this.rotation.y, 0);
         }
         this.flashDamage();
+        spawnDamagePopup(this.scene, this.position, finalDamage, { color: '#ff5b5b' });
         if (this.audioSynthRef && this.audioSynthRef.playHurt) {
             this.audioSynthRef.playHurt();
         }
@@ -652,16 +726,17 @@ export class Player {
         };
 
         if (type === 'knife') {
-            base.position.set(0.2, -0.45, -0.55);
-            base.rotation.set(0, Math.PI, Math.PI / 12);
+            base.position.set(0.22, -0.4, -0.58);
+            base.rotation.set(0.02, Math.PI, Math.PI / 12);
+            base.scale = 1.05;
         } else if (type === 'bow') {
-            base.position.set(0.25, -0.35, -0.8);
-            base.rotation.set(-0.1, Math.PI * 0.98, Math.PI / 10);
-            base.scale = 1.15;
+            base.position.set(0.32, -0.22, -0.85);
+            base.rotation.set(0, Math.PI, 0);
+            base.scale = 0.9;
         } else if (type === 'laser') {
-            base.position.set(0.22, -0.38, -0.7);
-            base.rotation.set(-0.08, Math.PI, Math.PI / 14);
-            base.scale = 1.12;
+            base.position.set(0.24, -0.36, -0.78);
+            base.rotation.set(-0.06, Math.PI, Math.PI / 14);
+            base.scale = 1.15;
         }
 
         return base;

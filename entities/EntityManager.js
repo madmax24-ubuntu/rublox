@@ -40,7 +40,13 @@ export class EntityManager {
                 const moveVector = proj.direction.clone().multiplyScalar(proj.speed * delta);
                 proj.mesh.position.add(moveVector);
             }
-            proj.mesh.lookAt(proj.mesh.position.clone().add(proj.direction));
+            if (proj.align === 'arrow') {
+                const forward = new THREE.Vector3(1, 0, 0);
+                const quat = new THREE.Quaternion().setFromUnitVectors(forward, proj.direction.clone().normalize());
+                proj.mesh.quaternion.copy(quat);
+            } else {
+                proj.mesh.lookAt(proj.mesh.position.clone().add(proj.direction));
+            }
 
             const hitEntity = this.checkProjectileHit(proj);
             if (hitEntity) {
