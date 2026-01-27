@@ -40,6 +40,11 @@ export class EntityManager {
                 const moveVector = proj.direction.clone().multiplyScalar(proj.speed * delta);
                 proj.mesh.position.add(moveVector);
             }
+            if (proj.type === 'flame' && proj.mesh.material) {
+                const flicker = 0.85 + Math.random() * 0.3;
+                proj.mesh.scale.setScalar(flicker);
+                proj.mesh.material.opacity = Math.max(0, proj.lifetime / 0.6);
+            }
             if (proj.align === 'arrow') {
                 const forward = new THREE.Vector3(1, 0, 0);
                 const quat = new THREE.Quaternion().setFromUnitVectors(forward, proj.direction.clone().normalize());

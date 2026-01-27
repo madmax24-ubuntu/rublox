@@ -498,7 +498,7 @@ export class Bot {
         }
     }
 
-    takeDamage(damage, isHeadshot = false, attacker = null, knockbackStrength = 0) {
+    takeDamage(damage, isHeadshot = false, attacker = null, knockbackStrength = 0, source = null) {
         if (this.isInvulnerable) return false;
 
         const finalDamage = isHeadshot ? damage * 2 : damage;
@@ -523,11 +523,18 @@ export class Bot {
             this.mesh.position.copy(this.position);
             this.mesh.position.y = this.position.y - (this.physics.height - 0.2) - 0.8;
             this.mesh.rotation.set(-Math.PI / 2, this.rotation.y, 0);
+            if (this.currentWeapon) {
+                this.currentWeapon.setVisible(false);
+            }
         }
         this.flashDamage();
         spawnDamagePopup(this.scene, this.position, finalDamage, { color: '#ff5b5b' });
-        if (this.audioSynthRef && this.audioSynthRef.playHurt) {
-            this.audioSynthRef.playHurt();
+        if (this.audioSynthRef) {
+            if (source === 'zone' && this.audioSynthRef.playZoneDamage) {
+                this.audioSynthRef.playZoneDamage();
+            } else if (this.audioSynthRef.playHurt) {
+                this.audioSynthRef.playHurt();
+            }
         }
         if (attacker && this.isAlive) {
             const strength = knockbackStrength > 0 ? knockbackStrength : 3;
@@ -645,7 +652,7 @@ export class Bot {
             this.currentWeapon = null;
             weapon = this.fists;
         }
-        if ((weapon.type === 'bow' || weapon.type === 'laser') && weapon.ammo !== null && weapon.ammo <= 0) {
+        if ((weapon.type === 'bow' || weapon.type === 'laser' || weapon.type === 'shotgun' || weapon.type === 'flamethrower') && weapon.ammo !== null && weapon.ammo <= 0) {
             this.currentWeapon = null;
             weapon = this.fists;
         }
@@ -661,12 +668,19 @@ export class Bot {
 
         if (distance > attackRange) return null;
 
-        if (weapon.type === 'laser' || weapon.type === 'bow') {
+        if (weapon.type === 'laser' || weapon.type === 'bow' || weapon.type === 'shotgun' || weapon.type === 'flamethrower') {
             const direction = new THREE.Vector3()
                 .subVectors(target.position, this.position)
                 .normalize();
 
             const projectileData = weapon.attack(this, null, null, direction);
+            if (projectileData && projectileData.projectiles) {
+                for (const proj of projectileData.projectiles) {
+                    proj.owner = this;
+                    entityManager?.addProjectile(proj);
+                }
+                return { fired: true, damage: weapon.damage };
+            }
             if (projectileData && projectileData.projectile) {
                 projectileData.projectile.direction = direction;
                 projectileData.projectile.owner = this;

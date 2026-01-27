@@ -9,8 +9,15 @@ export class Inventory {
         const existingSlot = this.findSlotByType(weapon.type);
         if (existingSlot !== -1) {
             const existing = this.items[existingSlot];
-            if (existing && typeof existing.resetCharges === 'function') {
-                existing.resetCharges();
+            if (existing) {
+                if (existing.ammo !== null && existing.maxAmmo !== null) {
+                    const addAmmo = Math.ceil(existing.maxAmmo * 0.5);
+                    existing.ammo = Math.min(existing.maxAmmo, existing.ammo + addAmmo);
+                }
+                if (existing.durability !== null && existing.maxDurability !== null) {
+                    const addDurability = Math.ceil(existing.maxDurability * 0.5);
+                    existing.durability = Math.min(existing.maxDurability, existing.durability + addDurability);
+                }
             }
             return { slot: existingSlot, added: false };
         }

@@ -9,7 +9,7 @@ export class Zombie {
         this.physics = {
             velocity: new THREE.Vector3(0, 0, 0),
             onGround: false,
-            height: 1.8,
+            height: 1.9,
             radius: 0.45,
             speed: 4.2
         };
@@ -22,6 +22,7 @@ export class Zombie {
         this.soundTimer = 1 + Math.random() * 2;
 
         this.mesh = this.createMesh();
+        this.mesh.scale.setScalar(1.35);
         this.scene.add(this.mesh);
     }
 
@@ -122,7 +123,7 @@ export class Zombie {
             }
 
             if (audioSynth && this.soundTimer <= 0) {
-                audioSynth.playZombieMoan?.();
+                audioSynth.playZombieMoan?.(this.position);
                 this.soundTimer = 3 + Math.random() * 3;
             }
         } else {
@@ -134,7 +135,7 @@ export class Zombie {
             }
 
             if (audioSynth && this.soundTimer <= 0) {
-                audioSynth.playZombieMoan?.();
+                audioSynth.playZombieMoan?.(this.position);
                 this.soundTimer = 4 + Math.random() * 4;
             }
         }

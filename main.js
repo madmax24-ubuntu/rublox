@@ -47,6 +47,7 @@ import { AudioSynth } from './core/AudioSynth.js';
 import { Player } from './entities/Player.js';
 import { Bot } from './entities/Bot.js';
 import { BotBrain } from './entities/BotBrain.js';
+import { Zombie } from './entities/Zombie.js';
 import { EntityManager } from './entities/EntityManager.js';
 import { LootManager } from './items/LootManager.js';
 import { HUD } from './ui/HUD.js';
@@ -173,6 +174,7 @@ class Game {
 
         this.bots = [];
         this.botBrains = [];
+        this.zombies = [];
         this.spawnBots();
         this.gateClosed = false;
         this.nightNotified = false;
@@ -188,8 +190,8 @@ class Game {
         this.countdownTimer = this.countdownTime;
         this.spawnTime = 20;
         this.spawnTimer = this.spawnTime;
-        this.zoneShrinkTimer = 40;
-        this.zoneShrinkInterval = 20;
+        this.zoneShrinkTimer = 60;
+        this.zoneShrinkInterval = 35;
 
         this.gameLoop = new GameLoop(this);
 
@@ -248,6 +250,7 @@ class Game {
                 this.audioSynth.playBoxArrival?.(new THREE.Vector3(0, 1, 0));
                 this.player.isFrozen = false;
                 this.bots.forEach(bot => { bot.isFrozen = false; });
+                this.spawnZombies();
             }
         } else if (this.gameState === 'spawn') {
             this.spawnTimer -= delta;
@@ -291,7 +294,7 @@ class Game {
             this.zoneShrinkTimer -= delta;
 
             if (this.zoneShrinkTimer <= 0) {
-                const newRadius = this.zone.getTargetRadius() * 0.9;
+                const newRadius = this.zone.getTargetRadius() * 0.95;
                 this.zone.shrink(newRadius);
                 this.zoneShrinkTimer = this.zoneShrinkInterval;
             }
@@ -300,7 +303,7 @@ class Game {
 
             if (!this.zone.isInsideZone(this.player.position)) {
                 const damage = this.zone.getDamage(delta);
-                this.player.takeDamage(damage);
+                this.player.takeDamage(damage, false, null, 0, 'zone');
             }
 
             const distanceFromZone = this.zone.getDistanceFromZone(this.player.position);
@@ -358,7 +361,7 @@ class Game {
 
                 if (this.gameState === 'playing' && !this.zone.isInsideZone(this.bots[i].position)) {
                     const damage = this.zone.getDamage(delta);
-                    this.bots[i].takeDamage(damage);
+                    this.bots[i].takeDamage(damage, false, null, 0, 'zone');
                 }
                 if (this.gameState === 'playing' && !this.zone.isInsideZone(this.bots[botIndex].position)) {
                     this.bots[botIndex].moveTowards(new THREE.Vector3(0, this.bots[botIndex].position.y, 0), this.bots[botIndex].physics.speed * 1.25);
@@ -367,11 +370,18 @@ class Game {
         }
         this.botUpdateIndex = (this.botUpdateIndex + botsPerFrame) % this.bots.length;
 
+        for (const zombie of this.zombies) {
+            if (zombie.isAlive) {
+                zombie.update(delta, this.entityManager, this.audioSynth);
+            }
+        }
+
         const aliveCount = this.entityManager.update(delta, this.physics, this.audioSynth);
 
         this.hud.updateHealth(this.player.health, this.player.maxHealth);
         this.hud.updateArmor(this.player.armor, this.player.maxArmor);
         this.hud.updatePlayersCount(aliveCount);
+        this.hud.updateAmmo(this.player.currentWeapon || this.player.fists);
         if (this.traps && this.traps.length) {
             const applyTrap = (entity) => {
                 if (!entity.isAlive) return;
@@ -422,6 +432,24 @@ class Game {
 
         if (this.spawnTimer <= 0 || this.spawnTimer % 1 < 0.1) {
             this.hud.updatePlayersCount(this.entityManager.getAliveCount());
+        }
+    }
+
+    spawnZombies() {
+        this.zombies = [];
+        const floorTiles = this.map.getFloorTiles?.() || [];
+        const count = Math.min(10, Math.max(4, Math.floor(floorTiles.length / 250)));
+        const picks = [...floorTiles].sort(() => Math.random() - 0.5);
+        let spawned = 0;
+        for (const tile of picks) {
+            if (spawned >= count) break;
+            const pos = new THREE.Vector3(tile.x, this.map.getHeightAt(tile.x, tile.z) + 1.8, tile.z);
+            if (pos.distanceTo(this.player.position) < 20) continue;
+            const zombie = new Zombie(this.scene, 1000 + spawned, pos);
+            this.physics.addEntity(zombie);
+            this.entityManager.addEntity(zombie);
+            this.zombies.push(zombie);
+            spawned++;
         }
     }
 

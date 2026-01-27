@@ -6,7 +6,7 @@ export class Zone {
         this.mapSize = mapSize;
         this.currentRadius = mapSize / 2;
         this.targetRadius = mapSize / 2;
-        this.shrinkSpeed = 2.0;
+        this.shrinkSpeed = 1.2;
         this.damagePerSecond = 3;
         this.zoneMesh = null;
         this.createZone();

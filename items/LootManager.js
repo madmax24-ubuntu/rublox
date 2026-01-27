@@ -79,18 +79,23 @@ export class LootManager {
         group.add(lid);
 
         const band = new THREE.Mesh(
-            new THREE.BoxGeometry(1.24, 0.08, 0.94),
+            new THREE.BoxGeometry(1.28, 0.08, 0.98),
             bandMat
         );
         band.position.y = 0.48;
         group.add(band);
 
         const band2 = new THREE.Mesh(
-            new THREE.BoxGeometry(1.24, 0.08, 0.94),
+            new THREE.BoxGeometry(1.28, 0.08, 0.98),
             bandMat
         );
         band2.position.y = 0.18;
         group.add(band2);
+
+        const rimGeo = new THREE.BoxGeometry(1.32, 0.06, 1.02);
+        const rimTop = new THREE.Mesh(rimGeo, bandMat);
+        rimTop.position.y = 0.76;
+        group.add(rimTop);
 
         const latch = new THREE.Mesh(
             new THREE.BoxGeometry(0.18, 0.18, 0.06),
@@ -105,6 +110,19 @@ export class LootManager {
         );
         latchPlate.position.set(0, 0.32, 0.48);
         group.add(latchPlate);
+
+        const cornerGeo = new THREE.BoxGeometry(0.12, 0.12, 0.08);
+        const cornerOffsets = [
+            [0.56, 0.06, 0.41], [-0.56, 0.06, 0.41],
+            [0.56, 0.06, -0.41], [-0.56, 0.06, -0.41],
+            [0.56, 0.62, 0.41], [-0.56, 0.62, 0.41],
+            [0.56, 0.62, -0.41], [-0.56, 0.62, -0.41]
+        ];
+        for (const [ox, oy, oz] of cornerOffsets) {
+            const corner = new THREE.Mesh(cornerGeo, metalMat);
+            corner.position.set(ox, oy, oz);
+            group.add(corner);
+        }
 
         const glow = new THREE.Mesh(
             new THREE.SphereGeometry(0.3, 8, 8),
@@ -129,8 +147,8 @@ export class LootManager {
     }
 
     createChestMaterials() {
-        const bodyTex = this.createChestTexture('#455a64', '#263238', '#0f1417');
-        const lidTex = this.createChestTexture('#37474f', '#1c2429', '#0c1114');
+        const bodyTex = this.createChestTexture('#8b5a2b', '#6f3f1c', '#3a1f0c');
+        const lidTex = this.createChestTexture('#7b4a24', '#5a3216', '#2a160a');
         bodyTex.wrapS = bodyTex.wrapT = THREE.RepeatWrapping;
         lidTex.wrapS = lidTex.wrapT = THREE.RepeatWrapping;
         bodyTex.repeat.set(2, 2);
@@ -149,14 +167,14 @@ export class LootManager {
             metalness: 0.05
         });
         const bandMat = new THREE.MeshStandardMaterial({
-            color: 0x2a2a2a,
-            roughness: 0.6,
-            metalness: 0.2
+            color: 0x8e9aa2,
+            roughness: 0.35,
+            metalness: 0.6
         });
         const metalMat = new THREE.MeshStandardMaterial({
-            color: 0xb0b0b0,
+            color: 0xcfd8dc,
             metalness: 0.9,
-            roughness: 0.2
+            roughness: 0.15
         });
 
         return { bodyMat, lidMat, bandMat, metalMat };
@@ -209,11 +227,19 @@ export class LootManager {
             return { type: 'weapon', weaponType: 'laser' };
         }
 
-        if (rand < 0.20) {
+        if (rand < 0.12) {
+            return { type: 'weapon', weaponType: 'flamethrower' };
+        }
+
+        if (rand < 0.22) {
+            return { type: 'weapon', weaponType: 'shotgun' };
+        }
+
+        if (rand < 0.35) {
             return { type: 'weapon', weaponType: 'bow' };
         }
 
-        if (rand < 0.60) {
+        if (rand < 0.70) {
             return { type: 'weapon', weaponType: 'knife' };
         }
 
@@ -254,7 +280,7 @@ export class LootManager {
 
         const chestPos = new THREE.Vector3(chest.position.x, chest.position.y, chest.position.z);
         const distance = entity.position.distanceTo(chestPos);
-        if (distance > 3) return null;
+        if (distance > 3.8) return null;
 
         chest.userData.isOpen = true;
 

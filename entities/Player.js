@@ -418,26 +418,33 @@ export class Player {
 
         if (!isFrozen && this.input.isKeyPressed('MouseLeft')) {
             const activeWeapon = this.currentWeapon || this.fists;
-            if (activeWeapon.type === 'bow' || activeWeapon.type === 'laser') {
+            if (activeWeapon.type === 'bow' || activeWeapon.type === 'laser' || activeWeapon.type === 'shotgun' || activeWeapon.type === 'flamethrower') {
                 const direction = new THREE.Vector3();
                 this.camera.getWorldDirection(direction);
                 const result = activeWeapon.attack(this, null, audioSynth, direction);
-                if (result && result.projectile) {
+                const muzzle = new THREE.Vector3();
+                this.camera.getWorldPosition(muzzle);
+                muzzle.add(direction.clone().multiplyScalar(0.6));
+
+                if (result && result.projectiles) {
+                    for (const proj of result.projectiles) {
+                        proj.owner = this;
+                        proj.mesh.position.copy(muzzle);
+                        entityManager.addProjectile(proj);
+                    }
+                } else if (result && result.projectile) {
                     result.projectile.direction = direction;
                     result.projectile.owner = this;
-                    const muzzle = new THREE.Vector3();
-                    this.camera.getWorldPosition(muzzle);
-                    muzzle.add(direction.clone().multiplyScalar(0.6));
                     result.projectile.mesh.position.copy(muzzle);
                     if (result.projectile.velocity) {
                         result.projectile.velocity.copy(direction).multiplyScalar(result.projectile.speed);
                     }
                     result.projectile.mesh.lookAt(muzzle.clone().add(direction));
                     entityManager.addProjectile(result.projectile);
-                    this.viewKick = 0.25;
-                    this.weaponActionTime = this.weaponActionDuration;
-                    this.weaponActionType = activeWeapon.type;
                 }
+                this.viewKick = 0.25;
+                this.weaponActionTime = this.weaponActionDuration;
+                this.weaponActionType = activeWeapon.type;
             } else {
                 const target = entityManager.getNearestEnemy(this.position, activeWeapon.range);
                 if (target) {
@@ -622,7 +629,7 @@ export class Player {
         }
     }
 
-    takeDamage(damage, isHeadshot = false, attacker = null, knockbackStrength = 0) {
+    takeDamage(damage, isHeadshot = false, attacker = null, knockbackStrength = 0, source = null) {
         if (this.isInvulnerable) return false;
 
         const finalDamage = isHeadshot ? damage * 2 : damage;
@@ -650,8 +657,12 @@ export class Player {
         }
         this.flashDamage();
         spawnDamagePopup(this.scene, this.position, finalDamage, { color: '#ff5b5b' });
-        if (this.audioSynthRef && this.audioSynthRef.playHurt) {
-            this.audioSynthRef.playHurt();
+        if (this.audioSynthRef) {
+            if (source === 'zone' && this.audioSynthRef.playZoneDamage) {
+                this.audioSynthRef.playZoneDamage();
+            } else if (this.audioSynthRef.playHurt) {
+                this.audioSynthRef.playHurt();
+            }
         }
         if (attacker && this.isAlive) {
             const strength = knockbackStrength > 0 ? knockbackStrength : 3;
@@ -733,6 +744,14 @@ export class Player {
             base.position.set(0.32, -0.22, -0.85);
             base.rotation.set(0, Math.PI, 0);
             base.scale = 0.9;
+        } else if (type === 'shotgun') {
+            base.position.set(0.26, -0.32, -0.75);
+            base.rotation.set(-0.06, Math.PI, Math.PI / 14);
+            base.scale = 1.05;
+        } else if (type === 'flamethrower') {
+            base.position.set(0.26, -0.34, -0.78);
+            base.rotation.set(-0.06, Math.PI, Math.PI / 14);
+            base.scale = 1.08;
         } else if (type === 'laser') {
             base.position.set(0.24, -0.36, -0.78);
             base.rotation.set(-0.06, Math.PI, Math.PI / 14);
@@ -767,7 +786,7 @@ export class Player {
             this.currentWeapon = null;
             weapon = this.fists;
         }
-        if ((weapon.type === 'bow' || weapon.type === 'laser') && weapon.ammo !== null && weapon.ammo <= 0) {
+        if ((weapon.type === 'bow' || weapon.type === 'laser' || weapon.type === 'shotgun' || weapon.type === 'flamethrower') && weapon.ammo !== null && weapon.ammo <= 0) {
             this.currentWeapon = null;
             weapon = this.fists;
         }
@@ -783,12 +802,19 @@ export class Player {
 
         if (distance > attackRange) return null;
 
-        if (weapon.type === 'laser' || weapon.type === 'bow') {
+        if (weapon.type === 'laser' || weapon.type === 'bow' || weapon.type === 'shotgun' || weapon.type === 'flamethrower') {
             const direction = new THREE.Vector3()
                 .subVectors(target.position, this.position)
                 .normalize();
 
             const projectileData = weapon.attack(this, null, null, direction);
+            if (projectileData && projectileData.projectiles) {
+                for (const proj of projectileData.projectiles) {
+                    proj.owner = this;
+                    entityManager?.addProjectile(proj);
+                }
+                return { fired: true, damage: weapon.damage };
+            }
             if (projectileData && projectileData.projectile) {
                 projectileData.projectile.direction = direction;
                 projectileData.projectile.owner = this;
