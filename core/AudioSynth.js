@@ -315,12 +315,13 @@ export class AudioSynth {
         siren.stop(now + 1.0);
     }
 
-    playFootstep() {
+    playFootstep(volume = 1) {
         if (!this.audioContext) return;
 
         const ctx = this.audioContext;
         const now = ctx.currentTime;
         const duration = 0.09 + Math.random() * 0.04;
+        const gainScale = Math.max(0.1, Math.min(1.2, volume));
 
         const buffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * duration), ctx.sampleRate);
         const data = buffer.getChannelData(0);
@@ -342,7 +343,7 @@ export class AudioSynth {
 
         const gainNode = ctx.createGain();
         gainNode.gain.setValueAtTime(0.001, now);
-        gainNode.gain.exponentialRampToValueAtTime(0.11, now + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.11 * gainScale, now + 0.01);
         gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
         const thump = ctx.createOscillator();
@@ -350,7 +351,7 @@ export class AudioSynth {
         thump.type = 'sine';
         thump.frequency.setValueAtTime(90 + Math.random() * 20, now);
         thumpGain.gain.setValueAtTime(0.0001, now);
-        thumpGain.gain.exponentialRampToValueAtTime(0.06, now + 0.02);
+        thumpGain.gain.exponentialRampToValueAtTime(0.06 * gainScale, now + 0.02);
         thumpGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
 
         source.connect(band);
@@ -385,6 +386,38 @@ export class AudioSynth {
 
         oscillator.start();
         oscillator.stop(this.audioContext.currentTime + 0.2);
+    }
+
+    playStorm(position) {
+        if (!this.audioContext) return;
+        const ctx = this.audioContext;
+        const now = ctx.currentTime;
+
+        const rumble = ctx.createOscillator();
+        const gain = ctx.createGain();
+        rumble.type = 'sine';
+        rumble.frequency.setValueAtTime(70, now);
+        rumble.frequency.exponentialRampToValueAtTime(40, now + 1.2);
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 1.4);
+        rumble.connect(gain);
+        this.connectSfx(gain, position);
+        rumble.start();
+        rumble.stop(now + 1.5);
+
+        const hiss = ctx.createBufferSource();
+        hiss.buffer = this.createNoiseBuffer(0.6);
+        const hissFilter = ctx.createBiquadFilter();
+        hissFilter.type = 'highpass';
+        hissFilter.frequency.value = 900;
+        const hissGain = ctx.createGain();
+        hissGain.gain.setValueAtTime(0.08, now);
+        hissGain.gain.exponentialRampToValueAtTime(0.01, now + 0.7);
+        hiss.connect(hissFilter);
+        hissFilter.connect(hissGain);
+        this.connectSfx(hissGain, position);
+        hiss.start();
+        hiss.stop(now + 0.7);
     }
 
     playHurt() {
@@ -449,6 +482,7 @@ export class AudioSynth {
         const osc2 = ctx.createOscillator();
         const gainNode = ctx.createGain();
         const filter = ctx.createBiquadFilter();
+        const noise = ctx.createBufferSource();
 
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(120 + Math.random() * 20, now);
@@ -458,14 +492,16 @@ export class AudioSynth {
         osc2.frequency.setValueAtTime(90, now);
         osc2.frequency.exponentialRampToValueAtTime(55, now + 0.6);
 
+        noise.buffer = this.createNoiseBuffer(0.6);
         filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(600, now);
+        filter.frequency.setValueAtTime(520, now);
 
-        gainNode.gain.setValueAtTime(0.28, now);
+        gainNode.gain.setValueAtTime(0.32, now);
         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.7);
 
         osc.connect(filter);
         osc2.connect(filter);
+        noise.connect(filter);
         filter.connect(gainNode);
         if (position) {
             this.connectSfx(gainNode, position);
@@ -475,8 +511,46 @@ export class AudioSynth {
 
         osc.start(now);
         osc2.start(now);
+        noise.start(now);
         osc.stop(now + 0.7);
         osc2.stop(now + 0.7);
+        noise.stop(now + 0.7);
+    }
+
+    playZombieAttack(position = null) {
+        if (!this.audioContext) return;
+        const ctx = this.audioContext;
+        const now = ctx.currentTime;
+        const growl = ctx.createOscillator();
+        const rasp = ctx.createBufferSource();
+        const gain = ctx.createGain();
+        const filter = ctx.createBiquadFilter();
+
+        growl.type = 'sawtooth';
+        growl.frequency.setValueAtTime(160, now);
+        growl.frequency.exponentialRampToValueAtTime(90, now + 0.25);
+
+        rasp.buffer = this.createNoiseBuffer(0.2);
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(500, now);
+        filter.Q.value = 0.8;
+
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+
+        growl.connect(filter);
+        rasp.connect(filter);
+        filter.connect(gain);
+        if (position) {
+            this.connectSfx(gain, position);
+        } else {
+            gain.connect(this.sfxGain);
+        }
+
+        growl.start(now);
+        rasp.start(now);
+        growl.stop(now + 0.35);
+        rasp.stop(now + 0.35);
     }
 
     playBowShot() {

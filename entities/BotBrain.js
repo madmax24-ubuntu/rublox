@@ -43,6 +43,7 @@ export class BotBrain {
         this.strategy = this.chooseInitialStrategy();
         this.stateTimer = 0;
         this.currentPriority = 'survive'; // survive, loot, hunt, regroup
+        this.visionMultiplier = 1;
     }
     
     chooseInitialStrategy() {
@@ -89,7 +90,7 @@ export class BotBrain {
 
     // ===== Р’РћРЎРџР РРЇРўРР• =====
     updatePerception(bot, entityManager, lootManager) {
-        const visionRange = 60 + this.personality.intelligence * 40; // 50-80 РјРµС‚СЂРѕРІ
+        const visionRange = (60 + this.personality.intelligence * 40) * (this.visionMultiplier || 1); // 50-80 РјРµС‚СЂРѕРІ
         const entities = entityManager.getEntities();
         
         for (const entity of entities) {
@@ -97,7 +98,11 @@ export class BotBrain {
             
             const distance = bot.position.distanceTo(entity.position);
             
-            if (distance < visionRange) {
+            let effectiveRange = visionRange;
+            if (entity.isSilent) {
+                effectiveRange *= 0.7;
+            }
+            if (distance < effectiveRange) {
                 const isAlly = bot.allies && bot.allies.includes(entity);
                 
                 if (!isAlly) {
@@ -415,6 +420,22 @@ export class BotBrain {
 
     setRandomPatrolTarget(bot, minDist, maxDist) {
         const map = bot.mapRef;
+        if (map && typeof map.getFloorTiles === 'function') {
+            const tiles = map.getFloorTiles();
+            if (tiles.length) {
+                for (let i = 0; i < 20; i++) {
+                    const tile = tiles[Math.floor(Math.random() * tiles.length)];
+                    const dx = tile.x - bot.position.x;
+                    const dz = tile.z - bot.position.z;
+                    const dist = Math.hypot(dx, dz);
+                    if (dist < minDist || dist > maxDist) continue;
+                    if (map.isWalkableAt && !map.isWalkableAt(tile.x, tile.z)) continue;
+                    bot.patrolTarget = new THREE.Vector3(tile.x, 0, tile.z);
+                    return;
+                }
+            }
+        }
+
         for (let i = 0; i < 12; i++) {
             const angle = Math.random() * Math.PI * 2;
             const distance = minDist + Math.random() * (maxDist - minDist);
@@ -424,6 +445,7 @@ export class BotBrain {
                 if (Math.abs(x) > map.halfSize - 5 || Math.abs(z) > map.halfSize - 5) continue;
                 const y = map.getHeightAt(x, z);
                 if (y < map.waterLevel + 0.6) continue;
+                if (map.isWalkableAt && !map.isWalkableAt(x, z)) continue;
                 bot.patrolTarget = new THREE.Vector3(x, 0, z);
                 return;
             }
@@ -528,22 +550,34 @@ export class BotBrain {
 
     handleSpawn(bot, delta, lootManager) {
         // Р Р°Р·Р±РµРіР°РµРјСЃСЏ РѕС‚ С†РµРЅС‚СЂР° СЃС‚СЂР°С‚РµРіРёС‡РµСЃРєРё
+        const map = bot.mapRef;
+        if (map && typeof map.getFloorTiles === 'function') {
+            if (!bot.patrolTarget) {
+                this.setRandomPatrolTarget(bot, 20, 60);
+            }
+            if (bot.patrolTarget) {
+                bot.moveTowards(bot.patrolTarget, bot.physics.speed * 1.5);
+                if (bot.position.distanceTo(bot.patrolTarget) < 6) {
+                    bot.state = 'explore';
+                    this.stateTimer = 0;
+                }
+                return;
+            }
+        }
+
         const totalSlots = 32;
         const angle = (bot.id / totalSlots) * Math.PI * 2;
         const distance = 14 + this.personality.courage * 6;
-        
         const target = new THREE.Vector3(
             Math.cos(angle) * distance,
             0,
             Math.sin(angle) * distance
         );
-        
         const currentDist = bot.position.distanceTo(new THREE.Vector3(0, 0, 0));
-        
+
         if (currentDist < distance - 2) {
             bot.moveTowards(target, bot.physics.speed * 1.5);
         } else {
-            // РџРµСЂРµС…РѕРґРёРј Рє СЃР±РѕСЂСѓ Р»СѓС‚Р°
             bot.state = 'explore';
             this.stateTimer = 0;
         }
@@ -565,6 +599,9 @@ export class BotBrain {
         
         // Р”РІРёР¶РµРјСЃСЏ Рє С†РµР»Рё
         if (bot.patrolTarget) {
+            if (bot.mapRef?.isWalkableAt && !bot.mapRef.isWalkableAt(bot.patrolTarget.x, bot.patrolTarget.z)) {
+                this.setRandomPatrolTarget(bot, 30, 80);
+            }
             const dist = bot.position.distanceTo(bot.patrolTarget);
             
             if (dist < 3) {
@@ -698,6 +735,9 @@ export class BotBrain {
         }
         if (!bot.patrolTarget || bot.position.distanceTo(bot.patrolTarget) < 5) {
             this.setRandomPatrolTarget(bot, 30, 70);
+        }
+        if (bot.mapRef?.isWalkableAt && bot.patrolTarget && !bot.mapRef.isWalkableAt(bot.patrolTarget.x, bot.patrolTarget.z)) {
+            this.setRandomPatrolTarget(bot, 30, 80);
         }
         
         bot.moveTowards(bot.patrolTarget, bot.physics.speed * 0.7);

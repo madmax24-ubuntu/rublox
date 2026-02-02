@@ -43,6 +43,10 @@ export class Bot {
         this.escapeDir = null;
         this.escapeTimer = 0;
         this.moveDir = new THREE.Vector3(0, 0, 1);
+        this.stats = { damage: 0, kills: 0, loot: 0 };
+        this.teamId = 0;
+        this.assistTimer = 0;
+        this.assistTarget = null;
 
         this.variants = [
             {
@@ -398,6 +402,17 @@ export class Bot {
             return;
         }
 
+        if (this.assistTimer > 0 && this.assistTarget) {
+            this.assistTimer = Math.max(0, this.assistTimer - delta);
+            this.moveTowards(this.assistTarget.position, this.physics.speed * 1.35);
+            this.mesh.position.copy(this.position);
+            this.mesh.position.y = this.position.y - (this.physics.height - 0.2);
+            this.mesh.rotation.y = this.rotation.y;
+            this.animateLimbs();
+            this.updateHealthBar();
+            return;
+        }
+
         brain.update(this, delta, entityManager, lootManager, audioSynth);
         if (this.escapeTimer > 0) {
             this.escapeTimer = Math.max(0, this.escapeTimer - delta);
@@ -496,12 +511,16 @@ export class Bot {
         } else if (loot.type === 'armor') {
             this.armor = Math.min(this.maxArmor, this.armor + loot.amount);
         }
+        this.stats.loot += 1;
     }
 
     takeDamage(damage, isHeadshot = false, attacker = null, knockbackStrength = 0, source = null) {
         if (this.isInvulnerable) return false;
 
         const finalDamage = isHeadshot ? damage * 2 : damage;
+        if (attacker?.stats) {
+            attacker.stats.damage += finalDamage;
+        }
 
         if (this.armor > 0) {
             const armorDamage = Math.min(this.armor, finalDamage);
@@ -525,6 +544,9 @@ export class Bot {
             this.mesh.rotation.set(-Math.PI / 2, this.rotation.y, 0);
             if (this.currentWeapon) {
                 this.currentWeapon.setVisible(false);
+            }
+            if (attacker?.stats) {
+                attacker.stats.kills += 1;
             }
         }
         this.flashDamage();
@@ -608,6 +630,7 @@ export class Bot {
 
             let bestDir = direction;
             let bestScore = Infinity;
+            let found = false;
             for (const dir of dirs) {
                 if (isBlocked(dir)) continue;
                 const probe = this.position.clone().add(dir.clone().multiplyScalar(2));
@@ -615,9 +638,17 @@ export class Bot {
                 if (score < bestScore) {
                     bestScore = score;
                     bestDir = dir;
+                    found = true;
                 }
             }
-            direction = bestDir;
+            if (found) {
+                direction = bestDir;
+            } else {
+                const angle = (Math.random() * 0.8 - 0.4) + Math.PI / 2;
+                direction = direction.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), angle);
+                this.escapeDir = direction.clone();
+                this.escapeTimer = 0.5;
+            }
         }
 
         const finalSpeed = speed * this.slowFactor;

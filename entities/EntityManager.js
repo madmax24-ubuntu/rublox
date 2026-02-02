@@ -5,6 +5,7 @@ export class EntityManager {
         this.scene = scene;
         this.entities = [];
         this.projectiles = [];
+        this.effects = [];
     }
 
     addEntity(entity) {
@@ -56,6 +57,10 @@ export class EntityManager {
             const hitEntity = this.checkProjectileHit(proj);
             if (hitEntity) {
                 hitEntity.takeDamage(proj.damage, false, proj.owner, proj.knockback || 0);
+                if (proj.owner && typeof proj.owner.onHit === 'function') {
+                    proj.owner.onHit({ position: proj.mesh.position.clone(), type: proj.type });
+                }
+                this.spawnImpactEffect(proj.mesh.position.clone(), proj.type, true);
                 this.removeProjectile(i);
                 continue;
             }
@@ -63,6 +68,7 @@ export class EntityManager {
             if (physics) {
                 const hitWall = this.checkProjectileWallHit(proj, prevPos, physics);
                 if (hitWall) {
+                    this.spawnImpactEffect(hitWall, proj.type, false);
                     this.removeProjectile(i);
                     continue;
                 }
@@ -75,6 +81,7 @@ export class EntityManager {
         }
 
         const aliveEntities = this.entities.filter(e => e.isAlive && e.constructor?.name !== 'Griever');
+        this.updateEffects(delta);
         return aliveEntities.length;
     }
 
@@ -90,7 +97,7 @@ export class EntityManager {
         for (const box of nearby) {
             if (box.enabled === false) continue;
             if (this.segmentIntersectsBox(prevPos, pos, box)) {
-                return true;
+                return pos.clone();
             }
         }
         return false;
@@ -143,6 +150,76 @@ export class EntityManager {
             if (child.material) child.material.dispose();
         });
         this.projectiles.splice(index, 1);
+    }
+
+    spawnImpactEffect(position, type = 'generic', isHit = false) {
+        const group = new THREE.Group();
+        const color = type === 'laser'
+            ? 0xfff176
+            : type === 'flame'
+                ? 0xff8a65
+                : type === 'bow'
+                    ? 0xbca27f
+                    : 0xcfd8dc;
+        const mat = new THREE.MeshStandardMaterial({
+            color,
+            emissive: isHit ? color : 0x000000,
+            emissiveIntensity: isHit ? 0.6 : 0.0,
+            roughness: 0.5,
+            transparent: true,
+            opacity: 0.9
+        });
+        const geo = new THREE.SphereGeometry(type === 'laser' ? 0.18 : 0.12, 8, 8);
+        const puff = new THREE.Mesh(geo, mat);
+        group.add(puff);
+        group.position.copy(position);
+        group.userData.effect = true;
+        group.userData.life = type === 'flame' ? 0.3 : 0.45;
+        this.scene.add(group);
+        this.effects.push(group);
+    }
+
+    spawnSpeedTrail(position, color = 0x4bb3ff) {
+        const geo = new THREE.PlaneGeometry(0.6, 0.25);
+        const mat = new THREE.MeshBasicMaterial({
+            color,
+            transparent: true,
+            opacity: 0.5,
+            side: THREE.DoubleSide
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.rotation.x = -Math.PI / 2;
+        mesh.position.copy(position);
+        mesh.position.y += 0.05;
+        mesh.userData.effect = true;
+        mesh.userData.type = 'trail';
+        mesh.userData.life = 0.35;
+        this.scene.add(mesh);
+        this.effects.push(mesh);
+    }
+
+    updateEffects(delta) {
+        for (let i = this.effects.length - 1; i >= 0; i--) {
+            const fx = this.effects[i];
+            fx.userData.life -= delta;
+            if (fx.userData.type === 'trail') {
+                fx.scale.addScalar(delta * 0.8);
+                if (fx.material) {
+                    fx.material.opacity = Math.max(0, fx.userData.life * 2);
+                }
+            } else {
+                fx.scale.addScalar(delta * 1.8);
+                fx.traverse(child => {
+                    if (child.material) {
+                        child.material.opacity = Math.max(0, fx.userData.life * 2);
+                    }
+                });
+            }
+            if (fx.userData.life <= 0) {
+                this.scene.remove(fx);
+                this.effects.splice(i, 1);
+            }
+        }
     }
 
     getNearestEnemy(position, maxDistance = Infinity) {

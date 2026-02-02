@@ -65,6 +65,32 @@ export class HUD {
         zoneInfo.textContent = '\u0417\u043e\u043d\u0430: \u0411\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u0430\u044f';
         topBar.appendChild(zoneInfo);
 
+        const modeInfo = document.createElement('div');
+        modeInfo.id = 'modeInfo';
+        modeInfo.style.cssText = `
+            background: rgba(255, 255, 255, 0.12);
+            padding: ${px(6)}px ${px(14)}px;
+            border-radius: ${px(10)}px;
+            border: 2px solid rgba(255, 255, 255, 0.08);
+            font-size: ${px(12)}px;
+            font-weight: 700;
+        `;
+        modeInfo.textContent = '\u0420\u0435\u0436\u0438\u043c: Classic';
+        topBar.appendChild(modeInfo);
+
+        const perkInfo = document.createElement('div');
+        perkInfo.id = 'perkInfo';
+        perkInfo.style.cssText = `
+            background: rgba(255, 255, 255, 0.1);
+            padding: ${px(6)}px ${px(12)}px;
+            border-radius: ${px(10)}px;
+            border: 2px solid rgba(255, 255, 255, 0.08);
+            font-size: ${px(12)}px;
+            font-weight: 700;
+        `;
+        perkInfo.textContent = '\u041f\u0435\u0440\u043a: -';
+        topBar.appendChild(perkInfo);
+
         const leftPanel = document.createElement('div');
         leftPanel.style.cssText = `
             position: absolute;
@@ -235,6 +261,20 @@ export class HUD {
         `;
         hud.appendChild(gameOverlay);
 
+        const stormOverlay = document.createElement('div');
+        stormOverlay.id = 'stormOverlay';
+        stormOverlay.style.cssText = `
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 30% 30%, rgba(120, 140, 255, 0.2), rgba(20, 30, 40, 0.55));
+            mix-blend-mode: screen;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            z-index: 900;
+        `;
+        hud.appendChild(stormOverlay);
+
         const countdown = document.createElement('div');
         countdown.id = 'countdown';
         countdown.style.cssText = `
@@ -292,6 +332,24 @@ export class HUD {
         crosshair.appendChild(crossHorz);
         hud.appendChild(crosshair);
 
+        const hitMarker = document.createElement('div');
+        hitMarker.id = 'hitMarker';
+        hitMarker.style.cssText = `
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: ${px(30)}px;
+            height: ${px(30)}px;
+            transform: translate(-50%, -50%) rotate(45deg);
+            border: ${px(3)}px solid rgba(255, 255, 255, 0.9);
+            border-radius: ${px(4)}px;
+            opacity: 0;
+            transition: opacity 0.12s ease;
+            pointer-events: none;
+            z-index: 1101;
+        `;
+        hud.appendChild(hitMarker);
+
         const gameMessage = document.createElement('div');
         gameMessage.id = 'gameMessage';
         const messageTop = isMobile ? 18 : 30;
@@ -313,6 +371,41 @@ export class HUD {
         `;
         hud.appendChild(gameMessage);
 
+        const quickCommand = document.createElement('div');
+        quickCommand.id = 'quickCommand';
+        quickCommand.style.cssText = `
+            position: absolute;
+            top: ${px(18)}px;
+            right: ${px(16)}px;
+            background: rgba(14, 26, 36, 0.92);
+            padding: ${px(8)}px ${px(14)}px;
+            border-radius: ${px(10)}px;
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            font-size: ${px(14)}px;
+            font-weight: 800;
+            display: none;
+        `;
+        hud.appendChild(quickCommand);
+
+        const loreNote = document.createElement('div');
+        loreNote.id = 'loreNote';
+        loreNote.style.cssText = `
+            position: absolute;
+            bottom: ${px(180)}px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(14, 26, 36, 0.92);
+            padding: ${px(10)}px ${px(18)}px;
+            border-radius: ${px(12)}px;
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            font-size: ${px(14)}px;
+            font-weight: 700;
+            max-width: min(520px, 88vw);
+            text-align: center;
+            display: none;
+        `;
+        hud.appendChild(loreNote);
+
         const ammoInfo = document.createElement('div');
         ammoInfo.id = 'ammoInfo';
         ammoInfo.style.cssText = `
@@ -329,6 +422,93 @@ export class HUD {
         `;
         ammoInfo.textContent = '';
         hud.appendChild(ammoInfo);
+
+        const perkButton = document.createElement('div');
+        perkButton.id = 'perkButton';
+        perkButton.textContent = 'ПЕРК';
+        perkButton.style.cssText = `
+            position: absolute;
+            bottom: ${px(isMobile ? 130 : 140)}px;
+            left: ${px(16)}px;
+            background: rgba(14, 26, 36, 0.88);
+            padding: ${px(8)}px ${px(14)}px;
+            border-radius: ${px(8)}px;
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            font-size: ${px(12)}px;
+            font-weight: 800;
+            pointer-events: auto;
+            cursor: pointer;
+        `;
+        perkButton.addEventListener('click', () => this.togglePerkPanel());
+        hud.appendChild(perkButton);
+
+        const perkPanel = document.createElement('div');
+        perkPanel.id = 'perkPanel';
+        perkPanel.style.cssText = `
+            position: absolute;
+            bottom: ${px(isMobile ? 190 : 210)}px;
+            left: ${px(16)}px;
+            background: rgba(14, 26, 36, 0.95);
+            padding: ${px(12)}px ${px(14)}px;
+            border-radius: ${px(12)}px;
+            border: 2px solid rgba(255, 255, 255, 0.14);
+            display: none;
+            pointer-events: auto;
+            min-width: ${px(210)}px;
+            z-index: 1200;
+        `;
+        perkPanel.innerHTML = `
+            <div style="font-size:${px(12)}px;font-weight:800;margin-bottom:${px(8)}px;">Выбор перка</div>
+            <button class="perk-btn" data-perk="quickHands">Быстрые руки</button>
+            <button class="perk-btn" data-perk="silentStep">Тихий шаг</button>
+            <button class="perk-btn" data-perk="moreAmmo">Больше патронов</button>
+            <button class="perk-btn" data-perk="fastRun">Быстрый бег</button>
+            <button class="perk-btn" data-perk="thickSkin">Плотная кожа</button>
+            <button class="perk-btn" data-perk="steadyAim">Стабильный прицел</button>
+        `;
+        this.perkButtons = Array.from(perkPanel.querySelectorAll('.perk-btn'));
+        this.perkButtons.forEach(btn => {
+            btn.style.cssText = `
+                width: 100%;
+                margin: ${px(4)}px 0;
+                padding: ${px(8)}px ${px(10)}px;
+                border-radius: ${px(8)}px;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                background: rgba(255, 255, 255, 0.08);
+                color: #e9f0f6;
+                font-weight: 700;
+                cursor: pointer;
+            `;
+            btn.addEventListener('click', (e) => {
+                const perk = e.currentTarget.getAttribute('data-perk');
+                document.dispatchEvent(new CustomEvent('selectPerk', { detail: perk }));
+                this.togglePerkPanel(false);
+            });
+        });
+        hud.appendChild(perkPanel);
+
+        const scoreboard = document.createElement('div');
+        scoreboard.id = 'scoreboard';
+        scoreboard.style.cssText = `
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            min-width: min(520px, 88vw);
+            background: rgba(14, 26, 36, 0.95);
+            padding: ${px(18)}px ${px(22)}px;
+            border-radius: ${px(14)}px;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+            display: none;
+            text-align: center;
+            z-index: 1200;
+        `;
+        scoreboard.innerHTML = `
+            <div style="font-size:${px(22)}px;font-weight:800;margin-bottom:${px(8)}px;">Итоги раунда</div>
+            <div id="scoreboardBody" style="display:grid;gap:${px(6)}px;font-size:${px(14)}px;"></div>
+        `;
+        hud.appendChild(scoreboard);
 
         const style = document.createElement('style');
         style.textContent = `
@@ -365,6 +545,16 @@ export class HUD {
         zoneInfo.style.background = isDangerous
             ? 'rgba(255, 82, 82, 0.85)'
             : 'rgba(14, 26, 36, 0.88)';
+    }
+
+    setRoundMode(label) {
+        const modeInfo = document.getElementById('modeInfo');
+        if (modeInfo) modeInfo.textContent = `\u0420\u0435\u0436\u0438\u043c: ${label}`;
+    }
+
+    setPerk(label) {
+        const perkInfo = document.getElementById('perkInfo');
+        if (perkInfo) perkInfo.textContent = `\u041f\u0435\u0440\u043a: ${label}`;
     }
 
     updateInventory(items, selectedSlot) {
@@ -447,6 +637,87 @@ export class HUD {
             gameMessage.style.display = 'none';
             gameMessage.style.animation = 'none';
         }, 3000);
+    }
+
+    showQuickCommand(message) {
+        const quick = document.getElementById('quickCommand');
+        if (!quick) return;
+        quick.textContent = message;
+        quick.style.display = 'block';
+        clearTimeout(this.quickTimer);
+        this.quickTimer = setTimeout(() => {
+            quick.style.display = 'none';
+        }, 1600);
+    }
+
+    showLoreNote(text) {
+        const note = document.getElementById('loreNote');
+        if (!note) return;
+        note.textContent = text;
+        note.style.display = 'block';
+        clearTimeout(this.noteTimer);
+        this.noteTimer = setTimeout(() => {
+            note.style.display = 'none';
+        }, 3200);
+    }
+
+    showHitMarker() {
+        const hit = document.getElementById('hitMarker');
+        if (!hit) return;
+        hit.style.opacity = '1';
+        clearTimeout(this.hitTimer);
+        this.hitTimer = setTimeout(() => {
+            hit.style.opacity = '0';
+        }, 120);
+    }
+
+    setStormActive(active) {
+        const storm = document.getElementById('stormOverlay');
+        if (!storm) return;
+        storm.style.opacity = active ? '1' : '0';
+    }
+
+    showScoreboard(lines = []) {
+        const board = document.getElementById('scoreboard');
+        const body = document.getElementById('scoreboardBody');
+        if (!board || !body) return;
+        body.innerHTML = lines.map(line => `<div>${line}</div>`).join('');
+        board.style.display = 'block';
+    }
+
+    togglePerkPanel(force) {
+        const panel = document.getElementById('perkPanel');
+        if (!panel) return;
+        if (typeof force === 'boolean') {
+            panel.style.display = force ? 'block' : 'none';
+            return;
+        }
+        panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    }
+
+    setPerkMenuSelection(index) {
+        if (!this.perkButtons || !this.perkButtons.length) return;
+        const safeIndex = ((index % this.perkButtons.length) + this.perkButtons.length) % this.perkButtons.length;
+        this.perkButtons.forEach((btn, i) => {
+            if (i === safeIndex) {
+                btn.style.background = 'rgba(255, 179, 0, 0.3)';
+                btn.style.border = '1px solid rgba(255, 179, 0, 0.8)';
+            } else {
+                btn.style.background = 'rgba(255, 255, 255, 0.08)';
+                btn.style.border = '1px solid rgba(255, 255, 255, 0.12)';
+            }
+        });
+        this.perkMenuIndex = safeIndex;
+    }
+
+    getPerkMenuSelection() {
+        return this.perkMenuIndex ?? 0;
+    }
+
+    getPerkMenuValue() {
+        if (!this.perkButtons || !this.perkButtons.length) return null;
+        const idx = this.perkMenuIndex ?? 0;
+        return this.perkButtons[idx]?.getAttribute('data-perk') || null;
     }
 
     updateAmmo(weapon) {

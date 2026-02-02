@@ -6,12 +6,14 @@ export class LootManager {
         this.scene = scene;
         this.mapGenerator = mapGenerator;
         this.chests = [];
+        this.supplyDrops = [];
+        this.lootDensity = 1;
         this.chestMaterials = this.createChestMaterials();
         this.generateChests();
     }
 
     generateChests() {
-        const chestCount = 1400;
+        const chestCount = Math.max(80, Math.floor(1400 * this.lootDensity));
         const spots = this.mapGenerator.getChestSpots?.() || [];
 
         if (spots.length > 0) {
@@ -220,7 +222,14 @@ export class LootManager {
         return new THREE.CanvasTexture(canvas);
     }
 
-    generateLoot() {
+    generateLoot(rare = false) {
+        if (rare) {
+            const rareRoll = Math.random();
+            if (rareRoll < 0.4) return { type: 'weapon', weaponType: 'laser' };
+            if (rareRoll < 0.7) return { type: 'weapon', weaponType: 'flamethrower' };
+            if (rareRoll < 0.95) return { type: 'weapon', weaponType: 'shotgun' };
+            return { type: 'armor', amount: 60 + Math.random() * 40 };
+        }
         const rand = Math.random();
 
         if (rand < 0.05) {
@@ -297,10 +306,47 @@ export class LootManager {
             audioSynth.playChestOpen();
         }
 
+        if (entity?.stats) {
+            entity.stats.loot += 1;
+        }
+        if (chest.userData.isSupplyDrop) {
+            const drop = this.supplyDrops.find(d => d.chest === chest);
+            if (drop?.beam) {
+                this.scene.remove(drop.beam);
+            }
+        }
         return chest.userData.loot;
     }
 
     getChests() {
         return this.chests;
+    }
+
+    setLootDensity(multiplier = 1) {
+        this.lootDensity = Math.max(0.3, Math.min(1, multiplier));
+        if (this.chests.length) {
+            const keep = Math.floor(this.chests.length * this.lootDensity);
+            const toRemove = this.chests.slice(keep);
+            for (const chest of toRemove) {
+                this.scene.remove(chest);
+            }
+            this.chests = this.chests.slice(0, keep);
+        }
+    }
+
+    spawnSupplyDrop(position) {
+        const drop = this.createChest(position.x, position.y, position.z);
+        drop.userData.isSupplyDrop = true;
+        drop.userData.loot = this.generateLoot(true);
+
+        const beam = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.25, 0.8, 12, 8, 1, true),
+            new THREE.MeshBasicMaterial({ color: 0xffd54f, transparent: true, opacity: 0.45 })
+        );
+        beam.position.set(position.x, position.y + 6.5, position.z);
+        beam.userData.isSupplyDropBeam = true;
+        this.scene.add(beam);
+        this.supplyDrops.push({ chest: drop, beam });
+        return drop;
     }
 }

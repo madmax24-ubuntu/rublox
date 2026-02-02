@@ -144,6 +144,30 @@
             font-size: 13px;
         }
 
+        #touchHelp {
+            bottom: 36vh;
+            right: 12vw;
+            width: 62px;
+            height: 62px;
+            font-size: 12px;
+        }
+
+        #touchEnemy {
+            bottom: 26vh;
+            right: 22vw;
+            width: 62px;
+            height: 62px;
+            font-size: 12px;
+        }
+
+        #touchGather {
+            bottom: 16vh;
+            right: 30vw;
+            width: 62px;
+            height: 62px;
+            font-size: 12px;
+        }
+
         @media (max-width: 520px) {
             #touchStick {
                 width: 105px;
@@ -177,6 +201,30 @@
                 width: 56px;
                 height: 56px;
                 font-size: 12px;
+            }
+
+            #touchHelp {
+                bottom: 34vh;
+                right: 12vw;
+                width: 54px;
+                height: 54px;
+                font-size: 11px;
+            }
+
+            #touchEnemy {
+                bottom: 24vh;
+                right: 22vw;
+                width: 54px;
+                height: 54px;
+                font-size: 11px;
+            }
+
+            #touchGather {
+                bottom: 14vh;
+                right: 30vw;
+                width: 54px;
+                height: 54px;
+                font-size: 11px;
             }
         }
 
@@ -310,6 +358,47 @@
             transform: translateY(1px) scale(0.98);
         }
 
+        .start-options {
+            display: grid;
+            gap: 14px;
+            margin: 18px 0 22px;
+            text-align: left;
+        }
+
+        .start-options label {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.75);
+        }
+
+        .start-options select,
+        .start-options .toggle {
+            width: 100%;
+            margin-top: 6px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            background: rgba(14, 26, 36, 0.9);
+            color: #e9f0f6;
+            font-size: 16px;
+            font-weight: 600;
+            outline: none;
+        }
+
+        .start-options .toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        .start-options input[type="checkbox"] {
+            accent-color: var(--ui-accent);
+            width: 18px;
+            height: 18px;
+        }
+
         .controls-info {
             margin-top: 26px;
             text-align: center;
@@ -338,6 +427,18 @@
         <div class="start-card">
             <h1>RUBLOX</h1>
             <p>Hunger Games: Roblox Arena</p>
+            <div class="start-options">
+                <div>
+                    <label for="roundMode">Режим раунда</label>
+                    <select id="roundMode" disabled>
+                        <option value="hybrid">Hybrid: зомби + туман + базовый лут</option>
+                    </select>
+                </div>
+                <label class="toggle" for="friendsGroup">
+                    <input type="checkbox" id="friendsGroup" />
+                    Друзья в одной группе (2 союзника)
+                </label>
+            </div>
             <button id="startButton">Начать игру</button>
             <div class="controls-info">
                 <div><strong>WASD</strong> - движение</div>
@@ -346,6 +447,9 @@
                 <div><strong>ЛКМ</strong> - атака</div>
                 <div><strong>E</strong> - взаимодействие</div>
                 <div><strong>1-0</strong> - инвентарь</div>
+                <div><strong>P</strong> - меню перков</div>
+                <div><strong>W/S</strong> - выбор перка</div>
+                <div><strong>E</strong> - подтвердить перк</div>
                 <div><strong>ESC</strong> - меню</div>
                 <div><strong>Mobile</strong> - левый круг: ходьба, правая сторона: обзор</div>
                 <div><strong>Mobile</strong> - кнопки: Прыжок / Атака / Действие</div>
@@ -373,6 +477,9 @@
     <div id="touchJump" class="touch-btn">Прыжок</div>
     <div id="touchAttack" class="touch-btn">Удар</div>
     <div id="touchInteract" class="touch-btn">E</div>
+    <div id="touchHelp" class="touch-btn">Помоги</div>
+    <div id="touchEnemy" class="touch-btn">Враг</div>
+    <div id="touchGather" class="touch-btn">Вместе</div>
     </div>
     <script type="module" src="./main.js"></script>
 </body>

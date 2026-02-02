@@ -64,6 +64,22 @@ export class Player {
         this.jumpBufferDuration = 0.12;
         this.slowTimer = 0;
         this.slowFactor = 1;
+        this.attackCooldown = 0;
+        this.attackSpeedMultiplier = 1;
+        this.footstepVolume = 1;
+        this.perk = null;
+        this.perkAmmoBonus = 1;
+        this.isSilent = false;
+        this.damageReduction = 0;
+        this.recoilScale = 1;
+        this.baseSpeed = this.physics.speed;
+        this.damageTakenMultiplier = 0.7;
+        this.stats = { damage: 0, kills: 0, loot: 0 };
+        this.hudRef = null;
+        this.cameraShakeTime = 0;
+        this.cameraShakeDuration = 0.12;
+        this.cameraShakeStrength = 0.035;
+        this.trailCooldown = 0;
     }
 
     resetView() {
@@ -262,6 +278,12 @@ export class Player {
     update(delta, audioSynth, lootManager, entityManager, controls) {
         if (!this.isAlive) return;
         this.audioSynthRef = audioSynth;
+        if (this.trailCooldown > 0) {
+            this.trailCooldown = Math.max(0, this.trailCooldown - delta);
+        }
+        if (this.attackCooldown > 0) {
+            this.attackCooldown = Math.max(0, this.attackCooldown - delta);
+        }
 
         if (controls && controls.isLocked) {
             const euler = new THREE.Euler();
@@ -336,7 +358,7 @@ export class Player {
 
             const currentTime = performance.now() / 1000;
             if (this.physics.onGround && currentTime - this.lastFootstepTime > 0.5 && audioSynth) {
-                audioSynth.playFootstep();
+                audioSynth.playFootstep(this.footstepVolume);
                 this.lastFootstepTime = currentTime;
             }
 
@@ -345,6 +367,13 @@ export class Player {
             this.physics.velocity.x *= 0.8;
             this.physics.velocity.z *= 0.8;
             this.animationState = 'idle';
+        }
+
+        if (this.perk === 'fastRun' && entityManager && moveVector.length() > 0.2 && this.trailCooldown === 0) {
+            const trailPos = this.position.clone();
+            trailPos.y = 0.4;
+            entityManager.spawnSpeedTrail?.(trailPos, 0x4bb3ff);
+            this.trailCooldown = 0.08;
         }
 
         if (!isFrozen && this.input.isKeyPressed('Space')) {
@@ -377,9 +406,20 @@ export class Player {
             this.position.y + this.cameraOffset.y,
             Math.round(this.position.z * 100) / 100
         );
+        const shakeOffset = new THREE.Vector3();
+        if (this.cameraShakeTime > 0) {
+            const t = this.cameraShakeTime / this.cameraShakeDuration;
+            const strength = this.cameraShakeStrength * t;
+            shakeOffset.set(
+                (Math.random() - 0.5) * strength,
+                (Math.random() - 0.5) * strength,
+                (Math.random() - 0.5) * strength
+            );
+            this.cameraShakeTime = Math.max(0, this.cameraShakeTime - delta);
+        }
 
         if (controls && controls.isLocked) {
-            controls.getObject().position.copy(cameraPosition);
+            controls.getObject().position.copy(cameraPosition.clone().add(shakeOffset));
             controls.getObject().position.y = this.position.y + this.cameraOffset.y;
             if (this.lastCameraPosition) {
                 const dist = cameraPosition.distanceTo(this.lastCameraPosition);
@@ -392,7 +432,7 @@ export class Player {
                 this.lastCameraPosition = cameraPosition.clone();
             }
         } else {
-            this.camera.position.copy(cameraPosition);
+            this.camera.position.copy(cameraPosition.clone().add(shakeOffset));
             this.camera.rotation.set(this.rotation.x, this.rotation.y, 0, 'YXZ');
             this.camera.up.set(0, 1, 0);
         }
@@ -416,7 +456,7 @@ export class Player {
             }
         }
 
-        if (!isFrozen && this.input.isKeyPressed('MouseLeft')) {
+        if (!isFrozen && this.input.isKeyPressed('MouseLeft') && this.attackCooldown <= 0) {
             const activeWeapon = this.currentWeapon || this.fists;
             if (activeWeapon.type === 'bow' || activeWeapon.type === 'laser' || activeWeapon.type === 'shotgun' || activeWeapon.type === 'flamethrower') {
                 const direction = new THREE.Vector3();
@@ -442,7 +482,7 @@ export class Player {
                     result.projectile.mesh.lookAt(muzzle.clone().add(direction));
                     entityManager.addProjectile(result.projectile);
                 }
-                this.viewKick = 0.25;
+                this.viewKick = 0.25 * this.recoilScale;
                 this.weaponActionTime = this.weaponActionDuration;
                 this.weaponActionType = activeWeapon.type;
             } else {
@@ -451,7 +491,8 @@ export class Player {
                     const result = activeWeapon.attack(this, target, audioSynth);
                     if (result && result.hit) {
                         target.takeDamage(result.damage, result.isHeadshot, this, result.knockback || 0);
-                        this.viewKick = 0.3;
+                        this.viewKick = 0.3 * this.recoilScale;
+                        this.onHit();
                     }
                 }
             }
@@ -465,6 +506,7 @@ export class Player {
                     this.weaponSwingTime = this.weaponSwingDuration;
                 }
             }
+            this.attackCooldown = activeWeapon.cooldown * this.attackSpeedMultiplier;
         }
 
         if (!isFrozen && this.input.isKeyPressed('KeyE')) {
@@ -615,6 +657,7 @@ export class Player {
     pickupLoot(loot) {
         if (loot.type === 'weapon') {
             const weapon = new Weapon(loot.weaponType, this.scene);
+            this.applyWeaponPerk(weapon);
             const result = this.inventory.addItem(weapon);
             if (result.added) {
                 if (!this.currentWeapon || !this.inventory.getSelectedWeapon()) {
@@ -627,12 +670,16 @@ export class Player {
         } else if (loot.type === 'armor') {
             this.armor = Math.min(this.maxArmor, this.armor + loot.amount);
         }
+        this.stats.loot += 1;
     }
 
     takeDamage(damage, isHeadshot = false, attacker = null, knockbackStrength = 0, source = null) {
         if (this.isInvulnerable) return false;
 
-        const finalDamage = isHeadshot ? damage * 2 : damage;
+        const finalDamage = (isHeadshot ? damage * 2 : damage) * (1 - this.damageReduction) * this.damageTakenMultiplier;
+        if (attacker?.stats) {
+            attacker.stats.damage += finalDamage;
+        }
 
         if (this.armor > 0) {
             const armorDamage = Math.min(this.armor, finalDamage);
@@ -654,6 +701,9 @@ export class Player {
             this.mesh.position.copy(this.position);
             this.mesh.position.y = this.position.y - (this.physics.height - 0.15) - 0.8;
             this.mesh.rotation.set(-Math.PI / 2, this.rotation.y, 0);
+            if (attacker?.stats) {
+                attacker.stats.kills += 1;
+            }
         }
         this.flashDamage();
         spawnDamagePopup(this.scene, this.position, finalDamage, { color: '#ff5b5b' });
@@ -673,6 +723,64 @@ export class Player {
         }
 
         return true;
+    }
+
+    onHit() {
+        if (this.hudRef?.showHitMarker) {
+            this.hudRef.showHitMarker();
+        }
+        this.cameraShakeTime = this.cameraShakeDuration;
+    }
+
+    setHUD(hud) {
+        this.hudRef = hud;
+    }
+
+    applyPerk(perk, baseFootstep = 1) {
+        this.perk = perk;
+        this.attackSpeedMultiplier = 1;
+        this.footstepVolume = baseFootstep;
+        this.perkAmmoBonus = 1;
+        this.isSilent = false;
+        this.damageReduction = 0;
+        this.recoilScale = 1;
+        this.physics.speed = this.baseSpeed;
+
+        if (perk === 'quickHands') {
+            this.attackSpeedMultiplier = 0.75;
+        } else if (perk === 'silentStep') {
+            this.footstepVolume = Math.min(0.35, baseFootstep);
+            this.isSilent = true;
+        } else if (perk === 'moreAmmo') {
+            this.perkAmmoBonus = 1.35;
+        } else if (perk === 'fastRun') {
+            this.physics.speed = this.baseSpeed * 1.35;
+        } else if (perk === 'thickSkin') {
+            this.damageReduction = 0.2;
+        } else if (perk === 'steadyAim') {
+            this.recoilScale = 0.6;
+        }
+
+        if (this.fists) {
+            this.fists.cooldown *= this.attackSpeedMultiplier;
+        }
+    }
+
+    applyWeaponPerk(weapon) {
+        if (!weapon) return;
+        if (this.perk === 'quickHands') {
+            weapon.cooldown *= this.attackSpeedMultiplier;
+        }
+        if (this.perk === 'moreAmmo') {
+            if (weapon.maxAmmo !== null) {
+                weapon.maxAmmo = Math.round(weapon.maxAmmo * this.perkAmmoBonus);
+                weapon.ammo = weapon.maxAmmo;
+            }
+            if (weapon.maxDurability !== null) {
+                weapon.maxDurability = Math.round(weapon.maxDurability * this.perkAmmoBonus);
+                weapon.durability = weapon.maxDurability;
+            }
+        }
     }
 
     setInvulnerable(value) {
@@ -742,7 +850,7 @@ export class Player {
             base.scale = 1.05;
         } else if (type === 'bow') {
             base.position.set(0.32, -0.22, -0.85);
-            base.rotation.set(0, Math.PI, 0);
+            base.rotation.set(0, Math.PI, Math.PI / 2);
             base.scale = 0.9;
         } else if (type === 'shotgun') {
             base.position.set(0.26, -0.32, -0.75);

@@ -17,6 +17,11 @@ export class MapGenerator {
         this.traps = [];
         this.textures = {};
         this.playerSpawn = null;
+        this.storyPOIs = [];
+        this.storyNotes = [];
+        this.propMeshes = [];
+        this.leafMeshes = [];
+        this.smallPropMeshes = [];
         this.biomeColors = {
             forest: 0x2e7d32,
             jungle: 0x1f7a3a,
@@ -47,6 +52,7 @@ export class MapGenerator {
         this.buildMeshes();
         this.buildSpawnPads();
         this.buildChests();
+        this.buildStoryPOIs();
     }
 
     clearSpawnZone() {
@@ -69,6 +75,11 @@ export class MapGenerator {
         this.clearSceneObjects();
         this.colliders = [];
         this.floorTiles = [];
+        this.propMeshes = [];
+        this.leafMeshes = [];
+        this.smallPropMeshes = [];
+        this.storyPOIs = [];
+        this.storyNotes = [];
 
         const floorMats = {};
         Object.entries(this.biomeColors).forEach(([key, color]) => {
@@ -173,55 +184,89 @@ export class MapGenerator {
         const cactusGeo = new THREE.BoxGeometry(1.3, 4.5, 1.3);
         const iceGeo = new THREE.ConeGeometry(1.2, 4.8, 6);
 
-        this.addInstancedTree(treeTrunkGeo, trunkMat, treeLeafGeo, leafMat, trees, 1.3, 3.2);
-        this.addInstancedTree(jungleTrunkGeo, trunkMat, jungleLeafGeo, jungleLeafMat, jungleTrees, 2.4, 5.4);
-        this.addInstancedProps(rockGeo, rockMat, rocks, 1.1, true);
-        this.addInstancedProps(crateGeo, crateMat, crates, 1.0, true);
-        this.addInstancedProps(cactusGeo, cactusMat, cacti, 2.2, true);
-        this.addInstancedProps(iceGeo, iceMat, iceSpikes, 2.4, true);
+        this.addInstancedTreeChunked(treeTrunkGeo, trunkMat, treeLeafGeo, leafMat, trees, 1.3, 3.2, 36);
+        this.addInstancedTreeChunked(jungleTrunkGeo, trunkMat, jungleLeafGeo, jungleLeafMat, jungleTrees, 2.4, 5.4, 36);
+        this.addInstancedPropsChunked(rockGeo, rockMat, rocks, 1.1, true, 42, true);
+        this.addInstancedPropsChunked(crateGeo, crateMat, crates, 1.0, true, 42, true);
+        this.addInstancedPropsChunked(cactusGeo, cactusMat, cacti, 2.2, true, 42, true);
+        this.addInstancedPropsChunked(iceGeo, iceMat, iceSpikes, 2.4, true, 42, true);
     }
 
-    addInstancedTree(trunkGeo, trunkMat, leafGeo, leafMat, list, trunkHeight, leafHeight) {
-        if (!list.length) return;
-        const trunkInst = new THREE.InstancedMesh(trunkGeo, trunkMat, list.length);
-        const leafInst = new THREE.InstancedMesh(leafGeo, leafMat, list.length);
-        const matrix = new THREE.Matrix4();
-        const position = new THREE.Vector3();
-        const rotation = new THREE.Quaternion();
-        const scale = new THREE.Vector3(1, 1, 1);
-        list.forEach((item, i) => {
-            position.set(item.x, trunkHeight / 2, item.z);
-            matrix.compose(position, rotation, scale);
-            trunkInst.setMatrixAt(i, matrix);
-            this.addColliderBox(new THREE.Vector3(item.x, trunkHeight / 2, item.z), trunkGeo.parameters.width, trunkGeo.parameters.height, trunkGeo.parameters.depth, false);
-
-            position.set(item.x, leafHeight, item.z);
-            matrix.compose(position, rotation, scale);
-            leafInst.setMatrixAt(i, matrix);
-        });
-        trunkInst.userData.mapGenerated = true;
-        leafInst.userData.mapGenerated = true;
-        this.scene.add(trunkInst);
-        this.scene.add(leafInst);
+    chunkItems(list, chunkSize) {
+        const chunks = new Map();
+        for (const item of list) {
+            const cx = Math.floor(item.x / chunkSize);
+            const cz = Math.floor(item.z / chunkSize);
+            const key = `${cx},${cz}`;
+            if (!chunks.has(key)) chunks.set(key, []);
+            chunks.get(key).push(item);
+        }
+        return chunks;
     }
 
-    addInstancedProps(geo, mat, list, heightOffset, solid) {
+    addInstancedTreeChunked(trunkGeo, trunkMat, leafGeo, leafMat, list, trunkHeight, leafHeight, chunkSize) {
         if (!list.length) return;
-        const inst = new THREE.InstancedMesh(geo, mat, list.length);
-        const matrix = new THREE.Matrix4();
-        const position = new THREE.Vector3();
-        const rotation = new THREE.Quaternion();
-        const scale = new THREE.Vector3(1, 1, 1);
-        list.forEach((item, i) => {
-            position.set(item.x, heightOffset, item.z);
-            matrix.compose(position, rotation, scale);
-            inst.setMatrixAt(i, matrix);
-            if (solid) {
-                this.addColliderBox(new THREE.Vector3(item.x, heightOffset, item.z), geo.parameters.width, geo.parameters.height, geo.parameters.depth, false);
-            }
-        });
-        inst.userData.mapGenerated = true;
-        this.scene.add(inst);
+        const chunks = this.chunkItems(list, chunkSize);
+        for (const chunk of chunks.values()) {
+            const trunkInst = new THREE.InstancedMesh(trunkGeo, trunkMat, chunk.length);
+            const leafInst = new THREE.InstancedMesh(leafGeo, leafMat, chunk.length);
+            const matrix = new THREE.Matrix4();
+            const position = new THREE.Vector3();
+            const rotation = new THREE.Quaternion();
+            const scale = new THREE.Vector3(1, 1, 1);
+            let cx = 0;
+            let cz = 0;
+            chunk.forEach((item, i) => {
+                cx += item.x;
+                cz += item.z;
+                position.set(item.x, trunkHeight / 2, item.z);
+                matrix.compose(position, rotation, scale);
+                trunkInst.setMatrixAt(i, matrix);
+                this.addColliderBox(new THREE.Vector3(item.x, trunkHeight / 2, item.z), trunkGeo.parameters.width, trunkGeo.parameters.height, trunkGeo.parameters.depth, false);
+
+                position.set(item.x, leafHeight, item.z);
+                matrix.compose(position, rotation, scale);
+                leafInst.setMatrixAt(i, matrix);
+            });
+            const center = new THREE.Vector3(cx / chunk.length, 0, cz / chunk.length);
+            trunkInst.userData.mapGenerated = true;
+            trunkInst.userData.center = center;
+            leafInst.userData.mapGenerated = true;
+            leafInst.userData.center = center;
+            this.scene.add(trunkInst);
+            this.scene.add(leafInst);
+            this.propMeshes.push(trunkInst);
+            this.leafMeshes.push(leafInst);
+        }
+    }
+
+    addInstancedPropsChunked(geo, mat, list, heightOffset, solid, chunkSize, isSmall) {
+        if (!list.length) return;
+        const chunks = this.chunkItems(list, chunkSize);
+        for (const chunk of chunks.values()) {
+            const inst = new THREE.InstancedMesh(geo, mat, chunk.length);
+            const matrix = new THREE.Matrix4();
+            const position = new THREE.Vector3();
+            const rotation = new THREE.Quaternion();
+            const scale = new THREE.Vector3(1, 1, 1);
+            let cx = 0;
+            let cz = 0;
+            chunk.forEach((item, i) => {
+                cx += item.x;
+                cz += item.z;
+                position.set(item.x, heightOffset, item.z);
+                matrix.compose(position, rotation, scale);
+                inst.setMatrixAt(i, matrix);
+                if (solid) {
+                    this.addColliderBox(new THREE.Vector3(item.x, heightOffset, item.z), geo.parameters.width, geo.parameters.height, geo.parameters.depth, false);
+                }
+            });
+            inst.userData.mapGenerated = true;
+            inst.userData.center = new THREE.Vector3(cx / chunk.length, 0, cz / chunk.length);
+            this.scene.add(inst);
+            if (isSmall) this.smallPropMeshes.push(inst);
+            else this.propMeshes.push(inst);
+        }
     }
 
     buildSpawnPads() {
@@ -309,6 +354,97 @@ export class MapGenerator {
         }
     }
 
+    buildStoryPOIs() {
+        this.storyPOIs = [];
+        this.storyNotes = [];
+        if (!this.floorTiles || !this.floorTiles.length) return;
+
+        const rand = (() => {
+            let state = (this.seed ^ 0x7f4a7c15) >>> 0;
+            return () => {
+                state = (state * 1664525 + 1013904223) >>> 0;
+                return state / 0x100000000;
+            };
+        })();
+
+        const spawnWorld = this.playerSpawn ? this.toWorld(this.playerSpawn.x, this.playerSpawn.y) : { x: 0, z: 0 };
+        const candidates = this.floorTiles.filter(tile => {
+            const dx = tile.x - spawnWorld.x;
+            const dz = tile.z - spawnWorld.z;
+            return Math.hypot(dx, dz) > 30;
+        });
+        if (!candidates.length) return;
+
+        const pick = () => candidates[Math.floor(rand() * candidates.length)];
+        const poiTypes = ['bunker', 'camp', 'observatory'];
+        for (const type of poiTypes) {
+            const tile = pick();
+            if (!tile) continue;
+            const pos = new THREE.Vector3(tile.x, 0.4, tile.z);
+            this.createPOI(type, pos);
+        }
+    }
+
+    createPOI(type, position) {
+        const group = new THREE.Group();
+        group.userData.mapGenerated = true;
+        let name = '';
+        if (type === 'bunker') {
+            name = '\u0411\u0443\u043d\u043a\u0435\u0440';
+            const mat = new THREE.MeshStandardMaterial({ color: 0x616161, roughness: 0.9, flatShading: true });
+            const base = new THREE.Mesh(new THREE.BoxGeometry(6, 2.2, 4), mat);
+            base.position.set(position.x, 1.1, position.z);
+            group.add(base);
+            const door = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.6, 0.2), new THREE.MeshStandardMaterial({ color: 0x37474f, roughness: 0.6, flatShading: true }));
+            door.position.set(position.x, 0.9, position.z + 2.1);
+            group.add(door);
+            this.addColliderBox(new THREE.Vector3(position.x, 1.1, position.z), 6, 2.2, 4, false);
+        } else if (type === 'camp') {
+            name = '\u041b\u0430\u0433\u0435\u0440\u044c';
+            const tentMat = new THREE.MeshStandardMaterial({ color: 0x8d6e63, roughness: 0.9, flatShading: true });
+            const tent = new THREE.Mesh(new THREE.ConeGeometry(2.4, 2.2, 4), tentMat);
+            tent.position.set(position.x, 1.1, position.z);
+            tent.rotation.y = Math.PI / 4;
+            group.add(tent);
+            const fire = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.6, 0.8, 0.4, 6),
+                new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.9, flatShading: true })
+            );
+            fire.position.set(position.x + 2.6, 0.2, position.z - 1.2);
+            group.add(fire);
+            this.addColliderBox(new THREE.Vector3(position.x, 1.1, position.z), 3.5, 2.2, 3.5, false);
+        } else if (type === 'observatory') {
+            name = '\u041e\u0431\u0441\u0435\u0440\u0432\u0430\u0442\u043e\u0440\u0438\u044f';
+            const mat = new THREE.MeshStandardMaterial({ color: 0x90a4ae, roughness: 0.85, flatShading: true });
+            const tower = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 2.2, 6, 6), mat);
+            tower.position.set(position.x, 3, position.z);
+            group.add(tower);
+            const dish = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 1.2, 0.4, 8), mat);
+            dish.position.set(position.x, 6.3, position.z);
+            dish.rotation.z = Math.PI / 10;
+            group.add(dish);
+            this.addColliderBox(new THREE.Vector3(position.x, 3, position.z), 4.2, 6, 4.2, false);
+        }
+
+        this.scene.add(group);
+        this.storyPOIs.push({ name, position: position.clone(), type });
+
+        const noteMat = new THREE.MeshStandardMaterial({
+            color: 0xfff59d,
+            emissive: 0xfff176,
+            emissiveIntensity: 0.6,
+            flatShading: true
+        });
+        const note = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.1), noteMat);
+        note.position.set(position.x + 1.2, 0.6, position.z + 1.2);
+        note.userData.mapGenerated = true;
+        this.scene.add(note);
+        this.storyNotes.push({
+            position: note.position.clone(),
+            text: `${name}: \u0417\u0430\u043f\u0438\u0441\u044c #${this.storyNotes.length + 1} \u2014 \u043b\u0430\u0431\u0438\u0440\u0438\u043d\u0442 \u043c\u0435\u043d\u044f\u0435\u0442\u0441\u044f, \u0434\u0435\u0440\u0436\u0438\u0442\u0435\u0441\u044c \u0432\u043c\u0435\u0441\u0442\u0435.`
+        });
+    }
+
     findNearestFloor(x, y, radius) {
         for (let r = 0; r <= radius; r++) {
             for (let dy = -r; dy <= r; dy++) {
@@ -392,6 +528,26 @@ export class MapGenerator {
 
     getOneWayGates() {
         return [];
+    }
+
+    getStoryNotes() {
+        return this.storyNotes.map(note => ({ position: note.position.clone(), text: note.text }));
+    }
+
+    updatePropVisibility(playerPos) {
+        if (!playerPos) return;
+        const smallDist = 120;
+        const leafDist = 150;
+        for (const mesh of this.smallPropMeshes) {
+            const center = mesh.userData.center || new THREE.Vector3();
+            const dist = center.distanceTo(playerPos);
+            mesh.visible = dist < smallDist;
+        }
+        for (const mesh of this.leafMeshes) {
+            const center = mesh.userData.center || new THREE.Vector3();
+            const dist = center.distanceTo(playerPos);
+            mesh.visible = dist < leafDist;
+        }
     }
 
     isInsideCourtyard() {

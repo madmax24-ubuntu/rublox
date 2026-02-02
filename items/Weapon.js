@@ -137,42 +137,41 @@ export class Weapon {
             case 'bow':
                 const bowMat = new THREE.MeshStandardMaterial({
                     color: 0x8b5a2b,
-                    roughness: 0.65,
+                    roughness: 0.55,
                     flatShading: true
                 });
                 const gripMat = new THREE.MeshStandardMaterial({
-                    color: 0x6d4c41,
+                    color: 0x5d4037,
                     roughness: 0.7,
                     flatShading: true
                 });
-                // Minecraft-like pixel bow: angled limb segments
-                const segments = [
-                    [0.12, 0.52, 0.55],
-                    [0.18, 0.36, 0.4],
-                    [0.22, 0.2, 0.25],
-                    [0.22, -0.2, -0.25],
-                    [0.18, -0.36, -0.4],
-                    [0.12, -0.52, -0.55]
-                ];
-                for (const [x, y, rot] of segments) {
-                    const seg = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.18, 0.1), bowMat);
-                    seg.position.set(x, y, 0);
-                    seg.rotation.z = rot;
-                    group.add(seg);
-                }
-                const bowGrip = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.42, 0.12), gripMat);
+                const limbGeo = new THREE.BoxGeometry(0.14, 0.52, 0.1);
+                const topLimb = new THREE.Mesh(limbGeo, bowMat);
+                topLimb.position.set(0.2, 0.45, 0);
+                topLimb.rotation.z = 0.55;
+                const midLimb = new THREE.Mesh(limbGeo, bowMat);
+                midLimb.position.set(0.1, 0, 0);
+                const botLimb = new THREE.Mesh(limbGeo, bowMat);
+                botLimb.position.set(0.2, -0.45, 0);
+                botLimb.rotation.z = -0.55;
+                group.add(topLimb, midLimb, botLimb);
+
+                const bowGrip = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.48, 0.12), gripMat);
+                bowGrip.position.set(0.02, 0, 0.02);
                 group.add(bowGrip);
+
                 const stringMat = new THREE.LineBasicMaterial({ color: 0x111111 });
                 const string = new THREE.Line(
                     new THREE.BufferGeometry().setFromPoints([
-                        new THREE.Vector3(0.36, 0.64, 0),
-                        new THREE.Vector3(0.08, 0, 0),
-                        new THREE.Vector3(0.36, -0.64, 0)
+                        new THREE.Vector3(0.48, 0.82, 0),
+                        new THREE.Vector3(0.05, 0, 0),
+                        new THREE.Vector3(0.48, -0.82, 0)
                     ]),
                     stringMat
                 );
                 group.add(string);
-                group.scale.setScalar(0.9);
+                group.rotation.z = Math.PI / 2;
+                group.scale.setScalar(0.95);
                 break;
 
             case 'laser':
