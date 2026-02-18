@@ -19,8 +19,8 @@ export class AudioSynth {
             this.reverb = this.audioContext.createConvolver();
             this.reverbGain = this.audioContext.createGain();
 
-            this.reverb.buffer = this.createImpulse(2.4, 2.0);
-            this.reverbGain.gain.value = 0.35;
+            this.reverb.buffer = this.createImpulse(2.0, 1.6);
+            this.reverbGain.gain.value = 0.22;
 
             this.musicGain.connect(this.audioContext.destination);
             this.sfxGain.connect(this.audioContext.destination);
@@ -28,8 +28,8 @@ export class AudioSynth {
             this.reverb.connect(this.reverbGain);
             this.reverbGain.connect(this.audioContext.destination);
 
-            this.musicGain.gain.value = 0.3;
-            this.sfxGain.gain.value = 0.7;
+            this.musicGain.gain.value = 0.28;
+            this.sfxGain.gain.value = 0.45;
         } catch (e) {
             console.warn('Web Audio API not supported');
         }
@@ -58,7 +58,7 @@ export class AudioSynth {
         for (let i = 0; i < data.length; i++) {
             const white = Math.random() * 2 - 1;
             last = (last + 0.02 * white) / 1.02;
-            data[i] = last * 3.5;
+            data[i] = last * 2.0;
         }
         return buffer;
     }
@@ -128,7 +128,7 @@ export class AudioSynth {
         windBand.frequency.value = 180;
         windBand.Q.value = 0.5;
         const windGain = ctx.createGain();
-        windGain.gain.value = 0.05;
+        windGain.gain.value = 0.035;
         wind.connect(windFilter);
         windFilter.connect(windBand);
         windBand.connect(windGain);
@@ -140,7 +140,7 @@ export class AudioSynth {
         rumbleOsc.type = 'sine';
         rumbleOsc.frequency.value = 38;
         const rumbleGain = ctx.createGain();
-        rumbleGain.gain.value = 0.05;
+        rumbleGain.gain.value = 0.035;
         const rumbleFilter = ctx.createBiquadFilter();
         rumbleFilter.type = 'lowpass';
         rumbleFilter.frequency.value = 120;
@@ -157,7 +157,7 @@ export class AudioSynth {
         rustleFilter.type = 'highpass';
         rustleFilter.frequency.value = 1200;
         const rustleGain = ctx.createGain();
-        rustleGain.gain.value = 0.03;
+        rustleGain.gain.value = 0.02;
         rustle.connect(rustleFilter);
         rustleFilter.connect(rustleGain);
         rustleGain.connect(this.sfxGain);
@@ -170,7 +170,7 @@ export class AudioSynth {
             const gain = ctx.createGain();
             osc.type = 'sine';
             osc.frequency.value = 1400 + Math.random() * 300;
-            gain.gain.value = 0.02;
+            gain.gain.value = 0.015;
             osc.connect(gain);
             gain.connect(this.sfxGain);
             osc.start();
@@ -265,7 +265,7 @@ export class AudioSynth {
         rumble.type = 'sine';
         rumble.frequency.setValueAtTime(60, now);
         rumble.frequency.exponentialRampToValueAtTime(30, now + 1.1);
-        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.setValueAtTime(0.22, now);
         gain.gain.exponentialRampToValueAtTime(0.02, now + 1.2);
         rumble.connect(gain);
         this.connectSfx(gain, position);
@@ -343,7 +343,7 @@ export class AudioSynth {
 
         const gainNode = ctx.createGain();
         gainNode.gain.setValueAtTime(0.001, now);
-        gainNode.gain.exponentialRampToValueAtTime(0.11 * gainScale, now + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.08 * gainScale, now + 0.01);
         gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
         const thump = ctx.createOscillator();
@@ -351,7 +351,7 @@ export class AudioSynth {
         thump.type = 'sine';
         thump.frequency.setValueAtTime(90 + Math.random() * 20, now);
         thumpGain.gain.setValueAtTime(0.0001, now);
-        thumpGain.gain.exponentialRampToValueAtTime(0.06 * gainScale, now + 0.02);
+        thumpGain.gain.exponentialRampToValueAtTime(0.045 * gainScale, now + 0.02);
         thumpGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
 
         source.connect(band);
@@ -378,7 +378,7 @@ export class AudioSynth {
         oscillator.frequency.setValueAtTime(200, this.audioContext.currentTime);
         oscillator.frequency.exponentialRampToValueAtTime(100, this.audioContext.currentTime + 0.2);
 
-        gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
+        gainNode.gain.setValueAtTime(0.14, this.audioContext.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.2);
 
         oscillator.connect(gainNode);
@@ -398,7 +398,7 @@ export class AudioSynth {
         rumble.type = 'sine';
         rumble.frequency.setValueAtTime(70, now);
         rumble.frequency.exponentialRampToValueAtTime(40, now + 1.2);
-        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.setValueAtTime(0.08, now);
         gain.gain.exponentialRampToValueAtTime(0.01, now + 1.4);
         rumble.connect(gain);
         this.connectSfx(gain, position);
@@ -436,7 +436,7 @@ export class AudioSynth {
         filter.type = 'lowpass';
         filter.frequency.setValueAtTime(900, now);
 
-        gainNode.gain.setValueAtTime(0.18, now);
+        gainNode.gain.setValueAtTime(0.12, now);
         gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
 
         osc.connect(filter);
@@ -563,7 +563,7 @@ export class AudioSynth {
         oscillator.frequency.setValueAtTime(400, this.audioContext.currentTime);
         oscillator.frequency.exponentialRampToValueAtTime(200, this.audioContext.currentTime + 0.3);
 
-        gainNode.gain.setValueAtTime(0.15, this.audioContext.currentTime);
+        gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
 
         oscillator.connect(gainNode);
@@ -583,7 +583,7 @@ export class AudioSynth {
         oscillator.frequency.setValueAtTime(800, this.audioContext.currentTime);
         oscillator.frequency.exponentialRampToValueAtTime(400, this.audioContext.currentTime + 0.4);
 
-        gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
+        gainNode.gain.setValueAtTime(0.12, this.audioContext.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.4);
 
         oscillator.connect(gainNode);
@@ -602,7 +602,7 @@ export class AudioSynth {
         osc.type = 'square';
         osc.frequency.setValueAtTime(120, now);
         osc.frequency.exponentialRampToValueAtTime(55, now + 0.35);
-        gain.gain.setValueAtTime(0.32, now);
+        gain.gain.setValueAtTime(0.26, now);
         gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
         osc.connect(gain);
         gain.connect(this.sfxGain);
@@ -616,7 +616,7 @@ export class AudioSynth {
         noiseFilter.frequency.setValueAtTime(900, now);
         noiseFilter.Q.value = 0.7;
         const noiseGain = ctx.createGain();
-        noiseGain.gain.setValueAtTime(0.22, now);
+        noiseGain.gain.setValueAtTime(0.14, now);
         noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
         noise.connect(noiseFilter);
         noiseFilter.connect(noiseGain);
@@ -628,7 +628,7 @@ export class AudioSynth {
         const thumpGain = ctx.createGain();
         thump.type = 'sine';
         thump.frequency.setValueAtTime(70, now);
-        thumpGain.gain.setValueAtTime(0.22, now);
+        thumpGain.gain.setValueAtTime(0.16, now);
         thumpGain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
         thump.connect(thumpGain);
         thumpGain.connect(this.sfxGain);
@@ -646,7 +646,7 @@ export class AudioSynth {
         filter.type = 'lowpass';
         filter.frequency.setValueAtTime(500, now);
         const gain = ctx.createGain();
-        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.setValueAtTime(0.12, now);
         gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
         noise.connect(filter);
         filter.connect(gain);

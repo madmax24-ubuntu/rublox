@@ -428,7 +428,7 @@ export class HUD {
         perkButton.textContent = 'ПЕРК';
         perkButton.style.cssText = `
             position: absolute;
-            bottom: ${px(isMobile ? 130 : 140)}px;
+            bottom: ${px(isMobile ? 210 : 150)}px;
             left: ${px(16)}px;
             background: rgba(14, 26, 36, 0.88);
             padding: ${px(8)}px ${px(14)}px;

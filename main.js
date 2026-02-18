@@ -724,13 +724,8 @@ class Game {
         if (startScreen) {
             startScreen.style.display = 'none';
         }
-        const modeSelect = document.getElementById('roundMode');
-        const friendsToggle = document.getElementById('friendsGroup');
-        this.partyMode = Boolean(friendsToggle?.checked);
-        this.applyRoundMode(modeSelect?.value || 'hybrid');
-        if (this.partyMode) {
-            this.assignFriendlyBots(2);
-        }
+        this.partyMode = false;
+        this.applyRoundMode('hybrid');
 
         if (this.isMobile()) {
             this.enterFullscreen();

@@ -67,9 +67,9 @@ export class Input {
         const touchJump = document.getElementById('touchJump');
         const touchAttack = document.getElementById('touchAttack');
         const touchInteract = document.getElementById('touchInteract');
-        const touchHelp = document.getElementById('touchHelp');
-        const touchEnemy = document.getElementById('touchEnemy');
-        const touchGather = document.getElementById('touchGather');
+        const touchHelp = null;
+        const touchEnemy = null;
+        const touchGather = null;
 
         const updateStickRadius = () => {
             if (!stick) return;
@@ -211,9 +211,7 @@ export class Input {
         bindHoldButton(touchJump, 'Space');
         bindHoldButton(touchAttack, 'MouseLeft');
         bindHoldButton(touchInteract, 'KeyE');
-        bindHoldButton(touchHelp, 'KeyZ');
-        bindHoldButton(touchEnemy, 'KeyX');
-        bindHoldButton(touchGather, 'KeyC');
+        // Quick command buttons removed for mobile
     }
 
     resetLook() {
