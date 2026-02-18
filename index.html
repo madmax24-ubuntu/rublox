@@ -103,6 +103,9 @@
         .mobile #touchButtons {
             display: block;
         }
+        .mobile #touchButtons .touch-btn {
+            display: flex;
+        }
 
         #rotateOverlay {
             position: fixed;
@@ -135,7 +138,7 @@
             grid-auto-rows: 68px;
             gap: 10px;
             z-index: 999;
-            pointer-events: none;
+            pointer-events: auto;
         }
 
         #touchButtons .touch-btn {
@@ -182,6 +185,9 @@
             body.mobile #touchStick,
             body.mobile #touchButtons {
                 display: block;
+            }
+            body.mobile #touchButtons .touch-btn {
+                display: flex;
             }
         }
 

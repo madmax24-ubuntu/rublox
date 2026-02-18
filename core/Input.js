@@ -94,7 +94,13 @@ export class Input {
         const isButtonTarget = (touch) => {
             const target = touch?.target;
             if (!target || !target.closest) return false;
-            return Boolean(target.closest('.touch-btn') || target.closest('#inventory'));
+            return Boolean(
+                target.closest('.touch-btn') ||
+                target.closest('#touchButtons') ||
+                target.closest('#inventory') ||
+                target.closest('#perkButton') ||
+                target.closest('#perkPanel')
+            );
         };
 
         document.addEventListener('touchstart', (e) => {
