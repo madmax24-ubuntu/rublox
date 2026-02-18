@@ -458,7 +458,7 @@ export class Player {
 
         if (!isFrozen && this.input.isKeyPressed('MouseLeft') && this.attackCooldown <= 0) {
             const activeWeapon = this.currentWeapon || this.fists;
-            if (activeWeapon.type === 'bow' || activeWeapon.type === 'laser' || activeWeapon.type === 'shotgun' || activeWeapon.type === 'flamethrower') {
+            if (activeWeapon.type === 'bow' || activeWeapon.type === 'laser' || activeWeapon.type === 'shotgun' || activeWeapon.type === 'flamethrower' || activeWeapon.type === 'pistol' || activeWeapon.type === 'rifle') {
                 const direction = new THREE.Vector3();
                 this.camera.getWorldDirection(direction);
                 const result = activeWeapon.attack(this, null, audioSynth, direction);
@@ -501,7 +501,7 @@ export class Player {
                     this.punchTime = this.punchDuration;
                 }
             }
-            if (activeWeapon.type === 'knife') {
+            if (activeWeapon.type === 'knife' || activeWeapon.type === 'axe' || activeWeapon.type === 'spear') {
                 if (this.weaponSwingTime <= 0) {
                     this.weaponSwingTime = this.weaponSwingDuration;
                 }
@@ -599,14 +599,15 @@ export class Player {
                 this.viewWeapon.rotation.copy(this.viewWeaponBase.rotation);
             }
 
-            if (this.viewWeaponType === 'knife' && this.weaponSwingTime > 0) {
+            if ((this.viewWeaponType === 'knife' || this.viewWeaponType === 'axe' || this.viewWeaponType === 'spear') && this.weaponSwingTime > 0) {
                 const t = 1 - this.weaponSwingTime / this.weaponSwingDuration;
                 const swing = Math.sin(t * Math.PI);
-                this.viewWeapon.rotation.z -= swing * 0.6;
+                const swingMul = this.viewWeaponType === 'axe' ? 0.75 : this.viewWeaponType === 'spear' ? 0.45 : 0.6;
+                this.viewWeapon.rotation.z -= swing * swingMul;
                 this.viewWeapon.position.z -= swing * 0.08;
             }
 
-            if ((this.viewWeaponType === 'bow' || this.viewWeaponType === 'laser') && this.viewKick > 0) {
+            if ((this.viewWeaponType === 'bow' || this.viewWeaponType === 'laser' || this.viewWeaponType === 'shotgun' || this.viewWeaponType === 'pistol' || this.viewWeaponType === 'rifle' || this.viewWeaponType === 'flamethrower') && this.viewKick > 0) {
                 this.viewWeapon.position.z -= this.viewKick * 0.2;
                 this.viewWeapon.rotation.x -= this.viewKick * 0.6;
             }
@@ -617,7 +618,7 @@ export class Player {
                 if (this.weaponActionType === 'bow') {
                     this.viewWeapon.position.z -= ease * 0.12;
                     this.viewWeapon.rotation.y += ease * 0.08;
-                } else if (this.weaponActionType === 'laser') {
+                } else if (this.weaponActionType === 'laser' || this.weaponActionType === 'shotgun' || this.weaponActionType === 'pistol' || this.weaponActionType === 'rifle' || this.weaponActionType === 'flamethrower') {
                     this.viewWeapon.position.z -= ease * 0.1;
                     this.viewWeapon.rotation.x -= ease * 0.35;
                 }
@@ -849,9 +850,17 @@ export class Player {
             base.rotation.set(0.02, Math.PI, Math.PI / 12);
             base.scale = 1.05;
         } else if (type === 'bow') {
-            base.position.set(0.32, -0.22, -0.85);
-            base.rotation.set(0, Math.PI, Math.PI / 2);
-            base.scale = 0.9;
+            base.position.set(0.28, -0.18, -0.92);
+            base.rotation.set(0.04, Math.PI, Math.PI / 2.4);
+            base.scale = 0.85;
+        } else if (type === 'axe') {
+            base.position.set(0.24, -0.3, -0.7);
+            base.rotation.set(0.1, Math.PI, Math.PI / 3);
+            base.scale = 1.0;
+        } else if (type === 'spear') {
+            base.position.set(0.2, -0.28, -0.95);
+            base.rotation.set(0, Math.PI, Math.PI / 2.6);
+            base.scale = 1.0;
         } else if (type === 'shotgun') {
             base.position.set(0.26, -0.32, -0.75);
             base.rotation.set(-0.06, Math.PI, Math.PI / 14);
@@ -864,6 +873,14 @@ export class Player {
             base.position.set(0.24, -0.36, -0.78);
             base.rotation.set(-0.06, Math.PI, Math.PI / 14);
             base.scale = 1.15;
+        } else if (type === 'pistol') {
+            base.position.set(0.24, -0.34, -0.7);
+            base.rotation.set(-0.02, Math.PI, Math.PI / 18);
+            base.scale = 1.05;
+        } else if (type === 'rifle') {
+            base.position.set(0.26, -0.3, -0.86);
+            base.rotation.set(-0.04, Math.PI, Math.PI / 16);
+            base.scale = 1.1;
         }
 
         return base;
@@ -890,11 +907,11 @@ export class Player {
         let weapon = this.currentWeapon || this.fists;
         if (!weapon || !target || !target.isAlive) return null;
 
-        if (weapon.type === 'knife' && weapon.durability !== null && weapon.durability <= 0) {
+        if ((weapon.type === 'knife' || weapon.type === 'axe' || weapon.type === 'spear') && weapon.durability !== null && weapon.durability <= 0) {
             this.currentWeapon = null;
             weapon = this.fists;
         }
-        if ((weapon.type === 'bow' || weapon.type === 'laser' || weapon.type === 'shotgun' || weapon.type === 'flamethrower') && weapon.ammo !== null && weapon.ammo <= 0) {
+        if ((weapon.type === 'bow' || weapon.type === 'laser' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle') && weapon.ammo !== null && weapon.ammo <= 0) {
             this.currentWeapon = null;
             weapon = this.fists;
         }
@@ -904,13 +921,17 @@ export class Player {
             ? 40
             : weapon.type === 'bow'
                 ? 40
-                : weapon.type === 'fists'
-                    ? 2.5
-                    : 3;
+                : weapon.type === 'pistol'
+                    ? 35
+                    : weapon.type === 'rifle'
+                        ? 45
+                        : weapon.type === 'fists'
+                            ? 2.5
+                            : 3;
 
         if (distance > attackRange) return null;
 
-        if (weapon.type === 'laser' || weapon.type === 'bow' || weapon.type === 'shotgun' || weapon.type === 'flamethrower') {
+        if (weapon.type === 'laser' || weapon.type === 'bow' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle') {
             const direction = new THREE.Vector3()
                 .subVectors(target.position, this.position)
                 .normalize();

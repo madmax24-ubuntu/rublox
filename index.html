@@ -100,7 +100,7 @@
         }
 
         .mobile #touchStick,
-        .mobile .touch-btn {
+        .mobile #touchButtons {
             display: block;
         }
 
@@ -126,46 +126,24 @@
             max-width: 420px;
         }
 
-        #touchJump {
-            bottom: 16vh;
-            right: 22vw;
+        #touchButtons {
+            position: fixed;
+            right: 4vw;
+            bottom: 6vh;
+            display: grid;
+            grid-template-columns: repeat(2, 68px);
+            grid-auto-rows: 68px;
+            gap: 10px;
+            z-index: 999;
+            pointer-events: none;
         }
 
-        #touchAttack {
-            bottom: 8vh;
-            right: 10vw;
-        }
-
-        #touchInteract {
-            bottom: 26vh;
-            right: 12vw;
-            width: 62px;
-            height: 62px;
+        #touchButtons .touch-btn {
+            position: relative;
+            width: 68px;
+            height: 68px;
             font-size: 13px;
-        }
-
-        #touchHelp {
-            bottom: 36vh;
-            right: 12vw;
-            width: 62px;
-            height: 62px;
-            font-size: 12px;
-        }
-
-        #touchEnemy {
-            bottom: 26vh;
-            right: 22vw;
-            width: 62px;
-            height: 62px;
-            font-size: 12px;
-        }
-
-        #touchGather {
-            bottom: 16vh;
-            right: 30vw;
-            width: 62px;
-            height: 62px;
-            font-size: 12px;
+            pointer-events: auto;
         }
 
         @media (max-width: 520px) {
@@ -185,52 +163,24 @@
                 font-size: 12px;
             }
 
-            #touchJump {
-                bottom: 14vh;
-                right: 24vw;
+            #touchButtons {
+                right: 3vw;
+                bottom: 5vh;
+                grid-template-columns: repeat(2, 60px);
+                grid-auto-rows: 60px;
+                gap: 8px;
             }
 
-            #touchAttack {
-                bottom: 7vh;
-                right: 10vw;
-            }
-
-            #touchInteract {
-                bottom: 23vh;
-                right: 12vw;
-                width: 56px;
-                height: 56px;
-                font-size: 12px;
-            }
-
-            #touchHelp {
-                bottom: 34vh;
-                right: 12vw;
-                width: 54px;
-                height: 54px;
-                font-size: 11px;
-            }
-
-            #touchEnemy {
-                bottom: 24vh;
-                right: 22vw;
-                width: 54px;
-                height: 54px;
-                font-size: 11px;
-            }
-
-            #touchGather {
-                bottom: 14vh;
-                right: 30vw;
-                width: 54px;
-                height: 54px;
+            #touchButtons .touch-btn {
+                width: 60px;
+                height: 60px;
                 font-size: 11px;
             }
         }
 
         @media (pointer: coarse) {
             body.mobile #touchStick,
-            body.mobile .touch-btn {
+            body.mobile #touchButtons {
                 display: block;
             }
         }
@@ -474,12 +424,14 @@
     </div>
 
     <div id="touchStick"><div id="touchKnob"></div></div>
-    <div id="touchJump" class="touch-btn">Прыжок</div>
-    <div id="touchAttack" class="touch-btn">Удар</div>
-    <div id="touchInteract" class="touch-btn">E</div>
-    <div id="touchHelp" class="touch-btn">Помоги</div>
-    <div id="touchEnemy" class="touch-btn">Враг</div>
-    <div id="touchGather" class="touch-btn">Вместе</div>
+    <div id="touchButtons">
+        <div id="touchJump" class="touch-btn">Прыжок</div>
+        <div id="touchAttack" class="touch-btn">Удар</div>
+        <div id="touchInteract" class="touch-btn">E</div>
+        <div id="touchHelp" class="touch-btn">Помоги</div>
+        <div id="touchEnemy" class="touch-btn">Враг</div>
+        <div id="touchGather" class="touch-btn">Вместе</div>
+    </div>
     </div>
     <script type="module" src="./main.js"></script>
 </body>

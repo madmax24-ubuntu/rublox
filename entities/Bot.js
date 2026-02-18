@@ -619,21 +619,17 @@ export class Bot {
 
         if (this.physicsRef) {
             const dirs = [];
-            dirs.push(direction);
-            const left = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), direction).normalize();
-            const right = left.clone().multiplyScalar(-1);
-            dirs.push(left);
-            dirs.push(right);
-            dirs.push(direction.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 4));
-            dirs.push(direction.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), -Math.PI / 4));
-            dirs.push(direction.clone().multiplyScalar(-1));
+            const baseAngles = [0, Math.PI / 8, -Math.PI / 8, Math.PI / 4, -Math.PI / 4, Math.PI / 2, -Math.PI / 2, Math.PI * 0.75, -Math.PI * 0.75, Math.PI];
+            for (const a of baseAngles) {
+                dirs.push(direction.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), a));
+            }
 
             let bestDir = direction;
             let bestScore = Infinity;
             let found = false;
             for (const dir of dirs) {
                 if (isBlocked(dir)) continue;
-                const probe = this.position.clone().add(dir.clone().multiplyScalar(2));
+                const probe = this.position.clone().add(dir.clone().multiplyScalar(2.4));
                 const score = probe.distanceTo(target);
                 if (score < bestScore) {
                     bestScore = score;
@@ -644,10 +640,10 @@ export class Bot {
             if (found) {
                 direction = bestDir;
             } else {
-                const angle = (Math.random() * 0.8 - 0.4) + Math.PI / 2;
+                const angle = (Math.random() * 0.9 - 0.45) + Math.PI / 2;
                 direction = direction.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), angle);
                 this.escapeDir = direction.clone();
-                this.escapeTimer = 0.5;
+                this.escapeTimer = 0.8;
             }
         }
 
@@ -679,11 +675,11 @@ export class Bot {
         let weapon = this.currentWeapon || this.fists;
         if (!weapon || !target || !target.isAlive) return null;
 
-        if (weapon.type === 'knife' && weapon.durability !== null && weapon.durability <= 0) {
+        if ((weapon.type === 'knife' || weapon.type === 'axe' || weapon.type === 'spear') && weapon.durability !== null && weapon.durability <= 0) {
             this.currentWeapon = null;
             weapon = this.fists;
         }
-        if ((weapon.type === 'bow' || weapon.type === 'laser' || weapon.type === 'shotgun' || weapon.type === 'flamethrower') && weapon.ammo !== null && weapon.ammo <= 0) {
+        if ((weapon.type === 'bow' || weapon.type === 'laser' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle') && weapon.ammo !== null && weapon.ammo <= 0) {
             this.currentWeapon = null;
             weapon = this.fists;
         }
@@ -693,13 +689,17 @@ export class Bot {
             ? 40
             : weapon.type === 'bow'
                 ? 40
-                : weapon.type === 'fists'
-                    ? 2.5
-                    : 3;
+                : weapon.type === 'pistol'
+                    ? 35
+                    : weapon.type === 'rifle'
+                        ? 45
+                        : weapon.type === 'fists'
+                            ? 2.5
+                            : 3;
 
         if (distance > attackRange) return null;
 
-        if (weapon.type === 'laser' || weapon.type === 'bow' || weapon.type === 'shotgun' || weapon.type === 'flamethrower') {
+        if (weapon.type === 'laser' || weapon.type === 'bow' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle') {
             const direction = new THREE.Vector3()
                 .subVectors(target.position, this.position)
                 .normalize();

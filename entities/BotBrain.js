@@ -594,7 +594,7 @@ export class BotBrain {
 
         if (bot.isStuck) {
             bot.isStuck = false;
-            this.setRandomPatrolTarget(bot, 20, 60);
+            this.setRandomPatrolTarget(bot, 40, 120);
         }
         
         // Р”РІРёР¶РµРјСЃСЏ Рє С†РµР»Рё
@@ -613,12 +613,12 @@ export class BotBrain {
                 }
                 
                 // РЎС‚Р°РІРёРј РЅРѕРІСѓСЋ С†РµР»СЊ
-                this.setRandomPatrolTarget(bot, 30, 80);
+                this.setRandomPatrolTarget(bot, 40, 120);
             } else {
                 bot.moveTowards(bot.patrolTarget, bot.physics.speed * 0.8);
             }
         } else {
-            this.setRandomPatrolTarget(bot, 30, 80);
+            this.setRandomPatrolTarget(bot, 40, 120);
         }
     }
 
@@ -633,7 +633,9 @@ export class BotBrain {
         // Р”РёСЃС‚Р°РЅС†РёСЏ Р°С‚Р°РєРё
         const attackRange = bot.currentWeapon ? 
             (bot.currentWeapon.type === 'laser' ? 30 : 
-             bot.currentWeapon.type === 'bow' ? 20 : 3) : 2;
+             bot.currentWeapon.type === 'bow' ? 20 :
+             bot.currentWeapon.type === 'pistol' ? 26 :
+             bot.currentWeapon.type === 'rifle' ? 32 : 3) : 2;
         
         if (dist < attackRange && this.attackCooldown <= 0) {
             // РђРўРђРљРЈР•Рњ
@@ -648,6 +650,14 @@ export class BotBrain {
             }
             
             this.attackCooldown = bot.currentWeapon ? bot.currentWeapon.cooldown : 1;
+        } else if (dist < attackRange * 1.4) {
+            // Лёгкий стрейф, чтобы не стоять на месте
+            const toTarget = new THREE.Vector3().subVectors(bot.target.position, bot.position).normalize();
+            const side = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), toTarget).normalize();
+            const strafeDir = Math.random() > 0.5 ? side : side.clone().multiplyScalar(-1);
+            const strafeTarget = bot.position.clone().add(strafeDir.multiplyScalar(6));
+            bot.moveTowards(strafeTarget, bot.physics.speed * 0.9);
+            bot.lookAt(bot.target.position);
         } else if (dist < attackRange * 3) {
             // РџСЂРёР±Р»РёР¶Р°РµРјСЃСЏ
             bot.moveTowards(bot.target.position, bot.physics.speed * 1.1);
@@ -731,13 +741,13 @@ export class BotBrain {
     handlePatrol(bot, delta, entityManager, lootManager, threatLevel) {
         if (bot.isStuck) {
             bot.isStuck = false;
-            this.setRandomPatrolTarget(bot, 20, 60);
+            this.setRandomPatrolTarget(bot, 40, 120);
         }
         if (!bot.patrolTarget || bot.position.distanceTo(bot.patrolTarget) < 5) {
-            this.setRandomPatrolTarget(bot, 30, 70);
+            this.setRandomPatrolTarget(bot, 40, 120);
         }
         if (bot.mapRef?.isWalkableAt && bot.patrolTarget && !bot.mapRef.isWalkableAt(bot.patrolTarget.x, bot.patrolTarget.z)) {
-            this.setRandomPatrolTarget(bot, 30, 80);
+            this.setRandomPatrolTarget(bot, 40, 120);
         }
         
         bot.moveTowards(bot.patrolTarget, bot.physics.speed * 0.7);

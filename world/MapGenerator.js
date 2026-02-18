@@ -31,6 +31,7 @@ export class MapGenerator {
             snow: 0xffffff,
             lava: 0x9c2f1a
         };
+        this.heightMap = null;
 
         this.seed = Math.floor((performance.now() + Math.random() * 1000000) % 2147483647);
         this.generate();
@@ -47,6 +48,7 @@ export class MapGenerator {
         this.size = Math.max(this.gridWidth, this.gridHeight) * this.tileSize;
         this.halfSize = this.size / 2;
         this.playerSpawn = data.playerSpawn;
+        this.heightMap = this.buildHeightMap();
 
         this.clearSpawnZone();
         this.buildMeshes();
@@ -83,13 +85,17 @@ export class MapGenerator {
 
         const floorMats = {};
         Object.entries(this.biomeColors).forEach(([key, color]) => {
-            floorMats[key] = new THREE.MeshLambertMaterial({
-                color,
-                flatShading: true,
-                polygonOffset: true,
-                polygonOffsetFactor: 1,
-                polygonOffsetUnits: 1
-            });
+            floorMats[key] = [];
+            for (let v = 0; v < 3; v++) {
+                const variantColor = this.getBiomeVariantColor(key, v);
+                floorMats[key][v] = new THREE.MeshLambertMaterial({
+                    color: variantColor,
+                    flatShading: true,
+                    polygonOffset: true,
+                    polygonOffsetFactor: 1,
+                    polygonOffsetUnits: 1
+                });
+            }
         });
         const wallMat = new THREE.MeshStandardMaterial({
             color: 0x8d8d8d,
@@ -108,38 +114,56 @@ export class MapGenerator {
         const crates = [];
         const cacti = [];
         const iceSpikes = [];
+        const stumps = [];
+        const pillars = [];
+        const ruins = [];
+        const bushes = [];
+        const logs = [];
+        const boulders = [];
 
         for (let y = 0; y < this.gridHeight; y++) {
             for (let x = 0; x < this.gridWidth; x++) {
                 const tile = this.grid[y][x];
                 const world = this.toWorld(x, y);
+                const tileHeight = this.heightMap?.[y]?.[x] ?? 0;
                 if (tile.type === "wall") {
-                    walls.push({ x: world.x, z: world.z });
-                    this.addColliderBox(new THREE.Vector3(world.x, this.wallHeight / 2, world.z), this.tileSize, this.wallHeight, this.tileSize, false);
+                    walls.push({ x: world.x, z: world.z, y: tileHeight });
+                    this.addColliderBox(new THREE.Vector3(world.x, tileHeight + this.wallHeight / 2, world.z), this.tileSize, this.wallHeight, this.tileSize, false);
                 } else {
                     const biome = tile.biome || "plains";
-                    if (!floorsByBiome.has(biome)) floorsByBiome.set(biome, []);
-                    floorsByBiome.get(biome).push({ x: world.x, z: world.z });
-                    this.floorTiles.push({ x: world.x, z: world.z, gx: x, gy: y, biome });
-                    if (tile.prop === "tree") trees.push({ x: world.x, z: world.z });
-                    if (tile.prop === "jungleTree") jungleTrees.push({ x: world.x, z: world.z });
-                    if (tile.prop === "rock") rocks.push({ x: world.x, z: world.z });
-                    if (tile.prop === "crate") crates.push({ x: world.x, z: world.z });
-                    if (tile.prop === "cactus") cacti.push({ x: world.x, z: world.z });
-                    if (tile.prop === "ice") iceSpikes.push({ x: world.x, z: world.z });
+                    const variant = this.getFloorVariant(biome, x, y);
+                    const key = `${biome}:${variant}`;
+                    if (!floorsByBiome.has(key)) floorsByBiome.set(key, []);
+                    floorsByBiome.get(key).push({ x: world.x, z: world.z, gx: x, gy: y, variant, biome });
+                    this.floorTiles.push({ x: world.x, z: world.z, gx: x, gy: y, biome, y: tileHeight });
+                    if (tile.prop === "tree") trees.push({ x: world.x, z: world.z, y: tileHeight });
+                    if (tile.prop === "jungleTree") jungleTrees.push({ x: world.x, z: world.z, y: tileHeight });
+                    if (tile.prop === "rock") rocks.push({ x: world.x, z: world.z, y: tileHeight });
+                    if (tile.prop === "crate") crates.push({ x: world.x, z: world.z, y: tileHeight });
+                    if (tile.prop === "cactus") cacti.push({ x: world.x, z: world.z, y: tileHeight });
+                    if (tile.prop === "ice") iceSpikes.push({ x: world.x, z: world.z, y: tileHeight });
+                    if (tile.prop === "stump") stumps.push({ x: world.x, z: world.z, y: tileHeight });
+                    if (tile.prop === "pillar") pillars.push({ x: world.x, z: world.z, y: tileHeight });
+                    if (tile.prop === "ruin") ruins.push({ x: world.x, z: world.z, y: tileHeight });
+                    if (tile.prop === "bush") bushes.push({ x: world.x, z: world.z, y: tileHeight });
+                    if (tile.prop === "log") logs.push({ x: world.x, z: world.z, y: tileHeight });
+                    if (tile.prop === "boulder") boulders.push({ x: world.x, z: world.z, y: tileHeight });
                 }
             }
         }
 
-        floorsByBiome.forEach((floors, biome) => {
-            const mat = floorMats[biome] || floorMats.plains;
+        floorsByBiome.forEach((floors, key) => {
+            const [biome, variantStr] = key.split(':');
+            const variant = Number(variantStr) || 0;
+            const mat = (floorMats[biome] && floorMats[biome][variant]) || floorMats.plains[0];
             const inst = new THREE.InstancedMesh(floorGeo, mat, floors.length);
             const matrix = new THREE.Matrix4();
             const position = new THREE.Vector3();
             const rotation = new THREE.Quaternion();
             const scale = new THREE.Vector3(1, 1, 1);
             floors.forEach((f, i) => {
-                position.set(f.x, 0.2, f.z);
+                const h = this.heightMap?.[f.gy]?.[f.gx] ?? 0;
+                position.set(f.x, h + 0.2, f.z);
                 matrix.compose(position, rotation, scale);
                 inst.setMatrixAt(i, matrix);
             });
@@ -154,7 +178,7 @@ export class MapGenerator {
             const rotation = new THREE.Quaternion();
             const scale = new THREE.Vector3(1, 1, 1);
             walls.forEach((w, i) => {
-                position.set(w.x, this.wallHeight / 2, w.z);
+                position.set(w.x, w.y + this.wallHeight / 2, w.z);
                 matrix.compose(position, rotation, scale);
                 inst.setMatrixAt(i, matrix);
             });
@@ -163,10 +187,10 @@ export class MapGenerator {
             this.wallMesh = inst;
         }
 
-        this.buildProps(trees, jungleTrees, rocks, crates, cacti, iceSpikes);
+        this.buildProps(trees, jungleTrees, rocks, crates, cacti, iceSpikes, stumps, pillars, ruins, bushes, logs, boulders);
     }
 
-    buildProps(trees, jungleTrees, rocks, crates, cacti, iceSpikes) {
+    buildProps(trees, jungleTrees, rocks, crates, cacti, iceSpikes, stumps, pillars, ruins, bushes, logs, boulders) {
         const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.9, flatShading: true });
         const leafMat = new THREE.MeshStandardMaterial({ color: 0x2e7d32, roughness: 0.9, flatShading: true });
         const jungleLeafMat = new THREE.MeshStandardMaterial({ color: 0x1f7a3a, roughness: 0.9, flatShading: true });
@@ -174,6 +198,7 @@ export class MapGenerator {
         const crateMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.85, flatShading: true });
         const cactusMat = new THREE.MeshStandardMaterial({ color: 0x2e7d32, roughness: 0.9, flatShading: true });
         const iceMat = new THREE.MeshStandardMaterial({ color: 0xb3e5fc, roughness: 0.3, flatShading: true });
+        const ruinMat = new THREE.MeshStandardMaterial({ color: 0x8d8d8d, roughness: 0.9, flatShading: true });
 
         const treeTrunkGeo = new THREE.BoxGeometry(0.9, 2.6, 0.9);
         const treeLeafGeo = new THREE.BoxGeometry(2.4, 2.2, 2.4);
@@ -183,6 +208,12 @@ export class MapGenerator {
         const crateGeo = new THREE.BoxGeometry(2, 2, 2);
         const cactusGeo = new THREE.BoxGeometry(1.3, 4.5, 1.3);
         const iceGeo = new THREE.ConeGeometry(1.2, 4.8, 6);
+        const stumpGeo = new THREE.CylinderGeometry(0.6, 0.7, 0.5, 6);
+        const pillarGeo = new THREE.CylinderGeometry(0.7, 0.7, 2.6, 6);
+        const ruinGeo = new THREE.BoxGeometry(3.2, 1.6, 0.6);
+        const bushGeo = new THREE.BoxGeometry(1.8, 1.0, 1.8);
+        const logGeo = new THREE.CylinderGeometry(0.35, 0.35, 1.8, 6);
+        const boulderGeo = new THREE.BoxGeometry(2.2, 1.6, 2.2);
 
         this.addInstancedTreeChunked(treeTrunkGeo, trunkMat, treeLeafGeo, leafMat, trees, 1.3, 3.2, 36);
         this.addInstancedTreeChunked(jungleTrunkGeo, trunkMat, jungleLeafGeo, jungleLeafMat, jungleTrees, 2.4, 5.4, 36);
@@ -190,6 +221,12 @@ export class MapGenerator {
         this.addInstancedPropsChunked(crateGeo, crateMat, crates, 1.0, true, 42, true);
         this.addInstancedPropsChunked(cactusGeo, cactusMat, cacti, 2.2, true, 42, true);
         this.addInstancedPropsChunked(iceGeo, iceMat, iceSpikes, 2.4, true, 42, true);
+        this.addInstancedPropsChunked(stumpGeo, trunkMat, stumps, 0.3, true, 42, true);
+        this.addInstancedPropsChunked(pillarGeo, ruinMat, pillars, 1.3, true, 42, true);
+        this.addInstancedPropsChunked(ruinGeo, ruinMat, ruins, 0.8, true, 42, true);
+        this.addInstancedPropsChunked(bushGeo, leafMat, bushes, 0.6, true, 42, true);
+        this.addInstancedPropsChunked(logGeo, trunkMat, logs, 0.5, true, 42, true);
+        this.addInstancedPropsChunked(boulderGeo, rockMat, boulders, 1.1, true, 42, true);
     }
 
     chunkItems(list, chunkSize) {
@@ -219,12 +256,13 @@ export class MapGenerator {
             chunk.forEach((item, i) => {
                 cx += item.x;
                 cz += item.z;
-                position.set(item.x, trunkHeight / 2, item.z);
+                const baseY = item.y ?? 0;
+                position.set(item.x, baseY + trunkHeight / 2, item.z);
                 matrix.compose(position, rotation, scale);
                 trunkInst.setMatrixAt(i, matrix);
-                this.addColliderBox(new THREE.Vector3(item.x, trunkHeight / 2, item.z), trunkGeo.parameters.width, trunkGeo.parameters.height, trunkGeo.parameters.depth, false);
+                this.addColliderBox(new THREE.Vector3(item.x, baseY + trunkHeight / 2, item.z), trunkGeo.parameters.width, trunkGeo.parameters.height, trunkGeo.parameters.depth, false);
 
-                position.set(item.x, leafHeight, item.z);
+                position.set(item.x, baseY + leafHeight, item.z);
                 matrix.compose(position, rotation, scale);
                 leafInst.setMatrixAt(i, matrix);
             });
@@ -242,6 +280,7 @@ export class MapGenerator {
 
     addInstancedPropsChunked(geo, mat, list, heightOffset, solid, chunkSize, isSmall) {
         if (!list.length) return;
+        const size = this.getGeoSize(geo);
         const chunks = this.chunkItems(list, chunkSize);
         for (const chunk of chunks.values()) {
             const inst = new THREE.InstancedMesh(geo, mat, chunk.length);
@@ -254,11 +293,12 @@ export class MapGenerator {
             chunk.forEach((item, i) => {
                 cx += item.x;
                 cz += item.z;
-                position.set(item.x, heightOffset, item.z);
+                const baseY = item.y ?? 0;
+                position.set(item.x, baseY + heightOffset, item.z);
                 matrix.compose(position, rotation, scale);
                 inst.setMatrixAt(i, matrix);
                 if (solid) {
-                    this.addColliderBox(new THREE.Vector3(item.x, heightOffset, item.z), geo.parameters.width, geo.parameters.height, geo.parameters.depth, false);
+                    this.addColliderBox(new THREE.Vector3(item.x, baseY + heightOffset, item.z), size.width, size.height, size.depth, false);
                 }
             });
             inst.userData.mapGenerated = true;
@@ -267,6 +307,21 @@ export class MapGenerator {
             if (isSmall) this.smallPropMeshes.push(inst);
             else this.propMeshes.push(inst);
         }
+    }
+
+    getGeoSize(geo) {
+        if (geo.parameters?.width) {
+            return { width: geo.parameters.width, height: geo.parameters.height, depth: geo.parameters.depth };
+        }
+        if (geo.parameters?.radiusTop !== undefined && geo.parameters?.height !== undefined) {
+            const radius = Math.max(geo.parameters.radiusTop, geo.parameters.radiusBottom);
+            return { width: radius * 2, height: geo.parameters.height, depth: radius * 2 };
+        }
+        if (geo.parameters?.radius !== undefined && geo.parameters?.height !== undefined) {
+            const radius = geo.parameters.radius;
+            return { width: radius * 2, height: geo.parameters.height, depth: radius * 2 };
+        }
+        return { width: this.tileSize * 0.8, height: this.tileSize * 0.8, depth: this.tileSize * 0.8 };
     }
 
     buildSpawnPads() {
@@ -502,8 +557,83 @@ export class MapGenerator {
         return box;
     }
 
-    getHeightAt() {
-        return 0.4;
+    hashNoise(x, y, scale = 1) {
+        const sx = Math.floor(x * scale);
+        const sy = Math.floor(y * scale);
+        let h = (sx * 374761393 + sy * 668265263 + this.seed * 1442695041) >>> 0;
+        h ^= h >>> 13;
+        h = Math.imul(h, 1274126177) >>> 0;
+        h ^= h >>> 16;
+        return h / 0x100000000;
+    }
+
+    buildHeightMap() {
+        const map = Array.from({ length: this.gridHeight }, () => Array(this.gridWidth).fill(0));
+        for (let y = 0; y < this.gridHeight; y++) {
+            for (let x = 0; x < this.gridWidth; x++) {
+                const tile = this.grid?.[y]?.[x];
+                const biome = tile?.biome || this.tileGen.pickBiome(x, y);
+                const n1 = this.hashNoise(x / 3, y / 3, 1);
+                const n2 = this.hashNoise(x / 8 + 31, y / 8 - 17, 1);
+                const n = Math.min(1, Math.max(0, n1 * 0.7 + n2 * 0.3));
+                map[y][x] = this.getBiomeHeight(biome, n);
+            }
+        }
+        return map;
+    }
+
+    getBiomeHeight(biome, n) {
+        let min = 0.0;
+        let max = 0.8;
+        if (biome === 'forest') { min = 0.2; max = 1.0; }
+        else if (biome === 'jungle') { min = 0.4; max = 1.4; }
+        else if (biome === 'plains') { min = 0.1; max = 0.9; }
+        else if (biome === 'rock') { min = 0.6; max = 1.8; }
+        else if (biome === 'sand') { min = 0.0; max = 0.6; }
+        else if (biome === 'snow') { min = 0.3; max = 1.1; }
+        else if (biome === 'lava') { min = 0.1; max = 0.7; }
+        const height = min + (max - min) * n;
+        return Math.round(height / 0.2) * 0.2;
+    }
+
+    getBiomeColor(biome, gx, gy) {
+        const base = new THREE.Color(this.biomeColors[biome] ?? this.biomeColors.plains);
+        const n = this.hashNoise(gx / 4, gy / 4, 1);
+        const hsl = {};
+        base.getHSL(hsl);
+        hsl.l = Math.min(1, Math.max(0, hsl.l + (n - 0.5) * 0.12));
+        hsl.s = Math.min(1, Math.max(0, hsl.s + (n - 0.5) * 0.08));
+        const out = new THREE.Color();
+        out.setHSL(hsl.h, hsl.s, hsl.l);
+        return out;
+    }
+
+    getFloorVariant(biome, gx, gy) {
+        const n = this.hashNoise(gx / 6, gy / 6, 1);
+        if (n < 0.33) return 0;
+        if (n < 0.66) return 1;
+        return 2;
+    }
+
+    getBiomeVariantColor(biome, variant) {
+        const base = new THREE.Color(this.biomeColors[biome] ?? this.biomeColors.plains);
+        const hsl = {};
+        base.getHSL(hsl);
+        if (variant === 0) hsl.l = Math.min(1, hsl.l + 0.06);
+        if (variant === 1) hsl.l = Math.max(0, hsl.l - 0.02);
+        if (variant === 2) hsl.l = Math.max(0, hsl.l - 0.08);
+        const out = new THREE.Color();
+        out.setHSL(hsl.h, hsl.s, hsl.l);
+        return out;
+    }
+
+    getHeightAt(x, z) {
+        if (!this.heightMap) return 0.4;
+        const grid = this.worldToGrid(x, z);
+        const gx = Math.max(0, Math.min(this.gridWidth - 1, grid.x));
+        const gy = Math.max(0, Math.min(this.gridHeight - 1, grid.y));
+        const base = this.heightMap?.[gy]?.[gx] ?? 0;
+        return base + 0.4;
     }
 
     getColliders() {

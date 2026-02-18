@@ -579,6 +579,10 @@ export class HUD {
                 else if (item.type === 'laser') icon.textContent = 'LAS';
                 else if (item.type === 'shotgun') icon.textContent = 'SG';
                 else if (item.type === 'flamethrower') icon.textContent = 'FIRE';
+                else if (item.type === 'axe') icon.textContent = 'AXE';
+                else if (item.type === 'spear') icon.textContent = 'SPR';
+                else if (item.type === 'pistol') icon.textContent = 'PST';
+                else if (item.type === 'rifle') icon.textContent = 'RIF';
 
                 if (!slot.querySelector('.weapon-icon')) {
                     slot.appendChild(icon);
@@ -737,6 +741,10 @@ export class HUD {
             ammoInfo.textContent = `\u041f\u0430\u0442\u0440\u043e\u043d\u044b: ${weapon.ammo ?? 0}/${weapon.maxAmmo ?? 0}`;
         } else if (weapon.type === 'flamethrower') {
             ammoInfo.textContent = `\u0422\u043e\u043f\u043b\u0438\u0432\u043e: ${weapon.ammo ?? 0}/${weapon.maxAmmo ?? 0}`;
+        } else if (weapon.type === 'pistol') {
+            ammoInfo.textContent = `\u041f\u0430\u0442\u0440\u043e\u043d\u044b: ${weapon.ammo ?? 0}/${weapon.maxAmmo ?? 0}`;
+        } else if (weapon.type === 'rifle') {
+            ammoInfo.textContent = `\u041f\u0430\u0442\u0440\u043e\u043d\u044b: ${weapon.ammo ?? 0}/${weapon.maxAmmo ?? 0}`;
         } else {
             ammoInfo.textContent = '';
         }

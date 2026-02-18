@@ -129,13 +129,41 @@ export class MapGenerator {
                     const inSpawn = Math.sqrt(dx * dx + dy * dy) <= spawnRadius;
                     if (!inSpawn) {
                         const roll = this.rand();
-                        if (biome === 'forest' && roll < 0.12) tile.prop = 'tree';
-                        else if (biome === 'jungle' && roll < 0.14) tile.prop = 'jungleTree';
-                        else if (biome === 'rock' && roll < 0.12) tile.prop = 'rock';
-                        else if (biome === 'snow' && roll < 0.1) tile.prop = 'ice';
-                        else if (biome === 'sand' && roll < 0.1) tile.prop = 'cactus';
-                        else if (roll < 0.04) tile.prop = 'crate';
-                        else if (roll < 0.045) {
+                        if (biome === 'forest') {
+                            if (roll < 0.22) tile.prop = 'tree';
+                            else if (roll < 0.32) tile.prop = 'bush';
+                            else if (roll < 0.38) tile.prop = 'stump';
+                            else if (roll < 0.42) tile.prop = 'log';
+                        } else if (biome === 'jungle') {
+                            if (roll < 0.24) tile.prop = 'jungleTree';
+                            else if (roll < 0.34) tile.prop = 'bush';
+                            else if (roll < 0.39) tile.prop = 'ruin';
+                        } else if (biome === 'rock') {
+                            if (roll < 0.22) tile.prop = 'rock';
+                            else if (roll < 0.3) tile.prop = 'pillar';
+                            else if (roll < 0.36) tile.prop = 'boulder';
+                            else if (roll < 0.4) tile.prop = 'ruin';
+                        } else if (biome === 'snow') {
+                            if (roll < 0.18) tile.prop = 'ice';
+                            else if (roll < 0.25) tile.prop = 'rock';
+                            else if (roll < 0.3) tile.prop = 'boulder';
+                        } else if (biome === 'sand') {
+                            if (roll < 0.16) tile.prop = 'cactus';
+                            else if (roll < 0.24) tile.prop = 'rock';
+                            else if (roll < 0.28) tile.prop = 'boulder';
+                        } else if (biome === 'plains') {
+                            if (roll < 0.14) tile.prop = 'tree';
+                            else if (roll < 0.22) tile.prop = 'bush';
+                            else if (roll < 0.28) tile.prop = 'rock';
+                        }
+
+                        if (!tile.prop) {
+                            if (roll < 0.05) tile.prop = 'crate';
+                            else if (roll < 0.08) tile.prop = 'pillar';
+                            else if (roll < 0.1) tile.prop = 'ruin';
+                        }
+
+                        if (!tile.prop && roll < 0.105) {
                             tile.prop = 'enemySpawn';
                             enemySpawns.push({ x, y });
                         }

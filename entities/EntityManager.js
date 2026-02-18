@@ -134,7 +134,8 @@ export class EntityManager {
             if (!entity.isAlive || entity === projectile.owner) continue;
 
             const distance = projectile.mesh.position.distanceTo(entity.position);
-            const hitRadius = (entity.physics?.radius || 0.5) + 0.3;
+            const bonus = entity.constructor?.name === 'Bot' ? 0.6 : entity.constructor?.name === 'Zombie' ? 0.5 : 0.3;
+            const hitRadius = (entity.physics?.radius || 0.5) + bonus;
             if (distance < hitRadius) {
                 return entity;
             }
@@ -230,8 +231,10 @@ export class EntityManager {
             if (!entity.isAlive) continue;
 
             const distance = position.distanceTo(entity.position);
-            if (distance < minDistance && distance > 0.1) {
-                minDistance = distance;
+            const radius = entity.physics?.radius || 0.4;
+            const effective = Math.max(0, distance - radius * 0.6);
+            if (effective < minDistance && distance > 0.1) {
+                minDistance = effective;
                 nearest = entity;
             }
         }
