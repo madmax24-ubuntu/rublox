@@ -440,6 +440,11 @@ export class HUD {
             cursor: pointer;
         `;
         perkButton.addEventListener('click', () => this.togglePerkPanel());
+        perkButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.togglePerkPanel();
+        }, { passive: false });
         hud.appendChild(perkButton);
 
         const perkPanel = document.createElement('div');
@@ -484,6 +489,13 @@ export class HUD {
                 document.dispatchEvent(new CustomEvent('selectPerk', { detail: perk }));
                 this.togglePerkPanel(false);
             });
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const perk = e.currentTarget.getAttribute('data-perk');
+                document.dispatchEvent(new CustomEvent('selectPerk', { detail: perk }));
+                this.togglePerkPanel(false);
+            }, { passive: false });
         });
         hud.appendChild(perkPanel);
 
