@@ -72,6 +72,7 @@ export class Player {
         this.isSilent = false;
         this.damageReduction = 0;
         this.recoilScale = 1;
+        this.autoFire = false;
         this.baseSpeed = this.physics.speed;
         this.damageTakenMultiplier = 0.7;
         this.stats = { damage: 0, kills: 0, loot: 0 };
@@ -80,6 +81,11 @@ export class Player {
         this.cameraShakeDuration = 0.12;
         this.cameraShakeStrength = 0.035;
         this.trailCooldown = 0;
+        this.burnTimer = 0;
+        this.burnTickTimer = 0;
+        this.burnDamagePerSecond = 0;
+        this.burnAttacker = null;
+        this.lastFlashTime = 0;
     }
 
     resetView() {
@@ -278,6 +284,7 @@ export class Player {
     update(delta, audioSynth, lootManager, entityManager, controls) {
         if (!this.isAlive) return;
         this.audioSynthRef = audioSynth;
+        this.updateBurning(delta);
         if (this.trailCooldown > 0) {
             this.trailCooldown = Math.max(0, this.trailCooldown - delta);
         }
@@ -456,11 +463,18 @@ export class Player {
             }
         }
 
-        if (!isFrozen && this.input.isKeyPressed('MouseLeft') && this.attackCooldown <= 0) {
-            const activeWeapon = this.currentWeapon || this.fists;
+        const activeWeapon = this.currentWeapon || this.fists;
+        const autoTarget = this.autoFire ? this.getAutoFireTarget(entityManager) : null;
+        const isRangedWeapon = ['bow', 'laser', 'shotgun', 'flamethrower', 'pistol', 'rifle'].includes(activeWeapon.type);
+        const fireRequested = this.input.isKeyPressed('MouseLeft') || (!!autoTarget && !isFrozen && isRangedWeapon);
+        if (!isFrozen && fireRequested && this.attackCooldown <= 0) {
             if (activeWeapon.type === 'bow' || activeWeapon.type === 'laser' || activeWeapon.type === 'shotgun' || activeWeapon.type === 'flamethrower' || activeWeapon.type === 'pistol' || activeWeapon.type === 'rifle') {
                 const direction = new THREE.Vector3();
-                this.camera.getWorldDirection(direction);
+                if (autoTarget) {
+                    direction.subVectors(autoTarget.position, this.camera.position).normalize();
+                } else {
+                    this.camera.getWorldDirection(direction);
+                }
                 const result = activeWeapon.attack(this, null, audioSynth, direction);
                 const muzzle = new THREE.Vector3();
                 this.camera.getWorldPosition(muzzle);
@@ -616,8 +630,9 @@ export class Player {
                 const t = 1 - this.weaponActionTime / this.weaponActionDuration;
                 const ease = Math.sin(t * Math.PI);
                 if (this.weaponActionType === 'bow') {
-                    this.viewWeapon.position.z -= ease * 0.12;
-                    this.viewWeapon.rotation.y += ease * 0.08;
+                    this.viewWeapon.position.z -= ease * 0.09;
+                    this.viewWeapon.position.x -= ease * 0.03;
+                    this.viewWeapon.rotation.y += ease * 0.06;
                 } else if (this.weaponActionType === 'laser' || this.weaponActionType === 'shotgun' || this.weaponActionType === 'pistol' || this.weaponActionType === 'rifle' || this.weaponActionType === 'flamethrower') {
                     this.viewWeapon.position.z -= ease * 0.1;
                     this.viewWeapon.rotation.x -= ease * 0.35;
@@ -705,9 +720,16 @@ export class Player {
             if (attacker?.stats) {
                 attacker.stats.kills += 1;
             }
+            this.clearBurning();
         }
-        this.flashDamage();
-        spawnDamagePopup(this.scene, this.position, finalDamage, { color: '#ff5b5b' });
+        const isDotDamage = source === 'zone' || source === 'storm' || source === 'burn' || source === 'trap';
+        if (!isDotDamage) {
+            this.flashDamage();
+            spawnDamagePopup(this.scene, this.position, finalDamage, { color: '#ff5b5b', key: 'player' });
+        }
+        if (source === 'flame' && this.isAlive) {
+            this.applyBurn(2.2, 4.2, attacker);
+        }
         if (this.audioSynthRef) {
             if (source === 'zone' && this.audioSynthRef.playZoneDamage) {
                 this.audioSynthRef.playZoneDamage();
@@ -745,6 +767,7 @@ export class Player {
         this.isSilent = false;
         this.damageReduction = 0;
         this.recoilScale = 1;
+        this.autoFire = false;
         this.physics.speed = this.baseSpeed;
 
         if (perk === 'quickHands') {
@@ -760,6 +783,8 @@ export class Player {
             this.damageReduction = 0.2;
         } else if (perk === 'steadyAim') {
             this.recoilScale = 0.6;
+        } else if (perk === 'autoFire') {
+            this.autoFire = true;
         }
 
         if (this.fists) {
@@ -790,6 +815,9 @@ export class Player {
 
     flashDamage() {
         if (!this.mesh) return;
+        const now = performance.now();
+        if (now - this.lastFlashTime < 90) return;
+        this.lastFlashTime = now;
         this.mesh.traverse((child) => {
             if (child.isMesh) {
                 child.material.emissive = new THREE.Color(0xff0000);
@@ -800,6 +828,49 @@ export class Player {
                     }
                 }, 200);
             }
+        });
+    }
+
+    applyBurn(duration = 2, damagePerSecond = 4, attacker = null) {
+        this.burnTimer = Math.max(this.burnTimer, duration);
+        this.burnTickTimer = Math.max(this.burnTickTimer, 0.08);
+        this.burnDamagePerSecond = Math.max(this.burnDamagePerSecond, damagePerSecond);
+        if (attacker) this.burnAttacker = attacker;
+    }
+
+    clearBurning() {
+        this.burnTimer = 0;
+        this.burnTickTimer = 0;
+        this.burnDamagePerSecond = 0;
+        this.burnAttacker = null;
+        this.setBurnVisual(0);
+    }
+
+    updateBurning(delta) {
+        if (this.burnTimer <= 0 || !this.isAlive) return;
+
+        this.burnTimer = Math.max(0, this.burnTimer - delta);
+        this.burnTickTimer -= delta;
+        const pulse = 0.18 + Math.sin(performance.now() * 0.03) * 0.08;
+        this.setBurnVisual(Math.max(0.1, pulse));
+
+        while (this.burnTickTimer <= 0 && this.isAlive) {
+            const tickDamage = this.burnDamagePerSecond * 0.25;
+            this.takeDamage(tickDamage, false, this.burnAttacker, 0, 'burn');
+            this.burnTickTimer += 0.25;
+        }
+
+        if (this.burnTimer <= 0) {
+            this.clearBurning();
+        }
+    }
+
+    setBurnVisual(intensity) {
+        if (!this.mesh) return;
+        this.mesh.traverse(child => {
+            if (!child.material || !child.material.emissive) return;
+            child.material.emissive.setHex(0xff6d00);
+            child.material.emissiveIntensity = intensity;
         });
     }
 
@@ -850,9 +921,9 @@ export class Player {
             base.rotation.set(0.02, Math.PI, Math.PI / 12);
             base.scale = 1.05;
         } else if (type === 'bow') {
-            base.position.set(0.28, -0.18, -0.92);
-            base.rotation.set(0.04, Math.PI, Math.PI / 2.4);
-            base.scale = 0.85;
+            base.position.set(0.2, -0.22, -1.02);
+            base.rotation.set(0.02, Math.PI, Math.PI / 2.2);
+            base.scale = 0.68;
         } else if (type === 'axe') {
             base.position.set(0.24, -0.3, -0.7);
             base.rotation.set(0.1, Math.PI, Math.PI / 3);
@@ -896,6 +967,40 @@ export class Player {
 
         this.currentWeapon.mesh.position.copy(worldPos);
         this.currentWeapon.mesh.quaternion.copy(worldQuat);
+    }
+
+    getAutoFireTarget(entityManager) {
+        if (!entityManager) return null;
+        const forward = new THREE.Vector3();
+        this.camera.getWorldDirection(forward);
+        const origin = this.camera.position;
+        const maxDistance = this.currentWeapon?.range || 60;
+        let best = null;
+        let bestDist = maxDistance;
+
+        for (const entity of entityManager.getEntities()) {
+            if (!entity || !entity.isAlive || entity === this) continue;
+            const toTarget = new THREE.Vector3().subVectors(entity.position, origin);
+            const dist = toTarget.length();
+            if (dist > maxDistance || dist < 1.2) continue;
+            toTarget.normalize();
+            const dot = forward.dot(toTarget);
+            if (dot < 0.988) continue;
+            const aimPoint = new THREE.Vector3(
+                entity.position.x,
+                entity.position.y + (entity.physics?.height || 1.8) * 0.55,
+                entity.position.z
+            );
+            if (typeof entityManager.hasLineOfSight === 'function') {
+                const visible = entityManager.hasLineOfSight(origin, aimPoint, true);
+                if (!visible) continue;
+            }
+            if (dist < bestDist) {
+                best = entity;
+                bestDist = dist;
+            }
+        }
+        return best;
     }
 
     applySlow(factor, duration) {

@@ -47,6 +47,12 @@ export class Bot {
         this.teamId = 0;
         this.assistTimer = 0;
         this.assistTarget = null;
+        this.nextAttackTime = 0;
+        this.burnTimer = 0;
+        this.burnTickTimer = 0;
+        this.burnDamagePerSecond = 0;
+        this.burnAttacker = null;
+        this.lastFlashTime = 0;
 
         this.variants = [
             {
@@ -386,6 +392,7 @@ export class Bot {
 
         this.physicsRef = physics;
         this.audioSynthRef = audioSynth;
+        this.updateBurning(delta);
 
         if (this.slowTimer > 0) {
             this.slowTimer = Math.max(0, this.slowTimer - delta);
@@ -548,9 +555,16 @@ export class Bot {
             if (attacker?.stats) {
                 attacker.stats.kills += 1;
             }
+            this.clearBurning();
         }
-        this.flashDamage();
-        spawnDamagePopup(this.scene, this.position, finalDamage, { color: '#ff5b5b' });
+        const isDotDamage = source === 'zone' || source === 'storm' || source === 'burn' || source === 'trap';
+        if (!isDotDamage) {
+            this.flashDamage();
+            spawnDamagePopup(this.scene, this.position, finalDamage, { color: '#ff5b5b', key: `bot-${this.id}` });
+        }
+        if (source === 'flame' && this.isAlive) {
+            this.applyBurn(2.6, 4.5, attacker);
+        }
         if (this.audioSynthRef) {
             if (source === 'zone' && this.audioSynthRef.playZoneDamage) {
                 this.audioSynthRef.playZoneDamage();
@@ -567,6 +581,48 @@ export class Bot {
         }
 
         return true;
+    }
+
+    applyBurn(duration = 2.5, damagePerSecond = 4, attacker = null) {
+        this.burnTimer = Math.max(this.burnTimer, duration);
+        this.burnTickTimer = Math.max(this.burnTickTimer, 0.08);
+        this.burnDamagePerSecond = Math.max(this.burnDamagePerSecond, damagePerSecond);
+        if (attacker) this.burnAttacker = attacker;
+    }
+
+    clearBurning() {
+        this.burnTimer = 0;
+        this.burnTickTimer = 0;
+        this.burnDamagePerSecond = 0;
+        this.burnAttacker = null;
+        this.setBurnVisual(0);
+    }
+
+    updateBurning(delta) {
+        if (this.burnTimer <= 0 || !this.isAlive) return;
+
+        this.burnTimer = Math.max(0, this.burnTimer - delta);
+        this.burnTickTimer -= delta;
+        const pulse = 0.2 + Math.sin(performance.now() * 0.03 + this.id) * 0.1;
+        this.setBurnVisual(Math.max(0.12, pulse));
+
+        while (this.burnTickTimer <= 0 && this.isAlive) {
+            const tickDamage = this.burnDamagePerSecond * 0.25;
+            this.takeDamage(tickDamage, false, this.burnAttacker, 0, 'burn');
+            this.burnTickTimer += 0.25;
+        }
+
+        if (this.burnTimer <= 0) {
+            this.clearBurning();
+        }
+    }
+
+    setBurnVisual(intensity) {
+        this.mesh.traverse(child => {
+            if (!child.material || !child.material.emissive) return;
+            child.material.emissive.setHex(0xff6d00);
+            child.material.emissiveIntensity = intensity;
+        });
     }
 
     updateHealthBar() {
@@ -674,6 +730,8 @@ export class Bot {
     attack(target, entityManager) {
         let weapon = this.currentWeapon || this.fists;
         if (!weapon || !target || !target.isAlive) return null;
+        const now = performance.now() / 1000;
+        if (now < this.nextAttackTime) return null;
 
         if ((weapon.type === 'knife' || weapon.type === 'axe' || weapon.type === 'spear') && weapon.durability !== null && weapon.durability <= 0) {
             this.currentWeapon = null;
@@ -704,12 +762,22 @@ export class Bot {
                 .subVectors(target.position, this.position)
                 .normalize();
 
+            if (weapon.type === 'bow') {
+                const err = new THREE.Vector3(
+                    (Math.random() - 0.5) * 0.03,
+                    (Math.random() - 0.5) * 0.02,
+                    (Math.random() - 0.5) * 0.03
+                );
+                direction.add(err).normalize();
+            }
+
             const projectileData = weapon.attack(this, null, null, direction);
             if (projectileData && projectileData.projectiles) {
                 for (const proj of projectileData.projectiles) {
                     proj.owner = this;
                     entityManager?.addProjectile(proj);
                 }
+                this.nextAttackTime = now + (weapon.type === 'bow' ? 0.55 : 0.18);
                 return { fired: true, damage: weapon.damage };
             }
             if (projectileData && projectileData.projectile) {
@@ -718,12 +786,14 @@ export class Bot {
                 if (entityManager) {
                     entityManager.addProjectile(projectileData.projectile);
                 }
+                this.nextAttackTime = now + (weapon.type === 'bow' ? 0.55 : 0.16);
                 return { fired: true, damage: weapon.damage };
             }
         } else {
             const result = weapon.attack(this, target);
             if (result && result.hit) {
                 const killed = target.takeDamage(result.damage, result.isHeadshot, this, result.knockback || 0);
+                this.nextAttackTime = now + 0.12;
                 return { hit: true, damage: result.damage, killed: target.health <= 0 };
             }
         }
@@ -750,6 +820,9 @@ export class Bot {
     }
 
     flashDamage() {
+        const now = performance.now();
+        if (now - this.lastFlashTime < 90) return;
+        this.lastFlashTime = now;
         this.mesh.traverse(child => {
             if (!child.material || !child.material.emissive) return;
             child.material.emissive.setHex(0xff2d2d);

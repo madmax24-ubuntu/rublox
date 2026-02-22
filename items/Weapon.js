@@ -152,58 +152,60 @@ export class Weapon {
 
             case 'bow': {
                 const woodMat = new THREE.MeshStandardMaterial({
-                    color: 0x8b5a2b,
-                    roughness: 0.55,
+                    color: 0x8a5a2a,
+                    roughness: 0.5,
                     flatShading: true
                 });
                 const gripMat = new THREE.MeshStandardMaterial({
-                    color: 0x5d4037,
+                    color: 0x3f2a1b,
                     roughness: 0.7,
                     flatShading: true
                 });
                 const tipMat = new THREE.MeshStandardMaterial({
-                    color: 0x2a2a2a,
+                    color: 0x2f2f2f,
                     roughness: 0.4,
                     flatShading: true
                 });
 
-                const segments = [
-                    { x: -0.05, y: 0.95, w: 0.12, h: 0.28, r: 0.55 },
-                    { x: 0.12, y: 0.62, w: 0.12, h: 0.28, r: 0.35 },
-                    { x: 0.22, y: 0.26, w: 0.12, h: 0.26, r: 0.15 },
-                    { x: 0.22, y: -0.26, w: 0.12, h: 0.26, r: -0.15 },
-                    { x: 0.12, y: -0.62, w: 0.12, h: 0.28, r: -0.35 },
-                    { x: -0.05, y: -0.95, w: 0.12, h: 0.28, r: -0.55 }
+                const upperArc = [
+                    { x: -0.08, y: 0.92, w: 0.12, h: 0.25, r: 0.5 },
+                    { x: 0.06, y: 0.6, w: 0.12, h: 0.25, r: 0.28 },
+                    { x: 0.14, y: 0.26, w: 0.12, h: 0.22, r: 0.12 }
                 ];
-                for (const seg of segments) {
+                const lowerArc = [
+                    { x: 0.14, y: -0.26, w: 0.12, h: 0.22, r: -0.12 },
+                    { x: 0.06, y: -0.6, w: 0.12, h: 0.25, r: -0.28 },
+                    { x: -0.08, y: -0.92, w: 0.12, h: 0.25, r: -0.5 }
+                ];
+                for (const seg of [...upperArc, ...lowerArc]) {
                     const limb = new THREE.Mesh(new THREE.BoxGeometry(seg.w, seg.h, 0.1), woodMat);
                     limb.position.set(seg.x, seg.y, 0);
                     limb.rotation.z = seg.r;
                     group.add(limb);
                 }
 
-                const grip = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.6, 0.12), gripMat);
-                grip.position.set(0.02, 0, 0.02);
+                const grip = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.5, 0.12), gripMat);
+                grip.position.set(0.01, 0, 0.02);
                 group.add(grip);
 
-                const tipTop = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.14, 0.08), tipMat);
-                tipTop.position.set(0.02, 1.08, 0.02);
+                const tipTop = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.12, 0.08), tipMat);
+                tipTop.position.set(0.01, 1.04, 0.02);
                 group.add(tipTop);
                 const tipBottom = tipTop.clone();
-                tipBottom.position.set(0.02, -1.08, 0.02);
+                tipBottom.position.set(0.01, -1.04, 0.02);
                 group.add(tipBottom);
 
                 const stringMat = new THREE.LineBasicMaterial({ color: 0x111111 });
                 const string = new THREE.Line(
                     new THREE.BufferGeometry().setFromPoints([
-                        new THREE.Vector3(0.18, 1.1, 0),
-                        new THREE.Vector3(-0.06, 0, 0),
-                        new THREE.Vector3(0.18, -1.1, 0)
+                        new THREE.Vector3(0.16, 1.04, 0),
+                        new THREE.Vector3(-0.04, 0, 0),
+                        new THREE.Vector3(0.16, -1.04, 0)
                     ]),
                     stringMat
                 );
                 group.add(string);
-                group.scale.setScalar(0.95);
+                group.scale.setScalar(0.86);
                 break;
             }
 
@@ -556,17 +558,16 @@ export class Weapon {
             const tipMat = new THREE.MeshStandardMaterial({ color: 0x9e9e9e, metalness: 0.6, roughness: 0.25, flatShading: true });
             const fletchMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.7, flatShading: true });
 
-            const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.6, 6), shaftMat);
-            shaft.rotation.z = Math.PI / 2;
+            const shaft = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.04, 0.04), shaftMat);
             group.add(shaft);
 
             const tip = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.22, 6), tipMat);
-            tip.position.x = 0.9;
+            tip.position.x = 0.8;
             tip.rotation.z = -Math.PI / 2;
             group.add(tip);
 
-            const fletch1 = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.1, 0.02), fletchMat);
-            fletch1.position.x = -0.78;
+            const fletch1 = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.08, 0.02), fletchMat);
+            fletch1.position.x = -0.68;
             fletch1.position.y = 0.05;
             group.add(fletch1);
             const fletch2 = fletch1.clone();
@@ -575,7 +576,7 @@ export class Weapon {
 
             mesh = group;
             knockback = 6;
-            gravity = 0.1;
+            gravity = 0.02;
         } else if (type === 'pistol' || type === 'rifle') {
             const bulletMat = new THREE.MeshStandardMaterial({
                 color: 0xffd54f,

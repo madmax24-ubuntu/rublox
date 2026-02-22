@@ -26,10 +26,12 @@ export class EntityManager {
     }
 
     update(delta, physics, audioSynth) {
+        this.physicsRef = physics || this.physicsRef;
         // Update projectiles
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             const proj = this.projectiles[i];
             const prevPos = proj.mesh.position.clone();
+            proj.prevPos = prevPos.clone();
 
             if (proj.velocity) {
                 if (proj.gravity) {
@@ -54,17 +56,6 @@ export class EntityManager {
                 proj.mesh.lookAt(proj.mesh.position.clone().add(proj.direction));
             }
 
-            const hitEntity = this.checkProjectileHit(proj);
-            if (hitEntity) {
-                hitEntity.takeDamage(proj.damage, false, proj.owner, proj.knockback || 0);
-                if (proj.owner && typeof proj.owner.onHit === 'function') {
-                    proj.owner.onHit({ position: proj.mesh.position.clone(), type: proj.type });
-                }
-                this.spawnImpactEffect(proj.mesh.position.clone(), proj.type, true);
-                this.removeProjectile(i);
-                continue;
-            }
-
             if (physics) {
                 const hitWall = this.checkProjectileWallHit(proj, prevPos, physics);
                 if (hitWall) {
@@ -72,6 +63,17 @@ export class EntityManager {
                     this.removeProjectile(i);
                     continue;
                 }
+            }
+
+            const hitEntity = this.checkProjectileHit(proj);
+            if (hitEntity) {
+                hitEntity.takeDamage(proj.damage, false, proj.owner, proj.knockback || 0, proj.type);
+                if (proj.owner && typeof proj.owner.onHit === 'function') {
+                    proj.owner.onHit({ position: proj.mesh.position.clone(), type: proj.type });
+                }
+                this.spawnImpactEffect(proj.mesh.position.clone(), proj.type, true);
+                this.removeProjectile(i);
+                continue;
             }
 
             proj.lifetime -= delta;
@@ -103,6 +105,26 @@ export class EntityManager {
         return false;
     }
 
+    hasLineOfSight(from, to, ignoreWalkable = true) {
+        const physics = this.physicsRef;
+        if (!physics?.getNearbyColliders) return true;
+        const p0 = from.clone();
+        const p1 = to.clone();
+        const travel = p1.clone().sub(p0);
+        const length = travel.length();
+        if (length <= 0.001) return true;
+        const probe = p0.clone().add(travel.multiplyScalar(0.5));
+        const nearby = physics.getNearbyColliders(probe, Math.max(2.5, length * 0.5 + 1.0));
+        for (const box of nearby) {
+            if (box.enabled === false) continue;
+            if (ignoreWalkable && box.walkable) continue;
+            if (this.segmentIntersectsBox(p0, p1, box)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     segmentIntersectsBox(p0, p1, box) {
         let tmin = 0;
         let tmax = 1;
@@ -130,17 +152,38 @@ export class EntityManager {
     }
 
     checkProjectileHit(projectile) {
+        const p0 = projectile.prevPos || projectile.mesh.position;
+        const p1 = projectile.mesh.position;
         for (const entity of this.entities) {
             if (!entity.isAlive || entity === projectile.owner) continue;
 
-            const distance = projectile.mesh.position.distanceTo(entity.position);
-            const bonus = entity.constructor?.name === 'Bot' ? 0.6 : entity.constructor?.name === 'Zombie' ? 0.5 : 0.3;
-            const hitRadius = (entity.physics?.radius || 0.5) + bonus;
-            if (distance < hitRadius) {
+            const basePos = entity.position;
+            const h = entity.physics?.height || 1.8;
+            const r = entity.physics?.radius || 0.45;
+            const bodyBonus = entity.constructor?.name === 'Bot' ? 0.75 : entity.constructor?.name === 'Zombie' ? 0.65 : 0.45;
+            const hitRadius = r + bodyBonus;
+
+            const points = [
+                new THREE.Vector3(basePos.x, basePos.y + h * 0.2, basePos.z),
+                new THREE.Vector3(basePos.x, basePos.y + h * 0.55, basePos.z),
+                new THREE.Vector3(basePos.x, basePos.y + h * 0.9, basePos.z)
+            ];
+            const hit = points.some(pt => this.distancePointToSegment(pt, p0, p1) <= hitRadius);
+            if (hit) {
                 return entity;
             }
         }
         return null;
+    }
+
+    distancePointToSegment(point, a, b) {
+        const ab = new THREE.Vector3().subVectors(b, a);
+        const ap = new THREE.Vector3().subVectors(point, a);
+        const abLenSq = ab.lengthSq();
+        if (abLenSq < 1e-6) return point.distanceTo(a);
+        const t = Math.max(0, Math.min(1, ap.dot(ab) / abLenSq));
+        const closest = a.clone().add(ab.multiplyScalar(t));
+        return point.distanceTo(closest);
     }
 
     removeProjectile(index) {

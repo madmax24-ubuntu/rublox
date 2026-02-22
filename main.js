@@ -167,6 +167,14 @@ class Game {
         this.perkKeyLatch = false;
         this.menuKeyLatch = { w: false, s: false, e: false };
         this.noteCooldown = 0;
+        this.achievementState = {
+            firstBlood: false,
+            hunter: false,
+            scavenger: false,
+            survivor: false
+        };
+        this.randomEventTimer = 35 + Math.random() * 25;
+        this.activeEvent = { type: null, timer: 0, prevFog: null };
 
         this.env = new Environment(this.scene);
         this.map = new MapGenerator(this.scene);
@@ -175,6 +183,7 @@ class Game {
         this.traps = this.map.getTraps?.() || [];
 
         this.entityManager = new EntityManager(this.scene);
+        this.entityManager.physicsRef = this.physics;
         this.lootManager = new LootManager(this.scene, this.map);
 
         const spawnPads = this.map.getSpawnPads?.() || [];
@@ -315,6 +324,8 @@ class Game {
                             ? '\u041f\u043b\u043e\u0442\u043d\u0430\u044f \u043a\u043e\u0436\u0430'
                             : this.perk === 'steadyAim'
                                 ? '\u0421\u0442\u0430\u0431\u0438\u043b\u044c\u043d\u044b\u0439 \u043f\u0440\u0438\u0446\u0435\u043b'
+                                : this.perk === 'autoFire'
+                                    ? '\u0410\u0432\u0442\u043e\u0441\u0442\u0440\u0435\u043b\u044c\u0431\u0430'
                     : '-';
         this.hud.setPerk(perkLabel);
     }
@@ -422,6 +433,82 @@ class Game {
         this.hud.showScoreboard(lines);
     }
 
+    updateAchievements(aliveCount) {
+        if (!this.player?.isAlive) return;
+        if (!this.achievementState.firstBlood && this.player.stats.kills >= 1) {
+            this.achievementState.firstBlood = true;
+            this.hud.showGameMessage('Достижение: Первая кровь');
+        }
+        if (!this.achievementState.hunter && this.player.stats.kills >= 5) {
+            this.achievementState.hunter = true;
+            this.hud.showGameMessage('Достижение: Охотник');
+        }
+        if (!this.achievementState.scavenger && this.player.stats.loot >= 8) {
+            this.achievementState.scavenger = true;
+            this.hud.showGameMessage('Достижение: Мародер');
+        }
+        if (!this.achievementState.survivor && aliveCount <= 5) {
+            this.achievementState.survivor = true;
+            this.hud.showGameMessage('Достижение: Выживший');
+        }
+    }
+
+    getSafeZoneTarget(position) {
+        const v = new THREE.Vector3(position.x, 0, position.z);
+        if (v.lengthSq() < 1e-6) return new THREE.Vector3(0, position.y, 0);
+        v.normalize().multiplyScalar(Math.max(0, this.zone.getCurrentRadius() * 0.6));
+        return new THREE.Vector3(v.x, position.y, v.z);
+    }
+
+    updateRandomEvents(delta) {
+        if (this.activeEvent.type) {
+            this.activeEvent.timer -= delta;
+            if (this.activeEvent.timer <= 0) {
+                if (this.activeEvent.type === 'fog' && this.scene?.fog && this.activeEvent.prevFog !== null) {
+                    this.scene.fog.density = this.activeEvent.prevFog;
+                }
+                this.activeEvent = { type: null, timer: 0, prevFog: null };
+                this.hud.showGameMessage('Событие завершено');
+            }
+        }
+
+        this.randomEventTimer -= delta;
+        if (this.randomEventTimer > 0 || this.activeEvent.type) return;
+
+        const events = ['heal', 'fog', 'drop', 'zonePause'];
+        const event = events[Math.floor(Math.random() * events.length)];
+
+        if (event === 'heal') {
+            this.player.health = Math.min(this.player.maxHealth, this.player.health + 14);
+            for (const bot of this.bots) {
+                if (!bot.isAlive) continue;
+                bot.health = Math.min(bot.maxHealth, bot.health + 10);
+            }
+            this.hud.showGameMessage('Событие: Импульс лечения');
+        } else if (event === 'fog' && this.scene?.fog) {
+            this.activeEvent.type = 'fog';
+            this.activeEvent.timer = 16;
+            this.activeEvent.prevFog = this.scene.fog.density;
+            this.scene.fog.density = Math.min(0.006, this.scene.fog.density * 1.9);
+            this.hud.showGameMessage('Событие: Туманная волна');
+        } else if (event === 'drop') {
+            const floorTiles = this.map.getFloorTiles?.() || [];
+            for (let i = 0; i < 2; i++) {
+                const pick = floorTiles[Math.floor(Math.random() * floorTiles.length)];
+                if (!pick) continue;
+                const y = this.map.getHeightAt(pick.x, pick.z) + 0.06;
+                this.lootManager.spawnSupplyDrop(new THREE.Vector3(pick.x, y, pick.z));
+            }
+            this.hud.showGameMessage('Событие: Авиасброс припасов');
+        } else if (event === 'zonePause') {
+            this.activeEvent.type = 'zonePause';
+            this.activeEvent.timer = 18;
+            this.hud.showGameMessage('Событие: Зона замедлена');
+        }
+
+        this.randomEventTimer = 35 + Math.random() * 30;
+    }
+
     update(delta) {
         this.handleQuickCommands(delta);
         if (this.input.isKeyPressed('KeyP')) {
@@ -527,7 +614,7 @@ class Game {
         if (this.gameState === 'playing') {
             this.zoneShrinkTimer -= delta;
 
-            if (this.zoneShrinkTimer <= 0) {
+            if (this.zoneShrinkTimer <= 0 && this.activeEvent.type !== 'zonePause') {
                 const newRadius = this.zone.getTargetRadius() * 0.95;
                 this.zone.shrink(newRadius);
                 this.zoneShrinkTimer = this.zoneShrinkInterval;
@@ -609,12 +696,19 @@ class Game {
             if (this.bots[botIndex].isAlive) {
                 this.bots[botIndex].update(delta, this.botBrains[botIndex], this.entityManager, this.lootManager, this.audioSynth, this.physics);
 
-                if (this.gameState === 'playing' && !this.zone.isInsideZone(this.bots[i].position)) {
+                if (this.gameState === 'playing' && !this.zone.isInsideZone(this.bots[botIndex].position)) {
                     const damage = this.zone.getDamage(delta);
-                    this.bots[i].takeDamage(damage, false, null, 0, 'zone');
+                    this.bots[botIndex].takeDamage(damage, false, null, 0, 'zone');
                 }
                 if (this.gameState === 'playing' && !this.zone.isInsideZone(this.bots[botIndex].position)) {
-                    this.bots[botIndex].moveTowards(new THREE.Vector3(0, this.bots[botIndex].position.y, 0), this.bots[botIndex].physics.speed * 1.25);
+                    const safePoint = this.getSafeZoneTarget(this.bots[botIndex].position);
+                    this.bots[botIndex].target = null;
+                    this.bots[botIndex].assistTarget = null;
+                    this.bots[botIndex].moveTowards(safePoint, this.bots[botIndex].physics.speed * 1.35);
+                    const outside = this.zone.getDistanceFromZone(this.bots[botIndex].position);
+                    if (outside > 10) {
+                        this.bots[botIndex].position.lerp(safePoint, 0.18);
+                    }
                 }
             }
         }
@@ -630,6 +724,8 @@ class Game {
         if (this.gameState === 'playing') {
             this.trySupplyDrop(aliveCount);
             this.updateStorm(delta, aliveCount);
+            this.updateRandomEvents(delta);
+            this.updateAchievements(aliveCount);
         }
 
         this.hud.updateHealth(this.player.health, this.player.maxHealth);
@@ -648,7 +744,7 @@ class Game {
                             entity.applySlow(trap.slow, 0.6);
                         }
                         if (typeof entity.takeDamage === 'function') {
-                            entity.takeDamage(trap.damage * delta);
+                            entity.takeDamage(trap.damage * delta, false, null, 0, 'trap');
                         }
                     }
                 }

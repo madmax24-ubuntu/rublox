@@ -11,17 +11,21 @@ export class Zombie {
             onGround: false,
             height: 1.9,
             radius: 0.45,
-            speed: 4.2
+            speed: 4.8
         };
 
-        this.health = 70;
-        this.maxHealth = 70;
+        this.health = 55;
+        this.maxHealth = 55;
         this.isAlive = true;
         this.attackCooldown = 0;
         this.patrolTarget = null;
         this.soundTimer = 1 + Math.random() * 2;
         this.variant = ['brute', 'stalker', 'mutant'][Math.floor(Math.random() * 3)];
         this.stats = { damage: 0, kills: 0, loot: 0 };
+        this.burnTimer = 0;
+        this.burnTickTimer = 0;
+        this.burnDamagePerSecond = 0;
+        this.burnAttacker = null;
 
         this.mesh = this.createMesh();
         const scale = this.variant === 'brute' ? 1.5 : this.variant === 'mutant' ? 1.4 : 1.3;
@@ -98,7 +102,7 @@ export class Zombie {
         head.position.y = 1.7;
         group.add(head);
 
-        const eyeMat = new THREE.MeshStandardMaterial({ color: 0xff5252, emissive: 0xff3d00, emissiveIntensity: 0.8 });
+        const eyeMat = new THREE.MeshStandardMaterial({ color: 0xff5252, emissive: 0xff3d00, emissiveIntensity: 1.25 });
         const leftEye = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.04), eyeMat);
         const rightEye = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.04), eyeMat);
         leftEye.position.set(-0.14, 1.75, 0.35);
@@ -221,23 +225,25 @@ export class Zombie {
 
         this.attackCooldown = Math.max(0, this.attackCooldown - delta);
         this.soundTimer -= delta;
+        this.updateBurning(delta);
 
         const target = this.findNearestTarget(entityManager, 50);
         if (target) {
             const dist = this.position.distanceTo(target.position);
-            if (dist < 2.1 && this.attackCooldown <= 0) {
+            if (dist < 2.4 && this.attackCooldown <= 0) {
                 target.takeDamage(8, false, this, 3);
                 this.attackCooldown = 1.0;
                 if (audioSynth) {
                     audioSynth.playZombieAttack?.(this.position);
                 }
             } else {
-                this.moveTowards(target.position, this.physics.speed);
+                const rush = dist < 10 ? 1.15 : 1;
+                this.moveTowards(target.position, this.physics.speed * rush);
             }
 
             if (audioSynth && this.soundTimer <= 0) {
                 audioSynth.playZombieMoan?.(this.position);
-                this.soundTimer = 3 + Math.random() * 3;
+                this.soundTimer = 1.8 + Math.random() * 2.2;
             }
         } else {
             if (!this.patrolTarget || this.position.distanceTo(this.patrolTarget) < 4) {
@@ -249,13 +255,15 @@ export class Zombie {
 
             if (audioSynth && this.soundTimer <= 0) {
                 audioSynth.playZombieMoan?.(this.position);
-                this.soundTimer = 4 + Math.random() * 4;
+                this.soundTimer = 2.2 + Math.random() * 3.2;
             }
         }
 
         this.mesh.position.copy(this.position);
         this.mesh.position.y = this.position.y - (this.physics.height - 0.2);
         this.mesh.rotation.y = this.rotation.y;
+        const pulse = 1 + Math.sin(performance.now() * 0.008 + this.id) * 0.015;
+        this.mesh.scale.setScalar((this.variant === 'brute' ? 1.5 : this.variant === 'mutant' ? 1.4 : 1.3) * pulse);
         this.animateLimbs();
     }
 
@@ -307,12 +315,15 @@ export class Zombie {
         limbs.rightLeg.rotation.x = swing;
     }
 
-    takeDamage(damage, isHeadshot = false, attacker = null, knockbackStrength = 0) {
+    takeDamage(damage, isHeadshot = false, attacker = null, knockbackStrength = 0, source = null) {
         const finalDamage = isHeadshot ? damage * 2 : damage;
         if (attacker?.stats) {
             attacker.stats.damage += finalDamage;
         }
         this.health -= finalDamage;
+        if (source === 'flame' && this.isAlive) {
+            this.applyBurn(2.8, 5.5, attacker);
+        }
         if (this.health <= 0) {
             this.health = 0;
             this.isAlive = false;
@@ -323,6 +334,7 @@ export class Zombie {
             if (attacker?.stats) {
                 attacker.stats.kills += 1;
             }
+            this.clearBurning();
         }
 
         if (attacker && this.isAlive) {
@@ -333,5 +345,46 @@ export class Zombie {
             this.physics.velocity.y += 1.5;
         }
         return true;
+    }
+
+    applyBurn(duration = 2.6, damagePerSecond = 5, attacker = null) {
+        this.burnTimer = Math.max(this.burnTimer, duration);
+        this.burnTickTimer = Math.max(this.burnTickTimer, 0.08);
+        this.burnDamagePerSecond = Math.max(this.burnDamagePerSecond, damagePerSecond);
+        if (attacker) this.burnAttacker = attacker;
+    }
+
+    clearBurning() {
+        this.burnTimer = 0;
+        this.burnTickTimer = 0;
+        this.burnDamagePerSecond = 0;
+        this.burnAttacker = null;
+        this.setBurnVisual(0);
+    }
+
+    updateBurning(delta) {
+        if (this.burnTimer <= 0 || !this.isAlive) return;
+        this.burnTimer = Math.max(0, this.burnTimer - delta);
+        this.burnTickTimer -= delta;
+        const pulse = 0.26 + Math.sin(performance.now() * 0.03 + this.id) * 0.12;
+        this.setBurnVisual(Math.max(0.12, pulse));
+
+        while (this.burnTickTimer <= 0 && this.isAlive) {
+            const tickDamage = this.burnDamagePerSecond * 0.25;
+            this.takeDamage(tickDamage, false, this.burnAttacker, 0, 'burn');
+            this.burnTickTimer += 0.25;
+        }
+
+        if (this.burnTimer <= 0) {
+            this.clearBurning();
+        }
+    }
+
+    setBurnVisual(intensity) {
+        this.mesh.traverse(child => {
+            if (!child.material || !child.material.emissive) return;
+            child.material.emissive.setHex(0xff6d00);
+            child.material.emissiveIntensity = intensity;
+        });
     }
 }

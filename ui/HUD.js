@@ -428,7 +428,7 @@ export class HUD {
         perkButton.textContent = 'ПЕРК';
         perkButton.style.cssText = `
             position: absolute;
-            bottom: ${px(isMobile ? 210 : 150)}px;
+            bottom: ${px(isMobile ? 300 : 150)}px;
             left: ${px(16)}px;
             background: rgba(14, 26, 36, 0.88);
             padding: ${px(8)}px ${px(14)}px;
@@ -470,6 +470,7 @@ export class HUD {
             <button class="perk-btn" data-perk="fastRun">Быстрый бег</button>
             <button class="perk-btn" data-perk="thickSkin">Плотная кожа</button>
             <button class="perk-btn" data-perk="steadyAim">Стабильный прицел</button>
+            <button class="perk-btn" data-perk="autoFire">AUTO FIRE</button>
         `;
         this.perkButtons = Array.from(perkPanel.querySelectorAll('.perk-btn'));
         this.perkButtons.forEach(btn => {
@@ -762,3 +763,5 @@ export class HUD {
         }
     }
 }
+
+
