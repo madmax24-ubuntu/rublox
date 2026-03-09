@@ -406,6 +406,74 @@ export class HUD {
         `;
         hud.appendChild(loreNote);
 
+        const pauseButton = document.createElement('div');
+        pauseButton.id = 'pauseButton';
+        pauseButton.textContent = 'II';
+        pauseButton.style.cssText = `
+            position: absolute;
+            top: ${px(16)}px;
+            left: ${px(16)}px;
+            width: ${px(38)}px;
+            height: ${px(38)}px;
+            border-radius: ${px(10)}px;
+            background: rgba(14, 26, 36, 0.88);
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            font-size: ${px(16)}px;
+            font-weight: 800;
+            display: ${isMobile ? 'flex' : 'none'};
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            cursor: pointer;
+            z-index: 1300;
+        `;
+        pauseButton.addEventListener('click', () => {
+            document.dispatchEvent(new CustomEvent('togglePause'));
+        });
+        pauseButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            document.dispatchEvent(new CustomEvent('togglePause'));
+        }, { passive: false });
+        hud.appendChild(pauseButton);
+
+        const pauseOverlay = document.createElement('div');
+        pauseOverlay.id = 'pauseOverlay';
+        pauseOverlay.style.cssText = `
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(4, 8, 14, 0.72);
+            z-index: 2000;
+            pointer-events: auto;
+        `;
+        pauseOverlay.innerHTML = `
+            <div id="pausePanel" style="
+                min-width:${px(260)}px;
+                max-width:min(420px, 88vw);
+                background: rgba(12, 20, 30, 0.96);
+                border: 2px solid rgba(255,255,255,0.12);
+                border-radius:${px(12)}px;
+                padding:${px(16)}px ${px(18)}px;
+                color:#fff;
+                font-weight:700;">
+                <div style="font-size:${px(20)}px;margin-bottom:${px(10)}px;">Пауза</div>
+                <div style="font-size:${px(12)}px;opacity:0.8;margin-bottom:${px(12)}px;">
+                    WASD — движение · Мышь — обзор · E — взаимодействие · Space — прыжок · ЛКМ — атака
+                </div>
+                <div style="display:flex;gap:${px(8)}px;flex-wrap:wrap;">
+                    <button id="pauseResume" class="perk-btn" style="flex:1;">Продолжить</button>
+                    <button id="pauseEdit" class="perk-btn" style="flex:1;display:${isMobile ? 'block' : 'none'};">Настроить кнопки</button>
+                </div>
+                <div id="pauseHint" style="margin-top:${px(10)}px;font-size:${px(11)}px;opacity:0.7;display:${isMobile ? 'block' : 'none'};">
+                    Перетащи кнопки управления, чтобы расположить их удобнее.
+                </div>
+            </div>
+        `;
+        hud.appendChild(pauseOverlay);
+
         const ammoInfo = document.createElement('div');
         ammoInfo.id = 'ammoInfo';
         ammoInfo.style.cssText = `
@@ -428,7 +496,7 @@ export class HUD {
         perkButton.textContent = 'ПЕРК';
         perkButton.style.cssText = `
             position: absolute;
-            bottom: ${px(isMobile ? 300 : 150)}px;
+            bottom: ${px(isMobile ? 320 : 210)}px;
             left: ${px(16)}px;
             background: rgba(14, 26, 36, 0.88);
             padding: ${px(8)}px ${px(14)}px;
@@ -451,7 +519,7 @@ export class HUD {
         perkPanel.id = 'perkPanel';
         perkPanel.style.cssText = `
             position: absolute;
-            bottom: ${px(isMobile ? 190 : 210)}px;
+            bottom: ${px(isMobile ? 350 : 240)}px;
             left: ${px(16)}px;
             background: rgba(14, 26, 36, 0.95);
             padding: ${px(12)}px ${px(14)}px;
@@ -460,6 +528,8 @@ export class HUD {
             display: none;
             pointer-events: auto;
             min-width: ${px(210)}px;
+            max-height: ${isMobile ? '45vh' : '60vh'};
+            overflow-y: auto;
             z-index: 1200;
         `;
         perkPanel.innerHTML = `
@@ -531,6 +601,116 @@ export class HUD {
             }
         `;
         document.head.appendChild(style);
+
+        this.bindPauseUI();
+        if (isMobile) {
+            this.initTouchLayout();
+        }
+    }
+
+    bindPauseUI() {
+        const resume = document.getElementById('pauseResume');
+        const edit = document.getElementById('pauseEdit');
+        if (resume) {
+            resume.addEventListener('click', () => {
+                document.dispatchEvent(new CustomEvent('togglePause'));
+            });
+            resume.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                document.dispatchEvent(new CustomEvent('togglePause'));
+            }, { passive: false });
+        }
+        if (edit) {
+            edit.addEventListener('click', () => this.toggleEditControls());
+            edit.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.toggleEditControls();
+            }, { passive: false });
+        }
+    }
+
+    showPause(show) {
+        const overlay = document.getElementById('pauseOverlay');
+        if (!overlay) return;
+        overlay.style.display = show ? 'flex' : 'none';
+        if (!show) this.toggleEditControls(false);
+    }
+
+    toggleEditControls(force = null) {
+        const root = document.documentElement;
+        const enabled = force !== null ? force : !root.classList.contains('edit-controls');
+        if (enabled) root.classList.add('edit-controls');
+        else root.classList.remove('edit-controls');
+        const hint = document.getElementById('pauseHint');
+        if (hint) hint.style.display = enabled ? 'block' : 'none';
+    }
+
+    initTouchLayout() {
+        const ids = ['touchJump', 'touchAttack', 'touchInteract', 'touchStick'];
+        const saved = localStorage.getItem('rublox_touch_layout');
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                ids.forEach((id) => {
+                    const el = document.getElementById(id);
+                    if (!el || !data[id]) return;
+                    el.style.left = `${data[id].x}px`;
+                    el.style.top = `${data[id].y}px`;
+                });
+            } catch (_) {}
+        }
+
+        let active = null;
+        let offset = { x: 0, y: 0 };
+        const saveLayout = () => {
+            const data = {};
+            ids.forEach((id) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const rect = el.getBoundingClientRect();
+                data[id] = { x: rect.left, y: rect.top };
+            });
+            localStorage.setItem('rublox_touch_layout', JSON.stringify(data));
+        };
+
+        const onDown = (e) => {
+            if (!document.documentElement.classList.contains('edit-controls')) return;
+            const target = e.target.closest ? e.target.closest('.touch-btn, #touchStick') : null;
+            if (!target) return;
+            active = target;
+            const rect = active.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            offset.x = clientX - rect.left;
+            offset.y = clientY - rect.top;
+            e.preventDefault();
+        };
+
+        const onMove = (e) => {
+            if (!active) return;
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            active.style.left = `${clientX - offset.x}px`;
+            active.style.top = `${clientY - offset.y}px`;
+            active.style.right = 'auto';
+            active.style.bottom = 'auto';
+            e.preventDefault();
+        };
+
+        const onUp = () => {
+            if (!active) return;
+            active = null;
+            saveLayout();
+        };
+
+        document.addEventListener('touchstart', onDown, { passive: false });
+        document.addEventListener('touchmove', onMove, { passive: false });
+        document.addEventListener('touchend', onUp);
+        document.addEventListener('mousedown', onDown);
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
     }
 
     updateHealth(health, maxHealth) {

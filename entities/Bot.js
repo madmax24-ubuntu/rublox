@@ -48,6 +48,9 @@ export class Bot {
         this.assistTimer = 0;
         this.assistTarget = null;
         this.nextAttackTime = 0;
+        this.navProgressTimer = 0;
+        this.navLastDistance = Infinity;
+        this.navLastTargetKey = null;
         this.burnTimer = 0;
         this.burnTickTimer = 0;
         this.burnDamagePerSecond = 0;
@@ -427,6 +430,8 @@ export class Bot {
                 this.escapeDir = null;
             }
         }
+
+        this.updateNavProgress(delta);
         if (this.isStuck && !this.escapeDir) {
             const angle = Math.random() * Math.PI * 2;
             this.escapeDir = new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle));
@@ -455,11 +460,35 @@ export class Bot {
             this.stuckTimer += delta;
             if (this.stuckTimer > 1.0) {
                 this.isStuck = true;
+                if (this.mapRef) {
+                    this.patrolTarget = null;
+                }
             }
         } else {
             this.stuckTimer = 0;
             this.isStuck = false;
             this.lastPosition.copy(this.position);
+        }
+
+        // Simple separation to avoid bot clumping
+        if (entityManager && this.isAlive) {
+            const nearby = entityManager.getEntities();
+            let sep = new THREE.Vector3();
+            let count = 0;
+            for (const e of nearby) {
+                if (e === this || !e.isAlive || e.constructor?.name !== 'Bot') continue;
+                const dist = this.position.distanceTo(e.position);
+                if (dist > 0.01 && dist < 2.2) {
+                    const push = this.position.clone().sub(e.position).normalize().multiplyScalar(1 / dist);
+                    sep.add(push);
+                    count += 1;
+                }
+            }
+            if (count > 0) {
+                sep.multiplyScalar(0.6);
+                this.physics.velocity.x += sep.x;
+                this.physics.velocity.z += sep.z;
+            }
         }
     }
 
@@ -655,6 +684,11 @@ export class Bot {
             direction = this.escapeDir.clone();
         }
 
+        const avoid = this.computeAvoidance(direction);
+        if (avoid.length() > 0) {
+            direction = direction.clone().add(avoid.multiplyScalar(1.35)).normalize();
+        }
+
         const isBlocked = dir => {
             if (!this.physicsRef?.getNearbyColliders) return false;
             const probe = this.position.clone().add(dir.clone().multiplyScalar(1.6));
@@ -761,6 +795,14 @@ export class Bot {
             const direction = new THREE.Vector3()
                 .subVectors(target.position, this.position)
                 .normalize();
+            if (entityManager?.hasLineOfSight) {
+                const origin = new THREE.Vector3(this.position.x, this.position.y + (this.physics?.height || 1.8) * 0.55, this.position.z);
+                const aim = new THREE.Vector3(target.position.x, target.position.y + (target.physics?.height || 1.8) * 0.55, target.position.z);
+                if (!entityManager.hasLineOfSight(origin, aim, true)) {
+                    this.nextAttackTime = now + 0.12;
+                    return null;
+                }
+            }
 
             if (weapon.type === 'bow') {
                 const err = new THREE.Vector3(
@@ -799,6 +841,62 @@ export class Bot {
         }
 
         return null;
+    }
+
+    updateNavProgress(delta) {
+        const target = this.target?.position || this.patrolTarget;
+        if (!target) {
+            this.navProgressTimer = 0;
+            this.navLastDistance = Infinity;
+            this.navLastTargetKey = null;
+            return;
+        }
+        const key = `${Math.round(target.x)}:${Math.round(target.z)}`;
+        const dist = this.position.distanceTo(target);
+        if (this.navLastTargetKey !== key) {
+            this.navLastTargetKey = key;
+            this.navLastDistance = dist;
+            this.navProgressTimer = 0;
+            return;
+        }
+        if (dist < this.navLastDistance - 0.2) {
+            this.navLastDistance = dist;
+            this.navProgressTimer = 0;
+            return;
+        }
+        this.navProgressTimer += delta;
+        if (this.navProgressTimer > 2.2) {
+            this.isStuck = true;
+            this.navProgressTimer = 0;
+            this.navLastDistance = dist;
+            this.patrolTarget = null;
+        }
+    }
+
+    computeAvoidance(forward) {
+        const result = new THREE.Vector3();
+        if (!this.physicsRef?.getNearbyColliders) return result;
+        const radius = (this.physics?.radius || 0.5) + 0.6;
+        const sampleDist = 2.2;
+        const probe = this.position.clone().add(forward.clone().multiplyScalar(sampleDist));
+        const nearby = this.physicsRef.getNearbyColliders(probe, 2.6);
+        for (const box of nearby) {
+            if (box.enabled === false) continue;
+            if (box.walkable) continue;
+            const closestX = Math.max(box.min.x, Math.min(box.max.x, this.position.x));
+            const closestZ = Math.max(box.min.z, Math.min(box.max.z, this.position.z));
+            const dx = this.position.x - closestX;
+            const dz = this.position.z - closestZ;
+            const distSq = dx * dx + dz * dz;
+            const minDist = radius;
+            if (distSq < minDist * minDist && distSq > 1e-4) {
+                const dist = Math.sqrt(distSq);
+                const push = (minDist - dist) / minDist;
+                result.x += (dx / dist) * push;
+                result.z += (dz / dist) * push;
+            }
+        }
+        return result;
     }
 
     dispose() {

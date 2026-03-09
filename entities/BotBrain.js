@@ -106,6 +106,17 @@ export class BotBrain {
                 const isAlly = bot.allies && bot.allies.includes(entity);
                 
                 if (!isAlly) {
+                    const head = (ent) => new THREE.Vector3(
+                        ent.position.x,
+                        ent.position.y + (ent.physics?.height || 1.8) * 0.55,
+                        ent.position.z
+                    );
+                    if (typeof entityManager.hasLineOfSight === 'function') {
+                        const visible = entityManager.hasLineOfSight(head(bot), head(entity), true);
+                        if (!visible && distance > 8) {
+                            continue;
+                        }
+                    }
                     // Р—Р°РїРѕРјРёРЅР°РµРј РІСЂР°РіР°
                     const threatScore = this.calculateThreatScore(bot, entity, distance);
                     
@@ -629,6 +640,23 @@ export class BotBrain {
         }
         
         const dist = bot.position.distanceTo(bot.target.position);
+        const head = (ent) => new THREE.Vector3(
+            ent.position.x,
+            ent.position.y + (ent.physics?.height || 1.8) * 0.55,
+            ent.position.z
+        );
+        if (entityManager?.hasLineOfSight) {
+            const visible = entityManager.hasLineOfSight(head(bot), head(bot.target), true);
+            if (!visible && dist > 10) {
+                const lastSeen = this.memory.lastSeenEnemies?.[bot.target.id]?.position;
+                if (lastSeen) {
+                    bot.patrolTarget = lastSeen.clone();
+                    bot.moveTowards(bot.patrolTarget, bot.physics.speed * 1.05);
+                    bot.lookAt(lastSeen);
+                    return;
+                }
+            }
+        }
         
         // Р”РёСЃС‚Р°РЅС†РёСЏ Р°С‚Р°РєРё
         const attackRange = bot.currentWeapon ? 

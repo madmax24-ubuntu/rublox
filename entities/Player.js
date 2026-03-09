@@ -74,7 +74,7 @@ export class Player {
         this.recoilScale = 1;
         this.autoFire = false;
         this.baseSpeed = this.physics.speed;
-        this.damageTakenMultiplier = 0.7;
+        this.damageTakenMultiplier = 0.55;
         this.stats = { damage: 0, kills: 0, loot: 0 };
         this.hudRef = null;
         this.cameraShakeTime = 0;

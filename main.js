@@ -165,6 +165,7 @@ class Game {
         this.perkMenuOpen = false;
         this.perkMenuIndex = 0;
         this.perkKeyLatch = false;
+        this.pauseKeyLatch = false;
         this.menuKeyLatch = { w: false, s: false, e: false };
         this.noteCooldown = 0;
         this.achievementState = {
@@ -210,6 +211,7 @@ class Game {
         this.nightNotified = false;
         this.returnNoticeShown = false;
         this.oneWayGates = this.map.getOneWayGates?.() || [];
+        this.isPaused = false;
 
         for (let i = 0; i < this.bots.length; i++) {
             this.botBrains.push(new BotBrain());
@@ -232,6 +234,28 @@ class Game {
             this.renderer.setSize(window.innerWidth, window.innerHeight);
             this.updateOrientationUI();
         });
+
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement && this.isMobile()) {
+                this.input.resetLook();
+                this.player.resetView();
+                this.updateOrientationUI();
+            }
+        });
+
+        document.addEventListener('togglePause', () => {
+            this.setPaused(!this.isPaused);
+        });
+    }
+
+    setPaused(value) {
+        if (this.gameState === 'countdown') return;
+        this.isPaused = value;
+        this.hud.showPause(this.isPaused);
+        if (this.controls && !this.isMobile()) {
+            if (this.isPaused && this.controls.isLocked) this.controls.unlock();
+            if (!this.isPaused && !this.controls.isLocked) this.controls.lock();
+        }
     }
 
     spawnBots() {
@@ -510,6 +534,20 @@ class Game {
     }
 
     update(delta) {
+        if (this.input.isKeyPressed('Escape')) {
+            if (!this.pauseKeyLatch) {
+                this.setPaused(!this.isPaused);
+                this.pauseKeyLatch = true;
+            }
+        } else {
+            this.pauseKeyLatch = false;
+        }
+
+        if (this.isPaused) {
+            this.hud.showPause(true);
+            return;
+        }
+
         this.handleQuickCommands(delta);
         if (this.input.isKeyPressed('KeyP')) {
             if (!this.perkKeyLatch) {

@@ -5,6 +5,9 @@ export class Environment {
         this.scene = scene;
         this.sunLight = null;
         this.dayTime = 0.3;
+        this.weatherType = 'clear';
+        this.weatherTimer = 18 + Math.random() * 18;
+        this.targetFog = 0.0015;
         this.init();
     }
 
@@ -24,7 +27,7 @@ export class Environment {
     }
 
     update(delta) {
-        this.dayTime += delta * 0.004;
+        this.dayTime += delta * 0.012;
         if (this.dayTime > 1) this.dayTime = 0;
 
         const angle = (this.dayTime - 0.25) * Math.PI * 2;
@@ -47,8 +50,32 @@ export class Environment {
             intensity = 0.0;
         }
 
+        this.weatherTimer -= delta;
+        if (this.weatherTimer <= 0) {
+            const roll = Math.random();
+            if (roll < 0.5) this.weatherType = 'clear';
+            else if (roll < 0.8) this.weatherType = 'fog';
+            else this.weatherType = 'rain';
+            this.weatherTimer = 20 + Math.random() * 25;
+        }
+
+        if (this.weatherType === 'fog') {
+            this.targetFog = 0.0032;
+            intensity *= 0.75;
+            skyColor.lerp(new THREE.Color(0xa0b3c0), 0.3);
+        } else if (this.weatherType === 'rain') {
+            this.targetFog = 0.0026;
+            intensity *= 0.65;
+            skyColor.lerp(new THREE.Color(0x7a8a9a), 0.35);
+        } else {
+            this.targetFog = 0.0015;
+        }
+
         this.scene.background = skyColor;
-        this.scene.fog.color.lerp(skyColor, delta * 2);
+        if (this.scene.fog) {
+            this.scene.fog.color.lerp(skyColor, delta * 2);
+            this.scene.fog.density = THREE.MathUtils.lerp(this.scene.fog.density, this.targetFog, delta * 0.6);
+        }
         this.sunLight.intensity = THREE.MathUtils.lerp(this.sunLight.intensity, intensity, delta);
     }
 }

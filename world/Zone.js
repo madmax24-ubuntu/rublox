@@ -9,6 +9,7 @@ export class Zone {
         this.shrinkSpeed = 1.2;
         this.damagePerSecond = 3;
         this.zoneMesh = null;
+        this.ringMesh = null;
         this.createZone();
     }
 
@@ -17,7 +18,7 @@ export class Zone {
         const material = new THREE.MeshBasicMaterial({
             color: 0x0000ff,
             transparent: true,
-            opacity: 0.15,
+            opacity: 0.18,
             side: THREE.DoubleSide
         });
 
@@ -25,6 +26,18 @@ export class Zone {
         this.zoneMesh.position.y = 50;
         this.zoneMesh.scale.set(this.currentRadius, 1, this.currentRadius);
         this.scene.add(this.zoneMesh);
+
+        const ringGeo = new THREE.TorusGeometry(1, 0.08, 8, 64);
+        const ringMat = new THREE.MeshBasicMaterial({
+            color: 0x4fc3ff,
+            transparent: true,
+            opacity: 0.65
+        });
+        this.ringMesh = new THREE.Mesh(ringGeo, ringMat);
+        this.ringMesh.rotation.x = Math.PI / 2;
+        this.ringMesh.position.y = 0.5;
+        this.ringMesh.scale.set(this.currentRadius, this.currentRadius, this.currentRadius);
+        this.scene.add(this.ringMesh);
     }
 
     update(delta) {
@@ -37,6 +50,13 @@ export class Zone {
             if (this.zoneMesh) {
                 this.zoneMesh.scale.set(this.currentRadius, 1, this.currentRadius);
             }
+            if (this.ringMesh) {
+                this.ringMesh.scale.set(this.currentRadius, this.currentRadius, this.currentRadius);
+            }
+        }
+        if (this.ringMesh) {
+            const pulse = 0.45 + Math.sin(performance.now() * 0.004) * 0.2;
+            this.ringMesh.material.opacity = Math.max(0.2, pulse);
         }
     }
 
