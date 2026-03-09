@@ -217,6 +217,17 @@
             padding: 24px;
             cursor: auto;
         }
+        #startScreen::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at 30% 30%, rgba(79, 195, 247, 0.12), transparent 40%),
+                radial-gradient(circle at 70% 70%, rgba(255, 179, 0, 0.12), transparent 42%);
+            opacity: 0.9;
+            z-index: 0;
+            pointer-events: none;
+        }
 
         #loadingOverlay {
             position: fixed;
@@ -279,6 +290,8 @@
             text-align: center;
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
             backdrop-filter: blur(6px);
+            position: relative;
+            z-index: 1;
         }
 
         #startScreen h1 {
@@ -290,10 +303,56 @@
             text-shadow: 0 6px 0 rgba(0, 0, 0, 0.4);
         }
 
+        .start-badges {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .start-badge {
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #0b1722;
+            background: linear-gradient(135deg, var(--ui-accent), var(--ui-accent-2));
+            box-shadow: 0 8px 18px rgba(255, 179, 0, 0.35);
+        }
+
         #startScreen p {
             font-size: 20px;
             margin-bottom: 28px;
             opacity: 0.85;
+        }
+
+        .start-stats {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(80px, 1fr));
+            gap: 10px;
+            margin: 14px 0 22px;
+        }
+
+        .start-stat {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 12px;
+            padding: 10px 8px;
+        }
+
+        .start-stat strong {
+            display: block;
+            font-size: 18px;
+            color: #fff;
+        }
+
+        .start-stat span {
+            font-size: 11px;
+            opacity: 0.7;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         #startButton {
@@ -309,6 +368,12 @@
             box-shadow: 0 10px 24px rgba(255, 179, 0, 0.35);
             text-transform: uppercase;
             letter-spacing: 2px;
+        }
+
+        .start-footer {
+            margin-top: 18px;
+            font-size: 12px;
+            opacity: 0.75;
         }
 
         #startButton:hover {
@@ -388,9 +453,19 @@
     <div id="startScreen">
         <div class="start-card">
             <h1>RUBLOX</h1>
+            <div class="start-badges">
+                <div class="start-badge">Hunger Games</div>
+                <div class="start-badge">Roblox Style</div>
+            </div>
             <p>Hunger Games: Roblox Arena</p>
+            <div class="start-stats">
+                <div class="start-stat"><strong>32</strong><span>Players</span></div>
+                <div class="start-stat"><strong>7</strong><span>Biomes</span></div>
+                <div class="start-stat"><strong>∞</strong><span>Chaos</span></div>
+            </div>
             <div class="start-options"></div>
             <button id="startButton">Начать игру</button>
+            <div class="start-footer">Быстрый матч · Рандомная карта · Перки в бою</div>
             <div class="controls-info">
                 <div><strong>WASD</strong> - движение</div>
                 <div><strong>Мышь</strong> - обзор</div>
