@@ -266,6 +266,12 @@ class Game {
         this.isPaused = value;
         this.hud.showPause(this.isPaused);
         this.input?.clearInputState?.();
+        if (!this.isMobile()) {
+            document.body.style.cursor = this.isPaused ? 'auto' : 'none';
+            if (this.renderer?.domElement) {
+                this.renderer.domElement.style.cursor = this.isPaused ? 'auto' : 'none';
+            }
+        }
         if (this.controls && !this.isMobile()) {
             if (this.isPaused && this.controls.isLocked) this.controls.unlock();
             if (!this.isPaused && !this.controls.isLocked) this.controls.lock();
