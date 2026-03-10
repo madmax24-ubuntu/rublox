@@ -1,4 +1,4 @@
-export class HUD {
+﻿export class HUD {
     constructor() {
         this.createHUD();
     }
@@ -449,7 +449,7 @@ export class HUD {
             z-index: 2000;
             pointer-events: auto;
         `;
-        pauseOverlay.innerHTML = `
+                pauseOverlay.innerHTML = `
             <div id="pausePanel" style="
                 min-width:${px(260)}px;
                 max-width:min(420px, 88vw);
@@ -461,7 +461,7 @@ export class HUD {
                 font-weight:700;">
                 <div style="font-size:${px(20)}px;margin-bottom:${px(10)}px;">Пауза</div>
                 <div style="font-size:${px(12)}px;opacity:0.8;margin-bottom:${px(12)}px;">
-                    WASD — движение · Мышь — обзор · E — взаимодействие · Space — прыжок · ЛКМ — атака
+                    WASD - движение · Мышь - обзор · E - взаимодействие · Space - прыжок · ЛКМ - атака
                 </div>
                 <div id="keybindSection" style="display:${isMobile ? 'none' : 'block'};margin-bottom:${px(10)}px;">
                     <div style="font-size:${px(12)}px;opacity:0.8;margin-bottom:${px(6)}px;">Управление (кликни, чтобы переназначить)</div>
@@ -536,7 +536,7 @@ export class HUD {
             overflow-y: auto;
             z-index: 1200;
         `;
-        perkPanel.innerHTML = `
+                perkPanel.innerHTML = `
             <div style="font-size:${px(12)}px;font-weight:800;margin-bottom:${px(8)}px;">Выбор перка</div>
             <button class="perk-btn" data-perk="quickHands">Быстрые руки</button>
             <button class="perk-btn" data-perk="silentStep">Тихий шаг</button>
@@ -721,7 +721,7 @@ export class HUD {
     initKeybindUI() {
         const list = document.getElementById('keybindList');
         if (!list) return;
-        this.keybindActions = [
+                this.keybindActions = [
             { id: 'KeyW', label: 'Вперёд' },
             { id: 'KeyS', label: 'Назад' },
             { id: 'KeyA', label: 'Влево' },
@@ -1060,5 +1060,6 @@ export class HUD {
         }
     }
 }
+
 
 

@@ -199,23 +199,18 @@
 
         #startScreen {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            inset: 0;
             background:
-                radial-gradient(circle at 20% 20%, rgba(255, 179, 0, 0.12), transparent 45%),
-                radial-gradient(circle at 80% 10%, rgba(79, 195, 247, 0.18), transparent 40%),
-                radial-gradient(circle at 50% 80%, rgba(255, 112, 67, 0.12), transparent 45%),
-                linear-gradient(135deg, #0b1722 0%, #152636 50%, #0c1f2c 100%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+                radial-gradient(1200px 500px at 15% 10%, rgba(255, 179, 0, 0.15), transparent 55%),
+                radial-gradient(900px 420px at 85% 0%, rgba(79, 195, 247, 0.18), transparent 55%),
+                linear-gradient(160deg, #08131d 0%, #0f2232 48%, #091824 100%);
+            display: grid;
+            place-items: center;
             z-index: 10000;
             color: var(--ui-light);
-            padding: 24px;
+            padding: 20px;
             cursor: auto;
+            overflow: hidden;
         }
         #startScreen::before {
             content: "";
@@ -283,24 +278,81 @@
         }
 
         .start-card {
-            background: rgba(14, 26, 36, 0.88);
-            border: 3px solid rgba(255, 255, 255, 0.12);
-            border-radius: 18px;
-            padding: 36px 44px;
-            text-align: center;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
-            backdrop-filter: blur(6px);
+            width: min(1200px, 96vw);
+            min-height: min(760px, 94vh);
+            background: rgba(10, 22, 32, 0.9);
+            border: 2px solid rgba(255, 255, 255, 0.14);
+            border-radius: 24px;
+            box-shadow: 0 22px 54px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(8px);
             position: relative;
             z-index: 1;
+            display: grid;
+            grid-template-columns: 1.05fr 0.95fr;
+            overflow: hidden;
         }
 
+        .start-left {
+            padding: 48px 48px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 16px;
+            text-align: left;
+        }
+
+        .start-right {
+            position: relative;
+            background:
+                linear-gradient(145deg, rgba(79, 195, 247, 0.2), rgba(255, 179, 0, 0.15)),
+                radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.16), transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(255, 112, 67, 0.22), transparent 55%);
+            border-left: 1px solid rgba(255, 255, 255, 0.12);
+            overflow: hidden;
+        }
+
+        .arena-grid {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+            background-size: 36px 36px;
+            transform: perspective(700px) rotateX(56deg) scale(1.5) translateY(24%);
+            transform-origin: center;
+            opacity: 0.35;
+        }
+
+        .arena-pillars {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        .arena-pillars span {
+            position: absolute;
+            width: 56px;
+            height: 56px;
+            background: rgba(11, 23, 34, 0.75);
+            border: 2px solid rgba(255, 255, 255, 0.18);
+            border-radius: 10px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
+        }
+
+        .arena-pillars span:nth-child(1) { top: 16%; left: 18%; }
+        .arena-pillars span:nth-child(2) { top: 34%; left: 56%; }
+        .arena-pillars span:nth-child(3) { top: 54%; left: 30%; }
+        .arena-pillars span:nth-child(4) { top: 70%; left: 74%; }
+        .arena-pillars span:nth-child(5) { top: 22%; left: 76%; }
+
         #startScreen h1 {
-            font-size: 64px;
-            margin-bottom: 12px;
+            font-size: clamp(40px, 7vw, 82px);
+            line-height: 0.95;
+            margin: 0 0 2px;
             text-transform: uppercase;
-            letter-spacing: 6px;
+            letter-spacing: 4px;
             color: #ffffff;
-            text-shadow: 0 6px 0 rgba(0, 0, 0, 0.4);
+            text-shadow: 0 6px 0 rgba(0, 0, 0, 0.35);
         }
 
         .start-badges {
@@ -323,57 +375,32 @@
         }
 
         #startScreen p {
-            font-size: 20px;
-            margin-bottom: 28px;
-            opacity: 0.85;
-        }
-
-        .start-stats {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(80px, 1fr));
-            gap: 10px;
-            margin: 14px 0 22px;
-        }
-
-        .start-stat {
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 12px;
-            padding: 10px 8px;
-        }
-
-        .start-stat strong {
-            display: block;
-            font-size: 18px;
-            color: #fff;
-        }
-
-        .start-stat span {
-            font-size: 11px;
-            opacity: 0.7;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            font-size: clamp(16px, 2vw, 24px);
+            margin: 0 0 12px;
+            opacity: 0.92;
+            max-width: 620px;
         }
 
         #startButton {
-            padding: 16px 56px;
-            font-size: 26px;
+            width: min(420px, 80vw);
+            padding: 18px 24px;
+            font-size: clamp(22px, 3vw, 30px);
             font-weight: 800;
             background: linear-gradient(135deg, var(--ui-accent), var(--ui-accent-2));
             border: none;
-            border-radius: 12px;
+            border-radius: 14px;
             color: #1c1c1c;
             cursor: pointer;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
-            box-shadow: 0 10px 24px rgba(255, 179, 0, 0.35);
+            box-shadow: 0 12px 26px rgba(255, 179, 0, 0.4);
             text-transform: uppercase;
             letter-spacing: 2px;
         }
 
         .start-footer {
-            margin-top: 18px;
-            font-size: 12px;
-            opacity: 0.75;
+            margin-top: 10px;
+            font-size: clamp(11px, 1.5vw, 14px);
+            opacity: 0.8;
         }
 
         #startButton:hover {
@@ -385,58 +412,71 @@
             transform: translateY(1px) scale(0.98);
         }
 
-        .start-options {
-            display: grid;
-            gap: 14px;
-            margin: 18px 0 22px;
-            text-align: left;
-        }
-
-        .start-options label {
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: rgba(255, 255, 255, 0.75);
-        }
-
-        .start-options select,
-        .start-options .toggle {
-            width: 100%;
-            margin-top: 6px;
-            padding: 10px 12px;
-            border-radius: 10px;
-            border: 2px solid rgba(255, 255, 255, 0.12);
-            background: rgba(14, 26, 36, 0.9);
-            color: #e9f0f6;
-            font-size: 16px;
-            font-weight: 600;
-            outline: none;
-        }
-
-        .start-options .toggle {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            cursor: pointer;
-        }
-
-        .start-options input[type="checkbox"] {
-            accent-color: var(--ui-accent);
-            width: 18px;
-            height: 18px;
-        }
-
         .controls-info {
-            margin-top: 26px;
-            text-align: center;
-            opacity: 0.75;
-            font-size: 16px;
+            margin-top: 16px;
+            opacity: 0.82;
+            font-size: clamp(12px, 1.4vw, 15px);
             display: grid;
-            gap: 6px;
+            gap: 4px;
+            max-width: 620px;
+            text-align: left;
         }
 
         .controls-info strong {
             color: var(--ui-accent);
+        }
+
+        @media (max-width: 980px) {
+            .start-card {
+                grid-template-columns: 1fr;
+                min-height: min(820px, 96vh);
+            }
+
+            .start-left {
+                padding: 32px 24px 24px;
+                align-items: center;
+                text-align: center;
+            }
+
+            .controls-info {
+                text-align: left;
+            }
+
+            .start-right {
+                min-height: 220px;
+                border-left: 0;
+                border-top: 1px solid rgba(255, 255, 255, 0.12);
+            }
+        }
+
+        @media (max-width: 680px) {
+            #startScreen {
+                padding: 10px;
+            }
+
+            .start-card {
+                width: 100%;
+                min-height: 100vh;
+                border-radius: 0;
+                border-left: 0;
+                border-right: 0;
+            }
+
+            .start-left {
+                padding: 24px 16px 18px;
+            }
+
+            .controls-info {
+                font-size: 12px;
+                gap: 3px;
+                max-width: none;
+            }
+
+            #startButton {
+                width: 100%;
+                font-size: 24px;
+                padding: 16px 18px;
+            }
         }
     </style>
     <script type="importmap">
@@ -452,33 +492,39 @@
     <div id="gameRoot">
     <div id="startScreen">
         <div class="start-card">
-            <h1>RUBLOX</h1>
-            <div class="start-badges">
-                <div class="start-badge">Hunger Games</div>
-                <div class="start-badge">Roblox Style</div>
+            <div class="start-left">
+                <div class="start-badges">
+                    <div class="start-badge">Hunger Games</div>
+                    <div class="start-badge">Roblox Style</div>
+                </div>
+                <h1>RUBLOX<br>ARENA</h1>
+                <p>Выживание до последнего игрока. Рандомная карта, лут из сундуков и перки прямо во время боя.</p>
+                <button id="startButton">Начать игру</button>
+                <div class="start-footer">Быстрый матч · Рандомная карта · Перки в бою</div>
+                <div class="controls-info">
+                    <div><strong>WASD</strong> - движение</div>
+                    <div><strong>Мышь</strong> - обзор</div>
+                    <div><strong>Пробел</strong> - прыжок</div>
+                    <div><strong>ЛКМ</strong> - атака</div>
+                    <div><strong>E</strong> - взаимодействие</div>
+                    <div><strong>1-0</strong> - инвентарь</div>
+                    <div><strong>P</strong> - меню перков</div>
+                    <div><strong>W/S</strong> - выбор перка</div>
+                    <div><strong>E</strong> - подтвердить перк</div>
+                    <div><strong>ESC</strong> - меню</div>
+                    <div><strong>Mobile</strong> - левый стик: движение, правая сторона: обзор</div>
+                    <div><strong>Mobile</strong> - кнопки: Прыжок / Атака / Действие</div>
+                </div>
             </div>
-            <p>Hunger Games: Roblox Arena</p>
-            <div class="start-stats">
-                <div class="start-stat"><strong>32</strong><span>Players</span></div>
-                <div class="start-stat"><strong>7</strong><span>Biomes</span></div>
-                <div class="start-stat"><strong>∞</strong><span>Chaos</span></div>
-            </div>
-            <div class="start-options"></div>
-            <button id="startButton">Начать игру</button>
-            <div class="start-footer">Быстрый матч · Рандомная карта · Перки в бою</div>
-            <div class="controls-info">
-                <div><strong>WASD</strong> - движение</div>
-                <div><strong>Мышь</strong> - обзор</div>
-                <div><strong>Пробел</strong> - прыжок</div>
-                <div><strong>ЛКМ</strong> - атака</div>
-                <div><strong>E</strong> - взаимодействие</div>
-                <div><strong>1-0</strong> - инвентарь</div>
-                <div><strong>P</strong> - меню перков</div>
-                <div><strong>W/S</strong> - выбор перка</div>
-                <div><strong>E</strong> - подтвердить перк</div>
-                <div><strong>ESC</strong> - меню</div>
-                <div><strong>Mobile</strong> - левый круг: ходьба, правая сторона: обзор</div>
-                <div><strong>Mobile</strong> - кнопки: Прыжок / Атака / Действие</div>
+            <div class="start-right">
+                <div class="arena-grid"></div>
+                <div class="arena-pillars">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
             </div>
         </div>
     </div>
