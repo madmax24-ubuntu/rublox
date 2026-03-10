@@ -364,6 +364,89 @@
         .dyn-particles span:nth-child(5) { left: 66%; bottom: -20px; animation-delay: 1.8s; }
         .dyn-particles span:nth-child(6) { left: 82%; bottom: -20px; animation-delay: 3.1s; }
 
+        .dyn-rings {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        .dyn-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 24px rgba(75, 179, 255, 0.2), inset 0 0 24px rgba(255, 179, 0, 0.15);
+            animation: ringSpin 18s linear infinite;
+        }
+
+        .dyn-ring.r1 {
+            width: 320px;
+            height: 320px;
+            top: 12%;
+            left: 14%;
+        }
+
+        .dyn-ring.r2 {
+            width: 220px;
+            height: 220px;
+            top: 56%;
+            left: 58%;
+            animation-direction: reverse;
+            animation-duration: 14s;
+        }
+
+        .dyn-ring::before {
+            content: "";
+            position: absolute;
+            inset: 10%;
+            border-radius: 50%;
+            border: 2px dashed rgba(255, 255, 255, 0.16);
+        }
+
+        .dyn-beams {
+            position: absolute;
+            inset: -30% -20%;
+            pointer-events: none;
+        }
+
+        .dyn-beams span {
+            position: absolute;
+            width: 120px;
+            height: 170%;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0));
+            mix-blend-mode: screen;
+            filter: blur(5px);
+            transform: rotate(18deg);
+            animation: beamSweep 10s ease-in-out infinite;
+        }
+
+        .dyn-beams span:nth-child(1) { left: 16%; animation-delay: 0s; }
+        .dyn-beams span:nth-child(2) { left: 44%; animation-delay: 2.6s; }
+        .dyn-beams span:nth-child(3) { left: 70%; animation-delay: 5.2s; }
+
+        .dyn-platforms {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            perspective: 900px;
+        }
+
+        .dyn-platforms span {
+            position: absolute;
+            width: 90px;
+            height: 22px;
+            border-radius: 8px;
+            background: linear-gradient(180deg, rgba(27, 51, 72, 0.95), rgba(10, 24, 36, 0.95));
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
+            transform: rotateX(62deg);
+            animation: platformFloat 5.4s ease-in-out infinite;
+        }
+
+        .dyn-platforms span:nth-child(1) { top: 20%; left: 66%; animation-delay: 0.6s; }
+        .dyn-platforms span:nth-child(2) { top: 38%; left: 44%; animation-delay: 1.4s; }
+        .dyn-platforms span:nth-child(3) { top: 62%; left: 72%; animation-delay: 2.1s; }
+        .dyn-platforms span:nth-child(4) { top: 74%; left: 34%; animation-delay: 2.8s; }
+
         .start-badges {
             display: flex;
             flex-wrap: wrap;
@@ -510,7 +593,10 @@
         @media (prefers-reduced-motion: reduce) {
             .dyn-bg,
             .dyn-lines,
-            .dyn-particles span {
+            .dyn-particles span,
+            .dyn-ring,
+            .dyn-beams span,
+            .dyn-platforms span {
                 animation: none;
             }
         }
@@ -532,6 +618,18 @@
                 transform: translateY(-88vh) scale(1.4);
                 opacity: 0;
             }
+        }
+        @keyframes ringSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes beamSweep {
+            0%, 100% { transform: translateX(-30px) rotate(18deg); opacity: 0.22; }
+            50% { transform: translateX(40px) rotate(18deg); opacity: 0.5; }
+        }
+        @keyframes platformFloat {
+            0%, 100% { transform: rotateX(62deg) translateY(0px); }
+            50% { transform: rotateX(62deg) translateY(-12px); }
         }
     </style>
     <script type="importmap">
@@ -574,6 +672,16 @@
             <div class="start-visual">
                 <div class="dyn-bg"></div>
                 <div class="dyn-lines"></div>
+                <div class="dyn-rings">
+                    <div class="dyn-ring r1"></div>
+                    <div class="dyn-ring r2"></div>
+                </div>
+                <div class="dyn-beams">
+                    <span></span><span></span><span></span>
+                </div>
+                <div class="dyn-platforms">
+                    <span></span><span></span><span></span><span></span>
+                </div>
                 <div class="dyn-particles">
                     <span></span><span></span><span></span><span></span><span></span><span></span>
                 </div>
