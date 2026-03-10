@@ -280,6 +280,7 @@
         .start-card {
             width: min(1200px, 96vw);
             min-height: min(760px, 94vh);
+            max-height: 96vh;
             background: rgba(10, 22, 32, 0.9);
             border: 2px solid rgba(255, 255, 255, 0.14);
             border-radius: 24px;
@@ -299,6 +300,10 @@
             justify-content: center;
             gap: 16px;
             text-align: left;
+            min-height: 0;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.25) rgba(0, 0, 0, 0.2);
         }
 
         .start-right {
@@ -309,6 +314,24 @@
                 radial-gradient(circle at 80% 70%, rgba(255, 112, 67, 0.22), transparent 55%);
             border-left: 1px solid rgba(255, 255, 255, 0.12);
             overflow: hidden;
+        }
+        .start-right::before {
+            content: "";
+            position: absolute;
+            inset: -40%;
+            background:
+                radial-gradient(circle at 20% 40%, rgba(110, 220, 145, 0.24), transparent 35%),
+                radial-gradient(circle at 75% 65%, rgba(255, 179, 0, 0.2), transparent 35%),
+                radial-gradient(circle at 55% 20%, rgba(75, 179, 255, 0.22), transparent 38%);
+            filter: blur(26px);
+            animation: menuClouds 18s ease-in-out infinite alternate;
+        }
+        .start-right::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(transparent 65%, rgba(0, 0, 0, 0.28));
+            pointer-events: none;
         }
 
         .arena-grid {
@@ -321,6 +344,7 @@
             transform: perspective(700px) rotateX(56deg) scale(1.5) translateY(24%);
             transform-origin: center;
             opacity: 0.35;
+            animation: gridDrift 14s linear infinite;
         }
 
         .arena-pillars {
@@ -337,6 +361,7 @@
             border: 2px solid rgba(255, 255, 255, 0.18);
             border-radius: 10px;
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
+            animation: pillarFloat 4.5s ease-in-out infinite;
         }
 
         .arena-pillars span:nth-child(1) { top: 16%; left: 18%; }
@@ -344,6 +369,10 @@
         .arena-pillars span:nth-child(3) { top: 54%; left: 30%; }
         .arena-pillars span:nth-child(4) { top: 70%; left: 74%; }
         .arena-pillars span:nth-child(5) { top: 22%; left: 76%; }
+        .arena-pillars span:nth-child(2) { animation-delay: 0.8s; }
+        .arena-pillars span:nth-child(3) { animation-delay: 1.4s; }
+        .arena-pillars span:nth-child(4) { animation-delay: 2s; }
+        .arena-pillars span:nth-child(5) { animation-delay: 2.6s; }
 
         #startScreen h1 {
             font-size: clamp(40px, 7vw, 82px);
@@ -420,6 +449,11 @@
             gap: 4px;
             max-width: 620px;
             text-align: left;
+            max-height: 220px;
+            overflow-y: auto;
+            padding-right: 8px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
         }
 
         .controls-info strong {
@@ -457,6 +491,7 @@
             .start-card {
                 width: 100%;
                 min-height: 100vh;
+                max-height: 100vh;
                 border-radius: 0;
                 border-left: 0;
                 border-right: 0;
@@ -470,6 +505,7 @@
                 font-size: 12px;
                 gap: 3px;
                 max-width: none;
+                max-height: 170px;
             }
 
             #startButton {
@@ -477,6 +513,19 @@
                 font-size: 24px;
                 padding: 16px 18px;
             }
+        }
+        @keyframes pillarFloat {
+            0% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-8px) scale(1.03); }
+            100% { transform: translateY(0px) scale(1); }
+        }
+        @keyframes gridDrift {
+            0% { transform: perspective(700px) rotateX(56deg) scale(1.5) translateY(24%) translateX(0); }
+            100% { transform: perspective(700px) rotateX(56deg) scale(1.5) translateY(24%) translateX(-36px); }
+        }
+        @keyframes menuClouds {
+            0% { transform: translate3d(-3%, -2%, 0) scale(1); }
+            100% { transform: translate3d(3%, 2%, 0) scale(1.06); }
         }
     </style>
     <script type="importmap">
