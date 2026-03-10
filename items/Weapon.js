@@ -70,10 +70,10 @@ export class Weapon {
     getMaxAmmo() {
         if (this.type === 'bow') return 40;
         if (this.type === 'laser') return 20;
-        if (this.type === 'shotgun') return 16;
+        if (this.type === 'shotgun') return 60;
         if (this.type === 'flamethrower') return 200;
-        if (this.type === 'pistol') return 24;
-        if (this.type === 'rifle') return 30;
+        if (this.type === 'pistol') return 60;
+        if (this.type === 'rifle') return 60;
         return null;
     }
 
