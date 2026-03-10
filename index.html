@@ -278,101 +278,48 @@
         }
 
         .start-card {
-            width: min(1200px, 96vw);
-            min-height: min(760px, 94vh);
-            max-height: 96vh;
-            background: rgba(10, 22, 32, 0.9);
+            width: min(860px, calc(100vw - 20px));
+            max-height: calc(100vh - 20px);
+            background:
+                linear-gradient(180deg, rgba(9, 23, 34, 0.78), rgba(7, 16, 25, 0.84)),
+                radial-gradient(circle at 18% 20%, rgba(76, 175, 80, 0.22), transparent 48%),
+                radial-gradient(circle at 82% 80%, rgba(255, 193, 7, 0.2), transparent 45%);
             border: 2px solid rgba(255, 255, 255, 0.14);
             border-radius: 24px;
-            box-shadow: 0 22px 54px rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(8px);
+            box-shadow: 0 24px 54px rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(10px);
             position: relative;
             z-index: 1;
-            display: grid;
-            grid-template-columns: 1.05fr 0.95fr;
-            overflow: hidden;
+            overflow: hidden auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.3) rgba(0, 0, 0, 0.15);
+        }
+        .start-card::before {
+            content: "";
+            position: absolute;
+            inset: -25%;
+            pointer-events: none;
+            background:
+                radial-gradient(circle at 22% 36%, rgba(129, 199, 132, 0.24), transparent 36%),
+                radial-gradient(circle at 68% 20%, rgba(79, 195, 247, 0.2), transparent 34%),
+                radial-gradient(circle at 75% 70%, rgba(255, 160, 0, 0.2), transparent 38%);
+            filter: blur(30px);
+            animation: menuClouds 16s ease-in-out infinite alternate;
         }
 
         .start-left {
-            padding: 48px 48px 40px;
+            position: relative;
+            z-index: 2;
+            padding: 36px 38px 32px;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            gap: 16px;
+            gap: 14px;
             text-align: left;
-            min-height: 0;
-            overflow-y: auto;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(255, 255, 255, 0.25) rgba(0, 0, 0, 0.2);
         }
 
         .start-right {
-            position: relative;
-            background:
-                linear-gradient(145deg, rgba(79, 195, 247, 0.2), rgba(255, 179, 0, 0.15)),
-                radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.16), transparent 50%),
-                radial-gradient(circle at 80% 70%, rgba(255, 112, 67, 0.22), transparent 55%);
-            border-left: 1px solid rgba(255, 255, 255, 0.12);
-            overflow: hidden;
+            display: none;
         }
-        .start-right::before {
-            content: "";
-            position: absolute;
-            inset: -40%;
-            background:
-                radial-gradient(circle at 20% 40%, rgba(110, 220, 145, 0.24), transparent 35%),
-                radial-gradient(circle at 75% 65%, rgba(255, 179, 0, 0.2), transparent 35%),
-                radial-gradient(circle at 55% 20%, rgba(75, 179, 255, 0.22), transparent 38%);
-            filter: blur(26px);
-            animation: menuClouds 18s ease-in-out infinite alternate;
-        }
-        .start-right::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(transparent 65%, rgba(0, 0, 0, 0.28));
-            pointer-events: none;
-        }
-
-        .arena-grid {
-            position: absolute;
-            inset: 0;
-            background-image:
-                linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
-            background-size: 36px 36px;
-            transform: perspective(700px) rotateX(56deg) scale(1.5) translateY(24%);
-            transform-origin: center;
-            opacity: 0.35;
-            animation: gridDrift 14s linear infinite;
-        }
-
-        .arena-pillars {
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-        }
-
-        .arena-pillars span {
-            position: absolute;
-            width: 56px;
-            height: 56px;
-            background: rgba(11, 23, 34, 0.75);
-            border: 2px solid rgba(255, 255, 255, 0.18);
-            border-radius: 10px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
-            animation: pillarFloat 4.5s ease-in-out infinite;
-        }
-
-        .arena-pillars span:nth-child(1) { top: 16%; left: 18%; }
-        .arena-pillars span:nth-child(2) { top: 34%; left: 56%; }
-        .arena-pillars span:nth-child(3) { top: 54%; left: 30%; }
-        .arena-pillars span:nth-child(4) { top: 70%; left: 74%; }
-        .arena-pillars span:nth-child(5) { top: 22%; left: 76%; }
-        .arena-pillars span:nth-child(2) { animation-delay: 0.8s; }
-        .arena-pillars span:nth-child(3) { animation-delay: 1.4s; }
-        .arena-pillars span:nth-child(4) { animation-delay: 2s; }
-        .arena-pillars span:nth-child(5) { animation-delay: 2.6s; }
 
         #startScreen h1 {
             font-size: clamp(40px, 7vw, 82px);
@@ -442,18 +389,14 @@
         }
 
         .controls-info {
-            margin-top: 16px;
+            margin-top: 10px;
             opacity: 0.82;
-            font-size: clamp(12px, 1.4vw, 15px);
+            font-size: clamp(11px, 1.25vw, 14px);
             display: grid;
             gap: 4px;
             max-width: 620px;
             text-align: left;
-            max-height: 220px;
-            overflow-y: auto;
-            padding-right: 8px;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+            grid-template-columns: repeat(2, minmax(180px, 1fr));
         }
 
         .controls-info strong {
@@ -462,66 +405,48 @@
 
         @media (max-width: 980px) {
             .start-card {
-                grid-template-columns: 1fr;
-                min-height: min(820px, 96vh);
+                width: min(860px, calc(100vw - 16px));
+                max-height: calc(100vh - 16px);
             }
 
             .start-left {
-                padding: 32px 24px 24px;
-                align-items: center;
-                text-align: center;
+                padding: 24px 18px 20px;
             }
 
             .controls-info {
                 text-align: left;
-            }
-
-            .start-right {
-                min-height: 220px;
-                border-left: 0;
-                border-top: 1px solid rgba(255, 255, 255, 0.12);
+                grid-template-columns: 1fr;
+                gap: 2px;
             }
         }
 
         @media (max-width: 680px) {
             #startScreen {
-                padding: 10px;
+                padding: 8px;
             }
 
             .start-card {
-                width: 100%;
-                min-height: 100vh;
-                max-height: 100vh;
-                border-radius: 0;
-                border-left: 0;
-                border-right: 0;
+                width: calc(100vw - 16px);
+                max-height: calc(100vh - 16px);
+                border-radius: 16px;
             }
 
             .start-left {
-                padding: 24px 16px 18px;
+                padding: 18px 14px 14px;
             }
 
             .controls-info {
-                font-size: 12px;
+                font-size: 11px;
                 gap: 3px;
                 max-width: none;
-                max-height: 170px;
+                grid-template-columns: 1fr;
             }
 
             #startButton {
                 width: 100%;
-                font-size: 24px;
-                padding: 16px 18px;
+                font-size: 22px;
+                padding: 14px 14px;
             }
-        }
-        @keyframes pillarFloat {
-            0% { transform: translateY(0px) scale(1); }
-            50% { transform: translateY(-8px) scale(1.03); }
-            100% { transform: translateY(0px) scale(1); }
-        }
-        @keyframes gridDrift {
-            0% { transform: perspective(700px) rotateX(56deg) scale(1.5) translateY(24%) translateX(0); }
-            100% { transform: perspective(700px) rotateX(56deg) scale(1.5) translateY(24%) translateX(-36px); }
         }
         @keyframes menuClouds {
             0% { transform: translate3d(-3%, -2%, 0) scale(1); }
@@ -563,16 +488,6 @@
                     <div><strong>ESC</strong> - меню</div>
                     <div><strong>Mobile</strong> - левый стик: движение, правая сторона: обзор</div>
                     <div><strong>Mobile</strong> - кнопки: Прыжок / Атака / Действие</div>
-                </div>
-            </div>
-            <div class="start-right">
-                <div class="arena-grid"></div>
-                <div class="arena-pillars">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
                 </div>
             </div>
         </div>
