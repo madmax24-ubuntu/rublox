@@ -51,6 +51,7 @@ export class Bot {
         this.navProgressTimer = 0;
         this.navLastDistance = Infinity;
         this.navLastTargetKey = null;
+        this.separationTimer = 0;
         this.burnTimer = 0;
         this.burnTickTimer = 0;
         this.burnDamagePerSecond = 0;
@@ -421,7 +422,9 @@ export class Bot {
             this.animateLimbs();
             this.updateHealthBar();
             return;
-        }        if (zone && typeof zone.isInsideZone === "function" && !zone.isInsideZone(this.position)) {
+        }
+
+        if (zone && typeof zone.isInsideZone === 'function' && !zone.isInsideZone(this.position)) {
             const center = new THREE.Vector3(0, this.position.y, 0);
             this.target = null;
             this.patrolTarget = center.clone();
@@ -444,7 +447,7 @@ export class Bot {
         }
 
         this.updateNavProgress(delta);
-                if (this.isStuck && !this.escapeDir) {
+        if (this.isStuck && !this.escapeDir) {
             const angle = Math.random() * Math.PI * 2;
             this.escapeDir = new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle));
             this.escapeTimer = 1.2;
@@ -497,8 +500,11 @@ export class Bot {
         }
 
         // Simple separation to avoid bot clumping
-        if (entityManager && this.isAlive) {
-            const nearby = entityManager.getEntities();
+        this.separationTimer = Math.max(0, this.separationTimer - delta);
+        if (entityManager && this.isAlive && this.separationTimer <= 0) {
+            const nearby = entityManager.getNearbyEntities
+                ? entityManager.getNearbyEntities(this.position, 2.4, 'Bot')
+                : entityManager.getEntities();
             let sep = new THREE.Vector3();
             let count = 0;
             for (const e of nearby) {
@@ -515,6 +521,7 @@ export class Bot {
                 this.physics.velocity.x += sep.x;
                 this.physics.velocity.z += sep.z;
             }
+            this.separationTimer = 0.08;
         }
     }
 

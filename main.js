@@ -717,7 +717,12 @@ class Game {
             this.audioSynth.updateListener(this.camera.position, forward);
         }
 
-        const botsPerFrame = this.bots.length;
+        const targetFraction = this.isMobile() ? 0.45 : (delta > 0.022 ? 0.5 : 0.75);
+        const minBotsPerFrame = this.isMobile() ? 6 : 10;
+        const botsPerFrame = Math.min(
+            this.bots.length,
+            Math.max(minBotsPerFrame, Math.ceil(this.bots.length * targetFraction))
+        );
         this.botUpdateIndex = (this.botUpdateIndex || 0);
 
         for (let i = 0; i < botsPerFrame && i < this.bots.length; i++) {
@@ -728,8 +733,6 @@ class Game {
                 if (this.gameState === 'playing' && !this.zone.isInsideZone(this.bots[botIndex].position)) {
                     const damage = this.zone.getDamage(delta);
                     this.bots[botIndex].takeDamage(damage, false, null, 0, 'zone');
-                }
-                if (this.gameState === 'playing' && !this.zone.isInsideZone(this.bots[botIndex].position)) {
                     const safePoint = this.getSafeZoneTarget(this.bots[botIndex].position);
                     this.bots[botIndex].target = null;
                     this.bots[botIndex].assistTarget = null;

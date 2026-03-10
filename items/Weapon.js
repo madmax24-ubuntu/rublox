@@ -697,7 +697,14 @@ export class Weapon {
 
     setRotation(rotation) {
         if (this.mesh) {
-            this.mesh.rotation.copy(rotation);
+            const yawOffset = (
+                this.type === 'laser'
+                || this.type === 'shotgun'
+                || this.type === 'flamethrower'
+                || this.type === 'pistol'
+                || this.type === 'rifle'
+            ) ? Math.PI / 2 : 0;
+            this.mesh.rotation.set(rotation.x, rotation.y + yawOffset, rotation.z);
         }
     }
 

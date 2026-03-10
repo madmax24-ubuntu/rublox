@@ -6,6 +6,9 @@ export class EntityManager {
         this.entities = [];
         this.projectiles = [];
         this.effects = [];
+        this._tmpVecA = new THREE.Vector3();
+        this._tmpVecB = new THREE.Vector3();
+        this._tmpVecC = new THREE.Vector3();
     }
 
     addEntity(entity) {
@@ -95,9 +98,10 @@ export class EntityManager {
         if (length <= 0.001) return false;
         const dir = travel.clone().normalize();
         const probe = prevPos.clone().add(dir.clone().multiplyScalar(length * 0.5));
-        const nearby = physics.getNearbyColliders(probe, 2.5);
+        const nearby = physics.getNearbyColliders(probe, Math.max(2.5, length * 0.6 + 0.8));
         for (const box of nearby) {
             if (box.enabled === false) continue;
+            if (box.walkable) continue;
             if (this.segmentIntersectsBox(prevPos, pos, box)) {
                 return pos.clone();
             }
@@ -154,6 +158,8 @@ export class EntityManager {
     checkProjectileHit(projectile) {
         const p0 = projectile.prevPos || projectile.mesh.position;
         const p1 = projectile.mesh.position;
+        const seg = this._tmpVecA.subVectors(p1, p0);
+        const segLenSq = seg.lengthSq();
         for (const entity of this.entities) {
             if (!entity.isAlive || entity === projectile.owner) continue;
 
@@ -163,17 +169,36 @@ export class EntityManager {
             const bodyBonus = entity.constructor?.name === 'Bot' ? 0.75 : entity.constructor?.name === 'Zombie' ? 0.65 : 0.45;
             const hitRadius = r + bodyBonus;
 
-            const points = [
-                new THREE.Vector3(basePos.x, basePos.y + h * 0.2, basePos.z),
-                new THREE.Vector3(basePos.x, basePos.y + h * 0.55, basePos.z),
-                new THREE.Vector3(basePos.x, basePos.y + h * 0.9, basePos.z)
-            ];
-            const hit = points.some(pt => this.distancePointToSegment(pt, p0, p1) <= hitRadius);
+            const hit = this.distancePointToSegmentFast(basePos.x, basePos.y + h * 0.2, basePos.z, p0, p1, seg, segLenSq) <= hitRadius
+                || this.distancePointToSegmentFast(basePos.x, basePos.y + h * 0.55, basePos.z, p0, p1, seg, segLenSq) <= hitRadius
+                || this.distancePointToSegmentFast(basePos.x, basePos.y + h * 0.9, basePos.z, p0, p1, seg, segLenSq) <= hitRadius;
             if (hit) {
                 return entity;
             }
         }
         return null;
+    }
+
+    distancePointToSegmentFast(px, py, pz, a, b, ab, abLenSq) {
+        if (abLenSq < 1e-6) {
+            const dx0 = px - a.x;
+            const dy0 = py - a.y;
+            const dz0 = pz - a.z;
+            return Math.sqrt(dx0 * dx0 + dy0 * dy0 + dz0 * dz0);
+        }
+        const apx = px - a.x;
+        const apy = py - a.y;
+        const apz = pz - a.z;
+        let t = (apx * ab.x + apy * ab.y + apz * ab.z) / abLenSq;
+        if (t < 0) t = 0;
+        else if (t > 1) t = 1;
+        const cx = a.x + ab.x * t;
+        const cy = a.y + ab.y * t;
+        const cz = a.z + ab.z * t;
+        const dx = px - cx;
+        const dy = py - cy;
+        const dz = pz - cz;
+        return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 
     distancePointToSegment(point, a, b) {
@@ -299,5 +324,20 @@ export class EntityManager {
 
     getAllEntities() {
         return this.entities;
+    }
+
+    getNearbyEntities(position, radius, onlyType = null) {
+        const out = [];
+        const r2 = radius * radius;
+        for (const entity of this.entities) {
+            if (!entity?.isAlive) continue;
+            if (onlyType && entity.constructor?.name !== onlyType) continue;
+            const dx = entity.position.x - position.x;
+            const dz = entity.position.z - position.z;
+            if (dx * dx + dz * dz <= r2) {
+                out.push(entity);
+            }
+        }
+        return out;
     }
 }
