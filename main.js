@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 import Stats from 'three/addons/libs/stats.module.js';
 
@@ -181,6 +181,10 @@ class Game {
         this.map = new MapGenerator(this.scene);
         this.physics = new Physics(this.scene, this.map);
         this.zone = new Zone(this.scene, this.map.size);
+        this.zoneDuration = 600;
+        this.zoneMinRadius = Math.max(24, this.zone.getCurrentRadius() * 0.15);
+        this.zone.shrink(this.zoneMinRadius);
+        this.zone.shrinkSpeed = (this.zone.getCurrentRadius() - this.zoneMinRadius) / this.zoneDuration;
         this.traps = this.map.getTraps?.() || [];
 
         this.entityManager = new EntityManager(this.scene);
@@ -222,8 +226,8 @@ class Game {
         this.countdownTimer = this.countdownTime;
         this.spawnTime = 20;
         this.spawnTimer = this.spawnTime;
-        this.zoneShrinkTimer = 60;
-        this.zoneShrinkInterval = 35;
+        this.zoneShrinkTimer = 0;
+        this.zoneShrinkInterval = 0;
 
         this.gameLoop = new GameLoop(this);
         this.applyRoundMode('hybrid');
@@ -245,6 +249,11 @@ class Game {
 
         document.addEventListener('togglePause', () => {
             this.setPaused(!this.isPaused);
+        });
+
+        document.addEventListener('rebindKey', (e) => {
+            if (!e?.detail) return;
+            this.input.setKeyRemap(e.detail.action, e.detail.code);
         });
     }
 
@@ -461,19 +470,19 @@ class Game {
         if (!this.player?.isAlive) return;
         if (!this.achievementState.firstBlood && this.player.stats.kills >= 1) {
             this.achievementState.firstBlood = true;
-            this.hud.showGameMessage('Достижение: Первая кровь');
+            this.hud.showGameMessage('Р”РѕСЃС‚РёР¶РµРЅРёРµ: РџРµСЂРІР°СЏ РєСЂРѕРІСЊ');
         }
         if (!this.achievementState.hunter && this.player.stats.kills >= 5) {
             this.achievementState.hunter = true;
-            this.hud.showGameMessage('Достижение: Охотник');
+            this.hud.showGameMessage('Р”РѕСЃС‚РёР¶РµРЅРёРµ: РћС…РѕС‚РЅРёРє');
         }
         if (!this.achievementState.scavenger && this.player.stats.loot >= 8) {
             this.achievementState.scavenger = true;
-            this.hud.showGameMessage('Достижение: Мародер');
+            this.hud.showGameMessage('Р”РѕСЃС‚РёР¶РµРЅРёРµ: РњР°СЂРѕРґРµСЂ');
         }
         if (!this.achievementState.survivor && aliveCount <= 5) {
             this.achievementState.survivor = true;
-            this.hud.showGameMessage('Достижение: Выживший');
+            this.hud.showGameMessage('Р”РѕСЃС‚РёР¶РµРЅРёРµ: Р’С‹Р¶РёРІС€РёР№');
         }
     }
 
@@ -484,55 +493,45 @@ class Game {
         return new THREE.Vector3(v.x, position.y, v.z);
     }
 
-    updateRandomEvents(delta) {
+        updateRandomEvents(delta) {
         if (this.activeEvent.type) {
             this.activeEvent.timer -= delta;
             if (this.activeEvent.timer <= 0) {
-                if (this.activeEvent.type === 'fog' && this.scene?.fog && this.activeEvent.prevFog !== null) {
-                    this.scene.fog.density = this.activeEvent.prevFog;
+                if (this.activeEvent.type === "fog") {
+                    if (this.env?.clearFogOverride) this.env.clearFogOverride();
+                }
+                if (this.activeEvent.type === "night" && this.env?.forceNightTimer !== undefined) {
+                    this.env.forceNightTimer = 0;
                 }
                 this.activeEvent = { type: null, timer: 0, prevFog: null };
-                this.hud.showGameMessage('Событие завершено');
+                this.hud.showGameMessage("Событие завершено");
             }
         }
 
         this.randomEventTimer -= delta;
         if (this.randomEventTimer > 0 || this.activeEvent.type) return;
 
-        const events = ['heal', 'fog', 'drop', 'zonePause'];
+        const events = ["fog", "night"];
         const event = events[Math.floor(Math.random() * events.length)];
 
-        if (event === 'heal') {
-            this.player.health = Math.min(this.player.maxHealth, this.player.health + 14);
-            for (const bot of this.bots) {
-                if (!bot.isAlive) continue;
-                bot.health = Math.min(bot.maxHealth, bot.health + 10);
+        if (event === "fog") {
+            this.activeEvent.type = "fog";
+            this.activeEvent.timer = 32;
+            if (this.env?.setFogOverride) {
+                this.env.setFogOverride(0.0125, 0x394553);
+            } else if (this.scene?.fog) {
+                this.scene.fog.density = 0.0125;
             }
-            this.hud.showGameMessage('Событие: Импульс лечения');
-        } else if (event === 'fog' && this.scene?.fog) {
-            this.activeEvent.type = 'fog';
-            this.activeEvent.timer = 16;
-            this.activeEvent.prevFog = this.scene.fog.density;
-            this.scene.fog.density = Math.min(0.006, this.scene.fog.density * 1.9);
-            this.hud.showGameMessage('Событие: Туманная волна');
-        } else if (event === 'drop') {
-            const floorTiles = this.map.getFloorTiles?.() || [];
-            for (let i = 0; i < 2; i++) {
-                const pick = floorTiles[Math.floor(Math.random() * floorTiles.length)];
-                if (!pick) continue;
-                const y = this.map.getHeightAt(pick.x, pick.z) + 0.06;
-                this.lootManager.spawnSupplyDrop(new THREE.Vector3(pick.x, y, pick.z));
-            }
-            this.hud.showGameMessage('Событие: Авиасброс припасов');
-        } else if (event === 'zonePause') {
-            this.activeEvent.type = 'zonePause';
-            this.activeEvent.timer = 18;
-            this.hud.showGameMessage('Событие: Зона замедлена');
+            this.hud.showGameMessage("Событие: Густой туман");
+        } else if (event === "night" && this.env?.forceNight) {
+            this.activeEvent.type = "night";
+            this.activeEvent.timer = 28;
+            this.env.forceNight(30);
+            this.hud.showGameMessage("Событие: Ночь");
         }
 
-        this.randomEventTimer = 35 + Math.random() * 30;
+        this.randomEventTimer = 45 + Math.random() * 35;
     }
-
     update(delta) {
         if (this.input.isKeyPressed('Escape')) {
             if (!this.pauseKeyLatch) {
@@ -650,14 +649,6 @@ class Game {
         }
 
         if (this.gameState === 'playing') {
-            this.zoneShrinkTimer -= delta;
-
-            if (this.zoneShrinkTimer <= 0 && this.activeEvent.type !== 'zonePause') {
-                const newRadius = this.zone.getTargetRadius() * 0.95;
-                this.zone.shrink(newRadius);
-                this.zoneShrinkTimer = this.zoneShrinkInterval;
-            }
-
             this.zone.update(delta);
 
             if (!this.zone.isInsideZone(this.player.position)) {
@@ -732,7 +723,7 @@ class Game {
         for (let i = 0; i < botsPerFrame && i < this.bots.length; i++) {
             const botIndex = (this.botUpdateIndex + i) % this.bots.length;
             if (this.bots[botIndex].isAlive) {
-                this.bots[botIndex].update(delta, this.botBrains[botIndex], this.entityManager, this.lootManager, this.audioSynth, this.physics);
+                this.bots[botIndex].update(delta, this.botBrains[botIndex], this.entityManager, this.lootManager, this.audioSynth, this.physics, this.zone);
 
                 if (this.gameState === 'playing' && !this.zone.isInsideZone(this.bots[botIndex].position)) {
                     const damage = this.zone.getDamage(delta);
@@ -938,3 +929,12 @@ window.addEventListener('DOMContentLoaded', () => {
         }, { passive: false });
     }
 });
+
+
+
+
+
+
+
+
+

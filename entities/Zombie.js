@@ -35,8 +35,8 @@ export class Zombie {
 
     createMesh() {
         const group = new THREE.Group();
-        const bodyColor = this.variant === 'brute' ? 0x1b5e20 : this.variant === 'mutant' ? 0x33691e : 0x2e7d32;
-        const headColor = this.variant === 'brute' ? 0x4e5d1b : this.variant === 'mutant' ? 0x5d8031 : 0x558b2f;
+        const bodyColor = this.variant === 'brute' ? 0x1b241f : this.variant === 'mutant' ? 0x1f2a23 : 0x1c2621;
+        const headColor = this.variant === 'brute' ? 0x222c26 : this.variant === 'mutant' ? 0x263029 : 0x202a24;
         const bodyMat = new THREE.MeshStandardMaterial({
             color: bodyColor,
             roughness: 0.85,
@@ -59,10 +59,10 @@ export class Zombie {
             flatShading: true
         });
         const glowMat = new THREE.MeshStandardMaterial({
-            color: 0x8bc34a,
-            emissive: 0x7cb342,
-            emissiveIntensity: 0.6,
-            roughness: 0.4,
+            color: 0x8bff4f,
+            emissive: 0x7dff3f,
+            emissiveIntensity: 1.35,
+            roughness: 0.2,
             flatShading: true
         });
         const body = new THREE.Mesh(
@@ -102,42 +102,37 @@ export class Zombie {
         head.position.y = 1.7;
         group.add(head);
 
-        const eyeMat = new THREE.MeshStandardMaterial({ color: 0xff5252, emissive: 0xff3d00, emissiveIntensity: 1.25 });
-        const leftEye = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.04), eyeMat);
-        const rightEye = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.04), eyeMat);
+        const eyeMat = new THREE.MeshStandardMaterial({ color: 0xff2b1a, emissive: 0xff2a00, emissiveIntensity: 2.4 });
+        const leftEye = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.05), eyeMat);
+        const rightEye = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.05), eyeMat);
         leftEye.position.set(-0.14, 1.75, 0.35);
         rightEye.position.set(0.14, 1.75, 0.35);
         group.add(leftEye);
         group.add(rightEye);
 
+        const eyeGlowMat = new THREE.MeshStandardMaterial({ color: 0xff3a20, emissive: 0xff3a20, emissiveIntensity: 1.8, transparent: true, opacity: 0.65 });
+        const leftGlow = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.02), eyeGlowMat);
+        const rightGlow = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.02), eyeGlowMat);
+        leftGlow.position.set(-0.14, 1.75, 0.39);
+        rightGlow.position.set(0.14, 1.75, 0.39);
+        group.add(leftGlow);
+        group.add(rightGlow);
+
         const jaw = new THREE.Mesh(
-            new THREE.BoxGeometry(0.3, 0.12, 0.06),
+            new THREE.BoxGeometry(0.34, 0.14, 0.08),
             grimeMat
         );
-        jaw.position.set(0, 1.58, 0.34);
+        jaw.position.set(0, 1.56, 0.36);
         group.add(jaw);
 
-        if (this.variant === 'mutant') {
-            const hornMat = new THREE.MeshStandardMaterial({ color: 0x1b1b1b, roughness: 0.4, metalness: 0.2, flatShading: true });
-            const hornGeo = new THREE.ConeGeometry(0.08, 0.25, 6);
-            const leftHorn = new THREE.Mesh(hornGeo, hornMat);
-            leftHorn.position.set(-0.22, 2.05, 0);
-            leftHorn.rotation.z = Math.PI / 2;
-            group.add(leftHorn);
-            const rightHorn = new THREE.Mesh(hornGeo, hornMat);
-            rightHorn.position.set(0.22, 2.05, 0);
-            rightHorn.rotation.z = -Math.PI / 2;
-            group.add(rightHorn);
-        }
-
-        const hornMat = new THREE.MeshStandardMaterial({ color: 0x1b1b1b, roughness: 0.4, metalness: 0.2, flatShading: true });
-        const hornGeo = new THREE.ConeGeometry(0.08, 0.25, 6);
+        const hornMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.35, metalness: 0.2, flatShading: true });
+        const hornGeo = new THREE.ConeGeometry(0.09, 0.28, 6);
         const leftHorn = new THREE.Mesh(hornGeo, hornMat);
-        leftHorn.position.set(-0.22, 2.05, 0);
+        leftHorn.position.set(-0.24, 2.05, 0);
         leftHorn.rotation.z = Math.PI / 2;
         group.add(leftHorn);
         const rightHorn = new THREE.Mesh(hornGeo, hornMat);
-        rightHorn.position.set(0.22, 2.05, 0);
+        rightHorn.position.set(0.24, 2.05, 0);
         rightHorn.rotation.z = -Math.PI / 2;
         group.add(rightHorn);
 
@@ -160,12 +155,12 @@ export class Zombie {
         group.add(rightLeg);
 
         const clawMat = new THREE.MeshStandardMaterial({
-            color: 0x1c1c1c,
-            roughness: 0.6,
-            metalness: 0.3,
+            color: 0x0e0e0e,
+            roughness: 0.5,
+            metalness: 0.4,
             flatShading: true
         });
-        const clawGeo = new THREE.ConeGeometry(0.05, 0.2, 6);
+        const clawGeo = new THREE.ConeGeometry(0.08, 0.3, 6);
         const leftClaw = new THREE.Mesh(clawGeo, clawMat);
         leftClaw.position.set(-0.52, 0.7, 0.34);
         leftClaw.rotation.x = Math.PI / 2;

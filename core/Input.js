@@ -25,6 +25,8 @@ export class Input {
             active: false
         };
 
+        this.keyRemap = this.loadKeyRemap();
+
         this.setupKeyboard();
         this.setupMouse();
         this.setupTouch();
@@ -214,16 +216,53 @@ export class Input {
         // Quick command buttons removed for mobile
     }
 
+    loadKeyRemap() {
+        try {
+            const raw = localStorage.getItem('rublox_keybinds');
+            return raw ? JSON.parse(raw) : {};
+        } catch (_) {
+            return {};
+        }
+    }
+
+    saveKeyRemap() {
+        try {
+            localStorage.setItem('rublox_keybinds', JSON.stringify(this.keyRemap || {}));
+        } catch (_) {}
+    }
+
+    setKeyRemap(logical, physical) {
+        if (!logical || !physical) return;
+        if (!this.keyRemap) this.keyRemap = {};
+        for (const key in this.keyRemap) {
+            if (this.keyRemap[key] === physical && key !== logical) {
+                delete this.keyRemap[key];
+            }
+        }
+        this.keyRemap[logical] = physical;
+        this.saveKeyRemap();
+    }
+
+    getKeyRemap() {
+        return this.keyRemap || {};
+    }
+
+    resolveKey(code) {
+        const remap = this.keyRemap || {};
+        return remap[code] || code;
+    }
+
+    isKeyPressed(code) {
+        const resolved = this.resolveKey(code);
+        return !!this.keys[resolved];
+    }
+
     resetLook() {
         this.touch.lookDeltaX = 0;
         this.touch.lookDeltaY = 0;
         this.touch.lastLookX = 0;
         this.touch.lastLookY = 0;
         this.touch.lookId = null;
-    }
-
-    isKeyPressed(code) {
-        return this.keys[code] === true;
     }
 
     getMouseDelta() {

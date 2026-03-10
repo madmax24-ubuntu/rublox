@@ -685,6 +685,17 @@ export class Player {
             this.updateViewWeapon();
         } else if (loot.type === 'armor') {
             this.armor = Math.min(this.maxArmor, this.armor + loot.amount);
+        } else if (loot.type === 'ammo') {
+            const amount = loot.amount || 0;
+            if (amount > 0) {
+                const candidates = this.inventory.getItems().filter(w => w && w.ammo !== null);
+                const target = this.currentWeapon && this.currentWeapon.ammo !== null
+                    ? this.currentWeapon
+                    : candidates[0];
+                if (target) {
+                    target.ammo = Math.min(target.maxAmmo ?? target.ammo, (target.ammo ?? 0) + amount);
+                }
+            }
         }
         this.stats.loot += 1;
     }

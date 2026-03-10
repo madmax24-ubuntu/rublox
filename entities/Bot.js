@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 import { Inventory } from '../items/Inventory.js';
 import { Weapon } from '../items/Weapon.js';
 import { spawnDamagePopup } from './DamagePopup.js';
@@ -385,7 +385,7 @@ export class Bot {
         });
     }
 
-    update(delta, brain, entityManager, lootManager, audioSynth, physics) {
+    update(delta, brain, entityManager, lootManager, audioSynth, physics, zone) {
         if (!this.isAlive) {
             this.mesh.position.copy(this.position);
             if (this.healthBar) this.healthBar.visible = false;
@@ -421,7 +421,19 @@ export class Bot {
             this.animateLimbs();
             this.updateHealthBar();
             return;
+        }        if (zone && typeof zone.isInsideZone === "function" && !zone.isInsideZone(this.position)) {
+            const center = new THREE.Vector3(0, this.position.y, 0);
+            this.target = null;
+            this.patrolTarget = center.clone();
+            this.moveTowards(center, this.physics.speed * 1.25);
+            this.mesh.position.copy(this.position);
+            this.mesh.position.y = this.position.y - (this.physics.height - 0.2);
+            this.mesh.rotation.y = this.rotation.y;
+            this.animateLimbs();
+            this.updateHealthBar();
+            return;
         }
+
 
         brain.update(this, delta, entityManager, lootManager, audioSynth);
         if (this.escapeTimer > 0) {
@@ -432,10 +444,24 @@ export class Bot {
         }
 
         this.updateNavProgress(delta);
-        if (this.isStuck && !this.escapeDir) {
+                if (this.isStuck && !this.escapeDir) {
             const angle = Math.random() * Math.PI * 2;
             this.escapeDir = new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle));
-            this.escapeTimer = 0.6;
+            this.escapeTimer = 1.2;
+            if (this.mapRef?.getFloorTiles) {
+                const tiles = this.mapRef.getFloorTiles();
+                if (tiles.length) {
+                    for (let i = 0; i < 12; i++) {
+                        const tile = tiles[Math.floor(Math.random() * tiles.length)];
+                        const dx = tile.x - this.position.x;
+                        const dz = tile.z - this.position.z;
+                        const dist = Math.hypot(dx, dz);
+                        if (dist < 25) continue;
+                        this.patrolTarget = new THREE.Vector3(tile.x, 0, tile.z);
+                        break;
+                    }
+                }
+            }
             this.isStuck = false;
         }
 
@@ -546,6 +572,17 @@ export class Bot {
             }
         } else if (loot.type === 'armor') {
             this.armor = Math.min(this.maxArmor, this.armor + loot.amount);
+        } else if (loot.type === 'ammo') {
+            const amount = loot.amount || 0;
+            if (amount > 0) {
+                const candidates = this.inventory.getItems().filter(w => w && w.ammo !== null);
+                const target = this.currentWeapon && this.currentWeapon.ammo !== null
+                    ? this.currentWeapon
+                    : candidates[0];
+                if (target) {
+                    target.ammo = Math.min(target.maxAmmo ?? target.ammo, (target.ammo ?? 0) + amount);
+                }
+            }
         }
         this.stats.loot += 1;
     }
@@ -865,7 +902,7 @@ export class Bot {
             return;
         }
         this.navProgressTimer += delta;
-        if (this.navProgressTimer > 2.2) {
+        if (this.navProgressTimer > 1.4) {
             this.isStuck = true;
             this.navProgressTimer = 0;
             this.navLastDistance = dist;
@@ -941,3 +978,4 @@ export class Bot {
         return a + diff * t;
     }
 }
+

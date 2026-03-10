@@ -22,19 +22,52 @@ export class MapGenerator {
         this.propMeshes = [];
         this.leafMeshes = [];
         this.smallPropMeshes = [];
-        this.biomeColors = {
-            forest: 0x2e7d32,
-            jungle: 0x1f7a3a,
-            plains: 0x8fdc6e,
-            rock: 0x9a9a9a,
-            sand: 0xf2d27a,
-            snow: 0xffffff,
-            lava: 0x9c2f1a
-        };
+        this.biomeColors = {};
         this.heightMap = null;
 
         this.seed = Math.floor((performance.now() + Math.random() * 1000000) % 2147483647);
+        this.biomeColors = this.generateBiomePalette();
         this.generate();
+    }
+
+    generateBiomePalette() {
+        const base = {
+            forest: 0x2e7d32,
+            jungle: 0x1f7a3a,
+            plains: 0x8fdc6e,
+            savanna: 0xb9c85a,
+            swamp: 0x2f6b4f,
+            taiga: 0x3e7f6b,
+            rock: 0x9a9a9a,
+            mesa: 0xb86a3b,
+            sand: 0xf2d27a,
+            snow: 0xffffff,
+            ice: 0xcfe9ff,
+            lava: 0x9c2f1a,
+            tundra: 0xd8e6ef,
+            redwood: 0x1e5f3a,
+            badlands: 0xc56a3a,
+            volcanic: 0x3b3b3b,
+            mushroom: 0x7b4a9a
+        };
+        const seed = (this.seed || 1) >>> 0;
+        let state = seed ^ 0x9e3779b9;
+        const rand = () => {
+            state = (state * 1664525 + 1013904223) >>> 0;
+            return state / 0x100000000;
+        };
+        const palette = {};
+        Object.entries(base).forEach(([key, color]) => {
+            const c = new THREE.Color(color);
+            const hsl = {};
+            c.getHSL(hsl);
+            hsl.h = (hsl.h + (rand() - 0.5) * 0.08 + 1) % 1;
+            hsl.s = Math.min(1, Math.max(0.35, hsl.s + (rand() - 0.5) * 0.15));
+            hsl.l = Math.min(0.85, Math.max(0.2, hsl.l + (rand() - 0.5) * 0.12));
+            const out = new THREE.Color().setHSL(hsl.h, hsl.s, hsl.l);
+            palette[key] = out.getHex();
+        });
+        return palette;
     }
 
     generate() {
@@ -588,10 +621,20 @@ export class MapGenerator {
         if (biome === 'forest') { min = 0.2; max = 1.0; }
         else if (biome === 'jungle') { min = 0.4; max = 1.4; }
         else if (biome === 'plains') { min = 0.1; max = 0.9; }
+        else if (biome === 'savanna') { min = 0.1; max = 0.8; }
+        else if (biome === 'swamp') { min = 0.2; max = 1.0; }
+        else if (biome === 'taiga') { min = 0.25; max = 1.0; }
         else if (biome === 'rock') { min = 0.6; max = 1.8; }
+        else if (biome === 'mesa') { min = 0.4; max = 1.3; }
         else if (biome === 'sand') { min = 0.0; max = 0.6; }
         else if (biome === 'snow') { min = 0.3; max = 1.1; }
+        else if (biome === 'ice') { min = 0.2; max = 0.9; }
         else if (biome === 'lava') { min = 0.1; max = 0.7; }
+        else if (biome === 'tundra') { min = 0.2; max = 0.85; }
+        else if (biome === 'redwood') { min = 0.35; max = 1.2; }
+        else if (biome === 'badlands') { min = 0.35; max = 1.25; }
+        else if (biome === 'volcanic') { min = 0.4; max = 1.4; }
+        else if (biome === 'mushroom') { min = 0.25; max = 0.95; }
         const height = min + (max - min) * n;
         return Math.round(height / 0.2) * 0.2;
     }

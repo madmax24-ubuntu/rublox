@@ -463,6 +463,10 @@ export class HUD {
                 <div style="font-size:${px(12)}px;opacity:0.8;margin-bottom:${px(12)}px;">
                     WASD — движение · Мышь — обзор · E — взаимодействие · Space — прыжок · ЛКМ — атака
                 </div>
+                <div id="keybindSection" style="display:${isMobile ? 'none' : 'block'};margin-bottom:${px(10)}px;">
+                    <div style="font-size:${px(12)}px;opacity:0.8;margin-bottom:${px(6)}px;">Управление (кликни, чтобы переназначить)</div>
+                    <div id="keybindList" style="display:grid;gap:${px(6)}px;"></div>
+                </div>
                 <div style="display:flex;gap:${px(8)}px;flex-wrap:wrap;">
                     <button id="pauseResume" class="perk-btn" style="flex:1;">Продолжить</button>
                     <button id="pauseEdit" class="perk-btn" style="flex:1;display:${isMobile ? 'block' : 'none'};">Настроить кнопки</button>
@@ -603,6 +607,7 @@ export class HUD {
         document.head.appendChild(style);
 
         this.bindPauseUI();
+        this.initKeybindUI();
         if (isMobile) {
             this.initTouchLayout();
         }
@@ -711,6 +716,118 @@ export class HUD {
         document.addEventListener('mousedown', onDown);
         document.addEventListener('mousemove', onMove);
         document.addEventListener('mouseup', onUp);
+    }
+
+    initKeybindUI() {
+        const list = document.getElementById('keybindList');
+        if (!list) return;
+        this.keybindActions = [
+            { id: 'KeyW', label: 'Вперёд' },
+            { id: 'KeyS', label: 'Назад' },
+            { id: 'KeyA', label: 'Влево' },
+            { id: 'KeyD', label: 'Вправо' },
+            { id: 'Space', label: 'Прыжок' },
+            { id: 'KeyE', label: 'Взаимодействие' },
+            { id: 'MouseLeft', label: 'Атака' },
+            { id: 'KeyP', label: 'Меню перков' }
+        ];
+        this.renderKeybinds();
+        this.bindRebindListeners();
+    }
+
+    renderKeybinds() {
+        const list = document.getElementById('keybindList');
+        if (!list || !this.keybindActions) return;
+        list.innerHTML = '';
+        const binds = this.getStoredKeybinds();
+        this.keybindActions.forEach((item) => {
+            const row = document.createElement('div');
+            row.style.cssText = `
+                display:flex;
+                align-items:center;
+                justify-content:space-between;
+                gap:${Math.max(6, Math.round(list.clientWidth * 0.02))}px;
+                background: rgba(255,255,255,0.06);
+                border: 1px solid rgba(255,255,255,0.12);
+                border-radius: 8px;
+                padding: 6px 8px;
+                font-size: 12px;
+            `;
+            const left = document.createElement('div');
+            left.textContent = item.label;
+            const btn = document.createElement('button');
+            btn.className = 'perk-btn';
+            btn.dataset.action = item.id;
+            btn.textContent = this.formatKeyLabel(binds[item.id] || item.id);
+            btn.style.cssText = `
+                padding: 4px 8px;
+                font-size: 11px;
+                border-radius: 8px;
+                min-width: 70px;
+            `;
+            btn.addEventListener('click', () => this.beginRebind(item.id, btn));
+            row.appendChild(left);
+            row.appendChild(btn);
+            list.appendChild(row);
+        });
+    }
+
+    getStoredKeybinds() {
+        try {
+            const raw = localStorage.getItem('rublox_keybinds');
+            return raw ? JSON.parse(raw) : {};
+        } catch (_) {
+            return {};
+        }
+    }
+
+    formatKeyLabel(code) {
+        if (code === 'MouseLeft') return 'LMB';
+        if (code === 'MouseRight') return 'RMB';
+        if (code === 'Space') return 'SPACE';
+        if (code.startsWith('Key')) return code.replace('Key', '');
+        if (code.startsWith('Digit')) return code.replace('Digit', '');
+        return code;
+    }
+
+    bindRebindListeners() {
+        document.addEventListener('keydown', (e) => {
+            if (!this.rebindAction) return;
+            e.preventDefault();
+            this.finishRebind(this.rebindAction, e.code);
+        });
+        document.addEventListener('mousedown', (e) => {
+            if (!this.rebindAction) return;
+            e.preventDefault();
+            const code = e.button === 0 ? 'MouseLeft' : e.button === 2 ? 'MouseRight' : `Mouse${e.button}`;
+            this.finishRebind(this.rebindAction, code);
+        });
+    }
+
+    beginRebind(action, button) {
+        this.rebindAction = action;
+        if (button) button.textContent = '...';
+        this.rebindButton = button || null;
+    }
+
+    finishRebind(action, code) {
+        this.rebindAction = null;
+        if (this.rebindButton) {
+            this.rebindButton.textContent = this.formatKeyLabel(code);
+            this.rebindButton = null;
+        }
+        try {
+            const binds = this.getStoredKeybinds();
+            for (const key in binds) {
+                if (binds[key] === code && key !== action) {
+                    delete binds[key];
+                }
+            }
+            binds[action] = code;
+            localStorage.setItem('rublox_keybinds', JSON.stringify(binds));
+        } catch (_) {}
+        document.dispatchEvent(new CustomEvent('rebindKey', { detail: { action, code } }));
+        this.renderKeybinds();
     }
 
     updateHealth(health, maxHealth) {

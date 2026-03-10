@@ -231,6 +231,9 @@ export class LootManager {
             return { type: 'armor', amount: 60 + Math.random() * 40 };
         }
         const rand = Math.random();
+        if (rand < 0.08) {
+            return { type: 'ammo', amount: 6 + Math.floor(Math.random() * 10) };
+        }
 
         if (rand < 0.05) {
             return { type: 'weapon', weaponType: 'laser' };
