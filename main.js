@@ -921,16 +921,20 @@ window.addEventListener('DOMContentLoaded', () => {
         game.hud.showGameMessage('\u041f\u0435\u0440\u043a \u0430\u043a\u0442\u0438\u0432\u0438\u0440\u043e\u0432\u0430\u043d');
     });
 
-    const startButton = document.getElementById('startButton');
-    if (startButton) {
-        startButton.addEventListener('click', async () => {
+    const bindStartButton = (button) => {
+        if (!button) return;
+        button.addEventListener('click', async () => {
             await game.startGame();
         });
-        startButton.addEventListener('touchstart', async (e) => {
+        button.addEventListener('touchstart', async (e) => {
             e.preventDefault();
             await game.startGame();
         }, { passive: false });
-    }
+    };
+
+    bindStartButton(document.getElementById('startButtonDesktop'));
+    bindStartButton(document.getElementById('startButtonMobile'));
+    bindStartButton(document.getElementById('startButton'));
 });
 
 

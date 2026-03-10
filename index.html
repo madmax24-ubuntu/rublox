@@ -277,65 +277,98 @@
             cursor: auto;
         }
 
-        .start-card {
-            width: min(860px, calc(100vw - 20px));
-            max-height: calc(100vh - 20px);
-            background:
-                linear-gradient(180deg, rgba(9, 23, 34, 0.78), rgba(7, 16, 25, 0.84)),
-                radial-gradient(circle at 18% 20%, rgba(76, 175, 80, 0.22), transparent 48%),
-                radial-gradient(circle at 82% 80%, rgba(255, 193, 7, 0.2), transparent 45%);
-            border: 2px solid rgba(255, 255, 255, 0.14);
-            border-radius: 24px;
-            box-shadow: 0 24px 54px rgba(0, 0, 0, 0.55);
-            backdrop-filter: blur(10px);
-            position: relative;
-            z-index: 1;
-            overflow: hidden auto;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(255, 255, 255, 0.3) rgba(0, 0, 0, 0.15);
-        }
-        .start-card::before {
-            content: "";
+        .start-layout {
             position: absolute;
-            inset: -25%;
-            pointer-events: none;
-            background:
-                radial-gradient(circle at 22% 36%, rgba(129, 199, 132, 0.24), transparent 36%),
-                radial-gradient(circle at 68% 20%, rgba(79, 195, 247, 0.2), transparent 34%),
-                radial-gradient(circle at 75% 70%, rgba(255, 160, 0, 0.2), transparent 38%);
-            filter: blur(30px);
-            animation: menuClouds 16s ease-in-out infinite alternate;
+            inset: 0;
+            display: none;
+            overflow: hidden;
         }
 
-        .start-left {
+        .start-layout.desktop {
+            grid-template-columns: minmax(460px, 52vw) 1fr;
+        }
+
+        .start-layout.mobile {
+            flex-direction: column;
+        }
+
+        .start-panel {
             position: relative;
             z-index: 2;
-            padding: 36px 38px 32px;
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-            text-align: left;
+            background: rgba(7, 18, 28, 0.66);
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            padding: clamp(18px, 3.5vh, 40px) clamp(14px, 3.5vw, 48px);
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
         }
 
-        .start-right {
-            display: none;
+        .start-layout.mobile .start-panel {
+            border-right: 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 14px 14px calc(12px + env(safe-area-inset-bottom));
         }
 
-        #startScreen h1 {
-            font-size: clamp(40px, 7vw, 82px);
-            line-height: 0.95;
-            margin: 0 0 2px;
-            text-transform: uppercase;
-            letter-spacing: 4px;
-            color: #ffffff;
-            text-shadow: 0 6px 0 rgba(0, 0, 0, 0.35);
+        .start-visual {
+            position: relative;
+            overflow: hidden;
         }
+
+        .start-layout.mobile .start-visual {
+            min-height: 36vh;
+            max-height: 42vh;
+        }
+
+        .dyn-bg {
+            position: absolute;
+            inset: -12%;
+            background:
+                radial-gradient(circle at 24% 30%, rgba(110, 220, 145, 0.28), transparent 38%),
+                radial-gradient(circle at 74% 24%, rgba(75, 179, 255, 0.24), transparent 40%),
+                radial-gradient(circle at 64% 74%, rgba(255, 179, 0, 0.26), transparent 36%),
+                linear-gradient(145deg, #0a1723 0%, #112437 55%, #0b1824 100%);
+            animation: menuClouds 14s ease-in-out infinite alternate;
+        }
+
+        .dyn-lines {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+            background-size: 36px 36px;
+            opacity: 0.25;
+            animation: gridDrift 12s linear infinite;
+        }
+
+        .dyn-particles {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        .dyn-particles span {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.65);
+            animation: particleRise 8s linear infinite;
+        }
+
+        .dyn-particles span:nth-child(1) { left: 10%; bottom: -20px; animation-delay: 0s; }
+        .dyn-particles span:nth-child(2) { left: 22%; bottom: -20px; animation-delay: 1.2s; }
+        .dyn-particles span:nth-child(3) { left: 36%; bottom: -20px; animation-delay: 2.5s; }
+        .dyn-particles span:nth-child(4) { left: 54%; bottom: -20px; animation-delay: 0.7s; }
+        .dyn-particles span:nth-child(5) { left: 66%; bottom: -20px; animation-delay: 1.8s; }
+        .dyn-particles span:nth-child(6) { left: 82%; bottom: -20px; animation-delay: 3.1s; }
 
         .start-badges {
             display: flex;
-            justify-content: center;
+            flex-wrap: wrap;
             gap: 10px;
-            margin-bottom: 16px;
+            margin-bottom: 10px;
         }
 
         .start-badge {
@@ -350,14 +383,34 @@
             box-shadow: 0 8px 18px rgba(255, 179, 0, 0.35);
         }
 
+        .start-title {
+            font-size: clamp(40px, 7vw, 82px);
+            line-height: 0.95;
+            margin: 0 0 6px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            color: #ffffff;
+            text-shadow: 0 6px 0 rgba(0, 0, 0, 0.35);
+        }
+
+        .start-layout.mobile .start-title {
+            font-size: clamp(34px, 10vw, 56px);
+            margin-bottom: 8px;
+            letter-spacing: 2px;
+        }
+
         #startScreen p {
             font-size: clamp(16px, 2vw, 24px);
-            margin: 0 0 12px;
+            margin: 0 0 10px;
             opacity: 0.92;
             max-width: 620px;
         }
 
-        #startButton {
+        .start-layout.mobile p {
+            font-size: clamp(14px, 4vw, 18px);
+        }
+
+        .start-btn {
             width: min(420px, 80vw);
             padding: 18px 24px;
             font-size: clamp(22px, 3vw, 30px);
@@ -373,27 +426,33 @@
             letter-spacing: 2px;
         }
 
+        .start-layout.mobile .start-btn {
+            width: 100%;
+            font-size: clamp(20px, 6vw, 28px);
+            padding: 14px 16px;
+        }
+
         .start-footer {
-            margin-top: 10px;
-            font-size: clamp(11px, 1.5vw, 14px);
+            margin-top: 8px;
+            font-size: clamp(11px, 1.4vw, 14px);
             opacity: 0.8;
         }
 
-        #startButton:hover {
+        .start-btn:hover {
             transform: translateY(-2px) scale(1.02);
             box-shadow: 0 14px 28px rgba(255, 179, 0, 0.5);
         }
 
-        #startButton:active {
+        .start-btn:active {
             transform: translateY(1px) scale(0.98);
         }
 
         .controls-info {
             margin-top: 10px;
             opacity: 0.82;
-            font-size: clamp(11px, 1.25vw, 14px);
+            font-size: clamp(10px, 1.1vw, 14px);
             display: grid;
-            gap: 4px;
+            gap: 3px;
             max-width: 620px;
             text-align: left;
             grid-template-columns: repeat(2, minmax(180px, 1fr));
@@ -404,53 +463,75 @@
         }
 
         @media (max-width: 980px) {
-            .start-card {
-                width: min(860px, calc(100vw - 16px));
-                max-height: calc(100vh - 16px);
+            .start-layout.desktop {
+                display: none;
             }
 
-            .start-left {
-                padding: 24px 18px 20px;
+            .start-layout.mobile {
+                display: flex;
             }
 
             .controls-info {
-                text-align: left;
                 grid-template-columns: 1fr;
                 gap: 2px;
             }
         }
 
-        @media (max-width: 680px) {
-            #startScreen {
-                padding: 8px;
+        @media (pointer: coarse) {
+            .start-layout.desktop {
+                display: none;
             }
 
-            .start-card {
-                width: calc(100vw - 16px);
-                max-height: calc(100vh - 16px);
-                border-radius: 16px;
+            .start-layout.mobile {
+                display: flex;
+            }
+        }
+
+        @media (min-width: 981px) and (pointer: fine) {
+            .start-layout.desktop {
+                display: grid;
             }
 
-            .start-left {
-                padding: 18px 14px 14px;
+            .start-layout.mobile {
+                display: none;
             }
+        }
 
+        @media (max-height: 760px) and (min-width: 981px) {
+            .start-panel {
+                padding-top: 16px;
+                padding-bottom: 14px;
+            }
             .controls-info {
-                font-size: 11px;
-                gap: 3px;
-                max-width: none;
-                grid-template-columns: 1fr;
+                font-size: 12px;
             }
+        }
 
-            #startButton {
-                width: 100%;
-                font-size: 22px;
-                padding: 14px 14px;
+        @media (prefers-reduced-motion: reduce) {
+            .dyn-bg,
+            .dyn-lines,
+            .dyn-particles span {
+                animation: none;
             }
         }
         @keyframes menuClouds {
             0% { transform: translate3d(-3%, -2%, 0) scale(1); }
             100% { transform: translate3d(3%, 2%, 0) scale(1.06); }
+        }
+        @keyframes gridDrift {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-36px); }
+        }
+        @keyframes particleRise {
+            0% {
+                transform: translateY(0) scale(0.8);
+                opacity: 0;
+            }
+            20% { opacity: 0.85; }
+            100% {
+                transform: translateY(-88vh) scale(1.4);
+                opacity: 0;
+            }
         }
     </style>
     <script type="importmap">
@@ -465,15 +546,15 @@
 <body>
     <div id="gameRoot">
     <div id="startScreen">
-        <div class="start-card">
-            <div class="start-left">
+        <div class="start-layout desktop">
+            <div class="start-panel">
                 <div class="start-badges">
                     <div class="start-badge">Hunger Games</div>
                     <div class="start-badge">Roblox Style</div>
                 </div>
-                <h1>RUBLOX<br>ARENA</h1>
+                <h1 class="start-title">RUBLOX<br>ARENA</h1>
                 <p>Выживание до последнего игрока. Рандомная карта, лут из сундуков и перки прямо во время боя.</p>
-                <button id="startButton">Начать игру</button>
+                <button id="startButtonDesktop" class="start-btn">Начать игру</button>
                 <div class="start-footer">Быстрый матч · Рандомная карта · Перки в бою</div>
                 <div class="controls-info">
                     <div><strong>WASD</strong> - движение</div>
@@ -489,6 +570,33 @@
                     <div><strong>Mobile</strong> - левый стик: движение, правая сторона: обзор</div>
                     <div><strong>Mobile</strong> - кнопки: Прыжок / Атака / Действие</div>
                 </div>
+            </div>
+            <div class="start-visual">
+                <div class="dyn-bg"></div>
+                <div class="dyn-lines"></div>
+                <div class="dyn-particles">
+                    <span></span><span></span><span></span><span></span><span></span><span></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="start-layout mobile">
+            <div class="start-visual">
+                <div class="dyn-bg"></div>
+                <div class="dyn-lines"></div>
+                <div class="dyn-particles">
+                    <span></span><span></span><span></span><span></span><span></span><span></span>
+                </div>
+            </div>
+            <div class="start-panel">
+                <div class="start-badges">
+                    <div class="start-badge">Mobile</div>
+                    <div class="start-badge">Fullscreen</div>
+                </div>
+                <h1 class="start-title">RUBLOX<br>ARENA</h1>
+                <p>Полноэкранный матч на телефоне. Нажми старт и сразу в бой.</p>
+                <button id="startButtonMobile" class="start-btn">Начать игру</button>
+                <div class="start-footer">Левый стик: движение · Правая часть: обзор · Кнопки: Прыжок / Удар / E</div>
             </div>
         </div>
     </div>
