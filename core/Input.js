@@ -46,6 +46,14 @@ export class Input {
             }
             this.keys[e.code] = false;
         });
+
+        // Prevent stuck keys when browser focus changes (pause/menu/fullscreen transitions).
+        window.addEventListener('blur', () => {
+            this.clearInputState();
+        });
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) this.clearInputState();
+        });
     }
 
     setupMouse() {
@@ -268,6 +276,18 @@ export class Input {
         this.touch.lookDeltaY = 0;
         this.touch.lastLookX = 0;
         this.touch.lastLookY = 0;
+        this.touch.lookId = null;
+    }
+
+    clearInputState() {
+        this.keys = {};
+        this.mouse.deltaX = 0;
+        this.mouse.deltaY = 0;
+        this.touch.moveX = 0;
+        this.touch.moveY = 0;
+        this.touch.lookDeltaX = 0;
+        this.touch.lookDeltaY = 0;
+        this.touch.moveId = null;
         this.touch.lookId = null;
     }
 

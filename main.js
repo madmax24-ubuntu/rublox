@@ -265,6 +265,7 @@ class Game {
         if (this.gameState === 'countdown') return;
         this.isPaused = value;
         this.hud.showPause(this.isPaused);
+        this.input?.clearInputState?.();
         if (this.controls && !this.isMobile()) {
             if (this.isPaused && this.controls.isLocked) this.controls.unlock();
             if (!this.isPaused && !this.controls.isLocked) this.controls.lock();
