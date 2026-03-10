@@ -470,19 +470,19 @@ class Game {
         if (!this.player?.isAlive) return;
         if (!this.achievementState.firstBlood && this.player.stats.kills >= 1) {
             this.achievementState.firstBlood = true;
-            this.hud.showGameMessage('Р”РѕСЃС‚РёР¶РµРЅРёРµ: РџРµСЂРІР°СЏ РєСЂРѕРІСЊ');
+            this.hud.showGameMessage('\u0414\u043e\u0441\u0442\u0438\u0436\u0435\u043d\u0438\u0435: \u041f\u0435\u0440\u0432\u0430\u044f \u043a\u0440\u043e\u0432\u044c');
         }
         if (!this.achievementState.hunter && this.player.stats.kills >= 5) {
             this.achievementState.hunter = true;
-            this.hud.showGameMessage('Р”РѕСЃС‚РёР¶РµРЅРёРµ: РћС…РѕС‚РЅРёРє');
+            this.hud.showGameMessage('\u0414\u043e\u0441\u0442\u0438\u0436\u0435\u043d\u0438\u0435: \u041e\u0445\u043e\u0442\u043d\u0438\u043a');
         }
         if (!this.achievementState.scavenger && this.player.stats.loot >= 8) {
             this.achievementState.scavenger = true;
-            this.hud.showGameMessage('Р”РѕСЃС‚РёР¶РµРЅРёРµ: РњР°СЂРѕРґРµСЂ');
+            this.hud.showGameMessage('\u0414\u043e\u0441\u0442\u0438\u0436\u0435\u043d\u0438\u0435: \u041c\u0430\u0440\u043e\u0434\u0435\u0440');
         }
         if (!this.achievementState.survivor && aliveCount <= 5) {
             this.achievementState.survivor = true;
-            this.hud.showGameMessage('Р”РѕСЃС‚РёР¶РµРЅРёРµ: Р’С‹Р¶РёРІС€РёР№');
+            this.hud.showGameMessage('\u0414\u043e\u0441\u0442\u0438\u0436\u0435\u043d\u0438\u0435: \u0412\u044b\u0436\u0438\u0432\u0448\u0438\u0439');
         }
     }
 

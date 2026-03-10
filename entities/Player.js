@@ -928,20 +928,20 @@ export class Player {
         };
 
         if (type === 'knife') {
-            base.position.set(0.22, -0.4, -0.58);
-            base.rotation.set(0.02, Math.PI, Math.PI / 12);
-            base.scale = 1.05;
+            base.position.set(0.22, -0.34, -0.66);
+            base.rotation.set(-Math.PI / 2 + 0.12, Math.PI, 0.08);
+            base.scale = 1.0;
         } else if (type === 'bow') {
             base.position.set(0.2, -0.22, -1.02);
             base.rotation.set(0.02, Math.PI, Math.PI / 2.2);
             base.scale = 0.68;
         } else if (type === 'axe') {
-            base.position.set(0.24, -0.3, -0.7);
-            base.rotation.set(0.1, Math.PI, Math.PI / 3);
+            base.position.set(0.24, -0.3, -0.74);
+            base.rotation.set(-Math.PI / 2 + 0.08, Math.PI, 0.12);
             base.scale = 1.0;
         } else if (type === 'spear') {
-            base.position.set(0.2, -0.28, -0.95);
-            base.rotation.set(0, Math.PI, Math.PI / 2.6);
+            base.position.set(0.2, -0.28, -0.98);
+            base.rotation.set(-Math.PI / 2, Math.PI, 0.02);
             base.scale = 1.0;
         } else if (type === 'shotgun') {
             base.position.set(0.26, -0.32, -0.75);
