@@ -34,10 +34,16 @@ export class Input {
 
     setupKeyboard() {
         document.addEventListener('keydown', (e) => {
+            if (e.code === 'F1') {
+                e.preventDefault();
+            }
             this.keys[e.code] = true;
         });
 
         document.addEventListener('keyup', (e) => {
+            if (e.code === 'F1') {
+                e.preventDefault();
+            }
             this.keys[e.code] = false;
         });
     }

@@ -437,6 +437,25 @@
         }, { passive: false });
         hud.appendChild(pauseButton);
 
+        const pauseKeyInfo = document.createElement('div');
+        pauseKeyInfo.id = 'pauseKeyInfo';
+        pauseKeyInfo.textContent = 'F1 - ПАУЗА';
+        pauseKeyInfo.style.cssText = `
+            position: absolute;
+            top: ${px(18)}px;
+            left: ${px(64)}px;
+            background: rgba(14, 26, 36, 0.88);
+            padding: ${px(7)}px ${px(12)}px;
+            border-radius: ${px(10)}px;
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            font-size: ${px(12)}px;
+            font-weight: 800;
+            letter-spacing: 0.6px;
+            display: ${isMobile ? 'none' : 'block'};
+            z-index: 1300;
+        `;
+        hud.appendChild(pauseKeyInfo);
+
         const pauseOverlay = document.createElement('div');
         pauseOverlay.id = 'pauseOverlay';
         pauseOverlay.style.cssText = `
@@ -461,7 +480,7 @@
                 font-weight:700;">
                 <div style="font-size:${px(20)}px;margin-bottom:${px(10)}px;">Пауза</div>
                 <div style="font-size:${px(12)}px;opacity:0.8;margin-bottom:${px(12)}px;">
-                    WASD - движение · Мышь - обзор · E - взаимодействие · Space - прыжок · ЛКМ - атака
+                    WASD - движение · Мышь - обзор · E - взаимодействие · Space - прыжок · ЛКМ - атака · F1 - пауза
                 </div>
                 <div id="keybindSection" style="display:${isMobile ? 'none' : 'block'};margin-bottom:${px(10)}px;">
                     <div style="font-size:${px(12)}px;opacity:0.8;margin-bottom:${px(6)}px;">Управление (кликни, чтобы переназначить)</div>

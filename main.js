@@ -138,7 +138,7 @@ class Game {
 
             this.controls.addEventListener('unlock', () => {
                 console.log('Pointer lock disabled');
-                // If ESC unlocks pointer lock/fullscreen, force pause so gameplay never continues silently.
+                // If pointer lock/fullscreen is dropped, force pause so gameplay never continues silently.
                 if (this.isStarted && !this.isPaused && this.gameState !== 'countdown') {
                     this.setPaused(true);
                 }
@@ -537,7 +537,7 @@ class Game {
         this.randomEventTimer = 45 + Math.random() * 35;
     }
     update(delta) {
-        if (this.input.isKeyPressed('Escape')) {
+        if (this.input.isKeyPressed('F1')) {
             if (!this.pauseKeyLatch) {
                 this.setPaused(!this.isPaused);
                 this.pauseKeyLatch = true;
@@ -876,10 +876,10 @@ class Game {
             window.addEventListener('touchend', retry, { passive: false });
         } else {
             await this.enterFullscreen();
-            // On supported browsers, keep Escape inside the game so it can be used for pause.
+            // On supported browsers, keep hotkeys inside the game.
             if (navigator.keyboard?.lock) {
                 try {
-                    await navigator.keyboard.lock(['Escape']);
+                    await navigator.keyboard.lock(['Escape', 'F1']);
                 } catch (err) {
                     console.log('Keyboard lock not available:', err);
                 }
