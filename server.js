@@ -1,12 +1,15 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { WebSocketServer } from 'ws';
+import { createServer } from 'http';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const server = createServer(app);
 
 app.use(express.static(__dirname, {
   setHeaders: (res, filePath) => {
@@ -25,6 +28,120 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-app.listen(PORT, () => {
+const wss = new WebSocketServer({ server, path: '/ws' });
+const rooms = new Map();
+
+const uid = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+const roomSeed = (roomId) => {
+  let h = 2166136261;
+  for (let i = 0; i < roomId.length; i++) {
+    h ^= roomId.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0) || 1;
+};
+
+function getRoom(roomId) {
+  if (!rooms.has(roomId)) {
+    rooms.set(roomId, { clients: new Map(), seed: roomSeed(roomId) });
+  }
+  return rooms.get(roomId);
+}
+
+function removeRoomIfEmpty(roomId) {
+  const room = rooms.get(roomId);
+  if (!room) return;
+  if (room.clients.size === 0) {
+    rooms.delete(roomId);
+  }
+}
+
+function send(ws, payload) {
+  if (ws.readyState !== ws.OPEN) return;
+  ws.send(JSON.stringify(payload));
+}
+
+function broadcast(room, payload, exceptId = null) {
+  const data = JSON.stringify(payload);
+  for (const [id, peer] of room.clients) {
+    if (exceptId && id === exceptId) continue;
+    if (peer.ws.readyState === peer.ws.OPEN) {
+      peer.ws.send(data);
+    }
+  }
+}
+
+wss.on('connection', (ws, req) => {
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  const roomId = (url.searchParams.get('room') || 'global').trim().slice(0, 32) || 'global';
+  const name = (url.searchParams.get('name') || 'Player').trim().slice(0, 24) || 'Player';
+  const id = uid();
+  const room = getRoom(roomId);
+
+  const peer = {
+    id,
+    name,
+    state: {
+      x: 0, y: 0, z: 0,
+      ry: 0, rx: 0,
+      hp: 100,
+      weapon: 'fists',
+      t: Date.now()
+    },
+    ws
+  };
+
+  room.clients.set(id, peer);
+
+  const peers = [...room.clients.values()]
+    .filter((p) => p.id !== id)
+    .map((p) => ({ id: p.id, name: p.name, state: p.state }));
+
+  send(ws, { type: 'init', id, room: roomId, seed: room.seed, peers });
+  broadcast(room, { type: 'peer_join', id, name, state: peer.state }, id);
+
+  ws.on('message', (raw) => {
+    let msg;
+    try {
+      msg = JSON.parse(raw.toString());
+    } catch {
+      return;
+    }
+    if (!msg || typeof msg !== 'object') return;
+
+    if (msg.type === 'state' && msg.state) {
+      const s = msg.state;
+      peer.state = {
+        x: Number.isFinite(s.x) ? s.x : peer.state.x,
+        y: Number.isFinite(s.y) ? s.y : peer.state.y,
+        z: Number.isFinite(s.z) ? s.z : peer.state.z,
+        ry: Number.isFinite(s.ry) ? s.ry : peer.state.ry,
+        rx: Number.isFinite(s.rx) ? s.rx : peer.state.rx,
+        hp: Number.isFinite(s.hp) ? s.hp : peer.state.hp,
+        weapon: typeof s.weapon === 'string' ? s.weapon : peer.state.weapon,
+        t: Date.now()
+      };
+      broadcast(room, { type: 'state', id, state: peer.state }, id);
+    } else if (msg.type === 'hit') {
+      const targetId = typeof msg.targetId === 'string' ? msg.targetId : null;
+      const damage = Math.max(1, Math.min(120, Number(msg.damage) || 0));
+      if (!targetId || targetId === id) return;
+      const target = room.clients.get(targetId);
+      if (!target) return;
+      send(target.ws, { type: 'hit', from: id, damage, weapon: msg.weapon || 'unknown' });
+      send(ws, { type: 'hit_ack', targetId, damage });
+    } else if (msg.type === 'ping') {
+      send(ws, { type: 'pong', t: Date.now() });
+    }
+  });
+
+  ws.on('close', () => {
+    room.clients.delete(id);
+    broadcast(room, { type: 'peer_leave', id });
+    removeRoomIfEmpty(roomId);
+  });
+});
+
+server.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>RUBLOX - Hunger Games</title>
+    <title>Rubo Arena: Голодные игры</title>
     <style>
         :root {
             --ui-dark: #0e1a24;
@@ -19,6 +19,10 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
@@ -28,6 +32,10 @@
             touch-action: none;
             cursor: none;
             font-family: 'Trebuchet MS', Verdana, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         #gameRoot {
@@ -123,6 +131,10 @@
             z-index: 10002;
             color: #fff;
             font-family: 'Trebuchet MS', Verdana, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
             text-align: center;
             padding: 24px;
         }
@@ -234,6 +246,10 @@
             z-index: 10001;
             color: #fff;
             font-family: 'Trebuchet MS', Verdana, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .loading-card {
@@ -647,10 +663,10 @@
         <div class="start-layout desktop">
             <div class="start-panel">
                 <div class="start-badges">
-                    <div class="start-badge">Hunger Games</div>
-                    <div class="start-badge">Roblox Style</div>
+                    <div class="start-badge">Официальный релиз</div>
+                    <div class="start-badge">Выживание</div>
                 </div>
-                <h1 class="start-title">RUBLOX<br>ARENA</h1>
+                <h1 class="start-title">Rubo Arena: Голодные игры</h1>
                 <p>Выживание до последнего игрока. Рандомная карта, лут из сундуков и перки прямо во время боя.</p>
                 <button id="startButtonDesktop" class="start-btn">Начать игру</button>
                 <div class="start-footer">Быстрый матч · Рандомная карта · Перки в бою</div>
@@ -664,7 +680,7 @@
                     <div><strong>P</strong> - меню перков</div>
                     <div><strong>W/S</strong> - выбор перка</div>
                     <div><strong>E</strong> - подтвердить перк</div>
-                    <div><strong>F1</strong> - пауза</div>
+                    <div><strong>M</strong> - пауза</div>
                     <div><strong>Mobile</strong> - левый стик: движение, правая сторона: обзор</div>
                     <div><strong>Mobile</strong> - кнопки: Прыжок / Атака / Действие</div>
                 </div>
@@ -701,7 +717,7 @@
                     <div class="start-badge">Mobile</div>
                     <div class="start-badge">Fullscreen</div>
                 </div>
-                <h1 class="start-title">RUBLOX<br>ARENA</h1>
+                <h1 class="start-title">Rubo Arena: Голодные игры</h1>
                 <p>Полноэкранный матч на телефоне. Нажми старт и сразу в бой.</p>
                 <button id="startButtonMobile" class="start-btn">Начать игру</button>
                 <div class="start-footer">Левый стик: движение · Правая часть: обзор · Кнопки: Прыжок / Удар / E</div>
@@ -732,6 +748,11 @@
         <div id="touchInteract" class="touch-btn">E</div>
     </div>
     </div>
+    <script src="https://yandex.ru/games/sdk/v2"></script>
     <script type="module" src="./main.js"></script>
 </body>
 </html>
+
+
+
+
