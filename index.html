@@ -212,6 +212,9 @@
         #startScreen {
             position: fixed;
             inset: 0;
+            width: 100vw;
+            height: 100dvh;
+            min-height: 100svh;
             background:
                 radial-gradient(1200px 500px at 15% 10%, rgba(255, 179, 0, 0.15), transparent 55%),
                 radial-gradient(900px 420px at 85% 0%, rgba(79, 195, 247, 0.18), transparent 55%),
@@ -220,7 +223,11 @@
             place-items: center;
             z-index: 10000;
             color: var(--ui-light);
-            padding: 20px;
+            padding:
+                max(12px, env(safe-area-inset-top))
+                max(12px, env(safe-area-inset-right))
+                max(12px, env(safe-area-inset-bottom))
+                max(12px, env(safe-area-inset-left));
             cursor: auto;
             overflow: hidden;
         }
@@ -297,6 +304,8 @@
             position: absolute;
             inset: 0;
             display: none;
+            width: 100%;
+            height: 100%;
             overflow: hidden;
         }
 
@@ -306,6 +315,7 @@
 
         .start-layout.mobile {
             flex-direction: column;
+            min-height: 0;
         }
 
         .start-panel {
@@ -323,6 +333,10 @@
             border-right: 0;
             border-top: 1px solid rgba(255, 255, 255, 0.08);
             padding: 14px 14px calc(12px + env(safe-area-inset-bottom));
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .start-visual {
@@ -331,6 +345,7 @@
         }
 
         .start-layout.mobile .start-visual {
+            flex: 0 0 32%;
             min-height: 36vh;
             max-height: 42vh;
         }
@@ -583,6 +598,56 @@
 
             .start-layout.mobile {
                 display: flex;
+            }
+        }
+
+        @media (pointer: coarse) and (orientation: landscape) {
+            .start-layout.mobile {
+                flex-direction: row;
+            }
+
+            .start-layout.mobile .start-visual {
+                flex: 0 0 38%;
+                min-height: 0;
+                max-height: none;
+            }
+
+            .start-layout.mobile .start-panel {
+                padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+            }
+
+            .start-layout.mobile .start-title {
+                font-size: clamp(26px, 5vw, 42px);
+                margin-bottom: 6px;
+            }
+
+            .start-layout.mobile p {
+                font-size: clamp(12px, 2.2vw, 16px);
+            }
+
+            .start-layout.mobile .start-btn {
+                font-size: clamp(16px, 2.8vw, 22px);
+                padding: 10px 12px;
+            }
+
+            .start-layout.mobile .start-badges {
+                gap: 6px;
+                margin-bottom: 6px;
+            }
+
+            .start-layout.mobile .start-badge {
+                padding: 4px 10px;
+                font-size: 10px;
+            }
+
+            .start-layout.mobile .start-footer {
+                font-size: 12px;
+            }
+        }
+
+        @media (pointer: coarse) and (orientation: landscape) and (max-height: 430px) {
+            .start-layout.mobile .start-footer {
+                display: none;
             }
         }
 
