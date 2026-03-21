@@ -30,6 +30,7 @@
             overflow: hidden;
             background: #000;
             touch-action: none;
+            overscroll-behavior: none;
             cursor: none;
             font-family: 'Trebuchet MS', Verdana, sans-serif;
             user-select: none;
@@ -38,12 +39,19 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        html {
+            overscroll-behavior: none;
+            touch-action: none;
+            overflow: hidden;
+        }
+
         #gameRoot {
             position: fixed;
             inset: 0;
             width: 100%;
             height: 100%;
             overflow: hidden;
+            overscroll-behavior: none;
         }
 
         canvas {
@@ -303,17 +311,18 @@
         .start-layout {
             position: absolute;
             inset: 0;
-            display: none;
             width: 100%;
             height: 100%;
             overflow: hidden;
         }
 
         .start-layout.desktop {
+            display: grid;
             grid-template-columns: minmax(460px, 52vw) 1fr;
         }
 
         .start-layout.mobile {
+            display: none;
             flex-direction: column;
             min-height: 0;
         }

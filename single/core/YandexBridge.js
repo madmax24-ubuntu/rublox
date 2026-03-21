@@ -71,12 +71,39 @@ export class YandexBridge {
         return 'en';
     }
 
+    getLangFromUrl() {
+        try {
+            const params = new URLSearchParams(window.location.search || '');
+            const fromUrl = params.get('lang') || params.get('language') || params.get('hl');
+            return this.normalizeLang(fromUrl || '');
+        } catch (_) {
+            return 'ru';
+        }
+    }
+
     applyDomSafety() {
         const prevent = (e) => e.preventDefault();
+        const preventScroll = (e) => {
+            const target = e.target;
+            if (target?.closest?.('[data-allow-scroll]')) return;
+            if (e.cancelable) e.preventDefault();
+        };
+
         window.addEventListener('contextmenu', prevent, { capture: true });
         document.addEventListener('contextmenu', prevent, { capture: true });
         document.addEventListener('selectstart', prevent, { capture: true });
         document.addEventListener('dragstart', prevent, { capture: true });
+        document.addEventListener('touchmove', preventScroll, { capture: true, passive: false });
+        document.addEventListener('wheel', preventScroll, { capture: true, passive: false });
+
+        if (document.documentElement) {
+            document.documentElement.style.overscrollBehavior = 'none';
+            document.documentElement.style.touchAction = 'none';
+        }
+        if (document.body) {
+            document.body.style.overscrollBehavior = 'none';
+            document.body.style.touchAction = 'none';
+        }
     }
 
     signalReady() {
@@ -143,21 +170,22 @@ export class YandexBridge {
     async init() {
         if (this.initialized) return this;
         this.applyDomSafety();
+        this.lang = this.getLangFromUrl();
 
         try {
             if (window.YaGames?.init) {
-                const sdkInit = window.YaGames.init();
-                const timeout = new Promise((_, reject) => {
-                    setTimeout(() => reject(new Error('YaGames init timeout')), 2500);
-                });
-                this.ysdk = await Promise.race([sdkInit, timeout]);
-                this.lang = this.normalizeLang(this.ysdk?.environment?.i18n?.lang || navigator.language);
+                this.ysdk = await window.YaGames.init();
+                this.lang = this.normalizeLang(
+                    this.ysdk?.environment?.i18n?.lang
+                    || this.getLangFromUrl()
+                    || navigator.language
+                );
             } else {
-                this.lang = this.normalizeLang(navigator.language);
+                this.lang = this.normalizeLang(this.getLangFromUrl() || navigator.language || 'ru');
             }
         } catch (err) {
             console.warn('Yandex SDK init failed:', err);
-            this.lang = this.normalizeLang(navigator.language);
+            this.lang = this.normalizeLang(this.getLangFromUrl() || 'ru');
         }
 
         this.applyLocalization();

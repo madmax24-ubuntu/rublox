@@ -99,7 +99,7 @@ class Game {
         const rotateOverlay = document.getElementById('rotateOverlay');
         if (!rotateOverlay) return;
         const isPortrait = window.innerHeight > window.innerWidth;
-        rotateOverlay.style.display = isPortrait ? 'flex' : 'none';
+        rotateOverlay.style.display = this.isStarted && isPortrait ? 'flex' : 'none';
     }
 
     initializeGame() {
