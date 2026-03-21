@@ -755,8 +755,8 @@
                     <div><strong>W/S</strong> - выбор перка</div>
                     <div><strong>E</strong> - подтвердить перк</div>
                     <div><strong>M</strong> - пауза</div>
-                    <div><strong>Mobile</strong> - левый стик: движение, правая сторона: обзор</div>
-                    <div><strong>Mobile</strong> - кнопки: Прыжок / Атака / Действие</div>
+                    <div><strong>Смартфон</strong> - левый стик: движение, правая сторона: обзор</div>
+                    <div><strong>Смартфон</strong> - кнопки: Прыжок / Атака / Действие</div>
                 </div>
             </div>
             <div class="start-visual">
@@ -788,8 +788,8 @@
             </div>
             <div class="start-panel">
                 <div class="start-badges">
-                    <div class="start-badge">Mobile</div>
-                    <div class="start-badge">Fullscreen</div>
+                    <div class="start-badge">Официальный релиз</div>
+                    <div class="start-badge">Выживание</div>
                 </div>
                 <h1 class="start-title">Rubo Arena: Голодные игры</h1>
                 <p>Полноэкранный матч на телефоне. Нажми старт и сразу в бой.</p>
@@ -823,6 +823,16 @@
     </div>
     </div>
     <script src="https://yandex.ru/games/sdk/v2"></script>
+    <script>
+        (() => {
+            const prevent = (e) => { if (e.cancelable) e.preventDefault(); };
+            document.addEventListener('contextmenu', prevent, { capture: true });
+            document.addEventListener('selectstart', prevent, { capture: true });
+            document.addEventListener('dragstart', prevent, { capture: true });
+            document.addEventListener('touchmove', prevent, { capture: true, passive: false });
+            document.addEventListener('wheel', prevent, { capture: true, passive: false });
+        })();
+    </script>
     <script type="module" src="./main.js"></script>
 </body>
 </html>

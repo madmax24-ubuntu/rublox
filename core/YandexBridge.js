@@ -21,8 +21,8 @@
             '<strong>W/S</strong> - выбор перка',
             '<strong>E</strong> - подтвердить перк',
             '<strong>M</strong> - пауза',
-            '<strong>Mobile</strong> - левый стик: движение, правая сторона: обзор',
-            '<strong>Mobile</strong> - кнопки: Прыжок / Атака / Действие'
+            '<strong>Смартфон</strong> - левый стик: движение, правая сторона: обзор',
+            '<strong>Смартфон</strong> - кнопки: Прыжок / Атака / Действие'
         ],
         touchJump: 'Прыжок',
         touchAttack: 'Удар'
@@ -131,9 +131,11 @@ export class YandexBridge {
             el.textContent = t.title;
         });
 
-        const badges = document.querySelectorAll('.start-badges .start-badge');
-        if (badges[0]) badges[0].textContent = t.badge1;
-        if (badges[1]) badges[1].textContent = t.badge2;
+        document.querySelectorAll('.start-badges').forEach((group) => {
+            const badges = group.querySelectorAll('.start-badge');
+            if (badges[0]) badges[0].textContent = t.badge1;
+            if (badges[1]) badges[1].textContent = t.badge2;
+        });
 
         const desktopDesc = document.querySelector('.start-layout.desktop .start-panel p');
         if (desktopDesc) desktopDesc.textContent = t.desktopDesc;

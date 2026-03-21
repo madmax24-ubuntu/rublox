@@ -999,12 +999,19 @@ window.addEventListener('DOMContentLoaded', () => {
 
     const bindStartButton = (button) => {
         if (!button) return;
-        button.addEventListener('click', async () => {
-            await game.startGame();
-        });
-        button.addEventListener('touchstart', async (e) => {
+        const handleStart = async (e) => {
+            if (e?.cancelable) e.preventDefault();
+            try {
+                await game.startGame();
+            } catch (err) {
+                console.error('Start failed:', err);
+            }
+        };
+        button.addEventListener('click', handleStart);
+        button.addEventListener('touchstart', handleStart, { passive: false });
+        button.addEventListener('touchend', (e) => {
             e.preventDefault();
-            await game.startGame();
+            e.stopPropagation();
         }, { passive: false });
     };
 
