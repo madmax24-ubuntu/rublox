@@ -429,17 +429,42 @@ export class BotBrain {
         return null;
     }
 
+    getZonePressure(bot) {
+        const zone = bot.zoneRef;
+        if (!zone?.getCurrentRadius) return 0;
+        const dist = Math.hypot(bot.position.x, bot.position.z);
+        const radius = zone.getCurrentRadius();
+        if (radius <= 0.001) return 0;
+        return dist / radius;
+    }
+
+    getInwardTarget(bot, distance = 26) {
+        const dir = new THREE.Vector3(-bot.position.x, 0, -bot.position.z);
+        if (dir.lengthSq() < 0.001) {
+            dir.set(Math.random() - 0.5, 0, Math.random() - 0.5);
+        }
+        dir.normalize();
+        return bot.position.clone().add(dir.multiplyScalar(distance));
+    }
+
+    shouldRecenter(bot) {
+        return this.getZonePressure(bot) > 0.72;
+    }
+
     setRandomPatrolTarget(bot, minDist, maxDist) {
         const map = bot.mapRef;
+        const zoneRadius = bot.zoneRef?.getCurrentRadius?.() || (map?.halfSize ? map.halfSize * 0.9 : null);
+        const safeRadius = zoneRadius ? Math.max(18, zoneRadius * 0.78) : null;
         if (map && typeof map.getFloorTiles === 'function') {
             const tiles = map.getFloorTiles();
             if (tiles.length) {
-                for (let i = 0; i < 20; i++) {
+                for (let i = 0; i < 30; i++) {
                     const tile = tiles[Math.floor(Math.random() * tiles.length)];
                     const dx = tile.x - bot.position.x;
                     const dz = tile.z - bot.position.z;
                     const dist = Math.hypot(dx, dz);
                     if (dist < minDist || dist > maxDist) continue;
+                    if (safeRadius && Math.hypot(tile.x, tile.z) > safeRadius) continue;
                     if (map.isWalkableAt && !map.isWalkableAt(tile.x, tile.z)) continue;
                     bot.patrolTarget = new THREE.Vector3(tile.x, 0, tile.z);
                     return;
@@ -454,6 +479,7 @@ export class BotBrain {
             const z = bot.position.z + Math.sin(angle) * distance;
             if (map && map.halfSize) {
                 if (Math.abs(x) > map.halfSize - 5 || Math.abs(z) > map.halfSize - 5) continue;
+                if (safeRadius && Math.hypot(x, z) > safeRadius) continue;
                 const y = map.getHeightAt(x, z);
                 if (y < map.waterLevel + 0.6) continue;
                 if (map.isWalkableAt && !map.isWalkableAt(x, z)) continue;
@@ -607,6 +633,12 @@ export class BotBrain {
             bot.isStuck = false;
             this.setRandomPatrolTarget(bot, 40, 120);
         }
+
+        if (this.shouldRecenter(bot)) {
+            bot.patrolTarget = this.getInwardTarget(bot, 28);
+            bot.moveTowards(bot.patrolTarget, bot.physics.speed * 1.15);
+            return;
+        }
         
         // Р”РІРёР¶РµРјСЃСЏ Рє С†РµР»Рё
         if (bot.patrolTarget) {
@@ -624,12 +656,12 @@ export class BotBrain {
                 }
                 
                 // РЎС‚Р°РІРёРј РЅРѕРІСѓСЋ С†РµР»СЊ
-                this.setRandomPatrolTarget(bot, 40, 120);
+                this.setRandomPatrolTarget(bot, 30, 90);
             } else {
-                bot.moveTowards(bot.patrolTarget, bot.physics.speed * 0.8);
+                bot.moveTowards(bot.patrolTarget, bot.physics.speed * 0.95);
             }
         } else {
-            this.setRandomPatrolTarget(bot, 40, 120);
+            this.setRandomPatrolTarget(bot, 30, 90);
         }
     }
 
@@ -677,18 +709,18 @@ export class BotBrain {
                 }
             }
             
-            this.attackCooldown = bot.currentWeapon ? bot.currentWeapon.cooldown : 1;
+            this.attackCooldown = (bot.currentWeapon ? bot.currentWeapon.cooldown : 1) * 0.82;
         } else if (dist < attackRange * 1.4) {
             // Лёгкий стрейф, чтобы не стоять на месте
             const toTarget = new THREE.Vector3().subVectors(bot.target.position, bot.position).normalize();
             const side = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), toTarget).normalize();
             const strafeDir = Math.random() > 0.5 ? side : side.clone().multiplyScalar(-1);
             const strafeTarget = bot.position.clone().add(strafeDir.multiplyScalar(6));
-            bot.moveTowards(strafeTarget, bot.physics.speed * 0.9);
+            bot.moveTowards(strafeTarget, bot.physics.speed);
             bot.lookAt(bot.target.position);
         } else if (dist < attackRange * 3) {
             // РџСЂРёР±Р»РёР¶Р°РµРјСЃСЏ
-            bot.moveTowards(bot.target.position, bot.physics.speed * 1.1);
+            bot.moveTowards(bot.target.position, bot.physics.speed * 1.2);
             bot.lookAt(bot.target.position);
         } else {
             // РЎР»РёС€РєРѕРј РґР°Р»РµРєРѕ - РїРµСЂРµРєР»СЋС‡Р°РµРјСЃСЏ
@@ -707,7 +739,10 @@ export class BotBrain {
             .subVectors(bot.position, bot.target.position)
             .normalize();
         
-        const fleeTarget = bot.position.clone().add(fleeDirection.multiplyScalar(50));
+        let fleeTarget = bot.position.clone().add(fleeDirection.multiplyScalar(50));
+        if (this.shouldRecenter(bot)) {
+            fleeTarget = this.getInwardTarget(bot, 30);
+        }
         
         bot.moveTowards(fleeTarget, bot.physics.speed * 1.3);
         
@@ -769,16 +804,19 @@ export class BotBrain {
     handlePatrol(bot, delta, entityManager, lootManager, threatLevel) {
         if (bot.isStuck) {
             bot.isStuck = false;
-            this.setRandomPatrolTarget(bot, 40, 120);
+            this.setRandomPatrolTarget(bot, 28, 80);
+        }
+        if (this.shouldRecenter(bot)) {
+            bot.patrolTarget = this.getInwardTarget(bot, 30);
         }
         if (!bot.patrolTarget || bot.position.distanceTo(bot.patrolTarget) < 5) {
-            this.setRandomPatrolTarget(bot, 40, 120);
+            this.setRandomPatrolTarget(bot, 28, 80);
         }
         if (bot.mapRef?.isWalkableAt && bot.patrolTarget && !bot.mapRef.isWalkableAt(bot.patrolTarget.x, bot.patrolTarget.z)) {
-            this.setRandomPatrolTarget(bot, 40, 120);
+            this.setRandomPatrolTarget(bot, 28, 80);
         }
-        
-        bot.moveTowards(bot.patrolTarget, bot.physics.speed * 0.7);
+
+        bot.moveTowards(bot.patrolTarget, bot.physics.speed * 0.9);
         
         // РџСЂРѕРІРµСЂСЏРµРј СЃСѓРЅРґСѓРєРё РїРѕ РїСѓС‚Рё
         const chest = this.findNearestChest(bot, lootManager, 5);
@@ -798,15 +836,7 @@ export class BotBrain {
     }
 
     handleRetreat(bot, delta, entityManager) {
-        // РўР°РєС‚РёС‡РµСЃРєРѕРµ РѕС‚СЃС‚СѓРїР»РµРЅРёРµ Рє Р±РµР·РѕРїР°СЃРЅРѕР№ Р·РѕРЅРµ
-        const safeDistance = 100;
-        const angle = Math.random() * Math.PI * 2;
-        
-        const retreatTarget = new THREE.Vector3(
-            Math.cos(angle) * safeDistance,
-            0,
-            Math.sin(angle) * safeDistance
-        );
+        const retreatTarget = this.getInwardTarget(bot, 34);
         
         bot.moveTowards(retreatTarget, bot.physics.speed);
         

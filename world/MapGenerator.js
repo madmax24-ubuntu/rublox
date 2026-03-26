@@ -71,7 +71,7 @@ export class MapGenerator {
     }
 
     generate() {
-        const sizeBase = 101 + Math.floor((this.seed % 10) * 4);
+        const sizeBase = (129 + Math.floor((this.seed % 10) * 6)) * 2;
         const width = sizeBase;
         const height = sizeBase;
         const data = this.tileGen.generate(width, height, this.seed);
@@ -248,18 +248,26 @@ export class MapGenerator {
         const logGeo = new THREE.CylinderGeometry(0.35, 0.35, 1.8, 6);
         const boulderGeo = new THREE.BoxGeometry(2.2, 1.6, 2.2);
 
-        this.addInstancedTreeChunked(treeTrunkGeo, trunkMat, treeLeafGeo, leafMat, trees, 1.3, 3.2, 36);
-        this.addInstancedTreeChunked(jungleTrunkGeo, trunkMat, jungleLeafGeo, jungleLeafMat, jungleTrees, 2.4, 5.4, 36);
-        this.addInstancedPropsChunked(rockGeo, rockMat, rocks, 1.1, true, 42, true);
-        this.addInstancedPropsChunked(crateGeo, crateMat, crates, 1.0, true, 42, true);
-        this.addInstancedPropsChunked(cactusGeo, cactusMat, cacti, 2.2, true, 42, true);
-        this.addInstancedPropsChunked(iceGeo, iceMat, iceSpikes, 2.4, true, 42, true);
-        this.addInstancedPropsChunked(stumpGeo, trunkMat, stumps, 0.3, true, 42, true);
-        this.addInstancedPropsChunked(pillarGeo, ruinMat, pillars, 1.3, true, 42, true);
-        this.addInstancedPropsChunked(ruinGeo, ruinMat, ruins, 0.8, true, 42, true);
-        this.addInstancedPropsChunked(bushGeo, leafMat, bushes, 0.6, true, 42, true);
-        this.addInstancedPropsChunked(logGeo, trunkMat, logs, 0.5, true, 42, true);
-        this.addInstancedPropsChunked(boulderGeo, rockMat, boulders, 1.1, true, 42, true);
+        const thin = (list, keepRatio = 1, salt = 0) => {
+            if (keepRatio >= 0.999) return list;
+            return list.filter((item, index) => {
+                const hash = Math.abs(Math.sin((item.x + 17.3) * 0.013 + (item.z - 9.1) * 0.017 + salt + index * 0.11));
+                return hash < keepRatio;
+            });
+        };
+
+        this.addInstancedTreeChunked(treeTrunkGeo, trunkMat, treeLeafGeo, leafMat, thin(trees, 0.92, 0.4), 1.3, 3.2, 36);
+        this.addInstancedTreeChunked(jungleTrunkGeo, trunkMat, jungleLeafGeo, jungleLeafMat, thin(jungleTrees, 0.9, 0.8), 2.4, 5.4, 36);
+        this.addInstancedPropsChunked(rockGeo, rockMat, thin(rocks, 0.84, 1.2), 1.1, true, 42, true);
+        this.addInstancedPropsChunked(crateGeo, crateMat, thin(crates, 0.78, 1.5), 1.0, true, 42, true);
+        this.addInstancedPropsChunked(cactusGeo, cactusMat, thin(cacti, 0.85, 1.8), 2.2, true, 42, true);
+        this.addInstancedPropsChunked(iceGeo, iceMat, thin(iceSpikes, 0.82, 2.1), 2.4, true, 42, true);
+        this.addInstancedPropsChunked(stumpGeo, trunkMat, thin(stumps, 0.7, 2.4), 0.3, true, 42, true);
+        this.addInstancedPropsChunked(pillarGeo, ruinMat, thin(pillars, 0.8, 2.7), 1.3, true, 42, true);
+        this.addInstancedPropsChunked(ruinGeo, ruinMat, thin(ruins, 0.86, 3.0), 0.8, true, 42, true);
+        this.addInstancedPropsChunked(bushGeo, leafMat, thin(bushes, 0.62, 3.3), 0.6, true, 42, true);
+        this.addInstancedPropsChunked(logGeo, trunkMat, thin(logs, 0.68, 3.6), 0.5, true, 42, true);
+        this.addInstancedPropsChunked(boulderGeo, rockMat, thin(boulders, 0.82, 3.9), 1.1, true, 42, true);
     }
 
     chunkItems(list, chunkSize) {
@@ -464,7 +472,7 @@ export class MapGenerator {
         if (!candidates.length) return;
 
         const pick = () => candidates[Math.floor(rand() * candidates.length)];
-        const poiTypes = ['bunker', 'camp', 'observatory'];
+        const poiTypes = ['bunker', 'camp', 'observatory', 'warehouse', 'house', 'house'];
         for (const type of poiTypes) {
             const tile = pick();
             if (!tile) continue;
@@ -512,6 +520,35 @@ export class MapGenerator {
             dish.rotation.z = Math.PI / 10;
             group.add(dish);
             this.addColliderBox(new THREE.Vector3(position.x, 3, position.z), 4.2, 6, 4.2, false);
+        } else if (type === 'warehouse') {
+            name = '\u0421\u043a\u043b\u0430\u0434';
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0x7f8c8d, roughness: 0.9, flatShading: true });
+            const roofMat = new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.8, flatShading: true });
+            const base = new THREE.Mesh(new THREE.BoxGeometry(8.2, 3.2, 5.4), wallMat);
+            base.position.set(position.x, 1.6, position.z);
+            group.add(base);
+            const roof = new THREE.Mesh(new THREE.BoxGeometry(8.8, 0.45, 6.0), roofMat);
+            roof.position.set(position.x, 3.45, position.z);
+            group.add(roof);
+            const door = new THREE.Mesh(new THREE.BoxGeometry(1.6, 2.2, 0.16), new THREE.MeshStandardMaterial({ color: 0x37474f, roughness: 0.7, flatShading: true }));
+            door.position.set(position.x, 1.1, position.z + 2.78);
+            group.add(door);
+            this.addColliderBox(new THREE.Vector3(position.x, 1.6, position.z), 8.2, 3.2, 5.4, false);
+        } else if (type === 'house') {
+            name = '\u0414\u043e\u043c';
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0xc7b299, roughness: 0.92, flatShading: true });
+            const roofMat = new THREE.MeshStandardMaterial({ color: 0x6d4c41, roughness: 0.85, flatShading: true });
+            const base = new THREE.Mesh(new THREE.BoxGeometry(5.2, 2.8, 4.6), wallMat);
+            base.position.set(position.x, 1.4, position.z);
+            group.add(base);
+            const roof = new THREE.Mesh(new THREE.ConeGeometry(4.1, 2.2, 4), roofMat);
+            roof.position.set(position.x, 3.5, position.z);
+            roof.rotation.y = Math.PI / 4;
+            group.add(roof);
+            const door = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.9, 0.14), new THREE.MeshStandardMaterial({ color: 0x4e342e, roughness: 0.8, flatShading: true }));
+            door.position.set(position.x, 0.95, position.z + 2.36);
+            group.add(door);
+            this.addColliderBox(new THREE.Vector3(position.x, 1.4, position.z), 5.2, 2.8, 4.6, false);
         }
 
         this.scene.add(group);

@@ -144,6 +144,15 @@ export class Bot {
         this.updateColor();
     }
 
+    syncWeaponVisibility() {
+        const items = this.inventory.getItems?.() || [];
+        for (const item of items) {
+            if (item?.mesh) {
+                item.setVisible(item === this.currentWeapon && this.isAlive);
+            }
+        }
+    }
+
     createMesh() {
         const group = new THREE.Group();
 
@@ -395,6 +404,7 @@ export class Bot {
         if (this.healthBar) this.healthBar.visible = true;
 
         this.physicsRef = physics;
+        this.zoneRef = zone || this.zoneRef;
         this.audioSynthRef = audioSynth;
         this.updateBurning(delta);
 
@@ -474,14 +484,24 @@ export class Bot {
         this.animateLimbs();
         this.updateHealthBar();
 
-        if (this.currentWeapon && this.currentWeapon.mesh) {
-            const weaponPos = this.position.clone();
-            weaponPos.y += 1.2;
-            weaponPos.x += Math.cos(this.rotation.y) * 0.5;
-            weaponPos.z += Math.sin(this.rotation.y) * 0.5;
+        if (this.currentWeapon && this.currentWeapon.mesh && this.isAlive) {
+            const limbs = this.mesh?.userData?.limbs;
+            if (limbs?.rightArm) {
+                this.mesh.updateMatrixWorld(true);
+                const armWorldPos = new THREE.Vector3();
+                limbs.rightArm.getWorldPosition(armWorldPos);
 
-            this.currentWeapon.setPosition(weaponPos);
-            this.currentWeapon.setRotation(this.rotation);
+                const forward = new THREE.Vector3(Math.sin(this.rotation.y), 0, Math.cos(this.rotation.y));
+                const right = new THREE.Vector3(Math.cos(this.rotation.y), 0, -Math.sin(this.rotation.y));
+                const weaponPos = armWorldPos
+                    .clone()
+                    .add(forward.multiplyScalar(0.16))
+                    .add(right.multiplyScalar(0.08))
+                    .add(new THREE.Vector3(0, -0.18, 0));
+
+                this.currentWeapon.setPosition(weaponPos);
+                this.currentWeapon.setRotation(this.rotation);
+            }
         }
 
         const moved = this.position.distanceTo(this.lastPosition);
@@ -559,11 +579,10 @@ export class Bot {
 
         if (weapon) {
             this.currentWeapon = weapon;
-            this.currentWeapon.setVisible(true);
         } else {
             this.currentWeapon = null;
-            this.fists = new Weapon('fists', this.scene);
         }
+        this.syncWeaponVisibility();
     }
 
     pickupLoot(loot) {
@@ -573,6 +592,8 @@ export class Bot {
             if (result.added) {
                 if (!this.currentWeapon || !this.inventory.getSelectedWeapon()) {
                     this.selectSlot(result.slot);
+                } else {
+                    weapon.setVisible(false);
                 }
             } else {
                 weapon.dispose();
@@ -622,9 +643,7 @@ export class Bot {
             this.mesh.position.copy(this.position);
             this.mesh.position.y = this.position.y - (this.physics.height - 0.2) - 0.8;
             this.mesh.rotation.set(-Math.PI / 2, this.rotation.y, 0);
-            if (this.currentWeapon) {
-                this.currentWeapon.setVisible(false);
-            }
+            this.syncWeaponVisibility();
             if (attacker?.stats) {
                 attacker.stats.kills += 1;
             }

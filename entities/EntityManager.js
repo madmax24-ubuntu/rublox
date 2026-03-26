@@ -28,6 +28,11 @@ export class EntityManager {
         this.scene.add(projectile.mesh);
     }
 
+    isSurvivorEntity(entity) {
+        const type = entity?.constructor?.name;
+        return type === 'Player' || type === 'Bot';
+    }
+
     update(delta, physics, audioSynth) {
         this.physicsRef = physics || this.physicsRef;
         // Update projectiles
@@ -85,7 +90,7 @@ export class EntityManager {
             }
         }
 
-        const aliveEntities = this.entities.filter(e => e.isAlive && e.constructor?.name !== 'Griever');
+        const aliveEntities = this.entities.filter(e => e.isAlive && this.isSurvivorEntity(e));
         this.updateEffects(delta);
         return aliveEntities.length;
     }
@@ -311,7 +316,7 @@ export class EntityManager {
     }
 
     getAliveCount() {
-        return this.entities.filter(e => e.isAlive).length;
+        return this.entities.filter(e => e.isAlive && this.isSurvivorEntity(e)).length;
     }
 
     getEntityById(id) {

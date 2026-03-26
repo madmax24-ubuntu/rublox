@@ -13,6 +13,15 @@ export class Zone {
         this.createZone();
     }
 
+    syncVisuals() {
+        if (this.zoneMesh) {
+            this.zoneMesh.scale.set(this.currentRadius, 1, this.currentRadius);
+        }
+        if (this.ringMesh) {
+            this.ringMesh.scale.set(this.currentRadius, this.currentRadius, this.currentRadius);
+        }
+    }
+
     createZone() {
         const geometry = new THREE.CylinderGeometry(1, 1, 200, 32, 1, true);
         const material = new THREE.MeshBasicMaterial({
@@ -46,13 +55,7 @@ export class Zone {
                 this.targetRadius,
                 this.currentRadius - this.shrinkSpeed * delta
             );
-
-            if (this.zoneMesh) {
-                this.zoneMesh.scale.set(this.currentRadius, 1, this.currentRadius);
-            }
-            if (this.ringMesh) {
-                this.ringMesh.scale.set(this.currentRadius, this.currentRadius, this.currentRadius);
-            }
+            this.syncVisuals();
         }
         if (this.ringMesh) {
             const pulse = 0.45 + Math.sin(performance.now() * 0.004) * 0.2;
@@ -62,6 +65,14 @@ export class Zone {
 
     shrink(newRadius) {
         this.targetRadius = Math.max(10, newRadius);
+    }
+
+    setCurrentRadius(radius) {
+        this.currentRadius = Math.max(10, radius);
+        if (this.targetRadius > this.currentRadius) {
+            this.targetRadius = this.currentRadius;
+        }
+        this.syncVisuals();
     }
 
     isInsideZone(position) {

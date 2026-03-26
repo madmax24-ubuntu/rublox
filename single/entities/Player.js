@@ -464,9 +464,11 @@ export class Player {
         this.updateFirstPersonArmsVisibility(isFirstPerson);
         this.animateViewModel(isFirstPerson);
 
-        for (let i = 0; i <= 9; i++) {
-            if (this.input.isKeyPressed(`Digit${i}`) || this.input.isKeyPressed(`Numpad${i}`)) {
-                this.selectSlot(i);
+        for (let displaySlot = 1; displaySlot <= 10; displaySlot++) {
+            const key = displaySlot === 10 ? 0 : displaySlot;
+            const slotIndex = displaySlot === 10 ? 9 : displaySlot - 1;
+            if (this.input.isKeyPressed(`Digit${key}`) || this.input.isKeyPressed(`Numpad${key}`)) {
+                this.selectSlot(slotIndex);
             }
         }
 

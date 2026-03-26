@@ -162,7 +162,7 @@ class Game {
             zombieMultiplier: 1.4,
             footstepVolume: 0.7,
             botVision: 0.9,
-            fogDensity: 0.0024
+            fogDensity: 0.0032
         };
         this.commandState = { help: false, enemy: false, gather: false };
         this.quickCommandCooldown = 0;
@@ -189,8 +189,8 @@ class Game {
         this.zone = new Zone(this.scene, this.map.size);
         this.zoneDuration = 600;
         this.zoneMinRadius = Math.max(24, this.zone.getCurrentRadius() * 0.15);
-        this.zone.shrink(this.zoneMinRadius);
-        this.zone.shrinkSpeed = (this.zone.getCurrentRadius() - this.zoneMinRadius) / this.zoneDuration;
+        this.zone.shrink(this.zone.getCurrentRadius());
+        this.zone.shrinkSpeed = 0;
         this.traps = this.map.getTraps?.() || [];
 
         this.entityManager = new EntityManager(this.scene);
@@ -232,11 +232,16 @@ class Game {
         this.countdownTimer = this.countdownTime;
         this.spawnTime = 20;
         this.spawnTimer = this.spawnTime;
-        this.zoneShrinkTimer = 0;
-        this.zoneShrinkInterval = 0;
+        this.zonePhase = 'waiting';
+        this.zonePhaseTimer = 28;
+        this.zonePhaseIndex = 0;
+        this.zonePhaseCount = 8;
+        this.zonePhaseTarget = this.zone.getCurrentRadius();
 
         this.gameLoop = new GameLoop(this);
         this.applyRoundMode('hybrid');
+        this.hud.setPerkSelectionEnabled(true);
+        this.hud.showGameMessage('Выберите перк до старта матча. Клавиша P');
 
         window.addEventListener('resize', () => {
             this.camera.aspect = window.innerWidth / window.innerHeight;
@@ -364,25 +369,25 @@ class Game {
             this.modeConfig.zombieMultiplier = 1.4;
             this.modeConfig.footstepVolume = 0.7;
             this.modeConfig.botVision = 0.9;
-            this.modeConfig.fogDensity = 0.0024;
+            this.modeConfig.fogDensity = 0.0032;
         } else if (this.roundMode === 'nightmare') {
             this.modeConfig.lootDensity = 0.6;
             this.modeConfig.zombieMultiplier = 2.2;
             this.modeConfig.footstepVolume = 1;
             this.modeConfig.botVision = 1.05;
-            this.modeConfig.fogDensity = 0.0022;
+            this.modeConfig.fogDensity = 0.0036;
         } else if (this.roundMode === 'stealth') {
             this.modeConfig.lootDensity = 0.9;
             this.modeConfig.zombieMultiplier = 1.1;
             this.modeConfig.footstepVolume = 0.35;
             this.modeConfig.botVision = 0.7;
-            this.modeConfig.fogDensity = 0.0035;
+            this.modeConfig.fogDensity = 0.0044;
         } else {
             this.modeConfig.lootDensity = 1;
             this.modeConfig.zombieMultiplier = 1;
             this.modeConfig.footstepVolume = 1;
             this.modeConfig.botVision = 1;
-            this.modeConfig.fogDensity = 0.0015;
+            this.modeConfig.fogDensity = 0.0028;
         }
 
         this.hud.setRoundMode(this.roundMode === 'hybrid'
@@ -468,7 +473,7 @@ class Game {
     }
 
     trySupplyDrop(aliveCount) {
-        const thresholds = [16, 8];
+        const thresholds = [24, 16, 8];
         for (const threshold of thresholds) {
             if (aliveCount <= threshold && !this.dropTriggeredAt.has(threshold)) {
                 this.dropTriggeredAt.add(threshold);
@@ -554,6 +559,51 @@ class Game {
         return new THREE.Vector3(v.x, position.y, v.z);
     }
 
+    startZoneCycle() {
+        this.zonePhase = 'waiting';
+        this.zonePhaseTimer = 28;
+        this.zonePhaseIndex = 0;
+        this.zonePhaseTarget = this.zone.getCurrentRadius();
+        this.zone.setCurrentRadius(this.zone.getCurrentRadius());
+        this.zone.shrink(this.zone.getCurrentRadius());
+        this.zone.shrinkSpeed = 0;
+    }
+
+    updateZoneCycle(delta) {
+        if (this.zonePhaseIndex >= this.zonePhaseCount && this.zone.getCurrentRadius() <= this.zoneMinRadius + 0.25) {
+            this.zonePhase = 'final';
+            return;
+        }
+
+        if (this.zonePhase === 'waiting') {
+            this.zonePhaseTimer = Math.max(0, this.zonePhaseTimer - delta);
+            if (this.zonePhaseTimer <= 0 && this.zonePhaseIndex < this.zonePhaseCount) {
+                const currentRadius = this.zone.getCurrentRadius();
+                const remainingSteps = Math.max(1, this.zonePhaseCount - this.zonePhaseIndex);
+                const stepDrop = (currentRadius - this.zoneMinRadius) / remainingSteps;
+                this.zonePhaseTarget = Math.max(this.zoneMinRadius, currentRadius - stepDrop);
+                this.zone.shrink(this.zonePhaseTarget);
+                this.zone.shrinkSpeed = Math.max(8, (currentRadius - this.zonePhaseTarget) / 10);
+                this.zonePhase = 'shrinking';
+                this.zonePhaseTimer = 10;
+            }
+            return;
+        }
+
+        if (this.zonePhase === 'shrinking') {
+            this.zone.update(delta);
+            this.zonePhaseTimer = Math.max(0, this.zonePhaseTimer - delta);
+            if (this.zone.getCurrentRadius() <= this.zonePhaseTarget + 0.25 || this.zonePhaseTimer <= 0) {
+                this.zone.setCurrentRadius(this.zonePhaseTarget);
+                this.zone.shrink(this.zonePhaseTarget);
+                this.zone.shrinkSpeed = 0;
+                this.zonePhaseIndex += 1;
+                this.zonePhase = 'waiting';
+                this.zonePhaseTimer = this.zonePhaseIndex >= this.zonePhaseCount ? 9999 : 22;
+            }
+        }
+    }
+
         updateRandomEvents(delta) {
         if (this.activeEvent.type) {
             this.activeEvent.timer -= delta;
@@ -609,7 +659,8 @@ class Game {
         }
 
         this.handleQuickCommands(delta);
-        if (this.input.isKeyPressed('KeyP')) {
+        const canSelectPerk = this.gameState === 'countdown' && !this.perkLocked;
+        if (this.input.isKeyPressed('KeyP') && canSelectPerk) {
             if (!this.perkKeyLatch) {
                 this.perkMenuOpen = !this.perkMenuOpen;
                 this.hud.togglePerkPanel(this.perkMenuOpen);
@@ -664,6 +715,10 @@ class Game {
 
             if (this.countdownTimer <= 0) {
                 this.gameState = 'spawn';
+                this.perkLocked = true;
+                this.perkMenuOpen = false;
+                this.hud.togglePerkPanel(false);
+                this.hud.setPerkSelectionEnabled(false);
                 this.hud.hideCountdown();
                 this.hud.showGameMessage('\u0414\u043e\u0431\u0440\u043e \u043f\u043e\u0436\u0430\u043b\u043e\u0432\u0430\u0442\u044c \u043d\u0430 \u0413\u043e\u043b\u043e\u0434\u043d\u044b\u0435 \u0438\u0433\u0440\u044b, \u0432\u044b\u0436\u0438\u0432\u0435\u0442 \u0441\u0438\u043b\u044c\u043d\u0435\u0439\u0448\u0438\u0439!');
                 this.audioSynth.playBoxArrival?.(new THREE.Vector3(0, 1, 0));
@@ -686,6 +741,7 @@ class Game {
 
             if (this.spawnTimer <= 0) {
                 this.gameState = 'playing';
+                this.startZoneCycle();
                 this.player.setInvulnerable(false);
                 this.bots.forEach(bot => bot.setInvulnerable(false));
                 this.hud.showGameMessage('\u0412\u044b\u0436\u0438\u0432\u0430\u043d\u0438\u0435 \u043d\u0430\u0447\u0430\u043b\u043e\u0441\u044c!');
@@ -710,7 +766,7 @@ class Game {
         }
 
         if (this.gameState === 'playing') {
-            this.zone.update(delta);
+            this.updateZoneCycle(delta);
 
             if (!this.zone.isInsideZone(this.player.position)) {
                 const damage = this.zone.getDamage(delta);
@@ -721,7 +777,14 @@ class Game {
             if (distanceFromZone > 0) {
                 this.hud.updateZoneInfo(`\u0412\u043d\u0435 \u0437\u043e\u043d\u044b! ${Math.ceil(distanceFromZone)}\u043c`, true);
             } else {
-                this.hud.updateZoneInfo(`\u0411\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u0430 (\u0440\u0430\u0434\u0438\u0443\u0441 ${Math.ceil(this.zone.getCurrentRadius())}\u043c)`, false);
+                const radius = Math.ceil(this.zone.getCurrentRadius());
+                if (this.zonePhase === 'shrinking') {
+                    this.hud.updateZoneInfo(`\u0417\u043e\u043d\u0430 \u0441\u0443\u0436\u0430\u0435\u0442\u0441\u044f (\u0440\u0430\u0434\u0438\u0443\u0441 ${radius}\u043c)`, true);
+                } else if (this.zonePhase === 'final') {
+                    this.hud.updateZoneInfo(`\u0424\u0438\u043d\u0430\u043b\u044c\u043d\u0430\u044f \u0437\u043e\u043d\u0430 (\u0440\u0430\u0434\u0438\u0443\u0441 ${radius}\u043c)`, false);
+                } else {
+                    this.hud.updateZoneInfo(`\u0411\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u0430: ${Math.ceil(this.zonePhaseTimer)}\u0441 (\u0440\u0430\u0434\u0438\u0443\u0441 ${radius}\u043c)`, false);
+                }
             }
         }
 
@@ -765,8 +828,8 @@ class Game {
         }
 
         if (this.gameState === 'playing') {
-            const maxFar = this.isMobile() ? 650 : 1200;
-            const targetFar = Math.max(200, Math.min(maxFar, this.zone.getCurrentRadius() + 120));
+            const maxFar = this.isMobile() ? 380 : 620;
+            const targetFar = Math.max(150, Math.min(maxFar, this.zone.getCurrentRadius() + 72));
             if (this.camera.far !== targetFar) {
                 this.camera.far = targetFar;
                 this.camera.updateProjectionMatrix();
@@ -850,11 +913,8 @@ class Game {
 
         if (!this.player.isAlive && !this.deathHandled) {
             this.deathHandled = true;
+            this.hud.hideScoreboard?.();
             this.hud.showGameOver('\u0418\u0433\u0440\u0430 \u043e\u043a\u043e\u043d\u0447\u0435\u043d\u0430. \u041d\u0430\u0436\u043c\u0438\u0442\u0435 E \u0447\u0442\u043e\u0431\u044b \u043d\u0430\u0447\u0430\u0442\u044c \u0437\u0430\u043d\u043e\u0432\u043e');
-            if (!this.scoreboardShown) {
-                this.scoreboardShown = true;
-                this.showMvpBoard();
-            }
         }
 
         if (this.deathHandled && this.input.isKeyPressed('KeyE')) {

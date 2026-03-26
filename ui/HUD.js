@@ -3,6 +3,10 @@
         this.createHUD();
     }
 
+    getSlotDisplayNumber(slotIndex) {
+        return ((slotIndex + 1) % 10).toString();
+    }
+
     createHUD() {
         const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
         const shortSide = Math.min(window.innerWidth, window.innerHeight);
@@ -208,7 +212,7 @@
                 position: relative;
                 pointer-events: auto;
             `;
-            slot.textContent = i;
+            slot.textContent = this.getSlotDisplayNumber(i);
 
             const slotNumber = document.createElement('div');
             slotNumber.style.cssText = `
@@ -218,7 +222,7 @@
                 font-size: ${px(10)}px;
                 color: rgba(255, 255, 255, 0.7);
             `;
-            slotNumber.textContent = i;
+            slotNumber.textContent = this.getSlotDisplayNumber(i);
             slot.appendChild(slotNumber);
 
             slot.addEventListener('click', () => {
@@ -1016,6 +1020,24 @@
         if (!board || !body) return;
         body.innerHTML = lines.map(line => `<div>${line}</div>`).join('');
         board.style.display = 'block';
+    }
+
+    hideScoreboard() {
+        const board = document.getElementById('scoreboard');
+        if (board) {
+            board.style.display = 'none';
+        }
+    }
+
+    setPerkSelectionEnabled(enabled) {
+        const perkButton = document.getElementById('perkButton');
+        const perkPanel = document.getElementById('perkPanel');
+        if (perkButton) {
+            perkButton.style.display = enabled ? 'block' : 'none';
+        }
+        if (!enabled && perkPanel) {
+            perkPanel.style.display = 'none';
+        }
     }
 
     togglePerkPanel(force) {

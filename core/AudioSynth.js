@@ -20,7 +20,7 @@ export class AudioSynth {
             this.reverbGain = this.audioContext.createGain();
 
             this.reverb.buffer = this.createImpulse(2.0, 1.6);
-            this.reverbGain.gain.value = 0.22;
+            this.reverbGain.gain.value = 0.12;
 
             this.musicGain.connect(this.audioContext.destination);
             this.sfxGain.connect(this.audioContext.destination);
@@ -28,8 +28,8 @@ export class AudioSynth {
             this.reverb.connect(this.reverbGain);
             this.reverbGain.connect(this.audioContext.destination);
 
-            this.musicGain.gain.value = 0.28;
-            this.sfxGain.gain.value = 0.45;
+            this.musicGain.gain.value = 0.14;
+            this.sfxGain.gain.value = 0.22;
         } catch (e) {
             console.warn('Web Audio API not supported');
         }
