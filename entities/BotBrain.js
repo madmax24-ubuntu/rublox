@@ -18,9 +18,9 @@ export class BotBrain {
         
         // РџРµСЂСЃРѕРЅР°Р»РёР·Р°С†РёСЏ - РєР°Р¶РґС‹Р№ Р±РѕС‚ СѓРЅРёРєР°Р»РµРЅ
         this.personality = {
-            aggression: 0.4 + Math.random() * 0.6, // РђРіСЂРµСЃСЃРёРІРЅРѕСЃС‚СЊ (0-1)
+            aggression: 0.68 + Math.random() * 0.32, // РђРіСЂРµСЃСЃРёРІРЅРѕСЃС‚СЊ (0-1)
             intelligence: 0.5 + Math.random() * 0.5, // РРЅС‚РµР»Р»РµРєС‚ (0.5-1)
-            courage: 0.4 + Math.random() * 0.6, // РҐСЂР°Р±СЂРѕСЃС‚СЊ (0-1)
+            courage: 0.58 + Math.random() * 0.42, // РҐСЂР°Р±СЂРѕСЃС‚СЊ (0-1)
             loyalty: 0.2 + Math.random() * 0.8, // Р›РѕСЏР»СЊРЅРѕСЃС‚СЊ (0.2-1)
             greed: 0.3 + Math.random() * 0.7, // Р–Р°РґРЅРѕСЃС‚СЊ (0-1)
             teamwork: 0.2 + Math.random() * 0.8, // РљРѕРјР°РЅРґРЅР°СЏ СЂР°Р±РѕС‚Р° (0-1)
@@ -75,7 +75,7 @@ export class BotBrain {
         if (this.decisionCooldown <= 0) {
             this.adaptStrategy(bot, entityManager, threatLevel);
             this.makeSmartDecision(bot, entityManager, lootManager, threatLevel);
-            this.decisionCooldown = Math.max(0.12, 0.28 - this.personality.intelligence * 0.16);
+            this.decisionCooldown = Math.max(0.08, 0.2 - this.personality.intelligence * 0.1);
         }
 
         // 5. Р’С‹РїРѕР»РЅРµРЅРёРµ СЃРѕСЃС‚РѕСЏРЅРёСЏ
@@ -213,7 +213,7 @@ export class BotBrain {
         }
         // РџРѕ СѓРјРѕР»С‡Р°РЅРёСЋ - Р±Р°Р»Р°РЅСЃ РјРµР¶РґСѓ Р»СѓС‚РѕРј Рё РѕС…РѕС‚РѕР№
         else {
-            this.currentPriority = this.personality.aggression > 0.6 ? 'hunt' : 'loot';
+            this.currentPriority = this.personality.aggression > 0.45 || aliveCount <= 16 ? 'hunt' : 'loot';
         }
     }
 
@@ -631,7 +631,7 @@ export class BotBrain {
 
         if (bot.isStuck) {
             bot.isStuck = false;
-            this.setRandomPatrolTarget(bot, 40, 120);
+            this.setRandomPatrolTarget(bot, 18, 64);
         }
 
         if (this.shouldRecenter(bot)) {
@@ -656,12 +656,12 @@ export class BotBrain {
                 }
                 
                 // РЎС‚Р°РІРёРј РЅРѕРІСѓСЋ С†РµР»СЊ
-                this.setRandomPatrolTarget(bot, 30, 90);
+                this.setRandomPatrolTarget(bot, 18, 56);
             } else {
-                bot.moveTowards(bot.patrolTarget, bot.physics.speed * 0.95);
+                bot.moveTowards(bot.patrolTarget, bot.physics.speed * 1.06);
             }
         } else {
-            this.setRandomPatrolTarget(bot, 30, 90);
+            this.setRandomPatrolTarget(bot, 18, 56);
         }
     }
 
@@ -709,7 +709,7 @@ export class BotBrain {
                 }
             }
             
-            this.attackCooldown = (bot.currentWeapon ? bot.currentWeapon.cooldown : 1) * 0.82;
+            this.attackCooldown = (bot.currentWeapon ? bot.currentWeapon.cooldown : 1) * 0.68;
         } else if (dist < attackRange * 1.4) {
             // Лёгкий стрейф, чтобы не стоять на месте
             const toTarget = new THREE.Vector3().subVectors(bot.target.position, bot.position).normalize();
@@ -720,7 +720,7 @@ export class BotBrain {
             bot.lookAt(bot.target.position);
         } else if (dist < attackRange * 3) {
             // РџСЂРёР±Р»РёР¶Р°РµРјСЃСЏ
-            bot.moveTowards(bot.target.position, bot.physics.speed * 1.2);
+            bot.moveTowards(bot.target.position, bot.physics.speed * 1.32);
             bot.lookAt(bot.target.position);
         } else {
             // РЎР»РёС€РєРѕРј РґР°Р»РµРєРѕ - РїРµСЂРµРєР»СЋС‡Р°РµРјСЃСЏ
@@ -810,13 +810,13 @@ export class BotBrain {
             bot.patrolTarget = this.getInwardTarget(bot, 30);
         }
         if (!bot.patrolTarget || bot.position.distanceTo(bot.patrolTarget) < 5) {
-            this.setRandomPatrolTarget(bot, 28, 80);
+            this.setRandomPatrolTarget(bot, 18, 56);
         }
         if (bot.mapRef?.isWalkableAt && bot.patrolTarget && !bot.mapRef.isWalkableAt(bot.patrolTarget.x, bot.patrolTarget.z)) {
-            this.setRandomPatrolTarget(bot, 28, 80);
+            this.setRandomPatrolTarget(bot, 18, 56);
         }
 
-        bot.moveTowards(bot.patrolTarget, bot.physics.speed * 0.9);
+        bot.moveTowards(bot.patrolTarget, bot.physics.speed * 1.08);
         
         // РџСЂРѕРІРµСЂСЏРµРј СЃСѓРЅРґСѓРєРё РїРѕ РїСѓС‚Рё
         const chest = this.findNearestChest(bot, lootManager, 5);

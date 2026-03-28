@@ -233,20 +233,20 @@ export class MapGenerator {
         const iceMat = new THREE.MeshStandardMaterial({ color: 0xb3e5fc, roughness: 0.3, flatShading: true });
         const ruinMat = new THREE.MeshStandardMaterial({ color: 0x8d8d8d, roughness: 0.9, flatShading: true });
 
-        const treeTrunkGeo = new THREE.BoxGeometry(0.9, 2.6, 0.9);
-        const treeLeafGeo = new THREE.BoxGeometry(2.4, 2.2, 2.4);
-        const jungleTrunkGeo = new THREE.BoxGeometry(1.1, 4.8, 1.1);
-        const jungleLeafGeo = new THREE.BoxGeometry(3.2, 2.8, 3.2);
-        const rockGeo = new THREE.BoxGeometry(2.5, 2.2, 2.5);
-        const crateGeo = new THREE.BoxGeometry(2, 2, 2);
-        const cactusGeo = new THREE.BoxGeometry(1.3, 4.5, 1.3);
-        const iceGeo = new THREE.ConeGeometry(1.2, 4.8, 6);
-        const stumpGeo = new THREE.CylinderGeometry(0.6, 0.7, 0.5, 6);
-        const pillarGeo = new THREE.CylinderGeometry(0.7, 0.7, 2.6, 6);
-        const ruinGeo = new THREE.BoxGeometry(3.2, 1.6, 0.6);
-        const bushGeo = new THREE.BoxGeometry(1.8, 1.0, 1.8);
-        const logGeo = new THREE.CylinderGeometry(0.35, 0.35, 1.8, 6);
-        const boulderGeo = new THREE.BoxGeometry(2.2, 1.6, 2.2);
+        const treeTrunkGeo = new THREE.BoxGeometry(0.8, 2.3, 0.8);
+        const treeLeafGeo = new THREE.BoxGeometry(2.0, 1.9, 2.0);
+        const jungleTrunkGeo = new THREE.BoxGeometry(0.95, 4.1, 0.95);
+        const jungleLeafGeo = new THREE.BoxGeometry(2.6, 2.3, 2.6);
+        const rockGeo = new THREE.BoxGeometry(2.0, 1.7, 2.0);
+        const crateGeo = new THREE.BoxGeometry(1.6, 1.6, 1.6);
+        const cactusGeo = new THREE.BoxGeometry(1.0, 3.8, 1.0);
+        const iceGeo = new THREE.ConeGeometry(0.9, 4.0, 6);
+        const stumpGeo = new THREE.CylinderGeometry(0.5, 0.58, 0.42, 6);
+        const pillarGeo = new THREE.CylinderGeometry(0.55, 0.55, 2.2, 6);
+        const ruinGeo = new THREE.BoxGeometry(2.5, 1.3, 0.5);
+        const bushGeo = new THREE.BoxGeometry(1.4, 0.8, 1.4);
+        const logGeo = new THREE.CylinderGeometry(0.28, 0.28, 1.5, 6);
+        const boulderGeo = new THREE.BoxGeometry(1.8, 1.3, 1.8);
 
         const thin = (list, keepRatio = 1, salt = 0) => {
             if (keepRatio >= 0.999) return list;
@@ -256,18 +256,18 @@ export class MapGenerator {
             });
         };
 
-        this.addInstancedTreeChunked(treeTrunkGeo, trunkMat, treeLeafGeo, leafMat, thin(trees, 0.92, 0.4), 1.3, 3.2, 36);
-        this.addInstancedTreeChunked(jungleTrunkGeo, trunkMat, jungleLeafGeo, jungleLeafMat, thin(jungleTrees, 0.9, 0.8), 2.4, 5.4, 36);
-        this.addInstancedPropsChunked(rockGeo, rockMat, thin(rocks, 0.84, 1.2), 1.1, true, 42, true);
-        this.addInstancedPropsChunked(crateGeo, crateMat, thin(crates, 0.78, 1.5), 1.0, true, 42, true);
-        this.addInstancedPropsChunked(cactusGeo, cactusMat, thin(cacti, 0.85, 1.8), 2.2, true, 42, true);
-        this.addInstancedPropsChunked(iceGeo, iceMat, thin(iceSpikes, 0.82, 2.1), 2.4, true, 42, true);
-        this.addInstancedPropsChunked(stumpGeo, trunkMat, thin(stumps, 0.7, 2.4), 0.3, true, 42, true);
-        this.addInstancedPropsChunked(pillarGeo, ruinMat, thin(pillars, 0.8, 2.7), 1.3, true, 42, true);
-        this.addInstancedPropsChunked(ruinGeo, ruinMat, thin(ruins, 0.86, 3.0), 0.8, true, 42, true);
-        this.addInstancedPropsChunked(bushGeo, leafMat, thin(bushes, 0.62, 3.3), 0.6, true, 42, true);
-        this.addInstancedPropsChunked(logGeo, trunkMat, thin(logs, 0.68, 3.6), 0.5, true, 42, true);
-        this.addInstancedPropsChunked(boulderGeo, rockMat, thin(boulders, 0.82, 3.9), 1.1, true, 42, true);
+        this.addInstancedTreeChunked(treeTrunkGeo, trunkMat, treeLeafGeo, leafMat, thin(trees, 0.66, 0.4), 1.15, 2.75, 42);
+        this.addInstancedTreeChunked(jungleTrunkGeo, trunkMat, jungleLeafGeo, jungleLeafMat, thin(jungleTrees, 0.62, 0.8), 2.05, 4.55, 42);
+        this.addInstancedPropsChunked(rockGeo, rockMat, thin(rocks, 0.58, 1.2), 0.9, true, 48, true);
+        this.addInstancedPropsChunked(crateGeo, crateMat, thin(crates, 0.46, 1.5), 0.8, true, 48, true);
+        this.addInstancedPropsChunked(cactusGeo, cactusMat, thin(cacti, 0.62, 1.8), 1.9, true, 48, true);
+        this.addInstancedPropsChunked(iceGeo, iceMat, thin(iceSpikes, 0.58, 2.1), 2.0, true, 48, true);
+        this.addInstancedPropsChunked(stumpGeo, trunkMat, thin(stumps, 0.42, 2.4), 0.24, true, 48, true);
+        this.addInstancedPropsChunked(pillarGeo, ruinMat, thin(pillars, 0.55, 2.7), 1.1, true, 48, true);
+        this.addInstancedPropsChunked(ruinGeo, ruinMat, thin(ruins, 0.6, 3.0), 0.65, true, 48, true);
+        this.addInstancedPropsChunked(bushGeo, leafMat, thin(bushes, 0.34, 3.3), 0.45, true, 48, true);
+        this.addInstancedPropsChunked(logGeo, trunkMat, thin(logs, 0.38, 3.6), 0.35, true, 48, true);
+        this.addInstancedPropsChunked(boulderGeo, rockMat, thin(boulders, 0.56, 3.9), 0.9, true, 48, true);
     }
 
     chunkItems(list, chunkSize) {
@@ -472,7 +472,7 @@ export class MapGenerator {
         if (!candidates.length) return;
 
         const pick = () => candidates[Math.floor(rand() * candidates.length)];
-        const poiTypes = ['bunker', 'camp', 'observatory', 'warehouse', 'house', 'house'];
+        const poiTypes = ['bunker', 'camp', 'observatory', 'warehouse', 'house', 'house', 'watchtower', 'shed'];
         for (const type of poiTypes) {
             const tile = pick();
             if (!tile) continue;
@@ -549,6 +549,39 @@ export class MapGenerator {
             door.position.set(position.x, 0.95, position.z + 2.36);
             group.add(door);
             this.addColliderBox(new THREE.Vector3(position.x, 1.4, position.z), 5.2, 2.8, 4.6, false);
+        } else if (type === 'watchtower') {
+            name = 'Вышка';
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x6d4c41, roughness: 0.86, flatShading: true });
+            const deckMat = new THREE.MeshStandardMaterial({ color: 0x8d6e63, roughness: 0.9, flatShading: true });
+            const legs = [
+                [-1.2, 2.2, -1.2], [1.2, 2.2, -1.2],
+                [-1.2, 2.2, 1.2], [1.2, 2.2, 1.2]
+            ];
+            for (const [lx, ly, lz] of legs) {
+                const leg = new THREE.Mesh(new THREE.BoxGeometry(0.35, 4.4, 0.35), frameMat);
+                leg.position.set(position.x + lx, ly, position.z + lz);
+                group.add(leg);
+            }
+            const deck = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.3, 3.4), deckMat);
+            deck.position.set(position.x, 4.55, position.z);
+            group.add(deck);
+            const roof = new THREE.Mesh(new THREE.ConeGeometry(2.7, 1.6, 4), frameMat);
+            roof.position.set(position.x, 5.9, position.z);
+            roof.rotation.y = Math.PI / 4;
+            group.add(roof);
+            this.addColliderBox(new THREE.Vector3(position.x, 2.8, position.z), 3.6, 5.8, 3.6, false);
+        } else if (type === 'shed') {
+            name = 'Навес';
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0xbca48a, roughness: 0.9, flatShading: true });
+            const roofMat = new THREE.MeshStandardMaterial({ color: 0x546e7a, roughness: 0.82, flatShading: true });
+            const base = new THREE.Mesh(new THREE.BoxGeometry(4.2, 2.2, 3.4), wallMat);
+            base.position.set(position.x, 1.1, position.z);
+            group.add(base);
+            const roof = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.3, 4), roofMat);
+            roof.position.set(position.x, 2.4, position.z);
+            roof.rotation.z = 0.08;
+            group.add(roof);
+            this.addColliderBox(new THREE.Vector3(position.x, 1.1, position.z), 4.2, 2.2, 3.4, false);
         }
 
         this.scene.add(group);

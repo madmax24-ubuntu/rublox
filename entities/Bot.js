@@ -730,6 +730,15 @@ export class Bot {
         }
         const camera = this.scene.userData?.camera;
         if (camera) {
+            const dist = camera.position.distanceTo(this.position);
+            const entityManager = this.scene.userData?.entityManager;
+            let visible = dist < 18;
+            if (visible && entityManager?.hasLineOfSight) {
+                const from = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);
+                const to = new THREE.Vector3(this.position.x, this.position.y + (this.physics?.height || 1.8) * 0.65, this.position.z);
+                visible = entityManager.hasLineOfSight(from, to, true);
+            }
+            this.healthBar.visible = visible;
             this.healthBar.lookAt(camera.position);
         }
     }

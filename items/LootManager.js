@@ -252,23 +252,19 @@ export class LootManager {
             return { type: 'weapon', weaponType: 'bow' };
         }
 
-        if (rand < 0.5) {
-            return { type: 'weapon', weaponType: 'knife' };
-        }
-
-        if (rand < 0.6) {
+        if (rand < 0.54) {
             return { type: 'weapon', weaponType: 'axe' };
         }
 
-        if (rand < 0.69) {
+        if (rand < 0.64) {
             return { type: 'weapon', weaponType: 'spear' };
         }
 
-        if (rand < 0.76) {
+        if (rand < 0.74) {
             return { type: 'weapon', weaponType: 'pistol' };
         }
 
-        if (rand < 0.83) {
+        if (rand < 0.82) {
             return { type: 'weapon', weaponType: 'rifle' };
         }
 

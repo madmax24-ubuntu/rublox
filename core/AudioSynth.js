@@ -8,6 +8,11 @@ export class AudioSynth {
         this.reverbGain = null;
         this.ambientNodes = [];
         this.ambientRunning = false;
+        this.musicStarted = false;
+        this.musicLoopTimer = null;
+        this.musicThemeIndex = 0;
+        this.musicVolume = 0.14;
+        this.sfxVolume = 0.22;
         this.init();
     }
 
@@ -28,10 +33,24 @@ export class AudioSynth {
             this.reverb.connect(this.reverbGain);
             this.reverbGain.connect(this.audioContext.destination);
 
-            this.musicGain.gain.value = 0.14;
-            this.sfxGain.gain.value = 0.22;
+            this.musicGain.gain.value = this.musicVolume;
+            this.sfxGain.gain.value = this.sfxVolume;
         } catch (e) {
             console.warn('Web Audio API not supported');
+        }
+    }
+
+    setMusicVolume(value = 0.14) {
+        this.musicVolume = Math.max(0, Math.min(0.5, value));
+        if (this.musicGain) {
+            this.musicGain.gain.value = this.musicVolume;
+        }
+    }
+
+    setSfxVolume(value = 0.22) {
+        this.sfxVolume = Math.max(0, Math.min(0.65, value));
+        if (this.sfxGain) {
+            this.sfxGain.gain.value = this.sfxVolume;
         }
     }
 
@@ -699,28 +718,73 @@ export class AudioSynth {
     }
 
     playMusic() {
-        if (!this.audioContext) return;
+        if (!this.audioContext || this.musicStarted) return;
+        this.musicStarted = true;
 
-        const playTone = (freq, time, duration) => {
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
+        const themes = [
+            {
+                duration: 7.2,
+                notes: [
+                    [196, 0.0, 1.6, 'sine'],
+                    [247, 1.5, 1.3, 'triangle'],
+                    [174, 3.0, 1.5, 'sine'],
+                    [220, 4.7, 1.6, 'triangle']
+                ]
+            },
+            {
+                duration: 7.8,
+                notes: [
+                    [220, 0.0, 1.2, 'triangle'],
+                    [262, 1.2, 1.4, 'sine'],
+                    [294, 2.9, 1.0, 'triangle'],
+                    [196, 4.3, 1.8, 'sine'],
+                    [165, 5.9, 1.2, 'triangle']
+                ]
+            },
+            {
+                duration: 7.5,
+                notes: [
+                    [165, 0.0, 1.6, 'sine'],
+                    [196, 1.7, 1.1, 'triangle'],
+                    [147, 3.1, 1.5, 'sine'],
+                    [220, 4.8, 1.4, 'triangle']
+                ]
+            }
+        ];
 
-            oscillator.type = 'sine';
-            oscillator.frequency.value = freq;
+        const playTheme = (index) => {
+            if (!this.audioContext || !this.musicGain) return;
+            const theme = themes[index % themes.length];
+            const now = this.audioContext.currentTime;
+            for (const [freq, time, duration, type] of theme.notes) {
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                const filter = this.audioContext.createBiquadFilter();
 
-            gainNode.gain.setValueAtTime(0.05, this.audioContext.currentTime + time);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + time + duration);
+                oscillator.type = type;
+                oscillator.frequency.value = freq;
+                filter.type = 'lowpass';
+                filter.frequency.value = 1200;
 
-            oscillator.connect(gainNode);
-            gainNode.connect(this.musicGain);
+                gainNode.gain.setValueAtTime(0.0001, now + time);
+                gainNode.gain.exponentialRampToValueAtTime(0.045, now + time + 0.08);
+                gainNode.gain.exponentialRampToValueAtTime(0.008, now + time + duration);
 
-            oscillator.start(this.audioContext.currentTime + time);
-            oscillator.stop(this.audioContext.currentTime + time + duration);
+                oscillator.connect(filter);
+                filter.connect(gainNode);
+                gainNode.connect(this.musicGain);
+
+                oscillator.start(now + time);
+                oscillator.stop(now + time + duration + 0.05);
+            }
+
+            clearTimeout(this.musicLoopTimer);
+            this.musicLoopTimer = setTimeout(() => {
+                this.musicThemeIndex = (index + 1) % themes.length;
+                playTheme(this.musicThemeIndex);
+            }, theme.duration * 1000);
         };
 
-        playTone(220, 0, 1.5);
-        playTone(280, 1.5, 1.5);
-        playTone(180, 3, 1.5);
-        playTone(260, 4.5, 1.5);
+        playTheme(this.musicThemeIndex);
     }
 }

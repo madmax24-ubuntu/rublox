@@ -195,6 +195,7 @@ class Game {
 
         this.entityManager = new EntityManager(this.scene);
         this.entityManager.physicsRef = this.physics;
+        this.scene.userData.entityManager = this.entityManager;
         this.lootManager = new LootManager(this.scene, this.map);
 
         const spawnPads = this.map.getSpawnPads?.() || [];
@@ -241,6 +242,7 @@ class Game {
 
         this.gameLoop = new GameLoop(this);
         this.applyRoundMode('hybrid');
+        this.applyUserSettings(this.loadUserSettings());
         this.hud.setPerkSelectionEnabled(true);
         this.hud.showGameMessage('Выберите перк до старта матча. Клавиша P');
 
@@ -335,7 +337,7 @@ class Game {
     }
 
     spawnBots() {
-        const botCount = 31;
+        const botCount = 12;
         const spawnPads = this.map.getSpawnPads?.() || [];
         const spawnRadius = 16;
 
@@ -370,25 +372,25 @@ class Game {
             this.modeConfig.zombieMultiplier = 1.4;
             this.modeConfig.footstepVolume = 0.7;
             this.modeConfig.botVision = 0.9;
-            this.modeConfig.fogDensity = 0.0032;
+            this.modeConfig.fogDensity = 0.0058;
         } else if (this.roundMode === 'nightmare') {
             this.modeConfig.lootDensity = 0.6;
             this.modeConfig.zombieMultiplier = 2.2;
             this.modeConfig.footstepVolume = 1;
             this.modeConfig.botVision = 1.05;
-            this.modeConfig.fogDensity = 0.0036;
+            this.modeConfig.fogDensity = 0.0068;
         } else if (this.roundMode === 'stealth') {
             this.modeConfig.lootDensity = 0.9;
             this.modeConfig.zombieMultiplier = 1.1;
             this.modeConfig.footstepVolume = 0.35;
             this.modeConfig.botVision = 0.7;
-            this.modeConfig.fogDensity = 0.0044;
+            this.modeConfig.fogDensity = 0.0076;
         } else {
             this.modeConfig.lootDensity = 1;
             this.modeConfig.zombieMultiplier = 1;
             this.modeConfig.footstepVolume = 1;
             this.modeConfig.botVision = 1;
-            this.modeConfig.fogDensity = 0.0028;
+            this.modeConfig.fogDensity = 0.0052;
         }
 
         this.hud.setRoundMode(this.roundMode === 'hybrid'
@@ -428,6 +430,39 @@ class Game {
                                     ? '\u0410\u0432\u0442\u043e\u0441\u0442\u0440\u0435\u043b\u044c\u0431\u0430'
                     : '-';
         this.hud.setPerk(perkLabel);
+    }
+
+    loadUserSettings() {
+        try {
+            const raw = localStorage.getItem('mazearena_settings');
+            const saved = raw ? JSON.parse(raw) : {};
+            return {
+                musicVolume: Math.max(0, Math.min(0.4, Number(saved.musicVolume ?? 0.14))),
+                sfxVolume: Math.max(0, Math.min(0.55, Number(saved.sfxVolume ?? 0.22))),
+                lookSensitivity: Math.max(0.5, Math.min(2.4, Number(saved.lookSensitivity ?? 1)))
+            };
+        } catch (_) {
+            return { musicVolume: 0.14, sfxVolume: 0.22, lookSensitivity: 1 };
+        }
+    }
+
+    saveUserSettings(partial = {}) {
+        const current = this.loadUserSettings();
+        const next = { ...current, ...partial };
+        localStorage.setItem('mazearena_settings', JSON.stringify(next));
+        return next;
+    }
+
+    applyUserSettings(settings = {}) {
+        const safe = {
+            musicVolume: Math.max(0, Math.min(0.4, Number(settings.musicVolume ?? 0.14))),
+            sfxVolume: Math.max(0, Math.min(0.55, Number(settings.sfxVolume ?? 0.22))),
+            lookSensitivity: Math.max(0.5, Math.min(2.4, Number(settings.lookSensitivity ?? 1)))
+        };
+        this.audioSynth?.setMusicVolume?.(safe.musicVolume);
+        this.audioSynth?.setSfxVolume?.(safe.sfxVolume);
+        this.player?.setLookSensitivityMultiplier?.(safe.lookSensitivity);
+        this.hud?.setSettingsValues?.(safe);
     }
 
     assignFriendlyBots(count = 2) {
@@ -803,11 +838,11 @@ class Game {
 
             const distanceOutside = this.zone.getDistanceFromZone(this.player.position);
             const fogDensity = this.scene?.fog?.density || 0;
-            const nightBoost = this.env && (this.env.dayTime < 0.18 || this.env.dayTime > 0.78) ? 0.12 : 0;
-            const shrinkBoost = this.zonePhase === 'shrinking' ? 0.1 : 0;
-            const outsideBoost = distanceOutside > 0 ? Math.min(0.18, distanceOutside * 0.012) : 0;
-            const fogBoost = Math.min(0.18, Math.max(0, fogDensity - 0.0025) * 18);
-            this.hud.setVisionIntensity?.(0.18 + nightBoost + shrinkBoost + outsideBoost + fogBoost);
+            const nightBoost = this.env && (this.env.dayTime < 0.18 || this.env.dayTime > 0.78) ? 0.14 : 0;
+            const shrinkBoost = this.zonePhase === 'shrinking' ? 0.12 : 0;
+            const outsideBoost = distanceOutside > 0 ? Math.min(0.24, distanceOutside * 0.015) : 0;
+            const fogBoost = Math.min(0.24, Math.max(0, fogDensity - 0.004) * 30);
+            this.hud.setVisionIntensity?.(0.24 + nightBoost + shrinkBoost + outsideBoost + fogBoost);
         } else {
             this.hud.setVisionIntensity?.(0);
         }
@@ -854,10 +889,10 @@ class Game {
         if (this.gameState === 'playing') {
             const isNight = this.env && (this.env.dayTime < 0.18 || this.env.dayTime > 0.78);
             const fogDensity = this.scene?.fog?.density || 0;
-            const maxFar = this.isMobile() ? 300 : 430;
-            const fogPenalty = Math.max(0, (fogDensity - 0.0024) * 18000);
-            const nightPenalty = isNight ? 60 : 0;
-            const targetFar = Math.max(115, Math.min(maxFar, this.zone.getCurrentRadius() * 0.42 + 135 - fogPenalty - nightPenalty));
+            const maxFar = this.isMobile() ? 210 : 280;
+            const fogPenalty = Math.max(0, (fogDensity - 0.004) * 9000);
+            const nightPenalty = isNight ? 35 : 0;
+            const targetFar = Math.max(82, Math.min(maxFar, this.zone.getCurrentRadius() * 0.2 + 90 - fogPenalty - nightPenalty));
             if (this.camera.far !== targetFar) {
                 this.camera.far = targetFar;
                 this.camera.updateProjectionMatrix();
@@ -1027,6 +1062,11 @@ class Game {
             this.audioSynth.startAmbient();
             this.yandex?.gameplayStart?.();
 
+            this.perkMenuOpen = !this.perkLocked;
+            this.hud.togglePerkPanel(this.perkMenuOpen);
+            if (this.perkMenuOpen) {
+                this.hud.showGameMessage('Выберите перк перед стартом матча');
+            }
             this.hud.showCountdown(this.countdownTime);
 
             if (!this.isMobile() && this.controls) {
@@ -1083,6 +1123,22 @@ window.addEventListener('DOMContentLoaded', () => {
         game.applyPerk(perk);
         game.perkLocked = true;
         game.hud.showGameMessage('\u041f\u0435\u0440\u043a \u0430\u043a\u0442\u0438\u0432\u0438\u0440\u043e\u0432\u0430\u043d');
+    });
+
+    document.addEventListener('setAudioSettings', (event) => {
+        const detail = event.detail || {};
+        const settings = game.saveUserSettings({
+            musicVolume: detail.musicVolume,
+            sfxVolume: detail.sfxVolume
+        });
+        game.applyUserSettings(settings);
+    });
+
+    document.addEventListener('setLookSensitivity', (event) => {
+        const value = Number(event.detail);
+        if (!Number.isFinite(value)) return;
+        const settings = game.saveUserSettings({ lookSensitivity: value });
+        game.applyUserSettings(settings);
     });
 
     const bindStartButton = (button) => {

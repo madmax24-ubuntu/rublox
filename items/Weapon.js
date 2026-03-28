@@ -23,9 +23,9 @@ export class Weapon {
         switch(this.type) {
             case 'fists': return 6;
             case 'knife': return 14;
-            case 'bow': return 24;
+            case 'bow': return 26;
             case 'laser': return 36;
-            case 'shotgun': return 8;
+            case 'shotgun': return 12;
             case 'flamethrower': return 4;
             case 'pistol': return 18;
             case 'rifle': return 26;
@@ -38,10 +38,10 @@ export class Weapon {
     getRange() {
         switch(this.type) {
             case 'fists': return 2.2;
-            case 'knife': return 2;
+            case 'knife': return 2.8;
             case 'bow': return 90;
             case 'laser': return 100;
-            case 'shotgun': return 35;
+            case 'shotgun': return 20;
             case 'flamethrower': return 18;
             case 'pistol': return 70;
             case 'rifle': return 95;
@@ -432,7 +432,7 @@ export class Weapon {
         this.scene.add(this.mesh);
     }
 
-    attack(owner, target, audioSynth, directionOverride = null) {
+    attack(owner, target, audioSynth, directionOverride = null, options = null) {
         const currentTime = performance.now() / 1000;
         if (currentTime - this.lastAttackTime < this.cooldown) {
             return false;
@@ -472,7 +472,7 @@ export class Weapon {
         } else if (this.type === 'knife') {
             return this.meleeAttack(owner, target);
         }
-        return this.rangedAttack(owner, target, directionOverride);
+        return this.rangedAttack(owner, target, directionOverride, options || {});
     }
 
     meleeAttack(owner, target) {
@@ -492,7 +492,7 @@ export class Weapon {
         return { hit: true, damage: finalDamage, isHeadshot, knockback };
     }
 
-    rangedAttack(owner, target, directionOverride = null) {
+    rangedAttack(owner, target, directionOverride = null, options = {}) {
         let direction = directionOverride;
         if (!direction && target && target.position) {
             direction = new THREE.Vector3()
@@ -509,12 +509,15 @@ export class Weapon {
             const pellets = [];
             for (let i = 0; i < 6; i++) {
                 const spread = new THREE.Vector3(
-                    (Math.random() - 0.5) * 0.15,
-                    (Math.random() - 0.5) * 0.15,
-                    (Math.random() - 0.5) * 0.15
+                    (Math.random() - 0.5) * 0.24,
+                    (Math.random() - 0.5) * 0.18,
+                    (Math.random() - 0.5) * 0.24
                 );
                 const dir = direction.clone().add(spread).normalize();
-                pellets.push(this.createProjectile(owner.position.clone(), dir));
+                const pellet = this.createProjectile(owner.position.clone(), dir);
+                pellet.lifetime = 0.38;
+                pellet.damage = this.damage;
+                pellets.push(pellet);
             }
             return { hit: false, projectiles: pellets };
         }
@@ -532,6 +535,14 @@ export class Weapon {
             return { hit: false, projectiles: flames };
         }
         const projectile = this.createProjectile(owner.position.clone(), direction);
+        if (this.type === 'bow') {
+            const chargeRatio = Math.max(0.35, Math.min(1, options.chargeRatio ?? 1));
+            projectile.damage = Math.round(this.damage * (0.55 + chargeRatio * 0.95));
+            projectile.speed = 38 + chargeRatio * 52;
+            projectile.velocity.copy(direction).multiplyScalar(projectile.speed);
+            projectile.gravity = Math.max(0.008, 0.03 - chargeRatio * 0.018);
+            projectile.knockback = 4 + chargeRatio * 3;
+        }
         return { hit: false, projectile };
     }
 

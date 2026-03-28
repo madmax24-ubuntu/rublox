@@ -53,6 +53,7 @@ export class Player {
         this.cameraOffset = new THREE.Vector3(0, 1.5, 0);
         this.mouseSensitivity = 0.001;
         this.mobileLookSensitivity = 0.003;
+        this.lookSensitivityMultiplier = 1;
         this.lastLookSide = 0;
         this.euler = new THREE.Euler(0, 0, 0, 'YXZ');
 
@@ -86,6 +87,10 @@ export class Player {
         this.burnDamagePerSecond = 0;
         this.burnAttacker = null;
         this.lastFlashTime = 0;
+        this.bowCharge = 0;
+        this.bowChargeMax = 1.2;
+        this.bowMinCharge = 0.14;
+        this.wasFireHeld = false;
 
         const starterKnife = new Weapon('knife', this.scene);
         this.inventory.addItem(starterKnife);
@@ -113,6 +118,10 @@ export class Player {
         const maxAmmo = target.maxAmmo ?? before + amount;
         target.ammo = Math.min(maxAmmo, before + amount);
         return Math.max(0, target.ammo - before);
+    }
+
+    setLookSensitivityMultiplier(value = 1) {
+        this.lookSensitivityMultiplier = Math.max(0.35, Math.min(2.6, value));
     }
 
     resetView() {
@@ -341,7 +350,7 @@ export class Player {
                         this.mobileLookSensitivity = 5.7 / side;
                     }
                 }
-                const sensitivity = this.input.isMobile ? this.mobileLookSensitivity : this.mouseSensitivity * 1.4;
+                const sensitivity = (this.input.isMobile ? this.mobileLookSensitivity : this.mouseSensitivity * 1.4) * this.lookSensitivityMultiplier;
                 this.rotation.y -= dx * sensitivity;
                 this.rotation.x -= dy * sensitivity;
                 const maxPitch = Math.PI / 2.4;
@@ -393,6 +402,10 @@ export class Player {
                 moveDirection.normalize();
             }
 
+            const heldWeapon = this.currentWeapon || this.fists;
+            if (!isFrozen && heldWeapon?.type === 'bow' && this.input.isKeyPressed('MouseLeft')) {
+                this.slowFactor = Math.min(this.slowFactor, 0.52);
+            }
             const speed = this.physics.speed * this.slowFactor;
             this.physics.velocity.x = moveDirection.x * speed;
             this.physics.velocity.z = moveDirection.z * speed;
@@ -500,11 +513,53 @@ export class Player {
         }
 
         const activeWeapon = this.currentWeapon || this.fists;
-        const autoTarget = this.autoFire ? this.getAutoFireTarget(entityManager) : null;
+        const autoTarget = this.autoFire && activeWeapon.type !== 'bow' ? this.getAutoFireTarget(entityManager) : null;
         const isRangedWeapon = ['bow', 'laser', 'shotgun', 'flamethrower', 'pistol', 'rifle'].includes(activeWeapon.type);
-        const fireRequested = this.input.isKeyPressed('MouseLeft') || (!!autoTarget && !isFrozen && isRangedWeapon);
-        if (!isFrozen && fireRequested && this.attackCooldown <= 0) {
-            if (activeWeapon.type === 'bow' || activeWeapon.type === 'laser' || activeWeapon.type === 'shotgun' || activeWeapon.type === 'flamethrower' || activeWeapon.type === 'pistol' || activeWeapon.type === 'rifle') {
+        const fireHeld = this.input.isKeyPressed('MouseLeft');
+        const fireRequested = fireHeld || (!!autoTarget && !isFrozen && isRangedWeapon);
+        if (activeWeapon.type === 'bow') {
+            if (!isFrozen && fireHeld) {
+                this.bowCharge = Math.min(this.bowChargeMax, this.bowCharge + delta);
+                this.weaponActionTime = this.weaponActionDuration;
+                this.weaponActionType = 'bow';
+            }
+
+            const shouldReleaseBow = !fireHeld && this.wasFireHeld && this.bowCharge >= this.bowMinCharge;
+            if (!isFrozen && shouldReleaseBow && this.attackCooldown <= 0) {
+                const direction = new THREE.Vector3();
+                this.camera.getWorldDirection(direction);
+                const chargeRatio = Math.max(0.35, Math.min(1, this.bowCharge / this.bowChargeMax));
+                const result = activeWeapon.attack(this, null, audioSynth, direction, { chargeRatio });
+                const muzzle = new THREE.Vector3();
+                this.camera.getWorldPosition(muzzle);
+                muzzle.add(direction.clone().multiplyScalar(0.6));
+
+                if (result && result.projectiles) {
+                    for (const proj of result.projectiles) {
+                        proj.owner = this;
+                        proj.mesh.position.copy(muzzle);
+                        entityManager.addProjectile(proj);
+                    }
+                } else if (result && result.projectile) {
+                    result.projectile.direction = direction;
+                    result.projectile.owner = this;
+                    result.projectile.mesh.position.copy(muzzle);
+                    if (result.projectile.velocity) {
+                        result.projectile.velocity.copy(direction).multiplyScalar(result.projectile.speed);
+                    }
+                    result.projectile.mesh.lookAt(muzzle.clone().add(direction));
+                    entityManager.addProjectile(result.projectile);
+                }
+                this.viewKick = (0.14 + chargeRatio * 0.18) * this.recoilScale;
+                this.weaponActionTime = this.weaponActionDuration + chargeRatio * 0.08;
+                this.weaponActionType = activeWeapon.type;
+                this.attackCooldown = Math.max(0.35, activeWeapon.cooldown * (0.95 - chargeRatio * 0.3)) * this.attackSpeedMultiplier;
+            }
+            if (!fireHeld) {
+                this.bowCharge = 0;
+            }
+        } else if (!isFrozen && fireRequested && this.attackCooldown <= 0) {
+            if (activeWeapon.type === 'laser' || activeWeapon.type === 'shotgun' || activeWeapon.type === 'flamethrower' || activeWeapon.type === 'pistol' || activeWeapon.type === 'rifle') {
                 const direction = new THREE.Vector3();
                 if (autoTarget) {
                     direction.subVectors(autoTarget.position, this.camera.position).normalize();
@@ -558,6 +613,7 @@ export class Player {
             }
             this.attackCooldown = activeWeapon.cooldown * this.attackSpeedMultiplier;
         }
+        this.wasFireHeld = fireHeld;
 
         if (!isFrozen && this.input.isKeyPressed('KeyE')) {
             const nearestChest = lootManager.getChests().find(chest => {

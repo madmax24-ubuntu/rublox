@@ -8,7 +8,7 @@ export class Environment {
         this.weatherType = 'clear';
         this.weatherTimer = 18 + Math.random() * 18;
         this.enableWeather = false;
-        this.targetFog = 0.0015;
+        this.targetFog = 0.0028;
         this.forceNightTimer = 0;
         this.overrideFog = null;
         this.overrideFogColor = null;
@@ -29,7 +29,7 @@ export class Environment {
         this.sunLight.position.set(200, 300, 100);
         this.scene.add(this.sunLight);
 
-        this.scene.fog = new THREE.FogExp2(0x8fd3ff, 0.0015);
+        this.scene.fog = new THREE.FogExp2(0x8fd3ff, 0.0028);
     }
 
     update(delta) {
@@ -38,7 +38,7 @@ export class Environment {
             this.forceNightTimer = Math.max(0, this.forceNightTimer - delta);
             this.dayTime = 0.92;
         } else {
-            this.dayTime += delta * 0.012;
+            this.dayTime += delta * 0.0072;
             if (this.dayTime > 1) this.dayTime = 0;
         }
 
@@ -47,20 +47,15 @@ export class Environment {
 
         this.sunLight.position.set(Math.cos(angle) * r, Math.sin(angle) * r, 100);
 
-        let skyColor = new THREE.Color(0x000000);
-        let intensity = 0;
-
-        if (this.dayTime > 0.2 && this.dayTime < 0.8) {
-            skyColor.setHex(0x8fd3ff);
-            intensity = 1.05;
-            if (this.dayTime < 0.3 || this.dayTime > 0.7) {
-                skyColor.setHex(0xffb574);
-                intensity = 0.7;
-            }
-        } else {
-            skyColor.setHex(0x050510);
-            intensity = 0.0;
-        }
+        const skyColor = new THREE.Color(0x050510);
+        const daySky = new THREE.Color(0x8fd3ff);
+        const duskSky = new THREE.Color(0xffb574);
+        const sunHeight = Math.sin(angle);
+        const dayFactor = THREE.MathUtils.smoothstep(sunHeight, -0.12, 0.18);
+        const duskFactor = 1 - Math.min(1, Math.abs(sunHeight) * 4.2);
+        skyColor.lerp(daySky, dayFactor);
+        skyColor.lerp(duskSky, duskFactor * 0.3);
+        let intensity = 0.08 + dayFactor * 0.98 - duskFactor * 0.12;
 
         if (this.enableWeather) {
             this.weatherTimer -= delta;
@@ -73,24 +68,24 @@ export class Environment {
             }
 
             if (this.weatherType === 'fog') {
-                this.targetFog = 0.0032;
+                this.targetFog = 0.0065;
                 intensity *= 0.75;
                 skyColor.lerp(new THREE.Color(0xa0b3c0), 0.3);
             } else if (this.weatherType === 'rain') {
-                this.targetFog = 0.0026;
+                this.targetFog = 0.0048;
                 intensity *= 0.65;
                 skyColor.lerp(new THREE.Color(0x7a8a9a), 0.35);
             } else {
-                this.targetFog = 0.0015;
+                this.targetFog = 0.0036;
             }
         } else {
-            this.targetFog = 0.0015;
+            this.targetFog = 0.0036;
         }
 
         if (forcedNight) {
             skyColor.setHex(0x03030c);
             intensity = 0.08;
-            this.targetFog = Math.max(this.targetFog, 0.003);
+            this.targetFog = Math.max(this.targetFog, 0.0058);
         }
         if (this.overrideFog !== null) {
             this.targetFog = this.overrideFog;

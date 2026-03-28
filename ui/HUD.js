@@ -515,6 +515,20 @@
                 <div style="font-size:${px(12)}px;opacity:0.8;margin-bottom:${px(12)}px;">
                     WASD - движение · Мышь - обзор · E - взаимодействие · Space - прыжок · ЛКМ - атака · M - пауза
                 </div>
+                <div style="display:grid;gap:${px(8)}px;margin-bottom:${px(12)}px;">
+                    <label style="display:grid;gap:${px(4)}px;font-size:${px(12)}px;">
+                        <span>Музыка</span>
+                        <input id="pauseMusicVolume" type="range" min="0" max="0.4" step="0.01" value="0.14">
+                    </label>
+                    <label style="display:grid;gap:${px(4)}px;font-size:${px(12)}px;">
+                        <span>Эффекты</span>
+                        <input id="pauseSfxVolume" type="range" min="0" max="0.55" step="0.01" value="0.22">
+                    </label>
+                    <label style="display:grid;gap:${px(4)}px;font-size:${px(12)}px;">
+                        <span>Чувствительность</span>
+                        <input id="pauseSensitivity" type="range" min="0.5" max="2.4" step="0.05" value="1">
+                    </label>
+                </div>
                 <div id="keybindSection" style="display:${isMobile ? 'none' : 'block'};margin-bottom:${px(10)}px;">
                     <div style="font-size:${px(12)}px;opacity:0.8;margin-bottom:${px(6)}px;">Управление (кликни, чтобы переназначить)</div>
                     <div id="keybindList" style="display:grid;gap:${px(6)}px;"></div>
@@ -549,7 +563,7 @@
 
         const perkButton = document.createElement('div');
         perkButton.id = 'perkButton';
-        perkButton.textContent = 'ПЕРК';
+        perkButton.textContent = 'ПЕРК ДО СТАРТА';
         perkButton.style.cssText = `
             position: absolute;
             bottom: ${px(isMobile ? 320 : 210)}px;
@@ -575,21 +589,25 @@
         perkPanel.id = 'perkPanel';
         perkPanel.style.cssText = `
             position: absolute;
-            bottom: ${px(isMobile ? 350 : 240)}px;
-            left: ${px(16)}px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             background: rgba(14, 26, 36, 0.95);
-            padding: ${px(12)}px ${px(14)}px;
+            padding: ${px(16)}px ${px(18)}px;
             border-radius: ${px(12)}px;
-            border: 2px solid rgba(255, 255, 255, 0.14);
+            border: 2px solid rgba(255, 191, 0, 0.2);
             display: none;
             pointer-events: auto;
-            min-width: ${px(210)}px;
-            max-height: ${isMobile ? '45vh' : '60vh'};
+            min-width: min(${px(290)}px, 82vw);
+            max-width: min(${px(340)}px, 86vw);
+            max-height: ${isMobile ? '55vh' : '60vh'};
             overflow-y: auto;
-            z-index: 1200;
+            z-index: 1500;
+            box-shadow: 0 18px 40px rgba(0,0,0,0.42);
         `;
                 perkPanel.innerHTML = `
-            <div style="font-size:${px(12)}px;font-weight:800;margin-bottom:${px(8)}px;">Выбор перка</div>
+            <div style="font-size:${px(18)}px;font-weight:900;margin-bottom:${px(6)}px;">Выбор перка</div>
+            <div style="font-size:${px(11)}px;opacity:0.76;margin-bottom:${px(10)}px;">Перк выбирается один раз перед матчем и действует весь раунд.</div>
             <button class="perk-btn" data-perk="quickHands">Быстрые руки</button>
             <button class="perk-btn" data-perk="silentStep">Тихий шаг</button>
             <button class="perk-btn" data-perk="moreAmmo">Больше патронов</button>
@@ -659,6 +677,7 @@
         document.head.appendChild(style);
 
         this.bindPauseUI();
+        this.bindSettingsUI();
         this.initKeybindUI();
         if (isMobile) {
             this.initTouchLayout();
@@ -685,6 +704,35 @@
                 e.stopPropagation();
                 this.toggleEditControls();
             }, { passive: false });
+        }
+    }
+
+    bindSettingsUI() {
+        const music = document.getElementById('pauseMusicVolume');
+        const sfx = document.getElementById('pauseSfxVolume');
+        const sensitivity = document.getElementById('pauseSensitivity');
+        const emitAudio = () => {
+            document.dispatchEvent(new CustomEvent('setAudioSettings', {
+                detail: {
+                    musicVolume: Number(music?.value || 0.14),
+                    sfxVolume: Number(sfx?.value || 0.22)
+                }
+            }));
+        };
+        if (music) {
+            music.addEventListener('input', emitAudio);
+            music.addEventListener('change', emitAudio);
+        }
+        if (sfx) {
+            sfx.addEventListener('input', emitAudio);
+            sfx.addEventListener('change', emitAudio);
+        }
+        if (sensitivity) {
+            const emitSensitivity = () => {
+                document.dispatchEvent(new CustomEvent('setLookSensitivity', { detail: Number(sensitivity.value || 1) }));
+            };
+            sensitivity.addEventListener('input', emitSensitivity);
+            sensitivity.addEventListener('change', emitSensitivity);
         }
     }
 
@@ -917,6 +965,15 @@
     setPerk(label) {
         const perkInfo = document.getElementById('perkInfo');
         if (perkInfo) perkInfo.textContent = `\u041f\u0435\u0440\u043a: ${label}`;
+    }
+
+    setSettingsValues(settings = {}) {
+        const music = document.getElementById('pauseMusicVolume');
+        const sfx = document.getElementById('pauseSfxVolume');
+        const sensitivity = document.getElementById('pauseSensitivity');
+        if (music && settings.musicVolume !== undefined) music.value = String(settings.musicVolume);
+        if (sfx && settings.sfxVolume !== undefined) sfx.value = String(settings.sfxVolume);
+        if (sensitivity && settings.lookSensitivity !== undefined) sensitivity.value = String(settings.lookSensitivity);
     }
 
     updateInventory(items, selectedSlot) {
