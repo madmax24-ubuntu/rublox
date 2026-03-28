@@ -103,6 +103,7 @@ class Game {
     }
 
     hideStartScreen() {
+        document.body?.classList?.add('game-started');
         const startScreen = document.getElementById('startScreen');
         if (!startScreen) return;
         startScreen.style.opacity = '0';
@@ -112,6 +113,7 @@ class Game {
     }
 
     showStartScreen() {
+        document.body?.classList?.remove('game-started');
         const startScreen = document.getElementById('startScreen');
         if (!startScreen) return;
         startScreen.style.opacity = '1';
@@ -1002,7 +1004,7 @@ class Game {
 
         this.hud.updateHealth(this.player.health, this.player.maxHealth);
         this.hud.updateArmor(this.player.armor, this.player.maxArmor);
-        this.hud.updatePlayersCount(aliveCount);
+        this.hud.updatePlayersCount(aliveCountBeforeHazards);
         this.hud.updateAmmo(this.player.currentWeapon || this.player.fists);
         if (this.traps && this.traps.length) {
             const applyTrap = (entity) => {
@@ -1094,6 +1096,7 @@ class Game {
             this.isPaused = false;
             this.partyMode = false;
             this.applyRoundMode('hybrid');
+            await new Promise(resolve => requestAnimationFrame(() => resolve()));
 
             try {
                 if (this.isMobile()) {

@@ -841,7 +841,7 @@ class Game {
 
         this.hud.updateHealth(this.player.health, this.player.maxHealth);
         this.hud.updateArmor(this.player.armor, this.player.maxArmor);
-        this.hud.updatePlayersCount(aliveCount);
+        this.hud.updatePlayersCount(aliveCountBeforeHazards);
         this.hud.updateAmmo(this.player.currentWeapon || this.player.fists);
         if (this.traps && this.traps.length) {
             const applyTrap = (entity) => {

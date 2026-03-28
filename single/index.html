@@ -239,6 +239,14 @@
             cursor: auto;
             overflow: hidden;
         }
+
+        body.game-started #startScreen {
+            display: none !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+            z-index: -1 !important;
+        }
         #startScreen::before {
             content: "";
             position: absolute;
