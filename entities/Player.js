@@ -86,6 +86,33 @@ export class Player {
         this.burnDamagePerSecond = 0;
         this.burnAttacker = null;
         this.lastFlashTime = 0;
+
+        const starterKnife = new Weapon('knife', this.scene);
+        this.inventory.addItem(starterKnife);
+        this.selectSlot(0);
+    }
+
+    getWeaponDisplayName(type) {
+        if (type === 'knife') return 'Нож';
+        if (type === 'bow') return 'Лук';
+        if (type === 'laser') return 'Лазер';
+        if (type === 'shotgun') return 'Дробовик';
+        if (type === 'flamethrower') return 'Огнемёт';
+        if (type === 'axe') return 'Топор';
+        if (type === 'spear') return 'Копьё';
+        if (type === 'pistol') return 'Пистолет';
+        if (type === 'rifle') return 'Винтовка';
+        return type || 'Предмет';
+    }
+
+    addAmmoToWeaponType(weaponType, amount) {
+        if (!weaponType || !amount || amount <= 0) return 0;
+        const target = this.inventory.getItems().find(item => item?.type === weaponType && item.ammo !== null && item.ammo !== undefined);
+        if (!target) return 0;
+        const before = target.ammo ?? 0;
+        const maxAmmo = target.maxAmmo ?? before + amount;
+        target.ammo = Math.min(maxAmmo, before + amount);
+        return Math.max(0, target.ammo - before);
     }
 
     resetView() {
@@ -680,20 +707,26 @@ export class Player {
     }
 
     pickupLoot(loot) {
+        const feedParts = [];
         if (loot.type === 'weapon') {
             const weapon = new Weapon(loot.weaponType, this.scene);
             this.applyWeaponPerk(weapon);
             const result = this.inventory.addItem(weapon);
             if (result.added) {
+                feedParts.push(`Лут: ${this.getWeaponDisplayName(loot.weaponType)}`);
                 if (!this.currentWeapon || !this.inventory.getSelectedWeapon()) {
                     this.selectSlot(result.slot);
                 }
             } else {
+                if (result.slot >= 0) {
+                    feedParts.push(`Пополнение: ${this.getWeaponDisplayName(loot.weaponType)}`);
+                }
                 weapon.dispose();
             }
             this.updateViewWeapon();
         } else if (loot.type === 'armor') {
             this.armor = Math.min(this.maxArmor, this.armor + loot.amount);
+            feedParts.push(`Броня +${Math.round(loot.amount)}`);
         } else if (loot.type === 'ammo') {
             const amount = loot.amount || 0;
             if (amount > 0) {
@@ -702,11 +735,25 @@ export class Player {
                     ? this.currentWeapon
                     : candidates[0];
                 if (target) {
+                    const before = target.ammo ?? 0;
                     target.ammo = Math.min(target.maxAmmo ?? target.ammo, (target.ammo ?? 0) + amount);
+                    const gained = Math.max(0, (target.ammo ?? 0) - before);
+                    if (gained > 0) {
+                        feedParts.push(`${this.getWeaponDisplayName(target.type)}: +${gained} патр.`);
+                    }
                 }
             }
         }
+        if (loot.bonusAmmo) {
+            const gained = this.addAmmoToWeaponType(loot.bonusAmmo.weaponType, loot.bonusAmmo.amount);
+            if (gained > 0) {
+                feedParts.push(`${this.getWeaponDisplayName(loot.bonusAmmo.weaponType)}: +${gained} патр.`);
+            }
+        }
         this.stats.loot += 1;
+        if (feedParts.length) {
+            this.hudRef?.showLootNotification?.(feedParts.join(' • '));
+        }
     }
 
     takeDamage(damage, isHeadshot = false, attacker = null, knockbackStrength = 0, source = null) {

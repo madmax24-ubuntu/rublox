@@ -32,6 +32,35 @@
         const root = document.getElementById('gameRoot') || document.body;
         root.appendChild(hud);
 
+        const visionOverlay = document.createElement('div');
+        visionOverlay.id = 'visionOverlay';
+        visionOverlay.style.cssText = `
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 940;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            background:
+                radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 34%, rgba(5,10,16,0.12) 54%, rgba(4,8,12,0.45) 76%, rgba(0,0,0,0.82) 100%);
+        `;
+        hud.appendChild(visionOverlay);
+
+        const lootFeed = document.createElement('div');
+        lootFeed.id = 'lootFeed';
+        lootFeed.style.cssText = `
+            position: absolute;
+            top: ${px(78)}px;
+            right: ${px(16)}px;
+            display: flex;
+            flex-direction: column;
+            gap: ${px(8)}px;
+            max-width: min(${px(280)}px, 72vw);
+            z-index: 1350;
+            pointer-events: none;
+        `;
+        hud.appendChild(lootFeed);
+
         const topBar = document.createElement('div');
         topBar.style.cssText = `
             position: absolute;
@@ -998,6 +1027,39 @@
         }, 3200);
     }
 
+    showLootNotification(text) {
+        const feed = document.getElementById('lootFeed');
+        if (!feed || !text) return;
+
+        const item = document.createElement('div');
+        item.style.cssText = `
+            background: rgba(14, 26, 36, 0.92);
+            border: 2px solid rgba(255, 191, 0, 0.24);
+            border-radius: 10px;
+            padding: 10px 12px;
+            color: #f7fbff;
+            font-size: 13px;
+            font-weight: 700;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.28);
+            transform: translateX(16px);
+            opacity: 0;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        `;
+        item.textContent = text;
+        feed.appendChild(item);
+
+        requestAnimationFrame(() => {
+            item.style.transform = 'translateX(0)';
+            item.style.opacity = '1';
+        });
+
+        setTimeout(() => {
+            item.style.transform = 'translateX(18px)';
+            item.style.opacity = '0';
+            setTimeout(() => item.remove(), 220);
+        }, 2400);
+    }
+
     showHitMarker() {
         const hit = document.getElementById('hitMarker');
         if (!hit) return;
@@ -1012,6 +1074,12 @@
         const storm = document.getElementById('stormOverlay');
         if (!storm) return;
         storm.style.opacity = active ? '1' : '0';
+    }
+
+    setVisionIntensity(intensity = 0) {
+        const overlay = document.getElementById('visionOverlay');
+        if (!overlay) return;
+        overlay.style.opacity = `${Math.max(0, Math.min(0.85, intensity))}`;
     }
 
     showScoreboard(lines = []) {

@@ -237,6 +237,7 @@ class Game {
         this.zonePhaseIndex = 0;
         this.zonePhaseCount = 8;
         this.zonePhaseTarget = this.zone.getCurrentRadius();
+        this.chestRespawnTimer = 55;
 
         this.gameLoop = new GameLoop(this);
         this.applyRoundMode('hybrid');
@@ -564,6 +565,7 @@ class Game {
         this.zonePhaseTimer = 28;
         this.zonePhaseIndex = 0;
         this.zonePhaseTarget = this.zone.getCurrentRadius();
+        this.chestRespawnTimer = 55;
         this.zone.setCurrentRadius(this.zone.getCurrentRadius());
         this.zone.shrink(this.zone.getCurrentRadius());
         this.zone.shrinkSpeed = 0;
@@ -597,6 +599,10 @@ class Game {
                 this.zone.setCurrentRadius(this.zonePhaseTarget);
                 this.zone.shrink(this.zonePhaseTarget);
                 this.zone.shrinkSpeed = 0;
+                const restored = this.lootManager.refillOpenedChests?.(10) || 0;
+                if (restored > 0) {
+                    this.hud.showLootNotification?.(`Сундуки пополнены: ${restored}`);
+                }
                 this.zonePhaseIndex += 1;
                 this.zonePhase = 'waiting';
                 this.zonePhaseTimer = this.zonePhaseIndex >= this.zonePhaseCount ? 9999 : 22;
@@ -767,6 +773,14 @@ class Game {
 
         if (this.gameState === 'playing') {
             this.updateZoneCycle(delta);
+            this.chestRespawnTimer = Math.max(0, this.chestRespawnTimer - delta);
+            if (this.chestRespawnTimer <= 0) {
+                const restored = this.lootManager.refillOpenedChests?.(6) || 0;
+                if (restored > 0) {
+                    this.hud.showLootNotification?.(`Сундуки пополнены: ${restored}`);
+                }
+                this.chestRespawnTimer = 55;
+            }
 
             if (!this.zone.isInsideZone(this.player.position)) {
                 const damage = this.zone.getDamage(delta);
@@ -786,6 +800,16 @@ class Game {
                     this.hud.updateZoneInfo(`\u0411\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u0430: ${Math.ceil(this.zonePhaseTimer)}\u0441 (\u0440\u0430\u0434\u0438\u0443\u0441 ${radius}\u043c)`, false);
                 }
             }
+
+            const distanceOutside = this.zone.getDistanceFromZone(this.player.position);
+            const fogDensity = this.scene?.fog?.density || 0;
+            const nightBoost = this.env && (this.env.dayTime < 0.18 || this.env.dayTime > 0.78) ? 0.12 : 0;
+            const shrinkBoost = this.zonePhase === 'shrinking' ? 0.1 : 0;
+            const outsideBoost = distanceOutside > 0 ? Math.min(0.18, distanceOutside * 0.012) : 0;
+            const fogBoost = Math.min(0.18, Math.max(0, fogDensity - 0.0025) * 18);
+            this.hud.setVisionIntensity?.(0.18 + nightBoost + shrinkBoost + outsideBoost + fogBoost);
+        } else {
+            this.hud.setVisionIntensity?.(0);
         }
 
         this.physics.update(delta);
@@ -828,8 +852,12 @@ class Game {
         }
 
         if (this.gameState === 'playing') {
-            const maxFar = this.isMobile() ? 380 : 620;
-            const targetFar = Math.max(150, Math.min(maxFar, this.zone.getCurrentRadius() + 72));
+            const isNight = this.env && (this.env.dayTime < 0.18 || this.env.dayTime > 0.78);
+            const fogDensity = this.scene?.fog?.density || 0;
+            const maxFar = this.isMobile() ? 300 : 430;
+            const fogPenalty = Math.max(0, (fogDensity - 0.0024) * 18000);
+            const nightPenalty = isNight ? 60 : 0;
+            const targetFar = Math.max(115, Math.min(maxFar, this.zone.getCurrentRadius() * 0.42 + 135 - fogPenalty - nightPenalty));
             if (this.camera.far !== targetFar) {
                 this.camera.far = targetFar;
                 this.camera.updateProjectionMatrix();

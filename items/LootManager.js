@@ -143,6 +143,7 @@ export class LootManager {
         group.userData.isOpen = false;
         group.userData.loot = this.generateLoot();
         group.userData.glow = glow;
+        group.userData.lid = lid;
 
         this.scene.add(group);
         return group;
@@ -231,47 +232,83 @@ export class LootManager {
             return { type: 'armor', amount: 60 + Math.random() * 40 };
         }
         const rand = Math.random();
-        if (rand < 0.08) {
-            return { type: 'ammo', amount: 6 + Math.floor(Math.random() * 10) };
+        if (rand < 0.12) {
+            return { type: 'ammo', amount: 10 + Math.floor(Math.random() * 9) };
         }
 
-        if (rand < 0.05) {
+        if (rand < 0.055) {
             return { type: 'weapon', weaponType: 'laser' };
         }
 
-        if (rand < 0.12) {
+        if (rand < 0.135) {
             return { type: 'weapon', weaponType: 'flamethrower' };
         }
 
-        if (rand < 0.2) {
+        if (rand < 0.24) {
             return { type: 'weapon', weaponType: 'shotgun' };
         }
 
-        if (rand < 0.3) {
+        if (rand < 0.36) {
             return { type: 'weapon', weaponType: 'bow' };
         }
 
-        if (rand < 0.42) {
+        if (rand < 0.5) {
             return { type: 'weapon', weaponType: 'knife' };
         }
 
-        if (rand < 0.54) {
+        if (rand < 0.6) {
             return { type: 'weapon', weaponType: 'axe' };
         }
 
-        if (rand < 0.64) {
+        if (rand < 0.69) {
             return { type: 'weapon', weaponType: 'spear' };
         }
 
-        if (rand < 0.72) {
+        if (rand < 0.76) {
             return { type: 'weapon', weaponType: 'pistol' };
         }
 
-        if (rand < 0.78) {
+        if (rand < 0.83) {
             return { type: 'weapon', weaponType: 'rifle' };
         }
 
         return { type: 'armor', amount: 25 + Math.random() * 25 };
+    }
+
+    getPreferredAmmoWeapon(entity) {
+        if (!entity?.inventory?.getItems) return null;
+        const selected = entity.currentWeapon;
+        if (selected?.ammo !== null && selected?.ammo !== undefined) {
+            return selected;
+        }
+        const ranged = entity.inventory.getItems().find(item => item && item.ammo !== null && item.ammo !== undefined);
+        return ranged || null;
+    }
+
+    createBonusAmmo(entity, rare = false) {
+        const preferred = this.getPreferredAmmoWeapon(entity);
+        if (!preferred) return null;
+        const amount = rare
+            ? 8 + Math.floor(Math.random() * 8)
+            : 4 + Math.floor(Math.random() * 6);
+        return {
+            weaponType: preferred.type,
+            amount
+        };
+    }
+
+    adaptLootForEntity(baseLoot, entity, rare = false) {
+        if (!baseLoot) return null;
+        const loot = { ...baseLoot };
+        const bonusAmmo = this.createBonusAmmo(entity, rare);
+        if (bonusAmmo && (loot.type === 'weapon' || loot.type === 'armor' || loot.type === 'ammo')) {
+            loot.bonusAmmo = bonusAmmo;
+        }
+        if (loot.type === 'ammo' && bonusAmmo) {
+            loot.weaponType = bonusAmmo.weaponType;
+            loot.amount = Math.max(loot.amount || 0, bonusAmmo.amount + 2);
+        }
+        return loot;
     }
 
     checkNearbyChests(position, audioSynth) {
@@ -311,8 +348,7 @@ export class LootManager {
         if (distance > 3.8) return null;
 
         chest.userData.isOpen = true;
-
-        const lid = chest.children.find(child => Math.abs(child.position.y - 0.85) < 0.1);
+        const lid = chest.userData.lid;
         if (lid) {
             lid.rotation.x = -Math.PI / 3;
         }
@@ -334,7 +370,32 @@ export class LootManager {
                 this.scene.remove(drop.beam);
             }
         }
-        return chest.userData.loot;
+        return this.adaptLootForEntity(chest.userData.loot, entity, chest.userData.isSupplyDrop);
+    }
+
+    resetChest(chest, loot = null) {
+        if (!chest?.userData?.isChest) return false;
+        chest.userData.isOpen = false;
+        chest.userData.loot = loot || this.generateLoot(!!chest.userData.isSupplyDrop);
+        chest.userData.soundPlayed = false;
+        if (chest.userData.lid) {
+            chest.userData.lid.rotation.x = 0;
+        }
+        if (chest.userData.glow) {
+            chest.userData.glow.visible = false;
+        }
+        return true;
+    }
+
+    refillOpenedChests(count = 8) {
+        const candidates = this.chests.filter(chest => chest?.userData?.isOpen && !chest.userData.isSupplyDrop);
+        if (!candidates.length) return 0;
+        const shuffled = [...candidates].sort(() => Math.random() - 0.5);
+        const limit = Math.min(count, shuffled.length);
+        for (let i = 0; i < limit; i++) {
+            this.resetChest(shuffled[i]);
+        }
+        return limit;
     }
 
     getChests() {
