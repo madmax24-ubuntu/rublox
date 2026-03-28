@@ -221,6 +221,9 @@ class Game {
         this.gateClosed = false;
         this.nightNotified = false;
         this.returnNoticeShown = false;
+        this.roundFinished = false;
+        this.deathHandled = false;
+        this.scoreboardShown = false;
         this.oneWayGates = this.map.getOneWayGates?.() || [];
         this.isPaused = false;
 
@@ -566,6 +569,38 @@ class Game {
             `\ud83c\udf81 MVP \u043b\u0443\u0442: <strong>${topLoot.name}</strong> (${topLoot.stats.loot})`
         ];
         this.hud.showScoreboard(lines);
+    }
+
+    forceEliminateInvalidSurvivors() {
+        const maxDistance = (this.map?.size || 240) * 0.75;
+        const survivors = this.entityManager.getAliveSurvivors?.() || [];
+        for (const entity of survivors) {
+            const pos = entity?.position;
+            if (!pos) continue;
+            const invalid =
+                !Number.isFinite(pos.x)
+                || !Number.isFinite(pos.y)
+                || !Number.isFinite(pos.z)
+                || pos.y < -20
+                || Math.abs(pos.x) > maxDistance
+                || Math.abs(pos.z) > maxDistance;
+            if (!invalid) continue;
+
+            entity.health = 0;
+            entity.isAlive = false;
+            entity.isFrozen = true;
+            entity.physics?.velocity?.set?.(0, 0, 0);
+            entity.clearBurning?.();
+            entity.syncWeaponVisibility?.();
+        }
+    }
+
+    endRound(message) {
+        if (this.roundFinished) return;
+        this.roundFinished = true;
+        this.gameState = 'ended';
+        this.hud.hideScoreboard?.();
+        this.hud.showGameOver(message);
     }
 
     updateAchievements(aliveCount) {
@@ -939,12 +974,12 @@ class Game {
             }
         }
 
-        const aliveCount = this.entityManager.update(delta, this.physics, this.audioSynth);
+        const aliveCountBeforeHazards = this.entityManager.update(delta, this.physics, this.audioSynth);
         if (this.gameState === 'playing') {
-            this.trySupplyDrop(aliveCount);
-            this.updateStorm(delta, aliveCount);
+            this.trySupplyDrop(aliveCountBeforeHazards);
+            this.updateStorm(delta, aliveCountBeforeHazards);
             this.updateRandomEvents(delta);
-            this.updateAchievements(aliveCount);
+            this.updateAchievements(aliveCountBeforeHazards);
         }
 
         this.hud.updateHealth(this.player.health, this.player.maxHealth);
@@ -974,13 +1009,16 @@ class Game {
             }
         }
 
+        this.forceEliminateInvalidSurvivors();
+        const aliveSurvivors = this.entityManager.getAliveSurvivors?.() || [];
+        const aliveCount = aliveSurvivors.length;
+
         if (!this.player.isAlive && !this.deathHandled) {
             this.deathHandled = true;
-            this.hud.hideScoreboard?.();
-            this.hud.showGameOver('\u0418\u0433\u0440\u0430 \u043e\u043a\u043e\u043d\u0447\u0435\u043d\u0430. \u041d\u0430\u0436\u043c\u0438\u0442\u0435 E \u0447\u0442\u043e\u0431\u044b \u043d\u0430\u0447\u0430\u0442\u044c \u0437\u0430\u043d\u043e\u0432\u043e');
+            this.endRound('\u0418\u0433\u0440\u0430 \u043e\u043a\u043e\u043d\u0447\u0435\u043d\u0430. \u041d\u0430\u0436\u043c\u0438\u0442\u0435 E \u0447\u0442\u043e\u0431\u044b \u043d\u0430\u0447\u0430\u0442\u044c \u0437\u0430\u043d\u043e\u0432\u043e');
         }
 
-        if (this.deathHandled && this.input.isKeyPressed('KeyE')) {
+        if (this.roundFinished && this.input.isKeyPressed('KeyE')) {
             window.location.reload();
             return;
         }
@@ -991,14 +1029,15 @@ class Game {
         });
         this.hud.updateInventory(inventoryItems, this.player.inventory.selectedSlot);
 
-        if (this.gameState === 'playing' && aliveCount <= 1 && !this.returnNoticeShown) {
-            this.hud.showGameMessage('\u0422\u044b \u043e\u0441\u0442\u0430\u043b\u0441\u044f \u043e\u0434\u0438\u043d. \u0414\u043e\u0436\u0438\u0432\u0438 \u0434\u043e \u043d\u043e\u0447\u0438 \u0438 \u0432\u0435\u0440\u043d\u0438\u0441\u044c \u0432 \u0434\u0432\u043e\u0440, \u0447\u0442\u043e\u0431\u044b \u043f\u043e\u0431\u0435\u0434\u0438\u0442\u044c.');
-            this.returnNoticeShown = true;
+        if (this.gameState === 'playing' && !this.roundFinished) {
+            if (aliveCount === 0) {
+                this.endRound('\u0412 \u0436\u0438\u0432\u044b\u0445 \u043d\u0438\u043a\u043e\u0433\u043e \u043d\u0435 \u043e\u0441\u0442\u0430\u043b\u043e\u0441\u044c. \u041d\u0430\u0436\u043c\u0438\u0442\u0435 E \u0447\u0442\u043e\u0431\u044b \u043d\u0430\u0447\u0430\u0442\u044c \u0437\u0430\u043d\u043e\u0432\u043e');
+            } else if (aliveCount === 1 && aliveSurvivors[0] === this.player) {
+                this.endRound('\u041f\u043e\u0431\u0435\u0434\u0430! \u0422\u044b \u043e\u0441\u0442\u0430\u043b\u0441\u044f \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u043c \u0432\u044b\u0436\u0438\u0432\u0448\u0438\u043c. \u041d\u0430\u0436\u043c\u0438\u0442\u0435 E \u0447\u0442\u043e\u0431\u044b \u043d\u0430\u0447\u0430\u0442\u044c \u0437\u0430\u043d\u043e\u0432\u043e');
+            }
         }
 
-        if (Math.random() < 0.2) {
-            this.env.update(delta);
-        }
+        this.env.update(delta);
 
         if (this.spawnTimer <= 0 || this.spawnTimer % 1 < 0.1) {
             this.hud.updatePlayersCount(this.entityManager.getAliveCount());

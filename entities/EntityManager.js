@@ -319,6 +319,10 @@ export class EntityManager {
         return this.entities.filter(e => e.isAlive && this.isSurvivorEntity(e)).length;
     }
 
+    getAliveSurvivors() {
+        return this.entities.filter(e => e.isAlive && this.isSurvivorEntity(e));
+    }
+
     getEntityById(id) {
         return this.entities.find(e => e.id === id);
     }
