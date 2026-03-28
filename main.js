@@ -102,6 +102,24 @@ class Game {
         rotateOverlay.style.display = this.isStarted && isPortrait ? 'flex' : 'none';
     }
 
+    hideStartScreen() {
+        const startScreen = document.getElementById('startScreen');
+        if (!startScreen) return;
+        startScreen.style.opacity = '0';
+        startScreen.style.visibility = 'hidden';
+        startScreen.style.pointerEvents = 'none';
+        startScreen.style.display = 'none';
+    }
+
+    showStartScreen() {
+        const startScreen = document.getElementById('startScreen');
+        if (!startScreen) return;
+        startScreen.style.opacity = '1';
+        startScreen.style.visibility = 'visible';
+        startScreen.style.pointerEvents = 'auto';
+        startScreen.style.display = 'grid';
+    }
+
     initializeGame() {
         const isMobile = this.isMobile();
         this.scene = new THREE.Scene();
@@ -1071,30 +1089,33 @@ class Game {
         if (this.isStarted) return;
         this.isStarted = true;
         try {
-            const startScreen = document.getElementById('startScreen');
-            if (startScreen) {
-                startScreen.style.display = 'none';
-            }
+            this.hideStartScreen();
+            this.hud.showPause(false);
+            this.isPaused = false;
             this.partyMode = false;
             this.applyRoundMode('hybrid');
 
-            if (this.isMobile()) {
-                this.enterFullscreen();
-                this.lockOrientation();
-                this.updateOrientationUI();
-                this.player?.resetView?.();
-                const retry = async () => {
-                    if (!document.fullscreenElement) {
-                        await this.enterFullscreen();
-                        await this.lockOrientation();
-                        this.updateOrientationUI();
-                        this.player?.resetView?.();
-                    }
-                    window.removeEventListener('touchend', retry);
-                };
-                window.addEventListener('touchend', retry, { passive: false });
-            } else {
-                await this.enterFullscreen();
+            try {
+                if (this.isMobile()) {
+                    await this.enterFullscreen();
+                    await this.lockOrientation();
+                    this.updateOrientationUI();
+                    this.player?.resetView?.();
+                    const retry = async () => {
+                        if (!document.fullscreenElement) {
+                            await this.enterFullscreen();
+                            await this.lockOrientation();
+                            this.updateOrientationUI();
+                            this.player?.resetView?.();
+                        }
+                        window.removeEventListener('touchend', retry);
+                    };
+                    window.addEventListener('touchend', retry, { passive: false });
+                } else {
+                    await this.enterFullscreen();
+                }
+            } catch (fsErr) {
+                console.warn('Fullscreen/orientation fallback:', fsErr);
             }
 
             this.audioSynth.playMusic();
@@ -1119,13 +1140,11 @@ class Game {
             }
 
             this.gameLoop.start();
+            requestAnimationFrame(() => this.hideStartScreen());
         } catch (err) {
             console.error('Failed to start game:', err);
             this.isStarted = false;
-            const startScreen = document.getElementById('startScreen');
-            if (startScreen) {
-                startScreen.style.display = 'grid';
-            }
+            this.showStartScreen();
             this.hud?.showGameMessage?.('Ошибка запуска. Нажмите старт снова.');
             throw err;
         }
