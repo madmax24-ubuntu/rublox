@@ -240,6 +240,9 @@ class Game {
         this.spawnBots();
         this.gateClosed = false;
         this.nightNotified = false;
+        this.nightWaveTimer = 0;
+        this.nightWaveBurstDone = false;
+        this.nextZombieId = 1000;
         this.returnNoticeShown = false;
         this.roundFinished = false;
         this.deathHandled = false;
@@ -924,6 +927,24 @@ class Game {
                 if (!this.nightNotified) {
                     this.hud.showGameMessage('\u041d\u043e\u0447\u044c \u043d\u0430\u0441\u0442\u0443\u043f\u0438\u043b\u0430. \u0412\u0435\u0440\u043d\u0438\u0442\u0435\u0441\u044c \u0432 \u0434\u0432\u043e\u0440!');
                     this.nightNotified = true;
+                    this.nightWaveBurstDone = false;
+                    this.nightWaveTimer = 3.5;
+                }
+                if (!this.nightWaveBurstDone) {
+                    const spawned = this.spawnZombies(false, 2.4, 10);
+                    if (spawned > 0) {
+                        this.hud.showGameMessage(`Ночь наступила. Заражённых прибыло: ${spawned}`);
+                    }
+                    this.nightWaveBurstDone = true;
+                } else {
+                    this.nightWaveTimer -= delta;
+                    if (this.nightWaveTimer <= 0) {
+                        const spawned = this.spawnZombies(false, 1.35, 4);
+                        if (spawned >= 3) {
+                            this.hud.showGameMessage('Во тьме слышны новые заражённые...');
+                        }
+                        this.nightWaveTimer = 7 + Math.random() * 4;
+                    }
                 }
                 if (this.map.isInsideCourtyard(this.player.position)) {
                     this.hud.showGameMessage('\u0412\u044b \u0432\u0435\u0440\u043d\u0443\u043b\u0438\u0441\u044c \u0432 \u0434\u0432\u043e\u0440. \u0412\u044b \u043f\u043e\u0431\u0435\u0434\u0438\u043b\u0438!');
@@ -935,6 +956,8 @@ class Game {
                 }
             } else {
                 this.nightNotified = false;
+                this.nightWaveBurstDone = false;
+                this.nightWaveTimer = 0;
                 if (this.gateClosed) {
                     this.map.setCourtyardGateOpen(false);
                 }
@@ -1064,23 +1087,30 @@ class Game {
         }
     }
 
-    spawnZombies() {
-        this.zombies = [];
+    spawnZombies(reset = true, multiplier = 1, capOverride = null) {
+        if (reset) this.zombies = [];
         const floorTiles = this.map.getFloorTiles?.() || [];
         const baseCount = Math.min(10, Math.max(4, Math.floor(floorTiles.length / 250)));
-        const count = Math.min(24, Math.max(4, Math.floor(baseCount * (this.modeConfig?.zombieMultiplier || 1))));
+        const maxAlive = capOverride ?? (reset ? 24 : 34);
+        const aliveNow = reset ? 0 : this.zombies.filter(z => z?.isAlive).length;
+        const count = Math.min(
+            Math.max(0, maxAlive - aliveNow),
+            Math.max(reset ? 4 : 2, Math.floor(baseCount * (this.modeConfig?.zombieMultiplier || 1) * multiplier))
+        );
+        if (count <= 0) return 0;
         const picks = [...floorTiles].sort(() => Math.random() - 0.5);
         let spawned = 0;
         for (const tile of picks) {
             if (spawned >= count) break;
             const pos = new THREE.Vector3(tile.x, this.map.getHeightAt(tile.x, tile.z) + 1.8, tile.z);
-            if (pos.distanceTo(this.player.position) < 20) continue;
-            const zombie = new Zombie(this.scene, 1000 + spawned, pos);
+            if (pos.distanceTo(this.player.position) < (reset ? 20 : 28)) continue;
+            const zombie = new Zombie(this.scene, this.nextZombieId++, pos);
             this.physics.addEntity(zombie);
             this.entityManager.addEntity(zombie);
             this.zombies.push(zombie);
             spawned++;
         }
+        return spawned;
     }
 
     render() {
