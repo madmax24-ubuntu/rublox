@@ -1,0 +1,385 @@
+import * as THREE from 'three';
+
+export class Zombie {
+    constructor(scene, id, spawnPosition) {
+        this.scene = scene;
+        this.id = id;
+        this.position = spawnPosition.clone();
+        this.rotation = new THREE.Euler(0, 0, 0);
+        this.physics = {
+            velocity: new THREE.Vector3(0, 0, 0),
+            onGround: false,
+            height: 1.9,
+            radius: 0.45,
+            speed: 4.8
+        };
+
+        this.health = 55;
+        this.maxHealth = 55;
+        this.isAlive = true;
+        this.attackCooldown = 0;
+        this.patrolTarget = null;
+        this.soundTimer = 1 + Math.random() * 2;
+        this.variant = ['brute', 'stalker', 'mutant'][Math.floor(Math.random() * 3)];
+        this.stats = { damage: 0, kills: 0, loot: 0 };
+        this.burnTimer = 0;
+        this.burnTickTimer = 0;
+        this.burnDamagePerSecond = 0;
+        this.burnAttacker = null;
+
+        this.mesh = this.createMesh();
+        const scale = this.variant === 'brute' ? 1.5 : this.variant === 'mutant' ? 1.4 : 1.3;
+        this.mesh.scale.setScalar(scale);
+        this.scene.add(this.mesh);
+    }
+
+    createMesh() {
+        const group = new THREE.Group();
+        const bodyColor = this.variant === 'brute' ? 0x1b241f : this.variant === 'mutant' ? 0x1f2a23 : 0x1c2621;
+        const headColor = this.variant === 'brute' ? 0x222c26 : this.variant === 'mutant' ? 0x263029 : 0x202a24;
+        const bodyMat = new THREE.MeshStandardMaterial({
+            color: bodyColor,
+            roughness: 0.85,
+            flatShading: true
+        });
+        const headMat = new THREE.MeshStandardMaterial({
+            color: headColor,
+            roughness: 0.85,
+            flatShading: true
+        });
+        const grimeMat = new THREE.MeshStandardMaterial({
+            color: 0x2e3b2e,
+            roughness: 0.95,
+            flatShading: true
+        });
+        const armorMat = new THREE.MeshStandardMaterial({
+            color: 0x263238,
+            roughness: 0.6,
+            metalness: 0.2,
+            flatShading: true
+        });
+        const glowMat = new THREE.MeshStandardMaterial({
+            color: 0x8bff4f,
+            emissive: 0x7dff3f,
+            emissiveIntensity: 1.35,
+            roughness: 0.2,
+            flatShading: true
+        });
+        const body = new THREE.Mesh(
+            new THREE.BoxGeometry(0.9, 1.1, 0.6),
+            bodyMat
+        );
+        body.position.y = 0.9;
+        group.add(body);
+
+        const rib = new THREE.Mesh(
+            new THREE.BoxGeometry(0.7, 0.4, 0.08),
+            grimeMat
+        );
+        rib.position.set(0, 0.95, 0.34);
+        group.add(rib);
+
+        if (this.variant !== 'stalker') {
+            const shoulderPlate = new THREE.Mesh(
+                new THREE.BoxGeometry(1.0, 0.18, 0.55),
+                armorMat
+            );
+            shoulderPlate.position.set(0, 1.52, 0);
+            group.add(shoulderPlate);
+        }
+
+        const spine = new THREE.Mesh(
+            new THREE.BoxGeometry(0.12, 0.9, 0.12),
+            glowMat
+        );
+        spine.position.set(0, 1.1, -0.3);
+        group.add(spine);
+
+        const head = new THREE.Mesh(
+            new THREE.BoxGeometry(0.7, 0.7, 0.7),
+            headMat
+        );
+        head.position.y = 1.7;
+        group.add(head);
+
+        const eyeMat = new THREE.MeshStandardMaterial({ color: 0xff2b1a, emissive: 0xff2a00, emissiveIntensity: 2.4 });
+        const leftEye = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.05), eyeMat);
+        const rightEye = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.05), eyeMat);
+        leftEye.position.set(-0.14, 1.75, 0.35);
+        rightEye.position.set(0.14, 1.75, 0.35);
+        group.add(leftEye);
+        group.add(rightEye);
+
+        const eyeGlowMat = new THREE.MeshStandardMaterial({ color: 0xff3a20, emissive: 0xff3a20, emissiveIntensity: 1.8, transparent: true, opacity: 0.65 });
+        const leftGlow = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.02), eyeGlowMat);
+        const rightGlow = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.02), eyeGlowMat);
+        leftGlow.position.set(-0.14, 1.75, 0.39);
+        rightGlow.position.set(0.14, 1.75, 0.39);
+        group.add(leftGlow);
+        group.add(rightGlow);
+
+        const jaw = new THREE.Mesh(
+            new THREE.BoxGeometry(0.34, 0.14, 0.08),
+            grimeMat
+        );
+        jaw.position.set(0, 1.56, 0.36);
+        group.add(jaw);
+
+        const hornMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.35, metalness: 0.2, flatShading: true });
+        const hornGeo = new THREE.ConeGeometry(0.09, 0.28, 6);
+        const leftHorn = new THREE.Mesh(hornGeo, hornMat);
+        leftHorn.position.set(-0.24, 2.05, 0);
+        leftHorn.rotation.z = Math.PI / 2;
+        group.add(leftHorn);
+        const rightHorn = new THREE.Mesh(hornGeo, hornMat);
+        rightHorn.position.set(0.24, 2.05, 0);
+        rightHorn.rotation.z = -Math.PI / 2;
+        group.add(rightHorn);
+
+        const armGeo = new THREE.BoxGeometry(0.2, 0.7, 0.2);
+        const leftArm = new THREE.Mesh(armGeo, bodyMat);
+        const rightArm = new THREE.Mesh(armGeo, bodyMat);
+        leftArm.position.set(-0.52, 1.0, 0.12);
+        rightArm.position.set(0.52, 1.0, 0.12);
+        leftArm.rotation.x = this.variant === 'brute' ? -0.95 : -0.8;
+        rightArm.rotation.x = this.variant === 'brute' ? -0.95 : -0.8;
+        group.add(leftArm);
+        group.add(rightArm);
+
+        const legGeo = new THREE.BoxGeometry(0.2, 0.7, 0.2);
+        const leftLeg = new THREE.Mesh(legGeo, bodyMat);
+        const rightLeg = new THREE.Mesh(legGeo, bodyMat);
+        leftLeg.position.set(-0.2, 0.25, 0);
+        rightLeg.position.set(0.2, 0.25, 0);
+        group.add(leftLeg);
+        group.add(rightLeg);
+
+        const clawMat = new THREE.MeshStandardMaterial({
+            color: 0x0e0e0e,
+            roughness: 0.5,
+            metalness: 0.4,
+            flatShading: true
+        });
+        const clawGeo = new THREE.ConeGeometry(0.08, 0.3, 6);
+        const leftClaw = new THREE.Mesh(clawGeo, clawMat);
+        leftClaw.position.set(-0.52, 0.7, 0.34);
+        leftClaw.rotation.x = Math.PI / 2;
+        group.add(leftClaw);
+        const rightClaw = new THREE.Mesh(clawGeo, clawMat);
+        rightClaw.position.set(0.52, 0.7, 0.34);
+        rightClaw.rotation.x = Math.PI / 2;
+        group.add(rightClaw);
+
+        if (this.variant === 'brute') {
+            const backpack = new THREE.Mesh(
+                new THREE.BoxGeometry(0.55, 0.7, 0.25),
+                armorMat
+            );
+            backpack.position.set(0, 1.1, -0.38);
+            group.add(backpack);
+        }
+
+        const spineGlow = new THREE.Mesh(
+            new THREE.BoxGeometry(0.08, 0.6, 0.08),
+            glowMat
+        );
+        spineGlow.position.set(0, 1.1, -0.52);
+        group.add(spineGlow);
+
+        if (this.variant === 'stalker') {
+            const mask = new THREE.Mesh(
+                new THREE.BoxGeometry(0.68, 0.68, 0.06),
+                new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.4, flatShading: true })
+            );
+            mask.position.set(0, 1.7, 0.36);
+            group.add(mask);
+        }
+
+        if (this.variant === 'mutant') {
+            const spikesGeo = new THREE.ConeGeometry(0.06, 0.18, 5);
+            const spikesMat = new THREE.MeshStandardMaterial({ color: 0x263238, roughness: 0.5, flatShading: true });
+            for (let i = 0; i < 5; i++) {
+                const spike = new THREE.Mesh(spikesGeo, spikesMat);
+                spike.position.set(-0.3 + i * 0.15, 1.35, -0.46);
+                spike.rotation.x = -Math.PI / 2;
+                group.add(spike);
+            }
+        }
+
+        group.userData.isEntity = true;
+        group.userData.isZombie = true;
+        group.userData.limbs = { leftArm, rightArm, leftLeg, rightLeg };
+        return group;
+    }
+
+    update(delta, entityManager, audioSynth) {
+        if (!this.isAlive) {
+            this.mesh.position.copy(this.position);
+            return;
+        }
+
+        this.attackCooldown = Math.max(0, this.attackCooldown - delta);
+        this.soundTimer -= delta;
+        this.updateBurning(delta);
+
+        const target = this.findNearestTarget(entityManager, 50);
+        if (target) {
+            const dist = this.position.distanceTo(target.position);
+            if (dist < 2.4 && this.attackCooldown <= 0) {
+                target.takeDamage(8, false, this, 3);
+                this.attackCooldown = 1.0;
+                if (audioSynth) {
+                    audioSynth.playZombieAttack?.(this.position);
+                }
+            } else {
+                const rush = dist < 10 ? 1.15 : 1;
+                this.moveTowards(target.position, this.physics.speed * rush);
+            }
+
+            if (audioSynth && this.soundTimer <= 0) {
+                audioSynth.playZombieMoan?.(this.position);
+                this.soundTimer = 1.8 + Math.random() * 2.2;
+            }
+        } else {
+            if (!this.patrolTarget || this.position.distanceTo(this.patrolTarget) < 4) {
+                this.setRandomPatrolTarget();
+            }
+            if (this.patrolTarget) {
+                this.moveTowards(this.patrolTarget, this.physics.speed * 0.7);
+            }
+
+            if (audioSynth && this.soundTimer <= 0) {
+                audioSynth.playZombieMoan?.(this.position);
+                this.soundTimer = 2.2 + Math.random() * 3.2;
+            }
+        }
+
+        this.mesh.position.copy(this.position);
+        this.mesh.position.y = this.position.y - (this.physics.height - 0.2);
+        this.mesh.rotation.y = this.rotation.y;
+        const pulse = 1 + Math.sin(performance.now() * 0.008 + this.id) * 0.015;
+        this.mesh.scale.setScalar((this.variant === 'brute' ? 1.5 : this.variant === 'mutant' ? 1.4 : 1.3) * pulse);
+        this.animateLimbs();
+    }
+
+    findNearestTarget(entityManager, maxDistance) {
+        let nearest = null;
+        let best = maxDistance;
+        for (const entity of entityManager.getEntities()) {
+            if (!entity.isAlive || entity === this) continue;
+            if (entity.constructor?.name === 'Zombie') continue;
+            const dist = this.position.distanceTo(entity.position);
+            if (dist < best) {
+                best = dist;
+                nearest = entity;
+            }
+        }
+        return nearest;
+    }
+
+    setRandomPatrolTarget() {
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 12 + Math.random() * 30;
+        this.patrolTarget = new THREE.Vector3(
+            this.position.x + Math.cos(angle) * distance,
+            0,
+            this.position.z + Math.sin(angle) * distance
+        );
+    }
+
+    moveTowards(target, speed) {
+        const direction = new THREE.Vector3()
+            .subVectors(target, this.position)
+            .normalize();
+        this.physics.velocity.x = direction.x * speed;
+        this.physics.velocity.z = direction.z * speed;
+        this.rotation.y = Math.atan2(direction.x, direction.z);
+    }
+
+    animateLimbs() {
+        const limbs = this.mesh?.userData?.limbs;
+        if (!limbs) return;
+        const speed = Math.sqrt(
+            this.physics.velocity.x * this.physics.velocity.x +
+            this.physics.velocity.z * this.physics.velocity.z
+        );
+        const speedNorm = Math.min(1, speed / this.physics.speed);
+        const time = performance.now() / 1000;
+        const swing = Math.sin(time * 8) * 0.6 * speedNorm;
+        limbs.leftLeg.rotation.x = -swing;
+        limbs.rightLeg.rotation.x = swing;
+    }
+
+    takeDamage(damage, isHeadshot = false, attacker = null, knockbackStrength = 0, source = null) {
+        const finalDamage = isHeadshot ? damage * 2 : damage;
+        if (attacker?.stats) {
+            attacker.stats.damage += finalDamage;
+        }
+        this.health -= finalDamage;
+        if (source === 'flame' && this.isAlive) {
+            this.applyBurn(2.8, 5.5, attacker);
+        }
+        if (this.health <= 0) {
+            this.health = 0;
+            this.isAlive = false;
+            this.physics.velocity.set(0, 0, 0);
+            this.mesh.position.copy(this.position);
+            this.mesh.position.y = this.position.y - (this.physics.height - 0.2) - 0.8;
+            this.mesh.rotation.set(-Math.PI / 2, this.rotation.y, 0);
+            if (attacker?.stats) {
+                attacker.stats.kills += 1;
+            }
+            this.clearBurning();
+        }
+
+        if (attacker && this.isAlive) {
+            const strength = knockbackStrength > 0 ? knockbackStrength : 2.5;
+            const dir = new THREE.Vector3().subVectors(this.position, attacker.position).normalize();
+            this.physics.velocity.x += dir.x * strength;
+            this.physics.velocity.z += dir.z * strength;
+            this.physics.velocity.y += 1.5;
+        }
+        return true;
+    }
+
+    applyBurn(duration = 2.6, damagePerSecond = 5, attacker = null) {
+        this.burnTimer = Math.max(this.burnTimer, duration);
+        this.burnTickTimer = Math.max(this.burnTickTimer, 0.08);
+        this.burnDamagePerSecond = Math.max(this.burnDamagePerSecond, damagePerSecond);
+        if (attacker) this.burnAttacker = attacker;
+    }
+
+    clearBurning() {
+        this.burnTimer = 0;
+        this.burnTickTimer = 0;
+        this.burnDamagePerSecond = 0;
+        this.burnAttacker = null;
+        this.setBurnVisual(0);
+    }
+
+    updateBurning(delta) {
+        if (this.burnTimer <= 0 || !this.isAlive) return;
+        this.burnTimer = Math.max(0, this.burnTimer - delta);
+        this.burnTickTimer -= delta;
+        const pulse = 0.26 + Math.sin(performance.now() * 0.03 + this.id) * 0.12;
+        this.setBurnVisual(Math.max(0.12, pulse));
+
+        while (this.burnTickTimer <= 0 && this.isAlive) {
+            const tickDamage = this.burnDamagePerSecond * 0.25;
+            this.takeDamage(tickDamage, false, this.burnAttacker, 0, 'burn');
+            this.burnTickTimer += 0.25;
+        }
+
+        if (this.burnTimer <= 0) {
+            this.clearBurning();
+        }
+    }
+
+    setBurnVisual(intensity) {
+        this.mesh.traverse(child => {
+            if (!child.material || !child.material.emissive) return;
+            child.material.emissive.setHex(0xff6d00);
+            child.material.emissiveIntensity = intensity;
+        });
+    }
+}

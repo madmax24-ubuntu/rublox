@@ -11,6 +11,7 @@ export class Physics {
         this.colliderGrid = new Map();
         this.colliderGridCellSize = 16;
         this.colliderGridCount = this.colliders.length;
+        this.dynamicColliders = this.colliders.filter(box => box.dynamic);
         if (this.colliders.length) {
             this.rebuildColliderGrid();
         }
@@ -31,7 +32,11 @@ export class Physics {
         this.colliders = this.mapGenerator.getColliders?.() || this.colliders;
         if (this.colliders.length !== this.colliderGridCount) {
             this.colliderGridCount = this.colliders.length;
+            this.dynamicColliders = this.colliders.filter(box => box.dynamic);
             this.rebuildColliderGrid();
+        }
+        if (this.mapGenerator.dynamicColliders) {
+            this.dynamicColliders = this.colliders.filter(box => box.dynamic);
         }
         for (const entity of this.entities) {
             if (!entity.physics) continue;
@@ -200,6 +205,15 @@ export class Physics {
                     seen.add(box);
                     results.push(box);
                 }
+            }
+        }
+        if (this.dynamicColliders.length) {
+            for (const box of this.dynamicColliders) {
+                if (seen.has(box)) continue;
+                if (position.x + radius < box.min.x || position.x - radius > box.max.x) continue;
+                if (position.z + radius < box.min.z || position.z - radius > box.max.z) continue;
+                seen.add(box);
+                results.push(box);
             }
         }
         return results;

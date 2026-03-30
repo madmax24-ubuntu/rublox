@@ -42,8 +42,8 @@
             opacity: 0;
             transition: opacity 0.3s ease;
             background:
-                radial-gradient(circle at 50% 50%, rgba(0,0,0,0.01) 0%, rgba(0,0,0,0.04) 42%, rgba(3,8,12,0.14) 68%, rgba(2,6,10,0.32) 84%, rgba(0,0,0,0.58) 100%),
-                linear-gradient(180deg, rgba(6,10,16,0.08), rgba(0,0,0,0.16));
+                linear-gradient(180deg, rgba(2,8,14,0.36) 0%, rgba(2,8,14,0.1) 18%, rgba(2,8,14,0.1) 82%, rgba(0,0,0,0.46) 100%),
+                linear-gradient(90deg, rgba(0,0,0,0.44) 0%, rgba(0,0,0,0.06) 20%, rgba(0,0,0,0.06) 80%, rgba(0,0,0,0.44) 100%);
         `;
         hud.appendChild(visionOverlay);
 
@@ -549,8 +549,8 @@
         ammoInfo.id = 'ammoInfo';
         ammoInfo.style.cssText = `
             position: absolute;
-            bottom: ${px(isMobile ? 70 : 90)}px;
-            right: ${px(16)}px;
+            bottom: ${isMobile ? `calc(6vh + ${px(150)}px)` : `${px(90)}px`};
+            right: ${isMobile ? 'max(16px, 4vw)' : `${px(16)}px`};
             background: rgba(14, 26, 36, 0.88);
             padding: ${px(8)}px ${px(14)}px;
             border-radius: ${px(8)}px;

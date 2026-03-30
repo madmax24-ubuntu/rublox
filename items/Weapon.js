@@ -1,5 +1,18 @@
 import * as THREE from 'three';
 
+const WEAPON_BALANCE = {
+    fists: { damage: 8, range: 2.4, cooldown: 0.38, ammo: null, durability: null, projectileSpeed: 0 },
+    knife: { damage: 20, range: 3.1, cooldown: 0.45, ammo: null, durability: 80, projectileSpeed: 0 },
+    axe: { damage: 30, range: 3.0, cooldown: 0.82, ammo: null, durability: 95, projectileSpeed: 0 },
+    spear: { damage: 24, range: 4.2, cooldown: 0.62, ammo: null, durability: 90, projectileSpeed: 0 },
+    bow: { damage: 24, range: 82, cooldown: 1.22, ammo: 48, durability: null, projectileSpeed: 64 },
+    laser: { damage: 28, range: 94, cooldown: 0.34, ammo: 30, durability: null, projectileSpeed: 62 },
+    shotgun: { damage: 11, range: 17, cooldown: 0.95, ammo: 36, durability: null, projectileSpeed: 52, pellets: 8 },
+    flamethrower: { damage: 4.2, range: 14, cooldown: 0.12, ammo: 260, durability: null, projectileSpeed: 16, flameCount: 4 },
+    pistol: { damage: 18, range: 68, cooldown: 0.36, ammo: 90, durability: null, projectileSpeed: 82 },
+    rifle: { damage: 24, range: 102, cooldown: 0.24, ammo: 120, durability: null, projectileSpeed: 98 }
+};
+
 export class Weapon {
     constructor(type, scene) {
         this.type = type; // 'knife', 'bow', 'laser', 'shotgun', 'flamethrower', 'pistol', 'rifle'
@@ -19,69 +32,28 @@ export class Weapon {
         this.createMesh();
     }
 
+    getProfile() {
+        return WEAPON_BALANCE[this.type] || { damage: 12, range: 2, cooldown: 0.5, ammo: null, durability: null, projectileSpeed: 30 };
+    }
+
     getDamage() {
-        switch(this.type) {
-            case 'fists': return 6;
-            case 'knife': return 14;
-            case 'bow': return 26;
-            case 'laser': return 36;
-            case 'shotgun': return 12;
-            case 'flamethrower': return 4;
-            case 'pistol': return 18;
-            case 'rifle': return 26;
-            case 'axe': return 22;
-            case 'spear': return 18;
-            default: return 12;
-        }
+        return this.getProfile().damage;
     }
 
     getRange() {
-        switch(this.type) {
-            case 'fists': return 2.2;
-            case 'knife': return 2.8;
-            case 'bow': return 90;
-            case 'laser': return 100;
-            case 'shotgun': return 20;
-            case 'flamethrower': return 18;
-            case 'pistol': return 70;
-            case 'rifle': return 95;
-            case 'axe': return 2.4;
-            case 'spear': return 3.6;
-            default: return 2;
-        }
+        return this.getProfile().range;
     }
 
     getCooldown() {
-        switch(this.type) {
-            case 'fists': return 0.4;
-            case 'knife': return 0.5;
-            case 'bow': return 1.5;
-            case 'laser': return 0.3;
-            case 'shotgun': return 1.0;
-            case 'flamethrower': return 0.15;
-            case 'pistol': return 0.45;
-            case 'rifle': return 0.32;
-            case 'axe': return 0.9;
-            case 'spear': return 0.7;
-            default: return 0.5;
-        }
+        return this.getProfile().cooldown;
     }
 
     getMaxAmmo() {
-        if (this.type === 'bow') return 40;
-        if (this.type === 'laser') return 20;
-        if (this.type === 'shotgun') return 60;
-        if (this.type === 'flamethrower') return 200;
-        if (this.type === 'pistol') return 60;
-        if (this.type === 'rifle') return 60;
-        return null;
+        return this.getProfile().ammo ?? null;
     }
 
     getMaxDurability() {
-        if (this.type === 'knife') return 60;
-        if (this.type === 'axe') return 80;
-        if (this.type === 'spear') return 70;
-        return null;
+        return this.getProfile().durability ?? null;
     }
 
     resetCharges() {
@@ -151,61 +123,65 @@ export class Weapon {
                 break;
 
             case 'bow': {
-                const woodMat = new THREE.MeshStandardMaterial({
-                    color: 0x8a5a2a,
-                    roughness: 0.5,
+                const limbMat = new THREE.MeshStandardMaterial({
+                    color: 0x7a4a20,
+                    roughness: 0.6,
                     flatShading: true
                 });
                 const gripMat = new THREE.MeshStandardMaterial({
-                    color: 0x3f2a1b,
-                    roughness: 0.7,
+                    color: 0x2d1b12,
+                    roughness: 0.75,
                     flatShading: true
                 });
                 const tipMat = new THREE.MeshStandardMaterial({
-                    color: 0x2f2f2f,
-                    roughness: 0.4,
+                    color: 0x8d8d8d,
+                    metalness: 0.45,
+                    roughness: 0.45,
                     flatShading: true
                 });
 
-                const upperArc = [
-                    { x: -0.08, y: 0.92, w: 0.12, h: 0.25, r: 0.5 },
-                    { x: 0.06, y: 0.6, w: 0.12, h: 0.25, r: 0.28 },
-                    { x: 0.14, y: 0.26, w: 0.12, h: 0.22, r: 0.12 }
+                const limbSegments = [
+                    { x: -0.16, y: 0.82, w: 0.12, h: 0.28, r: 0.48 },
+                    { x: -0.02, y: 0.5, w: 0.12, h: 0.27, r: 0.28 },
+                    { x: 0.06, y: 0.18, w: 0.11, h: 0.24, r: 0.12 },
+                    { x: 0.06, y: -0.18, w: 0.11, h: 0.24, r: -0.12 },
+                    { x: -0.02, y: -0.5, w: 0.12, h: 0.27, r: -0.28 },
+                    { x: -0.16, y: -0.82, w: 0.12, h: 0.28, r: -0.48 }
                 ];
-                const lowerArc = [
-                    { x: 0.14, y: -0.26, w: 0.12, h: 0.22, r: -0.12 },
-                    { x: 0.06, y: -0.6, w: 0.12, h: 0.25, r: -0.28 },
-                    { x: -0.08, y: -0.92, w: 0.12, h: 0.25, r: -0.5 }
-                ];
-                for (const seg of [...upperArc, ...lowerArc]) {
-                    const limb = new THREE.Mesh(new THREE.BoxGeometry(seg.w, seg.h, 0.1), woodMat);
+
+                for (const seg of limbSegments) {
+                    const limb = new THREE.Mesh(new THREE.BoxGeometry(seg.w, seg.h, 0.09), limbMat);
                     limb.position.set(seg.x, seg.y, 0);
                     limb.rotation.z = seg.r;
                     group.add(limb);
                 }
 
-                const grip = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.5, 0.12), gripMat);
-                grip.position.set(0.01, 0, 0.02);
+                const grip = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.56, 0.11), gripMat);
+                grip.position.set(0.01, 0, 0);
                 group.add(grip);
 
-                const tipTop = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.12, 0.08), tipMat);
-                tipTop.position.set(0.01, 1.04, 0.02);
+                const rest = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.06, 0.06), gripMat);
+                rest.position.set(0.12, 0.05, 0);
+                group.add(rest);
+
+                const tipTop = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.12, 0.07), tipMat);
+                tipTop.position.set(-0.21, 1.0, 0);
                 group.add(tipTop);
                 const tipBottom = tipTop.clone();
-                tipBottom.position.set(0.01, -1.04, 0.02);
+                tipBottom.position.set(-0.21, -1.0, 0);
                 group.add(tipBottom);
 
                 const stringMat = new THREE.LineBasicMaterial({ color: 0x111111 });
                 const string = new THREE.Line(
                     new THREE.BufferGeometry().setFromPoints([
-                        new THREE.Vector3(0.16, 1.04, 0),
-                        new THREE.Vector3(-0.04, 0, 0),
-                        new THREE.Vector3(0.16, -1.04, 0)
+                        new THREE.Vector3(-0.21, 1.0, 0),
+                        new THREE.Vector3(0.14, 0, 0),
+                        new THREE.Vector3(-0.21, -1.0, 0)
                     ]),
                     stringMat
                 );
                 group.add(string);
-                group.scale.setScalar(0.86);
+                group.scale.setScalar(0.82);
                 break;
             }
 
@@ -329,6 +305,9 @@ export class Weapon {
                 const grip = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.2, 0.12), stockMat);
                 grip.position.set(-0.02, -0.14, 0);
                 model.add(grip);
+                const mag = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.24, 0.1), gunMat);
+                mag.position.set(0.12, -0.1, 0);
+                model.add(mag);
                 const sight = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.06, 0.1), gunMat);
                 sight.position.set(0.05, 0.18, 0);
                 model.add(sight);
@@ -356,10 +335,10 @@ export class Weapon {
                 body.position.set(-0.1, 0, 0);
                 model.add(body);
                 const stock = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.36, 0.14, 0.12),
+                    new THREE.BoxGeometry(0.42, 0.16, 0.14),
                     woodMat
                 );
-                stock.position.set(-0.38, 0, 0);
+                stock.position.set(-0.4, 0, 0);
                 model.add(stock);
                 const shotgunGrip = new THREE.Mesh(
                     new THREE.BoxGeometry(0.12, 0.18, 0.1),
@@ -367,6 +346,12 @@ export class Weapon {
                 );
                 shotgunGrip.position.set(-0.18, -0.18, 0);
                 model.add(shotgunGrip);
+                const pump = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.26, 0.12, 0.12),
+                    woodMat
+                );
+                pump.position.set(0.2, -0.05, 0);
+                model.add(pump);
                 model.rotation.y = -Math.PI / 2;
                 group.add(model);
                 break;
@@ -507,15 +492,16 @@ export class Weapon {
 
         if (this.type === 'shotgun') {
             const pellets = [];
-            for (let i = 0; i < 6; i++) {
+            const pelletCount = this.getProfile().pellets || 8;
+            for (let i = 0; i < pelletCount; i++) {
                 const spread = new THREE.Vector3(
-                    (Math.random() - 0.5) * 0.24,
-                    (Math.random() - 0.5) * 0.18,
-                    (Math.random() - 0.5) * 0.24
+                    (Math.random() - 0.5) * 0.2,
+                    (Math.random() - 0.5) * 0.14,
+                    (Math.random() - 0.5) * 0.2
                 );
                 const dir = direction.clone().add(spread).normalize();
                 const pellet = this.createProjectile(owner.position.clone(), dir);
-                pellet.lifetime = 0.38;
+                pellet.lifetime = 0.32;
                 pellet.damage = this.damage;
                 pellets.push(pellet);
             }
@@ -523,7 +509,8 @@ export class Weapon {
         }
         if (this.type === 'flamethrower') {
             const flames = [];
-            for (let i = 0; i < 3; i++) {
+            const flameCount = this.getProfile().flameCount || 3;
+            for (let i = 0; i < flameCount; i++) {
                 const spread = new THREE.Vector3(
                     (Math.random() - 0.5) * 0.1,
                     (Math.random() - 0.5) * 0.05,
@@ -537,11 +524,11 @@ export class Weapon {
         const projectile = this.createProjectile(owner.position.clone(), direction);
         if (this.type === 'bow') {
             const chargeRatio = Math.max(0.35, Math.min(1, options.chargeRatio ?? 1));
-            projectile.damage = Math.round(this.damage * (0.55 + chargeRatio * 0.95));
-            projectile.speed = 38 + chargeRatio * 52;
+            projectile.damage = Math.round(this.damage * (0.4 + chargeRatio * 0.85));
+            projectile.speed = 30 + chargeRatio * 52;
             projectile.velocity.copy(direction).multiplyScalar(projectile.speed);
-            projectile.gravity = Math.max(0.008, 0.03 - chargeRatio * 0.018);
-            projectile.knockback = 4 + chargeRatio * 3;
+            projectile.gravity = Math.max(0.008, 0.028 - chargeRatio * 0.017);
+            projectile.knockback = 3.4 + chargeRatio * 2.8;
         }
         return { hit: false, projectile };
     }
@@ -629,25 +616,15 @@ export class Weapon {
             mesh.lookAt(startPos.clone().add(direction));
         }
 
+        const projectileSpeed = type === 'flame'
+            ? (WEAPON_BALANCE.flamethrower.projectileSpeed || 16)
+            : (WEAPON_BALANCE[type]?.projectileSpeed || this.getProfile().projectileSpeed || 30);
+
         return {
             mesh,
             direction: direction.clone(),
-            velocity: direction.clone().multiplyScalar(
-                type === 'laser' ? 50
-                    : type === 'bow' ? 75
-                        : type === 'shotgun' ? 60
-                            : type === 'flame' ? 18
-                                : type === 'rifle' ? 90
-                                    : type === 'pistol' ? 75
-                                        : 30
-            ),
-            speed: type === 'laser' ? 50
-                : type === 'bow' ? 75
-                    : type === 'shotgun' ? 60
-                        : type === 'flame' ? 18
-                            : type === 'rifle' ? 90
-                                : type === 'pistol' ? 75
-                                    : 30,
+            velocity: direction.clone().multiplyScalar(projectileSpeed),
+            speed: projectileSpeed,
             damage: this.damage,
             owner: null,
             knockback,

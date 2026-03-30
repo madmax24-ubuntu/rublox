@@ -1145,17 +1145,8 @@ export class Player {
         }
 
         const distance = this.position.distanceTo(target.position);
-        const attackRange = weapon.type === 'laser'
-            ? 40
-            : weapon.type === 'bow'
-                ? 40
-                : weapon.type === 'pistol'
-                    ? 35
-                    : weapon.type === 'rifle'
-                        ? 45
-                        : weapon.type === 'fists'
-                            ? 2.5
-                            : 3;
+        const baseRange = weapon.range || (weapon.type === 'fists' ? 2.4 : 3);
+        const attackRange = baseRange * (weapon.type === 'shotgun' ? 0.9 : 1.0);
 
         if (distance > attackRange) return null;
 

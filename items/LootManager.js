@@ -24,7 +24,7 @@ export class LootManager {
                 const spot = shuffled[i];
                 const y = this.mapGenerator.getHeightAt(spot.x, spot.z) + 0.06;
                 if (y < this.mapGenerator.waterLevel + 1) continue;
-                const chest = this.createChest(spot.x, y, spot.z);
+                const chest = this.createChest(spot.x, y, spot.z, spot.grade || 'house');
                 this.chests.push(chest);
             }
             if (this.chests.length > 0) return;
@@ -60,7 +60,7 @@ export class LootManager {
         }
     }
 
-    createChest(x, y, z) {
+    createChest(x, y, z, grade = 'house') {
         const group = new THREE.Group();
         const { bodyMat, lidMat, bandMat, metalMat } = this.chestMaterials;
 
@@ -141,7 +141,8 @@ export class LootManager {
         group.position.set(x, y, z);
         group.userData.isChest = true;
         group.userData.isOpen = false;
-        group.userData.loot = this.generateLoot();
+        group.userData.grade = grade;
+        group.userData.loot = this.generateLoot(grade === 'hangar');
         group.userData.glow = glow;
         group.userData.lid = lid;
 

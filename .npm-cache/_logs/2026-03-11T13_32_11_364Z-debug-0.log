@@ -1,0 +1,201 @@
+0 verbose cli C:\Program Files\nodejs\node.exe C:\Program Files\nodejs\node_modules\npm\bin\npm-cli.js
+1 info using npm@11.6.2
+2 info using node@v24.12.0
+3 silly config load:file:C:\Program Files\nodejs\node_modules\npm\npmrc
+4 silly config load:file:C:\Users\maksk\Desktop\rublox\.npmrc
+5 silly config load:file:C:\Users\maksk\.npmrc
+6 silly config load:file:C:\Users\maksk\AppData\Roaming\npm\etc\npmrc
+7 verbose title npm i ws
+8 verbose argv "i" "ws" "--cache" ".npm-cache"
+9 verbose logfile logs-max:10 dir:C:\Users\maksk\Desktop\rublox\.npm-cache\_logs\2026-03-11T13_32_11_364Z-
+10 verbose logfile C:\Users\maksk\Desktop\rublox\.npm-cache\_logs\2026-03-11T13_32_11_364Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:4496293888 maxSize:1124073472 maxEntrySize:562036736
+13 silly idealTree buildDeps
+14 silly fetch manifest ws@*
+15 silly packumentCache full:https://registry.npmjs.org/ws cache-miss
+16 http fetch GET 200 https://registry.npmjs.org/npm 632ms
+17 http fetch GET 200 https://registry.npmjs.org/ws 610ms (cache miss)
+18 silly packumentCache full:https://registry.npmjs.org/ws set size:undefined disposed:false
+19 silly fetch manifest bufferutil@^4.0.1
+20 silly packumentCache full:https://registry.npmjs.org/bufferutil cache-miss
+21 http fetch GET 200 https://registry.npmjs.org/bufferutil 116ms (cache miss)
+22 silly packumentCache full:https://registry.npmjs.org/bufferutil set size:undefined disposed:false
+23 silly fetch manifest utf-8-validate@>=5.0.2
+24 silly packumentCache full:https://registry.npmjs.org/utf-8-validate cache-miss
+25 http fetch GET 200 https://registry.npmjs.org/utf-8-validate 124ms (cache miss)
+26 silly packumentCache full:https://registry.npmjs.org/utf-8-validate set size:undefined disposed:false
+27 silly placeDep ROOT ws@8.19.0 OK for: rublox@1.0.0 want: *
+28 silly reify moves {}
+29 silly audit bulk request {
+29 silly audit   accepts: [ '1.3.8' ],
+29 silly audit   anymatch: [ '3.1.3' ],
+29 silly audit   'array-flatten': [ '1.1.1' ],
+29 silly audit   'balanced-match': [ '1.0.2' ],
+29 silly audit   'binary-extensions': [ '2.3.0' ],
+29 silly audit   'body-parser': [ '1.20.4' ],
+29 silly audit   'brace-expansion': [ '1.1.12' ],
+29 silly audit   braces: [ '3.0.3' ],
+29 silly audit   bytes: [ '3.1.2' ],
+29 silly audit   'call-bind-apply-helpers': [ '1.0.2' ],
+29 silly audit   'call-bound': [ '1.0.4' ],
+29 silly audit   chokidar: [ '3.6.0' ],
+29 silly audit   'concat-map': [ '0.0.1' ],
+29 silly audit   'content-disposition': [ '0.5.4' ],
+29 silly audit   'content-type': [ '1.0.5' ],
+29 silly audit   cookie: [ '0.7.2' ],
+29 silly audit   'cookie-signature': [ '1.0.7' ],
+29 silly audit   debug: [ '2.6.9', '4.4.3' ],
+29 silly audit   depd: [ '2.0.0' ],
+29 silly audit   destroy: [ '1.2.0' ],
+29 silly audit   'dunder-proto': [ '1.0.1' ],
+29 silly audit   'ee-first': [ '1.1.1' ],
+29 silly audit   encodeurl: [ '2.0.0' ],
+29 silly audit   'es-define-property': [ '1.0.1' ],
+29 silly audit   'es-errors': [ '1.3.0' ],
+29 silly audit   'es-object-atoms': [ '1.1.1' ],
+29 silly audit   'escape-html': [ '1.0.3' ],
+29 silly audit   etag: [ '1.8.1' ],
+29 silly audit   express: [ '4.22.1' ],
+29 silly audit   'fill-range': [ '7.1.1' ],
+29 silly audit   finalhandler: [ '1.3.2' ],
+29 silly audit   forwarded: [ '0.2.0' ],
+29 silly audit   fresh: [ '0.5.2' ],
+29 silly audit   fsevents: [ '2.3.3' ],
+29 silly audit   'function-bind': [ '1.1.2' ],
+29 silly audit   'get-intrinsic': [ '1.3.0' ],
+29 silly audit   'get-proto': [ '1.0.1' ],
+29 silly audit   'glob-parent': [ '5.1.2' ],
+29 silly audit   gopd: [ '1.2.0' ],
+29 silly audit   'has-flag': [ '3.0.0' ],
+29 silly audit   'has-symbols': [ '1.1.0' ],
+29 silly audit   hasown: [ '2.0.2' ],
+29 silly audit   'http-errors': [ '2.0.1' ],
+29 silly audit   'iconv-lite': [ '0.4.24' ],
+29 silly audit   'ignore-by-default': [ '1.0.1' ],
+29 silly audit   inherits: [ '2.0.4' ],
+29 silly audit   'ipaddr.js': [ '1.9.1' ],
+29 silly audit   'is-binary-path': [ '2.1.0' ],
+29 silly audit   'is-extglob': [ '2.1.1' ],
+29 silly audit   'is-glob': [ '4.0.3' ],
+29 silly audit   'is-number': [ '7.0.0' ],
+29 silly audit   'math-intrinsics': [ '1.1.0' ],
+29 silly audit   'media-typer': [ '0.3.0' ],
+29 silly audit   'merge-descriptors': [ '1.0.3' ],
+29 silly audit   methods: [ '1.1.2' ],
+29 silly audit   mime: [ '1.6.0' ],
+29 silly audit   'mime-db': [ '1.52.0' ],
+29 silly audit   'mime-types': [ '2.1.35' ],
+29 silly audit   minimatch: [ '3.1.2' ],
+29 silly audit   ms: [ '2.0.0', '2.1.3' ],
+29 silly audit   negotiator: [ '0.6.3' ],
+29 silly audit   nodemon: [ '3.1.11' ],
+29 silly audit   'normalize-path': [ '3.0.0' ],
+29 silly audit   'object-inspect': [ '1.13.4' ],
+29 silly audit   'on-finished': [ '2.4.1' ],
+29 silly audit   parseurl: [ '1.3.3' ],
+29 silly audit   'path-to-regexp': [ '0.1.12' ],
+29 silly audit   picomatch: [ '2.3.1' ],
+29 silly audit   'proxy-addr': [ '2.0.7' ],
+29 silly audit   'pstree.remy': [ '1.1.8' ],
+29 silly audit   qs: [ '6.14.1' ],
+29 silly audit   'range-parser': [ '1.2.1' ],
+29 silly audit   'raw-body': [ '2.5.3' ],
+29 silly audit   readdirp: [ '3.6.0' ],
+29 silly audit   'safe-buffer': [ '5.2.1' ],
+29 silly audit   'safer-buffer': [ '2.1.2' ],
+29 silly audit   semver: [ '7.7.3' ],
+29 silly audit   send: [ '0.19.2' ],
+29 silly audit   'serve-static': [ '1.16.3' ],
+29 silly audit   setprototypeof: [ '1.2.0' ],
+29 silly audit   'side-channel': [ '1.1.0' ],
+29 silly audit   'side-channel-list': [ '1.0.0' ],
+29 silly audit   'side-channel-map': [ '1.0.1' ],
+29 silly audit   'side-channel-weakmap': [ '1.0.2' ],
+29 silly audit   'simple-update-notifier': [ '2.0.0' ],
+29 silly audit   statuses: [ '2.0.2' ],
+29 silly audit   'supports-color': [ '5.5.0' ],
+29 silly audit   three: [ '0.160.1' ],
+29 silly audit   'to-regex-range': [ '5.0.1' ],
+29 silly audit   toidentifier: [ '1.0.1' ],
+29 silly audit   touch: [ '3.1.1' ],
+29 silly audit   'type-is': [ '1.6.18' ],
+29 silly audit   undefsafe: [ '2.0.5' ],
+29 silly audit   unpipe: [ '1.0.0' ],
+29 silly audit   'utils-merge': [ '1.0.1' ],
+29 silly audit   vary: [ '1.1.2' ],
+29 silly audit   ws: [ '8.19.0' ]
+29 silly audit }
+30 http cache ws@https://registry.npmjs.org/ws/-/ws-8.19.0.tgz 0ms (cache hit)
+31 silly tarball no local data for ws@https://registry.npmjs.org/ws/-/ws-8.19.0.tgz. Extracting by manifest.
+32 http fetch GET 200 https://registry.npmjs.org/ws/-/ws-8.19.0.tgz 141ms (cache miss)
+33 http fetch POST 200 https://registry.npmjs.org/-/npm/v1/security/advisories/bulk 306ms
+34 silly audit report {
+34 silly audit report   minimatch: [
+34 silly audit report     {
+34 silly audit report       id: 1113459,
+34 silly audit report       url: 'https://github.com/advisories/GHSA-3ppc-4f35-3m26',
+34 silly audit report       title: 'minimatch has a ReDoS via repeated wildcards with non-matching literal in pattern',
+34 silly audit report       severity: 'high',
+34 silly audit report       vulnerable_versions: '<3.1.3',
+34 silly audit report       cwe: [Array],
+34 silly audit report       cvss: [Object]
+34 silly audit report     },
+34 silly audit report     {
+34 silly audit report       id: 1113538,
+34 silly audit report       url: 'https://github.com/advisories/GHSA-7r86-cg39-jmmj',
+34 silly audit report       title: 'minimatch has ReDoS: matchOne() combinatorial backtracking via multiple non-adjacent GLOBSTAR segments',
+34 silly audit report       severity: 'high',
+34 silly audit report       vulnerable_versions: '<3.1.3',
+34 silly audit report       cwe: [Array],
+34 silly audit report       cvss: [Object]
+34 silly audit report     },
+34 silly audit report     {
+34 silly audit report       id: 1113546,
+34 silly audit report       url: 'https://github.com/advisories/GHSA-23c5-xmqv-rm74',
+34 silly audit report       title: 'minimatch ReDoS: nested *() extglobs generate catastrophically backtracking regular expressions',
+34 silly audit report       severity: 'high',
+34 silly audit report       vulnerable_versions: '<3.1.4',
+34 silly audit report       cwe: [Array],
+34 silly audit report       cvss: [Object]
+34 silly audit report     }
+34 silly audit report   ],
+34 silly audit report   qs: [
+34 silly audit report     {
+34 silly audit report       id: 1113161,
+34 silly audit report       url: 'https://github.com/advisories/GHSA-w7fw-mjwx-w883',
+34 silly audit report       title: "qs's arrayLimit bypass in comma parsing allows denial of service",
+34 silly audit report       severity: 'low',
+34 silly audit report       vulnerable_versions: '>=6.7.0 <=6.14.1',
+34 silly audit report       cwe: [Array],
+34 silly audit report       cvss: [Object]
+34 silly audit report     }
+34 silly audit report   ]
+34 silly audit report }
+35 silly packumentCache corgi:https://registry.npmjs.org/minimatch cache-miss
+36 silly packumentCache corgi:https://registry.npmjs.org/qs cache-miss
+37 http fetch GET 200 https://registry.npmjs.org/qs 114ms (cache miss)
+38 silly packumentCache corgi:https://registry.npmjs.org/qs set size:undefined disposed:false
+39 http fetch GET 200 https://registry.npmjs.org/minimatch 148ms (cache miss)
+40 silly packumentCache corgi:https://registry.npmjs.org/minimatch set size:undefined disposed:false
+41 silly packumentCache corgi:https://registry.npmjs.org/nodemon cache-miss
+42 http fetch GET 200 https://registry.npmjs.org/nodemon 148ms (cache miss)
+43 silly packumentCache corgi:https://registry.npmjs.org/nodemon set size:undefined disposed:false
+44 silly packumentCache corgi:https://registry.npmjs.org/body-parser cache-miss
+45 silly packumentCache corgi:https://registry.npmjs.org/express cache-miss
+46 http fetch GET 200 https://registry.npmjs.org/body-parser 124ms (cache miss)
+47 silly packumentCache corgi:https://registry.npmjs.org/body-parser set size:undefined disposed:false
+48 http fetch GET 200 https://registry.npmjs.org/express 130ms (cache miss)
+49 silly packumentCache corgi:https://registry.npmjs.org/express set size:undefined disposed:false
+50 silly ADD node_modules/ws
+51 verbose cwd C:\Users\maksk\Desktop\rublox
+52 verbose os Windows_NT 10.0.26200
+53 verbose node v24.12.0
+54 verbose npm  v11.6.2
+55 notice
+55 notice New minor version of npm available! 11.6.2 -> 11.11.0
+55 notice Changelog: https://github.com/npm/cli/releases/tag/v11.11.0
+55 notice To update run: npm install -g npm@11.11.0
+55 notice  { force: true, Symbol(proc-log.meta): true }
+56 verbose exit 0
+57 info ok
