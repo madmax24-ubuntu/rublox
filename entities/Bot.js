@@ -57,6 +57,8 @@ export class Bot {
         this.burnDamagePerSecond = 0;
         this.burnAttacker = null;
         this.lastFlashTime = 0;
+        this.preferTrainCombat = false;
+        this.ignoreTrainAvoidance = false;
 
         this.variants = [
             {
@@ -448,6 +450,7 @@ export class Bot {
         }
 
 
+        this.ignoreTrainAvoidance = false;
         brain.update(this, delta, entityManager, lootManager, audioSynth);
         if (this.escapeTimer > 0) {
             this.escapeTimer = Math.max(0, this.escapeTimer - delta);
@@ -760,6 +763,10 @@ export class Bot {
         if (avoid.length() > 0) {
             direction = direction.clone().add(avoid.multiplyScalar(1.35)).normalize();
         }
+        const trainAvoid = this.computeTrainAvoidance(direction);
+        if (trainAvoid.lengthSq() > 0) {
+            direction = direction.clone().add(trainAvoid.multiplyScalar(1.55)).normalize();
+        }
 
         const isBlocked = dir => {
             if (!this.physicsRef?.getNearbyColliders) return false;
@@ -849,17 +856,8 @@ export class Bot {
         }
 
         const distance = this.position.distanceTo(target.position);
-        const attackRange = weapon.type === 'laser'
-            ? 40
-            : weapon.type === 'bow'
-                ? 40
-                : weapon.type === 'pistol'
-                    ? 35
-                    : weapon.type === 'rifle'
-                        ? 45
-                        : weapon.type === 'fists'
-                            ? 2.5
-                            : 3;
+        const baseRange = weapon.range || (weapon.type === 'fists' ? 2.4 : 3);
+        const attackRange = baseRange * (weapon.type === 'shotgun' ? 0.9 : 1.0);
 
         if (distance > attackRange) return null;
 
@@ -878,20 +876,23 @@ export class Bot {
 
             if (weapon.type === 'bow') {
                 const err = new THREE.Vector3(
-                    (Math.random() - 0.5) * 0.03,
-                    (Math.random() - 0.5) * 0.02,
-                    (Math.random() - 0.5) * 0.03
+                    (Math.random() - 0.5) * 0.08,
+                    (Math.random() - 0.5) * 0.045,
+                    (Math.random() - 0.5) * 0.08
                 );
                 direction.add(err).normalize();
             }
 
-            const projectileData = weapon.attack(this, null, null, direction);
+            const projectileData = weapon.type === 'bow'
+                ? weapon.attack(this, null, null, direction, { chargeRatio: 0.55 })
+                : weapon.attack(this, null, null, direction);
+            const cadence = Math.max(0.09, (weapon.cooldown || 0.2) * (weapon.type === 'bow' ? 0.95 : 0.82));
             if (projectileData && projectileData.projectiles) {
                 for (const proj of projectileData.projectiles) {
                     proj.owner = this;
                     entityManager?.addProjectile(proj);
                 }
-                this.nextAttackTime = now + (weapon.type === 'bow' ? 0.55 : 0.18);
+                this.nextAttackTime = now + cadence;
                 return { fired: true, damage: weapon.damage };
             }
             if (projectileData && projectileData.projectile) {
@@ -900,14 +901,14 @@ export class Bot {
                 if (entityManager) {
                     entityManager.addProjectile(projectileData.projectile);
                 }
-                this.nextAttackTime = now + (weapon.type === 'bow' ? 0.55 : 0.16);
+                this.nextAttackTime = now + cadence;
                 return { fired: true, damage: weapon.damage };
             }
         } else {
             const result = weapon.attack(this, target);
             if (result && result.hit) {
                 const killed = target.takeDamage(result.damage, result.isHeadshot, this, result.knockback || 0);
-                this.nextAttackTime = now + 0.12;
+                this.nextAttackTime = now + Math.max(0.12, (weapon.cooldown || 0.3) * 0.85);
                 return { hit: true, damage: result.damage, killed: target.health <= 0 };
             }
         }
@@ -967,6 +968,40 @@ export class Bot {
                 result.x += (dx / dist) * push;
                 result.z += (dz / dist) * push;
             }
+        }
+        return result;
+    }
+
+    computeTrainAvoidance(forward) {
+        const result = new THREE.Vector3();
+        if (this.ignoreTrainAvoidance || this.state === 'trainCombat') return result;
+        const map = this.mapRef;
+        if (!map?.getTrainCarsSnapshot) return result;
+        const trains = map.getTrainCarsSnapshot();
+        if (!trains.length) return result;
+
+        for (const train of trains) {
+            const axisX = train.axis === 'x';
+            const alongDist = axisX
+                ? Math.abs(this.position.x - train.x)
+                : Math.abs(this.position.z - train.z);
+            const acrossDist = axisX
+                ? Math.abs(this.position.z - train.z)
+                : Math.abs(this.position.x - train.x);
+            const halfWidth = (train.width || 4.8) * 0.5 + 1.4;
+            if (acrossDist > halfWidth || alongDist > 13.5) continue;
+
+            const away = axisX
+                ? new THREE.Vector3(0, 0, this.position.z >= train.z ? 1 : -1)
+                : new THREE.Vector3(this.position.x >= train.x ? 1 : -1, 0, 0);
+            const intensity = Math.max(0.1, 1 - alongDist / 13.5);
+            result.add(away.multiplyScalar(intensity));
+        }
+
+        if (result.lengthSq() <= 0.0001) return result;
+        result.normalize();
+        if (result.dot(forward) < -0.2) {
+            result.multiplyScalar(0.45);
         }
         return result;
     }

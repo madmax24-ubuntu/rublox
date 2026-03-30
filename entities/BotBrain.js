@@ -44,6 +44,12 @@ export class BotBrain {
         this.stateTimer = 0;
         this.currentPriority = 'survive'; // survive, loot, hunt, regroup
         this.visionMultiplier = 1;
+        this.poiRetargetCooldown = 0;
+        this.combatProfileRoll = Math.random();
+        this.prefersTrainCombat = this.combatProfileRoll < 0.24;
+        this.prefersHangarLoot = this.combatProfileRoll >= 0.24 && this.combatProfileRoll < 0.74;
+        this.trainLockTimer = 0;
+        this.trainBoardCooldown = 0;
     }
     
     chooseInitialStrategy() {
@@ -61,6 +67,11 @@ export class BotBrain {
         this.decisionCooldown -= delta;
         this.attackCooldown -= delta;
         this.stateTimer -= delta;
+        this.poiRetargetCooldown -= delta;
+        this.trainLockTimer = Math.max(0, this.trainLockTimer - delta);
+        this.trainBoardCooldown = Math.max(0, this.trainBoardCooldown - delta);
+        bot.preferTrainCombat = this.prefersTrainCombat;
+        bot.ignoreTrainAvoidance = this.prefersTrainCombat && this.trainLockTimer > 0;
         
         // 1. Р’РѕСЃРїСЂРёСЏС‚РёРµ
         this.updatePerception(bot, entityManager, lootManager);
@@ -78,13 +89,22 @@ export class BotBrain {
             this.decisionCooldown = Math.max(0.08, 0.2 - this.personality.intelligence * 0.1);
         }
 
-        // 5. Р’С‹РїРѕР»РЅРµРЅРёРµ СЃРѕСЃС‚РѕСЏРЅРёСЏ
-        this.executeState(bot, delta, entityManager, lootManager, audioSynth, threatLevel);
+        if (this.prefersTrainCombat) {
+            this.tryAcquireTrainCombat(bot, entityManager);
+        }
+
+        // 5. Rail awareness before movement state execution
+        const avoidedTrain = this.avoidActiveTrain(bot);
+
+        // 6. Р’С‹РїРѕР»РЅРµРЅРёРµ СЃРѕСЃС‚РѕСЏРЅРёСЏ
+        if (!avoidedTrain) {
+            this.executeState(bot, delta, entityManager, lootManager, audioSynth, threatLevel);
+        }
         
-        // 6. РћР±РЅРѕРІР»РµРЅРёРµ РїР°РјСЏС‚Рё
+        // 7. РћР±РЅРѕРІР»РµРЅРёРµ РїР°РјСЏС‚Рё
         this.updateMemory(bot, entityManager);
         
-        // 7. РЈРїСЂР°РІР»РµРЅРёРµ СЃРѕСЋР·Р°РјРё
+        // 8. РЈРїСЂР°РІР»РµРЅРёРµ СЃРѕСЋР·Р°РјРё
         this.manageAlliances(bot, delta);
     }
 
@@ -204,7 +224,7 @@ export class BotBrain {
             this.currentPriority = 'hunt';
         }
         // РќРµС‚ РѕСЂСѓР¶РёСЏ = Р»СѓС‚
-        else if (!hasWeapon || healthPercent < 0.6) {
+        else if (!hasWeapon || healthPercent < 0.55 || this.hasLowCombatResources(bot)) {
             this.currentPriority = 'loot';
         }
         // РћРґРёРЅРѕРєРёР№ Рё СЃР»Р°Р±С‹Р№ = РіСЂСѓРїРїРёСЂРѕРІРєР°
@@ -213,7 +233,7 @@ export class BotBrain {
         }
         // РџРѕ СѓРјРѕР»С‡Р°РЅРёСЋ - Р±Р°Р»Р°РЅСЃ РјРµР¶РґСѓ Р»СѓС‚РѕРј Рё РѕС…РѕС‚РѕР№
         else {
-            this.currentPriority = this.personality.aggression > 0.45 || aliveCount <= 16 ? 'hunt' : 'loot';
+            this.currentPriority = hasWeapon ? 'hunt' : 'loot';
         }
     }
 
@@ -306,13 +326,36 @@ export class BotBrain {
     }
 
     decideLoot(bot, lootManager, entityManager) {
+        const hangarChest = this.findBestHangarChest(bot, lootManager);
+        if (hangarChest && (this.prefersHangarLoot || this.hasLowCombatResources(bot))) {
+            bot.state = 'explore';
+            bot.patrolTarget = new THREE.Vector3(hangarChest.position.x, hangarChest.position.y, hangarChest.position.z);
+            this.stateTimer = 10;
+            return;
+        }
+
         const chest = this.findNearestChest(bot, lootManager, 80);
         
+        const playerTarget = this.findPreferredPlayerTarget(bot, entityManager);
+        if (playerTarget && bot.currentWeapon) {
+            bot.state = 'hunt';
+            bot.target = playerTarget;
+            this.stateTimer = 8;
+            return;
+        }
+
         if (chest) {
             bot.state = 'explore';
             bot.patrolTarget = new THREE.Vector3(chest.position.x, chest.position.y, chest.position.z);
             this.stateTimer = 10;
         } else {
+            const hangarTarget = this.findStrategicHangarTarget(bot, lootManager);
+            if (hangarTarget) {
+                bot.state = 'explore';
+                bot.patrolTarget = hangarTarget;
+                this.stateTimer = 11;
+                return;
+            }
             // РСЃСЃР»РµРґСѓРµРј РЅРѕРІС‹Рµ РѕР±Р»Р°СЃС‚Рё
             bot.state = 'explore';
             this.setRandomPatrolTarget(bot, 40, 100);
@@ -375,12 +418,12 @@ export class BotBrain {
             // Р‘Р»РёР·РєРёРµ РІСЂР°РіРё РїСЂРµРґРїРѕС‡С‚РёС‚РµР»СЊРЅРµРµ
             score += (50 - enemyData.distance);
             
-            // Р‘РµР·РѕСЂСѓР¶РЅС‹Рµ РІСЂР°РіРё РїСЂРµРґРїРѕС‡С‚РёС‚РµР»СЊРЅРµРµ
-            if (!enemyData.hasWeapon) score += 30;
-            
-            // РРіСЂРѕРєРѕРІ С…Р°РЅС‚РёРј Р±РѕР»СЊС€Рµ
-            if (enemyData.isPlayer && this.personality.aggression > 0.7) {
-                score += 40;
+            if (!enemyData.hasWeapon) score += 18;
+            if (enemyData.hasWeapon) score += 18;
+            if (enemyData.distance < 35) score += 20;
+            if (enemyData.distance < 70) score += 12;
+            if (enemyData.isPlayer) {
+                score += this.personality.aggression > 0.52 ? 55 : 24;
             }
             
             if (score > bestScore) {
@@ -390,6 +433,14 @@ export class BotBrain {
         }
         
         return bestTarget;
+    }
+
+    findPreferredPlayerTarget(bot, entityManager) {
+        const enemies = Object.values(this.memory.lastSeenEnemies)
+            .filter(enemy => enemy.isPlayer && enemy.distance < 90);
+        if (!enemies.length) return null;
+        enemies.sort((a, b) => (a.distance - b.distance) || ((b.hasWeapon ? 1 : 0) - (a.hasWeapon ? 1 : 0)));
+        return entityManager.getEntityById(enemies[0].id) || null;
     }
 
     findNearestChest(bot, lootManager, maxRange) {
@@ -408,6 +459,242 @@ export class BotBrain {
         }
         
         return nearest;
+    }
+
+    findBestHangarChest(bot, lootManager) {
+        const map = bot.mapRef;
+        if (!map?.getHangarSpots || !lootManager?.getChests) return null;
+        const hangars = map.getHangarSpots();
+        if (!hangars.length) return null;
+
+        const chests = lootManager.getChests();
+        let best = null;
+        let bestScore = Infinity;
+        for (const chest of chests) {
+            if (!chest || chest.userData?.isOpen) continue;
+            const grade = chest.userData?.grade;
+            let nearHangar = grade === 'hangar';
+            if (!nearHangar) {
+                nearHangar = hangars.some(h => {
+                    const lim = Math.max(10, Math.max(h.width || 24, h.depth || 24) * 0.6);
+                    return Math.hypot(chest.position.x - h.x, chest.position.z - h.z) < lim;
+                });
+            }
+            if (!nearHangar) continue;
+            const dist = bot.position.distanceTo(chest.position);
+            if (dist > 120) continue;
+            const score = dist + (grade === 'hangar' ? -8 : 0);
+            if (score < bestScore) {
+                bestScore = score;
+                best = chest;
+            }
+        }
+        return best;
+    }
+
+    findStrategicHangarTarget(bot, lootManager = null) {
+        const map = bot.mapRef;
+        if (!map?.getHangarSpots) return null;
+        const hangars = map.getHangarSpots();
+        if (!hangars.length) return null;
+
+        const lowResources = this.hasLowCombatResources(bot);
+        let best = null;
+        let bestScore = Infinity;
+
+        for (const hangar of hangars) {
+            const center = new THREE.Vector3(hangar.x, 0, hangar.z);
+            const front = new THREE.Vector3(hangar.x, 0, hangar.z + (hangar.depth || 18) * 0.48);
+            const back = new THREE.Vector3(hangar.x, 0, hangar.z - (hangar.depth || 18) * 0.48);
+            const candidate = bot.position.distanceTo(front) < bot.position.distanceTo(back) ? front : back;
+            const target = map.isWalkableAt?.(candidate.x, candidate.z) ? candidate : center;
+
+            const dist = bot.position.distanceTo(target);
+            if (dist < 12) continue;
+
+            let closedChestBonus = 0;
+            if (lootManager?.getChests) {
+                const chests = lootManager.getChests();
+                for (const chest of chests) {
+                    if (chest?.userData?.isOpen) continue;
+                    const chestDist = Math.hypot(chest.position.x - hangar.x, chest.position.z - hangar.z);
+                    if (chestDist < Math.max(10, (hangar.width || 28) * 0.5)) {
+                        closedChestBonus += 9;
+                    }
+                }
+            }
+
+            const zonePressure = this.getZonePressure(bot);
+            const pressurePenalty = zonePressure > 0.82 ? dist * 0.35 : 0;
+            const lowResBoost = lowResources ? -16 : 0;
+            const score = dist - closedChestBonus + pressurePenalty + lowResBoost;
+            if (score < bestScore) {
+                bestScore = score;
+                best = target;
+            }
+        }
+        return best;
+    }
+
+    hasLowCombatResources(bot) {
+        const weapon = bot.currentWeapon;
+        if (!weapon || weapon.type === 'fists') return true;
+        if (weapon.ammo !== null && weapon.maxAmmo) {
+            return weapon.ammo / Math.max(1, weapon.maxAmmo) < 0.35;
+        }
+        if (weapon.durability !== null && weapon.maxDurability) {
+            return weapon.durability / Math.max(1, weapon.maxDurability) < 0.35;
+        }
+        return bot.health / Math.max(1, bot.maxHealth || 100) < 0.5;
+    }
+
+    avoidActiveTrain(bot) {
+        const map = bot.mapRef;
+        if (!map?.getTrainCarsSnapshot || !map?.isNearRailCorridor) return false;
+        if (bot.ignoreTrainAvoidance || bot.state === 'trainCombat') return false;
+
+        const nearRailNow = map.isNearRailCorridor(bot.position.x, bot.position.z, 1.4);
+        const nearRailTarget = bot.patrolTarget ? map.isNearRailCorridor(bot.patrolTarget.x, bot.patrolTarget.z, 1.4) : false;
+        if (!nearRailNow && !nearRailTarget) return false;
+
+        const trains = map.getTrainCarsSnapshot();
+        if (!trains.length) return false;
+
+        let danger = null;
+        for (const train of trains) {
+            const alongDist = train.axis === 'x'
+                ? Math.abs(train.x - bot.position.x)
+                : Math.abs(train.z - bot.position.z);
+            const acrossDist = train.axis === 'x'
+                ? Math.abs(train.z - bot.position.z)
+                : Math.abs(train.x - bot.position.x);
+            const corridorHalf = (train.width || 4.8) * 0.5 + 3.2;
+            if (acrossDist > corridorHalf) continue;
+            if (alongDist < 16) {
+                danger = train;
+                break;
+            }
+        }
+
+        if (!danger) return false;
+
+        const axisX = danger.axis === 'x';
+        const signBase = axisX
+            ? (bot.position.z >= danger.z ? 1 : -1)
+            : (bot.position.x >= danger.x ? 1 : -1);
+        const lateral = 6.2 + Math.random() * 2.2;
+        const evadeTarget = bot.position.clone();
+        if (axisX) evadeTarget.z += signBase * lateral;
+        else evadeTarget.x += signBase * lateral;
+
+        if (map.isWalkableAt?.(evadeTarget.x, evadeTarget.z)) {
+            bot.state = 'explore';
+            bot.patrolTarget = new THREE.Vector3(evadeTarget.x, 0, evadeTarget.z);
+            bot.moveTowards(bot.patrolTarget, bot.physics.speed * 1.2);
+            this.stateTimer = 0.7;
+            return true;
+        }
+
+        return false;
+    }
+
+    getTrainCombatOpportunity(bot, entityManager) {
+        const map = bot.mapRef;
+        if (!map?.getTrainCarsSnapshot) return null;
+        const trains = map.getTrainCarsSnapshot();
+        if (!trains.length) return null;
+
+        const entities = entityManager.getEntities();
+        let best = null;
+        let bestScore = Infinity;
+        for (const enemy of entities) {
+            if (!enemy || enemy === bot || !enemy.isAlive) continue;
+            if (bot.allies && bot.allies.includes(enemy)) continue;
+
+            for (const train of trains) {
+                const axisX = train.axis === 'x';
+                const enemyAlong = axisX ? Math.abs(enemy.position.x - train.x) : Math.abs(enemy.position.z - train.z);
+                const enemyAcross = axisX ? Math.abs(enemy.position.z - train.z) : Math.abs(enemy.position.x - train.x);
+                const botAlong = axisX ? Math.abs(bot.position.x - train.x) : Math.abs(bot.position.z - train.z);
+                const botAcross = axisX ? Math.abs(bot.position.z - train.z) : Math.abs(bot.position.x - train.x);
+                const halfW = (train.width || 4.8) * 0.5 + 1.8;
+                const halfL = (train.length || 14.2) * 0.62 + 4.5;
+
+                if (enemyAcross > halfW + 1.2 || enemyAlong > halfL) continue;
+                if (botAcross > halfW + 8.5 || botAlong > halfL + 20) continue;
+
+                const score =
+                    bot.position.distanceTo(enemy.position) * 0.95 +
+                    botAlong * 0.35 +
+                    botAcross * 1.15 -
+                    (enemy.constructor?.name === 'Player' ? 8 : 0) -
+                    (enemy.currentWeapon ? 2.5 : 0);
+                if (score < bestScore) {
+                    bestScore = score;
+                    best = { train, enemy };
+                }
+            }
+        }
+        return best;
+    }
+
+    tryAcquireTrainCombat(bot, entityManager) {
+        if (!this.prefersTrainCombat) return false;
+        if (bot.state === 'flee' || bot.state === 'cover' || bot.state === 'retreat') return false;
+        if (!bot.currentWeapon || this.hasLowCombatResources(bot) || bot.health < bot.maxHealth * 0.3) return false;
+        if (this.trainBoardCooldown > 0 && bot.state !== 'trainCombat') return false;
+        if (this.getZonePressure(bot) > 0.82) return false;
+
+        const opportunity = this.getTrainCombatOpportunity(bot, entityManager);
+        if (!opportunity) return false;
+
+        bot.state = 'trainCombat';
+        bot.target = opportunity.enemy;
+        bot.trainTarget = opportunity.train;
+        this.stateTimer = Math.max(this.stateTimer, 6 + Math.random() * 4);
+        this.trainLockTimer = Math.max(this.trainLockTimer, 4.5);
+        bot.ignoreTrainAvoidance = true;
+        return true;
+    }
+
+    findClosestTrain(bot) {
+        const trains = bot.mapRef?.getTrainCarsSnapshot?.() || [];
+        if (!trains.length) return null;
+        let best = null;
+        let bestDist = Infinity;
+        for (const train of trains) {
+            const dx = bot.position.x - train.x;
+            const dz = bot.position.z - train.z;
+            const d = Math.hypot(dx, dz);
+            if (d < bestDist) {
+                bestDist = d;
+                best = train;
+            }
+        }
+        return best;
+    }
+
+    getTrainBoardingPoint(bot, train) {
+        const axisX = train.axis === 'x';
+        const side = axisX
+            ? (bot.position.z >= train.z ? 1 : -1)
+            : (bot.position.x >= train.x ? 1 : -1);
+        const sideOffset = (train.width || 4.8) * 0.5 + 1.05;
+        const alongOffset = (Math.random() - 0.5) * Math.max(2.4, (train.length || 14.2) * 0.35);
+        if (axisX) {
+            return new THREE.Vector3(train.x + alongOffset, 0, train.z + side * sideOffset);
+        }
+        return new THREE.Vector3(train.x + side * sideOffset, 0, train.z + alongOffset);
+    }
+
+    isBotOnTrain(bot, train) {
+        const axisX = train.axis === 'x';
+        const along = axisX ? Math.abs(bot.position.x - train.x) : Math.abs(bot.position.z - train.z);
+        const across = axisX ? Math.abs(bot.position.z - train.z) : Math.abs(bot.position.x - train.x);
+        const topY = train.y + 0.86;
+        return along < (train.length || 14.2) * 0.48 &&
+            across < (train.width || 4.8) * 0.48 &&
+            bot.position.y > topY;
     }
 
     findPotentialAlly(bot, entityManager) {
@@ -455,6 +742,15 @@ export class BotBrain {
         const map = bot.mapRef;
         const zoneRadius = bot.zoneRef?.getCurrentRadius?.() || (map?.halfSize ? map.halfSize * 0.9 : null);
         const safeRadius = zoneRadius ? Math.max(18, zoneRadius * 0.78) : null;
+        const hangarBias = this.prefersHangarLoot ? 0.74 : (this.prefersTrainCombat ? 0.28 : 0.42);
+        if (this.poiRetargetCooldown <= 0 && map?.getHangarSpots && Math.random() < hangarBias) {
+            const hangarTarget = this.findStrategicHangarTarget(bot);
+            if (hangarTarget) {
+                bot.patrolTarget = hangarTarget;
+                this.poiRetargetCooldown = 2.5 + Math.random() * 2.5;
+                return;
+            }
+        }
         if (map && typeof map.getFloorTiles === 'function') {
             const tiles = map.getFloorTiles();
             if (tiles.length) {
@@ -466,6 +762,7 @@ export class BotBrain {
                     if (dist < minDist || dist > maxDist) continue;
                     if (safeRadius && Math.hypot(tile.x, tile.z) > safeRadius) continue;
                     if (map.isWalkableAt && !map.isWalkableAt(tile.x, tile.z)) continue;
+                    if (map.isNearRailCorridor?.(tile.x, tile.z, 0.7)) continue;
                     bot.patrolTarget = new THREE.Vector3(tile.x, 0, tile.z);
                     return;
                 }
@@ -483,6 +780,7 @@ export class BotBrain {
                 const y = map.getHeightAt(x, z);
                 if (y < map.waterLevel + 0.6) continue;
                 if (map.isWalkableAt && !map.isWalkableAt(x, z)) continue;
+                if (map.isNearRailCorridor?.(x, z, 0.8)) continue;
                 bot.patrolTarget = new THREE.Vector3(x, 0, z);
                 return;
             }
@@ -561,6 +859,9 @@ export class BotBrain {
             case 'hunt':
                 this.handleHunt(bot, delta, entityManager, audioSynth);
                 break;
+            case 'trainCombat':
+                this.handleTrainCombat(bot, delta, entityManager, audioSynth);
+                break;
             case 'flee':
                 this.handleFlee(bot, delta, entityManager, threatLevel);
                 break;
@@ -622,10 +923,20 @@ export class BotBrain {
 
     handleExplore(bot, delta, lootManager, entityManager, threatLevel) {
         // Р•СЃР»Рё РµСЃС‚СЊ СѓРіСЂРѕР·Р° - СЂРµР°РіРёСЂСѓРµРј
-        if (threatLevel === 'critical' || threatLevel === 'high') {
+        if ((threatLevel === 'critical' || threatLevel === 'high') && bot.health / bot.maxHealth < 0.32) {
             bot.state = 'flee';
             const enemy = this.findNearestEnemy(bot, 50);
             if (enemy) bot.target = enemy;
+            return;
+        }
+
+        const preferredPlayer = this.findPreferredPlayerTarget(bot, entityManager);
+        if (preferredPlayer && bot.currentWeapon && bot.health / bot.maxHealth > 0.38) {
+            bot.state = 'hunt';
+            bot.target = preferredPlayer;
+            return;
+        }
+        if (this.prefersTrainCombat && this.tryAcquireTrainCombat(bot, entityManager)) {
             return;
         }
 
@@ -656,7 +967,12 @@ export class BotBrain {
                 }
                 
                 // РЎС‚Р°РІРёРј РЅРѕРІСѓСЋ С†РµР»СЊ
-                this.setRandomPatrolTarget(bot, 18, 56);
+                const hangarTarget = this.findStrategicHangarTarget(bot, lootManager);
+                if (hangarTarget && Math.random() < 0.48) {
+                    bot.patrolTarget = hangarTarget;
+                } else {
+                    this.setRandomPatrolTarget(bot, 18, 56);
+                }
             } else {
                 bot.moveTowards(bot.patrolTarget, bot.physics.speed * 1.06);
             }
@@ -666,6 +982,9 @@ export class BotBrain {
     }
 
     handleHunt(bot, delta, entityManager, audioSynth) {
+        if (this.prefersTrainCombat && this.tryAcquireTrainCombat(bot, entityManager)) {
+            return;
+        }
         if (!bot.target || !bot.target.isAlive) {
             bot.state = 'patrol';
             return;
@@ -691,11 +1010,9 @@ export class BotBrain {
         }
         
         // Р”РёСЃС‚Р°РЅС†РёСЏ Р°С‚Р°РєРё
-        const attackRange = bot.currentWeapon ? 
-            (bot.currentWeapon.type === 'laser' ? 30 : 
-             bot.currentWeapon.type === 'bow' ? 20 :
-             bot.currentWeapon.type === 'pistol' ? 26 :
-             bot.currentWeapon.type === 'rifle' ? 32 : 3) : 2;
+        const attackRange = bot.currentWeapon
+            ? (bot.currentWeapon.range || 3) * (bot.currentWeapon.type === 'shotgun' ? 0.92 : 0.86)
+            : 2.2;
         
         if (dist < attackRange && this.attackCooldown <= 0) {
             // РђРўРђРљРЈР•Рњ
@@ -802,6 +1119,9 @@ export class BotBrain {
     }
 
     handlePatrol(bot, delta, entityManager, lootManager, threatLevel) {
+        if (this.prefersTrainCombat && this.tryAcquireTrainCombat(bot, entityManager)) {
+            return;
+        }
         if (bot.isStuck) {
             bot.isStuck = false;
             this.setRandomPatrolTarget(bot, 28, 80);
@@ -816,13 +1136,83 @@ export class BotBrain {
             this.setRandomPatrolTarget(bot, 18, 56);
         }
 
-        bot.moveTowards(bot.patrolTarget, bot.physics.speed * 1.08);
+        bot.moveTowards(bot.patrolTarget, bot.physics.speed * 1.02);
         
         // РџСЂРѕРІРµСЂСЏРµРј СЃСѓРЅРґСѓРєРё РїРѕ РїСѓС‚Рё
         const chest = this.findNearestChest(bot, lootManager, 5);
         if (chest && !chest.userData.isOpen) {
             const loot = lootManager.tryOpenChest(chest, bot);
             if (loot && bot.pickupLoot) bot.pickupLoot(loot);
+        } else if (Math.random() < 0.06) {
+            const hangarTarget = this.findStrategicHangarTarget(bot, lootManager);
+            if (hangarTarget) {
+                bot.patrolTarget = hangarTarget;
+            }
+        }
+    }
+
+    handleTrainCombat(bot, delta, entityManager, audioSynth) {
+        const opportunity = this.getTrainCombatOpportunity(bot, entityManager);
+        if (!opportunity) {
+            bot.state = 'patrol';
+            bot.trainTarget = null;
+            this.trainLockTimer = 0;
+            return;
+        }
+
+        bot.target = opportunity.enemy;
+        bot.trainTarget = opportunity.train;
+        const train = opportunity.train;
+        const onTrain = this.isBotOnTrain(bot, train);
+
+        if (!onTrain) {
+            const boardPoint = this.getTrainBoardingPoint(bot, train);
+            bot.moveTowards(boardPoint, bot.physics.speed * 1.2);
+            const boardDist = bot.position.distanceTo(boardPoint);
+            if (boardDist < 1.9 && this.trainBoardCooldown <= 0) {
+                const axisX = train.axis === 'x';
+                const alongOffset = (Math.random() - 0.5) * Math.max(2.2, (train.length || 14.2) * 0.42);
+                if (axisX) {
+                    bot.position.x = train.x + alongOffset;
+                    bot.position.z = train.z;
+                } else {
+                    bot.position.x = train.x;
+                    bot.position.z = train.z + alongOffset;
+                }
+                bot.position.y = Math.max(bot.position.y, train.y + 0.94 + bot.physics.height);
+                bot.physics.velocity.y = 0;
+                bot.physics.onGround = true;
+                this.trainBoardCooldown = 2.2;
+            }
+            this.trainLockTimer = Math.max(this.trainLockTimer, 1.6);
+            return;
+        }
+
+        const attackRange = bot.currentWeapon
+            ? (bot.currentWeapon.range || 3) * (bot.currentWeapon.type === 'shotgun' ? 0.94 : 0.88)
+            : 2.2;
+        const dist = bot.position.distanceTo(bot.target.position);
+
+        if (dist < attackRange && this.attackCooldown <= 0) {
+            bot.lookAt(bot.target.position);
+            if (bot.currentWeapon && bot.attack) {
+                const result = bot.attack(bot.target, entityManager);
+                if (result) {
+                    this.memory.damageDealt += result.damage || 0;
+                    if (result.killed) this.memory.kills++;
+                }
+            }
+            this.attackCooldown = (bot.currentWeapon ? bot.currentWeapon.cooldown : 1) * 0.7;
+        } else {
+            bot.moveTowards(bot.target.position, bot.physics.speed * 1.08);
+            bot.lookAt(bot.target.position);
+        }
+
+        this.trainLockTimer = Math.max(this.trainLockTimer, 0.75);
+        if (!bot.target?.isAlive || this.stateTimer <= 0) {
+            bot.state = 'patrol';
+            bot.trainTarget = null;
+            this.trainLockTimer = 0;
         }
     }
 

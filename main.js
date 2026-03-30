@@ -187,7 +187,6 @@ class Game {
         this.commandState = { help: false, enemy: false, gather: false };
         this.quickCommandCooldown = 0;
         this.dropTriggeredAt = new Set();
-        this.storm = { active: false, timer: 0, triggered: false };
         this.perkMenuOpen = false;
         this.perkMenuIndex = 0;
         this.perkKeyLatch = false;
@@ -212,6 +211,7 @@ class Game {
         this.zone.shrink(this.zone.getCurrentRadius());
         this.zone.shrinkSpeed = 0;
         this.traps = this.map.getTraps?.() || [];
+        this.localFogZones = this.map.getFogZones?.() || [];
 
         this.entityManager = new EntityManager(this.scene);
         this.entityManager.physicsRef = this.physics;
@@ -248,6 +248,7 @@ class Game {
         this.deathHandled = false;
         this.scoreboardShown = false;
         this.oneWayGates = this.map.getOneWayGates?.() || [];
+        this.poiZombieSeeded = false;
         this.isPaused = false;
 
         for (let i = 0; i < this.bots.length; i++) {
@@ -363,7 +364,7 @@ class Game {
     }
 
     spawnBots() {
-        const botCount = 12;
+        const botCount = 60;
         const spawnPads = this.map.getSpawnPads?.() || [];
         const spawnRadius = 16;
 
@@ -372,7 +373,9 @@ class Game {
             if (spawnPads.length) {
                 const pad = spawnPads[(i + 1) % spawnPads.length];
                 const padTop = pad.y;
-                spawnPos = new THREE.Vector3(pad.x, padTop + 1.9, pad.z);
+                const jitterX = (Math.random() - 0.5) * 0.45;
+                const jitterZ = (Math.random() - 0.5) * 0.45;
+                spawnPos = new THREE.Vector3(pad.x + jitterX, padTop + 1.9, pad.z + jitterZ);
             } else {
                 const angle = (i / botCount) * Math.PI * 2;
                 spawnPos = new THREE.Vector3(
@@ -549,30 +552,6 @@ class Game {
         }
     }
 
-    updateStorm(delta, aliveCount) {
-        if (!this.storm.triggered && aliveCount <= 12) {
-            this.storm.triggered = true;
-            this.storm.active = true;
-            this.storm.timer = 12;
-            this.hud.setStormActive(true);
-            this.hud.showGameMessage('\u0428\u0442\u043e\u0440\u043c! \u0411\u0443\u0434\u044c \u043e\u0441\u0442\u043e\u0440\u043e\u0436\u0435\u043d');
-            this.audioSynth.playStorm?.(this.player.position);
-        }
-
-        if (this.storm.active) {
-            this.storm.timer -= delta;
-            const damage = 1.1 * delta;
-            this.player.takeDamage(damage, false, null, 0, 'storm');
-            for (const bot of this.bots) {
-                if (bot.isAlive) bot.takeDamage(damage, false, null, 0, 'storm');
-            }
-            if (this.storm.timer <= 0) {
-                this.storm.active = false;
-                this.hud.setStormActive(false);
-            }
-        }
-    }
-
     showMvpBoard() {
         const entities = this.entityManager.getEntities();
         const stats = entities
@@ -707,7 +686,7 @@ class Game {
         if (this.activeEvent.type) {
             this.activeEvent.timer -= delta;
             if (this.activeEvent.timer <= 0) {
-                if (this.activeEvent.type === "fog") {
+                if (this.activeEvent.type === "blindness") {
                     if (this.env?.clearFogOverride) this.env.clearFogOverride();
                 }
                 if (this.activeEvent.type === "night" && this.env?.forceNightTimer !== undefined) {
@@ -721,18 +700,18 @@ class Game {
         this.randomEventTimer -= delta;
         if (this.randomEventTimer > 0 || this.activeEvent.type) return;
 
-        const events = ["fog", "night"];
+        const events = ["blindness", "night"];
         const event = events[Math.floor(Math.random() * events.length)];
 
-        if (event === "fog") {
-            this.activeEvent.type = "fog";
-            this.activeEvent.timer = 32;
+        if (event === "blindness") {
+            this.activeEvent.type = "blindness";
+            this.activeEvent.timer = 26;
             if (this.env?.setFogOverride) {
-                this.env.setFogOverride(0.0125, 0x394553);
+                this.env.setFogOverride(0.085, 0x030307);
             } else if (this.scene?.fog) {
-                this.scene.fog.density = 0.0125;
+                this.scene.fog.density = 0.085;
             }
-            this.hud.showGameMessage("Событие: Густой туман");
+            this.hud.showGameMessage("Событие: Слепота");
         } else if (event === "night" && this.env?.forceNight) {
             this.activeEvent.type = "night";
             this.activeEvent.timer = 28;
@@ -823,7 +802,8 @@ class Game {
                 this.audioSynth.playBoxArrival?.(new THREE.Vector3(0, 1, 0));
                 this.player.isFrozen = false;
                 this.bots.forEach(bot => { bot.isFrozen = false; });
-                this.spawnZombies();
+                this.spawnZombies(true, 1.6, 120, 22);
+                this.spawnPoiZombieGuards(1.1);
             }
         } else if (this.gameState === 'spawn') {
             this.spawnTimer -= delta;
@@ -847,6 +827,9 @@ class Game {
                 this.map.setCourtyardGateOpen(false);
                 this.gateClosed = true;
                 this.audioSynth.playStoneDoorClose?.(this.map.getCourtyardExitPosition());
+                if (!this.poiZombieSeeded) {
+                    this.spawnPoiZombieGuards(1.25);
+                }
                 const kickOut = (entity) => {
                     if (this.map.isInsideCourtyard(entity.position)) {
                         const exitPos = this.map.getCourtyardExitPosition();
@@ -876,7 +859,7 @@ class Game {
             }
 
             if (!this.zone.isInsideZone(this.player.position)) {
-                const damage = this.zone.getDamage(delta);
+                const damage = this.zone.getDamage(delta, this.player.position);
                 this.player.takeDamage(damage, false, null, 0, 'zone');
             }
 
@@ -900,7 +883,8 @@ class Game {
             const shrinkBoost = this.zonePhase === 'shrinking' ? 0.12 : 0;
             const outsideBoost = distanceOutside > 0 ? Math.min(0.24, distanceOutside * 0.015) : 0;
             const fogBoost = Math.min(0.24, Math.max(0, fogDensity - 0.004) * 30);
-            this.hud.setVisionIntensity?.(0.24 + nightBoost + shrinkBoost + outsideBoost + fogBoost);
+            const blindnessBoost = this.activeEvent?.type === 'blindness' ? 0.55 : 0;
+            this.hud.setVisionIntensity?.(0.12 + nightBoost + shrinkBoost + outsideBoost + fogBoost + blindnessBoost);
         } else {
             this.hud.setVisionIntensity?.(0);
         }
@@ -908,6 +892,7 @@ class Game {
         this.physics.update(delta);
 
         this.player.update(delta, this.audioSynth, this.lootManager, this.entityManager, this.controls);
+        this.map.update?.(delta, this.player.position);
         this.map.updatePropVisibility?.(this.player.position);
         this.noteCooldown = Math.max(0, this.noteCooldown - delta);
         if (this.noteCooldown === 0 && this.map.getStoryNotes) {
@@ -931,7 +916,8 @@ class Game {
                     this.nightWaveTimer = 3.5;
                 }
                 if (!this.nightWaveBurstDone) {
-                    const spawned = this.spawnZombies(false, 2.4, 10);
+                    const spawned = this.spawnZombies(false, 4.8, 220, 28);
+                    this.spawnPoiZombieGuards(1.6);
                     if (spawned > 0) {
                         this.hud.showGameMessage(`Ночь наступила. Заражённых прибыло: ${spawned}`);
                     }
@@ -939,11 +925,12 @@ class Game {
                 } else {
                     this.nightWaveTimer -= delta;
                     if (this.nightWaveTimer <= 0) {
-                        const spawned = this.spawnZombies(false, 1.35, 4);
+                        const spawned = this.spawnZombies(false, 3.6, 240, 16);
+                        this.spawnPoiZombieGuards(1.2);
                         if (spawned >= 3) {
                             this.hud.showGameMessage('Во тьме слышны новые заражённые...');
                         }
-                        this.nightWaveTimer = 7 + Math.random() * 4;
+                        this.nightWaveTimer = 4 + Math.random() * 2;
                     }
                 }
                 if (this.map.isInsideCourtyard(this.player.position)) {
@@ -967,10 +954,14 @@ class Game {
         if (this.gameState === 'playing') {
             const isNight = this.env && (this.env.dayTime < 0.18 || this.env.dayTime > 0.78);
             const fogDensity = this.scene?.fog?.density || 0;
+            const localFog = this.getLocalizedFogBoost(this.player.position);
             const maxFar = this.isMobile() ? 210 : 280;
             const fogPenalty = Math.max(0, (fogDensity - 0.004) * 9000);
+            const localFogPenalty = localFog * 3800;
             const nightPenalty = isNight ? 35 : 0;
-            const targetFar = Math.max(82, Math.min(maxFar, this.zone.getCurrentRadius() * 0.2 + 90 - fogPenalty - nightPenalty));
+            const targetFar = this.activeEvent?.type === 'blindness'
+                ? 15
+                : Math.max(55, Math.min(maxFar, this.zone.getCurrentRadius() * 0.2 + 90 - fogPenalty - localFogPenalty - nightPenalty));
             if (this.camera.far !== targetFar) {
                 this.camera.far = targetFar;
                 this.camera.updateProjectionMatrix();
@@ -996,7 +987,7 @@ class Game {
                 this.bots[botIndex].update(delta, this.botBrains[botIndex], this.entityManager, this.lootManager, this.audioSynth, this.physics, this.zone);
 
                 if (this.gameState === 'playing' && !this.zone.isInsideZone(this.bots[botIndex].position)) {
-                    const damage = this.zone.getDamage(delta);
+                    const damage = this.zone.getDamage(delta, this.bots[botIndex].position);
                     this.bots[botIndex].takeDamage(damage, false, null, 0, 'zone');
                     const safePoint = this.getSafeZoneTarget(this.bots[botIndex].position);
                     this.bots[botIndex].target = null;
@@ -1020,7 +1011,6 @@ class Game {
         const aliveCountBeforeHazards = this.entityManager.update(delta, this.physics, this.audioSynth);
         if (this.gameState === 'playing') {
             this.trySupplyDrop(aliveCountBeforeHazards);
-            this.updateStorm(delta, aliveCountBeforeHazards);
             this.updateRandomEvents(delta);
             this.updateAchievements(aliveCountBeforeHazards);
         }
@@ -1081,29 +1071,114 @@ class Game {
         }
 
         this.env.update(delta);
+        if (this.scene?.fog && this.gameState === 'playing') {
+            const localFogBoost = this.getLocalizedFogBoost(this.player.position);
+            if (localFogBoost > 0) {
+                this.scene.fog.density = Math.min(0.12, this.scene.fog.density + localFogBoost);
+            }
+        }
 
         if (this.spawnTimer <= 0 || this.spawnTimer % 1 < 0.1) {
             this.hud.updatePlayersCount(this.entityManager.getAliveCount());
         }
     }
 
-    spawnZombies(reset = true, multiplier = 1, capOverride = null) {
-        if (reset) this.zombies = [];
+    getLocalizedFogBoost(position) {
+        if (!position || !this.localFogZones?.length) return 0;
+        let boost = 0;
+        for (const zone of this.localFogZones) {
+            const radius = Math.max(1, zone.radius || 0);
+            const dist = Math.hypot(position.x - zone.x, position.z - zone.z);
+            if (dist > radius) continue;
+            const t = 1 - dist / radius;
+            const local = (zone.density || 0.02) * t * t;
+            if (local > boost) boost = local;
+        }
+        return boost;
+    }
+
+    spawnPoiZombieGuards(intensity = 1) {
+        const houseSpots = this.map.getHouseSpots?.() || [];
+        const hangarSpots = this.map.getHangarSpots?.() || [];
+        const points = [
+            ...houseSpots.map(s => ({ ...s, type: "house" })),
+            ...hangarSpots.map(s => ({ ...s, type: "hangar" }))
+        ];
+        if (!points.length) return 0;
+
+        const aliveNow = this.zombies.filter(z => z?.isAlive).length;
+        const maxAlive = 260;
+        let budget = Math.max(0, Math.min(maxAlive - aliveNow, Math.floor((houseSpots.length * 1.2 + hangarSpots.length * 4.5) * intensity)));
+        if (budget <= 0) return 0;
+
+        points.sort(() => Math.random() - 0.5);
+        let spawned = 0;
+        for (const point of points) {
+            if (budget <= 0) break;
+            const baseCount = point.type === "hangar" ? (4 + Math.floor(Math.random() * 4)) : (2 + Math.floor(Math.random() * 2));
+            const pack = Math.max(1, Math.floor(baseCount * intensity));
+            for (let i = 0; i < pack; i++) {
+                if (budget <= 0) break;
+                const rx = (Math.random() - 0.5) * (point.width || 8) * 1.25;
+                const rz = (Math.random() - 0.5) * (point.depth || 8) * 1.25;
+                const x = point.x + rx;
+                const z = point.z + rz;
+                if (!this.map.isWalkableAt?.(x, z)) continue;
+                const pos = new THREE.Vector3(x, this.map.getHeightAt(x, z) + 1.8, z);
+                if (pos.distanceTo(this.player.position) < 16) continue;
+                const zombie = new Zombie(this.scene, this.nextZombieId++, pos);
+                this.physics.addEntity(zombie);
+                this.entityManager.addEntity(zombie);
+                this.zombies.push(zombie);
+                spawned++;
+                budget--;
+            }
+        }
+        if (spawned > 0) this.poiZombieSeeded = true;
+        return spawned;
+    }
+
+    spawnZombies(reset = true, multiplier = 1, capOverride = null, forceCount = null) {
+        if (reset) {
+            for (const zombie of this.zombies) {
+                zombie.isAlive = false;
+                if (zombie.mesh?.parent) zombie.mesh.parent.remove(zombie.mesh);
+                this.physics?.removeEntity?.(zombie);
+                const idx = this.entityManager?.entities?.indexOf(zombie);
+                if (idx >= 0) this.entityManager.entities.splice(idx, 1);
+            }
+            this.zombies = [];
+        }
+
         const floorTiles = this.map.getFloorTiles?.() || [];
-        const baseCount = Math.min(10, Math.max(4, Math.floor(floorTiles.length / 250)));
-        const maxAlive = capOverride ?? (reset ? 24 : 34);
-        const aliveNow = reset ? 0 : this.zombies.filter(z => z?.isAlive).length;
-        const count = Math.min(
+        if (!floorTiles.length) return 0;
+
+        const houseSpots = this.map.getHouseSpots?.() || [];
+        const hangarSpots = this.map.getHangarSpots?.() || [];
+        const baseCount = Math.min(32, Math.max(10, Math.floor(floorTiles.length / 180)));
+        const maxAlive = capOverride ?? (reset ? 90 : 180);
+        const aliveNow = this.zombies.filter(z => z?.isAlive).length;
+        let count = Math.min(
             Math.max(0, maxAlive - aliveNow),
-            Math.max(reset ? 4 : 2, Math.floor(baseCount * (this.modeConfig?.zombieMultiplier || 1) * multiplier))
+            forceCount ?? Math.max(reset ? 8 : 4, Math.floor(baseCount * (this.modeConfig?.zombieMultiplier || 1) * multiplier))
         );
         if (count <= 0) return 0;
-        const picks = [...floorTiles].sort(() => Math.random() - 0.5);
+
+        const picks = [...floorTiles].sort((a, b) => {
+            const nearHouseA = houseSpots.some(h => Math.hypot(a.x - h.x, a.z - h.z) < 18) ? 1 : 0;
+            const nearHouseB = houseSpots.some(h => Math.hypot(b.x - h.x, b.z - h.z) < 18) ? 1 : 0;
+            const nearHangarA = hangarSpots.some(h => Math.hypot(a.x - h.x, a.z - h.z) < 26) ? 1 : 0;
+            const nearHangarB = hangarSpots.some(h => Math.hypot(b.x - h.x, b.z - h.z) < 26) ? 1 : 0;
+            const scoreA = nearHangarA * 2 + nearHouseA;
+            const scoreB = nearHangarB * 2 + nearHouseB;
+            return scoreB - scoreA || (Math.random() - 0.5);
+        });
+
         let spawned = 0;
         for (const tile of picks) {
             if (spawned >= count) break;
             const pos = new THREE.Vector3(tile.x, this.map.getHeightAt(tile.x, tile.z) + 1.8, tile.z);
-            if (pos.distanceTo(this.player.position) < (reset ? 20 : 28)) continue;
+            if (pos.distanceTo(this.player.position) < (reset ? 20 : 24)) continue;
             const zombie = new Zombie(this.scene, this.nextZombieId++, pos);
             this.physics.addEntity(zombie);
             this.entityManager.addEntity(zombie);

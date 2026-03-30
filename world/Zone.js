@@ -7,7 +7,7 @@ export class Zone {
         this.currentRadius = mapSize / 2;
         this.targetRadius = mapSize / 2;
         this.shrinkSpeed = 1.2;
-        this.damagePerSecond = 3;
+        this.damagePerSecond = 5;
         this.zoneMesh = null;
         this.ringMesh = null;
         this.createZone();
@@ -23,17 +23,20 @@ export class Zone {
     }
 
     createZone() {
-        const geometry = new THREE.CylinderGeometry(1, 1, 200, 32, 1, true);
+        // Keep only minimal side-wall visibility to avoid heavy halo artifacts at night.
+        const geometry = new THREE.CylinderGeometry(1, 1, 200, 24, 1, true);
         const material = new THREE.MeshBasicMaterial({
-            color: 0x0000ff,
+            color: 0x4fc3ff,
             transparent: true,
-            opacity: 0.18,
+            opacity: 0.02,
+            depthWrite: false,
             side: THREE.DoubleSide
         });
 
         this.zoneMesh = new THREE.Mesh(geometry, material);
         this.zoneMesh.position.y = 50;
         this.zoneMesh.scale.set(this.currentRadius, 1, this.currentRadius);
+        this.zoneMesh.visible = false;
         this.scene.add(this.zoneMesh);
 
         const ringGeo = new THREE.TorusGeometry(1, 0.08, 8, 64);
@@ -85,8 +88,12 @@ export class Zone {
         return Math.max(0, distanceFromCenter - this.currentRadius);
     }
 
-    getDamage(delta) {
-        return this.damagePerSecond * delta;
+    getDamage(delta, position = null) {
+        if (!position) return this.damagePerSecond * delta;
+        const outside = this.getDistanceFromZone(position);
+        if (outside <= 0) return 0;
+        const scale = 1 + Math.min(2.5, outside / 45);
+        return this.damagePerSecond * scale * delta;
     }
 
     getCurrentRadius() {
