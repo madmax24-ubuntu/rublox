@@ -20,6 +20,9 @@ export class Zombie {
         this.attackCooldown = 0;
         this.patrolTarget = null;
         this.soundTimer = 1 + Math.random() * 2;
+        this.alertTimer = 0;
+        this.alertTarget = null;
+        this.alertPosition = null;
         this.variant = ['brute', 'stalker', 'mutant'][Math.floor(Math.random() * 3)];
         this.stats = { damage: 0, kills: 0, loot: 0 };
         this.burnTimer = 0;
@@ -220,32 +223,57 @@ export class Zombie {
 
         this.attackCooldown = Math.max(0, this.attackCooldown - delta);
         this.soundTimer -= delta;
+        this.alertTimer = Math.max(0, this.alertTimer - delta);
         this.updateBurning(delta);
 
-        const target = this.findNearestTarget(entityManager, 50);
+        const sharedAlert = this.scene?.userData?.zombieAlert;
+        if (sharedAlert && (performance.now() * 0.001 - sharedAlert.time) < 3.8) {
+            const alertDist = this.position.distanceTo(sharedAlert.position);
+            if (alertDist < 34) {
+                this.alertTarget = sharedAlert.target || this.alertTarget;
+                this.alertPosition = sharedAlert.position.clone();
+                this.alertTimer = Math.max(this.alertTimer, 2.6);
+            }
+        }
+
+        let target = this.findNearestTarget(entityManager, 68);
+        if (!target && this.alertTarget?.isAlive && this.alertTimer > 0) {
+            target = this.alertTarget;
+        }
         if (target) {
             const dist = this.position.distanceTo(target.position);
-            if (dist < 2.4 && this.attackCooldown <= 0) {
-                target.takeDamage(8, false, this, 3);
-                this.attackCooldown = 1.0;
+            this.broadcastAlert(target);
+            this.alertTarget = target;
+            this.alertPosition = target.position.clone();
+            this.alertTimer = 2.8;
+            if (dist < 2.6 && this.attackCooldown <= 0) {
+                target.takeDamage(9, false, this, 3.2);
+                this.attackCooldown = 0.72;
                 if (audioSynth) {
                     audioSynth.playZombieAttack?.(this.position);
                 }
             } else {
-                const rush = dist < 10 ? 1.15 : 1;
+                const rush = dist < 8 ? 1.32 : dist < 18 ? 1.18 : 1.04;
                 this.moveTowards(target.position, this.physics.speed * rush);
             }
 
             if (audioSynth && this.soundTimer <= 0) {
                 audioSynth.playZombieMoan?.(this.position);
-                this.soundTimer = 1.8 + Math.random() * 2.2;
+                this.soundTimer = 1.2 + Math.random() * 1.7;
             }
         } else {
+            if (this.alertPosition && this.alertTimer > 0) {
+                this.moveTowards(this.alertPosition, this.physics.speed * 1.08);
+                if (this.position.distanceTo(this.alertPosition) < 3.5) {
+                    this.alertPosition = null;
+                }
+            } else {
             if (!this.patrolTarget || this.position.distanceTo(this.patrolTarget) < 4) {
                 this.setRandomPatrolTarget();
             }
             if (this.patrolTarget) {
                 this.moveTowards(this.patrolTarget, this.physics.speed * 0.7);
+            }
             }
 
             if (audioSynth && this.soundTimer <= 0) {
@@ -275,6 +303,15 @@ export class Zombie {
             }
         }
         return nearest;
+    }
+
+    broadcastAlert(target) {
+        if (!target || !this.scene?.userData) return;
+        this.scene.userData.zombieAlert = {
+            position: target.position.clone(),
+            target,
+            time: performance.now() * 0.001
+        };
     }
 
     setRandomPatrolTarget() {
@@ -338,6 +375,10 @@ export class Zombie {
             this.physics.velocity.x += dir.x * strength;
             this.physics.velocity.z += dir.z * strength;
             this.physics.velocity.y += 1.5;
+            this.alertTarget = attacker;
+            this.alertPosition = attacker.position.clone();
+            this.alertTimer = Math.max(this.alertTimer, 3.2);
+            this.broadcastAlert(attacker);
         }
         return true;
     }

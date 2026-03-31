@@ -932,8 +932,8 @@ class Game {
                     this.nightWaveTimer = 3.5;
                 }
                 if (!this.nightWaveBurstDone) {
-                    const spawned = this.spawnZombies(false, 4.8, 220, 28);
-                    this.spawnPoiZombieGuards(1.6);
+                    const spawned = this.spawnZombies(false, 5.6, 260, 34);
+                    this.spawnPoiZombieGuards(2.0);
                     if (spawned > 0) {
                         this.hud.showGameMessage(`Ночь наступила. Заражённых прибыло: ${spawned}`);
                     }
@@ -941,12 +941,12 @@ class Game {
                 } else {
                     this.nightWaveTimer -= delta;
                     if (this.nightWaveTimer <= 0) {
-                        const spawned = this.spawnZombies(false, 3.6, 240, 16);
-                        this.spawnPoiZombieGuards(1.2);
+                        const spawned = this.spawnZombies(false, 4.2, 260, 20);
+                        this.spawnPoiZombieGuards(1.5);
                         if (spawned >= 3) {
                             this.hud.showGameMessage('Во тьме слышны новые заражённые...');
                         }
-                        this.nightWaveTimer = 4 + Math.random() * 2;
+                        this.nightWaveTimer = 3.2 + Math.random() * 1.8;
                     }
                 }
                 if (this.map.isInsideCourtyard(this.player.position)) {
