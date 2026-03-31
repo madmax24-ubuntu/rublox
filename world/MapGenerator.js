@@ -541,72 +541,117 @@ export class MapGenerator {
         group.userData.mapGenerated = true;
 
         const goldMat = new THREE.MeshStandardMaterial({
-            color: 0xc6922d,
-            emissive: 0x5d3c0d,
-            emissiveIntensity: 0.22,
-            metalness: 0.45,
-            roughness: 0.58,
+            color: 0xd2a03a,
+            emissive: 0x6a4510,
+            emissiveIntensity: 0.18,
+            metalness: 0.36,
+            roughness: 0.52,
             flatShading: true
         });
         const bronzeMat = new THREE.MeshStandardMaterial({
-            color: 0x8f5d21,
-            roughness: 0.76,
+            color: 0x7d4f1f,
+            roughness: 0.72,
             flatShading: true
         });
         const stoneMat = new THREE.MeshStandardMaterial({
-            color: 0xa9a094,
-            roughness: 0.9,
+            color: 0xb1a89c,
+            roughness: 0.88,
+            flatShading: true
+        });
+        const cacheMat = new THREE.MeshStandardMaterial({
+            color: 0x9b6d44,
+            roughness: 0.84,
+            flatShading: true
+        });
+        const bandMat = new THREE.MeshStandardMaterial({
+            color: 0x3d2b1f,
+            roughness: 0.72,
+            metalness: 0.1,
             flatShading: true
         });
 
-        const podium = new THREE.Mesh(new THREE.CylinderGeometry(5.6, 6.3, 1.15, 10), stoneMat);
-        podium.position.set(spawnWorld.x, baseY + 0.58, spawnWorld.z);
+        const podium = new THREE.Mesh(new THREE.CylinderGeometry(6.2, 7.1, 1.1, 12), stoneMat);
+        podium.position.set(spawnWorld.x, baseY + 0.55, spawnWorld.z);
         podium.userData.mapGenerated = true;
         group.add(podium);
-        this.addColliderBox(podium.position.clone(), 11.2, 1.15, 11.2, true);
+        this.addColliderBox(podium.position.clone(), 12.4, 1.1, 12.4, true);
 
-        const hornSegments = [
-            { x: -3.4, y: 1.9, r1: 1.45, r2: 1.95, len: 2.3, rz: -0.38 },
-            { x: -1.8, y: 2.45, r1: 1.18, r2: 1.58, len: 2.15, rz: -0.2 },
-            { x: -0.15, y: 3.0, r1: 0.94, r2: 1.26, len: 2.0, rz: 0.03 },
-            { x: 1.45, y: 3.72, r1: 0.72, r2: 1.02, len: 1.75, rz: 0.24 },
-            { x: 2.65, y: 4.45, r1: 0.48, r2: 0.72, len: 1.55, rz: 0.44 }
+        const hornRoot = new THREE.Group();
+        hornRoot.position.set(spawnWorld.x - 0.5, baseY + 1.2, spawnWorld.z + 0.2);
+        hornRoot.rotation.y = -0.15;
+        group.add(hornRoot);
+
+        const bodySegments = [
+            { x: -3.9, y: 0.9, z: 0, sx: 3.2, sy: 2.5, sz: 2.6, rz: -0.24 },
+            { x: -1.9, y: 1.45, z: 0, sx: 2.6, sy: 2.15, sz: 2.2, rz: -0.1 },
+            { x: 0.05, y: 2.0, z: 0, sx: 2.05, sy: 1.72, sz: 1.8, rz: 0.08 },
+            { x: 1.75, y: 2.8, z: 0, sx: 1.55, sy: 1.3, sz: 1.35, rz: 0.22 },
+            { x: 2.95, y: 3.75, z: 0, sx: 1.05, sy: 0.86, sz: 0.92, rz: 0.44 }
         ];
-        for (const seg of hornSegments) {
-            const piece = new THREE.Mesh(
-                new THREE.CylinderGeometry(seg.r1, seg.r2, seg.len, 9, 1, true),
-                goldMat
-            );
+
+        for (const seg of bodySegments) {
+            const piece = new THREE.Mesh(new THREE.CylinderGeometry(seg.sy, seg.sx, 2.05, 10, 1, true), goldMat);
             piece.rotation.z = Math.PI / 2 + seg.rz;
-            piece.position.set(spawnWorld.x + seg.x, baseY + seg.y, spawnWorld.z);
+            piece.scale.z = seg.sz / seg.sx;
+            piece.position.set(seg.x, seg.y, seg.z);
             piece.userData.mapGenerated = true;
-            group.add(piece);
+            hornRoot.add(piece);
         }
 
-        const rim = new THREE.Mesh(new THREE.TorusGeometry(1.95, 0.22, 8, 20), goldMat);
-        rim.rotation.y = Math.PI / 2;
-        rim.position.set(spawnWorld.x - 4.55, baseY + 1.85, spawnWorld.z);
-        rim.userData.mapGenerated = true;
-        group.add(rim);
+        const mouthOuter = new THREE.Mesh(new THREE.TorusGeometry(2.15, 0.28, 8, 24), goldMat);
+        mouthOuter.rotation.y = Math.PI / 2;
+        mouthOuter.position.set(-5.15, 0.78, 0);
+        mouthOuter.userData.mapGenerated = true;
+        hornRoot.add(mouthOuter);
 
-        const tail = new THREE.Mesh(new THREE.ConeGeometry(0.48, 1.6, 8), bronzeMat);
-        tail.rotation.z = -Math.PI / 2 + 0.56;
-        tail.position.set(spawnWorld.x + 3.85, baseY + 4.98, spawnWorld.z);
+        const mouthInner = new THREE.Mesh(new THREE.TorusGeometry(1.62, 0.16, 8, 18), bronzeMat);
+        mouthInner.rotation.y = Math.PI / 2;
+        mouthInner.position.set(-5.08, 0.8, 0);
+        mouthInner.userData.mapGenerated = true;
+        hornRoot.add(mouthInner);
+
+        const tail = new THREE.Mesh(new THREE.ConeGeometry(0.42, 1.45, 8), bronzeMat);
+        tail.rotation.z = -Math.PI / 2 + 0.72;
+        tail.position.set(4.05, 4.28, 0);
         tail.userData.mapGenerated = true;
-        group.add(tail);
+        hornRoot.add(tail);
+
+        const supportA = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.55, 1.2), bronzeMat);
+        supportA.position.set(-1.3, 0.25, -0.95);
+        supportA.rotation.z = -0.15;
+        supportA.userData.mapGenerated = true;
+        hornRoot.add(supportA);
+        const supportB = supportA.clone();
+        supportB.position.set(0.55, 1.05, 0.92);
+        supportB.rotation.z = 0.12;
+        hornRoot.add(supportB);
 
         const cacheOffsets = [
-            [-2.0, 0.58, -2.2], [2.05, 0.58, -2.15], [-2.45, 0.58, 2.05],
-            [2.35, 0.58, 2.15], [0.0, 0.58, -3.2], [0.35, 0.58, 3.1]
+            [-2.9, 0.62, -2.7, 1.2, 0.9, 1.15],
+            [2.75, 0.62, -2.55, 1.25, 0.9, 1.1],
+            [-3.05, 0.62, 2.45, 1.05, 0.82, 1.25],
+            [2.95, 0.62, 2.55, 1.15, 0.92, 1.15],
+            [0.0, 0.62, -3.65, 1.35, 0.9, 1.1],
+            [0.6, 0.62, 3.5, 1.2, 0.84, 1.2],
+            [-0.9, 0.62, 2.85, 0.9, 0.72, 0.9]
         ];
-        for (const [ox, oy, oz] of cacheOffsets) {
-            const crate = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.82, 1.15), bronzeMat);
+        for (const [ox, oy, oz, sx, sy, sz] of cacheOffsets) {
+            const crate = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), cacheMat);
             crate.position.set(spawnWorld.x + ox, baseY + oy, spawnWorld.z + oz);
-            crate.rotation.y = ((ox + oz) * 0.25) % Math.PI;
+            crate.rotation.y = ((ox + oz) * 0.22) % Math.PI;
             crate.userData.mapGenerated = true;
             group.add(crate);
-            this.addColliderBox(crate.position.clone(), 1.15, 0.82, 1.15, false);
+
+            const band = new THREE.Mesh(new THREE.BoxGeometry(sx * 1.02, sy * 0.16, sz * 0.2), bandMat);
+            band.position.set(crate.position.x, crate.position.y, crate.position.z);
+            band.rotation.y = crate.rotation.y;
+            band.userData.mapGenerated = true;
+            group.add(band);
+
+            this.addColliderBox(crate.position.clone(), sx, sy, sz, false);
         }
+
+        this.addColliderBox(new THREE.Vector3(spawnWorld.x - 0.9, baseY + 3.0, spawnWorld.z), 9.8, 6.2, 5.6, false);
 
         this.scene.add(group);
     }
