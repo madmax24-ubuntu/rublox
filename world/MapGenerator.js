@@ -1006,9 +1006,31 @@ export class MapGenerator {
         this.trainCars = [];
         this.dynamicColliders = false;
 
-        const railMat = new THREE.MeshStandardMaterial({ color: 0x9e9e9e, roughness: 0.65, metalness: 0.25, flatShading: true });
-        const sleeperMat = new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.9, flatShading: true });
-        const ballastMat = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.92, flatShading: true });
+        const railMat = new THREE.MeshStandardMaterial({
+            color: 0x9e9e9e,
+            roughness: 0.65,
+            metalness: 0.25,
+            flatShading: true,
+            polygonOffset: true,
+            polygonOffsetFactor: -2,
+            polygonOffsetUnits: -2
+        });
+        const sleeperMat = new THREE.MeshStandardMaterial({
+            color: 0x5d4037,
+            roughness: 0.9,
+            flatShading: true,
+            polygonOffset: true,
+            polygonOffsetFactor: -1,
+            polygonOffsetUnits: -1
+        });
+        const ballastMat = new THREE.MeshStandardMaterial({
+            color: 0x666666,
+            roughness: 0.92,
+            flatShading: true,
+            polygonOffset: true,
+            polygonOffsetFactor: 1,
+            polygonOffsetUnits: 1
+        });
         const routeDefs = this.railLayout.length ? this.railLayout : [
             { axis: 'x', offset: -this.size * 0.34, halfWidth: 9.5 },
             { axis: 'x', offset: this.size * 0.34, halfWidth: 9.5 }
@@ -1028,7 +1050,7 @@ export class MapGenerator {
             const railLength = (route.max - route.min);
             const ballastGeo = new THREE.BoxGeometry(railLength, 0.18, 7.8);
             const ballast = new THREE.Mesh(ballastGeo, ballastMat);
-            ballast.position.set(0, 0.43, route.offset);
+            ballast.position.set(0, 0.52, route.offset);
             ballast.userData.mapGenerated = true;
             group.add(ballast);
 
@@ -1036,13 +1058,13 @@ export class MapGenerator {
             const rail1 = new THREE.Mesh(railGeo, railMat);
             const rail2 = new THREE.Mesh(railGeo, railMat);
                 if (route.axis === 'x') {
-                    rail1.position.set(0, 0.56, route.offset - 1.85);
-                    rail2.position.set(0, 0.56, route.offset + 1.85);
+                    rail1.position.set(0, 0.78, route.offset - 1.85);
+                    rail2.position.set(0, 0.78, route.offset + 1.85);
                 } else {
                     rail1.rotation.y = Math.PI / 2;
                     rail2.rotation.y = Math.PI / 2;
-                    rail1.position.set(route.offset - 1.85, 0.56, 0);
-                    rail2.position.set(route.offset + 1.85, 0.56, 0);
+                    rail1.position.set(route.offset - 1.85, 0.78, 0);
+                    rail2.position.set(route.offset + 1.85, 0.78, 0);
                 }
             rail1.userData.mapGenerated = true;
             rail2.userData.mapGenerated = true;
@@ -1059,9 +1081,9 @@ export class MapGenerator {
                 const t = i / Math.max(1, sleeperCount - 1);
                 const p = route.min + t * (route.max - route.min);
                 if (route.axis === 'x') {
-                    pos.set(p, 0.44, route.offset);
+                    pos.set(p, 0.62, route.offset);
                 } else {
-                    pos.set(route.offset, 0.44, p);
+                    pos.set(route.offset, 0.62, p);
                     rot.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2);
                 }
                 matrix.compose(pos, rot, scl);

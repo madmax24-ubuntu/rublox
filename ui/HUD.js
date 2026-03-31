@@ -549,7 +549,8 @@
         ammoInfo.id = 'ammoInfo';
         ammoInfo.style.cssText = `
             position: absolute;
-            bottom: ${isMobile ? `calc(6vh + ${px(238)}px)` : `${px(90)}px`};
+            ${isMobile ? `top: ${px(88)}px;` : ''}
+            ${isMobile ? 'bottom: auto;' : `bottom: ${px(90)}px;`}
             right: ${isMobile ? 'max(16px, 4vw)' : `${px(16)}px`};
             background: rgba(14, 26, 36, 0.88);
             padding: ${px(8)}px ${px(14)}px;
@@ -558,6 +559,7 @@
             font-size: ${px(14)}px;
             font-weight: 700;
             text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+            z-index: 1200;
         `;
         ammoInfo.textContent = '';
         hud.appendChild(ammoInfo);
@@ -638,6 +640,13 @@
                 document.dispatchEvent(new CustomEvent('selectPerk', { detail: perk }));
                 this.togglePerkPanel(false);
             });
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const perk = e.currentTarget.getAttribute('data-perk');
+                document.dispatchEvent(new CustomEvent('selectPerk', { detail: perk }));
+                this.togglePerkPanel(false);
+            }, { passive: false });
         });
         hud.appendChild(perkPanel);
 
