@@ -265,6 +265,15 @@ export class BotBrain {
         const zoneDistance = bot.zoneRef?.getDistanceFromZone?.(bot.position) || 0;
         const allyCandidate = this.findPotentialAlly(bot, entityManager);
         const trainOpportunity = this.prefersTrainCombat ? this.getTrainCombatOpportunity(bot, entityManager) : null;
+        const strategicHangar = this.findStrategicHangarTarget(bot, lootManager);
+        const strategicHouse = this.findStrategicHouseTarget(bot, lootManager);
+        let poiUrgency = 0;
+        if (strategicHangar) {
+            poiUrgency = Math.max(poiUrgency, this.getTargetUrgency(bot, strategicHangar, 160, 0.9));
+        }
+        if (strategicHouse) {
+            poiUrgency = Math.max(poiUrgency, this.getTargetUrgency(bot, strategicHouse, 120, 0.7));
+        }
 
         return {
             healthRatio: bot.health / Math.max(1, bot.maxHealth || 100),
@@ -286,8 +295,19 @@ export class BotBrain {
             sneakiness: this.personality.sneakiness,
             courage: this.personality.courage,
             intelligence: this.personality.intelligence,
-            hasTrainOpportunity: !!trainOpportunity
+            hasTrainOpportunity: !!trainOpportunity,
+            hasHangarOpportunity: !!strategicHangar,
+            hasHouseOpportunity: !!strategicHouse,
+            poiUrgency
         };
+    }
+
+    getTargetUrgency(bot, target, maxDistance = 120, maxValue = 0.8) {
+        if (!target) return 0;
+        const dist = bot.position.distanceTo(target);
+        if (dist > maxDistance) return 0;
+        const normalized = 1 - Math.min(1, dist / maxDistance);
+        return normalized * maxValue;
     }
 
     decideRunToSafeZone(bot) {
@@ -330,12 +350,20 @@ export class BotBrain {
     }
 
     decidePatrolAction(bot, lootManager) {
+        const houseTarget = this.findStrategicHouseTarget(bot, lootManager);
         const hangarTarget = this.findStrategicHangarTarget(bot, lootManager);
-        if (hangarTarget && Math.random() < 0.35) {
+        if (hangarTarget && Math.random() < 0.42) {
             bot.state = 'patrol';
             bot.target = null;
             bot.patrolTarget = hangarTarget;
             this.stateTimer = 7.5;
+            return;
+        }
+        if (houseTarget && Math.random() < 0.48) {
+            bot.state = 'patrol';
+            bot.target = null;
+            bot.patrolTarget = houseTarget;
+            this.stateTimer = 6.5;
             return;
         }
         bot.state = 'patrol';
@@ -395,6 +423,13 @@ export class BotBrain {
                 bot.state = 'explore';
                 bot.patrolTarget = hangarTarget;
                 this.stateTimer = 11;
+                return;
+            }
+            const houseTarget = this.findStrategicHouseTarget(bot, lootManager);
+            if (houseTarget) {
+                bot.state = 'explore';
+                bot.patrolTarget = houseTarget;
+                this.stateTimer = 9;
                 return;
             }
             // РСЃСЃР»РµРґСѓРµРј РЅРѕРІС‹Рµ РѕР±Р»Р°СЃС‚Рё
@@ -577,6 +612,43 @@ export class BotBrain {
         return best;
     }
 
+    findStrategicHouseTarget(bot, lootManager = null) {
+        const map = bot.mapRef;
+        if (!map?.getHouseSpots) return null;
+        const houses = map.getHouseSpots();
+        if (!houses.length) return null;
+
+        let best = null;
+        let bestScore = Infinity;
+        for (const house of houses) {
+            const center = new THREE.Vector3(house.x, 0, house.z);
+            const dist = bot.position.distanceTo(center);
+            if (dist < 8 || dist > 135) continue;
+
+            let closedChestBonus = 0;
+            if (lootManager?.getChests) {
+                for (const chest of lootManager.getChests()) {
+                    if (!chest || chest.userData?.isOpen) continue;
+                    if (chest.userData?.grade === 'hangar') continue;
+                    const chestDist = Math.hypot(chest.position.x - house.x, chest.position.z - house.z);
+                    if (chestDist < Math.max(8, Math.max(house.width || 12, house.depth || 12) * 0.6)) {
+                        closedChestBonus += 7;
+                    }
+                }
+            }
+
+            const score =
+                dist -
+                closedChestBonus +
+                (this.getZonePressure(bot) > 0.82 ? dist * 0.25 : 0);
+            if (score < bestScore) {
+                bestScore = score;
+                best = center;
+            }
+        }
+        return best;
+    }
+
     hasLowCombatResources(bot) {
         const weapon = bot.currentWeapon;
         if (!weapon || weapon.type === 'fists') return true;
@@ -661,15 +733,16 @@ export class BotBrain {
                 const halfW = (train.width || 4.8) * 0.5 + 1.8;
                 const halfL = (train.length || 14.2) * 0.62 + 4.5;
 
-                if (enemyAcross > halfW + 1.2 || enemyAlong > halfL) continue;
-                if (botAcross > halfW + 8.5 || botAlong > halfL + 20) continue;
+                if (enemyAcross > halfW + 1.6 || enemyAlong > halfL + 2.5) continue;
+                if (botAcross > halfW + 10.5 || botAlong > halfL + 24) continue;
 
                 const score =
-                    bot.position.distanceTo(enemy.position) * 0.95 +
-                    botAlong * 0.35 +
-                    botAcross * 1.15 -
+                    bot.position.distanceTo(enemy.position) * 0.78 +
+                    botAlong * 0.22 +
+                    botAcross * 0.9 -
                     (enemy.constructor?.name === 'Player' ? 8 : 0) -
-                    (enemy.currentWeapon ? 2.5 : 0);
+                    (enemy.currentWeapon ? 4.5 : 0) -
+                    (bot.currentWeapon ? 3.2 : 0);
                 if (score < bestScore) {
                     bestScore = score;
                     best = { train, enemy };
@@ -682,9 +755,9 @@ export class BotBrain {
     tryAcquireTrainCombat(bot, entityManager) {
         if (!this.prefersTrainCombat) return false;
         if (bot.state === 'flee' || bot.state === 'cover' || bot.state === 'retreat') return false;
-        if (!bot.currentWeapon || this.hasLowCombatResources(bot) || bot.health < bot.maxHealth * 0.3) return false;
+        if (!bot.currentWeapon || this.hasLowCombatResources(bot) || bot.health < bot.maxHealth * 0.24) return false;
         if (this.trainBoardCooldown > 0 && bot.state !== 'trainCombat') return false;
-        if (this.getZonePressure(bot) > 0.82) return false;
+        if (this.getZonePressure(bot) > 0.88) return false;
 
         const opportunity = this.getTrainCombatOpportunity(bot, entityManager);
         if (!opportunity) return false;

@@ -20,6 +20,11 @@ export class UtilityAI {
         const lootOpportunity = this.clamp01(
             context.nearbyLootCount * 0.22 + (1 - context.closestLootDistanceNorm) * 0.55
         );
+        const poiOpportunity = this.clamp01(
+            (context.hasHangarOpportunity ? 0.38 : 0) +
+            (context.hasHouseOpportunity ? 0.24 : 0) +
+            (context.poiUrgency || 0)
+        );
         const zoneUrgency = this.clamp01(
             (context.outsideZone ? 0.8 : 0) +
             this.clamp01(context.zoneDistance / 18) * 0.55 +
@@ -67,12 +72,14 @@ export class UtilityAI {
                 return this.clamp01(
                     enemyPressure * 0.5 +
                     combatReadiness * 0.4 +
-                    (1 - zoneUrgency) * 0.1 -
+                    (1 - zoneUrgency) * 0.08 +
+                    (context.hasTrainOpportunity ? 0.12 : 0) -
                     healthNeed * 0.25
                 );
             case 'loot':
                 return this.clamp01(
-                    lootOpportunity * 0.55 +
+                    lootOpportunity * 0.42 +
+                    poiOpportunity * 0.22 +
                     (context.lowResources ? 0.25 : 0.05) +
                     (1 - enemyPressure) * 0.12 +
                     (1 - zoneUrgency) * 0.08 +
@@ -88,13 +95,14 @@ export class UtilityAI {
             case 'ambush':
                 return this.clamp01(
                     ambushPotential * 0.78 +
-                    (context.hasTrainOpportunity ? 0.12 : 0) +
+                    (context.hasTrainOpportunity ? 0.2 : 0) +
                     (context.closestEnemyDistance < 10 ? -0.16 : 0)
                 );
             case 'patrol':
                 return this.clamp01(
-                    patrolValue * 0.88 +
-                    (context.hasTrainOpportunity ? 0.08 : 0)
+                    patrolValue * 0.74 +
+                    poiOpportunity * 0.14 +
+                    (context.hasTrainOpportunity ? 0.12 : 0)
                 );
             default:
                 return 0;
