@@ -221,6 +221,7 @@ class Game {
         const spawnPads = this.map.getSpawnPads?.() || [];
         this.player = new Player(this.scene, this.camera, this.input);
         this.player.setHUD(this.hud);
+        this.player.mapRef = this.map;
         if (spawnPads.length) {
             const pad = spawnPads[0];
             const padTop = pad.y;

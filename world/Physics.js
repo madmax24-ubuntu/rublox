@@ -77,6 +77,14 @@ export class Physics {
                 entity.physics.onGround = false;
             }
 
+            const trainSupport = this.mapGenerator.getTrainSupportAt?.(entity.position, entity.physics.height);
+            if (trainSupport) {
+                entity.position.x += trainSupport.dx;
+                entity.position.z += trainSupport.dz;
+                entity.position.y = Math.max(entity.position.y, trainSupport.topY + entity.physics.height);
+                entity.physics.onGround = true;
+            }
+
             this.resolveCollisions(entity);
 
             if (!entity.physics.wasOnGround && entity.physics.onGround) {

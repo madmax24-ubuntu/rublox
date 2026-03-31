@@ -1050,7 +1050,8 @@ export class MapGenerator {
 
             const railLength = (route.max - route.min);
             const sleeperCount = Math.max(24, Math.floor(railLength / 3.4));
-            const segmentLength = railLength / sleeperCount;
+            const visualSegments = Math.max(18, Math.floor(railLength / 20));
+            const visualSegmentLength = railLength / visualSegments;
             const ballastHeight = isMobile ? 0.42 : 0.34;
             const railHeight = isMobile ? 0.26 : 0.22;
             const sleeperHeight = isMobile ? 0.24 : 0.2;
@@ -1059,31 +1060,34 @@ export class MapGenerator {
             const ballastCenterY = 0.48;
             const railCenterY = ballastCenterY + ballastHeight * 0.5 + railHeight * 0.5 + 0.02;
             const sleeperCenterY = ballastCenterY + ballastHeight * 0.5 + sleeperHeight * 0.5 + 0.01;
+            for (let s = 0; s < visualSegments; s++) {
+                const t = (s + 0.5) / visualSegments;
+                const center = route.min + t * railLength;
+                const ballastGeo = route.axis === 'x'
+                    ? new THREE.BoxGeometry(visualSegmentLength * 1.02, ballastHeight, ballastWidth)
+                    : new THREE.BoxGeometry(ballastWidth, ballastHeight, visualSegmentLength * 1.02);
+                const railGeo = route.axis === 'x'
+                    ? new THREE.BoxGeometry(visualSegmentLength * 1.02, railHeight, 0.32)
+                    : new THREE.BoxGeometry(0.32, railHeight, visualSegmentLength * 1.02);
 
-            const ballastGeo = route.axis === 'x'
-                ? new THREE.BoxGeometry(railLength, ballastHeight, ballastWidth)
-                : new THREE.BoxGeometry(ballastWidth, ballastHeight, railLength);
-            const ballast = new THREE.Mesh(ballastGeo, ballastMat);
-            ballast.userData.mapGenerated = true;
+                const ballast = new THREE.Mesh(ballastGeo, ballastMat);
+                const railLeft = new THREE.Mesh(railGeo, railMat);
+                const railRight = new THREE.Mesh(railGeo, railMat);
+                ballast.userData.mapGenerated = true;
+                railLeft.userData.mapGenerated = true;
+                railRight.userData.mapGenerated = true;
 
-            const railGeo = route.axis === 'x'
-                ? new THREE.BoxGeometry(railLength, railHeight, 0.32)
-                : new THREE.BoxGeometry(0.32, railHeight, railLength);
-            const railLeft = new THREE.Mesh(railGeo, railMat);
-            const railRight = new THREE.Mesh(railGeo, railMat);
-            railLeft.userData.mapGenerated = true;
-            railRight.userData.mapGenerated = true;
-
-            if (route.axis === 'x') {
-                ballast.position.set(0, ballastCenterY, route.offset);
-                railLeft.position.set(0, railCenterY, route.offset - railOffset);
-                railRight.position.set(0, railCenterY, route.offset + railOffset);
-            } else {
-                ballast.position.set(route.offset, ballastCenterY, 0);
-                railLeft.position.set(route.offset - railOffset, railCenterY, 0);
-                railRight.position.set(route.offset + railOffset, railCenterY, 0);
+                if (route.axis === 'x') {
+                    ballast.position.set(center, ballastCenterY, route.offset);
+                    railLeft.position.set(center, railCenterY, route.offset - railOffset);
+                    railRight.position.set(center, railCenterY, route.offset + railOffset);
+                } else {
+                    ballast.position.set(route.offset, ballastCenterY, center);
+                    railLeft.position.set(route.offset - railOffset, railCenterY, center);
+                    railRight.position.set(route.offset + railOffset, railCenterY, center);
+                }
+                group.add(ballast, railLeft, railRight);
             }
-            group.add(ballast, railLeft, railRight);
 
             for (let i = 0; i < sleeperCount; i++) {
                 const t = i / Math.max(1, sleeperCount - 1);
@@ -1174,13 +1178,19 @@ export class MapGenerator {
             carWidth,
             carHeight,
             bodyCollider,
-            topCollider
+            topCollider,
+            deltaX: 0,
+            deltaZ: 0,
+            prevX: train.position.x,
+            prevZ: train.position.z
         });
     }
 
     update(delta) {
         if (!this.trainCars.length) return;
         for (const train of this.trainCars) {
+            const prevX = train.mesh.position.x;
+            const prevZ = train.mesh.position.z;
             train.t += train.direction * train.speed * delta;
             if (train.t <= 0) {
                 train.t = 0;
@@ -1209,6 +1219,10 @@ export class MapGenerator {
             const bodyD = train.route.axis === 'x' ? train.carWidth : train.carLength;
             this.setColliderBoxCenter(train.bodyCollider, centerX, train.mesh.position.y, centerZ, bodyW, train.carHeight, bodyD);
             this.setColliderBoxCenter(train.topCollider, centerX, train.mesh.position.y + train.carHeight / 2 + 0.08, centerZ, bodyW * 0.95, 0.18, bodyD * 0.95);
+            train.deltaX = train.mesh.position.x - prevX;
+            train.deltaZ = train.mesh.position.z - prevZ;
+            train.prevX = train.mesh.position.x;
+            train.prevZ = train.mesh.position.z;
         }
     }
 
@@ -1401,8 +1415,34 @@ export class MapGenerator {
             direction: car.direction || 1,
             speed: car.speed || 0,
             length: car.carLength || 0,
-            width: car.carWidth || 0
+            width: car.carWidth || 0,
+            dx: car.deltaX || 0,
+            dz: car.deltaZ || 0,
+            topY: (car.mesh?.position?.y ?? 0) + (car.carHeight || 0) * 0.5 + 0.08
         }));
+    }
+
+    getTrainSupportAt(position, entityHeight = 1.8) {
+        if (!this.trainCars?.length) return null;
+        const feetY = position.y - entityHeight;
+        for (const car of this.trainCars) {
+            const axisX = car.route.axis === 'x';
+            const centerX = car.mesh.position.x;
+            const centerZ = car.mesh.position.z;
+            const halfL = (car.carLength || 14.2) * 0.48;
+            const halfW = (car.carWidth || 4.8) * 0.48;
+            const along = axisX ? Math.abs(position.x - centerX) : Math.abs(position.z - centerZ);
+            const across = axisX ? Math.abs(position.z - centerZ) : Math.abs(position.x - centerX);
+            const topY = car.mesh.position.y + car.carHeight * 0.5 + 0.08;
+            if (along > halfL || across > halfW) continue;
+            if (Math.abs(feetY - topY) > 0.45) continue;
+            return {
+                dx: car.deltaX || 0,
+                dz: car.deltaZ || 0,
+                topY
+            };
+        }
+        return null;
     }
 
     getFloorTiles() {
