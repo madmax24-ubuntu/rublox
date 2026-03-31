@@ -611,8 +611,35 @@
             z-index: 1500;
             box-shadow: 0 18px 40px rgba(0,0,0,0.42);
         `;
+        let perkTouchStartY = 0;
+        let perkScrollStart = 0;
+        let perkTouchMoved = false;
+        perkPanel.addEventListener('touchstart', (e) => {
+            const touch = e.touches?.[0];
+            if (!touch) return;
+            perkTouchStartY = touch.clientY;
+            perkScrollStart = perkPanel.scrollTop;
+            perkTouchMoved = false;
+            perkPanel.dataset.touchScrollMoved = '0';
+        }, { passive: true });
         perkPanel.addEventListener('touchmove', (e) => {
-            e.stopPropagation();
+            const touch = e.touches?.[0];
+            if (!touch) return;
+            const deltaY = touch.clientY - perkTouchStartY;
+            if (Math.abs(deltaY) > 8) {
+                perkTouchMoved = true;
+                perkPanel.dataset.touchScrollMoved = '1';
+            }
+            if (perkPanel.scrollHeight > perkPanel.clientHeight + 2) {
+                perkPanel.scrollTop = perkScrollStart - deltaY;
+                e.stopPropagation();
+                e.preventDefault();
+            }
+        }, { passive: false });
+        perkPanel.addEventListener('touchend', () => {
+            requestAnimationFrame(() => {
+                perkPanel.dataset.touchScrollMoved = perkTouchMoved ? '1' : '0';
+            });
         }, { passive: true });
         perkPanel.addEventListener('wheel', (e) => {
             e.stopPropagation();
@@ -665,7 +692,7 @@
                 }
             }, { passive: true });
             btn.addEventListener('touchend', (e) => {
-                if (touchMoved) return;
+                if (touchMoved || perkPanel.dataset.touchScrollMoved === '1') return;
                 e.preventDefault();
                 e.stopPropagation();
                 const perk = e.currentTarget.getAttribute('data-perk');
