@@ -371,15 +371,21 @@ class Game {
         const botCount = 60;
         const spawnPads = this.map.getSpawnPads?.() || [];
         const spawnRadius = 16;
+        const botPads = spawnPads.length > 1 ? spawnPads.slice(1) : spawnPads;
 
         for (let i = 0; i < botCount; i++) {
             let spawnPos;
-            if (spawnPads.length) {
-                const pad = spawnPads[(i + 1) % spawnPads.length];
+            if (botPads.length) {
+                const padIndex = i % botPads.length;
+                const cycle = Math.floor(i / botPads.length);
+                const pad = botPads[padIndex];
                 const padTop = pad.y;
-                const jitterX = (Math.random() - 0.5) * 0.45;
-                const jitterZ = (Math.random() - 0.5) * 0.45;
-                spawnPos = new THREE.Vector3(pad.x + jitterX, padTop + 1.9, pad.z + jitterZ);
+                const angleBase = (padIndex / Math.max(1, botPads.length)) * Math.PI * 2;
+                const angle = angleBase + cycle * (Math.PI / 2);
+                const radius = cycle === 0 ? 0 : 0.95 + (cycle - 1) * 0.42;
+                const offsetX = Math.cos(angle) * radius;
+                const offsetZ = Math.sin(angle) * radius;
+                spawnPos = new THREE.Vector3(pad.x + offsetX, padTop + 1.9, pad.z + offsetZ);
             } else {
                 const angle = (i / botCount) * Math.PI * 2;
                 spawnPos = new THREE.Vector3(
@@ -1130,7 +1136,10 @@ class Game {
             const pack = Math.max(1, Math.floor(baseCount * intensity));
             for (let i = 0; i < pack; i++) {
                 if (budget <= 0) break;
-                const guardSpot = this.map.findStructureGuardPoint?.(point, point.type);
+                const guardSpot = point.type === "house"
+                    ? (this.map.findClearPointAround?.(point.x, point.z, 0.8, 0.5, Math.max(3.2, Math.min(point.width || 8, point.depth || 8) * 0.35))
+                        || this.map.findStructureGuardPoint?.(point, point.type))
+                    : this.map.findStructureGuardPoint?.(point, point.type);
                 if (!guardSpot) continue;
                 const jitter = point.type === "hangar" ? 2.4 : 1.4;
                 const x = guardSpot.x + (Math.random() - 0.5) * jitter;

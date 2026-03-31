@@ -545,7 +545,13 @@ export class MapGenerator {
                 placed += 1;
             }
             if (placed === 0) {
-                const fallback = this.findClearPointAround(house.x, house.z, 0.8, 0.6, 4.5);
+                const fallback = this.findClearPointAround(
+                    house.x,
+                    house.z,
+                    0.8,
+                    0.25,
+                    Math.max(2.6, Math.min(house.width || 8, house.depth || 8) * 0.35)
+                ) || this.findStructureGuardPoint(house, 'house');
                 if (fallback) {
                     const key = `${Math.round(fallback.x)}:${Math.round(fallback.z)}`;
                     if (!used.has(key)) {
@@ -571,7 +577,8 @@ export class MapGenerator {
                 placed += 1;
             }
             if (placed === 0) {
-                const fallback = this.findClearPointAround(hangar.x, hangar.z, 1.1, 1, 8);
+                const fallback = this.findClearPointAround(hangar.x, hangar.z, 1.1, 0.5, Math.max(8, Math.min(hangar.width || 20, hangar.depth || 16) * 0.3))
+                    || this.findStructureGuardPoint(hangar, 'hangar');
                 if (fallback) {
                     const key = `${Math.round(fallback.x)}:${Math.round(fallback.z)}`;
                     if (!used.has(key)) {

@@ -406,7 +406,7 @@ export class BotBrain {
         const chest = this.findNearestChest(bot, lootManager, 80);
         
         const playerTarget = this.findPreferredPlayerTarget(bot, entityManager);
-        if (playerTarget && bot.currentWeapon) {
+        if (playerTarget && bot.currentWeapon && this.countAttackersForTarget(bot, playerTarget, entityManager) < ((entityManager?.getAliveSurvivors?.() || []).length >= 3 ? 2 : 1)) {
             bot.state = 'hunt';
             bot.target = playerTarget;
             this.stateTimer = 8;
@@ -481,10 +481,14 @@ export class BotBrain {
         // РЈРјРЅС‹Р№ РІС‹Р±РѕСЂ С†РµР»Рё
         let bestTarget = null;
         let bestScore = -1;
+        const aliveTargets = entityManager?.getAliveSurvivors?.() || [];
         
         for (const enemyData of enemies) {
             const entity = entityManager.getEntityById(enemyData.id);
             if (!entity || !entity.isAlive) continue;
+            const attackers = this.countAttackersForTarget(bot, entity, entityManager);
+            const attackerLimit = aliveTargets.length >= 3 ? 2 : 1;
+            if (attackers >= attackerLimit) continue;
             
             let score = 0;
             
@@ -501,6 +505,7 @@ export class BotBrain {
             if (enemyData.isPlayer) {
                 score += this.personality.aggression > 0.52 ? 55 : 24;
             }
+            score -= attackers * 18;
             
             if (score > bestScore) {
                 bestScore = score;
@@ -509,6 +514,20 @@ export class BotBrain {
         }
         
         return bestTarget;
+    }
+
+    countAttackersForTarget(bot, target, entityManager) {
+        if (!target || !entityManager?.entities) return 0;
+        let count = 0;
+        for (const entity of entityManager.entities) {
+            if (!entity?.isAlive) continue;
+            if (entity === bot) continue;
+            if (entity.constructor?.name !== 'Bot') continue;
+            if (entity.target === target && ['hunt', 'ambush', 'trainCombat'].includes(entity.state)) {
+                count += 1;
+            }
+        }
+        return count;
     }
 
     findPreferredPlayerTarget(bot, entityManager) {
