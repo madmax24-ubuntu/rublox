@@ -709,13 +709,13 @@
                 el.addEventListener('touchstart', run, { passive: false });
                 el.addEventListener('mousedown', run);
             };
-            bindTap(document.getElementById('perkPrev'), () => {
+            bindTap(perkPanel.querySelector('#perkPrev'), () => {
                 this.setPerkMenuSelection((this.perkMenuIndex ?? 0) - 1);
             });
-            bindTap(document.getElementById('perkNext'), () => {
+            bindTap(perkPanel.querySelector('#perkNext'), () => {
                 this.setPerkMenuSelection((this.perkMenuIndex ?? 0) + 1);
             });
-            bindTap(document.getElementById('perkSelectMobile'), () => {
+            bindTap(perkPanel.querySelector('#perkSelectMobile'), () => {
                 const perk = this.getPerkMenuValue();
                 if (!perk) return;
                 document.dispatchEvent(new CustomEvent('selectPerk', { detail: perk }));
