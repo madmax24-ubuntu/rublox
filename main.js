@@ -138,7 +138,9 @@ class Game {
         });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.shadowMap.enabled = false;
-        const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.25);
+        const pixelRatio = this.isMobile()
+            ? Math.min(window.devicePixelRatio || 1, 1.45)
+            : Math.min(window.devicePixelRatio || 1, 1.25);
         this.renderer.setPixelRatio(pixelRatio);
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
@@ -212,6 +214,7 @@ class Game {
         this.zone.shrinkSpeed = 0;
         this.traps = this.map.getTraps?.() || [];
         this.localFogZones = this.map.getFogZones?.() || [];
+        this.propVisibilityTimer = 0;
 
         this.entityManager = new EntityManager(this.scene);
         this.entityManager.physicsRef = this.physics;
@@ -896,7 +899,11 @@ class Game {
 
         this.player.update(delta, this.audioSynth, this.lootManager, this.entityManager, this.controls);
         this.map.update?.(delta, this.player.position);
-        this.map.updatePropVisibility?.(this.player.position);
+        this.propVisibilityTimer -= delta;
+        if (this.propVisibilityTimer <= 0) {
+            this.map.updatePropVisibility?.(this.player.position);
+            this.propVisibilityTimer = 0.18;
+        }
         this.noteCooldown = Math.max(0, this.noteCooldown - delta);
         if (this.noteCooldown === 0 && this.map.getStoryNotes) {
             const notes = this.map.getStoryNotes();
@@ -1123,11 +1130,13 @@ class Game {
             const pack = Math.max(1, Math.floor(baseCount * intensity));
             for (let i = 0; i < pack; i++) {
                 if (budget <= 0) break;
-                const rx = (Math.random() - 0.5) * (point.width || 8) * 1.25;
-                const rz = (Math.random() - 0.5) * (point.depth || 8) * 1.25;
-                const x = point.x + rx;
-                const z = point.z + rz;
+                const guardSpot = this.map.findStructureGuardPoint?.(point, point.type);
+                if (!guardSpot) continue;
+                const jitter = point.type === "hangar" ? 2.4 : 1.4;
+                const x = guardSpot.x + (Math.random() - 0.5) * jitter;
+                const z = guardSpot.z + (Math.random() - 0.5) * jitter;
                 if (!this.map.isWalkableAt?.(x, z)) continue;
+                if (!this.map.isChestClear?.(x, z, 0.9)) continue;
                 const pos = new THREE.Vector3(x, this.map.getHeightAt(x, z) + 1.8, z);
                 if (pos.distanceTo(this.player.position) < 16) continue;
                 const zombie = new Zombie(this.scene, this.nextZombieId++, pos);
@@ -1183,6 +1192,7 @@ class Game {
             if (spawned >= count) break;
             const pos = new THREE.Vector3(tile.x, this.map.getHeightAt(tile.x, tile.z) + 1.8, tile.z);
             if (pos.distanceTo(this.player.position) < (reset ? 20 : 24)) continue;
+            if (!this.map.isChestClear?.(tile.x, tile.z, 0.9)) continue;
             const zombie = new Zombie(this.scene, this.nextZombieId++, pos);
             this.physics.addEntity(zombie);
             this.entityManager.addEntity(zombie);
