@@ -18,7 +18,7 @@ export class Zone {
             this.zoneMesh.scale.set(this.currentRadius, 1, this.currentRadius);
         }
         if (this.ringMesh) {
-            this.ringMesh.scale.set(this.currentRadius, this.currentRadius, this.currentRadius);
+            this.ringMesh.scale.set(this.currentRadius, 1, this.currentRadius);
         }
     }
 
@@ -39,16 +39,21 @@ export class Zone {
         this.zoneMesh.visible = false;
         this.scene.add(this.zoneMesh);
 
-        const ringGeo = new THREE.TorusGeometry(1, 0.08, 8, 64);
-        const ringMat = new THREE.MeshBasicMaterial({
+        const ringPoints = [];
+        const ringSegments = 128;
+        for (let i = 0; i < ringSegments; i++) {
+            const angle = (i / ringSegments) * Math.PI * 2;
+            ringPoints.push(new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle)));
+        }
+        const ringGeo = new THREE.BufferGeometry().setFromPoints(ringPoints);
+        const ringMat = new THREE.LineBasicMaterial({
             color: 0x4fc3ff,
             transparent: true,
             opacity: 0.65
         });
-        this.ringMesh = new THREE.Mesh(ringGeo, ringMat);
-        this.ringMesh.rotation.x = Math.PI / 2;
+        this.ringMesh = new THREE.LineLoop(ringGeo, ringMat);
         this.ringMesh.position.y = 0.5;
-        this.ringMesh.scale.set(this.currentRadius, this.currentRadius, this.currentRadius);
+        this.ringMesh.scale.set(this.currentRadius, 1, this.currentRadius);
         this.scene.add(this.ringMesh);
     }
 
