@@ -41,16 +41,21 @@ export class EntityManager {
             const prevPos = proj.mesh.position.clone();
             proj.prevPos = prevPos.clone();
 
+            let stepDistance = 0;
             if (proj.velocity) {
                 if (proj.gravity) {
                     proj.velocity.y -= proj.gravity * delta;
                 }
-                proj.mesh.position.add(proj.velocity.clone().multiplyScalar(delta));
+                const moveStep = proj.velocity.clone().multiplyScalar(delta);
+                stepDistance = moveStep.length();
+                proj.mesh.position.add(moveStep);
                 proj.direction.copy(proj.velocity).normalize();
             } else {
                 const moveVector = proj.direction.clone().multiplyScalar(proj.speed * delta);
+                stepDistance = moveVector.length();
                 proj.mesh.position.add(moveVector);
             }
+            proj.travelled = (proj.travelled || 0) + stepDistance;
             if (proj.type === 'flame' && proj.mesh.material) {
                 const flicker = 0.85 + Math.random() * 0.3;
                 proj.mesh.scale.setScalar(flicker);
@@ -80,6 +85,14 @@ export class EntityManager {
                     proj.owner.onHit({ position: proj.mesh.position.clone(), type: proj.type });
                 }
                 this.spawnImpactEffect(proj.mesh.position.clone(), proj.type, true);
+                this.removeProjectile(i);
+                continue;
+            }
+
+            if (proj.travelled >= (proj.maxDistance ?? Infinity)) {
+                if (proj.type === 'bow') {
+                    this.spawnImpactEffect(proj.mesh.position.clone(), proj.type, false);
+                }
                 this.removeProjectile(i);
                 continue;
             }

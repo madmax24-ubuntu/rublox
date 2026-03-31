@@ -4,7 +4,7 @@ const WEAPON_BALANCE = {
     fists: { damage: 8, range: 2.4, cooldown: 0.38, ammo: null, durability: null, projectileSpeed: 0 },
     knife: { damage: 20, range: 3.1, cooldown: 0.45, ammo: null, durability: 80, projectileSpeed: 0 },
     axe: { damage: 30, range: 3.0, cooldown: 0.82, ammo: null, durability: 95, projectileSpeed: 0 },
-    bow: { damage: 24, range: 82, cooldown: 1.22, ammo: 48, durability: null, projectileSpeed: 64 },
+    bow: { damage: 24, range: 20, cooldown: 1.22, ammo: 48, durability: null, projectileSpeed: 46 },
     laser: { damage: 28, range: 94, cooldown: 0.34, ammo: 30, durability: null, projectileSpeed: 62 },
     shotgun: { damage: 11, range: 17, cooldown: 0.95, ammo: 36, durability: null, projectileSpeed: 52, pellets: 8 },
     flamethrower: { damage: 4.2, range: 14, cooldown: 0.12, ammo: 260, durability: null, projectileSpeed: 16, flameCount: 4 },
@@ -541,25 +541,66 @@ export class Weapon {
             knockback = 3;
         } else if (type === 'bow') {
             const group = new THREE.Group();
-            const shaftMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.6, flatShading: true });
-            const tipMat = new THREE.MeshStandardMaterial({ color: 0x9e9e9e, metalness: 0.6, roughness: 0.25, flatShading: true });
-            const fletchMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.7, flatShading: true });
+            const shaftMat = new THREE.MeshStandardMaterial({
+                color: 0x9a6230,
+                roughness: 0.55,
+                flatShading: true
+            });
+            const tipMat = new THREE.MeshStandardMaterial({
+                color: 0xc4c7cc,
+                metalness: 0.78,
+                roughness: 0.18,
+                flatShading: true
+            });
+            const fletchMat = new THREE.MeshStandardMaterial({
+                color: 0xf0f4ff,
+                emissive: 0x8aa4ff,
+                emissiveIntensity: 0.12,
+                roughness: 0.62,
+                flatShading: true
+            });
 
-            const shaft = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.04, 0.04), shaftMat);
+            const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.042, 1.95, 6), shaftMat);
+            shaft.rotation.z = Math.PI / 2;
             group.add(shaft);
 
-            const tip = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.22, 6), tipMat);
-            tip.position.x = 0.8;
+            const tip = new THREE.Mesh(new THREE.ConeGeometry(0.085, 0.3, 6), tipMat);
+            tip.position.x = 1.1;
             tip.rotation.z = -Math.PI / 2;
             group.add(tip);
 
-            const fletch1 = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.08, 0.02), fletchMat);
-            fletch1.position.x = -0.68;
-            fletch1.position.y = 0.05;
+            const collar = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.11, 0.11), tipMat);
+            collar.position.x = 0.92;
+            group.add(collar);
+
+            const fletch1 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, 0.03), fletchMat);
+            fletch1.position.x = -0.9;
+            fletch1.position.y = 0.1;
             group.add(fletch1);
             const fletch2 = fletch1.clone();
-            fletch2.position.y = -0.05;
+            fletch2.position.y = -0.1;
             group.add(fletch2);
+            const fletch3 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.03, 0.12), fletchMat);
+            fletch3.position.x = -0.9;
+            group.add(fletch3);
+
+            const glow = new THREE.Mesh(
+                new THREE.SphereGeometry(0.065, 6, 6),
+                new THREE.MeshBasicMaterial({
+                    color: 0xf3f7ff,
+                    transparent: true,
+                    opacity: 0.72
+                })
+            );
+            glow.position.x = -0.9;
+            group.add(glow);
+            group.scale.setScalar(1.1);
+            group.traverse(child => {
+                child.frustumCulled = false;
+                if (child.isMesh) {
+                    child.renderOrder = 6;
+                }
+            });
 
             mesh = group;
             knockback = 6;
@@ -619,6 +660,8 @@ export class Weapon {
             knockback,
             gravity,
             lifetime: type === 'flame' ? 0.6 : 5,
+            travelled: 0,
+            maxDistance: type === 'bow' ? 20 : Infinity,
             align: type === 'bow' ? 'arrow' : null,
             type
         };
