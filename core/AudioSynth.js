@@ -13,6 +13,7 @@ export class AudioSynth {
         this.musicThemeIndex = 0;
         this.musicVolume = 0.14;
         this.sfxVolume = 0.22;
+        this.radiationRainNodes = null;
         this.init();
     }
 
@@ -437,6 +438,66 @@ export class AudioSynth {
         this.connectSfx(hissGain, position);
         hiss.start();
         hiss.stop(now + 0.7);
+    }
+
+    startRadiationRain(position = null) {
+        if (!this.audioContext || this.radiationRainNodes) return;
+        const ctx = this.audioContext;
+        const noise = ctx.createBufferSource();
+        noise.buffer = this.createNoiseBuffer(2.6);
+        noise.loop = true;
+
+        const hp = ctx.createBiquadFilter();
+        hp.type = 'highpass';
+        hp.frequency.value = 1400;
+
+        const lp = ctx.createBiquadFilter();
+        lp.type = 'lowpass';
+        lp.frequency.value = 6800;
+
+        const rainGain = ctx.createGain();
+        rainGain.gain.value = 0.05;
+
+        noise.connect(hp);
+        hp.connect(lp);
+        lp.connect(rainGain);
+        if (position) {
+            const panner = this.createPanner(position);
+            rainGain.connect(panner);
+            panner.connect(this.sfxGain);
+            this.radiationRainNodes = { noise, hp, lp, rainGain, panner, tickTimer: null };
+        } else {
+            rainGain.connect(this.sfxGain);
+            this.radiationRainNodes = { noise, hp, lp, rainGain, tickTimer: null };
+        }
+        noise.start();
+
+        const tickTimer = setInterval(() => {
+            if (!this.audioContext || !this.radiationRainNodes) return;
+            const now = this.audioContext.currentTime;
+            const click = this.audioContext.createOscillator();
+            const clickGain = this.audioContext.createGain();
+            click.type = 'square';
+            click.frequency.setValueAtTime(1600 + Math.random() * 900, now);
+            clickGain.gain.setValueAtTime(0.018, now);
+            clickGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
+            click.connect(clickGain);
+            clickGain.connect(this.sfxGain);
+            click.start(now);
+            click.stop(now + 0.065);
+        }, 220);
+        this.radiationRainNodes.tickTimer = tickTimer;
+    }
+
+    stopRadiationRain() {
+        if (!this.radiationRainNodes) return;
+        try {
+            this.radiationRainNodes.noise?.stop?.();
+        } catch {}
+        if (this.radiationRainNodes.tickTimer) {
+            clearInterval(this.radiationRainNodes.tickTimer);
+        }
+        this.radiationRainNodes = null;
     }
 
     playHurt() {

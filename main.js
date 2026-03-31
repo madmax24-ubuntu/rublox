@@ -215,6 +215,9 @@ class Game {
         this.traps = this.map.getTraps?.() || [];
         this.localFogZones = this.map.getFogZones?.() || [];
         this.propVisibilityTimer = 0;
+        this.radiationRainEffect = null;
+        this.radiationRainActive = false;
+        this.initRadiationRainEffect();
 
         this.entityManager = new EntityManager(this.scene);
         this.entityManager.physicsRef = this.physics;
@@ -611,6 +614,7 @@ class Game {
         if (this.roundFinished) return;
         this.roundFinished = true;
         this.gameState = 'ended';
+        this.setRadiationRainActive(false);
         this.hud.hideScoreboard?.();
         this.hud.showGameOver(message);
     }
@@ -640,6 +644,84 @@ class Game {
         if (v.lengthSq() < 1e-6) return new THREE.Vector3(0, position.y, 0);
         v.normalize().multiplyScalar(Math.max(0, this.zone.getCurrentRadius() * 0.6));
         return new THREE.Vector3(v.x, position.y, v.z);
+    }
+
+    initRadiationRainEffect() {
+        const dropCount = this.isMobile() ? 72 : 120;
+        const geometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(dropCount * 2 * 3);
+        const speeds = new Float32Array(dropCount);
+        const area = this.isMobile() ? 22 : 28;
+        for (let i = 0; i < dropCount; i++) {
+            const x = (Math.random() - 0.5) * area;
+            const z = (Math.random() - 0.5) * area;
+            const y = 6 + Math.random() * 18;
+            const idx = i * 6;
+            positions[idx] = x;
+            positions[idx + 1] = y;
+            positions[idx + 2] = z;
+            positions[idx + 3] = x;
+            positions[idx + 4] = y - (1.8 + Math.random() * 1.2);
+            positions[idx + 5] = z;
+            speeds[i] = 11 + Math.random() * 10;
+        }
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const material = new THREE.LineBasicMaterial({
+            color: 0x7fff9a,
+            transparent: true,
+            opacity: this.isMobile() ? 0.58 : 0.72,
+            depthWrite: false
+        });
+        const lines = new THREE.LineSegments(geometry, material);
+        lines.visible = false;
+        lines.renderOrder = 28;
+        lines.frustumCulled = false;
+        this.scene.add(lines);
+        this.radiationRainEffect = { lines, positions, speeds, area };
+    }
+
+    setRadiationRainActive(active) {
+        this.radiationRainActive = !!active;
+        if (this.radiationRainEffect?.lines) {
+            this.radiationRainEffect.lines.visible = !!active;
+        }
+        this.hud?.setStormActive?.(!!active, active ? 'radiation' : 'storm');
+        if (active) {
+            this.audioSynth?.startRadiationRain?.();
+        } else {
+            this.audioSynth?.stopRadiationRain?.();
+        }
+    }
+
+    updateRadiationRainEffect(delta) {
+        if (!this.radiationRainActive || !this.radiationRainEffect?.lines || !this.player) return;
+        const effect = this.radiationRainEffect;
+        const positions = effect.positions;
+        const area = effect.area;
+        const centerX = this.player.position.x;
+        const centerZ = this.player.position.z;
+        for (let i = 0; i < effect.speeds.length; i++) {
+            const idx = i * 6;
+            positions[idx + 1] -= effect.speeds[i] * delta;
+            positions[idx + 4] = positions[idx + 1] - 2.2;
+            if (positions[idx + 4] <= -0.5) {
+                const x = centerX + (Math.random() - 0.5) * area;
+                const z = centerZ + (Math.random() - 0.5) * area;
+                const topY = this.map.getHeightAt(x, z) + 18 + Math.random() * 10;
+                positions[idx] = x;
+                positions[idx + 1] = topY;
+                positions[idx + 2] = z;
+                positions[idx + 3] = x;
+                positions[idx + 4] = topY - (1.8 + Math.random() * 1.4);
+                positions[idx + 5] = z;
+                effect.speeds[i] = 11 + Math.random() * 10;
+            }
+        }
+        effect.lines.geometry.attributes.position.needsUpdate = true;
+    }
+
+    isShelteredFromRadiation(position) {
+        return this.map?.isShelteredFromRain?.(position) || false;
     }
 
     startZoneCycle() {
@@ -702,6 +784,9 @@ class Game {
                 if (this.activeEvent.type === "night" && this.env?.forceNightTimer !== undefined) {
                     this.env.forceNightTimer = 0;
                 }
+                if (this.activeEvent.type === "radiationRain") {
+                    this.setRadiationRainActive(false);
+                }
                 this.activeEvent = { type: null, timer: 0, prevFog: null };
                 this.hud.showGameMessage("Событие завершено");
             }
@@ -710,7 +795,7 @@ class Game {
         this.randomEventTimer -= delta;
         if (this.randomEventTimer > 0 || this.activeEvent.type) return;
 
-        const events = ["blindness", "night"];
+        const events = ["blindness", "night", "radiationRain"];
         const event = events[Math.floor(Math.random() * events.length)];
 
         if (event === "blindness") {
@@ -727,6 +812,11 @@ class Game {
             this.activeEvent.timer = 28;
             this.env.forceNight(30);
             this.hud.showGameMessage("Событие: Ночь");
+        } else if (event === "radiationRain") {
+            this.activeEvent.type = "radiationRain";
+            this.activeEvent.timer = 30;
+            this.setRadiationRainActive(true);
+            this.hud.showGameMessage("Событие: Радиационный дождь. Прячьтесь в домах или ангарах!");
         }
 
         this.randomEventTimer = 45 + Math.random() * 35;
@@ -874,6 +964,9 @@ class Game {
                 const damage = this.zone.getDamage(delta, this.player.position);
                 this.player.takeDamage(damage, false, null, 0, 'zone');
             }
+            if (this.activeEvent?.type === 'radiationRain' && !this.isShelteredFromRadiation(this.player.position)) {
+                this.player.takeDamage(5.2 * delta, false, null, 0, 'storm');
+            }
 
             const distanceFromZone = this.zone.getDistanceFromZone(this.player.position);
             if (distanceFromZone > 0) {
@@ -896,7 +989,8 @@ class Game {
             const outsideBoost = distanceOutside > 0 ? Math.min(0.24, distanceOutside * 0.015) : 0;
             const fogBoost = Math.min(0.24, Math.max(0, fogDensity - 0.004) * 30);
             const blindnessBoost = this.activeEvent?.type === 'blindness' ? 0.55 : 0;
-            this.hud.setVisionIntensity?.(0.12 + nightBoost + shrinkBoost + outsideBoost + fogBoost + blindnessBoost);
+            const radiationBoost = this.activeEvent?.type === 'radiationRain' && !this.isShelteredFromRadiation(this.player.position) ? 0.08 : 0;
+            this.hud.setVisionIntensity?.(0.12 + nightBoost + shrinkBoost + outsideBoost + fogBoost + blindnessBoost + radiationBoost);
         } else {
             this.hud.setVisionIntensity?.(0);
         }
@@ -905,6 +999,7 @@ class Game {
 
         this.player.update(delta, this.audioSynth, this.lootManager, this.entityManager, this.controls);
         this.map.update?.(delta, this.player.position);
+        this.updateRadiationRainEffect(delta);
         this.propVisibilityTimer -= delta;
         if (this.propVisibilityTimer <= 0) {
             this.map.updatePropVisibility?.(this.player.position);
@@ -1015,6 +1110,12 @@ class Game {
                 const outside = this.zone.getDistanceFromZone(bot.position);
                 if (outside > 10) {
                     bot.position.lerp(safePoint, 0.18);
+                }
+            }
+            if (this.activeEvent?.type === 'radiationRain') {
+                for (const bot of this.bots) {
+                    if (!bot.isAlive || this.isShelteredFromRadiation(bot.position)) continue;
+                    bot.takeDamage(4.2 * delta, false, null, 0, 'storm');
                 }
             }
         }

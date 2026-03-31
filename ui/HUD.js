@@ -1231,9 +1231,14 @@
         }, 120);
     }
 
-    setStormActive(active) {
+    setStormActive(active, type = 'storm') {
         const storm = document.getElementById('stormOverlay');
         if (!storm) return;
+        if (type === 'radiation') {
+            storm.style.background = 'radial-gradient(circle at 30% 30%, rgba(120, 255, 160, 0.18), rgba(12, 30, 18, 0.58))';
+        } else {
+            storm.style.background = 'radial-gradient(circle at 30% 30%, rgba(120, 140, 255, 0.2), rgba(20, 30, 40, 0.55))';
+        }
         storm.style.opacity = active ? '1' : '0';
     }
 

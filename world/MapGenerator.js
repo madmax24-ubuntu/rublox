@@ -569,6 +569,26 @@ export class MapGenerator {
             metalness: 0.1,
             flatShading: true
         });
+        const accentMat = new THREE.MeshStandardMaterial({
+            color: 0xc7b696,
+            roughness: 0.85,
+            flatShading: true
+        });
+        const lootMatA = new THREE.MeshStandardMaterial({
+            color: 0xb5452c,
+            roughness: 0.72,
+            flatShading: true
+        });
+        const lootMatB = new THREE.MeshStandardMaterial({
+            color: 0x2a5eb7,
+            roughness: 0.72,
+            flatShading: true
+        });
+        const lootMatC = new THREE.MeshStandardMaterial({
+            color: 0x7f8d1f,
+            roughness: 0.72,
+            flatShading: true
+        });
 
         const podium = new THREE.Mesh(new THREE.CylinderGeometry(6.2, 7.1, 1.1, 12), stoneMat);
         podium.position.set(spawnWorld.x, baseY + 0.55, spawnWorld.z);
@@ -576,17 +596,42 @@ export class MapGenerator {
         group.add(podium);
         this.addColliderBox(podium.position.clone(), 12.4, 1.1, 12.4, true);
 
+        const plazaRing = new THREE.Mesh(new THREE.RingGeometry(8.6, 15.2, 24), accentMat);
+        plazaRing.rotation.x = -Math.PI / 2;
+        plazaRing.position.set(spawnWorld.x, baseY + 0.08, spawnWorld.z);
+        plazaRing.userData.mapGenerated = true;
+        group.add(plazaRing);
+
+        const plazaCore = new THREE.Mesh(new THREE.CircleGeometry(8.1, 18), stoneMat);
+        plazaCore.rotation.x = -Math.PI / 2;
+        plazaCore.position.set(spawnWorld.x, baseY + 0.09, spawnWorld.z);
+        plazaCore.userData.mapGenerated = true;
+        group.add(plazaCore);
+
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2 + Math.PI / 8;
+            const spoke = new THREE.Mesh(new THREE.BoxGeometry(6.8, 0.14, 1.1), accentMat);
+            spoke.position.set(
+                spawnWorld.x + Math.cos(angle) * 10.6,
+                baseY + 0.11,
+                spawnWorld.z + Math.sin(angle) * 10.6
+            );
+            spoke.rotation.y = -angle;
+            spoke.userData.mapGenerated = true;
+            group.add(spoke);
+        }
+
         const hornRoot = new THREE.Group();
-        hornRoot.position.set(spawnWorld.x - 0.5, baseY + 1.2, spawnWorld.z + 0.2);
-        hornRoot.rotation.y = -0.15;
+        hornRoot.position.set(spawnWorld.x - 0.25, baseY + 1.34, spawnWorld.z + 0.3);
+        hornRoot.rotation.y = -0.22;
         group.add(hornRoot);
 
         const bodySegments = [
-            { x: -3.9, y: 0.9, z: 0, sx: 3.2, sy: 2.5, sz: 2.6, rz: -0.24 },
-            { x: -1.9, y: 1.45, z: 0, sx: 2.6, sy: 2.15, sz: 2.2, rz: -0.1 },
-            { x: 0.05, y: 2.0, z: 0, sx: 2.05, sy: 1.72, sz: 1.8, rz: 0.08 },
-            { x: 1.75, y: 2.8, z: 0, sx: 1.55, sy: 1.3, sz: 1.35, rz: 0.22 },
-            { x: 2.95, y: 3.75, z: 0, sx: 1.05, sy: 0.86, sz: 0.92, rz: 0.44 }
+            { x: -4.45, y: 0.78, z: 0, sx: 3.55, sy: 2.95, sz: 3.05, rz: -0.26 },
+            { x: -2.25, y: 1.32, z: 0, sx: 3.0, sy: 2.32, sz: 2.5, rz: -0.16 },
+            { x: -0.1, y: 1.96, z: 0, sx: 2.34, sy: 1.84, sz: 1.98, rz: -0.02 },
+            { x: 1.95, y: 2.84, z: 0, sx: 1.82, sy: 1.42, sz: 1.48, rz: 0.16 },
+            { x: 3.42, y: 3.9, z: 0, sx: 1.18, sy: 0.94, sz: 1.0, rz: 0.38 }
         ];
 
         for (const seg of bodySegments) {
@@ -598,15 +643,15 @@ export class MapGenerator {
             hornRoot.add(piece);
         }
 
-        const mouthOuter = new THREE.Mesh(new THREE.TorusGeometry(2.15, 0.28, 8, 24), goldMat);
+        const mouthOuter = new THREE.Mesh(new THREE.TorusGeometry(2.55, 0.36, 10, 26), goldMat);
         mouthOuter.rotation.y = Math.PI / 2;
-        mouthOuter.position.set(-5.15, 0.78, 0);
+        mouthOuter.position.set(-5.95, 0.66, 0);
         mouthOuter.userData.mapGenerated = true;
         hornRoot.add(mouthOuter);
 
-        const mouthInner = new THREE.Mesh(new THREE.TorusGeometry(1.62, 0.16, 8, 18), bronzeMat);
+        const mouthInner = new THREE.Mesh(new THREE.TorusGeometry(1.96, 0.2, 8, 20), bronzeMat);
         mouthInner.rotation.y = Math.PI / 2;
-        mouthInner.position.set(-5.08, 0.8, 0);
+        mouthInner.position.set(-5.88, 0.68, 0);
         mouthInner.userData.mapGenerated = true;
         hornRoot.add(mouthInner);
 
@@ -627,13 +672,15 @@ export class MapGenerator {
         hornRoot.add(supportB);
 
         const cacheOffsets = [
-            [-2.9, 0.62, -2.7, 1.2, 0.9, 1.15],
-            [2.75, 0.62, -2.55, 1.25, 0.9, 1.1],
-            [-3.05, 0.62, 2.45, 1.05, 0.82, 1.25],
-            [2.95, 0.62, 2.55, 1.15, 0.92, 1.15],
-            [0.0, 0.62, -3.65, 1.35, 0.9, 1.1],
-            [0.6, 0.62, 3.5, 1.2, 0.84, 1.2],
-            [-0.9, 0.62, 2.85, 0.9, 0.72, 0.9]
+            [-3.6, 0.62, -3.2, 1.2, 0.9, 1.15],
+            [3.4, 0.62, -3.05, 1.25, 0.9, 1.1],
+            [-3.65, 0.62, 2.95, 1.05, 0.82, 1.25],
+            [3.75, 0.62, 3.15, 1.15, 0.92, 1.15],
+            [0.0, 0.62, -4.55, 1.35, 0.9, 1.1],
+            [0.95, 0.62, 4.25, 1.2, 0.84, 1.2],
+            [-1.35, 0.62, 3.45, 0.9, 0.72, 0.9],
+            [4.85, 0.62, 0.3, 1.22, 0.86, 1.18],
+            [-4.95, 0.62, 0.5, 1.18, 0.86, 1.18]
         ];
         for (const [ox, oy, oz, sx, sy, sz] of cacheOffsets) {
             const crate = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), cacheMat);
@@ -650,6 +697,23 @@ export class MapGenerator {
 
             this.addColliderBox(crate.position.clone(), sx, sy, sz, false);
         }
+
+        const spillOffsets = [
+            [-2.8, 0.44, -1.1, 0.42, 0.22, 0.72, 0.4],
+            [-2.1, 0.44, -0.35, 0.72, 0.18, 0.18, -0.2],
+            [1.9, 0.44, -1.2, 0.22, 0.18, 0.8, 0.5],
+            [2.5, 0.44, 1.05, 0.68, 0.18, 0.2, 0.15],
+            [0.35, 0.44, 2.15, 0.48, 0.16, 0.6, -0.45],
+            [-1.45, 0.44, 1.85, 0.2, 0.18, 0.78, 0.32]
+        ];
+        const lootMats = [lootMatA, lootMatB, lootMatC];
+        spillOffsets.forEach(([ox, oy, oz, sx, sy, sz, rot], index) => {
+            const loot = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), lootMats[index % lootMats.length]);
+            loot.position.set(spawnWorld.x + ox, baseY + oy, spawnWorld.z + oz);
+            loot.rotation.set(0.12, rot, -0.08);
+            loot.userData.mapGenerated = true;
+            group.add(loot);
+        });
 
         this.addColliderBox(new THREE.Vector3(spawnWorld.x - 0.9, baseY + 3.0, spawnWorld.z), 9.8, 6.2, 5.6, false);
 
@@ -826,7 +890,7 @@ export class MapGenerator {
             name = '\u0414\u043e\u043c';
             const variant = this.houseVariants[Math.floor(Math.random() * this.houseVariants.length)];
             this.addOpenBuildingShell(group, position, variant);
-            this.houseSpots.push({ x: position.x, z: position.z, width: variant.width, depth: variant.depth, style: variant.style });
+            this.houseSpots.push({ x: position.x, z: position.z, width: variant.width, depth: variant.depth, height: variant.height, style: variant.style });
         } else if (type === 'watchtower') {
             name = 'Вышка';
             const frameMat = new THREE.MeshStandardMaterial({ color: 0x6d4c41, roughness: 0.86, flatShading: true });
@@ -864,7 +928,7 @@ export class MapGenerator {
             name = 'Ангар';
             const variant = this.hangarVariants[Math.floor(Math.random() * this.hangarVariants.length)];
             this.addOpenBuildingShell(group, position, variant);
-            this.hangarSpots.push({ x: position.x, z: position.z, width: variant.width, depth: variant.depth, style: variant.style });
+            this.hangarSpots.push({ x: position.x, z: position.z, width: variant.width, depth: variant.depth, height: variant.height, style: variant.style });
         }
 
         this.scene.add(group);
@@ -1054,11 +1118,11 @@ export class MapGenerator {
                 if (type === 'house') {
                     const variant = this.houseVariants[Math.floor(rand() * this.houseVariants.length)];
                     this.addOpenBuildingShell(group, new THREE.Vector3(tile.x, 0, tile.z), variant);
-                    this.houseSpots.push({ x: tile.x, z: tile.z, width: variant.width, depth: variant.depth, style: variant.style });
+                    this.houseSpots.push({ x: tile.x, z: tile.z, width: variant.width, depth: variant.depth, height: variant.height, style: variant.style });
                 } else {
                     const variant = this.hangarVariants[Math.floor(rand() * this.hangarVariants.length)];
                     this.addOpenBuildingShell(group, new THREE.Vector3(tile.x, 0, tile.z), variant);
-                    this.hangarSpots.push({ x: tile.x, z: tile.z, width: variant.width, depth: variant.depth, style: variant.style });
+                    this.hangarSpots.push({ x: tile.x, z: tile.z, width: variant.width, depth: variant.depth, height: variant.height, style: variant.style });
                 }
                 this.scene.add(group);
                 placed.push({ x: tile.x, z: tile.z });
@@ -1603,11 +1667,11 @@ export class MapGenerator {
     }
 
     getHouseSpots() {
-        return this.houseSpots.map(pos => ({ x: pos.x, z: pos.z, width: pos.width, depth: pos.depth }));
+        return this.houseSpots.map(pos => ({ x: pos.x, z: pos.z, width: pos.width, depth: pos.depth, height: pos.height }));
     }
 
     getHangarSpots() {
-        return this.hangarSpots.map(pos => ({ x: pos.x, z: pos.z, width: pos.width, depth: pos.depth }));
+        return this.hangarSpots.map(pos => ({ x: pos.x, z: pos.z, width: pos.width, depth: pos.depth, height: pos.height }));
     }
 
     getRailLayout() {
@@ -1727,6 +1791,27 @@ export class MapGenerator {
         return tile && tile.type === "floor";
     }
 
+    isUnderStructureRoof(position, structure, type = 'house') {
+        if (!position || !structure) return false;
+        const halfW = Math.max(2, (structure.width || (type === 'hangar' ? 24 : 10)) * 0.44);
+        const halfD = Math.max(2, (structure.depth || (type === 'hangar' ? 18 : 8)) * 0.44);
+        if (Math.abs(position.x - structure.x) > halfW) return false;
+        if (Math.abs(position.z - structure.z) > halfD) return false;
+        const roofBaseY = this.getHeightAt(structure.x, structure.z) + (structure.height || (type === 'hangar' ? 16 : 5));
+        return position.y <= roofBaseY + 1.2;
+    }
+
+    isShelteredFromRain(position) {
+        if (!position) return false;
+        for (const house of this.houseSpots || []) {
+            if (this.isUnderStructureRoof(position, house, 'house')) return true;
+        }
+        for (const hangar of this.hangarSpots || []) {
+            if (this.isUnderStructureRoof(position, hangar, 'hangar')) return true;
+        }
+        return false;
+    }
+
     isLavaAt(x, z) {
         return this.lavaPatches.some(patch =>
             Math.abs(x - patch.x) <= patch.width / 2 &&
@@ -1834,7 +1919,7 @@ export class MapGenerator {
             group.add(canopy);
 
             this.scene.add(group);
-            this.houseSpots.push({ x, z, width: 7.8, depth: 7.8, style: "treehouse" });
+            this.houseSpots.push({ x, z, width: 7.8, depth: 7.8, height: 6.4, style: "treehouse" });
             placed.push({ x, z });
             created += 1;
         }
