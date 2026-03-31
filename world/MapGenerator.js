@@ -38,12 +38,14 @@ export class MapGenerator {
             { width: 9.2, depth: 7.8, height: 4.4, doorWidth: 2.4, wallColor: 0xc9b08d, roofColor: 0x5f4638, style: "classic" },
             { width: 8.8, depth: 7.2, height: 4.2, doorWidth: 2.2, wallColor: 0xb7c2cc, roofColor: 0x455a64, style: "concrete" },
             { width: 10.2, depth: 8.6, height: 4.9, doorWidth: 2.8, wallColor: 0xd6c1a5, roofColor: 0x6d4c41, style: "farm" },
-            { width: 11.0, depth: 9.0, height: 5.0, doorWidth: 3.0, wallColor: 0xc8d2dc, roofColor: 0x4f5c63, style: "modern" }
+            { width: 11.0, depth: 9.0, height: 5.0, doorWidth: 3.0, wallColor: 0xc8d2dc, roofColor: 0x4f5c63, style: "modern" },
+            { width: 12.6, depth: 9.8, height: 5.4, doorWidth: 3.2, wallColor: 0xbfa07e, roofColor: 0x614735, style: "longhouse" },
+            { width: 10.8, depth: 10.8, height: 5.2, doorWidth: 2.6, wallColor: 0xaeb9c3, roofColor: 0x384850, style: "outpost" }
         ];
         this.hangarVariants = [
-            { width: 48.0, depth: 30.0, height: 14.0, doorWidth: 14.0, wallColor: 0x7a8a95, roofColor: 0x3f4b53, style: "megaA" },
-            { width: 44.0, depth: 28.0, height: 13.2, doorWidth: 13.0, wallColor: 0x8b949d, roofColor: 0x505a63, style: "megaB" },
-            { width: 50.0, depth: 32.0, height: 14.8, doorWidth: 15.0, wallColor: 0x748089, roofColor: 0x39454d, style: "megaC" }
+            { width: 62.0, depth: 38.0, height: 18.0, doorWidth: 18.0, wallColor: 0x7a8a95, roofColor: 0x3f4b53, style: "megaA" },
+            { width: 58.0, depth: 36.0, height: 17.0, doorWidth: 17.0, wallColor: 0x8b949d, roofColor: 0x505a63, style: "megaB" },
+            { width: 66.0, depth: 40.0, height: 18.8, doorWidth: 19.0, wallColor: 0x748089, roofColor: 0x39454d, style: "megaC" }
         ];
         this.storySnippets = [
             "Если это читаешь, значит поезд снова прошёл мимо. Не стой у рельс долго.",
@@ -743,6 +745,7 @@ export class MapGenerator {
         const width = options.width ?? 8;
         const depth = options.depth ?? 6;
         const height = options.height ?? 4;
+        const isMassiveHangar = width >= 32 || depth >= 24 || height >= 10;
         const doorWidth = Math.max(1.6, Math.min(width - 2, options.doorWidth ?? 2.2));
         const wallThickness = 0.35;
         const wallMat = new THREE.MeshStandardMaterial({
@@ -773,6 +776,41 @@ export class MapGenerator {
         roof.position.set(position.x, baseY + height + 0.2, position.z);
         roof.userData.mapGenerated = true;
         group.add(roof);
+        if (isMassiveHangar) {
+            const roofRidge = new THREE.Mesh(
+                new THREE.BoxGeometry(width * 0.72, 1.2, depth * 0.18),
+                roofMat
+            );
+            roofRidge.position.set(position.x, baseY + height + 0.9, position.z);
+            roofRidge.userData.mapGenerated = true;
+            group.add(roofRidge);
+
+            const beaconMat = new THREE.MeshStandardMaterial({
+                color: 0xffd180,
+                emissive: 0xffa726,
+                emissiveIntensity: 0.9,
+                roughness: 0.35,
+                flatShading: true
+            });
+            for (const sx of [-1, 1]) {
+                const tower = new THREE.Mesh(
+                    new THREE.BoxGeometry(1.2, height + 3.8, 1.2),
+                    wallMat
+                );
+                tower.position.set(position.x + sx * (width * 0.44), baseY + (height + 3.8) * 0.5, position.z + depth * 0.48);
+                tower.userData.mapGenerated = true;
+                group.add(tower);
+                this.addColliderBox(tower.position.clone(), 1.2, height + 3.8, 1.2, false);
+
+                const beacon = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.75, 0.75, 0.75),
+                    beaconMat
+                );
+                beacon.position.set(tower.position.x, baseY + height + 4.4, tower.position.z);
+                beacon.userData.mapGenerated = true;
+                group.add(beacon);
+            }
+        }
 
         const leftWall = new THREE.Mesh(new THREE.BoxGeometry(wallThickness, height, depth), wallMat);
         leftWall.position.set(position.x - width / 2 + wallThickness / 2, wallY, position.z);
@@ -820,9 +858,21 @@ export class MapGenerator {
         const candidates = this.floorTiles.filter(tile => {
             const dx = tile.x - spawnWorld.x;
             const dz = tile.z - spawnWorld.z;
-            return Math.hypot(dx, dz) > 42;
+            return Math.hypot(dx, dz) > 34;
         });
         if (!candidates.length) return;
+        const nearSpawnCandidates = candidates
+            .filter(tile => {
+                const dx = tile.x - spawnWorld.x;
+                const dz = tile.z - spawnWorld.z;
+                const d = Math.hypot(dx, dz);
+                return d >= 56 && d <= 150;
+            })
+            .sort((a, b) => {
+                const da = Math.hypot(a.x - spawnWorld.x, a.z - spawnWorld.z);
+                const db = Math.hypot(b.x - spawnWorld.x, b.z - spawnWorld.z);
+                return da - db;
+            });
 
         for (let i = candidates.length - 1; i > 0; i--) {
             const j = Math.floor(rand() * (i + 1));
@@ -832,13 +882,13 @@ export class MapGenerator {
         const placed = [];
         const canPlace = (x, z, minDist) => !placed.some(p => Math.hypot(p.x - x, p.z - z) < minDist);
 
-        const placeStructure = (type, count) => {
+        const placeStructure = (type, count, sourceCandidates = candidates) => {
             let created = 0;
-            for (const tile of candidates) {
+            for (const tile of sourceCandidates) {
                 if (created >= count) break;
                 if (this.isNearRailCorridor(tile.x, tile.z, type === 'hangar' ? 16 : 14)) continue;
-                if (!this.isChestClear(tile.x, tile.z, type === 'hangar' ? 9 : 7)) continue;
-                if (!canPlace(tile.x, tile.z, type === 'hangar' ? 86 : 52)) continue;
+                if (!this.isChestClear(tile.x, tile.z, type === 'hangar' ? 12 : 7)) continue;
+                if (!canPlace(tile.x, tile.z, type === 'hangar' ? 104 : 40)) continue;
 
                 const group = new THREE.Group();
                 group.userData.mapGenerated = true;
@@ -855,10 +905,12 @@ export class MapGenerator {
                 placed.push({ x: tile.x, z: tile.z });
                 created += 1;
             }
+            return created;
         };
 
-        placeStructure('house', 42);
-        placeStructure('hangar', 4);
+        const guaranteedNearHangars = placeStructure('hangar', 2, nearSpawnCandidates);
+        placeStructure('house', 68);
+        placeStructure('hangar', 6 - guaranteedNearHangars);
         this.buildTreeHouses(candidates, rand, placed);
 
         const rockMat = new THREE.MeshStandardMaterial({ color: 0x696969, roughness: 0.92, flatShading: true });

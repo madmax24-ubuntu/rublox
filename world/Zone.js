@@ -23,12 +23,11 @@ export class Zone {
     }
 
     createZone() {
-        // Keep only minimal side-wall visibility to avoid heavy halo artifacts at night.
-        const geometry = new THREE.CylinderGeometry(1, 1, 200, 24, 1, true);
+        const geometry = new THREE.CylinderGeometry(1, 1, 200, 48, 1, true);
         const material = new THREE.MeshBasicMaterial({
             color: 0x4fc3ff,
             transparent: true,
-            opacity: 0.02,
+            opacity: 0.1,
             depthWrite: false,
             side: THREE.DoubleSide
         });
@@ -36,7 +35,7 @@ export class Zone {
         this.zoneMesh = new THREE.Mesh(geometry, material);
         this.zoneMesh.position.y = 50;
         this.zoneMesh.scale.set(this.currentRadius, 1, this.currentRadius);
-        this.zoneMesh.visible = false;
+        this.zoneMesh.visible = true;
         this.scene.add(this.zoneMesh);
 
         const ringPoints = [];
@@ -49,7 +48,7 @@ export class Zone {
         const ringMat = new THREE.LineBasicMaterial({
             color: 0x4fc3ff,
             transparent: true,
-            opacity: 0.65
+            opacity: 0.9
         });
         this.ringMesh = new THREE.LineLoop(ringGeo, ringMat);
         this.ringMesh.position.y = 0.5;
@@ -66,8 +65,12 @@ export class Zone {
             this.syncVisuals();
         }
         if (this.ringMesh) {
-            const pulse = 0.45 + Math.sin(performance.now() * 0.004) * 0.2;
-            this.ringMesh.material.opacity = Math.max(0.2, pulse);
+            const pulse = 0.78 + Math.sin(performance.now() * 0.004) * 0.12;
+            this.ringMesh.material.opacity = Math.max(0.52, pulse);
+        }
+        if (this.zoneMesh) {
+            const pulse = 0.08 + Math.sin(performance.now() * 0.003) * 0.025;
+            this.zoneMesh.material.opacity = Math.max(0.06, pulse);
         }
     }
 
