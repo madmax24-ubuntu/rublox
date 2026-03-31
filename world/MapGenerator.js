@@ -1048,29 +1048,13 @@ export class MapGenerator {
             };
 
             const railLength = (route.max - route.min);
-            const ballastGeo = new THREE.BoxGeometry(railLength, 0.18, 7.8);
-            const ballast = new THREE.Mesh(ballastGeo, ballastMat);
-            ballast.position.set(0, 0.52, route.offset);
-            ballast.userData.mapGenerated = true;
-            group.add(ballast);
-
-            const railGeo = new THREE.BoxGeometry(railLength, 0.22, 0.22);
-            const rail1 = new THREE.Mesh(railGeo, railMat);
-            const rail2 = new THREE.Mesh(railGeo, railMat);
-                if (route.axis === 'x') {
-                    rail1.position.set(0, 0.78, route.offset - 1.85);
-                    rail2.position.set(0, 0.78, route.offset + 1.85);
-                } else {
-                    rail1.rotation.y = Math.PI / 2;
-                    rail2.rotation.y = Math.PI / 2;
-                    rail1.position.set(route.offset - 1.85, 0.78, 0);
-                    rail2.position.set(route.offset + 1.85, 0.78, 0);
-                }
-            rail1.userData.mapGenerated = true;
-            rail2.userData.mapGenerated = true;
-            group.add(rail1, rail2);
-
             const sleeperCount = Math.max(24, Math.floor(railLength / 3.4));
+            const segmentLength = railLength / sleeperCount;
+            const ballastGeo = new THREE.BoxGeometry(segmentLength * 1.08, 0.28, 7.8);
+            const ballastInst = new THREE.InstancedMesh(ballastGeo, ballastMat, sleeperCount);
+            const railGeo = new THREE.BoxGeometry(segmentLength * 1.08, 0.24, 0.28);
+            const railLeftInst = new THREE.InstancedMesh(railGeo, railMat, sleeperCount);
+            const railRightInst = new THREE.InstancedMesh(railGeo, railMat, sleeperCount);
             const sleeperGeo = new THREE.BoxGeometry(0.55, 0.22, 4.8);
             const sleepers = new THREE.InstancedMesh(sleeperGeo, sleeperMat, sleeperCount);
             const matrix = new THREE.Matrix4();
@@ -1081,17 +1065,49 @@ export class MapGenerator {
                 const t = i / Math.max(1, sleeperCount - 1);
                 const p = route.min + t * (route.max - route.min);
                 if (route.axis === 'x') {
+                    pos.set(p, 0.48, route.offset);
+                    matrix.compose(pos, rot, scl);
+                    ballastInst.setMatrixAt(i, matrix);
+
+                    pos.set(p, 0.72, route.offset - 1.85);
+                    matrix.compose(pos, rot, scl);
+                    railLeftInst.setMatrixAt(i, matrix);
+
+                    pos.set(p, 0.72, route.offset + 1.85);
+                    matrix.compose(pos, rot, scl);
+                    railRightInst.setMatrixAt(i, matrix);
+
                     pos.set(p, 0.62, route.offset);
                 } else {
-                    pos.set(route.offset, 0.62, p);
                     rot.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2);
+
+                    pos.set(route.offset, 0.48, p);
+                    matrix.compose(pos, rot, scl);
+                    ballastInst.setMatrixAt(i, matrix);
+
+                    pos.set(route.offset - 1.85, 0.72, p);
+                    matrix.compose(pos, rot, scl);
+                    railLeftInst.setMatrixAt(i, matrix);
+
+                    pos.set(route.offset + 1.85, 0.72, p);
+                    matrix.compose(pos, rot, scl);
+                    railRightInst.setMatrixAt(i, matrix);
+
+                    pos.set(route.offset, 0.62, p);
                 }
                 matrix.compose(pos, rot, scl);
                 sleepers.setMatrixAt(i, matrix);
                 rot.identity();
             }
+            ballastInst.instanceMatrix.needsUpdate = true;
+            railLeftInst.instanceMatrix.needsUpdate = true;
+            railRightInst.instanceMatrix.needsUpdate = true;
+            sleepers.instanceMatrix.needsUpdate = true;
+            ballastInst.userData.mapGenerated = true;
+            railLeftInst.userData.mapGenerated = true;
+            railRightInst.userData.mapGenerated = true;
             sleepers.userData.mapGenerated = true;
-            group.add(sleepers);
+            group.add(ballastInst, railLeftInst, railRightInst, sleepers);
             this.scene.add(group);
 
             this.trainRoutes.push(route);
