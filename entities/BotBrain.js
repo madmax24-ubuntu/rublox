@@ -1,4 +1,5 @@
 ﻿import * as THREE from 'three';
+import { UtilityAI } from './UtilityAI.js';
 
 /**
  * РЈРњРќР«Р™ AI Р”Р›РЇ Р‘РћРўРћР’ - Р’РµСЂСЃРёСЏ 2.0
@@ -50,6 +51,8 @@ export class BotBrain {
         this.prefersHangarLoot = this.combatProfileRoll >= 0.24 && this.combatProfileRoll < 0.74;
         this.trainLockTimer = 0;
         this.trainBoardCooldown = 0;
+        this.utilityAI = new UtilityAI();
+        this.lastUtilityDecision = null;
     }
     
     chooseInitialStrategy() {
@@ -79,12 +82,8 @@ export class BotBrain {
         // 2. РћС†РµРЅРєР° СѓРіСЂРѕР·С‹
         const threatLevel = this.assessThreatLevel(bot, entityManager);
         
-        // 3. РћР±РЅРѕРІР»РµРЅРёРµ РїСЂРёРѕСЂРёС‚РµС‚Р°
-        this.updatePriority(bot, entityManager, lootManager, threatLevel);
-
-        // 4. РџСЂРёРЅСЏС‚РёРµ СЂРµС€РµРЅРёР№
+        // 3. UtilityAI выбирает ключевое действие
         if (this.decisionCooldown <= 0) {
-            this.adaptStrategy(bot, entityManager, threatLevel);
             this.makeSmartDecision(bot, entityManager, lootManager, threatLevel);
             this.decisionCooldown = Math.max(0.08, 0.2 - this.personality.intelligence * 0.1);
         }
@@ -275,17 +274,83 @@ export class BotBrain {
 
     // ===== РЈРњРќРћР• РџР РРќРЇРўРР• Р Р•РЁР•РќРР™ =====
     makeSmartDecision(bot, entityManager, lootManager, threatLevel) {
-        // Р РµС€РµРЅРёСЏ РЅР° РѕСЃРЅРѕРІРµ РїСЂРёРѕСЂРёС‚РµС‚Р° Рё СЃС‚СЂР°С‚РµРіРёРё
-        
-        if (this.currentPriority === 'survive') {
-            this.decideSurvival(bot, entityManager, lootManager);
-        } else if (this.currentPriority === 'hunt') {
-            this.decideHunt(bot, entityManager);
-        } else if (this.currentPriority === 'loot') {
-            this.decideLoot(bot, lootManager, entityManager);
-        } else if (this.currentPriority === 'regroup') {
-            this.decideRegroup(bot, entityManager, lootManager);
+        const context = this.buildUtilityContext(bot, entityManager, lootManager, threatLevel);
+        const decision = this.utilityAI.chooseBestAction(context);
+        this.lastUtilityDecision = decision;
+        this.currentPriority = decision.action;
+
+        switch (decision.action) {
+            case 'run_to_safe_zone':
+                this.decideRunToSafeZone(bot);
+                break;
+            case 'heal':
+                this.decideHeal(bot, entityManager, threatLevel);
+                break;
+            case 'attack':
+                this.decideHunt(bot, entityManager);
+                break;
+            case 'loot':
+            default:
+                this.decideLoot(bot, lootManager, entityManager);
+                break;
         }
+    }
+
+    buildUtilityContext(bot, entityManager, lootManager, threatLevel) {
+        const visibleEnemies = Object.values(this.memory.lastSeenEnemies || {})
+            .filter(enemy => enemy && enemy.distance < 60);
+        const nearbyEnemies = visibleEnemies.filter(enemy => enemy.distance < 32);
+        const nearbyLoot = (lootManager?.getChests?.() || [])
+            .filter(chest => chest && !chest.userData?.isOpen)
+            .map(chest => ({ chest, distance: bot.position.distanceTo(chest.position) }))
+            .filter(entry => entry.distance < 42);
+
+        const closestEnemyDistance = visibleEnemies.length
+            ? Math.min(...visibleEnemies.map(enemy => enemy.distance))
+            : Infinity;
+        const closestLootDistance = nearbyLoot.length
+            ? Math.min(...nearbyLoot.map(entry => entry.distance))
+            : Infinity;
+        const zoneDistance = bot.zoneRef?.getDistanceFromZone?.(bot.position) || 0;
+
+        return {
+            healthRatio: bot.health / Math.max(1, bot.maxHealth || 100),
+            zoneDistance,
+            zonePressure: this.getZonePressure(bot),
+            outsideZone: zoneDistance > 0.01,
+            nearbyEnemiesCount: nearbyEnemies.length,
+            closestEnemyDistance,
+            closestEnemyDistanceNorm: Math.min(1, closestEnemyDistance / 35),
+            nearbyLootCount: nearbyLoot.length,
+            closestLootDistance,
+            closestLootDistanceNorm: Math.min(1, closestLootDistance / 42),
+            hasWeapon: !!(bot.currentWeapon && bot.currentWeapon.type !== 'fists'),
+            lowResources: this.hasLowCombatResources(bot) ? 1 : 0,
+            threatLevel
+        };
+    }
+
+    decideRunToSafeZone(bot) {
+        bot.state = 'retreat';
+        bot.target = null;
+        bot.patrolTarget = this.getInwardTarget(bot, 34);
+        this.stateTimer = 3.5;
+    }
+
+    decideHeal(bot, entityManager, threatLevel) {
+        const nearestEnemy = this.findBestTarget(bot, entityManager);
+        if (nearestEnemy && (threatLevel === 'high' || threatLevel === 'critical')) {
+            bot.state = 'flee';
+            bot.target = nearestEnemy;
+            bot.patrolTarget = this.getInwardTarget(bot, 28);
+            this.stateTimer = 4.5;
+            return;
+        }
+
+        bot.state = 'cover';
+        bot.target = null;
+        bot.patrolTarget = this.getInwardTarget(bot, 20);
+        this.stateTimer = 3.2;
     }
 
     decideSurvival(bot, entityManager, lootManager) {
