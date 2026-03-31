@@ -549,7 +549,7 @@
         ammoInfo.id = 'ammoInfo';
         ammoInfo.style.cssText = `
             position: absolute;
-            bottom: ${isMobile ? `calc(6vh + ${px(150)}px)` : `${px(90)}px`};
+            bottom: ${isMobile ? `calc(6vh + ${px(238)}px)` : `${px(90)}px`};
             right: ${isMobile ? 'max(16px, 4vw)' : `${px(16)}px`};
             background: rgba(14, 26, 36, 0.88);
             padding: ${px(8)}px ${px(14)}px;
@@ -603,6 +603,9 @@
             max-width: min(${px(340)}px, 86vw);
             max-height: ${isMobile ? '55vh' : '60vh'};
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            touch-action: pan-y;
             z-index: 1500;
             box-shadow: 0 18px 40px rgba(0,0,0,0.42);
         `;
@@ -635,13 +638,6 @@
                 document.dispatchEvent(new CustomEvent('selectPerk', { detail: perk }));
                 this.togglePerkPanel(false);
             });
-            btn.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const perk = e.currentTarget.getAttribute('data-perk');
-                document.dispatchEvent(new CustomEvent('selectPerk', { detail: perk }));
-                this.togglePerkPanel(false);
-            }, { passive: false });
         });
         hud.appendChild(perkPanel);
 
@@ -1000,7 +996,6 @@
                 else if (item.type === 'shotgun') icon.textContent = 'SG';
                 else if (item.type === 'flamethrower') icon.textContent = 'FIRE';
                 else if (item.type === 'axe') icon.textContent = 'AXE';
-                else if (item.type === 'spear') icon.textContent = 'SPR';
                 else if (item.type === 'pistol') icon.textContent = 'PST';
                 else if (item.type === 'rifle') icon.textContent = 'RIF';
 
@@ -1171,9 +1166,15 @@
         if (!panel) return;
         if (typeof force === 'boolean') {
             panel.style.display = force ? 'block' : 'none';
+            if (force) {
+                this.setPerkMenuSelection(this.getPerkMenuSelection());
+            }
             return;
         }
         panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+        if (panel.style.display === 'block') {
+            this.setPerkMenuSelection(this.getPerkMenuSelection());
+        }
     }
 
     setPerkMenuSelection(index) {
@@ -1189,6 +1190,17 @@
             }
         });
         this.perkMenuIndex = safeIndex;
+        const panel = document.getElementById('perkPanel');
+        const selected = this.perkButtons[safeIndex];
+        if (panel && selected) {
+            const itemTop = selected.offsetTop;
+            const itemBottom = itemTop + selected.offsetHeight;
+            if (itemTop < panel.scrollTop) {
+                panel.scrollTop = itemTop - 6;
+            } else if (itemBottom > panel.scrollTop + panel.clientHeight) {
+                panel.scrollTop = itemBottom - panel.clientHeight + 6;
+            }
+        }
     }
 
     getPerkMenuSelection() {

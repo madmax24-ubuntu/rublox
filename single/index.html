@@ -833,7 +833,16 @@
     <script src="https://yandex.ru/games/sdk/v2"></script>
     <script>
         (() => {
-            const prevent = (e) => { if (e.cancelable) e.preventDefault(); };
+            const isScrollableUiTarget = (target) => {
+                if (!(target instanceof Element)) return false;
+                const scrollBox = target.closest('#perkPanel, #pausePanel, #settingsPanel, #keybindPanel, #scoreboard');
+                if (!scrollBox) return false;
+                return scrollBox.scrollHeight > scrollBox.clientHeight + 2;
+            };
+            const prevent = (e) => {
+                if (isScrollableUiTarget(e.target)) return;
+                if (e.cancelable) e.preventDefault();
+            };
             document.addEventListener('contextmenu', prevent, { capture: true });
             document.addEventListener('selectstart', prevent, { capture: true });
             document.addEventListener('dragstart', prevent, { capture: true });

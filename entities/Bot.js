@@ -59,6 +59,9 @@ export class Bot {
         this.lastFlashTime = 0;
         this.preferTrainCombat = false;
         this.ignoreTrainAvoidance = false;
+        this.healthRegenDelay = 7;
+        this.healthRegenDuration = 7;
+        this.lastDamageAt = -Infinity;
 
         this.variants = [
             {
@@ -409,6 +412,7 @@ export class Bot {
         this.zoneRef = zone || this.zoneRef;
         this.audioSynthRef = audioSynth;
         this.updateBurning(delta);
+        this.updateHealthRegen(delta);
 
         if (this.slowTimer > 0) {
             this.slowTimer = Math.max(0, this.slowTimer - delta);
@@ -622,6 +626,9 @@ export class Bot {
         if (this.isInvulnerable) return false;
 
         const finalDamage = isHeadshot ? damage * 2 : damage;
+        if (finalDamage > 0) {
+            this.lastDamageAt = performance.now() / 1000;
+        }
         if (attacker?.stats) {
             attacker.stats.damage += finalDamage;
         }
@@ -748,6 +755,14 @@ export class Bot {
 
     setInvulnerable(value) {
         this.isInvulnerable = value;
+    }
+
+    updateHealthRegen(delta) {
+        if (!this.isAlive || this.health >= this.maxHealth) return;
+        const now = performance.now() / 1000;
+        if (now - this.lastDamageAt < this.healthRegenDelay) return;
+        const regenPerSecond = this.maxHealth / this.healthRegenDuration;
+        this.health = Math.min(this.maxHealth, this.health + regenPerSecond * delta);
     }
 
     moveTowards(target, speed) {

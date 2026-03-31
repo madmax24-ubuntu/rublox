@@ -91,6 +91,9 @@ export class Player {
         this.bowChargeMax = 1.2;
         this.bowMinCharge = 0.14;
         this.wasFireHeld = false;
+        this.healthRegenDelay = 7;
+        this.healthRegenDuration = 7;
+        this.lastDamageAt = -Infinity;
 
         const starterKnife = new Weapon('knife', this.scene);
         this.inventory.addItem(starterKnife);
@@ -323,6 +326,7 @@ export class Player {
         if (!this.isAlive) return;
         this.audioSynthRef = audioSynth;
         this.updateBurning(delta);
+        this.updateHealthRegen(delta);
         if (this.trailCooldown > 0) {
             this.trailCooldown = Math.max(0, this.trailCooldown - delta);
         }
@@ -816,6 +820,9 @@ export class Player {
         if (this.isInvulnerable) return false;
 
         const finalDamage = (isHeadshot ? damage * 2 : damage) * (1 - this.damageReduction) * this.damageTakenMultiplier;
+        if (finalDamage > 0) {
+            this.lastDamageAt = performance.now() / 1000;
+        }
         if (attacker?.stats) {
             attacker.stats.damage += finalDamage;
         }
@@ -894,20 +901,21 @@ export class Player {
         this.physics.speed = this.baseSpeed;
 
         if (perk === 'quickHands') {
-            this.attackSpeedMultiplier = 0.75;
+            this.attackSpeedMultiplier = 0.6;
         } else if (perk === 'silentStep') {
-            this.footstepVolume = Math.min(0.35, baseFootstep);
+            this.footstepVolume = Math.min(0.2, baseFootstep);
             this.isSilent = true;
         } else if (perk === 'moreAmmo') {
-            this.perkAmmoBonus = 1.35;
+            this.perkAmmoBonus = 1.8;
         } else if (perk === 'fastRun') {
-            this.physics.speed = this.baseSpeed * 1.35;
+            this.physics.speed = this.baseSpeed * 1.55;
         } else if (perk === 'thickSkin') {
-            this.damageReduction = 0.2;
+            this.damageReduction = 0.35;
         } else if (perk === 'steadyAim') {
-            this.recoilScale = 0.6;
+            this.recoilScale = 0.35;
         } else if (perk === 'autoFire') {
             this.autoFire = true;
+            this.recoilScale = 0.8;
         }
 
         if (this.fists) {
@@ -930,6 +938,14 @@ export class Player {
                 weapon.durability = weapon.maxDurability;
             }
         }
+    }
+
+    updateHealthRegen(delta) {
+        if (!this.isAlive || this.health >= this.maxHealth) return;
+        const now = performance.now() / 1000;
+        if (now - this.lastDamageAt < this.healthRegenDelay) return;
+        const regenPerSecond = this.maxHealth / this.healthRegenDuration;
+        this.health = Math.min(this.maxHealth, this.health + regenPerSecond * delta);
     }
 
     setInvulnerable(value) {

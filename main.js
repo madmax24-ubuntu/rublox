@@ -848,6 +848,8 @@ class Game {
         }
 
         if (this.gameState === 'playing') {
+            this.player.setInvulnerable(false);
+            this.bots.forEach(bot => bot.setInvulnerable(false));
             this.updateZoneCycle(delta);
             this.chestRespawnTimer = Math.max(0, this.chestRespawnTimer - delta);
             if (this.chestRespawnTimer <= 0) {
@@ -985,22 +987,23 @@ class Game {
             const botIndex = (this.botUpdateIndex + i) % this.bots.length;
             if (this.bots[botIndex].isAlive) {
                 this.bots[botIndex].update(delta, this.botBrains[botIndex], this.entityManager, this.lootManager, this.audioSynth, this.physics, this.zone);
-
-                if (this.gameState === 'playing' && !this.zone.isInsideZone(this.bots[botIndex].position)) {
-                    const damage = this.zone.getDamage(delta, this.bots[botIndex].position);
-                    this.bots[botIndex].takeDamage(damage, false, null, 0, 'zone');
-                    const safePoint = this.getSafeZoneTarget(this.bots[botIndex].position);
-                    this.bots[botIndex].target = null;
-                    this.bots[botIndex].assistTarget = null;
-                    this.bots[botIndex].moveTowards(safePoint, this.bots[botIndex].physics.speed * 1.35);
-                    const outside = this.zone.getDistanceFromZone(this.bots[botIndex].position);
-                    if (outside > 10) {
-                        this.bots[botIndex].position.lerp(safePoint, 0.18);
-                    }
-                }
             }
         }
         this.botUpdateIndex = (this.botUpdateIndex + botsPerFrame) % this.bots.length;
+        if (this.gameState === 'playing') {
+            for (const bot of this.bots) {
+                if (!bot.isAlive || this.zone.isInsideZone(bot.position)) continue;
+                const damage = this.zone.getDamage(delta, bot.position);
+                bot.takeDamage(damage, false, null, 0, 'zone');
+                const safePoint = this.getSafeZoneTarget(bot.position);
+                bot.target = null;
+                bot.assistTarget = null;
+                const outside = this.zone.getDistanceFromZone(bot.position);
+                if (outside > 10) {
+                    bot.position.lerp(safePoint, 0.18);
+                }
+            }
+        }
 
         for (const zombie of this.zombies) {
             if (zombie.isAlive) {

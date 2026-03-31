@@ -258,7 +258,7 @@ export class LootManager {
         }
 
         if (rand < 0.64) {
-            return { type: 'weapon', weaponType: 'spear' };
+            return { type: 'ammo', amount: 12 + Math.floor(Math.random() * 8) };
         }
 
         if (rand < 0.74) {
