@@ -1,5 +1,14 @@
 ﻿export class HUD {
     constructor() {
+        this.perkOptions = [
+            { value: 'quickHands', label: 'Быстрые руки', desc: 'Сильно ускоряет атаки и использование оружия ближнего боя.' },
+            { value: 'silentStep', label: 'Тихий шаг', desc: 'Почти убирает шум шагов и делает тебя заметно тише.' },
+            { value: 'moreAmmo', label: 'Больше патронов', desc: 'Сильно увеличивает запас патронов и прочность оружия.' },
+            { value: 'fastRun', label: 'Быстрый бег', desc: 'Заметно повышает скорость перемещения весь матч.' },
+            { value: 'thickSkin', label: 'Плотная кожа', desc: 'Снижает входящий урон и дает больше шансов выжить.' },
+            { value: 'steadyAim', label: 'Стабильный прицел', desc: 'Сильно режет отдачу и упрощает стрельбу.' },
+            { value: 'autoFire', label: 'AUTO FIRE', desc: 'Автоматически стреляет по цели, когда прицел наведен на врага.' }
+        ];
         this.createHUD();
     }
 
@@ -644,62 +653,91 @@
         perkPanel.addEventListener('wheel', (e) => {
             e.stopPropagation();
         }, { passive: true });
-                perkPanel.innerHTML = `
-            <div style="font-size:${px(18)}px;font-weight:900;margin-bottom:${px(6)}px;">Выбор перка</div>
-            <div style="font-size:${px(11)}px;opacity:0.76;margin-bottom:${px(10)}px;">Перк выбирается один раз перед матчем и действует весь раунд.</div>
-            <button class="perk-btn" data-perk="quickHands">Быстрые руки</button>
-            <button class="perk-btn" data-perk="silentStep">Тихий шаг</button>
-            <button class="perk-btn" data-perk="moreAmmo">Больше патронов</button>
-            <button class="perk-btn" data-perk="fastRun">Быстрый бег</button>
-            <button class="perk-btn" data-perk="thickSkin">Плотная кожа</button>
-            <button class="perk-btn" data-perk="steadyAim">Стабильный прицел</button>
-            <button class="perk-btn" data-perk="autoFire">AUTO FIRE</button>
-        `;
-        this.perkButtons = Array.from(perkPanel.querySelectorAll('.perk-btn'));
-        this.perkButtons.forEach(btn => {
-            let touchMoved = false;
-            let touchStartX = 0;
-            let touchStartY = 0;
-            btn.style.cssText = `
-                width: 100%;
-                margin: ${px(4)}px 0;
-                padding: ${px(8)}px ${px(10)}px;
-                border-radius: ${px(8)}px;
-                border: 1px solid rgba(255, 255, 255, 0.12);
-                background: rgba(255, 255, 255, 0.08);
-                color: #e9f0f6;
-                font-weight: 700;
-                cursor: pointer;
+        if (isMobile) {
+            perkPanel.innerHTML = `
+                <div style="font-size:${px(18)}px;font-weight:900;margin-bottom:${px(6)}px;">Выбор перка</div>
+                <div style="font-size:${px(11)}px;opacity:0.76;margin-bottom:${px(10)}px;">На телефоне выбор идет кнопками. Листание страницы не требуется.</div>
+                <div id="perkMobileCard" style="
+                    background: rgba(255,255,255,0.06);
+                    border: 1px solid rgba(255,255,255,0.12);
+                    border-radius: ${px(10)}px;
+                    padding: ${px(12)}px;
+                    min-height: ${px(108)}px;
+                    display: grid;
+                    gap: ${px(8)}px;
+                    margin-bottom: ${px(10)}px;
+                ">
+                    <div id="perkMobileTitle" style="font-size:${px(16)}px;font-weight:900;"></div>
+                    <div id="perkMobileDesc" style="font-size:${px(12)}px;line-height:1.35;opacity:0.84;"></div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:${px(8)}px;margin-bottom:${px(8)}px;">
+                    <button id="perkPrev" class="perk-btn">Назад</button>
+                    <button id="perkNext" class="perk-btn">Вперёд</button>
+                </div>
+                <button id="perkSelectMobile" class="perk-btn" style="width:100%;">Выбрать перк</button>
             `;
-            btn.addEventListener('click', (e) => {
-                const perk = e.currentTarget.getAttribute('data-perk');
+            this.perkButtons = [];
+            const mobileButtons = Array.from(perkPanel.querySelectorAll('.perk-btn'));
+            mobileButtons.forEach(btn => {
+                btn.style.cssText = `
+                    width: 100%;
+                    margin: 0;
+                    padding: ${px(10)}px ${px(10)}px;
+                    border-radius: ${px(8)}px;
+                    border: 1px solid rgba(255, 255, 255, 0.12);
+                    background: rgba(255, 255, 255, 0.08);
+                    color: #e9f0f6;
+                    font-weight: 700;
+                    cursor: pointer;
+                `;
+            });
+            const bindTap = (el, fn) => {
+                if (!el) return;
+                el.addEventListener('click', fn);
+                el.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    fn();
+                }, { passive: false });
+            };
+            bindTap(document.getElementById('perkPrev'), () => {
+                this.setPerkMenuSelection((this.perkMenuIndex ?? 0) - 1);
+            });
+            bindTap(document.getElementById('perkNext'), () => {
+                this.setPerkMenuSelection((this.perkMenuIndex ?? 0) + 1);
+            });
+            bindTap(document.getElementById('perkSelectMobile'), () => {
+                const perk = this.getPerkMenuValue();
+                if (!perk) return;
                 document.dispatchEvent(new CustomEvent('selectPerk', { detail: perk }));
                 this.togglePerkPanel(false);
             });
-            btn.addEventListener('touchstart', (e) => {
-                const touch = e.changedTouches?.[0];
-                touchMoved = false;
-                touchStartX = touch?.clientX ?? 0;
-                touchStartY = touch?.clientY ?? 0;
-            }, { passive: true });
-            btn.addEventListener('touchmove', (e) => {
-                const touch = e.changedTouches?.[0];
-                if (!touch) return;
-                const dx = Math.abs(touch.clientX - touchStartX);
-                const dy = Math.abs(touch.clientY - touchStartY);
-                if (dx > 10 || dy > 10) {
-                    touchMoved = true;
-                }
-            }, { passive: true });
-            btn.addEventListener('touchend', (e) => {
-                if (touchMoved || perkPanel.dataset.touchScrollMoved === '1') return;
-                e.preventDefault();
-                e.stopPropagation();
-                const perk = e.currentTarget.getAttribute('data-perk');
-                document.dispatchEvent(new CustomEvent('selectPerk', { detail: perk }));
-                this.togglePerkPanel(false);
-            }, { passive: false });
-        });
+        } else {
+            perkPanel.innerHTML = `
+                <div style="font-size:${px(18)}px;font-weight:900;margin-bottom:${px(6)}px;">Выбор перка</div>
+                <div style="font-size:${px(11)}px;opacity:0.76;margin-bottom:${px(10)}px;">Перк выбирается один раз перед матчем и действует весь раунд.</div>
+                ${this.perkOptions.map(opt => `<button class="perk-btn" data-perk="${opt.value}">${opt.label}</button>`).join('')}
+            `;
+            this.perkButtons = Array.from(perkPanel.querySelectorAll('.perk-btn'));
+            this.perkButtons.forEach(btn => {
+                btn.style.cssText = `
+                    width: 100%;
+                    margin: ${px(4)}px 0;
+                    padding: ${px(8)}px ${px(10)}px;
+                    border-radius: ${px(8)}px;
+                    border: 1px solid rgba(255, 255, 255, 0.12);
+                    background: rgba(255, 255, 255, 0.08);
+                    color: #e9f0f6;
+                    font-weight: 700;
+                    cursor: pointer;
+                `;
+                btn.addEventListener('click', (e) => {
+                    const perk = e.currentTarget.getAttribute('data-perk');
+                    document.dispatchEvent(new CustomEvent('selectPerk', { detail: perk }));
+                    this.togglePerkPanel(false);
+                });
+            });
+        }
         hud.appendChild(perkPanel);
 
         const scoreboard = document.createElement('div');
@@ -1239,8 +1277,18 @@
     }
 
     setPerkMenuSelection(index) {
-        if (!this.perkButtons || !this.perkButtons.length) return;
-        const safeIndex = ((index % this.perkButtons.length) + this.perkButtons.length) % this.perkButtons.length;
+        const count = this.perkButtons?.length ? this.perkButtons.length : this.perkOptions.length;
+        if (!count) return;
+        const safeIndex = ((index % count) + count) % count;
+        if (!this.perkButtons || !this.perkButtons.length) {
+            this.perkMenuIndex = safeIndex;
+            const title = document.getElementById('perkMobileTitle');
+            const desc = document.getElementById('perkMobileDesc');
+            const option = this.perkOptions[safeIndex];
+            if (title) title.textContent = option?.label || '';
+            if (desc) desc.textContent = option?.desc || '';
+            return;
+        }
         this.perkButtons.forEach((btn, i) => {
             if (i === safeIndex) {
                 btn.style.background = 'rgba(255, 179, 0, 0.3)';
@@ -1269,7 +1317,10 @@
     }
 
     getPerkMenuValue() {
-        if (!this.perkButtons || !this.perkButtons.length) return null;
+        if (!this.perkButtons || !this.perkButtons.length) {
+            const idx = this.perkMenuIndex ?? 0;
+            return this.perkOptions[idx]?.value || null;
+        }
         const idx = this.perkMenuIndex ?? 0;
         return this.perkButtons[idx]?.getAttribute('data-perk') || null;
     }
