@@ -34,6 +34,7 @@ export class MapGenerator {
         this.lavaPatches = [];
         this.waterPatches = [];
         this.fogZones = [];
+        this.spawnCourtyardRadius = 54;
         this.houseVariants = [
             { width: 9.2, depth: 7.8, height: 4.4, doorWidth: 2.4, wallColor: 0xc9b08d, roofColor: 0x5f4638, style: "classic" },
             { width: 8.8, depth: 7.2, height: 4.2, doorWidth: 2.2, wallColor: 0xb7c2cc, roofColor: 0x455a64, style: "concrete" },
@@ -184,7 +185,7 @@ export class MapGenerator {
 
     clearSpawnZone() {
         if (!this.playerSpawn) return;
-        const radius = 6;
+        const radius = 14;
         for (let y = -radius; y <= radius; y++) {
             for (let x = -radius; x <= radius; x++) {
                 const gx = this.playerSpawn.x + x;
@@ -196,6 +197,16 @@ export class MapGenerator {
                 delete tile.prop;
             }
         }
+    }
+
+    getSpawnWorld() {
+        if (!this.playerSpawn) return { x: 0, z: 0 };
+        return this.toWorld(this.playerSpawn.x, this.playerSpawn.y);
+    }
+
+    isInSpawnCourtyardWorld(x, z, extra = 0) {
+        const spawnWorld = this.getSpawnWorld();
+        return Math.hypot(x - spawnWorld.x, z - spawnWorld.z) <= this.spawnCourtyardRadius + extra;
     }
 
     initRailLayout() {
@@ -265,6 +276,7 @@ export class MapGenerator {
         const cacti = [];
         const iceSpikes = [];
         const boulders = [];
+        const spawnWorld = this.getSpawnWorld();
 
         for (let y = 0; y < this.gridHeight; y++) {
             for (let x = 0; x < this.gridWidth; x++) {
@@ -281,6 +293,9 @@ export class MapGenerator {
                     if (!floorsByBiome.has(key)) floorsByBiome.set(key, []);
                     floorsByBiome.get(key).push({ x: world.x, z: world.z, gx: x, gy: y, variant, biome });
                     this.floorTiles.push({ x: world.x, z: world.z, gx: x, gy: y, biome, y: tileHeight });
+                    if (Math.hypot(world.x - spawnWorld.x, world.z - spawnWorld.z) <= this.spawnCourtyardRadius) {
+                        continue;
+                    }
                     if (this.isNearRailCorridor(world.x, world.z, 2.8)) {
                         continue;
                     }
@@ -515,6 +530,85 @@ export class MapGenerator {
         });
         inst.userData.mapGenerated = true;
         this.scene.add(inst);
+        this.buildCornucopia();
+    }
+
+    buildCornucopia() {
+        if (!this.playerSpawn) return;
+        const spawnWorld = this.getSpawnWorld();
+        const baseY = this.getHeightAt(spawnWorld.x, spawnWorld.z);
+        const group = new THREE.Group();
+        group.userData.mapGenerated = true;
+
+        const goldMat = new THREE.MeshStandardMaterial({
+            color: 0xc6922d,
+            emissive: 0x5d3c0d,
+            emissiveIntensity: 0.22,
+            metalness: 0.45,
+            roughness: 0.58,
+            flatShading: true
+        });
+        const bronzeMat = new THREE.MeshStandardMaterial({
+            color: 0x8f5d21,
+            roughness: 0.76,
+            flatShading: true
+        });
+        const stoneMat = new THREE.MeshStandardMaterial({
+            color: 0xa9a094,
+            roughness: 0.9,
+            flatShading: true
+        });
+
+        const podium = new THREE.Mesh(new THREE.CylinderGeometry(5.6, 6.3, 1.15, 10), stoneMat);
+        podium.position.set(spawnWorld.x, baseY + 0.58, spawnWorld.z);
+        podium.userData.mapGenerated = true;
+        group.add(podium);
+        this.addColliderBox(podium.position.clone(), 11.2, 1.15, 11.2, true);
+
+        const hornSegments = [
+            { x: -3.4, y: 1.9, r1: 1.45, r2: 1.95, len: 2.3, rz: -0.38 },
+            { x: -1.8, y: 2.45, r1: 1.18, r2: 1.58, len: 2.15, rz: -0.2 },
+            { x: -0.15, y: 3.0, r1: 0.94, r2: 1.26, len: 2.0, rz: 0.03 },
+            { x: 1.45, y: 3.72, r1: 0.72, r2: 1.02, len: 1.75, rz: 0.24 },
+            { x: 2.65, y: 4.45, r1: 0.48, r2: 0.72, len: 1.55, rz: 0.44 }
+        ];
+        for (const seg of hornSegments) {
+            const piece = new THREE.Mesh(
+                new THREE.CylinderGeometry(seg.r1, seg.r2, seg.len, 9, 1, true),
+                goldMat
+            );
+            piece.rotation.z = Math.PI / 2 + seg.rz;
+            piece.position.set(spawnWorld.x + seg.x, baseY + seg.y, spawnWorld.z);
+            piece.userData.mapGenerated = true;
+            group.add(piece);
+        }
+
+        const rim = new THREE.Mesh(new THREE.TorusGeometry(1.95, 0.22, 8, 20), goldMat);
+        rim.rotation.y = Math.PI / 2;
+        rim.position.set(spawnWorld.x - 4.55, baseY + 1.85, spawnWorld.z);
+        rim.userData.mapGenerated = true;
+        group.add(rim);
+
+        const tail = new THREE.Mesh(new THREE.ConeGeometry(0.48, 1.6, 8), bronzeMat);
+        tail.rotation.z = -Math.PI / 2 + 0.56;
+        tail.position.set(spawnWorld.x + 3.85, baseY + 4.98, spawnWorld.z);
+        tail.userData.mapGenerated = true;
+        group.add(tail);
+
+        const cacheOffsets = [
+            [-2.0, 0.58, -2.2], [2.05, 0.58, -2.15], [-2.45, 0.58, 2.05],
+            [2.35, 0.58, 2.15], [0.0, 0.58, -3.2], [0.35, 0.58, 3.1]
+        ];
+        for (const [ox, oy, oz] of cacheOffsets) {
+            const crate = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.82, 1.15), bronzeMat);
+            crate.position.set(spawnWorld.x + ox, baseY + oy, spawnWorld.z + oz);
+            crate.rotation.y = ((ox + oz) * 0.25) % Math.PI;
+            crate.userData.mapGenerated = true;
+            group.add(crate);
+            this.addColliderBox(crate.position.clone(), 1.15, 0.82, 1.15, false);
+        }
+
+        this.scene.add(group);
     }
 
     buildChests() {
@@ -603,11 +697,11 @@ export class MapGenerator {
             };
         })();
 
-        const spawnWorld = this.playerSpawn ? this.toWorld(this.playerSpawn.x, this.playerSpawn.y) : { x: 0, z: 0 };
+        const spawnWorld = this.getSpawnWorld();
         const candidates = this.floorTiles.filter(tile => {
             const dx = tile.x - spawnWorld.x;
             const dz = tile.z - spawnWorld.z;
-            return Math.hypot(dx, dz) > 34 && !this.isNearRailCorridor(tile.x, tile.z, 10);
+            return Math.hypot(dx, dz) > this.spawnCourtyardRadius + 18 && !this.isNearRailCorridor(tile.x, tile.z, 10);
         });
         if (!candidates.length) return;
 
@@ -874,11 +968,11 @@ export class MapGenerator {
             };
         })();
 
-        const spawnWorld = this.playerSpawn ? this.toWorld(this.playerSpawn.x, this.playerSpawn.y) : { x: 0, z: 0 };
+        const spawnWorld = this.getSpawnWorld();
         const candidates = this.floorTiles.filter(tile => {
             const dx = tile.x - spawnWorld.x;
             const dz = tile.z - spawnWorld.z;
-            return Math.hypot(dx, dz) > 34;
+            return Math.hypot(dx, dz) > this.spawnCourtyardRadius + 20;
         });
         if (!candidates.length) return;
         const nearSpawnCandidates = candidates
@@ -886,7 +980,7 @@ export class MapGenerator {
                 const dx = tile.x - spawnWorld.x;
                 const dz = tile.z - spawnWorld.z;
                 const d = Math.hypot(dx, dz);
-                return d >= 56 && d <= 150;
+                return d >= this.spawnCourtyardRadius + 24 && d <= 170;
             })
             .sort((a, b) => {
                 const da = Math.hypot(a.x - spawnWorld.x, a.z - spawnWorld.z);
@@ -994,6 +1088,7 @@ export class MapGenerator {
             if (this.isNearRailCorridor(tile.x, tile.z, 16)) continue;
             if (this.houseSpots.some(h => Math.hypot(h.x - tile.x, h.z - tile.z) < 12)) continue;
             if (this.hangarSpots.some(h => Math.hypot(h.x - tile.x, h.z - tile.z) < 18)) continue;
+            if (this.isInSpawnCourtyardWorld(tile.x, tile.z, 8)) continue;
             if (!canPlace(tile.x, tile.z, 18)) continue;
 
             const style = tile.biome || this.surfaceTheme;
