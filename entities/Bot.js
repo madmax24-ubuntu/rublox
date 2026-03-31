@@ -861,7 +861,7 @@ export class Bot {
         const now = performance.now() / 1000;
         if (now < this.nextAttackTime) return null;
 
-        if ((weapon.type === 'knife' || weapon.type === 'axe' || weapon.type === 'spear') && weapon.durability !== null && weapon.durability <= 0) {
+        if ((weapon.type === 'knife' || weapon.type === 'axe') && weapon.durability !== null && weapon.durability <= 0) {
             this.currentWeapon = null;
             weapon = this.fists;
         }

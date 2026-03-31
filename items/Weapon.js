@@ -4,7 +4,6 @@ const WEAPON_BALANCE = {
     fists: { damage: 8, range: 2.4, cooldown: 0.38, ammo: null, durability: null, projectileSpeed: 0 },
     knife: { damage: 20, range: 3.1, cooldown: 0.45, ammo: null, durability: 80, projectileSpeed: 0 },
     axe: { damage: 30, range: 3.0, cooldown: 0.82, ammo: null, durability: 95, projectileSpeed: 0 },
-    spear: { damage: 24, range: 4.2, cooldown: 0.62, ammo: null, durability: 90, projectileSpeed: 0 },
     bow: { damage: 24, range: 82, cooldown: 1.22, ammo: 48, durability: null, projectileSpeed: 64 },
     laser: { damage: 28, range: 94, cooldown: 0.34, ammo: 30, durability: null, projectileSpeed: 62 },
     shotgun: { damage: 11, range: 17, cooldown: 0.95, ammo: 36, durability: null, projectileSpeed: 52, pellets: 8 },
@@ -400,16 +399,6 @@ export class Weapon {
                 group.add(handle, head, blade);
                 break;
             }
-            case 'spear': {
-                const woodMat = new THREE.MeshStandardMaterial({ color: 0x8d6e63, roughness: 0.7, flatShading: true });
-                const metalMat = new THREE.MeshStandardMaterial({ color: 0xcfd8dc, metalness: 0.7, roughness: 0.25, flatShading: true });
-                const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.2, 0.06), woodMat);
-                shaft.position.y = 0.1;
-                const tip = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.25, 6), metalMat);
-                tip.position.y = 0.8;
-                group.add(shaft, tip);
-                break;
-            }
         }
 
         this.mesh = group;
@@ -470,8 +459,8 @@ export class Weapon {
         const isHeadshot = Math.abs(owner.position.y - hitHeight) < 0.3;
 
         const finalDamage = isHeadshot ? this.damage * 2 : this.damage;
-        const knockback = this.type === 'knife' ? 5 : this.type === 'axe' ? 6 : this.type === 'spear' ? 5.5 : 4;
-        if ((this.type === 'knife' || this.type === 'axe' || this.type === 'spear') && this.durability !== null) {
+        const knockback = this.type === 'knife' ? 5 : this.type === 'axe' ? 6 : 4;
+        if ((this.type === 'knife' || this.type === 'axe') && this.durability !== null) {
             this.durability = Math.max(0, this.durability - 1);
         }
         return { hit: true, damage: finalDamage, isHeadshot, knockback };
@@ -696,7 +685,7 @@ export class Weapon {
                 || this.type === 'rifle'
             ) {
                 yawOffset = Math.PI / 2;
-            } else if (this.type === 'bow' || this.type === 'knife' || this.type === 'axe' || this.type === 'spear') {
+            } else if (this.type === 'bow' || this.type === 'knife' || this.type === 'axe') {
                 pitchOffset = -Math.PI / 2;
             }
             this.mesh.rotation.set(rotation.x + pitchOffset, rotation.y + yawOffset, rotation.z + rollOffset);

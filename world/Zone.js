@@ -7,7 +7,7 @@ export class Zone {
         this.currentRadius = mapSize / 2;
         this.targetRadius = mapSize / 2;
         this.shrinkSpeed = 1.2;
-        this.damagePerSecond = 14;
+        this.damagePerSecond = 22;
         this.zoneMesh = null;
         this.ringMesh = null;
         this.createZone();
@@ -92,7 +92,7 @@ export class Zone {
         if (!position) return this.damagePerSecond * delta;
         const outside = this.getDistanceFromZone(position);
         if (outside <= 0) return 0;
-        const scale = 1 + Math.min(5, outside / 20);
+        const scale = 1 + Math.min(7, outside / 12);
         return this.damagePerSecond * scale * delta;
     }
 

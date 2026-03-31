@@ -107,7 +107,6 @@ export class Player {
         if (type === 'shotgun') return 'Дробовик';
         if (type === 'flamethrower') return 'Огнемёт';
         if (type === 'axe') return 'Топор';
-        if (type === 'spear') return 'Копьё';
         if (type === 'pistol') return 'Пистолет';
         if (type === 'rifle') return 'Винтовка';
         return type || 'Предмет';
@@ -610,7 +609,7 @@ export class Player {
                     this.punchTime = this.punchDuration;
                 }
             }
-            if (activeWeapon.type === 'knife' || activeWeapon.type === 'axe' || activeWeapon.type === 'spear') {
+            if (activeWeapon.type === 'knife' || activeWeapon.type === 'axe') {
                 if (this.weaponSwingTime <= 0) {
                     this.weaponSwingTime = this.weaponSwingDuration;
                 }
@@ -709,10 +708,10 @@ export class Player {
                 this.viewWeapon.rotation.copy(this.viewWeaponBase.rotation);
             }
 
-            if ((this.viewWeaponType === 'knife' || this.viewWeaponType === 'axe' || this.viewWeaponType === 'spear') && this.weaponSwingTime > 0) {
+            if ((this.viewWeaponType === 'knife' || this.viewWeaponType === 'axe') && this.weaponSwingTime > 0) {
                 const t = 1 - this.weaponSwingTime / this.weaponSwingDuration;
                 const swing = Math.sin(t * Math.PI);
-                const swingMul = this.viewWeaponType === 'axe' ? 0.75 : this.viewWeaponType === 'spear' ? 0.45 : 0.6;
+                const swingMul = this.viewWeaponType === 'axe' ? 0.75 : 0.6;
                 this.viewWeapon.rotation.z -= swing * swingMul;
                 this.viewWeapon.position.z -= swing * 0.08;
             }
@@ -901,21 +900,21 @@ export class Player {
         this.physics.speed = this.baseSpeed;
 
         if (perk === 'quickHands') {
-            this.attackSpeedMultiplier = 0.6;
+            this.attackSpeedMultiplier = 0.5;
         } else if (perk === 'silentStep') {
-            this.footstepVolume = Math.min(0.2, baseFootstep);
+            this.footstepVolume = Math.min(0.12, baseFootstep);
             this.isSilent = true;
         } else if (perk === 'moreAmmo') {
-            this.perkAmmoBonus = 1.8;
+            this.perkAmmoBonus = 2.1;
         } else if (perk === 'fastRun') {
-            this.physics.speed = this.baseSpeed * 1.55;
+            this.physics.speed = this.baseSpeed * 1.7;
         } else if (perk === 'thickSkin') {
-            this.damageReduction = 0.35;
+            this.damageReduction = 0.42;
         } else if (perk === 'steadyAim') {
-            this.recoilScale = 0.35;
+            this.recoilScale = 0.2;
         } else if (perk === 'autoFire') {
             this.autoFire = true;
-            this.recoilScale = 0.8;
+            this.recoilScale = 0.55;
         }
 
         if (this.fists) {
@@ -1067,10 +1066,6 @@ export class Player {
             base.position.set(0.24, -0.3, -0.74);
             base.rotation.set(-Math.PI / 2 + 0.08, Math.PI, 0.12);
             base.scale = 1.0;
-        } else if (type === 'spear') {
-            base.position.set(0.2, -0.28, -0.98);
-            base.rotation.set(-Math.PI / 2, Math.PI, 0.02);
-            base.scale = 1.0;
         } else if (type === 'shotgun') {
             base.position.set(0.26, -0.32, -0.75);
             base.rotation.set(-0.06, Math.PI, Math.PI / 14);
@@ -1151,7 +1146,7 @@ export class Player {
         let weapon = this.currentWeapon || this.fists;
         if (!weapon || !target || !target.isAlive) return null;
 
-        if ((weapon.type === 'knife' || weapon.type === 'axe' || weapon.type === 'spear') && weapon.durability !== null && weapon.durability <= 0) {
+        if ((weapon.type === 'knife' || weapon.type === 'axe') && weapon.durability !== null && weapon.durability <= 0) {
             this.currentWeapon = null;
             weapon = this.fists;
         }

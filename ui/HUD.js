@@ -549,7 +549,7 @@
         ammoInfo.id = 'ammoInfo';
         ammoInfo.style.cssText = `
             position: absolute;
-            ${isMobile ? `top: ${px(88)}px;` : ''}
+            ${isMobile ? `top: ${px(126)}px;` : ''}
             ${isMobile ? 'bottom: auto;' : `bottom: ${px(90)}px;`}
             right: ${isMobile ? 'max(16px, 4vw)' : `${px(16)}px`};
             background: rgba(14, 26, 36, 0.88);
@@ -611,6 +611,12 @@
             z-index: 1500;
             box-shadow: 0 18px 40px rgba(0,0,0,0.42);
         `;
+        perkPanel.addEventListener('touchmove', (e) => {
+            e.stopPropagation();
+        }, { passive: true });
+        perkPanel.addEventListener('wheel', (e) => {
+            e.stopPropagation();
+        }, { passive: true });
                 perkPanel.innerHTML = `
             <div style="font-size:${px(18)}px;font-weight:900;margin-bottom:${px(6)}px;">Выбор перка</div>
             <div style="font-size:${px(11)}px;opacity:0.76;margin-bottom:${px(10)}px;">Перк выбирается один раз перед матчем и действует весь раунд.</div>
@@ -624,6 +630,9 @@
         `;
         this.perkButtons = Array.from(perkPanel.querySelectorAll('.perk-btn'));
         this.perkButtons.forEach(btn => {
+            let touchMoved = false;
+            let touchStartX = 0;
+            let touchStartY = 0;
             btn.style.cssText = `
                 width: 100%;
                 margin: ${px(4)}px 0;
@@ -640,7 +649,23 @@
                 document.dispatchEvent(new CustomEvent('selectPerk', { detail: perk }));
                 this.togglePerkPanel(false);
             });
+            btn.addEventListener('touchstart', (e) => {
+                const touch = e.changedTouches?.[0];
+                touchMoved = false;
+                touchStartX = touch?.clientX ?? 0;
+                touchStartY = touch?.clientY ?? 0;
+            }, { passive: true });
+            btn.addEventListener('touchmove', (e) => {
+                const touch = e.changedTouches?.[0];
+                if (!touch) return;
+                const dx = Math.abs(touch.clientX - touchStartX);
+                const dy = Math.abs(touch.clientY - touchStartY);
+                if (dx > 10 || dy > 10) {
+                    touchMoved = true;
+                }
+            }, { passive: true });
             btn.addEventListener('touchend', (e) => {
+                if (touchMoved) return;
                 e.preventDefault();
                 e.stopPropagation();
                 const perk = e.currentTarget.getAttribute('data-perk');
