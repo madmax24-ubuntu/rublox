@@ -671,10 +671,10 @@
                     <div id="perkMobileDesc" style="font-size:${px(12)}px;line-height:1.35;opacity:0.84;"></div>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:${px(8)}px;margin-bottom:${px(8)}px;">
-                    <button id="perkPrev" class="perk-btn">Назад</button>
-                    <button id="perkNext" class="perk-btn">Вперёд</button>
+                    <div id="perkPrev" class="perk-btn">Назад</div>
+                    <div id="perkNext" class="perk-btn">Вперёд</div>
                 </div>
-                <button id="perkSelectMobile" class="perk-btn" style="width:100%;">Выбрать перк</button>
+                <div id="perkSelectMobile" class="perk-btn" style="width:100%;">Выбрать перк</div>
             `;
             this.perkButtons = [];
             const mobileButtons = Array.from(perkPanel.querySelectorAll('.perk-btn'));
@@ -689,16 +689,25 @@
                     color: #e9f0f6;
                     font-weight: 700;
                     cursor: pointer;
+                    pointer-events: auto;
+                    user-select: none;
+                    -webkit-user-select: none;
+                    touch-action: manipulation;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
                 `;
             });
             const bindTap = (el, fn) => {
                 if (!el) return;
-                el.addEventListener('click', fn);
-                el.addEventListener('touchend', (e) => {
+                const run = (e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     fn();
-                }, { passive: false });
+                };
+                el.addEventListener('pointerdown', run);
+                el.addEventListener('touchstart', run, { passive: false });
+                el.addEventListener('mousedown', run);
             };
             bindTap(document.getElementById('perkPrev'), () => {
                 this.setPerkMenuSelection((this.perkMenuIndex ?? 0) - 1);
