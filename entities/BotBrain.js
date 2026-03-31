@@ -208,70 +208,6 @@ export class BotBrain {
         return 'low';
     }
 
-    // ===== РћР‘РќРћР’Р›Р•РќРР• РџР РРћР РРўР•РўРђ =====
-    updatePriority(bot, entityManager, lootManager, threatLevel) {
-        const healthPercent = bot.health / bot.maxHealth;
-        const hasWeapon = !!bot.currentWeapon;
-        const aliveCount = entityManager.getAliveCount();
-        
-        // РљСЂРёС‚РёС‡РµСЃРєРѕРµ Р·РґРѕСЂРѕРІСЊРµ = РІС‹Р¶РёРІР°РЅРёРµ
-        if (healthPercent < 0.3 || threatLevel === 'critical') {
-            this.currentPriority = 'survive';
-        }
-        // РњР°Р»Рѕ РёРіСЂРѕРєРѕРІ РѕСЃС‚Р°Р»РѕСЃСЊ = РѕС…РѕС‚Р°
-        else if (aliveCount <= 10 && hasWeapon && healthPercent > 0.5) {
-            this.currentPriority = 'hunt';
-        }
-        // РќРµС‚ РѕСЂСѓР¶РёСЏ = Р»СѓС‚
-        else if (!hasWeapon || healthPercent < 0.55 || this.hasLowCombatResources(bot)) {
-            this.currentPriority = 'loot';
-        }
-        // РћРґРёРЅРѕРєРёР№ Рё СЃР»Р°Р±С‹Р№ = РіСЂСѓРїРїРёСЂРѕРІРєР°
-        else if (bot.allies.length === 0 && healthPercent < 0.7 && this.personality.teamwork > 0.5) {
-            this.currentPriority = 'regroup';
-        }
-        // РџРѕ СѓРјРѕР»С‡Р°РЅРёСЋ - Р±Р°Р»Р°РЅСЃ РјРµР¶РґСѓ Р»СѓС‚РѕРј Рё РѕС…РѕС‚РѕР№
-        else {
-            this.currentPriority = hasWeapon ? 'hunt' : 'loot';
-        }
-    }
-
-    // ===== РђР”РђРџРўРђР¦РРЇ РЎРўР РђРўР•Р“РР =====
-    adaptStrategy(bot, entityManager, threatLevel) {
-        const healthPercent = bot.health / bot.maxHealth;
-        const hasWeapon = !!bot.currentWeapon;
-        const aliveCount = entityManager.getAliveCount();
-        
-        // РљСЂРёС‚РёС‡РµСЃРєР°СЏ СЃРёС‚СѓР°С†РёСЏ
-        if (threatLevel === 'critical' || healthPercent < 0.25) {
-            this.strategy = 'survival';
-        }
-        // РљРѕРЅРµС† РёРіСЂС‹ - Р°РіСЂРµСЃСЃРёСЏ
-        else if (aliveCount <= 5 && hasWeapon) {
-            this.strategy = 'aggressive';
-        }
-        // РЎРёР»СЊРЅС‹Р№ Рё РІРѕРѕСЂСѓР¶РµРЅРЅС‹Р№
-        else if (hasWeapon && healthPercent > 0.8 && this.personality.aggression > 0.6) {
-            this.strategy = 'aggressive';
-        }
-        // РЈРјРЅС‹Р№ Рё С‚РµСЂРїРµР»РёРІС‹Р№
-        else if (this.personality.intelligence > 0.8 && hasWeapon) {
-            this.strategy = 'tactical';
-        }
-        // РЎРєСЂС‹С‚РЅС‹Р№
-        else if (this.personality.sneakiness > 0.7) {
-            this.strategy = 'stealthy';
-        }
-        // РљРѕРјР°РЅРґРЅС‹Р№ РёРіСЂРѕРє
-        else if (this.personality.teamwork > 0.6 && bot.allies.length > 0) {
-            this.strategy = 'cooperative';
-        }
-        // Р‘Р°Р»Р°РЅСЃ
-        else {
-            this.strategy = 'balanced';
-        }
-    }
-
     // ===== РЈРњРќРћР• РџР РРќРЇРўРР• Р Р•РЁР•РќРР™ =====
     makeSmartDecision(bot, entityManager, lootManager, threatLevel) {
         const context = this.buildUtilityContext(bot, entityManager, lootManager, threatLevel);
@@ -279,12 +215,27 @@ export class BotBrain {
         this.lastUtilityDecision = decision;
         this.currentPriority = decision.action;
 
+        if ((decision.action === 'attack' || decision.action === 'ambush') && this.prefersTrainCombat) {
+            if (this.tryAcquireTrainCombat(bot, entityManager)) {
+                return;
+            }
+        }
+
         switch (decision.action) {
             case 'run_to_safe_zone':
                 this.decideRunToSafeZone(bot);
                 break;
             case 'heal':
                 this.decideHeal(bot, entityManager, threatLevel);
+                break;
+            case 'regroup':
+                this.decideRegroup(bot, entityManager, lootManager);
+                break;
+            case 'ambush':
+                this.decideAmbushAction(bot, entityManager, lootManager);
+                break;
+            case 'patrol':
+                this.decidePatrolAction(bot, lootManager);
                 break;
             case 'attack':
                 this.decideHunt(bot, entityManager);
@@ -312,6 +263,8 @@ export class BotBrain {
             ? Math.min(...nearbyLoot.map(entry => entry.distance))
             : Infinity;
         const zoneDistance = bot.zoneRef?.getDistanceFromZone?.(bot.position) || 0;
+        const allyCandidate = this.findPotentialAlly(bot, entityManager);
+        const trainOpportunity = this.prefersTrainCombat ? this.getTrainCombatOpportunity(bot, entityManager) : null;
 
         return {
             healthRatio: bot.health / Math.max(1, bot.maxHealth || 100),
@@ -324,9 +277,16 @@ export class BotBrain {
             nearbyLootCount: nearbyLoot.length,
             closestLootDistance,
             closestLootDistanceNorm: Math.min(1, closestLootDistance / 42),
-            hasWeapon: !!(bot.currentWeapon && bot.currentWeapon.type !== 'fists'),
+            hasWeapon: !!(bot.currentWeapon && bot.currentWeapon.type !== 'fists') ? 1 : 0,
             lowResources: this.hasLowCombatResources(bot) ? 1 : 0,
-            threatLevel
+            threatLevel,
+            allyCount: bot.allies?.length || 0,
+            allyCandidateNearby: !!allyCandidate,
+            teamwork: this.personality.teamwork,
+            sneakiness: this.personality.sneakiness,
+            courage: this.personality.courage,
+            intelligence: this.personality.intelligence,
+            hasTrainOpportunity: !!trainOpportunity
         };
     }
 
@@ -353,19 +313,35 @@ export class BotBrain {
         this.stateTimer = 3.2;
     }
 
-    decideSurvival(bot, entityManager, lootManager) {
-        const nearestEnemy = this.findNearestEnemy(bot, 40);
-        
-        if (nearestEnemy) {
-            // РЈР±РµРіР°РµРј РѕС‚ РѕРїР°СЃРЅРѕСЃС‚Рё
-            bot.state = 'flee';
-            bot.target = nearestEnemy;
-            this.stateTimer = 5;
-        } else {
-            // РС‰РµРј СѓРєСЂС‹С‚РёРµ РёР»Рё Р»РµС‡РµРЅРёРµ
-            bot.state = 'cover';
-            this.stateTimer = 3;
+    decideAmbushAction(bot, entityManager, lootManager) {
+        const enemy = this.findBestTarget(bot, entityManager);
+        if (!enemy) {
+            this.decidePatrolAction(bot, lootManager);
+            return;
         }
+
+        bot.state = 'ambush';
+        bot.target = enemy;
+        const backDir = new THREE.Vector3().subVectors(bot.position, enemy.position).normalize();
+        if (backDir.lengthSq() > 0.0001) {
+            bot.patrolTarget = enemy.position.clone().add(backDir.multiplyScalar(8 + Math.random() * 6));
+        }
+        this.stateTimer = 6.5;
+    }
+
+    decidePatrolAction(bot, lootManager) {
+        const hangarTarget = this.findStrategicHangarTarget(bot, lootManager);
+        if (hangarTarget && Math.random() < 0.35) {
+            bot.state = 'patrol';
+            bot.target = null;
+            bot.patrolTarget = hangarTarget;
+            this.stateTimer = 7.5;
+            return;
+        }
+        bot.state = 'patrol';
+        bot.target = null;
+        this.setRandomPatrolTarget(bot, 18, 60);
+        this.stateTimer = 6;
     }
 
     decideHunt(bot, entityManager) {

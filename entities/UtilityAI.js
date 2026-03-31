@@ -1,6 +1,6 @@
 export class UtilityAI {
     constructor() {
-        this.actions = ['loot', 'attack', 'run_to_safe_zone', 'heal'];
+        this.actions = ['loot', 'attack', 'run_to_safe_zone', 'heal', 'regroup', 'ambush', 'patrol'];
     }
 
     clamp01(value) {
@@ -30,6 +30,25 @@ export class UtilityAI {
             context.healthRatio * 0.35 +
             (1 - context.lowResources) * 0.2
         );
+        const teamworkNeed = this.clamp01(
+            context.teamwork * 0.45 +
+            (1 - Math.min(1, context.allyCount / 2)) * 0.3 +
+            healthNeed * 0.15 +
+            enemyPressure * 0.1
+        );
+        const ambushPotential = this.clamp01(
+            context.hasWeapon * 0.32 +
+            context.sneakiness * 0.28 +
+            this.clamp01(1 - Math.abs(context.closestEnemyDistanceNorm - 0.55) / 0.55) * 0.25 +
+            (1 - zoneUrgency) * 0.15
+        );
+        const patrolValue = this.clamp01(
+            (1 - enemyPressure) * 0.35 +
+            (1 - lootOpportunity) * 0.2 +
+            (1 - zoneUrgency) * 0.2 +
+            context.courage * 0.15 +
+            context.intelligence * 0.1
+        );
 
         switch (action) {
             case 'heal':
@@ -58,6 +77,24 @@ export class UtilityAI {
                     (1 - enemyPressure) * 0.12 +
                     (1 - zoneUrgency) * 0.08 +
                     healthNeed * 0.08
+                );
+            case 'regroup':
+                return this.clamp01(
+                    teamworkNeed * 0.72 +
+                    (1 - zoneUrgency) * 0.12 +
+                    (1 - context.hasWeapon) * 0.08 +
+                    (context.allyCandidateNearby ? 0.12 : 0)
+                );
+            case 'ambush':
+                return this.clamp01(
+                    ambushPotential * 0.78 +
+                    (context.hasTrainOpportunity ? 0.12 : 0) +
+                    (context.closestEnemyDistance < 10 ? -0.16 : 0)
+                );
+            case 'patrol':
+                return this.clamp01(
+                    patrolValue * 0.88 +
+                    (context.hasTrainOpportunity ? 0.08 : 0)
                 );
             default:
                 return 0;
