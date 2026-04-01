@@ -1956,22 +1956,29 @@ export class MapGenerator {
             roof.userData.mapGenerated = true;
             group.add(roof);
 
-            const ladderX = x + 5.25;
-            const ladderZ = z - 0.9;
-            const startY = baseY + 0.7;
-            for (let s = 0; s < 11; s++) {
-                const step = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.18, 0.55), woodMat);
-                step.position.set(ladderX - s * 0.18, startY + s * 0.9, ladderZ);
+            const ladderDir = new THREE.Vector3(-1, 0, 0);
+            const ladderStart = new THREE.Vector3(x + 5.15, baseY + 0.35, z - 1.35);
+            const ladderEnd = new THREE.Vector3(x + 0.95, baseY + 10.05, z - 1.35);
+            const stepsCount = 19;
+            for (let s = 0; s < stepsCount; s++) {
+                const t = s / (stepsCount - 1);
+                const stepPos = ladderStart.clone().lerp(ladderEnd, t);
+                const step = new THREE.Mesh(new THREE.BoxGeometry(2.05, 0.2, 0.72), woodMat);
+                step.position.copy(stepPos);
                 step.userData.mapGenerated = true;
-                step.rotation.z = -0.12;
                 group.add(step);
-                this.addColliderBox(step.position.clone(), 1.3, 0.22, 0.55, true);
+                this.addColliderBox(step.position.clone(), 2.05, 0.24, 0.76, true);
             }
-            const railLeft = new THREE.Mesh(new THREE.BoxGeometry(0.18, 10.2, 0.18), trunkMat);
-            railLeft.position.set(ladderX - 0.72, baseY + 5.8, ladderZ);
-            railLeft.userData.mapGenerated = true;
+            const railLen = ladderStart.distanceTo(ladderEnd) + 0.6;
+            const railLeft = new THREE.Mesh(new THREE.BoxGeometry(0.16, railLen, 0.16), trunkMat);
             const railRight = railLeft.clone();
-            railRight.position.x = ladderX + 0.42;
+            const railMid = ladderStart.clone().add(ladderEnd).multiplyScalar(0.5);
+            railLeft.position.set(railMid.x, railMid.y, railMid.z - 0.44);
+            railRight.position.set(railMid.x, railMid.y, railMid.z + 0.44);
+            railLeft.rotation.z = -0.4;
+            railRight.rotation.z = -0.4;
+            railLeft.userData.mapGenerated = true;
+            railRight.userData.mapGenerated = true;
             group.add(railLeft, railRight);
 
             const canopy = new THREE.Mesh(new THREE.BoxGeometry(11.5, 5.4, 11.5), leafMat);

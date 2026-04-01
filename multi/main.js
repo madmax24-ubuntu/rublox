@@ -271,6 +271,7 @@ class Game {
         this.countdownTimer = this.countdownTime;
         this.spawnTime = 20;
         this.spawnTimer = this.spawnTime;
+        this.botLootPhaseDuration = 18;
         this.zonePhase = 'waiting';
         this.zonePhaseTimer = 28;
         this.zonePhaseIndex = 0;
@@ -960,6 +961,13 @@ class Game {
                 this.startZoneCycle();
                 this.player.setInvulnerable(false);
                 this.bots.forEach(bot => bot.setInvulnerable(false));
+                const noCombatUntil = performance.now() + this.botLootPhaseDuration * 1000;
+                for (const bot of this.bots) {
+                    bot.noCombatUntil = noCombatUntil;
+                    bot.target = null;
+                    bot.assistTarget = null;
+                    bot.state = 'explore';
+                }
                 this.hud.showGameMessage('\u0412\u044b\u0436\u0438\u0432\u0430\u043d\u0438\u0435 \u043d\u0430\u0447\u0430\u043b\u043e\u0441\u044c!');
                 this.map.setCourtyardGateOpen(false);
                 this.gateClosed = true;

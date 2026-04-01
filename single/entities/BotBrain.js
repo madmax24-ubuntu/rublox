@@ -400,6 +400,13 @@ export class BotBrain {
     }
 
     decideHunt(bot, entityManager) {
+        if (bot.noCombatUntil && performance.now() < bot.noCombatUntil) {
+            bot.state = 'explore';
+            bot.target = null;
+            this.setRandomPatrolTarget(bot, 35, 95);
+            this.stateTimer = 4.5;
+            return;
+        }
         const enemy = this.findBestTarget(bot, entityManager);
         
         if (enemy) {
@@ -502,6 +509,9 @@ export class BotBrain {
     }
 
     findBestTarget(bot, entityManager) {
+        if (bot.noCombatUntil && performance.now() < bot.noCombatUntil) {
+            return null;
+        }
         const enemies = Object.values(this.memory.lastSeenEnemies);
         if (enemies.length === 0) return null;
         

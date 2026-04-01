@@ -62,6 +62,7 @@ export class Bot {
         this.healthRegenDelay = 7;
         this.healthRegenDuration = 7;
         this.lastDamageAt = -Infinity;
+        this.noCombatUntil = 0;
 
         this.variants = [
             {
