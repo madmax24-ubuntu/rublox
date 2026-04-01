@@ -411,6 +411,7 @@ export class Bot {
 
         this.physicsRef = physics;
         this.zoneRef = zone || this.zoneRef;
+        this.entityManagerRef = entityManager || this.entityManagerRef;
         this.audioSynthRef = audioSynth;
         this.updateBurning(delta);
         this.updateHealthRegen(delta);

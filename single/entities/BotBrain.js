@@ -55,6 +55,7 @@ export class BotBrain {
         this.trainBoardCooldown = 0;
         this.utilityAI = new UtilityAI();
         this.lastUtilityDecision = null;
+        this.independentMode = true;
     }
     
     chooseInitialStrategy() {
@@ -68,6 +69,10 @@ export class BotBrain {
 
     update(bot, delta, entityManager, lootManager, audioSynth) {
         if (!bot.isAlive) return;
+        if (this.independentMode) {
+            bot.allies = [];
+            bot.assistTarget = null;
+        }
         
         this.decisionCooldown -= delta;
         this.attackCooldown -= delta;
@@ -114,7 +119,9 @@ export class BotBrain {
         }
         
         // 8. РЈРїСЂР°РІР»РµРЅРёРµ СЃРѕСЋР·Р°РјРё
-        this.manageAlliances(bot, delta);
+        if (!this.independentMode) {
+            this.manageAlliances(bot, delta);
+        }
     }
 
     // ===== Р’РћРЎРџР РРЇРўРР• =====
@@ -239,6 +246,9 @@ export class BotBrain {
     makeSmartDecision(bot, entityManager, lootManager, threatLevel) {
         const context = this.buildUtilityContext(bot, entityManager, lootManager, threatLevel);
         const decision = this.utilityAI.chooseBestAction(context);
+        if (this.independentMode && decision.action === 'regroup') {
+            decision.action = 'loot';
+        }
         this.lastUtilityDecision = decision;
         this.currentPriority = decision.action;
 
@@ -290,7 +300,7 @@ export class BotBrain {
             ? Math.min(...nearbyLoot.map(entry => entry.distance))
             : Infinity;
         const zoneDistance = bot.zoneRef?.getDistanceFromZone?.(bot.position) || 0;
-        const allyCandidate = this.findPotentialAlly(bot, entityManager);
+        const allyCandidate = this.independentMode ? null : this.findPotentialAlly(bot, entityManager);
         const trainOpportunity = this.prefersTrainCombat ? this.getTrainCombatOpportunity(bot, entityManager) : null;
         const strategicHangar = this.findStrategicHangarTarget(bot, lootManager);
         const strategicHouse = this.findStrategicHouseTarget(bot, lootManager);
@@ -316,9 +326,9 @@ export class BotBrain {
             hasWeapon: !!(bot.currentWeapon && bot.currentWeapon.type !== 'fists') ? 1 : 0,
             lowResources: this.hasLowCombatResources(bot) ? 1 : 0,
             threatLevel,
-            allyCount: bot.allies?.length || 0,
+            allyCount: this.independentMode ? 0 : (bot.allies?.length || 0),
             allyCandidateNearby: !!allyCandidate,
-            teamwork: this.personality.teamwork,
+            teamwork: this.independentMode ? 0 : this.personality.teamwork,
             sneakiness: this.personality.sneakiness,
             courage: this.personality.courage,
             intelligence: this.personality.intelligence,
@@ -440,7 +450,7 @@ export class BotBrain {
         const chest = this.findNearestChest(bot, lootManager, 80);
         
         const playerTarget = this.findPreferredPlayerTarget(bot, entityManager);
-        if (playerTarget && bot.currentWeapon && this.countAttackersForTarget(bot, playerTarget, entityManager) < ((entityManager?.getAliveSurvivors?.() || []).length >= 3 ? 2 : 1)) {
+        if (playerTarget && bot.currentWeapon && this.countAttackersForTarget(bot, playerTarget, entityManager) < 1) {
             bot.state = 'hunt';
             bot.target = playerTarget;
             this.stateTimer = 8;
@@ -474,6 +484,10 @@ export class BotBrain {
     }
 
     decideRegroup(bot, entityManager, lootManager) {
+        if (this.independentMode) {
+            this.decideLoot(bot, lootManager, entityManager);
+            return;
+        }
         const ally = this.findPotentialAlly(bot, entityManager);
         
         if (ally) {
@@ -518,13 +532,11 @@ export class BotBrain {
         // РЈРјРЅС‹Р№ РІС‹Р±РѕСЂ С†РµР»Рё
         let bestTarget = null;
         let bestScore = -1;
-        const aliveTargets = entityManager?.getAliveSurvivors?.() || [];
-        
         for (const enemyData of enemies) {
             const entity = entityManager.getEntityById(enemyData.id);
             if (!entity || !entity.isAlive) continue;
             const attackers = this.countAttackersForTarget(bot, entity, entityManager);
-            const attackerLimit = aliveTargets.length >= 3 ? 2 : 1;
+            const attackerLimit = 1;
             if (attackers >= attackerLimit) continue;
             
             let score = 0;
@@ -578,19 +590,55 @@ export class BotBrain {
     findNearestChest(bot, lootManager, maxRange) {
         const chests = lootManager.getChests();
         let nearest = null;
-        let minDist = maxRange;
+        let bestScore = Infinity;
         
         for (const chest of chests) {
             if (chest.userData.isOpen) continue;
             
             const dist = bot.position.distanceTo(chest.position);
-            if (dist < minDist) {
-                minDist = dist;
+            if (dist > maxRange) continue;
+            const crowd = this.countBotsTargetingPoint(bot, chest.position, 10.5);
+            const near = this.countBotsNearPoint(bot, chest.position, 8.5);
+            const score = dist + crowd * 22 + near * 10;
+            if (score < bestScore) {
+                bestScore = score;
                 nearest = chest;
             }
         }
         
         return nearest;
+    }
+
+    countBotsTargetingPoint(bot, point, radius = 10) {
+        if (!point) return 0;
+        const radiusSq = radius * radius;
+        let count = 0;
+        const entities = bot.entityManagerRef?.entities || [];
+        for (const entity of entities) {
+            if (!entity?.isAlive || entity === bot) continue;
+            if (entity.constructor?.name !== 'Bot') continue;
+            const target = entity.patrolTarget || entity.target?.position;
+            if (!target) continue;
+            const dx = target.x - point.x;
+            const dz = target.z - point.z;
+            if (dx * dx + dz * dz <= radiusSq) count++;
+        }
+        return count;
+    }
+
+    countBotsNearPoint(bot, point, radius = 8) {
+        if (!point) return 0;
+        const radiusSq = radius * radius;
+        let count = 0;
+        const entities = bot.entityManagerRef?.entities || [];
+        for (const entity of entities) {
+            if (!entity?.isAlive || entity === bot) continue;
+            if (entity.constructor?.name !== 'Bot') continue;
+            const dx = entity.position.x - point.x;
+            const dz = entity.position.z - point.z;
+            if (dx * dx + dz * dz <= radiusSq) count++;
+        }
+        return count;
     }
 
     findBestHangarChest(bot, lootManager) {
@@ -660,8 +708,10 @@ export class BotBrain {
             const pressurePenalty = zonePressure > 0.82 ? dist * 0.35 : 0;
             const lowResBoost = lowResources ? -16 : 0;
             const score = dist - closedChestBonus + pressurePenalty + lowResBoost;
-            if (score < bestScore) {
-                bestScore = score;
+            const crowd = this.countBotsTargetingPoint(bot, target, 18) + this.countBotsNearPoint(bot, target, 15);
+            const finalScore = score + crowd * 14;
+            if (finalScore < bestScore) {
+                bestScore = finalScore;
                 best = target;
             }
         }
@@ -697,8 +747,10 @@ export class BotBrain {
                 dist -
                 closedChestBonus +
                 (this.getZonePressure(bot) > 0.82 ? dist * 0.25 : 0);
-            if (score < bestScore) {
-                bestScore = score;
+            const crowd = this.countBotsTargetingPoint(bot, center, 16) + this.countBotsNearPoint(bot, center, 14);
+            const finalScore = score + crowd * 12;
+            if (finalScore < bestScore) {
+                bestScore = finalScore;
                 best = center;
             }
         }
@@ -868,6 +920,7 @@ export class BotBrain {
     }
 
     findPotentialAlly(bot, entityManager) {
+        if (this.independentMode) return null;
         const entities = entityManager.getEntities();
         
         for (const entity of entities) {
@@ -924,7 +977,10 @@ export class BotBrain {
         if (map && typeof map.getFloorTiles === 'function') {
             const tiles = map.getFloorTiles();
             if (tiles.length) {
-                for (let i = 0; i < 30; i++) {
+                let bestTarget = null;
+                let bestScore = Infinity;
+                const preferredAngle = ((bot.id * 0.61803398875) % 1) * Math.PI * 2;
+                for (let i = 0; i < 34; i++) {
                     const tile = tiles[Math.floor(Math.random() * tiles.length)];
                     const dx = tile.x - bot.position.x;
                     const dz = tile.z - bot.position.z;
@@ -933,7 +989,17 @@ export class BotBrain {
                     if (safeRadius && Math.hypot(tile.x, tile.z) > safeRadius) continue;
                     if (map.isWalkableAt && !map.isWalkableAt(tile.x, tile.z)) continue;
                     if (map.isNearRailCorridor?.(tile.x, tile.z, 0.7)) continue;
-                    bot.patrolTarget = new THREE.Vector3(tile.x, 0, tile.z);
+                    const angle = Math.atan2(dz, dx);
+                    const angleDiff = Math.abs(Math.atan2(Math.sin(angle - preferredAngle), Math.cos(angle - preferredAngle)));
+                    const crowd = this.countBotsTargetingPoint(bot, tile, 14) + this.countBotsNearPoint(bot, tile, 10);
+                    const score = Math.abs(dist - (minDist + maxDist) * 0.5) + crowd * 12 + angleDiff * 2.2;
+                    if (score < bestScore) {
+                        bestScore = score;
+                        bestTarget = tile;
+                    }
+                }
+                if (bestTarget) {
+                    bot.patrolTarget = new THREE.Vector3(bestTarget.x, 0, bestTarget.z);
                     return;
                 }
             }
