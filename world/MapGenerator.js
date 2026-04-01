@@ -1011,7 +1011,10 @@ export class MapGenerator {
         const floorMat = new THREE.MeshStandardMaterial({
             color: 0x9e9e9e,
             roughness: 0.9,
-            flatShading: true
+            flatShading: true,
+            polygonOffset: true,
+            polygonOffsetFactor: -2,
+            polygonOffsetUnits: -3
         });
 
         const baseY = this.getHeightAt(position.x, position.z);
@@ -1019,7 +1022,7 @@ export class MapGenerator {
 
         const floorThickness = isMassiveHangar ? 0.2 : 0.14;
         const floor = new THREE.Mesh(new THREE.BoxGeometry(width * 0.96, floorThickness, depth * 0.96), floorMat);
-        const floorTopY = baseY + 0.01;
+        const floorTopY = baseY + 0.03;
         floor.position.set(position.x, floorTopY - floorThickness * 0.5, position.z);
         floor.userData.mapGenerated = true;
         group.add(floor);
@@ -1192,29 +1195,8 @@ export class MapGenerator {
         placeStructure('hangar', 6 - guaranteedNearHangars);
         this.buildTreeHouses(candidates, rand, placed);
 
-        const rockMat = new THREE.MeshStandardMaterial({ color: 0x696969, roughness: 0.92, flatShading: true });
-        let rockPlaced = 0;
-        for (const tile of candidates) {
-            if (rockPlaced >= 12) break;
-            if (this.isNearRailCorridor(tile.x, tile.z, 12)) continue;
-            if (!this.isChestClear(tile.x, tile.z, 6.6)) continue;
-            if (!canPlace(tile.x, tile.z, 22)) continue;
-            if (rand() > 0.28) continue;
-            const mesh = new THREE.Mesh(new THREE.DodecahedronGeometry(5.6 + rand() * 2.2, 0), rockMat);
-            const scale = 1 + rand() * 0.45;
-            mesh.scale.set(scale, 0.82 + rand() * 0.28, scale * (0.82 + rand() * 0.2));
-            const y = this.getHeightAt(tile.x, tile.z) + 4.5;
-            mesh.position.set(tile.x, y, tile.z);
-            mesh.rotation.y = rand() * Math.PI * 2;
-            mesh.rotation.x = (rand() - 0.5) * 0.25;
-            mesh.rotation.z = (rand() - 0.5) * 0.25;
-            mesh.userData.mapGenerated = true;
-            this.scene.add(mesh);
-            const size = 11.5 * scale;
-            this.addColliderBox(new THREE.Vector3(tile.x, y, tile.z), size, 8.4 * scale, size, false);
-            placed.push({ x: tile.x, z: tile.z });
-            rockPlaced += 1;
-        }
+        // Replace non-interactive rock clutter with useful housing.
+        placeStructure('house', 18);
     }
 
     buildThemeGroundFeatures() {
