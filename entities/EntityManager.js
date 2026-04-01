@@ -6,6 +6,8 @@ export class EntityManager {
         this.entities = [];
         this.projectiles = [];
         this.effects = [];
+        this.spatialCellSize = 24;
+        this.spatialIndex = new Map();
         this._tmpVecA = new THREE.Vector3();
         this._tmpVecB = new THREE.Vector3();
         this._tmpVecC = new THREE.Vector3();
@@ -35,6 +37,7 @@ export class EntityManager {
 
     update(delta, physics, audioSynth) {
         this.physicsRef = physics || this.physicsRef;
+        this.rebuildSpatialIndex();
         // Update projectiles
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             const proj = this.projectiles[i];
@@ -106,6 +109,23 @@ export class EntityManager {
         const aliveEntities = this.entities.filter(e => e.isAlive && this.isSurvivorEntity(e));
         this.updateEffects(delta);
         return aliveEntities.length;
+    }
+
+    rebuildSpatialIndex() {
+        this.spatialIndex.clear();
+        const cellSize = this.spatialCellSize;
+        for (const entity of this.entities) {
+            if (!entity?.isAlive || !entity.position) continue;
+            const cx = Math.floor(entity.position.x / cellSize);
+            const cz = Math.floor(entity.position.z / cellSize);
+            const key = `${cx},${cz}`;
+            let bucket = this.spatialIndex.get(key);
+            if (!bucket) {
+                bucket = [];
+                this.spatialIndex.set(key, bucket);
+            }
+            bucket.push(entity);
+        }
     }
 
     checkProjectileWallHit(projectile, prevPos, physics) {
@@ -351,13 +371,28 @@ export class EntityManager {
     getNearbyEntities(position, radius, onlyType = null) {
         const out = [];
         const r2 = radius * radius;
-        for (const entity of this.entities) {
-            if (!entity?.isAlive) continue;
-            if (onlyType && entity.constructor?.name !== onlyType) continue;
-            const dx = entity.position.x - position.x;
-            const dz = entity.position.z - position.z;
-            if (dx * dx + dz * dz <= r2) {
-                out.push(entity);
+        const cellSize = this.spatialCellSize;
+        const minCx = Math.floor((position.x - radius) / cellSize);
+        const maxCx = Math.floor((position.x + radius) / cellSize);
+        const minCz = Math.floor((position.z - radius) / cellSize);
+        const maxCz = Math.floor((position.z + radius) / cellSize);
+        const seen = new Set();
+
+        for (let cx = minCx; cx <= maxCx; cx++) {
+            for (let cz = minCz; cz <= maxCz; cz++) {
+                const bucket = this.spatialIndex.get(`${cx},${cz}`);
+                if (!bucket) continue;
+                for (const entity of bucket) {
+                    if (!entity?.isAlive) continue;
+                    if (onlyType && entity.constructor?.name !== onlyType) continue;
+                    if (seen.has(entity.id)) continue;
+                    const dx = entity.position.x - position.x;
+                    const dz = entity.position.z - position.z;
+                    if (dx * dx + dz * dz <= r2) {
+                        out.push(entity);
+                        seen.add(entity.id);
+                    }
+                }
             }
         }
         return out;

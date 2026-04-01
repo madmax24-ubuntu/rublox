@@ -215,6 +215,7 @@ class Game {
         this.traps = this.map.getTraps?.() || [];
         this.localFogZones = this.map.getFogZones?.() || [];
         this.propVisibilityTimer = 0;
+        this.lastPropVisibilityPos = new THREE.Vector3(99999, 99999, 99999);
         this.radiationRainEffect = null;
         this.radiationRainActive = false;
         this.initRadiationRainEffect();
@@ -1035,8 +1036,12 @@ class Game {
         this.updateRadiationRainEffect(delta);
         this.propVisibilityTimer -= delta;
         if (this.propVisibilityTimer <= 0) {
-            this.map.updatePropVisibility?.(this.player.position);
-            this.propVisibilityTimer = 0.18;
+            const movedSq = this.lastPropVisibilityPos.distanceToSquared(this.player.position);
+            if (movedSq > 9 || this.propVisibilityTimer <= -0.7) {
+                this.map.updatePropVisibility?.(this.player.position);
+                this.lastPropVisibilityPos.copy(this.player.position);
+            }
+            this.propVisibilityTimer = 0.35;
         }
         this.noteCooldown = Math.max(0, this.noteCooldown - delta);
         if (this.noteCooldown === 0 && this.map.getStoryNotes) {

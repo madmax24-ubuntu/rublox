@@ -120,8 +120,18 @@ export class BotBrain {
     // ===== Р’РћРЎРџР РРЇРўРР• =====
     updatePerception(bot, entityManager, lootManager) {
         const visionRange = (60 + this.personality.intelligence * 40) * (this.visionMultiplier || 1); // 50-80 РјРµС‚СЂРѕРІ
-        const entities = entityManager.getEntities();
-        
+        const entities = entityManager.getNearbyEntities
+            ? entityManager.getNearbyEntities(bot.position, visionRange)
+            : entityManager.getEntities();
+        const maxTracked = 22;
+        let tracked = 0;
+        let losBudget = 7;
+        const botHead = new THREE.Vector3(
+            bot.position.x,
+            bot.position.y + (bot.physics?.height || 1.8) * 0.55,
+            bot.position.z
+        );
+
         for (const entity of entities) {
             if (entity === bot || !entity.isAlive) continue;
             
@@ -135,15 +145,18 @@ export class BotBrain {
                 const isAlly = bot.allies && bot.allies.includes(entity);
                 
                 if (!isAlly) {
-                    const head = (ent) => new THREE.Vector3(
-                        ent.position.x,
-                        ent.position.y + (ent.physics?.height || 1.8) * 0.55,
-                        ent.position.z
-                    );
                     if (typeof entityManager.hasLineOfSight === 'function') {
-                        const visible = entityManager.hasLineOfSight(head(bot), head(entity), true);
-                        if (!visible && distance > 8) {
-                            continue;
+                        if (distance > 8 && losBudget > 0) {
+                            const targetHead = new THREE.Vector3(
+                                entity.position.x,
+                                entity.position.y + (entity.physics?.height || 1.8) * 0.55,
+                                entity.position.z
+                            );
+                            const visible = entityManager.hasLineOfSight(botHead, targetHead, true);
+                            losBudget--;
+                            if (!visible) {
+                                continue;
+                            }
                         }
                     }
                     // Р—Р°РїРѕРјРёРЅР°РµРј РІСЂР°РіР°
@@ -159,6 +172,10 @@ export class BotBrain {
                         threat: threatScore,
                         distance: distance
                     };
+                    tracked++;
+                    if (tracked >= maxTracked) {
+                        break;
+                    }
                 }
             }
         }
