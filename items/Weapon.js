@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { BufferGeometryUtils } from 'https://cdn.jsdelivr.net/npm/three@0.163.0/examples/jsm/utils/BufferGeometryUtils.js';
 
 const WEAPON_BALANCE = {
     fists: { damage: 8, range: 2.4, cooldown: 0.38, ammo: null, durability: null, projectileSpeed: 0 },
@@ -118,6 +118,33 @@ export class Weapon {
         model.add(blade, handle, guard);
 
         // Кэшируем всю модель для будущего использования
+        weaponResources.geometries[key] = model;
+        group.add(model.clone());
+    }
+
+    _createAxeMesh(group) {
+        const key = 'axe_model';
+        if (weaponResources.geometries[key]) {
+            const cachedModel = weaponResources.geometries[key].clone();
+            group.add(cachedModel);
+            return;
+        }
+
+        const woodMat = getCachedMaterial('axe_wood', () => new THREE.MeshStandardMaterial({ color: 0x6d4c41, roughness: 0.7, flatShading: true }));
+        const metalMat = getCachedMaterial('axe_metal', () => new THREE.MeshStandardMaterial({ color: 0xb0bec5, metalness: 0.6, roughness: 0.3, flatShading: true }));
+
+        const handle = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.9, 0.08), woodMat);
+        handle.position.y = -0.1;
+
+        const headGeom = new THREE.BoxGeometry(0.42, 0.18, 0.12);
+        headGeom.translate(0.12, 0.35, 0);
+        const bladeGeom = new THREE.BoxGeometry(0.18, 0.32, 0.08);
+        bladeGeom.translate(0.32, 0.35, 0);
+        const mergedMetalGeom = BufferGeometryUtils.mergeBufferGeometries([headGeom, bladeGeom]);
+        const metalPart = new THREE.Mesh(mergedMetalGeom, metalMat);
+
+        const model = new THREE.Group();
+        model.add(handle, metalPart);
         weaponResources.geometries[key] = model;
         group.add(model.clone());
     }
@@ -400,15 +427,7 @@ export class Weapon {
                 break;
             }
             case 'axe': {
-                const woodMat = new THREE.MeshStandardMaterial({ color: 0x6d4c41, roughness: 0.7, flatShading: true });
-                const metalMat = new THREE.MeshStandardMaterial({ color: 0xb0bec5, metalness: 0.6, roughness: 0.3, flatShading: true });
-                const handle = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.9, 0.08), woodMat);
-                handle.position.y = -0.1;
-                const head = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.18, 0.12), metalMat);
-                head.position.set(0.12, 0.35, 0);
-                const blade = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.32, 0.08), metalMat);
-                blade.position.set(0.32, 0.35, 0);
-                group.add(handle, head, blade);
+                this._createAxeMesh(group);
                 break;
             }
         }
