@@ -149,6 +149,286 @@ export class Weapon {
         group.add(model.clone());
     }
 
+    _createBowMesh(group) {
+        const key = 'bow_model';
+        if (weaponResources.geometries[key]) {
+            const cachedModel = weaponResources.geometries[key].clone();
+            group.add(cachedModel);
+            return;
+        }
+
+        const limbMat = getCachedMaterial('bow_limb', () => new THREE.MeshStandardMaterial({
+            color: 0x7a4a20,
+            roughness: 0.6,
+            flatShading: true
+        }));
+        const gripMat = getCachedMaterial('bow_grip', () => new THREE.MeshStandardMaterial({
+            color: 0x2d1b12,
+            roughness: 0.75,
+            flatShading: true
+        }));
+        const tipMat = getCachedMaterial('bow_tip', () => new THREE.MeshStandardMaterial({
+            color: 0x8d8d8d,
+            metalness: 0.45,
+            roughness: 0.45,
+            flatShading: true
+        }));
+
+        const limbSegmentsData = [
+            { x: -0.16, y: 0.82, w: 0.12, h: 0.28, r: 0.48 },
+            { x: -0.02, y: 0.5, w: 0.12, h: 0.27, r: 0.28 },
+            { x: 0.06, y: 0.18, w: 0.11, h: 0.24, r: 0.12 },
+            { x: 0.06, y: -0.18, w: 0.11, h: 0.24, r: -0.12 },
+            { x: -0.02, y: -0.5, w: 0.12, h: 0.27, r: -0.28 },
+            { x: -0.16, y: -0.82, w: 0.12, h: 0.28, r: -0.48 }
+        ];
+
+        const limbGeometries = [];
+        for (const seg of limbSegmentsData) {
+            const limbGeom = new THREE.BoxGeometry(seg.w, seg.h, 0.09);
+            limbGeom.translate(seg.x, seg.y, 0);
+            limbGeom.rotateZ(seg.r);
+            limbGeometries.push(limbGeom);
+        }
+        const mergedLimbGeom = BufferGeometryUtils.mergeBufferGeometries(limbGeometries);
+        const limbs = new THREE.Mesh(mergedLimbGeom, limbMat);
+
+        const grip = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.56, 0.11), gripMat);
+        grip.position.set(0.01, 0, 0);
+
+        const rest = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.06, 0.06), gripMat);
+        rest.position.set(0.12, 0.05, 0);
+
+        const tipTopGeom = new THREE.BoxGeometry(0.06, 0.12, 0.07);
+        tipTopGeom.translate(-0.21, 1.0, 0);
+        const tipBottomGeom = new THREE.BoxGeometry(0.06, 0.12, 0.07);
+        tipBottomGeom.translate(-0.21, -1.0, 0);
+        const mergedTipGeom = BufferGeometryUtils.mergeBufferGeometries([tipTopGeom, tipBottomGeom]);
+        const tips = new THREE.Mesh(mergedTipGeom, tipMat);
+
+        const stringMat = new THREE.LineBasicMaterial({ color: 0x111111 });
+        const string = new THREE.Line(
+            new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(-0.21, 1.0, 0),
+                new THREE.Vector3(0.14, 0, 0),
+                new THREE.Vector3(-0.21, -1.0, 0)
+            ]),
+            stringMat
+        );
+
+        const model = new THREE.Group();
+        model.add(limbs, grip, rest, tips, string);
+        model.scale.setScalar(0.82);
+
+        weaponResources.geometries[key] = model;
+        group.add(model.clone());
+    }
+
+    _createLaserMesh(group) {
+        const key = 'laser_model';
+        if (weaponResources.geometries[key]) {
+            const cachedModel = weaponResources.geometries[key].clone();
+            group.add(cachedModel);
+            return;
+        }
+
+        const bodyMat = getCachedMaterial('laser_body', () => new THREE.MeshStandardMaterial({
+            color: 0x2b2b2b,
+            metalness: 0.7,
+            roughness: 0.35,
+            flatShading: true
+        }));
+        const accentMat = getCachedMaterial('laser_accent', () => new THREE.MeshStandardMaterial({
+            color: this.laserColor,
+            emissive: this.laserColor,
+            emissiveIntensity: 0.65,
+            roughness: 0.2,
+            flatShading: true
+        }));
+        const laserGripMat = getCachedMaterial('laser_grip', () => new THREE.MeshStandardMaterial({
+            color: 0x1c1c1c,
+            metalness: 0.4,
+            roughness: 0.6,
+            flatShading: true
+        }));
+
+        const bodyGeom = new THREE.BoxGeometry(0.62, 0.2, 0.2);
+        bodyGeom.translate(0, 0.03, 0);
+        const stockGeom = new THREE.BoxGeometry(0.22, 0.16, 0.16);
+        stockGeom.translate(-0.33, 0.02, 0);
+        const mergedBodyGeom = BufferGeometryUtils.mergeBufferGeometries([bodyGeom, stockGeom]);
+        const bodyMesh = new THREE.Mesh(mergedBodyGeom, bodyMat);
+
+        const barrelGeom = new THREE.CylinderGeometry(0.06, 0.08, 0.5, 8);
+        barrelGeom.rotateZ(Math.PI / 2);
+        barrelGeom.translate(0.38, 0.05, 0);
+        const barrelMesh = new THREE.Mesh(barrelGeom, bodyMat);
+
+        const muzzleGeom = new THREE.CylinderGeometry(0.09, 0.09, 0.06, 8);
+        muzzleGeom.rotateZ(Math.PI / 2);
+        muzzleGeom.translate(0.63, 0.05, 0);
+        const coreGeom = new THREE.CylinderGeometry(0.035, 0.035, 0.42, 8);
+        coreGeom.rotateZ(Math.PI / 2);
+        coreGeom.translate(0.18, 0.06, 0);
+        const cellGeom = new THREE.BoxGeometry(0.12, 0.18, 0.12);
+        cellGeom.translate(-0.02, -0.05, 0);
+        const mergedAccentGeom = BufferGeometryUtils.mergeBufferGeometries([muzzleGeom, coreGeom, cellGeom]);
+        const accentMesh = new THREE.Mesh(mergedAccentGeom, accentMat);
+
+        const laserGripGeom = new THREE.BoxGeometry(0.14, 0.26, 0.12);
+        laserGripGeom.translate(-0.1, -0.18, 0);
+        const railGeom = new THREE.BoxGeometry(0.42, 0.05, 0.12);
+        railGeom.translate(0.02, 0.16, 0);
+        const mergedGripRailGeom = BufferGeometryUtils.mergeBufferGeometries([laserGripGeom, railGeom]);
+        const gripRailMesh = new THREE.Mesh(mergedGripRailGeom, laserGripMat);
+
+        const model = new THREE.Group();
+        model.add(bodyMesh, barrelMesh, accentMesh, gripRailMesh);
+        model.rotation.y = -Math.PI / 2;
+
+        weaponResources.geometries[key] = model;
+        group.add(model.clone());
+    }
+
+    _createPistolMesh(group) {
+        const key = 'pistol_model';
+        if (weaponResources.geometries[key]) {
+            const cachedModel = weaponResources.geometries[key].clone();
+            group.add(cachedModel);
+            return;
+        }
+
+        const gunMat = getCachedMaterial('pistol_gun', () => new THREE.MeshStandardMaterial({ color: 0x3b3b3b, roughness: 0.45, flatShading: true }));
+        const gripMat = getCachedMaterial('pistol_grip', () => new THREE.MeshStandardMaterial({ color: 0x2b2b2b, roughness: 0.6, flatShading: true }));
+
+        const bodyGeom = new THREE.BoxGeometry(0.46, 0.18, 0.16);
+        bodyGeom.translate(0.05, 0.06, 0);
+        const barrelGeom = new THREE.BoxGeometry(0.28, 0.08, 0.08);
+        barrelGeom.translate(0.36, 0.06, 0);
+        const slideGeom = new THREE.BoxGeometry(0.38, 0.08, 0.18);
+        slideGeom.translate(0.08, 0.16, 0);
+        const mergedGunGeom = BufferGeometryUtils.mergeBufferGeometries([bodyGeom, barrelGeom, slideGeom]);
+        const gunMesh = new THREE.Mesh(mergedGunGeom, gunMat);
+
+        const gripGeom = new THREE.BoxGeometry(0.16, 0.26, 0.12);
+        gripGeom.translate(-0.08, -0.14, 0);
+        const gripMesh = new THREE.Mesh(gripGeom, gripMat);
+
+        const model = new THREE.Group();
+        model.add(gunMesh, gripMesh);
+        model.rotation.y = -Math.PI / 2;
+
+        weaponResources.geometries[key] = model;
+        group.add(model.clone());
+    }
+
+    _createRifleMesh(group) {
+        const key = 'rifle_model';
+        if (weaponResources.geometries[key]) {
+            const cachedModel = weaponResources.geometries[key].clone();
+            group.add(cachedModel);
+            return;
+        }
+
+        const gunMat = getCachedMaterial('rifle_gun', () => new THREE.MeshStandardMaterial({ color: 0x4a4a4a, roughness: 0.45, flatShading: true }));
+        const stockMat = getCachedMaterial('rifle_stock', () => new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.7, flatShading: true }));
+
+        const bodyGeom = new THREE.BoxGeometry(0.9, 0.16, 0.14);
+        bodyGeom.translate(0.1, 0.06, 0);
+        const barrelGeom = new THREE.BoxGeometry(1.0, 0.08, 0.08);
+        barrelGeom.translate(0.65, 0.06, 0);
+        const magGeom = new THREE.BoxGeometry(0.12, 0.24, 0.1);
+        magGeom.translate(0.12, -0.1, 0);
+        const sightGeom = new THREE.BoxGeometry(0.18, 0.06, 0.1);
+        sightGeom.translate(0.05, 0.18, 0);
+        const mergedGunGeom = BufferGeometryUtils.mergeBufferGeometries([bodyGeom, barrelGeom, magGeom, sightGeom]);
+        const gunMesh = new THREE.Mesh(mergedGunGeom, gunMat);
+
+        const stockGeom = new THREE.BoxGeometry(0.4, 0.2, 0.14);
+        stockGeom.translate(-0.35, 0.04, 0);
+        const gripGeom = new THREE.BoxGeometry(0.14, 0.2, 0.12);
+        gripGeom.translate(-0.02, -0.14, 0);
+        const mergedStockGripGeom = BufferGeometryUtils.mergeBufferGeometries([stockGeom, gripGeom]);
+        const stockGripMesh = new THREE.Mesh(mergedStockGripGeom, stockMat);
+
+        const model = new THREE.Group();
+        model.add(gunMesh, stockGripMesh);
+        model.rotation.y = -Math.PI / 2;
+
+        weaponResources.geometries[key] = model;
+        group.add(model.clone());
+    }
+
+    _createShotgunMesh(group) {
+        const key = 'shotgun_model';
+        if (weaponResources.geometries[key]) {
+            const cachedModel = weaponResources.geometries[key].clone();
+            group.add(cachedModel);
+            return;
+        }
+
+        const gunMat = getCachedMaterial('shotgun_gun', () => new THREE.MeshStandardMaterial({ color: 0x4b4b4b, roughness: 0.5, flatShading: true }));
+        const woodMat = getCachedMaterial('shotgun_wood', () => new THREE.MeshStandardMaterial({ color: 0x6b3f1c, roughness: 0.7, flatShading: true }));
+
+        const barrel1Geom = new THREE.BoxGeometry(0.8, 0.08, 0.08);
+        barrel1Geom.translate(0.35, 0.05, 0);
+        const barrel2Geom = new THREE.BoxGeometry(0.8, 0.08, 0.08);
+        barrel2Geom.translate(0.35, -0.05, 0);
+        const bodyGeom = new THREE.BoxGeometry(0.35, 0.16, 0.12);
+        bodyGeom.translate(-0.1, 0, 0);
+        const mergedGunGeom = BufferGeometryUtils.mergeBufferGeometries([barrel1Geom, barrel2Geom, bodyGeom]);
+        const gunMesh = new THREE.Mesh(mergedGunGeom, gunMat);
+
+        const stockGeom = new THREE.BoxGeometry(0.42, 0.16, 0.14);
+        stockGeom.translate(-0.4, 0, 0);
+        const shotgunGripGeom = new THREE.BoxGeometry(0.12, 0.18, 0.1);
+        shotgunGripGeom.translate(-0.18, -0.18, 0);
+        const pumpGeom = new THREE.BoxGeometry(0.26, 0.12, 0.12);
+        pumpGeom.translate(0.2, -0.05, 0);
+        const mergedWoodGeom = BufferGeometryUtils.mergeBufferGeometries([stockGeom, shotgunGripGeom, pumpGeom]);
+        const woodMesh = new THREE.Mesh(mergedWoodGeom, woodMat);
+
+        const model = new THREE.Group();
+        model.add(gunMesh, woodMesh);
+        model.rotation.y = -Math.PI / 2;
+
+        weaponResources.geometries[key] = model;
+        group.add(model.clone());
+    }
+
+    _createFlamethrowerMesh(group) {
+        const key = 'flamethrower_model';
+        if (weaponResources.geometries[key]) {
+            const cachedModel = weaponResources.geometries[key].clone();
+            group.add(cachedModel);
+            return;
+        }
+
+        const metalMat = getCachedMaterial('flamethrower_metal', () => new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.5, flatShading: true }));
+        const tankMat = getCachedMaterial('flamethrower_tank', () => new THREE.MeshStandardMaterial({ color: 0x8e9aa2, roughness: 0.4, flatShading: true }));
+
+        const bodyGeom = new THREE.BoxGeometry(0.6, 0.22, 0.22);
+        bodyGeom.translate(0, 0, 0);
+        const nozzleGeom = new THREE.CylinderGeometry(0.06, 0.06, 0.5, 8);
+        nozzleGeom.rotateZ(Math.PI / 2);
+        nozzleGeom.translate(0.45, 0.02, 0);
+        const flameGripGeom = new THREE.BoxGeometry(0.12, 0.2, 0.12);
+        flameGripGeom.translate(-0.05, -0.2, 0);
+        const mergedMetalGeom = BufferGeometryUtils.mergeBufferGeometries([bodyGeom, nozzleGeom, flameGripGeom]);
+        const metalMesh = new THREE.Mesh(mergedMetalGeom, metalMat);
+
+        const tankGeom = new THREE.CylinderGeometry(0.12, 0.12, 0.4, 8);
+        tankGeom.translate(-0.35, -0.12, 0);
+        const tankMesh = new THREE.Mesh(tankGeom, tankMat);
+
+        const model = new THREE.Group();
+        model.add(metalMesh, tankMesh);
+        model.rotation.y = -Math.PI / 2;
+
+        weaponResources.geometries[key] = model;
+        group.add(model.clone());
+    }
+
     createMesh() {
         const group = new THREE.Group();
 
@@ -161,269 +441,27 @@ export class Weapon {
                 break;
 
             case 'bow': {
-                const limbMat = new THREE.MeshStandardMaterial({
-                    color: 0x7a4a20,
-                    roughness: 0.6,
-                    flatShading: true
-                });
-                const gripMat = new THREE.MeshStandardMaterial({
-                    color: 0x2d1b12,
-                    roughness: 0.75,
-                    flatShading: true
-                });
-                const tipMat = new THREE.MeshStandardMaterial({
-                    color: 0x8d8d8d,
-                    metalness: 0.45,
-                    roughness: 0.45,
-                    flatShading: true
-                });
-
-                const limbSegments = [
-                    { x: -0.16, y: 0.82, w: 0.12, h: 0.28, r: 0.48 },
-                    { x: -0.02, y: 0.5, w: 0.12, h: 0.27, r: 0.28 },
-                    { x: 0.06, y: 0.18, w: 0.11, h: 0.24, r: 0.12 },
-                    { x: 0.06, y: -0.18, w: 0.11, h: 0.24, r: -0.12 },
-                    { x: -0.02, y: -0.5, w: 0.12, h: 0.27, r: -0.28 },
-                    { x: -0.16, y: -0.82, w: 0.12, h: 0.28, r: -0.48 }
-                ];
-
-                for (const seg of limbSegments) {
-                    const limb = new THREE.Mesh(new THREE.BoxGeometry(seg.w, seg.h, 0.09), limbMat);
-                    limb.position.set(seg.x, seg.y, 0);
-                    limb.rotation.z = seg.r;
-                    group.add(limb);
-                }
-
-                const grip = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.56, 0.11), gripMat);
-                grip.position.set(0.01, 0, 0);
-                group.add(grip);
-
-                const rest = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.06, 0.06), gripMat);
-                rest.position.set(0.12, 0.05, 0);
-                group.add(rest);
-
-                const tipTop = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.12, 0.07), tipMat);
-                tipTop.position.set(-0.21, 1.0, 0);
-                group.add(tipTop);
-                const tipBottom = tipTop.clone();
-                tipBottom.position.set(-0.21, -1.0, 0);
-                group.add(tipBottom);
-
-                const stringMat = new THREE.LineBasicMaterial({ color: 0x111111 });
-                const string = new THREE.Line(
-                    new THREE.BufferGeometry().setFromPoints([
-                        new THREE.Vector3(-0.21, 1.0, 0),
-                        new THREE.Vector3(0.14, 0, 0),
-                        new THREE.Vector3(-0.21, -1.0, 0)
-                    ]),
-                    stringMat
-                );
-                group.add(string);
-                group.scale.setScalar(0.82);
+                this._createBowMesh(group);
                 break;
             }
 
             case 'laser':
-                const model = new THREE.Group();
-                const bodyMat = new THREE.MeshStandardMaterial({
-                    color: 0x2b2b2b,
-                    metalness: 0.7,
-                    roughness: 0.35,
-                    flatShading: true
-                });
-                const accentMat = new THREE.MeshStandardMaterial({
-                    color: this.laserColor,
-                    emissive: this.laserColor,
-                    emissiveIntensity: 0.65,
-                    roughness: 0.2,
-                    flatShading: true
-                });
-                const laserGripMat = new THREE.MeshStandardMaterial({
-                    color: 0x1c1c1c,
-                    metalness: 0.4,
-                    roughness: 0.6,
-                    flatShading: true
-                });
-
-                const body = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.62, 0.2, 0.2),
-                    bodyMat
-                );
-                body.position.set(0, 0.03, 0);
-                model.add(body);
-
-                const barrel = new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.06, 0.08, 0.5, 8),
-                    bodyMat
-                );
-                barrel.rotation.z = Math.PI / 2;
-                barrel.position.set(0.38, 0.05, 0);
-                model.add(barrel);
-
-                const muzzle = new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.09, 0.09, 0.06, 8),
-                    accentMat
-                );
-                muzzle.rotation.z = Math.PI / 2;
-                muzzle.position.set(0.63, 0.05, 0);
-                model.add(muzzle);
-
-                const laserGrip = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.14, 0.26, 0.12),
-                    laserGripMat
-                );
-                laserGrip.position.set(-0.1, -0.18, 0);
-                model.add(laserGrip);
-
-                const stock = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.22, 0.16, 0.16),
-                    bodyMat
-                );
-                stock.position.set(-0.33, 0.02, 0);
-                model.add(stock);
-
-                const rail = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.42, 0.05, 0.12),
-                    laserGripMat
-                );
-                rail.position.set(0.02, 0.16, 0);
-                model.add(rail);
-
-                const core = new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.035, 0.035, 0.42, 8),
-                    accentMat
-                );
-                core.rotation.z = Math.PI / 2;
-                core.position.set(0.18, 0.06, 0);
-                model.add(core);
-
-                const cell = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.12, 0.18, 0.12),
-                    accentMat
-                );
-                cell.position.set(-0.02, -0.05, 0);
-                model.add(cell);
-
-                model.rotation.y = -Math.PI / 2;
-                group.add(model);
+                this._createLaserMesh(group);
                 break;
             case 'pistol': {
-                const model = new THREE.Group();
-                const gunMat = new THREE.MeshStandardMaterial({ color: 0x3b3b3b, roughness: 0.45, flatShading: true });
-                const gripMat = new THREE.MeshStandardMaterial({ color: 0x2b2b2b, roughness: 0.6, flatShading: true });
-                const body = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.18, 0.16), gunMat);
-                body.position.set(0.05, 0.06, 0);
-                model.add(body);
-                const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.08, 0.08), gunMat);
-                barrel.position.set(0.36, 0.06, 0);
-                model.add(barrel);
-                const slide = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.08, 0.18), gunMat);
-                slide.position.set(0.08, 0.16, 0);
-                model.add(slide);
-                const grip = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.26, 0.12), gripMat);
-                grip.position.set(-0.08, -0.14, 0);
-                model.add(grip);
-                model.rotation.y = -Math.PI / 2;
-                group.add(model);
+                this._createPistolMesh(group);
                 break;
             }
             case 'rifle': {
-                const model = new THREE.Group();
-                const gunMat = new THREE.MeshStandardMaterial({ color: 0x4a4a4a, roughness: 0.45, flatShading: true });
-                const stockMat = new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.7, flatShading: true });
-                const body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.16, 0.14), gunMat);
-                body.position.set(0.1, 0.06, 0);
-                model.add(body);
-                const barrel = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.08, 0.08), gunMat);
-                barrel.position.set(0.65, 0.06, 0);
-                model.add(barrel);
-                const stock = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.2, 0.14), stockMat);
-                stock.position.set(-0.35, 0.04, 0);
-                model.add(stock);
-                const grip = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.2, 0.12), stockMat);
-                grip.position.set(-0.02, -0.14, 0);
-                model.add(grip);
-                const mag = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.24, 0.1), gunMat);
-                mag.position.set(0.12, -0.1, 0);
-                model.add(mag);
-                const sight = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.06, 0.1), gunMat);
-                sight.position.set(0.05, 0.18, 0);
-                model.add(sight);
-                model.rotation.y = -Math.PI / 2;
-                group.add(model);
+                this._createRifleMesh(group);
                 break;
             }
             case 'shotgun': {
-                const model = new THREE.Group();
-                const gunMat = new THREE.MeshStandardMaterial({ color: 0x4b4b4b, roughness: 0.5, flatShading: true });
-                const woodMat = new THREE.MeshStandardMaterial({ color: 0x6b3f1c, roughness: 0.7, flatShading: true });
-                const barrel = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.8, 0.08, 0.08),
-                    gunMat
-                );
-                barrel.position.set(0.35, 0.05, 0);
-                model.add(barrel);
-                const barrel2 = barrel.clone();
-                barrel2.position.y = -0.05;
-                model.add(barrel2);
-                const body = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.35, 0.16, 0.12),
-                    gunMat
-                );
-                body.position.set(-0.1, 0, 0);
-                model.add(body);
-                const stock = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.42, 0.16, 0.14),
-                    woodMat
-                );
-                stock.position.set(-0.4, 0, 0);
-                model.add(stock);
-                const shotgunGrip = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.12, 0.18, 0.1),
-                    woodMat
-                );
-                shotgunGrip.position.set(-0.18, -0.18, 0);
-                model.add(shotgunGrip);
-                const pump = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.26, 0.12, 0.12),
-                    woodMat
-                );
-                pump.position.set(0.2, -0.05, 0);
-                model.add(pump);
-                model.rotation.y = -Math.PI / 2;
-                group.add(model);
+                this._createShotgunMesh(group);
                 break;
             }
             case 'flamethrower': {
-                const metalMat = new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.5, flatShading: true });
-                const tankMat = new THREE.MeshStandardMaterial({ color: 0x8e9aa2, roughness: 0.4, flatShading: true });
-                const model = new THREE.Group();
-                const body = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.6, 0.22, 0.22),
-                    metalMat
-                );
-                model.add(body);
-                const nozzle = new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.06, 0.06, 0.5, 8),
-                    metalMat
-                );
-                nozzle.rotation.z = Math.PI / 2;
-                nozzle.position.set(0.45, 0.02, 0);
-                model.add(nozzle);
-                const tank = new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.12, 0.12, 0.4, 8),
-                    tankMat
-                );
-                tank.position.set(-0.35, -0.12, 0);
-                model.add(tank);
-                const flameGrip = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.12, 0.2, 0.12),
-                    metalMat
-                );
-                flameGrip.position.set(-0.05, -0.2, 0);
-                model.add(flameGrip);
-                model.rotation.y = -Math.PI / 2;
-                group.add(model);
+                this._createFlamethrowerMesh(group);
                 break;
             }
             case 'axe': {

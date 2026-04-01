@@ -1,5 +1,23 @@
-﻿import * as THREE from 'three';
+﻿﻿import * as THREE from 'three';
+import { BufferGeometryUtils } from 'https://cdn.jsdelivr.net/npm/three@0.163.0/examples/jsm/utils/BufferGeometryUtils.js';
 import { Weapon } from './Weapon.js';
+
+// --- ОПТИМИЗАЦИЯ ---
+// Кэшируем геометрии и материалы, чтобы не создавать их для каждого нового сундука.
+// Это значительно снижает нагрузку на CPU и GPU, уменьшая фризы при создании объектов.
+const chestResources = {
+    geometries: {},
+    materials: {}
+};
+
+// Хелпер для получения или создания кэшированного материала
+function getCachedMaterial(name, creator) {
+    if (!chestResources.materials[name]) {
+        chestResources.materials[name] = creator();
+    }
+    return chestResources.materials[name];
+}
+// --- КОНЕЦ ОПТИМИЗАЦИИ ---
 
 export class LootManager {
     constructor(scene, mapGenerator) {
@@ -10,8 +28,9 @@ export class LootManager {
         this.lootDensity = 1;
         this.chestMaterials = this.createChestMaterials();
         this.generateChests();
+        // TODO: Замените вызов выше на: this.generateChestsAsync();
     }
-
+    
     generateChests() {
         const chestCount = Math.max(80, Math.floor(1400 * this.lootDensity));
         const spots = this.mapGenerator.getChestSpots?.() || [];
@@ -60,70 +79,126 @@ export class LootManager {
         }
     }
 
+    // Асинхронная версия generateChests для устранения фризов при старте
+    async generateChestsAsync() {
+        const chestCount = Math.max(80, Math.floor(1400 * this.lootDensity));
+        const spots = this.mapGenerator.getChestSpots?.() || [];
+
+        if (spots.length > 0) {
+            const shuffled = [...spots].sort(() => Math.random() - 0.5);
+            const limit = Math.min(chestCount, shuffled.length);
+
+            for (let i = 0; i < limit; i++) {
+                const spot = shuffled[i];
+                const y = this.mapGenerator.getHeightAt(spot.x, spot.z) + 0.06;
+                if (y < this.mapGenerator.waterLevel + 1) continue;
+                
+                const chest = this.createChest(spot.x, y, spot.z, spot.grade || 'house');
+                this.chests.push(chest);
+
+                // Даем браузеру "продохнуть" каждые 25 сундуков
+                if (i > 0 && i % 25 === 0) {
+                    await new Promise(resolve => requestAnimationFrame(resolve));
+                }
+            }
+            if (this.chests.length > 0) return;
+        }
+
+        const floorTiles = this.mapGenerator.getFloorTiles?.() || [];
+        if (floorTiles.length) {
+            const shuffled = [...floorTiles].sort(() => Math.random() - 0.5);
+            const limit = Math.min(chestCount, shuffled.length);
+            for (let i = 0; i < limit; i++) {
+                const tile = shuffled[i];
+                const y = this.mapGenerator.getHeightAt(tile.x, tile.z) + 0.06;
+                const chest = this.createChest(tile.x, y, tile.z);
+                this.chests.push(chest);
+                if (i > 0 && i % 25 === 0) {
+                    await new Promise(resolve => requestAnimationFrame(resolve));
+                }
+            }
+            return;
+        }
+
+        for (let i = 0; i < chestCount; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 40 + Math.random() * 150;
+            const x = Math.cos(angle) * distance;
+            const z = Math.sin(angle) * distance;
+            const y = this.mapGenerator.getHeightAt(x, z) + 0.06;
+
+            if (y < this.mapGenerator.waterLevel + 1) {
+                i--;
+                continue;
+            }
+
+            const chest = this.createChest(x, y, z);
+            this.chests.push(chest);
+            if (i > 0 && i % 25 === 0) {
+                await new Promise(resolve => requestAnimationFrame(resolve));
+            }
+        }
+    }
+
     createChest(x, y, z, grade = 'house') {
         const group = new THREE.Group();
         const { bodyMat, lidMat, bandMat, metalMat } = this.chestMaterials;
 
-        const body = new THREE.Mesh(
-            new THREE.BoxGeometry(1.2, 0.7, 0.9),
-            bodyMat
-        );
-        body.position.y = 0.35;
-        body.castShadow = true;
-        group.add(body);
+        // --- ОПТИМИЗАЦИЯ ---
+        const key = 'chest_model';
+        let chestModel;
+        let lidMesh; // Нужно сохранить ссылку на крышку для анимации
 
-        const lid = new THREE.Mesh(
-            new THREE.BoxGeometry(1.2, 0.18, 0.92),
-            lidMat
-        );
-        lid.position.y = 0.72;
-        lid.castShadow = true;
-        group.add(lid);
+        if (chestResources.geometries[key]) {
+            chestModel = chestResources.geometries[key].clone();
+            // Находим крышку в клонированной модели
+            lidMesh = chestModel.children.find(child => child.name === 'chest_lid');
+        } else {
+            // Создаем геометрии
+            const bodyGeom = new THREE.BoxGeometry(1.2, 0.7, 0.9);
+            bodyGeom.translate(0, 0.35, 0);
 
-        const band = new THREE.Mesh(
-            new THREE.BoxGeometry(1.28, 0.08, 0.98),
-            bandMat
-        );
-        band.position.y = 0.48;
-        group.add(band);
+            const lidGeom = new THREE.BoxGeometry(1.2, 0.18, 0.92);
+            lidGeom.translate(0, 0.72, 0);
 
-        const band2 = new THREE.Mesh(
-            new THREE.BoxGeometry(1.28, 0.08, 0.98),
-            bandMat
-        );
-        band2.position.y = 0.18;
-        group.add(band2);
+            const bandGeom1 = new THREE.BoxGeometry(1.28, 0.08, 0.98);
+            bandGeom1.translate(0, 0.48, 0);
+            const bandGeom2 = new THREE.BoxGeometry(1.28, 0.08, 0.98);
+            bandGeom2.translate(0, 0.18, 0);
+            const rimGeom = new THREE.BoxGeometry(1.32, 0.06, 1.02);
+            rimGeom.translate(0, 0.76, 0);
+            const mergedBandGeom = BufferGeometryUtils.mergeBufferGeometries([bandGeom1, bandGeom2, rimGeom]);
 
-        const rimGeo = new THREE.BoxGeometry(1.32, 0.06, 1.02);
-        const rimTop = new THREE.Mesh(rimGeo, bandMat);
-        rimTop.position.y = 0.76;
-        group.add(rimTop);
+            const latchGeom = new THREE.BoxGeometry(0.18, 0.18, 0.06);
+            latchGeom.translate(0, 0.46, 0.48);
+            const latchPlateGeom = new THREE.BoxGeometry(0.28, 0.12, 0.04);
+            latchPlateGeom.translate(0, 0.32, 0.48);
+            const cornerOffsets = [
+                [0.56, 0.06, 0.41], [-0.56, 0.06, 0.41],
+                [0.56, 0.06, -0.41], [-0.56, 0.06, -0.41],
+                [0.56, 0.62, 0.41], [-0.56, 0.62, 0.41],
+                [0.56, 0.62, -0.41], [-0.56, 0.62, -0.41]
+            ];
+            const cornerGeom = new THREE.BoxGeometry(0.12, 0.12, 0.08);
+            const cornerGeometries = cornerOffsets.map(([ox, oy, oz]) => {
+                const g = cornerGeom.clone();
+                g.translate(ox, oy, oz);
+                return g;
+            });
+            const mergedMetalGeom = BufferGeometryUtils.mergeBufferGeometries([latchGeom, latchPlateGeom, ...cornerGeometries]);
 
-        const latch = new THREE.Mesh(
-            new THREE.BoxGeometry(0.18, 0.18, 0.06),
-            metalMat
-        );
-        latch.position.set(0, 0.46, 0.48);
-        group.add(latch);
+            // Создаем меши
+            const bodyMesh = new THREE.Mesh(bodyGeom, bodyMat);
+            bodyMesh.castShadow = true;
+            lidMesh = new THREE.Mesh(lidGeom, lidMat);
+            lidMesh.name = 'chest_lid'; // Присваиваем имя для легкого поиска
+            lidMesh.castShadow = true;
+            const bandMesh = new THREE.Mesh(mergedBandGeom, bandMat);
+            const metalMesh = new THREE.Mesh(mergedMetalGeom, metalMat);
 
-        const latchPlate = new THREE.Mesh(
-            new THREE.BoxGeometry(0.28, 0.12, 0.04),
-            metalMat
-        );
-        latchPlate.position.set(0, 0.32, 0.48);
-        group.add(latchPlate);
-
-        const cornerGeo = new THREE.BoxGeometry(0.12, 0.12, 0.08);
-        const cornerOffsets = [
-            [0.56, 0.06, 0.41], [-0.56, 0.06, 0.41],
-            [0.56, 0.06, -0.41], [-0.56, 0.06, -0.41],
-            [0.56, 0.62, 0.41], [-0.56, 0.62, 0.41],
-            [0.56, 0.62, -0.41], [-0.56, 0.62, -0.41]
-        ];
-        for (const [ox, oy, oz] of cornerOffsets) {
-            const corner = new THREE.Mesh(cornerGeo, metalMat);
-            corner.position.set(ox, oy, oz);
-            group.add(corner);
+            chestModel = new THREE.Group();
+            chestModel.add(bodyMesh, lidMesh, bandMesh, metalMesh);
+            chestResources.geometries[key] = chestModel; // Кэшируем
         }
 
         const glow = new THREE.Mesh(
@@ -136,18 +211,18 @@ export class LootManager {
             })
         );
         glow.position.y = 1.2;
-        group.add(glow);
+        chestModel.add(glow);
 
-        group.position.set(x, y, z);
-        group.userData.isChest = true;
-        group.userData.isOpen = false;
-        group.userData.grade = grade;
-        group.userData.loot = this.generateLoot(grade === 'hangar');
-        group.userData.glow = glow;
-        group.userData.lid = lid;
+        chestModel.position.set(x, y, z);
+        chestModel.userData.isChest = true;
+        chestModel.userData.isOpen = false;
+        chestModel.userData.grade = grade;
+        chestModel.userData.loot = this.generateLoot(grade === 'hangar');
+        chestModel.userData.glow = glow;
+        chestModel.userData.lid = lidMesh; // Сохраняем ссылку на крышку
 
-        this.scene.add(group);
-        return group;
+        this.scene.add(chestModel);
+        return chestModel;
     }
 
     createChestMaterials() {
