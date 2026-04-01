@@ -384,8 +384,8 @@ class Game {
                 const pad = botPads[padIndex];
                 const padTop = pad.y;
                 const angleBase = (padIndex / Math.max(1, botPads.length)) * Math.PI * 2;
-                const angle = angleBase + cycle * (Math.PI / 2);
-                const radius = cycle === 0 ? 0 : 0.95 + (cycle - 1) * 0.42;
+                const angle = angleBase + cycle * (Math.PI / 3);
+                const radius = cycle === 0 ? 0 : 0.62 + (cycle - 1) * 0.34;
                 const offsetX = Math.cos(angle) * radius;
                 const offsetZ = Math.sin(angle) * radius;
                 spawnPos = new THREE.Vector3(pad.x + offsetX, padTop + 1.9, pad.z + offsetZ);
@@ -401,6 +401,9 @@ class Game {
             const bot = new Bot(this.scene, i, spawnPos);
             bot.mapRef = this.map;
             bot.physics.onGround = true;
+            bot.state = 'spawn';
+            bot.target = null;
+            bot.patrolTarget = null;
             this.physics.addEntity(bot);
             this.entityManager.addEntity(bot);
             this.bots.push(bot);
@@ -931,12 +934,20 @@ class Game {
             this.spawnTimer -= delta;
             this.player.isFrozen = false;
             this.bots.forEach(bot => { bot.isFrozen = false; });
-            const exitPos = this.map.getCourtyardExitPosition?.();
-            if (exitPos) {
-                for (const bot of this.bots) {
-                    if (this.map.isInsideCourtyard(bot.position)) {
-                        bot.moveTowards(exitPos, bot.physics.speed * 1.25);
-                    }
+            for (let i = 0; i < this.bots.length; i++) {
+                const bot = this.bots[i];
+                bot.target = null;
+                bot.assistTarget = null;
+                bot.allies = [];
+                bot.state = 'spawn';
+                if (!bot.patrolTarget) {
+                    const angle = (i / Math.max(1, this.bots.length)) * Math.PI * 2;
+                    const distance = this.zone.getCurrentRadius() * 0.32 + (i % 5) * 3.5;
+                    bot.patrolTarget = new THREE.Vector3(
+                        Math.cos(angle) * distance,
+                        0,
+                        Math.sin(angle) * distance
+                    );
                 }
             }
 

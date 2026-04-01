@@ -501,11 +501,11 @@ export class MapGenerator {
         const padMat = new THREE.MeshStandardMaterial({ color: 0xb0bec5, roughness: 0.8, flatShading: true });
         const padGeo = new THREE.BoxGeometry(2.2, 0.3, 2.2);
         const pads = [];
-        const radius = 8;
+        const radius = 11;
         const cx = this.playerSpawn.x;
         const cy = this.playerSpawn.y;
-        for (let i = 0; i < 32; i++) {
-            const angle = (i / 32) * Math.PI * 2;
+        for (let i = 0; i < 64; i++) {
+            const angle = (i / 64) * Math.PI * 2;
             let x = cx + Math.round(Math.cos(angle) * radius);
             let y = cy + Math.round(Math.sin(angle) * radius);
             const safe = this.findNearestFloor(x, y, 3);
@@ -648,6 +648,27 @@ export class MapGenerator {
             piece.position.set(seg.x, seg.y, seg.z);
             piece.userData.mapGenerated = true;
             hornRoot.add(piece);
+        }
+
+        for (let i = 0; i < bodySegments.length - 1; i++) {
+            const a = bodySegments[i];
+            const b = bodySegments[i + 1];
+            const mid = new THREE.Mesh(
+                new THREE.CylinderGeometry(
+                    Math.min(a.sy, b.sy) * 0.9,
+                    Math.max(a.sy, b.sy) * 1.02,
+                    Math.max(1.55, Math.hypot(b.x - a.x, b.y - a.y) + 0.45),
+                    10,
+                    1,
+                    true
+                ),
+                goldMat
+            );
+            mid.position.set((a.x + b.x) * 0.5, (a.y + b.y) * 0.5, 0);
+            mid.rotation.z = Math.PI / 2 + Math.atan2(b.y - a.y, b.x - a.x);
+            mid.scale.z = ((a.sz || 1) + (b.sz || 1)) * 0.28;
+            mid.userData.mapGenerated = true;
+            hornRoot.add(mid);
         }
 
         const mouthOuter = new THREE.Mesh(new THREE.TorusGeometry(2.55, 0.36, 10, 26), goldMat);
