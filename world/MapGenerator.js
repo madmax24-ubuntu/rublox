@@ -535,6 +535,7 @@ export class MapGenerator {
 
     buildCornucopia() {
         if (!this.playerSpawn) return;
+        const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
         const spawnWorld = this.getSpawnWorld();
         const baseY = this.getHeightAt(spawnWorld.x, spawnWorld.z);
         const group = new THREE.Group();
@@ -596,20 +597,21 @@ export class MapGenerator {
         group.add(podium);
         this.addColliderBox(podium.position.clone(), 12.4, 1.1, 12.4, true);
 
-        const plazaRing = new THREE.Mesh(new THREE.RingGeometry(8.6, 15.2, 24), accentMat);
+        const plazaRing = new THREE.Mesh(new THREE.RingGeometry(8.6, 15.2, isMobile ? 16 : 24), accentMat);
         plazaRing.rotation.x = -Math.PI / 2;
         plazaRing.position.set(spawnWorld.x, baseY + 0.08, spawnWorld.z);
         plazaRing.userData.mapGenerated = true;
         group.add(plazaRing);
 
-        const plazaCore = new THREE.Mesh(new THREE.CircleGeometry(8.1, 18), stoneMat);
+        const plazaCore = new THREE.Mesh(new THREE.CircleGeometry(8.1, isMobile ? 12 : 18), stoneMat);
         plazaCore.rotation.x = -Math.PI / 2;
         plazaCore.position.set(spawnWorld.x, baseY + 0.09, spawnWorld.z);
         plazaCore.userData.mapGenerated = true;
         group.add(plazaCore);
 
-        for (let i = 0; i < 8; i++) {
-            const angle = (i / 8) * Math.PI * 2 + Math.PI / 8;
+        for (let i = 0; i < (isMobile ? 4 : 8); i++) {
+            const count = isMobile ? 4 : 8;
+            const angle = (i / count) * Math.PI * 2 + Math.PI / count;
             const spoke = new THREE.Mesh(new THREE.BoxGeometry(6.8, 0.14, 1.1), accentMat);
             spoke.position.set(
                 spawnWorld.x + Math.cos(angle) * 10.6,
@@ -626,7 +628,12 @@ export class MapGenerator {
         hornRoot.rotation.y = -0.22;
         group.add(hornRoot);
 
-        const bodySegments = [
+        const bodySegments = isMobile ? [
+            { x: -4.1, y: 0.86, z: 0, sx: 3.35, sy: 2.7, sz: 2.8, rz: -0.24 },
+            { x: -1.85, y: 1.5, z: 0, sx: 2.62, sy: 2.0, sz: 2.15, rz: -0.08 },
+            { x: 0.55, y: 2.55, z: 0, sx: 1.72, sy: 1.28, sz: 1.42, rz: 0.16 },
+            { x: 2.35, y: 3.72, z: 0, sx: 1.02, sy: 0.82, sz: 0.95, rz: 0.36 }
+        ] : [
             { x: -4.45, y: 0.78, z: 0, sx: 3.55, sy: 2.95, sz: 3.05, rz: -0.26 },
             { x: -2.25, y: 1.32, z: 0, sx: 3.0, sy: 2.32, sz: 2.5, rz: -0.16 },
             { x: -0.1, y: 1.96, z: 0, sx: 2.34, sy: 1.84, sz: 1.98, rz: -0.02 },
@@ -671,7 +678,14 @@ export class MapGenerator {
         supportB.rotation.z = 0.12;
         hornRoot.add(supportB);
 
-        const cacheOffsets = [
+        const cacheOffsets = isMobile ? [
+            [-3.2, 0.62, -3.0, 1.2, 0.9, 1.15],
+            [3.15, 0.62, -2.9, 1.25, 0.9, 1.1],
+            [-3.35, 0.62, 2.8, 1.05, 0.82, 1.25],
+            [3.45, 0.62, 2.95, 1.15, 0.92, 1.15],
+            [0.0, 0.62, -4.25, 1.35, 0.9, 1.1],
+            [0.75, 0.62, 3.9, 1.2, 0.84, 1.2]
+        ] : [
             [-3.6, 0.62, -3.2, 1.2, 0.9, 1.15],
             [3.4, 0.62, -3.05, 1.25, 0.9, 1.1],
             [-3.65, 0.62, 2.95, 1.05, 0.82, 1.25],
@@ -698,7 +712,12 @@ export class MapGenerator {
             this.addColliderBox(crate.position.clone(), sx, sy, sz, false);
         }
 
-        const spillOffsets = [
+        const spillOffsets = isMobile ? [
+            [-2.2, 0.44, -0.8, 0.42, 0.22, 0.72, 0.4],
+            [1.7, 0.44, -1.0, 0.22, 0.18, 0.8, 0.5],
+            [2.05, 0.44, 0.92, 0.68, 0.18, 0.2, 0.15],
+            [-1.15, 0.44, 1.55, 0.2, 0.18, 0.78, 0.32]
+        ] : [
             [-2.8, 0.44, -1.1, 0.42, 0.22, 0.72, 0.4],
             [-2.1, 0.44, -0.35, 0.72, 0.18, 0.18, -0.2],
             [1.9, 0.44, -1.2, 0.22, 0.18, 0.8, 0.5],
@@ -977,9 +996,9 @@ export class MapGenerator {
         const baseY = this.getHeightAt(position.x, position.z);
         const wallY = baseY + height / 2;
 
-        const floorThickness = isMassiveHangar ? 0.24 : 0.2;
+        const floorThickness = isMassiveHangar ? 0.24 : 0.18;
         const floor = new THREE.Mesh(new THREE.BoxGeometry(width * 0.96, floorThickness, depth * 0.96), floorMat);
-        floor.position.set(position.x, baseY + 0.41 + floorThickness * 0.5, position.z);
+        floor.position.set(position.x, baseY + 0.18 + floorThickness * 0.5, position.z);
         floor.userData.mapGenerated = true;
         group.add(floor);
         this.addColliderBox(floor.position.clone(), width * 0.96, floorThickness, depth * 0.96, true);
@@ -1054,6 +1073,22 @@ export class MapGenerator {
         frontRight.userData.mapGenerated = true;
         group.add(frontRight);
         this.addColliderBox(frontRight.position.clone(), frontSegmentWidth + 0.12, height, wallThickness + 0.25, false);
+
+        const rampLength = isMassiveHangar ? 3.8 : 2.2;
+        const ramp = new THREE.Mesh(
+            new THREE.BoxGeometry(Math.max(doorWidth * 0.86, 2.8), 0.18, rampLength),
+            floorMat
+        );
+        ramp.position.set(
+            position.x,
+            baseY + 0.12,
+            position.z + depth * 0.5 + rampLength * 0.28
+        );
+        ramp.rotation.x = -0.12;
+        ramp.userData.mapGenerated = true;
+        group.add(ramp);
+        this.addColliderBox(ramp.position.clone(), Math.max(doorWidth * 0.82, 2.6), 0.24, rampLength, true);
+
         if (isMassiveHangar) {
             const lintelHeight = Math.max(2.8, height * 0.28);
             const lintel = new THREE.Mesh(
@@ -1898,19 +1933,22 @@ export class MapGenerator {
             roof.userData.mapGenerated = true;
             group.add(roof);
 
-            const ladderX = x + 3.1;
-            for (let s = 0; s < 10; s++) {
-                const step = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.16, 0.3), woodMat);
-                step.position.set(ladderX, baseY + 1.1 + s * 0.95, z);
+            const ladderX = x + 5.25;
+            const ladderZ = z - 0.9;
+            const startY = baseY + 0.7;
+            for (let s = 0; s < 11; s++) {
+                const step = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.18, 0.55), woodMat);
+                step.position.set(ladderX - s * 0.18, startY + s * 0.9, ladderZ);
                 step.userData.mapGenerated = true;
+                step.rotation.z = -0.12;
                 group.add(step);
-                this.addColliderBox(step.position.clone(), 0.9, 0.16, 0.3, true);
+                this.addColliderBox(step.position.clone(), 1.3, 0.22, 0.55, true);
             }
-            const railLeft = new THREE.Mesh(new THREE.BoxGeometry(0.18, 9.6, 0.18), trunkMat);
-            railLeft.position.set(ladderX - 0.38, baseY + 5.8, z);
+            const railLeft = new THREE.Mesh(new THREE.BoxGeometry(0.18, 10.2, 0.18), trunkMat);
+            railLeft.position.set(ladderX - 0.72, baseY + 5.8, ladderZ);
             railLeft.userData.mapGenerated = true;
             const railRight = railLeft.clone();
-            railRight.position.x = ladderX + 0.38;
+            railRight.position.x = ladderX + 0.42;
             group.add(railLeft, railRight);
 
             const canopy = new THREE.Mesh(new THREE.BoxGeometry(11.5, 5.4, 11.5), leafMat);

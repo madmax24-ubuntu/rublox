@@ -724,6 +724,28 @@ class Game {
         return this.map?.isShelteredFromRain?.(position) || false;
     }
 
+    getNearestShelterTarget(position) {
+        const houses = this.map?.getHouseSpots?.() || [];
+        const hangars = this.map?.getHangarSpots?.() || [];
+        const structures = [...houses.map(s => ({ ...s, type: 'house' })), ...hangars.map(s => ({ ...s, type: 'hangar' }))];
+        if (!structures.length) return null;
+        let best = null;
+        let bestScore = Infinity;
+        for (const s of structures) {
+            const approach = new THREE.Vector3(
+                s.x,
+                this.map.getHeightAt(s.x, s.z) + 0.2,
+                s.z + (s.depth || (s.type === 'hangar' ? 18 : 8)) * 0.34
+            );
+            const dist = position.distanceTo(approach);
+            if (dist < bestScore) {
+                bestScore = dist;
+                best = approach;
+            }
+        }
+        return best;
+    }
+
     startZoneCycle() {
         this.zonePhase = 'waiting';
         this.zonePhaseTimer = 28;
@@ -965,7 +987,7 @@ class Game {
                 this.player.takeDamage(damage, false, null, 0, 'zone');
             }
             if (this.activeEvent?.type === 'radiationRain' && !this.isShelteredFromRadiation(this.player.position)) {
-                this.player.takeDamage(5.2 * delta, false, null, 0, 'storm');
+                this.player.takeDamage(3.2 * delta, false, null, 0, 'storm');
             }
 
             const distanceFromZone = this.zone.getDistanceFromZone(this.player.position);
@@ -1114,8 +1136,17 @@ class Game {
             }
             if (this.activeEvent?.type === 'radiationRain') {
                 for (const bot of this.bots) {
-                    if (!bot.isAlive || this.isShelteredFromRadiation(bot.position)) continue;
-                    bot.takeDamage(4.2 * delta, false, null, 0, 'storm');
+                    if (!bot.isAlive) continue;
+                    if (!this.isShelteredFromRadiation(bot.position)) {
+                        const shelter = this.getNearestShelterTarget(bot.position);
+                        if (shelter) {
+                            bot.target = null;
+                            bot.assistTarget = null;
+                            bot.patrolTarget = shelter.clone();
+                            bot.state = 'retreat';
+                        }
+                        bot.takeDamage(1.45 * delta, false, null, 0, 'storm');
+                    }
                 }
             }
         }
