@@ -83,7 +83,7 @@ export class BotBrain {
         // 1. Р’РѕСЃРїСЂРёСЏС‚РёРµ
         if (this.perceptionCooldown <= 0) {
             this.updatePerception(bot, entityManager, lootManager);
-            this.perceptionCooldown = Math.max(0.16, 0.34 - this.personality.intelligence * 0.12);
+            this.perceptionCooldown = Math.max(0.22, 0.46 - this.personality.intelligence * 0.14);
         }
         
         // 2. РћС†РµРЅРєР° СѓРіСЂРѕР·С‹
@@ -92,7 +92,7 @@ export class BotBrain {
         // 3. UtilityAI выбирает ключевое действие
         if (this.decisionCooldown <= 0) {
             this.makeSmartDecision(bot, entityManager, lootManager, threatLevel);
-            this.decisionCooldown = Math.max(0.08, 0.2 - this.personality.intelligence * 0.1);
+            this.decisionCooldown = Math.max(0.14, 0.32 - this.personality.intelligence * 0.14);
         }
 
         if (this.prefersTrainCombat) {

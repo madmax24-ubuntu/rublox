@@ -245,6 +245,9 @@ class Game {
         this.bots = [];
         this.botBrains = [];
         this.zombies = [];
+        this.zombieUpdateIndex = 0;
+        this.botHazardCursor = 0;
+        this.trapBotCursor = 0;
         this.spawnBots();
         this.gateClosed = false;
         this.nightNotified = false;
@@ -1138,39 +1141,57 @@ class Game {
         }
         this.botUpdateIndex = (this.botUpdateIndex + botsPerFrame) % this.bots.length;
         if (this.gameState === 'playing') {
-            for (const bot of this.bots) {
-                if (!bot.isAlive || this.zone.isInsideZone(bot.position)) continue;
-                const damage = this.zone.getDamage(delta, bot.position);
-                bot.takeDamage(damage, false, null, 0, 'zone');
-                const safePoint = this.getSafeZoneTarget(bot.position);
-                bot.target = null;
-                bot.assistTarget = null;
-                const outside = this.zone.getDistanceFromZone(bot.position);
-                if (outside > 10) {
-                    bot.position.lerp(safePoint, 0.18);
-                }
-            }
-            if (this.activeEvent?.type === 'radiationRain') {
-                for (const bot of this.bots) {
-                    if (!bot.isAlive) continue;
-                    if (!this.isShelteredFromRadiation(bot.position)) {
-                        const shelter = this.getNearestShelterTarget(bot.position);
-                        if (shelter) {
-                            bot.target = null;
-                            bot.assistTarget = null;
-                            bot.patrolTarget = shelter.clone();
-                            bot.state = 'retreat';
-                        }
-                        bot.takeDamage(1.45 * delta, false, null, 0, 'storm');
+            const hazardBatch = Math.max(
+                this.isMobile() ? 10 : 16,
+                Math.min(this.bots.length, Math.ceil(this.bots.length * (this.isMobile() ? 0.35 : 0.5)))
+            );
+            const hazardScale = this.bots.length > 0 ? (this.bots.length / hazardBatch) : 1;
+            for (let i = 0; i < hazardBatch && i < this.bots.length; i++) {
+                const botIndex = (this.botHazardCursor + i) % this.bots.length;
+                const bot = this.bots[botIndex];
+                if (!bot.isAlive) continue;
+                if (!this.zone.isInsideZone(bot.position)) {
+                    const damage = this.zone.getDamage(delta * hazardScale, bot.position);
+                    bot.takeDamage(damage, false, null, 0, 'zone');
+                    const safePoint = this.getSafeZoneTarget(bot.position);
+                    bot.target = null;
+                    bot.assistTarget = null;
+                    const outside = this.zone.getDistanceFromZone(bot.position);
+                    if (outside > 10) {
+                        bot.position.lerp(safePoint, 0.18);
                     }
                 }
+                if (this.activeEvent?.type === 'radiationRain' && !this.isShelteredFromRadiation(bot.position)) {
+                    const shelter = this.getNearestShelterTarget(bot.position);
+                    if (shelter) {
+                        bot.target = null;
+                        bot.assistTarget = null;
+                        bot.patrolTarget = shelter.clone();
+                        bot.state = 'retreat';
+                    }
+                    bot.takeDamage(1.45 * delta * hazardScale, false, null, 0, 'storm');
+                }
+            }
+            if (this.bots.length > 0) {
+                this.botHazardCursor = (this.botHazardCursor + hazardBatch) % this.bots.length;
             }
         }
 
-        for (const zombie of this.zombies) {
-            if (zombie.isAlive) {
-                zombie.update(delta, this.entityManager, this.audioSynth);
+        const zombieCount = this.zombies.length;
+        const zombiesPerFrame = Math.max(
+            this.isMobile() ? 16 : 24,
+            Math.min(zombieCount, Math.ceil(zombieCount * (this.isMobile() ? 0.45 : 0.65)))
+        );
+        const zombieDeltaScale = zombieCount > 0 ? (zombieCount / zombiesPerFrame) : 1;
+        for (let i = 0; i < zombiesPerFrame && i < zombieCount; i++) {
+            const zIndex = (this.zombieUpdateIndex + i) % zombieCount;
+            const zombie = this.zombies[zIndex];
+            if (zombie?.isAlive) {
+                zombie.update(delta * zombieDeltaScale, this.entityManager, this.audioSynth);
             }
+        }
+        if (zombieCount > 0) {
+            this.zombieUpdateIndex = (this.zombieUpdateIndex + zombiesPerFrame) % zombieCount;
         }
 
         const aliveCountBeforeHazards = this.entityManager.update(delta, this.physics, this.audioSynth);
@@ -1202,8 +1223,16 @@ class Game {
                 }
             };
             applyTrap(this.player);
-            for (const bot of this.bots) {
-                applyTrap(bot);
+            const trapBatch = Math.max(
+                this.isMobile() ? 10 : 16,
+                Math.min(this.bots.length, Math.ceil(this.bots.length * (this.isMobile() ? 0.35 : 0.5)))
+            );
+            for (let i = 0; i < trapBatch && i < this.bots.length; i++) {
+                const botIndex = (this.trapBotCursor + i) % this.bots.length;
+                applyTrap(this.bots[botIndex]);
+            }
+            if (this.bots.length > 0) {
+                this.trapBotCursor = (this.trapBotCursor + trapBatch) % this.bots.length;
             }
         }
 
