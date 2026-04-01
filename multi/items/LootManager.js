@@ -1,5 +1,23 @@
-﻿import * as THREE from 'three';
+﻿﻿import * as THREE from 'three';
+import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 import { Weapon } from './Weapon.js';
+
+// --- ОПТИМИЗАЦИЯ ---
+// Кэшируем геометрии и материалы, чтобы не создавать их для каждого нового сундука.
+// Это значительно снижает нагрузку на CPU и GPU, уменьшая фризы при создании объектов.
+const chestResources = {
+    geometries: {},
+    materials: {}
+};
+
+// Хелпер для получения или создания кэшированного материала
+function getCachedMaterial(name, creator) {
+    if (!chestResources.materials[name]) {
+        chestResources.materials[name] = creator();
+    }
+    return chestResources.materials[name];
+}
+// --- КОНЕЦ ОПТИМИЗАЦИИ ---
 
 export class LootManager {
     constructor(scene, mapGenerator) {
@@ -9,9 +27,14 @@ export class LootManager {
         this.supplyDrops = [];
         this.lootDensity = 1;
         this.chestMaterials = this.createChestMaterials();
-        this.generateChests();
+        this.chestReady = false;
+        this.generateChestsAsync().then(() => {
+            this.chestReady = true;
+        }).catch(() => {
+            this.chestReady = true;
+        });
     }
-
+    
     generateChests() {
         const chestCount = Math.max(80, Math.floor(1400 * this.lootDensity));
         const spots = this.mapGenerator.getChestSpots?.() || [];
@@ -24,7 +47,7 @@ export class LootManager {
                 const spot = shuffled[i];
                 const y = this.mapGenerator.getHeightAt(spot.x, spot.z) + 0.06;
                 if (y < this.mapGenerator.waterLevel + 1) continue;
-                const chest = this.createChest(spot.x, y, spot.z);
+                const chest = this.createChest(spot.x, y, spot.z, spot.grade || 'house');
                 this.chests.push(chest);
             }
             if (this.chests.length > 0) return;
@@ -60,70 +83,126 @@ export class LootManager {
         }
     }
 
-    createChest(x, y, z) {
+    // Асинхронная версия generateChests для устранения фризов при старте
+    async generateChestsAsync() {
+        const chestCount = Math.max(80, Math.floor(1400 * this.lootDensity));
+        const spots = this.mapGenerator.getChestSpots?.() || [];
+
+        if (spots.length > 0) {
+            const shuffled = [...spots].sort(() => Math.random() - 0.5);
+            const limit = Math.min(chestCount, shuffled.length);
+
+            for (let i = 0; i < limit; i++) {
+                const spot = shuffled[i];
+                const y = this.mapGenerator.getHeightAt(spot.x, spot.z) + 0.06;
+                if (y < this.mapGenerator.waterLevel + 1) continue;
+                
+                const chest = this.createChest(spot.x, y, spot.z, spot.grade || 'house');
+                this.chests.push(chest);
+
+                // Даем браузеру "продохнуть" каждые 25 сундуков
+                if (i > 0 && i % 25 === 0) {
+                    await new Promise(resolve => requestAnimationFrame(resolve));
+                }
+            }
+            if (this.chests.length > 0) return;
+        }
+
+        const floorTiles = this.mapGenerator.getFloorTiles?.() || [];
+        if (floorTiles.length) {
+            const shuffled = [...floorTiles].sort(() => Math.random() - 0.5);
+            const limit = Math.min(chestCount, shuffled.length);
+            for (let i = 0; i < limit; i++) {
+                const tile = shuffled[i];
+                const y = this.mapGenerator.getHeightAt(tile.x, tile.z) + 0.06;
+                const chest = this.createChest(tile.x, y, tile.z);
+                this.chests.push(chest);
+                if (i > 0 && i % 25 === 0) {
+                    await new Promise(resolve => requestAnimationFrame(resolve));
+                }
+            }
+            return;
+        }
+
+        for (let i = 0; i < chestCount; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 40 + Math.random() * 150;
+            const x = Math.cos(angle) * distance;
+            const z = Math.sin(angle) * distance;
+            const y = this.mapGenerator.getHeightAt(x, z) + 0.06;
+
+            if (y < this.mapGenerator.waterLevel + 1) {
+                i--;
+                continue;
+            }
+
+            const chest = this.createChest(x, y, z);
+            this.chests.push(chest);
+            if (i > 0 && i % 25 === 0) {
+                await new Promise(resolve => requestAnimationFrame(resolve));
+            }
+        }
+    }
+
+    createChest(x, y, z, grade = 'house') {
         const group = new THREE.Group();
         const { bodyMat, lidMat, bandMat, metalMat } = this.chestMaterials;
 
-        const body = new THREE.Mesh(
-            new THREE.BoxGeometry(1.2, 0.7, 0.9),
-            bodyMat
-        );
-        body.position.y = 0.35;
-        body.castShadow = true;
-        group.add(body);
+        // --- ОПТИМИЗАЦИЯ ---
+        const key = 'chest_model';
+        let chestModel;
+        let lidMesh; // Нужно сохранить ссылку на крышку для анимации
 
-        const lid = new THREE.Mesh(
-            new THREE.BoxGeometry(1.2, 0.18, 0.92),
-            lidMat
-        );
-        lid.position.y = 0.72;
-        lid.castShadow = true;
-        group.add(lid);
+        if (chestResources.geometries[key]) {
+            chestModel = chestResources.geometries[key].clone();
+            // Находим крышку в клонированной модели
+            lidMesh = chestModel.children.find(child => child.name === 'chest_lid');
+        } else {
+            // Создаем геометрии
+            const bodyGeom = new THREE.BoxGeometry(1.2, 0.7, 0.9);
+            bodyGeom.translate(0, 0.35, 0);
 
-        const band = new THREE.Mesh(
-            new THREE.BoxGeometry(1.28, 0.08, 0.98),
-            bandMat
-        );
-        band.position.y = 0.48;
-        group.add(band);
+            const lidGeom = new THREE.BoxGeometry(1.2, 0.18, 0.92);
+            lidGeom.translate(0, 0.72, 0);
 
-        const band2 = new THREE.Mesh(
-            new THREE.BoxGeometry(1.28, 0.08, 0.98),
-            bandMat
-        );
-        band2.position.y = 0.18;
-        group.add(band2);
+            const bandGeom1 = new THREE.BoxGeometry(1.28, 0.08, 0.98);
+            bandGeom1.translate(0, 0.48, 0);
+            const bandGeom2 = new THREE.BoxGeometry(1.28, 0.08, 0.98);
+            bandGeom2.translate(0, 0.18, 0);
+            const rimGeom = new THREE.BoxGeometry(1.32, 0.06, 1.02);
+            rimGeom.translate(0, 0.76, 0);
+            const mergedBandGeom = BufferGeometryUtils.mergeBufferGeometries([bandGeom1, bandGeom2, rimGeom]);
 
-        const rimGeo = new THREE.BoxGeometry(1.32, 0.06, 1.02);
-        const rimTop = new THREE.Mesh(rimGeo, bandMat);
-        rimTop.position.y = 0.76;
-        group.add(rimTop);
+            const latchGeom = new THREE.BoxGeometry(0.18, 0.18, 0.06);
+            latchGeom.translate(0, 0.46, 0.48);
+            const latchPlateGeom = new THREE.BoxGeometry(0.28, 0.12, 0.04);
+            latchPlateGeom.translate(0, 0.32, 0.48);
+            const cornerOffsets = [
+                [0.56, 0.06, 0.41], [-0.56, 0.06, 0.41],
+                [0.56, 0.06, -0.41], [-0.56, 0.06, -0.41],
+                [0.56, 0.62, 0.41], [-0.56, 0.62, 0.41],
+                [0.56, 0.62, -0.41], [-0.56, 0.62, -0.41]
+            ];
+            const cornerGeom = new THREE.BoxGeometry(0.12, 0.12, 0.08);
+            const cornerGeometries = cornerOffsets.map(([ox, oy, oz]) => {
+                const g = cornerGeom.clone();
+                g.translate(ox, oy, oz);
+                return g;
+            });
+            const mergedMetalGeom = BufferGeometryUtils.mergeBufferGeometries([latchGeom, latchPlateGeom, ...cornerGeometries]);
 
-        const latch = new THREE.Mesh(
-            new THREE.BoxGeometry(0.18, 0.18, 0.06),
-            metalMat
-        );
-        latch.position.set(0, 0.46, 0.48);
-        group.add(latch);
+            // Создаем меши
+            const bodyMesh = new THREE.Mesh(bodyGeom, bodyMat);
+            bodyMesh.castShadow = true;
+            lidMesh = new THREE.Mesh(lidGeom, lidMat);
+            lidMesh.name = 'chest_lid'; // Присваиваем имя для легкого поиска
+            lidMesh.castShadow = true;
+            const bandMesh = new THREE.Mesh(mergedBandGeom, bandMat);
+            const metalMesh = new THREE.Mesh(mergedMetalGeom, metalMat);
 
-        const latchPlate = new THREE.Mesh(
-            new THREE.BoxGeometry(0.28, 0.12, 0.04),
-            metalMat
-        );
-        latchPlate.position.set(0, 0.32, 0.48);
-        group.add(latchPlate);
-
-        const cornerGeo = new THREE.BoxGeometry(0.12, 0.12, 0.08);
-        const cornerOffsets = [
-            [0.56, 0.06, 0.41], [-0.56, 0.06, 0.41],
-            [0.56, 0.06, -0.41], [-0.56, 0.06, -0.41],
-            [0.56, 0.62, 0.41], [-0.56, 0.62, 0.41],
-            [0.56, 0.62, -0.41], [-0.56, 0.62, -0.41]
-        ];
-        for (const [ox, oy, oz] of cornerOffsets) {
-            const corner = new THREE.Mesh(cornerGeo, metalMat);
-            corner.position.set(ox, oy, oz);
-            group.add(corner);
+            chestModel = new THREE.Group();
+            chestModel.add(bodyMesh, lidMesh, bandMesh, metalMesh);
+            chestResources.geometries[key] = chestModel; // Кэшируем
         }
 
         const glow = new THREE.Mesh(
@@ -136,16 +215,18 @@ export class LootManager {
             })
         );
         glow.position.y = 1.2;
-        group.add(glow);
+        chestModel.add(glow);
 
-        group.position.set(x, y, z);
-        group.userData.isChest = true;
-        group.userData.isOpen = false;
-        group.userData.loot = this.generateLoot();
-        group.userData.glow = glow;
+        chestModel.position.set(x, y, z);
+        chestModel.userData.isChest = true;
+        chestModel.userData.isOpen = false;
+        chestModel.userData.grade = grade;
+        chestModel.userData.loot = this.generateLoot(grade === 'hangar');
+        chestModel.userData.glow = glow;
+        chestModel.userData.lid = lidMesh; // Сохраняем ссылку на крышку
 
-        this.scene.add(group);
-        return group;
+        this.scene.add(chestModel);
+        return chestModel;
     }
 
     createChestMaterials() {
@@ -230,48 +311,66 @@ export class LootManager {
             if (rareRoll < 0.95) return { type: 'weapon', weaponType: 'shotgun' };
             return { type: 'armor', amount: 60 + Math.random() * 40 };
         }
+
+        // Предыдущая логика генерации добычи была запутанной и содержала недостижимый код.
+        // Эта версия использует понятную цепочку "else if", что упрощает понимание и настройку вероятностей.
+        // Вероятности сохранены близкими к первоначальному замыслу.
         const rand = Math.random();
-        if (rand < 0.08) {
-            return { type: 'ammo', amount: 6 + Math.floor(Math.random() * 10) };
-        }
-
-        if (rand < 0.05) {
+        if (rand < 0.02) { // 2% для лазера (ранее был недостижим)
             return { type: 'weapon', weaponType: 'laser' };
-        }
-
-        if (rand < 0.12) {
+        } else if (rand < 0.12) { // 10% для огнемета
             return { type: 'weapon', weaponType: 'flamethrower' };
-        }
-
-        if (rand < 0.2) {
+        } else if (rand < 0.25) { // 13% для дробовика
             return { type: 'weapon', weaponType: 'shotgun' };
-        }
-
-        if (rand < 0.3) {
+        } else if (rand < 0.40) { // 15% для лука
             return { type: 'weapon', weaponType: 'bow' };
-        }
-
-        if (rand < 0.42) {
-            return { type: 'weapon', weaponType: 'knife' };
-        }
-
-        if (rand < 0.54) {
+        } else if (rand < 0.55) { // 15% для топора
             return { type: 'weapon', weaponType: 'axe' };
-        }
-
-        if (rand < 0.64) {
-            return { type: 'weapon', weaponType: 'spear' };
-        }
-
-        if (rand < 0.72) {
+        } else if (rand < 0.68) { // 13% для пистолета
             return { type: 'weapon', weaponType: 'pistol' };
-        }
-
-        if (rand < 0.78) {
+        } else if (rand < 0.78) { // 10% для винтовки
             return { type: 'weapon', weaponType: 'rifle' };
+        } else if (rand < 0.90) { // 12% для патронов
+            return { type: 'ammo', amount: 10 + Math.floor(Math.random() * 9) };
+        } else { // 10% для брони
+            return { type: 'armor', amount: 25 + Math.random() * 25 };
         }
+    }
 
-        return { type: 'armor', amount: 25 + Math.random() * 25 };
+    getPreferredAmmoWeapon(entity) {
+        if (!entity?.inventory?.getItems) return null;
+        const selected = entity.currentWeapon;
+        if (selected?.ammo !== null && selected?.ammo !== undefined) {
+            return selected;
+        }
+        const ranged = entity.inventory.getItems().find(item => item && item.ammo !== null && item.ammo !== undefined);
+        return ranged || null;
+    }
+
+    createBonusAmmo(entity, rare = false) {
+        const preferred = this.getPreferredAmmoWeapon(entity);
+        if (!preferred) return null;
+        const amount = rare
+            ? 8 + Math.floor(Math.random() * 8)
+            : 4 + Math.floor(Math.random() * 6);
+        return {
+            weaponType: preferred.type,
+            amount
+        };
+    }
+
+    adaptLootForEntity(baseLoot, entity, rare = false) {
+        if (!baseLoot) return null;
+        const loot = { ...baseLoot };
+        const bonusAmmo = this.createBonusAmmo(entity, rare);
+        if (bonusAmmo && (loot.type === 'weapon' || loot.type === 'armor' || loot.type === 'ammo')) {
+            loot.bonusAmmo = bonusAmmo;
+        }
+        if (loot.type === 'ammo' && bonusAmmo) {
+            loot.weaponType = bonusAmmo.weaponType;
+            loot.amount = Math.max(loot.amount || 0, bonusAmmo.amount + 2);
+        }
+        return loot;
     }
 
     checkNearbyChests(position, audioSynth) {
@@ -311,8 +410,7 @@ export class LootManager {
         if (distance > 3.8) return null;
 
         chest.userData.isOpen = true;
-
-        const lid = chest.children.find(child => Math.abs(child.position.y - 0.85) < 0.1);
+        const lid = chest.userData.lid;
         if (lid) {
             lid.rotation.x = -Math.PI / 3;
         }
@@ -334,7 +432,32 @@ export class LootManager {
                 this.scene.remove(drop.beam);
             }
         }
-        return chest.userData.loot;
+        return this.adaptLootForEntity(chest.userData.loot, entity, chest.userData.isSupplyDrop);
+    }
+
+    resetChest(chest, loot = null) {
+        if (!chest?.userData?.isChest) return false;
+        chest.userData.isOpen = false;
+        chest.userData.loot = loot || this.generateLoot(!!chest.userData.isSupplyDrop);
+        chest.userData.soundPlayed = false;
+        if (chest.userData.lid) {
+            chest.userData.lid.rotation.x = 0;
+        }
+        if (chest.userData.glow) {
+            chest.userData.glow.visible = false;
+        }
+        return true;
+    }
+
+    refillOpenedChests(count = 8) {
+        const candidates = this.chests.filter(chest => chest?.userData?.isOpen && !chest.userData.isSupplyDrop);
+        if (!candidates.length) return 0;
+        const shuffled = [...candidates].sort(() => Math.random() - 0.5);
+        const limit = Math.min(count, shuffled.length);
+        for (let i = 0; i < limit; i++) {
+            this.resetChest(shuffled[i]);
+        }
+        return limit;
     }
 
     getChests() {

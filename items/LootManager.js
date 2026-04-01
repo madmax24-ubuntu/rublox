@@ -27,8 +27,12 @@ export class LootManager {
         this.supplyDrops = [];
         this.lootDensity = 1;
         this.chestMaterials = this.createChestMaterials();
-        this.generateChests();
-        // TODO: Замените вызов выше на: this.generateChestsAsync();
+        this.chestReady = false;
+        this.generateChestsAsync().then(() => {
+            this.chestReady = true;
+        }).catch(() => {
+            this.chestReady = true;
+        });
     }
     
     generateChests() {

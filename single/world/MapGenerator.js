@@ -799,29 +799,37 @@ export class MapGenerator {
         const used = new Set();
         for (const house of this.houseSpots) {
             let placed = 0;
-            const perHouse = 1 + Math.floor(rand() * 2);
-            for (let i = 0; i < perHouse; i++) {
-                const offsetX = (rand() - 0.5) * Math.max(1.4, house.width * 0.45);
-                const offsetZ = (rand() - 0.5) * Math.max(1.4, house.depth * 0.45);
-                const x = house.x + offsetX;
-                const z = house.z + offsetZ;
+            const targetCount = 1 + Math.floor(rand() * 2);
+            const points = [
+                { x: house.x, z: house.z },
+                { x: house.x - (house.width || 8) * 0.18, z: house.z - (house.depth || 7) * 0.18 },
+                { x: house.x + (house.width || 8) * 0.18, z: house.z + (house.depth || 7) * 0.18 },
+                { x: house.x - (house.width || 8) * 0.24, z: house.z + (house.depth || 7) * 0.2 },
+                { x: house.x + (house.width || 8) * 0.24, z: house.z - (house.depth || 7) * 0.2 }
+            ];
+            for (let i = points.length - 1; i > 0; i--) {
+                const j = Math.floor(rand() * (i + 1));
+                [points[i], points[j]] = [points[j], points[i]];
+            }
+            for (const p of points) {
+                if (placed >= targetCount) break;
+                const x = p.x;
+                const z = p.z;
                 const key = `${Math.round(x)}:${Math.round(z)}`;
                 if (used.has(key)) continue;
-                if (!this.isChestClear(x, z, 0.8)) continue;
+                if (!this.isPointInsideStructure(x, z, house, 'house', 0.1)) continue;
+                if (!this.isChestClear(x, z, 0.8, true)) continue;
                 this.chestSpots.push({ x, z, grade: 'house' });
                 used.add(key);
                 placed += 1;
             }
             if (placed === 0) {
-                const fallback = this.findClearPointAround(
-                    house.x,
-                    house.z,
-                    0.8,
-                    0.25,
-                    Math.max(2.6, Math.min(house.width || 8, house.depth || 8) * 0.35)
-                ) || this.findStructureGuardPoint(house, 'house');
-                if (fallback) {
-                    const key = `${Math.round(fallback.x)}:${Math.round(fallback.z)}`;
+                const fallback = { x: house.x, z: house.z };
+                const key = `${Math.round(fallback.x)}:${Math.round(fallback.z)}`;
+                if (
+                    this.isPointInsideStructure(fallback.x, fallback.z, house, 'house', 0.2)
+                    && this.isChestClear(fallback.x, fallback.z, 0.8, true)
+                ) {
                     if (!used.has(key)) {
                         this.chestSpots.push({ x: fallback.x, z: fallback.z, grade: 'house' });
                         used.add(key);
@@ -831,24 +839,42 @@ export class MapGenerator {
         }
         for (const hangar of this.hangarSpots) {
             let placed = 0;
-            const perHangar = 4 + Math.floor(rand() * 2);
-            for (let i = 0; i < perHangar; i++) {
-                const offsetX = (rand() - 0.5) * Math.max(2.2, hangar.width * 0.38);
-                const offsetZ = (rand() - 0.5) * Math.max(2.2, hangar.depth * 0.38);
-                const x = hangar.x + offsetX;
-                const z = hangar.z + offsetZ;
+            const targetCount = 4 + Math.floor(rand() * 2);
+            const w = hangar.width || 60;
+            const d = hangar.depth || 36;
+            const points = [
+                { x: hangar.x - w * 0.24, z: hangar.z - d * 0.24 },
+                { x: hangar.x + w * 0.24, z: hangar.z - d * 0.24 },
+                { x: hangar.x - w * 0.24, z: hangar.z + d * 0.24 },
+                { x: hangar.x + w * 0.24, z: hangar.z + d * 0.24 },
+                { x: hangar.x - w * 0.34, z: hangar.z },
+                { x: hangar.x + w * 0.34, z: hangar.z },
+                { x: hangar.x, z: hangar.z - d * 0.26 },
+                { x: hangar.x, z: hangar.z + d * 0.2 }
+            ];
+            for (let i = points.length - 1; i > 0; i--) {
+                const j = Math.floor(rand() * (i + 1));
+                [points[i], points[j]] = [points[j], points[i]];
+            }
+            for (const p of points) {
+                if (placed >= targetCount) break;
+                const x = p.x;
+                const z = p.z;
                 const key = `${Math.round(x)}:${Math.round(z)}`;
                 if (used.has(key)) continue;
-                if (!this.isChestClear(x, z, 1.1)) continue;
+                if (!this.isPointInsideStructure(x, z, hangar, 'hangar', 0.4)) continue;
+                if (!this.isChestClear(x, z, 1.1, true)) continue;
                 this.chestSpots.push({ x, z, grade: 'hangar' });
                 used.add(key);
                 placed += 1;
             }
             if (placed === 0) {
-                const fallback = this.findClearPointAround(hangar.x, hangar.z, 1.1, 0.5, Math.max(8, Math.min(hangar.width || 20, hangar.depth || 16) * 0.3))
-                    || this.findStructureGuardPoint(hangar, 'hangar');
-                if (fallback) {
-                    const key = `${Math.round(fallback.x)}:${Math.round(fallback.z)}`;
+                const fallback = { x: hangar.x, z: hangar.z };
+                const key = `${Math.round(fallback.x)}:${Math.round(fallback.z)}`;
+                if (
+                    this.isPointInsideStructure(fallback.x, fallback.z, hangar, 'hangar', 0.4)
+                    && this.isChestClear(fallback.x, fallback.z, 1.1, true)
+                ) {
                     if (!used.has(key)) {
                         this.chestSpots.push({ x: fallback.x, z: fallback.z, grade: 'hangar' });
                         used.add(key);
@@ -861,44 +887,38 @@ export class MapGenerator {
     buildStoryPOIs() {
         this.storyPOIs = [];
         this.storyNotes = [];
-        if (!this.floorTiles || !this.floorTiles.length) return;
-
-        const rand = (() => {
-            let state = (this.seed ^ 0x7f4a7c15) >>> 0;
-            return () => {
-                state = (state * 1664525 + 1013904223) >>> 0;
-                return state / 0x100000000;
-            };
-        })();
-
-        const spawnWorld = this.getSpawnWorld();
-        const candidates = this.floorTiles.filter(tile => {
-            const dx = tile.x - spawnWorld.x;
-            const dz = tile.z - spawnWorld.z;
-            return Math.hypot(dx, dz) > this.spawnCourtyardRadius + 18 && !this.isNearRailCorridor(tile.x, tile.z, 10);
-        });
-        if (!candidates.length) return;
-
-        for (let i = candidates.length - 1; i > 0; i--) {
-            const j = Math.floor(rand() * (i + 1));
-            [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
-        }
-
-        const placed = [];
-        const pick = (minDistance) => {
-            for (const tile of candidates) {
-                if (placed.some(p => Math.hypot(p.x - tile.x, p.z - tile.z) < minDistance)) continue;
-                placed.push({ x: tile.x, z: tile.z });
-                return tile;
-            }
-            return null;
-        };
-        const poiTypes = ['house', 'house', 'house', 'house', 'house', 'house', 'house', 'house', 'hangar', 'hangar', 'hangar'];
-        for (const type of poiTypes) {
-            const tile = pick(type === 'house' ? 56 : type === 'hangar' ? 82 : 36);
-            if (!tile) continue;
-            const pos = new THREE.Vector3(tile.x, 0.4, tile.z);
-            this.createPOI(type, pos);
+        const structures = [
+            ...(this.houseSpots || []).map((s) => ({ ...s, type: 'house', name: 'Дом' })),
+            ...(this.hangarSpots || []).map((s) => ({ ...s, type: 'hangar', name: 'Ангар' }))
+        ];
+        if (!structures.length) return;
+        const maxNotes = Math.min(24, structures.length);
+        for (let i = 0; i < maxNotes; i++) {
+            const s = structures[i % structures.length];
+            const noteMat = new THREE.MeshStandardMaterial({
+                color: 0xfff59d,
+                emissive: 0xfff176,
+                emissiveIntensity: 0.6,
+                flatShading: true
+            });
+            const note = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.1), noteMat);
+            note.position.set(
+                s.x + (Math.random() - 0.5) * Math.max(1.4, (s.width || 8) * 0.3),
+                this.getHeightAt(s.x, s.z) + 0.8,
+                s.z + (Math.random() - 0.5) * Math.max(1.4, (s.depth || 8) * 0.3)
+            );
+            note.userData.mapGenerated = true;
+            this.scene.add(note);
+            const story = this.storySnippets[this.storyNotes.length % this.storySnippets.length];
+            this.storyNotes.push({
+                position: note.position.clone(),
+                text: `${s.name}: ${story}`
+            });
+            this.storyPOIs.push({
+                name: s.name,
+                position: new THREE.Vector3(s.x, this.getHeightAt(s.x, s.z), s.z),
+                type: s.type
+            });
         }
     }
 
@@ -1127,19 +1147,35 @@ export class MapGenerator {
         group.add(frontRight);
         this.addColliderBox(frontRight.position.clone(), frontSegmentWidth + 0.12, height, wallThickness + 0.25, false);
 
-        const rampLength = isMassiveHangar ? 3.8 : 2.2;
-        const ramp = new THREE.Mesh(
-            new THREE.BoxGeometry(Math.max(doorWidth * 0.86, 2.8), 0.18, rampLength),
-            floorMat
-        );
-        ramp.position.set(
-            position.x,
-            baseY + 0.015,
-            position.z + depth * 0.5 + rampLength * 0.28
-        );
-        ramp.rotation.x = -0.12;
-        ramp.userData.mapGenerated = true;
-        group.add(ramp);
+        const addStep = (x, y, z, w, h, d) => {
+            const step = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), floorMat);
+            step.position.set(x, y, z);
+            step.userData.mapGenerated = true;
+            group.add(step);
+            this.addColliderBox(step.position.clone(), w, h, d, true);
+        };
+
+        if (isMassiveHangar) {
+            const stepCount = 5;
+            const stepHeight = 0.11;
+            const stepDepth = 0.78;
+            const stepWidth = Math.max(doorWidth * 0.9, 4.6);
+            for (let i = 0; i < stepCount; i++) {
+                const y = baseY + 0.05 + i * stepHeight;
+                const z = position.z + depth * 0.5 + (stepCount - i - 0.3) * stepDepth * 0.34;
+                addStep(position.x, y, z, stepWidth, 0.12, stepDepth);
+            }
+        } else {
+            const stepCount = 3;
+            const stepHeight = 0.12;
+            const stepDepth = 0.72;
+            const stepWidth = Math.max(doorWidth * 0.86, 2.8);
+            for (let i = 0; i < stepCount; i++) {
+                const y = baseY + 0.05 + i * stepHeight;
+                const z = position.z + depth * 0.5 + (stepCount - i - 0.35) * stepDepth * 0.34;
+                addStep(position.x, y, z, stepWidth, 0.12, stepDepth);
+            }
+        }
 
         if (isMassiveHangar) {
             const lintelHeight = Math.max(2.8, height * 0.28);
@@ -1148,9 +1184,18 @@ export class MapGenerator {
                 wallMat
             );
             lintel.position.set(position.x, baseY + height - lintelHeight * 0.5, position.z + depth / 2 - wallThickness / 2);
-            lintel.userData.mapGenerated = true;
-            group.add(lintel);
-            this.addColliderBox(lintel.position.clone(), doorWidth, lintelHeight, wallThickness + 0.25, false);
+                lintel.userData.mapGenerated = true;
+                group.add(lintel);
+                this.addColliderBox(lintel.position.clone(), doorWidth, lintelHeight, wallThickness + 0.25, false);
+
+            const centralCorridor = new THREE.Mesh(
+                new THREE.BoxGeometry(Math.max(4.2, width * 0.16), 0.18, depth * 0.86),
+                floorMat
+            );
+            centralCorridor.position.set(position.x, baseY + 0.54, position.z - depth * 0.03);
+            centralCorridor.userData.mapGenerated = true;
+            group.add(centralCorridor);
+            this.addColliderBox(centralCorridor.position.clone(), Math.max(4.2, width * 0.16), 0.18, depth * 0.86, true);
 
             const catwalkMat = new THREE.MeshStandardMaterial({
                 color: 0x6f7e86,
@@ -1178,11 +1223,23 @@ export class MapGenerator {
                 group.add(deckRight);
                 this.addColliderBox(deckRight.position.clone(), sideWidth, 0.24, sideDepth, true);
 
-                const bridge = new THREE.Mesh(new THREE.BoxGeometry(width * 0.2, 0.2, depth * 0.22), catwalkMat);
-                bridge.position.set(position.x, levelY + 0.02, position.z - depth * 0.24);
-                bridge.userData.mapGenerated = true;
-                group.add(bridge);
-                this.addColliderBox(bridge.position.clone(), width * 0.2, 0.2, depth * 0.22, true);
+                const bridgeFront = new THREE.Mesh(new THREE.BoxGeometry(width * 0.22, 0.2, depth * 0.22), catwalkMat);
+                bridgeFront.position.set(position.x, levelY + 0.02, position.z - depth * 0.24);
+                bridgeFront.userData.mapGenerated = true;
+                group.add(bridgeFront);
+                this.addColliderBox(bridgeFront.position.clone(), width * 0.22, 0.2, depth * 0.22, true);
+
+                const bridgeBack = new THREE.Mesh(new THREE.BoxGeometry(width * 0.22, 0.2, depth * 0.22), catwalkMat);
+                bridgeBack.position.set(position.x, levelY + 0.02, position.z + depth * 0.24);
+                bridgeBack.userData.mapGenerated = true;
+                group.add(bridgeBack);
+                this.addColliderBox(bridgeBack.position.clone(), width * 0.22, 0.2, depth * 0.22, true);
+
+                const centralUpperCorridor = new THREE.Mesh(new THREE.BoxGeometry(width * 0.14, 0.18, depth * 0.72), catwalkMat);
+                centralUpperCorridor.position.set(position.x, levelY + 0.03, position.z);
+                centralUpperCorridor.userData.mapGenerated = true;
+                group.add(centralUpperCorridor);
+                this.addColliderBox(centralUpperCorridor.position.clone(), width * 0.14, 0.18, depth * 0.72, true);
 
                 const railDepth = sideDepth * 0.98;
                 const railLeftOuter = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.0, railDepth), railMat);
@@ -1948,18 +2005,28 @@ export class MapGenerator {
         return;
     }
 
-    isChestClear(x, z, radius = 1.2) {
+    isChestClear(x, z, radius = 1.2, ignoreWalkable = false) {
         const y = this.getHeightAt(x, z) + 0.35;
         const min = new THREE.Vector3(x - radius, y - 0.4, z - radius);
         const max = new THREE.Vector3(x + radius, y + 0.4, z + radius);
         for (const box of this.colliders) {
             if (box.enabled === false) continue;
+            if (ignoreWalkable && box.walkable) continue;
             if (max.x < box.min.x || min.x > box.max.x) continue;
             if (max.z < box.min.z || min.z > box.max.z) continue;
             if (max.y < box.min.y || min.y > box.max.y) continue;
             return false;
         }
         return true;
+    }
+
+    isPointInsideStructure(x, z, structure, type = 'house', margin = 0) {
+        if (!structure) return false;
+        const width = structure.width || (type === 'hangar' ? 24 : 8);
+        const depth = structure.depth || (type === 'hangar' ? 18 : 8);
+        const halfW = width * 0.5 - margin;
+        const halfD = depth * 0.5 - margin;
+        return Math.abs(x - structure.x) <= halfW && Math.abs(z - structure.z) <= halfD;
     }
 
     isWalkableAt(x, z) {
