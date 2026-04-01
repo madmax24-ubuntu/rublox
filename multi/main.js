@@ -248,7 +248,15 @@ class Game {
         this.zombieUpdateIndex = 0;
         this.botHazardCursor = 0;
         this.trapBotCursor = 0;
+        this.pendingZombieBursts = [];
+        this.pendingPoiBursts = [];
+        this.spawnBurstCooldown = 0;
+        this.zombieSpawnCandidates = [];
+        this.zombieSpawnCursor = 0;
+        this.poiSpawnCandidates = [];
+        this.poiSpawnCursor = 0;
         this.spawnBots();
+        this.rebuildSpawnCaches();
         this.gateClosed = false;
         this.nightNotified = false;
         this.nightWaveTimer = 0;
@@ -804,7 +812,7 @@ class Game {
         }
     }
 
-        updateRandomEvents(delta) {
+    updateRandomEvents(delta) {
         if (this.activeEvent.type) {
             this.activeEvent.timer -= delta;
             if (this.activeEvent.timer <= 0) {
@@ -851,6 +859,94 @@ class Game {
 
         this.randomEventTimer = 45 + Math.random() * 35;
     }
+
+    queueZombieBurst(reset, multiplier, capOverride, count, chunk = 6) {
+        this.pendingZombieBursts.push({
+            reset,
+            multiplier,
+            capOverride,
+            remaining: Math.max(0, count | 0),
+            chunk: Math.max(1, chunk | 0),
+            started: false
+        });
+    }
+
+    queuePoiBurst(intensity, totalCount, chunk = 3) {
+        this.pendingPoiBursts.push({
+            intensity,
+            remaining: Math.max(0, totalCount | 0),
+            chunk: Math.max(1, chunk | 0)
+        });
+    }
+
+    rebuildSpawnCaches() {
+        const floorTiles = this.map.getFloorTiles?.() || [];
+        const houseSpots = this.map.getHouseSpots?.() || [];
+        const hangarSpots = this.map.getHangarSpots?.() || [];
+
+        if (!floorTiles.length) {
+            this.zombieSpawnCandidates = [];
+            this.zombieSpawnCursor = 0;
+        } else {
+            const scored = floorTiles.map((tile) => {
+                let houseBoost = 0;
+                for (const h of houseSpots) {
+                    const d = Math.hypot(tile.x - h.x, tile.z - h.z);
+                    if (d < 18) houseBoost = Math.max(houseBoost, 1 - d / 18);
+                }
+                let hangarBoost = 0;
+                for (const h of hangarSpots) {
+                    const d = Math.hypot(tile.x - h.x, tile.z - h.z);
+                    if (d < 28) hangarBoost = Math.max(hangarBoost, 1 - d / 28);
+                }
+                const noise = (Math.sin((tile.x + 17.3) * 0.021 + (tile.z - 9.4) * 0.027) + 1) * 0.5;
+                return {
+                    tile,
+                    score: hangarBoost * 2.4 + houseBoost * 1.2 + noise * 0.25
+                };
+            });
+            scored.sort((a, b) => b.score - a.score);
+            this.zombieSpawnCandidates = scored.map((s) => s.tile);
+            this.zombieSpawnCursor = Math.floor(Math.random() * Math.max(1, this.zombieSpawnCandidates.length));
+        }
+
+        this.poiSpawnCandidates = [
+            ...houseSpots.map(s => ({ ...s, type: 'house' })),
+            ...hangarSpots.map(s => ({ ...s, type: 'hangar' }))
+        ];
+        this.poiSpawnCursor = Math.floor(Math.random() * Math.max(1, this.poiSpawnCandidates.length));
+    }
+
+    processDeferredSpawns(delta) {
+        this.spawnBurstCooldown = Math.max(0, this.spawnBurstCooldown - delta);
+        if (this.spawnBurstCooldown > 0) return;
+        const start = performance.now();
+        let operations = 0;
+        while ((this.pendingZombieBursts.length || this.pendingPoiBursts.length) && operations < 3) {
+            if ((performance.now() - start) > 2.4) break;
+            if (this.pendingZombieBursts.length) {
+                const job = this.pendingZombieBursts[0];
+                const batch = Math.min(job.chunk, job.remaining);
+                this.spawnZombies(job.reset && !job.started, job.multiplier, job.capOverride, batch);
+                job.started = true;
+                job.remaining -= batch;
+                if (job.remaining <= 0) this.pendingZombieBursts.shift();
+                operations++;
+                continue;
+            }
+            if (this.pendingPoiBursts.length) {
+                const job = this.pendingPoiBursts[0];
+                const batch = Math.min(job.chunk, job.remaining);
+                this.spawnPoiZombieGuards(job.intensity, batch);
+                job.remaining -= batch;
+                if (job.remaining <= 0) this.pendingPoiBursts.shift();
+                operations++;
+                continue;
+            }
+        }
+        this.spawnBurstCooldown = 0.02;
+    }
+
     update(delta) {
         if (this.input.isKeyPressed('KeyM')) {
             if (!this.pauseKeyLatch) {
@@ -867,6 +963,7 @@ class Game {
         }
 
         this.handleQuickCommands(delta);
+        this.processDeferredSpawns(delta);
         const canSelectPerk = this.gameState === 'countdown' && !this.perkLocked;
         if (this.input.isKeyPressed('KeyP') && canSelectPerk) {
             if (!this.perkKeyLatch) {
@@ -932,8 +1029,8 @@ class Game {
                 this.audioSynth.playBoxArrival?.(new THREE.Vector3(0, 1, 0));
                 this.player.isFrozen = false;
                 this.bots.forEach(bot => { bot.isFrozen = false; });
-                this.spawnZombies(true, 1.6, 120, 22);
-                this.spawnPoiZombieGuards(1.1);
+                this.queueZombieBurst(true, 1.6, 120, 22, this.isMobile() ? 4 : 6);
+                this.queuePoiBurst(1.1, this.isMobile() ? 4 : 6, this.isMobile() ? 2 : 3);
             }
         } else if (this.gameState === 'spawn') {
             this.spawnTimer -= delta;
@@ -973,7 +1070,7 @@ class Game {
                 this.gateClosed = true;
                 this.audioSynth.playStoneDoorClose?.(this.map.getCourtyardExitPosition());
                 if (!this.poiZombieSeeded) {
-                    this.spawnPoiZombieGuards(1.25);
+                    this.queuePoiBurst(1.25, this.isMobile() ? 4 : 6, this.isMobile() ? 2 : 3);
                 }
                 const kickOut = (entity) => {
                     if (this.map.isInsideCourtyard(entity.position)) {
@@ -1076,8 +1173,9 @@ class Game {
                     this.nightWaveTimer = 3.5;
                 }
                 if (!this.nightWaveBurstDone) {
-                    const spawned = this.spawnZombies(false, 5.6, 260, 34);
-                    this.spawnPoiZombieGuards(2.0);
+                    this.queueZombieBurst(false, 5.6, 260, 34, this.isMobile() ? 6 : 8);
+                    this.queuePoiBurst(2.0, this.isMobile() ? 6 : 8, this.isMobile() ? 2 : 3);
+                    const spawned = 34;
                     if (spawned > 0) {
                         this.hud.showGameMessage(`Ночь наступила. Заражённых прибыло: ${spawned}`);
                     }
@@ -1085,8 +1183,9 @@ class Game {
                 } else {
                     this.nightWaveTimer -= delta;
                     if (this.nightWaveTimer <= 0) {
-                        const spawned = this.spawnZombies(false, 4.2, 260, 20);
-                        this.spawnPoiZombieGuards(1.5);
+                        this.queueZombieBurst(false, 4.2, 260, 20, this.isMobile() ? 5 : 7);
+                        this.queuePoiBurst(1.5, this.isMobile() ? 4 : 6, this.isMobile() ? 2 : 3);
+                        const spawned = 20;
                         if (spawned >= 3) {
                             this.hud.showGameMessage('Во тьме слышны новые заражённые...');
                         }
@@ -1299,28 +1398,34 @@ class Game {
         return boost;
     }
 
-    spawnPoiZombieGuards(intensity = 1) {
-        const houseSpots = this.map.getHouseSpots?.() || [];
-        const hangarSpots = this.map.getHangarSpots?.() || [];
-        const points = [
-            ...houseSpots.map(s => ({ ...s, type: "house" })),
-            ...hangarSpots.map(s => ({ ...s, type: "hangar" }))
+    spawnPoiZombieGuards(intensity = 1, maxSpawn = Infinity) {
+        const points = this.poiSpawnCandidates?.length ? this.poiSpawnCandidates : [
+            ...(this.map.getHouseSpots?.() || []).map(s => ({ ...s, type: "house" })),
+            ...(this.map.getHangarSpots?.() || []).map(s => ({ ...s, type: "hangar" }))
         ];
         if (!points.length) return 0;
+        const houseSpots = points.filter(p => p.type === 'house');
+        const hangarSpots = points.filter(p => p.type === 'hangar');
 
         const aliveNow = this.zombies.filter(z => z?.isAlive).length;
         const maxAlive = 260;
         let budget = Math.max(0, Math.min(maxAlive - aliveNow, Math.floor((houseSpots.length * 1.2 + hangarSpots.length * 4.5) * intensity)));
+        budget = Math.min(budget, Math.max(0, Number.isFinite(maxSpawn) ? maxSpawn : budget));
         if (budget <= 0) return 0;
 
-        points.sort(() => Math.random() - 0.5);
         let spawned = 0;
-        for (const point of points) {
+        let attempts = 0;
+        const attemptLimit = Math.max(20, points.length * 3);
+        while (budget > 0 && spawned < maxSpawn && attempts < attemptLimit) {
+            const point = points[this.poiSpawnCursor % points.length];
+            this.poiSpawnCursor = (this.poiSpawnCursor + 1) % points.length;
+            attempts++;
             if (budget <= 0) break;
             const baseCount = point.type === "hangar" ? (4 + Math.floor(Math.random() * 4)) : (2 + Math.floor(Math.random() * 2));
             const pack = Math.max(1, Math.floor(baseCount * intensity));
             for (let i = 0; i < pack; i++) {
                 if (budget <= 0) break;
+                if (spawned >= maxSpawn) break;
                 const guardSpot = point.type === "house"
                     ? (this.map.findClearPointAround?.(point.x, point.z, 0.8, 0.5, Math.max(3.2, Math.min(point.width || 8, point.depth || 8) * 0.35))
                         || this.map.findStructureGuardPoint?.(point, point.type))
@@ -1357,11 +1462,12 @@ class Game {
             this.zombies = [];
         }
 
-        const floorTiles = this.map.getFloorTiles?.() || [];
+        if (!this.zombieSpawnCandidates?.length) {
+            this.rebuildSpawnCaches();
+        }
+        const floorTiles = this.zombieSpawnCandidates || [];
         if (!floorTiles.length) return 0;
 
-        const houseSpots = this.map.getHouseSpots?.() || [];
-        const hangarSpots = this.map.getHangarSpots?.() || [];
         const baseCount = Math.min(32, Math.max(10, Math.floor(floorTiles.length / 180)));
         const maxAlive = capOverride ?? (reset ? 90 : 180);
         const aliveNow = this.zombies.filter(z => z?.isAlive).length;
@@ -1371,18 +1477,13 @@ class Game {
         );
         if (count <= 0) return 0;
 
-        const picks = [...floorTiles].sort((a, b) => {
-            const nearHouseA = houseSpots.some(h => Math.hypot(a.x - h.x, a.z - h.z) < 18) ? 1 : 0;
-            const nearHouseB = houseSpots.some(h => Math.hypot(b.x - h.x, b.z - h.z) < 18) ? 1 : 0;
-            const nearHangarA = hangarSpots.some(h => Math.hypot(a.x - h.x, a.z - h.z) < 26) ? 1 : 0;
-            const nearHangarB = hangarSpots.some(h => Math.hypot(b.x - h.x, b.z - h.z) < 26) ? 1 : 0;
-            const scoreA = nearHangarA * 2 + nearHouseA;
-            const scoreB = nearHangarB * 2 + nearHouseB;
-            return scoreB - scoreA || (Math.random() - 0.5);
-        });
-
         let spawned = 0;
-        for (const tile of picks) {
+        let attempts = 0;
+        const attemptLimit = Math.max(48, floorTiles.length * 2);
+        while (spawned < count && attempts < attemptLimit) {
+            const tile = floorTiles[this.zombieSpawnCursor % floorTiles.length];
+            this.zombieSpawnCursor = (this.zombieSpawnCursor + 1) % floorTiles.length;
+            attempts++;
             if (spawned >= count) break;
             const pos = new THREE.Vector3(tile.x, this.map.getHeightAt(tile.x, tile.z) + 1.8, tile.z);
             if (pos.distanceTo(this.player.position) < (reset ? 20 : 24)) continue;

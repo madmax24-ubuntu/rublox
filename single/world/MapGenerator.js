@@ -37,11 +37,11 @@ export class MapGenerator {
         this.spawnCourtyardRadius = 54;
         this.houseVariants = [
             { width: 9.2, depth: 7.8, height: 4.4, doorWidth: 2.4, wallColor: 0xc9b08d, roofColor: 0x5f4638, style: "classic" },
-            { width: 8.8, depth: 7.2, height: 4.2, doorWidth: 2.2, wallColor: 0xb7c2cc, roofColor: 0x455a64, style: "concrete" },
+            { width: 8.8, depth: 7.2, height: 4.2, doorWidth: 2.2, wallColor: 0xd1bfa3, roofColor: 0x6a4e3a, style: "cozy" },
             { width: 10.2, depth: 8.6, height: 4.9, doorWidth: 2.8, wallColor: 0xd6c1a5, roofColor: 0x6d4c41, style: "farm" },
-            { width: 11.0, depth: 9.0, height: 5.0, doorWidth: 3.0, wallColor: 0xc8d2dc, roofColor: 0x4f5c63, style: "modern" },
+            { width: 11.0, depth: 9.0, height: 5.0, doorWidth: 3.0, wallColor: 0xcfb190, roofColor: 0x5a4335, style: "village" },
             { width: 12.6, depth: 9.8, height: 5.4, doorWidth: 3.2, wallColor: 0xbfa07e, roofColor: 0x614735, style: "longhouse" },
-            { width: 10.8, depth: 10.8, height: 5.2, doorWidth: 2.6, wallColor: 0xaeb9c3, roofColor: 0x384850, style: "outpost" }
+            { width: 10.8, depth: 10.8, height: 5.2, doorWidth: 2.6, wallColor: 0xd8c3a6, roofColor: 0x6a4b36, style: "outpost" }
         ];
         this.hangarVariants = [
             { width: 62.0, depth: 38.0, height: 18.0, doorWidth: 18.0, wallColor: 0x7a8a95, roofColor: 0x3f4b53, style: "megaA" },
@@ -350,7 +350,15 @@ export class MapGenerator {
             this.wallMesh = inst;
         }
 
-        this.buildProps(trees, jungleTrees, rocks, cacti, iceSpikes, boulders);
+        this.buildMassiveStructures();
+        const filteredTrees = this.filterPropsOutsideStructures(trees, 2.5, 5.5);
+        const filteredJungleTrees = this.filterPropsOutsideStructures(jungleTrees, 2.5, 5.5);
+        const filteredRocks = this.filterPropsOutsideStructures(rocks, 1.8, 4.2);
+        const filteredCacti = this.filterPropsOutsideStructures(cacti, 2.0, 4.8);
+        const filteredIceSpikes = this.filterPropsOutsideStructures(iceSpikes, 3.2, 12.0);
+        const filteredBoulders = this.filterPropsOutsideStructures(boulders, 2.2, 5.0);
+        this.buildProps(filteredTrees, filteredJungleTrees, filteredRocks, filteredCacti, filteredIceSpikes, filteredBoulders);
+        this.buildThemeGroundFeatures();
     }
 
     buildProps(trees, jungleTrees, rocks, cacti, iceSpikes, boulders) {
@@ -380,8 +388,25 @@ export class MapGenerator {
         this.addInstancedPropsChunked(cactusGeo, cactusMat, thin(cacti, 0.18, 1.8), 14.0, true, 80, false);
         this.addInstancedPropsChunked(iceGeo, iceMat, thin(iceSpikes, 0.18, 2.1), 15.0, true, 80, false);
 
-        this.buildMassiveStructures();
-        this.buildThemeGroundFeatures();
+    }
+
+    filterPropsOutsideStructures(list, houseMargin = 2, hangarMargin = 5) {
+        if (!list?.length) return [];
+        const houses = this.houseSpots || [];
+        const hangars = this.hangarSpots || [];
+        return list.filter((item) => {
+            for (const h of houses) {
+                const halfW = (h.width || 9) * 0.5 + houseMargin;
+                const halfD = (h.depth || 8) * 0.5 + houseMargin;
+                if (Math.abs(item.x - h.x) <= halfW && Math.abs(item.z - h.z) <= halfD) return false;
+            }
+            for (const h of hangars) {
+                const halfW = (h.width || 26) * 0.5 + hangarMargin;
+                const halfD = (h.depth || 18) * 0.5 + hangarMargin;
+                if (Math.abs(item.x - h.x) <= halfW && Math.abs(item.z - h.z) <= halfD) return false;
+            }
+            return true;
+        });
     }
 
     chunkItems(list, chunkSize) {
@@ -1023,9 +1048,9 @@ export class MapGenerator {
         const baseY = this.getHeightAt(position.x, position.z);
         const wallY = baseY + height / 2;
 
-        const floorThickness = isMassiveHangar ? 0.2 : 0.14;
+        const floorThickness = isMassiveHangar ? 0.18 : 0.14;
         const floor = new THREE.Mesh(new THREE.BoxGeometry(width * 0.96, floorThickness, depth * 0.96), floorMat);
-        const floorTopY = baseY + 0.03;
+        const floorTopY = baseY + 0.44;
         floor.position.set(position.x, floorTopY - floorThickness * 0.5, position.z);
         floor.userData.mapGenerated = true;
         group.add(floor);
@@ -1126,6 +1151,88 @@ export class MapGenerator {
             lintel.userData.mapGenerated = true;
             group.add(lintel);
             this.addColliderBox(lintel.position.clone(), doorWidth, lintelHeight, wallThickness + 0.25, false);
+
+            const catwalkMat = new THREE.MeshStandardMaterial({
+                color: 0x6f7e86,
+                roughness: 0.8,
+                flatShading: true
+            });
+            const railMat = new THREE.MeshStandardMaterial({
+                color: 0x2f3b42,
+                roughness: 0.7,
+                flatShading: true
+            });
+            const levelHeights = [baseY + height * 0.34, baseY + height * 0.62];
+            for (const levelY of levelHeights) {
+                const sideWidth = width * 0.32;
+                const sideDepth = depth * 0.8;
+                const deckLeft = new THREE.Mesh(new THREE.BoxGeometry(sideWidth, 0.24, sideDepth), catwalkMat);
+                deckLeft.position.set(position.x - width * 0.26, levelY, position.z - depth * 0.05);
+                deckLeft.userData.mapGenerated = true;
+                group.add(deckLeft);
+                this.addColliderBox(deckLeft.position.clone(), sideWidth, 0.24, sideDepth, true);
+
+                const deckRight = new THREE.Mesh(new THREE.BoxGeometry(sideWidth, 0.24, sideDepth), catwalkMat);
+                deckRight.position.set(position.x + width * 0.26, levelY, position.z - depth * 0.05);
+                deckRight.userData.mapGenerated = true;
+                group.add(deckRight);
+                this.addColliderBox(deckRight.position.clone(), sideWidth, 0.24, sideDepth, true);
+
+                const bridge = new THREE.Mesh(new THREE.BoxGeometry(width * 0.2, 0.2, depth * 0.22), catwalkMat);
+                bridge.position.set(position.x, levelY + 0.02, position.z - depth * 0.24);
+                bridge.userData.mapGenerated = true;
+                group.add(bridge);
+                this.addColliderBox(bridge.position.clone(), width * 0.2, 0.2, depth * 0.22, true);
+
+                const railDepth = sideDepth * 0.98;
+                const railLeftOuter = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.0, railDepth), railMat);
+                railLeftOuter.position.set(deckLeft.position.x - sideWidth * 0.5 + 0.08, levelY + 0.55, deckLeft.position.z);
+                railLeftOuter.userData.mapGenerated = true;
+                group.add(railLeftOuter);
+                const railRightOuter = railLeftOuter.clone();
+                railRightOuter.position.x = deckRight.position.x + sideWidth * 0.5 - 0.08;
+                group.add(railRightOuter);
+            }
+
+            const addStairRun = (sx, sy, sz, dx, dy, dz, steps, stepW, stepH, stepD) => {
+                for (let i = 0; i < steps; i++) {
+                    const t = i / Math.max(1, steps - 1);
+                    const px = sx + dx * t;
+                    const py = sy + dy * t;
+                    const pz = sz + dz * t;
+                    const step = new THREE.Mesh(new THREE.BoxGeometry(stepW, stepH, stepD), catwalkMat);
+                    step.position.set(px, py, pz);
+                    step.userData.mapGenerated = true;
+                    group.add(step);
+                    this.addColliderBox(step.position.clone(), stepW, stepH, stepD, true);
+                }
+            };
+
+            addStairRun(
+                position.x - width * 0.38,
+                baseY + 0.72,
+                position.z + depth * 0.32,
+                width * 0.17,
+                (levelHeights[0] - baseY) - 0.12,
+                -depth * 0.28,
+                9,
+                2.2,
+                0.24,
+                1.18
+            );
+
+            addStairRun(
+                position.x + width * 0.34,
+                levelHeights[0] + 0.32,
+                position.z - depth * 0.14,
+                -width * 0.16,
+                (levelHeights[1] - levelHeights[0]) - 0.08,
+                -depth * 0.22,
+                8,
+                2.1,
+                0.24,
+                1.12
+            );
         }
     }
 
@@ -1237,8 +1344,14 @@ export class MapGenerator {
         const canPlace = (x, z, minDist) => !placed.some(p => Math.hypot(p.x - x, p.z - z) < minDist);
         const markPlaced = (x, z) => placed.push({ x, z });
 
-        const addPatch = (x, z, width, depth, material, yOffset = 0.16) => {
-            const patch = new THREE.Mesh(new THREE.BoxGeometry(width, 0.14, depth), material);
+        const addPatch = (x, z, width, depth, material, yOffset = 0.46) => {
+            if (!material.userData.patchOptimized) {
+                material.polygonOffset = true;
+                material.polygonOffsetFactor = -2;
+                material.polygonOffsetUnits = -2;
+                material.userData.patchOptimized = true;
+            }
+            const patch = new THREE.Mesh(new THREE.BoxGeometry(width, 0.1, depth), material);
             patch.position.set(x, this.getHeightAt(x, z) + yOffset, z);
             patch.userData.mapGenerated = true;
             this.scene.add(patch);
@@ -1257,8 +1370,8 @@ export class MapGenerator {
         for (const tile of candidates) {
             if (patchUsed >= patchBudget) break;
             if (this.isNearRailCorridor(tile.x, tile.z, 16)) continue;
-            if (this.houseSpots.some(h => Math.hypot(h.x - tile.x, h.z - tile.z) < 12)) continue;
-            if (this.hangarSpots.some(h => Math.hypot(h.x - tile.x, h.z - tile.z) < 18)) continue;
+            if (this.houseSpots.some(h => Math.abs(h.x - tile.x) < ((h.width || 9) * 0.56) && Math.abs(h.z - tile.z) < ((h.depth || 8) * 0.56))) continue;
+            if (this.hangarSpots.some(h => Math.abs(h.x - tile.x) < ((h.width || 58) * 0.58) && Math.abs(h.z - tile.z) < ((h.depth || 36) * 0.58))) continue;
             if (this.isInSpawnCourtyardWorld(tile.x, tile.z, 8)) continue;
             if (!canPlace(tile.x, tile.z, 18)) continue;
 
@@ -1268,7 +1381,7 @@ export class MapGenerator {
                 const wz = tile.z + (rand() - 0.5) * 8;
                 const w = 9 + rand() * 10;
                 const d = 9 + rand() * 10;
-                addPatch(wx, wz, w, d, lakeMat, 0.22);
+                addPatch(wx, wz, w, d, lakeMat, 0.5);
                 this.waterPatches.push({ x: wx, z: wz, width: w, depth: d });
                 this.fogZones.push({ x: wx, z: wz, radius: Math.max(w, d) * 0.72, density: 0.024 + rand() * 0.016 });
                 markPlaced(tile.x, tile.z);
@@ -1278,7 +1391,7 @@ export class MapGenerator {
             if (style === "ash") {
                 const w = 8 + rand() * 8;
                 const d = 8 + rand() * 8;
-                addPatch(tile.x, tile.z, w, d, lavaMat, 0.24);
+                addPatch(tile.x, tile.z, w, d, lavaMat, 0.5);
                 this.lavaPatches.push({ x: tile.x, z: tile.z, width: w, depth: d });
                 markPlaced(tile.x, tile.z);
                 patchUsed += 1;
@@ -1287,7 +1400,7 @@ export class MapGenerator {
             if (style === "snow") {
                 const w = 9 + rand() * 10;
                 const d = 9 + rand() * 10;
-                addPatch(tile.x, tile.z, w, d, iceLakeMat, 0.22);
+                addPatch(tile.x, tile.z, w, d, iceLakeMat, 0.5);
                 this.waterPatches.push({ x: tile.x, z: tile.z, width: w, depth: d });
                 markPlaced(tile.x, tile.z);
                 patchUsed += 1;
@@ -1296,7 +1409,7 @@ export class MapGenerator {
             if (style === "sand") {
                 const width = 12 + rand() * 12;
                 const depth = 12 + rand() * 12;
-                addPatch(tile.x, tile.z, width, depth, new THREE.MeshStandardMaterial({ color: 0xe0bf72, roughness: 1, flatShading: true }), 0.2);
+                addPatch(tile.x, tile.z, width, depth, new THREE.MeshStandardMaterial({ color: 0xe0bf72, roughness: 1, flatShading: true }), 0.48);
                 markPlaced(tile.x, tile.z);
                 patchUsed += 1;
                 continue;
@@ -1304,7 +1417,7 @@ export class MapGenerator {
 
             const width = 10 + rand() * 14;
             const depth = 10 + rand() * 14;
-            addPatch(tile.x, tile.z, width, depth, grassMat, 0.2);
+            addPatch(tile.x, tile.z, width, depth, grassMat, 0.48);
             markPlaced(tile.x, tile.z);
             patchUsed += 1;
             const grassCount = 18 + Math.floor(rand() * 24);
@@ -1322,7 +1435,7 @@ export class MapGenerator {
             if (swampTile) {
                 const w = 12;
                 const d = 12;
-                addPatch(swampTile.x, swampTile.z, w, d, lakeMat, 0.22);
+                addPatch(swampTile.x, swampTile.z, w, d, lakeMat, 0.5);
                 this.waterPatches.push({ x: swampTile.x, z: swampTile.z, width: w, depth: d });
                 this.fogZones.push({ x: swampTile.x, z: swampTile.z, radius: 8, density: 0.03 });
             }
@@ -1332,7 +1445,7 @@ export class MapGenerator {
             if (lavaTile) {
                 const w = 10;
                 const d = 10;
-                addPatch(lavaTile.x, lavaTile.z, w, d, lavaMat, 0.24);
+                addPatch(lavaTile.x, lavaTile.z, w, d, lavaMat, 0.5);
                 this.lavaPatches.push({ x: lavaTile.x, z: lavaTile.z, width: w, depth: d });
             }
         }
@@ -1962,27 +2075,32 @@ export class MapGenerator {
             roof.userData.mapGenerated = true;
             group.add(roof);
 
-            const ladderDir = new THREE.Vector3(-1, 0, 0);
-            const ladderStart = new THREE.Vector3(x + 5.15, baseY + 0.35, z - 1.35);
-            const ladderEnd = new THREE.Vector3(x + 0.95, baseY + 10.05, z - 1.35);
-            const stepsCount = 19;
+            const ladderStart = new THREE.Vector3(x + 4.9, baseY + 0.35, z - 3.0);
+            const ladderEnd = new THREE.Vector3(x + 1.6, baseY + 10.35, z - 3.0);
+            const stepsCount = 16;
             for (let s = 0; s < stepsCount; s++) {
                 const t = s / (stepsCount - 1);
                 const stepPos = ladderStart.clone().lerp(ladderEnd, t);
-                const step = new THREE.Mesh(new THREE.BoxGeometry(2.05, 0.2, 0.72), woodMat);
+                const step = new THREE.Mesh(new THREE.BoxGeometry(2.35, 0.22, 0.9), woodMat);
                 step.position.copy(stepPos);
                 step.userData.mapGenerated = true;
                 group.add(step);
-                this.addColliderBox(step.position.clone(), 2.05, 0.24, 0.76, true);
+                this.addColliderBox(step.position.clone(), 2.35, 0.24, 0.9, true);
             }
+            const topLanding = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.24, 1.2), woodMat);
+            topLanding.position.set(x + 1.15, baseY + 10.45, z - 3.0);
+            topLanding.userData.mapGenerated = true;
+            group.add(topLanding);
+            this.addColliderBox(topLanding.position.clone(), 2.6, 0.24, 1.2, true);
+
             const railLen = ladderStart.distanceTo(ladderEnd) + 0.6;
             const railLeft = new THREE.Mesh(new THREE.BoxGeometry(0.16, railLen, 0.16), trunkMat);
             const railRight = railLeft.clone();
             const railMid = ladderStart.clone().add(ladderEnd).multiplyScalar(0.5);
-            railLeft.position.set(railMid.x, railMid.y, railMid.z - 0.44);
-            railRight.position.set(railMid.x, railMid.y, railMid.z + 0.44);
-            railLeft.rotation.z = -0.4;
-            railRight.rotation.z = -0.4;
+            railLeft.position.set(railMid.x, railMid.y, railMid.z - 0.58);
+            railRight.position.set(railMid.x, railMid.y, railMid.z + 0.58);
+            railLeft.rotation.z = -0.32;
+            railRight.rotation.z = -0.32;
             railLeft.userData.mapGenerated = true;
             railRight.userData.mapGenerated = true;
             group.add(railLeft, railRight);

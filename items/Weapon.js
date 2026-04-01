@@ -1,5 +1,5 @@
-import * as THREE from 'three';
-import { BufferGeometryUtils } from 'https://cdn.jsdelivr.net/npm/three@0.163.0/examples/jsm/utils/BufferGeometryUtils.js';
+﻿import * as THREE from 'three';
+import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 
 const WEAPON_BALANCE = {
     fists: { damage: 8, range: 2.4, cooldown: 0.38, ammo: null, durability: null, projectileSpeed: 0 },
@@ -13,22 +13,22 @@ const WEAPON_BALANCE = {
     rifle: { damage: 24, range: 102, cooldown: 0.24, ammo: 120, durability: null, projectileSpeed: 98 }
 };
 
-// --- ОПТИМИЗАЦИЯ ---
-// Кэшируем геометрии и материалы, чтобы не создавать их для каждого нового оружия.
-// Это значительно снижает нагрузку на CPU и GPU, уменьшая фризы при создании объектов.
+// --- РћРџРўРРњРР—РђР¦РРЇ ---
+// РљСЌС€РёСЂСѓРµРј РіРµРѕРјРµС‚СЂРёРё Рё РјР°С‚РµСЂРёР°Р»С‹, С‡С‚РѕР±С‹ РЅРµ СЃРѕР·РґР°РІР°С‚СЊ РёС… РґР»СЏ РєР°Р¶РґРѕРіРѕ РЅРѕРІРѕРіРѕ РѕСЂСѓР¶РёСЏ.
+// Р­С‚Рѕ Р·РЅР°С‡РёС‚РµР»СЊРЅРѕ СЃРЅРёР¶Р°РµС‚ РЅР°РіСЂСѓР·РєСѓ РЅР° CPU Рё GPU, СѓРјРµРЅСЊС€Р°СЏ С„СЂРёР·С‹ РїСЂРё СЃРѕР·РґР°РЅРёРё РѕР±СЉРµРєС‚РѕРІ.
 const weaponResources = {
     geometries: {},
     materials: {}
 };
 
-// Хелпер для получения или создания кэшированного материала
+// РҐРµР»РїРµСЂ РґР»СЏ РїРѕР»СѓС‡РµРЅРёСЏ РёР»Рё СЃРѕР·РґР°РЅРёСЏ РєСЌС€РёСЂРѕРІР°РЅРЅРѕРіРѕ РјР°С‚РµСЂРёР°Р»Р°
 function getCachedMaterial(name, creator) {
     if (!weaponResources.materials[name]) {
         weaponResources.materials[name] = creator();
     }
     return weaponResources.materials[name];
 }
-// --- КОНЕЦ ОПТИМИЗАЦИИ ---
+// --- РљРћРќР•Р¦ РћРџРўРРњРР—РђР¦РР ---
 
 export class Weapon {
     constructor(type, scene) {
@@ -79,10 +79,10 @@ export class Weapon {
     }
 
     _createKnifeMesh(group) {
-        // --- ОПТИМИЗАЦИЯ ---
-        // Вместо создания 5 отдельных мешей, мы объединяем геометрии с одинаковым материалом.
-        // Это сокращает количество вызовов отрисовки (draw calls) с 5 до 3 для каждого ножа.
-        // Модель также кэшируется и клонируется, что почти моментально.
+        // --- РћРџРўРРњРР—РђР¦РРЇ ---
+        // Р’РјРµСЃС‚Рѕ СЃРѕР·РґР°РЅРёСЏ 5 РѕС‚РґРµР»СЊРЅС‹С… РјРµС€РµР№, РјС‹ РѕР±СЉРµРґРёРЅСЏРµРј РіРµРѕРјРµС‚СЂРёРё СЃ РѕРґРёРЅР°РєРѕРІС‹Рј РјР°С‚РµСЂРёР°Р»РѕРј.
+        // Р­С‚Рѕ СЃРѕРєСЂР°С‰Р°РµС‚ РєРѕР»РёС‡РµСЃС‚РІРѕ РІС‹Р·РѕРІРѕРІ РѕС‚СЂРёСЃРѕРІРєРё (draw calls) СЃ 5 РґРѕ 3 РґР»СЏ РєР°Р¶РґРѕРіРѕ РЅРѕР¶Р°.
+        // РњРѕРґРµР»СЊ С‚Р°РєР¶Рµ РєСЌС€РёСЂСѓРµС‚СЃСЏ Рё РєР»РѕРЅРёСЂСѓРµС‚СЃСЏ, С‡С‚Рѕ РїРѕС‡С‚Рё РјРѕРјРµРЅС‚Р°Р»СЊРЅРѕ.
         const key = 'knife_model';
         if (weaponResources.geometries[key]) {
             const cachedModel = weaponResources.geometries[key].clone();
@@ -94,7 +94,7 @@ export class Weapon {
         const handleMat = getCachedMaterial('knife_handle', () => new THREE.MeshStandardMaterial({ color: 0x4e342e, roughness: 0.85, flatShading: true }));
         const guardMat = getCachedMaterial('knife_guard', () => new THREE.MeshStandardMaterial({ color: 0x212121, roughness: 0.5, metalness: 0.3, flatShading: true }));
 
-        // Объединяем все части лезвия в одну геометрию
+        // РћР±СЉРµРґРёРЅСЏРµРј РІСЃРµ С‡Р°СЃС‚Рё Р»РµР·РІРёСЏ РІ РѕРґРЅСѓ РіРµРѕРјРµС‚СЂРёСЋ
         const bladeGeom1 = new THREE.BoxGeometry(0.08, 0.5, 0.02);
         bladeGeom1.translate(0, 0.18, 0);
         const bladeGeom2 = new THREE.ConeGeometry(0.05, 0.18, 6);
@@ -102,11 +102,11 @@ export class Weapon {
         const mergedBladeGeom = BufferGeometryUtils.mergeBufferGeometries([bladeGeom1, bladeGeom2]);
         const blade = new THREE.Mesh(mergedBladeGeom, bladeMat);
 
-        // Рукоять (уже один меш, но для консистентности можно и ее в группу)
+        // Р СѓРєРѕСЏС‚СЊ (СѓР¶Рµ РѕРґРёРЅ РјРµС€, РЅРѕ РґР»СЏ РєРѕРЅСЃРёСЃС‚РµРЅС‚РЅРѕСЃС‚Рё РјРѕР¶РЅРѕ Рё РµРµ РІ РіСЂСѓРїРїСѓ)
         const handle = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.2, 0.06), handleMat);
         handle.position.y = -0.18;
 
-        // Объединяем все части гарды в одну геометрию
+        // РћР±СЉРµРґРёРЅСЏРµРј РІСЃРµ С‡Р°СЃС‚Рё РіР°СЂРґС‹ РІ РѕРґРЅСѓ РіРµРѕРјРµС‚СЂРёСЋ
         const guardGeom1 = new THREE.BoxGeometry(0.16, 0.04, 0.06);
         guardGeom1.translate(0, -0.02, 0);
         const guardGeom2 = new THREE.BoxGeometry(0.12, 0.05, 0.06);
@@ -117,7 +117,7 @@ export class Weapon {
         const model = new THREE.Group();
         model.add(blade, handle, guard);
 
-        // Кэшируем всю модель для будущего использования
+        // РљСЌС€РёСЂСѓРµРј РІСЃСЋ РјРѕРґРµР»СЊ РґР»СЏ Р±СѓРґСѓС‰РµРіРѕ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ
         weaponResources.geometries[key] = model;
         group.add(model.clone());
     }
@@ -858,3 +858,4 @@ export class Weapon {
         return new THREE.CanvasTexture(canvas);
     }
 }
+

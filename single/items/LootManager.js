@@ -369,3 +369,4 @@ export class LootManager {
         return drop;
     }
 }
+

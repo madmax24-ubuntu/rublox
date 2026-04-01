@@ -1,5 +1,5 @@
 ﻿﻿import * as THREE from 'three';
-import { BufferGeometryUtils } from 'https://cdn.jsdelivr.net/npm/three@0.163.0/examples/jsm/utils/BufferGeometryUtils.js';
+import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 import { Weapon } from './Weapon.js';
 
 // --- ОПТИМИЗАЦИЯ ---
@@ -488,3 +488,4 @@ export class LootManager {
         return drop;
     }
 }
+

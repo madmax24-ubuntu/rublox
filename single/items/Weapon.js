@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 
 export class Weapon {
     constructor(type, scene) {
@@ -769,3 +769,4 @@ export class Weapon {
         return new THREE.CanvasTexture(canvas);
     }
 }
+
