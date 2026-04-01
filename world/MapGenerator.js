@@ -1017,9 +1017,10 @@ export class MapGenerator {
         const baseY = this.getHeightAt(position.x, position.z);
         const wallY = baseY + height / 2;
 
-        const floorThickness = isMassiveHangar ? 0.24 : 0.18;
+        const floorThickness = isMassiveHangar ? 0.2 : 0.14;
         const floor = new THREE.Mesh(new THREE.BoxGeometry(width * 0.96, floorThickness, depth * 0.96), floorMat);
-        floor.position.set(position.x, baseY + 0.18 + floorThickness * 0.5, position.z);
+        const floorTopY = baseY + 0.01;
+        floor.position.set(position.x, floorTopY - floorThickness * 0.5, position.z);
         floor.userData.mapGenerated = true;
         group.add(floor);
         this.addColliderBox(floor.position.clone(), width * 0.96, floorThickness, depth * 0.96, true);
@@ -1102,13 +1103,12 @@ export class MapGenerator {
         );
         ramp.position.set(
             position.x,
-            baseY + 0.12,
+            baseY + 0.015,
             position.z + depth * 0.5 + rampLength * 0.28
         );
         ramp.rotation.x = -0.12;
         ramp.userData.mapGenerated = true;
         group.add(ramp);
-        this.addColliderBox(ramp.position.clone(), Math.max(doorWidth * 0.82, 2.6), 0.24, rampLength, true);
 
         if (isMassiveHangar) {
             const lintelHeight = Math.max(2.8, height * 0.28);
@@ -1799,17 +1799,19 @@ export class MapGenerator {
 
     updatePropVisibility(playerPos) {
         if (!playerPos) return;
-        const smallDist = 120;
-        const leafDist = 150;
+        const smallDistSq = 120 * 120;
+        const leafDistSq = 150 * 150;
         for (const mesh of this.smallPropMeshes) {
             const center = mesh.userData.center || new THREE.Vector3();
-            const dist = center.distanceTo(playerPos);
-            mesh.visible = dist < smallDist;
+            const dx = center.x - playerPos.x;
+            const dz = center.z - playerPos.z;
+            mesh.visible = (dx * dx + dz * dz) < smallDistSq;
         }
         for (const mesh of this.leafMeshes) {
             const center = mesh.userData.center || new THREE.Vector3();
-            const dist = center.distanceTo(playerPos);
-            mesh.visible = dist < leafDist;
+            const dx = center.x - playerPos.x;
+            const dz = center.z - playerPos.z;
+            mesh.visible = (dx * dx + dz * dz) < leafDistSq;
         }
     }
 

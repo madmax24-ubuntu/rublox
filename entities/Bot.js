@@ -528,7 +528,7 @@ export class Bot {
 
         // Simple separation to avoid bot clumping
         this.separationTimer = Math.max(0, this.separationTimer - delta);
-        if (entityManager && this.isAlive && this.separationTimer <= 0) {
+        if (entityManager && this.isAlive && !this.isFrozen && this.separationTimer <= 0) {
             const nearby = entityManager.getNearbyEntities
                 ? entityManager.getNearbyEntities(this.position, 2.4, 'Bot')
                 : entityManager.getEntities();
@@ -548,7 +548,7 @@ export class Bot {
                 this.physics.velocity.x += sep.x;
                 this.physics.velocity.z += sep.z;
             }
-            this.separationTimer = 0.08;
+            this.separationTimer = 0.16 + Math.random() * 0.06;
         }
     }
 

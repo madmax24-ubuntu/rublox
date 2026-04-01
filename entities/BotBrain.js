@@ -16,6 +16,8 @@ export class BotBrain {
         this.decisionCooldown = 0;
         this.attackCooldown = 0;
         this.lastChestCheck = 0;
+        this.perceptionCooldown = Math.random() * 0.18;
+        this.memoryCleanupCooldown = 0.9 + Math.random() * 0.6;
         
         // РџРµСЂСЃРѕРЅР°Р»РёР·Р°С†РёСЏ - РєР°Р¶РґС‹Р№ Р±РѕС‚ СѓРЅРёРєР°Р»РµРЅ
         this.personality = {
@@ -69,6 +71,8 @@ export class BotBrain {
         
         this.decisionCooldown -= delta;
         this.attackCooldown -= delta;
+        this.perceptionCooldown -= delta;
+        this.memoryCleanupCooldown -= delta;
         this.stateTimer -= delta;
         this.poiRetargetCooldown -= delta;
         this.trainLockTimer = Math.max(0, this.trainLockTimer - delta);
@@ -77,7 +81,10 @@ export class BotBrain {
         bot.ignoreTrainAvoidance = this.prefersTrainCombat && this.trainLockTimer > 0;
         
         // 1. Р’РѕСЃРїСЂРёСЏС‚РёРµ
-        this.updatePerception(bot, entityManager, lootManager);
+        if (this.perceptionCooldown <= 0) {
+            this.updatePerception(bot, entityManager, lootManager);
+            this.perceptionCooldown = Math.max(0.16, 0.34 - this.personality.intelligence * 0.12);
+        }
         
         // 2. РћС†РµРЅРєР° СѓРіСЂРѕР·С‹
         const threatLevel = this.assessThreatLevel(bot, entityManager);
@@ -101,7 +108,10 @@ export class BotBrain {
         }
         
         // 7. РћР±РЅРѕРІР»РµРЅРёРµ РїР°РјСЏС‚Рё
-        this.updateMemory(bot, entityManager);
+        if (this.memoryCleanupCooldown <= 0) {
+            this.updateMemory(bot, entityManager);
+            this.memoryCleanupCooldown = 0.6 + Math.random() * 0.5;
+        }
         
         // 8. РЈРїСЂР°РІР»РµРЅРёРµ СЃРѕСЋР·Р°РјРё
         this.manageAlliances(bot, delta);

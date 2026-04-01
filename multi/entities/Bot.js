@@ -57,6 +57,11 @@ export class Bot {
         this.burnDamagePerSecond = 0;
         this.burnAttacker = null;
         this.lastFlashTime = 0;
+        this.preferTrainCombat = false;
+        this.ignoreTrainAvoidance = false;
+        this.healthRegenDelay = 7;
+        this.healthRegenDuration = 7;
+        this.lastDamageAt = -Infinity;
 
         this.variants = [
             {
@@ -142,6 +147,15 @@ export class Bot {
         this.mesh.add(this.healthBar);
         this.scene.add(this.mesh);
         this.updateColor();
+    }
+
+    syncWeaponVisibility() {
+        const items = this.inventory.getItems?.() || [];
+        for (const item of items) {
+            if (item?.mesh) {
+                item.setVisible(item === this.currentWeapon && this.isAlive);
+            }
+        }
     }
 
     createMesh() {
@@ -395,8 +409,10 @@ export class Bot {
         if (this.healthBar) this.healthBar.visible = true;
 
         this.physicsRef = physics;
+        this.zoneRef = zone || this.zoneRef;
         this.audioSynthRef = audioSynth;
         this.updateBurning(delta);
+        this.updateHealthRegen(delta);
 
         if (this.slowTimer > 0) {
             this.slowTimer = Math.max(0, this.slowTimer - delta);
@@ -438,6 +454,7 @@ export class Bot {
         }
 
 
+        this.ignoreTrainAvoidance = false;
         brain.update(this, delta, entityManager, lootManager, audioSynth);
         if (this.escapeTimer > 0) {
             this.escapeTimer = Math.max(0, this.escapeTimer - delta);
@@ -474,14 +491,24 @@ export class Bot {
         this.animateLimbs();
         this.updateHealthBar();
 
-        if (this.currentWeapon && this.currentWeapon.mesh) {
-            const weaponPos = this.position.clone();
-            weaponPos.y += 1.2;
-            weaponPos.x += Math.cos(this.rotation.y) * 0.5;
-            weaponPos.z += Math.sin(this.rotation.y) * 0.5;
+        if (this.currentWeapon && this.currentWeapon.mesh && this.isAlive) {
+            const limbs = this.mesh?.userData?.limbs;
+            if (limbs?.rightArm) {
+                this.mesh.updateMatrixWorld(true);
+                const armWorldPos = new THREE.Vector3();
+                limbs.rightArm.getWorldPosition(armWorldPos);
 
-            this.currentWeapon.setPosition(weaponPos);
-            this.currentWeapon.setRotation(this.rotation);
+                const forward = new THREE.Vector3(Math.sin(this.rotation.y), 0, Math.cos(this.rotation.y));
+                const right = new THREE.Vector3(Math.cos(this.rotation.y), 0, -Math.sin(this.rotation.y));
+                const weaponPos = armWorldPos
+                    .clone()
+                    .add(forward.multiplyScalar(0.16))
+                    .add(right.multiplyScalar(0.08))
+                    .add(new THREE.Vector3(0, -0.18, 0));
+
+                this.currentWeapon.setPosition(weaponPos);
+                this.currentWeapon.setRotation(this.rotation);
+            }
         }
 
         const moved = this.position.distanceTo(this.lastPosition);
@@ -501,7 +528,7 @@ export class Bot {
 
         // Simple separation to avoid bot clumping
         this.separationTimer = Math.max(0, this.separationTimer - delta);
-        if (entityManager && this.isAlive && this.separationTimer <= 0) {
+        if (entityManager && this.isAlive && !this.isFrozen && this.separationTimer <= 0) {
             const nearby = entityManager.getNearbyEntities
                 ? entityManager.getNearbyEntities(this.position, 2.4, 'Bot')
                 : entityManager.getEntities();
@@ -521,7 +548,7 @@ export class Bot {
                 this.physics.velocity.x += sep.x;
                 this.physics.velocity.z += sep.z;
             }
-            this.separationTimer = 0.08;
+            this.separationTimer = 0.16 + Math.random() * 0.06;
         }
     }
 
@@ -559,11 +586,10 @@ export class Bot {
 
         if (weapon) {
             this.currentWeapon = weapon;
-            this.currentWeapon.setVisible(true);
         } else {
             this.currentWeapon = null;
-            this.fists = new Weapon('fists', this.scene);
         }
+        this.syncWeaponVisibility();
     }
 
     pickupLoot(loot) {
@@ -573,6 +599,8 @@ export class Bot {
             if (result.added) {
                 if (!this.currentWeapon || !this.inventory.getSelectedWeapon()) {
                     this.selectSlot(result.slot);
+                } else {
+                    weapon.setVisible(false);
                 }
             } else {
                 weapon.dispose();
@@ -598,6 +626,9 @@ export class Bot {
         if (this.isInvulnerable) return false;
 
         const finalDamage = isHeadshot ? damage * 2 : damage;
+        if (finalDamage > 0) {
+            this.lastDamageAt = performance.now() / 1000;
+        }
         if (attacker?.stats) {
             attacker.stats.damage += finalDamage;
         }
@@ -622,9 +653,7 @@ export class Bot {
             this.mesh.position.copy(this.position);
             this.mesh.position.y = this.position.y - (this.physics.height - 0.2) - 0.8;
             this.mesh.rotation.set(-Math.PI / 2, this.rotation.y, 0);
-            if (this.currentWeapon) {
-                this.currentWeapon.setVisible(false);
-            }
+            this.syncWeaponVisibility();
             if (attacker?.stats) {
                 attacker.stats.kills += 1;
             }
@@ -711,12 +740,29 @@ export class Bot {
         }
         const camera = this.scene.userData?.camera;
         if (camera) {
+            const dist = camera.position.distanceTo(this.position);
+            const entityManager = this.scene.userData?.entityManager;
+            let visible = dist < 18;
+            if (visible && entityManager?.hasLineOfSight) {
+                const from = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);
+                const to = new THREE.Vector3(this.position.x, this.position.y + (this.physics?.height || 1.8) * 0.65, this.position.z);
+                visible = entityManager.hasLineOfSight(from, to, true);
+            }
+            this.healthBar.visible = visible;
             this.healthBar.lookAt(camera.position);
         }
     }
 
     setInvulnerable(value) {
         this.isInvulnerable = value;
+    }
+
+    updateHealthRegen(delta) {
+        if (!this.isAlive || this.health >= this.maxHealth) return;
+        const now = performance.now() / 1000;
+        if (now - this.lastDamageAt < this.healthRegenDelay) return;
+        const regenPerSecond = this.maxHealth / this.healthRegenDuration;
+        this.health = Math.min(this.maxHealth, this.health + regenPerSecond * delta);
     }
 
     moveTowards(target, speed) {
@@ -731,6 +777,10 @@ export class Bot {
         const avoid = this.computeAvoidance(direction);
         if (avoid.length() > 0) {
             direction = direction.clone().add(avoid.multiplyScalar(1.35)).normalize();
+        }
+        const trainAvoid = this.computeTrainAvoidance(direction);
+        if (trainAvoid.lengthSq() > 0) {
+            direction = direction.clone().add(trainAvoid.multiplyScalar(1.55)).normalize();
         }
 
         const isBlocked = dir => {
@@ -811,7 +861,7 @@ export class Bot {
         const now = performance.now() / 1000;
         if (now < this.nextAttackTime) return null;
 
-        if ((weapon.type === 'knife' || weapon.type === 'axe' || weapon.type === 'spear') && weapon.durability !== null && weapon.durability <= 0) {
+        if ((weapon.type === 'knife' || weapon.type === 'axe') && weapon.durability !== null && weapon.durability <= 0) {
             this.currentWeapon = null;
             weapon = this.fists;
         }
@@ -821,17 +871,8 @@ export class Bot {
         }
 
         const distance = this.position.distanceTo(target.position);
-        const attackRange = weapon.type === 'laser'
-            ? 40
-            : weapon.type === 'bow'
-                ? 40
-                : weapon.type === 'pistol'
-                    ? 35
-                    : weapon.type === 'rifle'
-                        ? 45
-                        : weapon.type === 'fists'
-                            ? 2.5
-                            : 3;
+        const baseRange = weapon.range || (weapon.type === 'fists' ? 2.4 : 3);
+        const attackRange = baseRange * (weapon.type === 'shotgun' ? 0.9 : 1.0);
 
         if (distance > attackRange) return null;
 
@@ -850,20 +891,23 @@ export class Bot {
 
             if (weapon.type === 'bow') {
                 const err = new THREE.Vector3(
-                    (Math.random() - 0.5) * 0.03,
-                    (Math.random() - 0.5) * 0.02,
-                    (Math.random() - 0.5) * 0.03
+                    (Math.random() - 0.5) * 0.08,
+                    (Math.random() - 0.5) * 0.045,
+                    (Math.random() - 0.5) * 0.08
                 );
                 direction.add(err).normalize();
             }
 
-            const projectileData = weapon.attack(this, null, null, direction);
+            const projectileData = weapon.type === 'bow'
+                ? weapon.attack(this, null, null, direction, { chargeRatio: 0.55 })
+                : weapon.attack(this, null, null, direction);
+            const cadence = Math.max(0.09, (weapon.cooldown || 0.2) * (weapon.type === 'bow' ? 0.95 : 0.82));
             if (projectileData && projectileData.projectiles) {
                 for (const proj of projectileData.projectiles) {
                     proj.owner = this;
                     entityManager?.addProjectile(proj);
                 }
-                this.nextAttackTime = now + (weapon.type === 'bow' ? 0.55 : 0.18);
+                this.nextAttackTime = now + cadence;
                 return { fired: true, damage: weapon.damage };
             }
             if (projectileData && projectileData.projectile) {
@@ -872,14 +916,14 @@ export class Bot {
                 if (entityManager) {
                     entityManager.addProjectile(projectileData.projectile);
                 }
-                this.nextAttackTime = now + (weapon.type === 'bow' ? 0.55 : 0.16);
+                this.nextAttackTime = now + cadence;
                 return { fired: true, damage: weapon.damage };
             }
         } else {
             const result = weapon.attack(this, target);
             if (result && result.hit) {
                 const killed = target.takeDamage(result.damage, result.isHeadshot, this, result.knockback || 0);
-                this.nextAttackTime = now + 0.12;
+                this.nextAttackTime = now + Math.max(0.12, (weapon.cooldown || 0.3) * 0.85);
                 return { hit: true, damage: result.damage, killed: target.health <= 0 };
             }
         }
@@ -939,6 +983,40 @@ export class Bot {
                 result.x += (dx / dist) * push;
                 result.z += (dz / dist) * push;
             }
+        }
+        return result;
+    }
+
+    computeTrainAvoidance(forward) {
+        const result = new THREE.Vector3();
+        if (this.ignoreTrainAvoidance || this.state === 'trainCombat') return result;
+        const map = this.mapRef;
+        if (!map?.getTrainCarsSnapshot) return result;
+        const trains = map.getTrainCarsSnapshot();
+        if (!trains.length) return result;
+
+        for (const train of trains) {
+            const axisX = train.axis === 'x';
+            const alongDist = axisX
+                ? Math.abs(this.position.x - train.x)
+                : Math.abs(this.position.z - train.z);
+            const acrossDist = axisX
+                ? Math.abs(this.position.z - train.z)
+                : Math.abs(this.position.x - train.x);
+            const halfWidth = (train.width || 4.8) * 0.5 + 1.4;
+            if (acrossDist > halfWidth || alongDist > 13.5) continue;
+
+            const away = axisX
+                ? new THREE.Vector3(0, 0, this.position.z >= train.z ? 1 : -1)
+                : new THREE.Vector3(this.position.x >= train.x ? 1 : -1, 0, 0);
+            const intensity = Math.max(0.1, 1 - alongDist / 13.5);
+            result.add(away.multiplyScalar(intensity));
+        }
+
+        if (result.lengthSq() <= 0.0001) return result;
+        result.normalize();
+        if (result.dot(forward) < -0.2) {
+            result.multiplyScalar(0.45);
         }
         return result;
     }
