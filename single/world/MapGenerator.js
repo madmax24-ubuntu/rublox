@@ -1068,9 +1068,9 @@ export class MapGenerator {
         const baseY = this.getHeightAt(position.x, position.z);
         const wallY = baseY + height / 2;
 
-        const floorThickness = isMassiveHangar ? 0.18 : 0.14;
+        const floorThickness = isMassiveHangar ? 0.12 : 0.1;
         const floor = new THREE.Mesh(new THREE.BoxGeometry(width * 0.96, floorThickness, depth * 0.96), floorMat);
-        const floorTopY = baseY + 0.44;
+        const floorTopY = baseY + (isMassiveHangar ? 0.12 : 0.1);
         floor.position.set(position.x, floorTopY - floorThickness * 0.5, position.z);
         floor.userData.mapGenerated = true;
         group.add(floor);
@@ -1116,66 +1116,40 @@ export class MapGenerator {
             }
         }
 
+        const colliderSink = 1.2;
+        const colliderWallY = wallY - colliderSink * 0.5;
+        const colliderWallH = height + colliderSink;
+
         const leftWall = new THREE.Mesh(new THREE.BoxGeometry(wallThickness, height, depth), wallMat);
         leftWall.position.set(position.x - width / 2 + wallThickness / 2, wallY, position.z);
         leftWall.userData.mapGenerated = true;
         group.add(leftWall);
-        this.addColliderBox(leftWall.position.clone(), wallThickness + 0.25, height, depth + 0.2, false);
+        this.addColliderBox(new THREE.Vector3(leftWall.position.x, colliderWallY, leftWall.position.z), wallThickness + 0.25, colliderWallH, depth + 0.2, false);
 
         const rightWall = new THREE.Mesh(new THREE.BoxGeometry(wallThickness, height, depth), wallMat);
         rightWall.position.set(position.x + width / 2 - wallThickness / 2, wallY, position.z);
         rightWall.userData.mapGenerated = true;
         group.add(rightWall);
-        this.addColliderBox(rightWall.position.clone(), wallThickness + 0.25, height, depth + 0.2, false);
+        this.addColliderBox(new THREE.Vector3(rightWall.position.x, colliderWallY, rightWall.position.z), wallThickness + 0.25, colliderWallH, depth + 0.2, false);
 
         const backWall = new THREE.Mesh(new THREE.BoxGeometry(width, height, wallThickness), wallMat);
         backWall.position.set(position.x, wallY, position.z - depth / 2 + wallThickness / 2);
         backWall.userData.mapGenerated = true;
         group.add(backWall);
-        this.addColliderBox(backWall.position.clone(), width + 0.2, height, wallThickness + 0.25, false);
+        this.addColliderBox(new THREE.Vector3(backWall.position.x, colliderWallY, backWall.position.z), width + 0.2, colliderWallH, wallThickness + 0.25, false);
 
         const frontSegmentWidth = (width - doorWidth) / 2;
         const frontLeft = new THREE.Mesh(new THREE.BoxGeometry(frontSegmentWidth, height, wallThickness), wallMat);
         frontLeft.position.set(position.x - doorWidth / 2 - frontSegmentWidth / 2, wallY, position.z + depth / 2 - wallThickness / 2);
         frontLeft.userData.mapGenerated = true;
         group.add(frontLeft);
-        this.addColliderBox(frontLeft.position.clone(), frontSegmentWidth + 0.12, height, wallThickness + 0.25, false);
+        this.addColliderBox(new THREE.Vector3(frontLeft.position.x, colliderWallY, frontLeft.position.z), frontSegmentWidth + 0.12, colliderWallH, wallThickness + 0.25, false);
 
         const frontRight = new THREE.Mesh(new THREE.BoxGeometry(frontSegmentWidth, height, wallThickness), wallMat);
         frontRight.position.set(position.x + doorWidth / 2 + frontSegmentWidth / 2, wallY, position.z + depth / 2 - wallThickness / 2);
         frontRight.userData.mapGenerated = true;
         group.add(frontRight);
-        this.addColliderBox(frontRight.position.clone(), frontSegmentWidth + 0.12, height, wallThickness + 0.25, false);
-
-        const addStep = (x, y, z, w, h, d) => {
-            const step = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), floorMat);
-            step.position.set(x, y, z);
-            step.userData.mapGenerated = true;
-            group.add(step);
-            this.addColliderBox(step.position.clone(), w, h, d, true);
-        };
-
-        if (isMassiveHangar) {
-            const stepCount = 5;
-            const stepHeight = 0.11;
-            const stepDepth = 0.78;
-            const stepWidth = Math.max(doorWidth * 0.9, 4.6);
-            for (let i = 0; i < stepCount; i++) {
-                const y = baseY + 0.05 + i * stepHeight;
-                const z = position.z + depth * 0.5 + (stepCount - i - 0.3) * stepDepth * 0.34;
-                addStep(position.x, y, z, stepWidth, 0.12, stepDepth);
-            }
-        } else {
-            const stepCount = 3;
-            const stepHeight = 0.12;
-            const stepDepth = 0.72;
-            const stepWidth = Math.max(doorWidth * 0.86, 2.8);
-            for (let i = 0; i < stepCount; i++) {
-                const y = baseY + 0.05 + i * stepHeight;
-                const z = position.z + depth * 0.5 + (stepCount - i - 0.35) * stepDepth * 0.34;
-                addStep(position.x, y, z, stepWidth, 0.12, stepDepth);
-            }
-        }
+        this.addColliderBox(new THREE.Vector3(frontRight.position.x, colliderWallY, frontRight.position.z), frontSegmentWidth + 0.12, colliderWallH, wallThickness + 0.25, false);
 
         if (isMassiveHangar) {
             const lintelHeight = Math.max(2.8, height * 0.28);
@@ -1184,18 +1158,15 @@ export class MapGenerator {
                 wallMat
             );
             lintel.position.set(position.x, baseY + height - lintelHeight * 0.5, position.z + depth / 2 - wallThickness / 2);
-                lintel.userData.mapGenerated = true;
-                group.add(lintel);
-                this.addColliderBox(lintel.position.clone(), doorWidth, lintelHeight, wallThickness + 0.25, false);
-
-            const centralCorridor = new THREE.Mesh(
-                new THREE.BoxGeometry(Math.max(4.2, width * 0.16), 0.18, depth * 0.86),
-                floorMat
+            lintel.userData.mapGenerated = true;
+            group.add(lintel);
+            this.addColliderBox(
+                new THREE.Vector3(lintel.position.x, lintel.position.y - 0.2, lintel.position.z),
+                doorWidth,
+                lintelHeight + 0.6,
+                wallThickness + 0.25,
+                false
             );
-            centralCorridor.position.set(position.x, baseY + 0.54, position.z - depth * 0.03);
-            centralCorridor.userData.mapGenerated = true;
-            group.add(centralCorridor);
-            this.addColliderBox(centralCorridor.position.clone(), Math.max(4.2, width * 0.16), 0.18, depth * 0.86, true);
 
             const catwalkMat = new THREE.MeshStandardMaterial({
                 color: 0x6f7e86,
@@ -1886,6 +1857,17 @@ export class MapGenerator {
         return base + 0.4;
     }
 
+    getSurfaceHeightAt(x, z) {
+        let top = this.getHeightAt(x, z);
+        for (const box of this.colliders || []) {
+            if (!box?.walkable || box.enabled === false) continue;
+            if (x < box.min.x || x > box.max.x) continue;
+            if (z < box.min.z || z > box.max.z) continue;
+            if (box.max.y > top) top = box.max.y;
+        }
+        return top;
+    }
+
     getColliders() {
         return this.colliders;
     }
@@ -2006,7 +1988,7 @@ export class MapGenerator {
     }
 
     isChestClear(x, z, radius = 1.2, ignoreWalkable = false) {
-        const y = this.getHeightAt(x, z) + 0.35;
+        const y = this.getSurfaceHeightAt(x, z) + 0.35;
         const min = new THREE.Vector3(x - radius, y - 0.4, z - radius);
         const max = new THREE.Vector3(x + radius, y + 0.4, z + radius);
         for (const box of this.colliders) {
@@ -2100,6 +2082,28 @@ export class MapGenerator {
         return this.findClearPointAround(structure.x, structure.z, guardRadius, base, base + 8);
     }
 
+    findStructureInteriorPoint(structure, type = 'house', padding = 1.2, attempts = 28) {
+        if (!structure) return null;
+        const width = structure.width || (type === 'hangar' ? 20 : 8);
+        const depth = structure.depth || (type === 'hangar' ? 16 : 8);
+        const halfW = Math.max(1.2, width * 0.5 - padding);
+        const halfD = Math.max(1.2, depth * 0.5 - padding);
+        const radius = type === 'hangar' ? 1.0 : 0.85;
+        for (let i = 0; i < attempts; i++) {
+            const x = structure.x + (Math.random() * 2 - 1) * halfW;
+            const z = structure.z + (Math.random() * 2 - 1) * halfD;
+            if (!this.isWalkableAt(x, z)) continue;
+            if (!this.isChestClear(x, z, radius, true)) continue;
+            return { x, z };
+        }
+        const cx = structure.x;
+        const cz = structure.z;
+        if (this.isWalkableAt(cx, cz) && this.isChestClear(cx, cz, radius, true)) {
+            return { x: cx, z: cz };
+        }
+        return null;
+    }
+
     buildTreeHouses(candidates, rand, placed) {
         const count = 6;
         let created = 0;
@@ -2119,46 +2123,47 @@ export class MapGenerator {
             const z = tile.z;
             const baseY = this.getHeightAt(x, z);
 
-            const trunk = new THREE.Mesh(new THREE.BoxGeometry(2.4, 14.0, 2.4), trunkMat);
-            trunk.position.set(x, baseY + 7.0, z);
+            const trunk = new THREE.Mesh(new THREE.BoxGeometry(2.4, 13.0, 2.4), trunkMat);
+            trunk.position.set(x, baseY + 6.5, z);
             trunk.userData.mapGenerated = true;
             group.add(trunk);
-            this.addColliderBox(new THREE.Vector3(x, baseY + 7, z), 2.4, 14.0, 2.4, false);
+            this.addColliderBox(new THREE.Vector3(x, baseY + 6.5, z), 2.4, 13.0, 2.4, false);
 
             const platform = new THREE.Mesh(new THREE.BoxGeometry(8.4, 0.45, 8.4), woodMat);
-            platform.position.set(x, baseY + 10.2, z);
+            platform.position.set(x, baseY + 8.6, z);
             platform.userData.mapGenerated = true;
             group.add(platform);
             this.addColliderBox(platform.position.clone(), 8.4, 0.45, 8.4, true);
 
             const hut = new THREE.Mesh(new THREE.BoxGeometry(4.8, 3.2, 4.8), woodMat);
-            hut.position.set(x, baseY + 12.0, z);
+            hut.position.set(x, baseY + 10.4, z);
             hut.userData.mapGenerated = true;
             group.add(hut);
 
             const roof = new THREE.Mesh(new THREE.ConeGeometry(3.8, 2.8, 4), new THREE.MeshStandardMaterial({ color: 0x4e342e, roughness: 0.85, flatShading: true }));
-            roof.position.set(x, baseY + 14.7, z);
+            roof.position.set(x, baseY + 12.8, z);
             roof.rotation.y = Math.PI / 4;
             roof.userData.mapGenerated = true;
             group.add(roof);
 
-            const ladderStart = new THREE.Vector3(x + 4.9, baseY + 0.35, z - 3.0);
-            const ladderEnd = new THREE.Vector3(x + 1.6, baseY + 10.35, z - 3.0);
-            const stepsCount = 16;
+            const ladderZ = z - 3.0;
+            const ladderStart = new THREE.Vector3(x + 9.8, baseY + 0.28, ladderZ);
+            const ladderEnd = new THREE.Vector3(x + 1.7, baseY + 8.55, ladderZ);
+            const stepsCount = 42;
             for (let s = 0; s < stepsCount; s++) {
                 const t = s / (stepsCount - 1);
                 const stepPos = ladderStart.clone().lerp(ladderEnd, t);
-                const step = new THREE.Mesh(new THREE.BoxGeometry(2.35, 0.22, 0.9), woodMat);
+                const step = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.16, 0.96), woodMat);
                 step.position.copy(stepPos);
                 step.userData.mapGenerated = true;
                 group.add(step);
-                this.addColliderBox(step.position.clone(), 2.35, 0.24, 0.9, true);
+                this.addColliderBox(step.position.clone(), 2.8, 0.16, 0.96, true);
             }
-            const topLanding = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.24, 1.2), woodMat);
-            topLanding.position.set(x + 1.15, baseY + 10.45, z - 3.0);
+            const topLanding = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.18, 1.6), woodMat);
+            topLanding.position.set(x + 1.2, baseY + 8.68, ladderZ);
             topLanding.userData.mapGenerated = true;
             group.add(topLanding);
-            this.addColliderBox(topLanding.position.clone(), 2.6, 0.24, 1.2, true);
+            this.addColliderBox(topLanding.position.clone(), 3.0, 0.18, 1.6, true);
 
             const railLen = ladderStart.distanceTo(ladderEnd) + 0.6;
             const railLeft = new THREE.Mesh(new THREE.BoxGeometry(0.16, railLen, 0.16), trunkMat);
@@ -2172,13 +2177,13 @@ export class MapGenerator {
             railRight.userData.mapGenerated = true;
             group.add(railLeft, railRight);
 
-            const canopy = new THREE.Mesh(new THREE.BoxGeometry(11.5, 5.4, 11.5), leafMat);
-            canopy.position.set(x, baseY + 16.5, z);
+            const canopy = new THREE.Mesh(new THREE.BoxGeometry(11.5, 4.8, 11.5), leafMat);
+            canopy.position.set(x, baseY + 14.4, z);
             canopy.userData.mapGenerated = true;
             group.add(canopy);
 
             this.scene.add(group);
-            this.houseSpots.push({ x, z, width: 7.8, depth: 7.8, height: 6.4, style: "treehouse" });
+            this.houseSpots.push({ x, z, width: 7.8, depth: 7.8, height: 5.8, style: "treehouse" });
             placed.push({ x, z });
             created += 1;
         }

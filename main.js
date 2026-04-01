@@ -1426,17 +1426,24 @@ class Game {
             for (let i = 0; i < pack; i++) {
                 if (budget <= 0) break;
                 if (spawned >= maxSpawn) break;
-                const guardSpot = point.type === "house"
-                    ? (this.map.findClearPointAround?.(point.x, point.z, 0.8, 0.5, Math.max(3.2, Math.min(point.width || 8, point.depth || 8) * 0.35))
-                        || this.map.findStructureGuardPoint?.(point, point.type))
-                    : this.map.findStructureGuardPoint?.(point, point.type);
+                const interiorSpot = this.map.findStructureInteriorPoint?.(
+                    point,
+                    point.type,
+                    point.type === "hangar" ? 2.2 : 1.05
+                );
+                const guardSpot = interiorSpot
+                    || (point.type === "house"
+                        ? (this.map.findClearPointAround?.(point.x, point.z, 0.8, 0.5, Math.max(3.2, Math.min(point.width || 8, point.depth || 8) * 0.35))
+                            || this.map.findStructureGuardPoint?.(point, point.type))
+                        : this.map.findStructureGuardPoint?.(point, point.type));
                 if (!guardSpot) continue;
-                const jitter = point.type === "hangar" ? 2.4 : 1.4;
+                const jitter = interiorSpot ? 0.85 : (point.type === "hangar" ? 2.4 : 1.4);
                 const x = guardSpot.x + (Math.random() - 0.5) * jitter;
                 const z = guardSpot.z + (Math.random() - 0.5) * jitter;
                 if (!this.map.isWalkableAt?.(x, z)) continue;
-                if (!this.map.isChestClear?.(x, z, 0.9)) continue;
-                const pos = new THREE.Vector3(x, this.map.getHeightAt(x, z) + 1.8, z);
+                if (!this.map.isChestClear?.(x, z, 0.9, true)) continue;
+                const baseY = this.map.getSurfaceHeightAt?.(x, z) ?? this.map.getHeightAt(x, z);
+                const pos = new THREE.Vector3(x, baseY + 1.8, z);
                 if (pos.distanceTo(this.player.position) < 16) continue;
                 const zombie = new Zombie(this.scene, this.nextZombieId++, pos);
                 this.physics.addEntity(zombie);
@@ -1485,9 +1492,10 @@ class Game {
             this.zombieSpawnCursor = (this.zombieSpawnCursor + 1) % floorTiles.length;
             attempts++;
             if (spawned >= count) break;
-            const pos = new THREE.Vector3(tile.x, this.map.getHeightAt(tile.x, tile.z) + 1.8, tile.z);
+            const baseY = this.map.getSurfaceHeightAt?.(tile.x, tile.z) ?? this.map.getHeightAt(tile.x, tile.z);
+            const pos = new THREE.Vector3(tile.x, baseY + 1.8, tile.z);
             if (pos.distanceTo(this.player.position) < (reset ? 20 : 24)) continue;
-            if (!this.map.isChestClear?.(tile.x, tile.z, 0.9)) continue;
+            if (!this.map.isChestClear?.(tile.x, tile.z, 0.9, true)) continue;
             const zombie = new Zombie(this.scene, this.nextZombieId++, pos);
             this.physics.addEntity(zombie);
             this.entityManager.addEntity(zombie);

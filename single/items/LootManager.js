@@ -34,6 +34,11 @@ export class LootManager {
             this.chestReady = true;
         });
     }
+
+    getChestPlacementY(x, z) {
+        const surfaceY = this.mapGenerator.getSurfaceHeightAt?.(x, z) ?? this.mapGenerator.getHeightAt(x, z);
+        return surfaceY + 0.02;
+    }
     
     generateChests() {
         const chestCount = Math.max(80, Math.floor(1400 * this.lootDensity));
@@ -45,7 +50,7 @@ export class LootManager {
 
             for (let i = 0; i < limit; i++) {
                 const spot = shuffled[i];
-                const y = this.mapGenerator.getHeightAt(spot.x, spot.z) + 0.06;
+                const y = this.getChestPlacementY(spot.x, spot.z);
                 if (y < this.mapGenerator.waterLevel + 1) continue;
                 const chest = this.createChest(spot.x, y, spot.z, spot.grade || 'house');
                 this.chests.push(chest);
@@ -59,7 +64,7 @@ export class LootManager {
             const limit = Math.min(chestCount, shuffled.length);
             for (let i = 0; i < limit; i++) {
                 const tile = shuffled[i];
-                const y = this.mapGenerator.getHeightAt(tile.x, tile.z) + 0.06;
+                const y = this.getChestPlacementY(tile.x, tile.z);
                 const chest = this.createChest(tile.x, y, tile.z);
                 this.chests.push(chest);
             }
@@ -71,7 +76,7 @@ export class LootManager {
             const distance = 40 + Math.random() * 150;
             const x = Math.cos(angle) * distance;
             const z = Math.sin(angle) * distance;
-            const y = this.mapGenerator.getHeightAt(x, z) + 0.06;
+            const y = this.getChestPlacementY(x, z);
 
             if (y < this.mapGenerator.waterLevel + 1) {
                 i--;
@@ -94,7 +99,7 @@ export class LootManager {
 
             for (let i = 0; i < limit; i++) {
                 const spot = shuffled[i];
-                const y = this.mapGenerator.getHeightAt(spot.x, spot.z) + 0.06;
+                const y = this.getChestPlacementY(spot.x, spot.z);
                 if (y < this.mapGenerator.waterLevel + 1) continue;
                 
                 const chest = this.createChest(spot.x, y, spot.z, spot.grade || 'house');
@@ -114,7 +119,7 @@ export class LootManager {
             const limit = Math.min(chestCount, shuffled.length);
             for (let i = 0; i < limit; i++) {
                 const tile = shuffled[i];
-                const y = this.mapGenerator.getHeightAt(tile.x, tile.z) + 0.06;
+                const y = this.getChestPlacementY(tile.x, tile.z);
                 const chest = this.createChest(tile.x, y, tile.z);
                 this.chests.push(chest);
                 if (i > 0 && i % 25 === 0) {
@@ -129,7 +134,7 @@ export class LootManager {
             const distance = 40 + Math.random() * 150;
             const x = Math.cos(angle) * distance;
             const z = Math.sin(angle) * distance;
-            const y = this.mapGenerator.getHeightAt(x, z) + 0.06;
+            const y = this.getChestPlacementY(x, z);
 
             if (y < this.mapGenerator.waterLevel + 1) {
                 i--;
