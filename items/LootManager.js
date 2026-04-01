@@ -232,44 +232,30 @@ export class LootManager {
             if (rareRoll < 0.95) return { type: 'weapon', weaponType: 'shotgun' };
             return { type: 'armor', amount: 60 + Math.random() * 40 };
         }
+
+        // Предыдущая логика генерации добычи была запутанной и содержала недостижимый код.
+        // Эта версия использует понятную цепочку "else if", что упрощает понимание и настройку вероятностей.
+        // Вероятности сохранены близкими к первоначальному замыслу.
         const rand = Math.random();
-        if (rand < 0.12) {
-            return { type: 'ammo', amount: 10 + Math.floor(Math.random() * 9) };
-        }
-
-        if (rand < 0.055) {
+        if (rand < 0.02) { // 2% для лазера (ранее был недостижим)
             return { type: 'weapon', weaponType: 'laser' };
-        }
-
-        if (rand < 0.135) {
+        } else if (rand < 0.12) { // 10% для огнемета
             return { type: 'weapon', weaponType: 'flamethrower' };
-        }
-
-        if (rand < 0.24) {
+        } else if (rand < 0.25) { // 13% для дробовика
             return { type: 'weapon', weaponType: 'shotgun' };
-        }
-
-        if (rand < 0.36) {
+        } else if (rand < 0.40) { // 15% для лука
             return { type: 'weapon', weaponType: 'bow' };
-        }
-
-        if (rand < 0.54) {
+        } else if (rand < 0.55) { // 15% для топора
             return { type: 'weapon', weaponType: 'axe' };
-        }
-
-        if (rand < 0.64) {
-            return { type: 'ammo', amount: 12 + Math.floor(Math.random() * 8) };
-        }
-
-        if (rand < 0.74) {
+        } else if (rand < 0.68) { // 13% для пистолета
             return { type: 'weapon', weaponType: 'pistol' };
-        }
-
-        if (rand < 0.82) {
+        } else if (rand < 0.78) { // 10% для винтовки
             return { type: 'weapon', weaponType: 'rifle' };
+        } else if (rand < 0.90) { // 12% для патронов
+            return { type: 'ammo', amount: 10 + Math.floor(Math.random() * 9) };
+        } else { // 10% для брони
+            return { type: 'armor', amount: 25 + Math.random() * 25 };
         }
-
-        return { type: 'armor', amount: 25 + Math.random() * 25 };
     }
 
     getPreferredAmmoWeapon(entity) {

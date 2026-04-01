@@ -248,6 +248,9 @@ class Game {
         this.zombieUpdateIndex = 0;
         this.botHazardCursor = 0;
         this.trapBotCursor = 0;
+        this.pendingZombieBursts = [];
+        this.pendingPoiBursts = [];
+        this.spawnBurstCooldown = 0;
         this.spawnBots();
         this.gateClosed = false;
         this.nightNotified = false;
@@ -804,7 +807,7 @@ class Game {
         }
     }
 
-        updateRandomEvents(delta) {
+    updateRandomEvents(delta) {
         if (this.activeEvent.type) {
             this.activeEvent.timer -= delta;
             if (this.activeEvent.timer <= 0) {
@@ -851,6 +854,56 @@ class Game {
 
         this.randomEventTimer = 45 + Math.random() * 35;
     }
+
+    queueZombieBurst(reset, multiplier, capOverride, count, chunk = 6) {
+        this.pendingZombieBursts.push({
+            reset,
+            multiplier,
+            capOverride,
+            remaining: Math.max(0, count | 0),
+            chunk: Math.max(1, chunk | 0),
+            started: false
+        });
+    }
+
+    queuePoiBurst(intensity, totalCount, chunk = 3) {
+        this.pendingPoiBursts.push({
+            intensity,
+            remaining: Math.max(0, totalCount | 0),
+            chunk: Math.max(1, chunk | 0)
+        });
+    }
+
+    processDeferredSpawns(delta) {
+        this.spawnBurstCooldown = Math.max(0, this.spawnBurstCooldown - delta);
+        if (this.spawnBurstCooldown > 0) return;
+        const start = performance.now();
+        let operations = 0;
+        while ((this.pendingZombieBursts.length || this.pendingPoiBursts.length) && operations < 3) {
+            if ((performance.now() - start) > 2.4) break;
+            if (this.pendingZombieBursts.length) {
+                const job = this.pendingZombieBursts[0];
+                const batch = Math.min(job.chunk, job.remaining);
+                this.spawnZombies(job.reset && !job.started, job.multiplier, job.capOverride, batch);
+                job.started = true;
+                job.remaining -= batch;
+                if (job.remaining <= 0) this.pendingZombieBursts.shift();
+                operations++;
+                continue;
+            }
+            if (this.pendingPoiBursts.length) {
+                const job = this.pendingPoiBursts[0];
+                const batch = Math.min(job.chunk, job.remaining);
+                this.spawnPoiZombieGuards(job.intensity, batch);
+                job.remaining -= batch;
+                if (job.remaining <= 0) this.pendingPoiBursts.shift();
+                operations++;
+                continue;
+            }
+        }
+        this.spawnBurstCooldown = 0.02;
+    }
+
     update(delta) {
         if (this.input.isKeyPressed('KeyM')) {
             if (!this.pauseKeyLatch) {
@@ -867,6 +920,7 @@ class Game {
         }
 
         this.handleQuickCommands(delta);
+        this.processDeferredSpawns(delta);
         const canSelectPerk = this.gameState === 'countdown' && !this.perkLocked;
         if (this.input.isKeyPressed('KeyP') && canSelectPerk) {
             if (!this.perkKeyLatch) {
@@ -932,8 +986,8 @@ class Game {
                 this.audioSynth.playBoxArrival?.(new THREE.Vector3(0, 1, 0));
                 this.player.isFrozen = false;
                 this.bots.forEach(bot => { bot.isFrozen = false; });
-                this.spawnZombies(true, 1.6, 120, 22);
-                this.spawnPoiZombieGuards(1.1);
+                this.queueZombieBurst(true, 1.6, 120, 22, this.isMobile() ? 4 : 6);
+                this.queuePoiBurst(1.1, this.isMobile() ? 4 : 6, this.isMobile() ? 2 : 3);
             }
         } else if (this.gameState === 'spawn') {
             this.spawnTimer -= delta;
@@ -973,7 +1027,7 @@ class Game {
                 this.gateClosed = true;
                 this.audioSynth.playStoneDoorClose?.(this.map.getCourtyardExitPosition());
                 if (!this.poiZombieSeeded) {
-                    this.spawnPoiZombieGuards(1.25);
+                    this.queuePoiBurst(1.25, this.isMobile() ? 4 : 6, this.isMobile() ? 2 : 3);
                 }
                 const kickOut = (entity) => {
                     if (this.map.isInsideCourtyard(entity.position)) {
@@ -1076,8 +1130,9 @@ class Game {
                     this.nightWaveTimer = 3.5;
                 }
                 if (!this.nightWaveBurstDone) {
-                    const spawned = this.spawnZombies(false, 5.6, 260, 34);
-                    this.spawnPoiZombieGuards(2.0);
+                    this.queueZombieBurst(false, 5.6, 260, 34, this.isMobile() ? 6 : 8);
+                    this.queuePoiBurst(2.0, this.isMobile() ? 6 : 8, this.isMobile() ? 2 : 3);
+                    const spawned = 34;
                     if (spawned > 0) {
                         this.hud.showGameMessage(`Ночь наступила. Заражённых прибыло: ${spawned}`);
                     }
@@ -1085,8 +1140,9 @@ class Game {
                 } else {
                     this.nightWaveTimer -= delta;
                     if (this.nightWaveTimer <= 0) {
-                        const spawned = this.spawnZombies(false, 4.2, 260, 20);
-                        this.spawnPoiZombieGuards(1.5);
+                        this.queueZombieBurst(false, 4.2, 260, 20, this.isMobile() ? 5 : 7);
+                        this.queuePoiBurst(1.5, this.isMobile() ? 4 : 6, this.isMobile() ? 2 : 3);
+                        const spawned = 20;
                         if (spawned >= 3) {
                             this.hud.showGameMessage('Во тьме слышны новые заражённые...');
                         }
@@ -1299,7 +1355,7 @@ class Game {
         return boost;
     }
 
-    spawnPoiZombieGuards(intensity = 1) {
+    spawnPoiZombieGuards(intensity = 1, maxSpawn = Infinity) {
         const houseSpots = this.map.getHouseSpots?.() || [];
         const hangarSpots = this.map.getHangarSpots?.() || [];
         const points = [
@@ -1311,16 +1367,19 @@ class Game {
         const aliveNow = this.zombies.filter(z => z?.isAlive).length;
         const maxAlive = 260;
         let budget = Math.max(0, Math.min(maxAlive - aliveNow, Math.floor((houseSpots.length * 1.2 + hangarSpots.length * 4.5) * intensity)));
+        budget = Math.min(budget, Math.max(0, Number.isFinite(maxSpawn) ? maxSpawn : budget));
         if (budget <= 0) return 0;
 
         points.sort(() => Math.random() - 0.5);
         let spawned = 0;
         for (const point of points) {
             if (budget <= 0) break;
+            if (spawned >= maxSpawn) break;
             const baseCount = point.type === "hangar" ? (4 + Math.floor(Math.random() * 4)) : (2 + Math.floor(Math.random() * 2));
             const pack = Math.max(1, Math.floor(baseCount * intensity));
             for (let i = 0; i < pack; i++) {
                 if (budget <= 0) break;
+                if (spawned >= maxSpawn) break;
                 const guardSpot = point.type === "house"
                     ? (this.map.findClearPointAround?.(point.x, point.z, 0.8, 0.5, Math.max(3.2, Math.min(point.width || 8, point.depth || 8) * 0.35))
                         || this.map.findStructureGuardPoint?.(point, point.type))

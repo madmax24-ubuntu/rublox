@@ -63,6 +63,10 @@ export class Bot {
         this.healthRegenDuration = 7;
         this.lastDamageAt = -Infinity;
         this.noCombatUntil = 0;
+        this.healthBarRefreshTimer = Math.random() * 0.12;
+        this.healthBarLosTimer = 0;
+        this.healthBarAimTimer = 0;
+        this.healthBarVisibleCached = true;
 
         this.variants = [
             {
@@ -438,7 +442,7 @@ export class Bot {
             this.mesh.position.y = this.position.y - (this.physics.height - 0.2);
             this.mesh.rotation.y = this.rotation.y;
             this.animateLimbs();
-            this.updateHealthBar();
+            this.updateHealthBar(delta);
             return;
         }
 
@@ -451,7 +455,7 @@ export class Bot {
             this.mesh.position.y = this.position.y - (this.physics.height - 0.2);
             this.mesh.rotation.y = this.rotation.y;
             this.animateLimbs();
-            this.updateHealthBar();
+            this.updateHealthBar(delta);
             return;
         }
 
@@ -491,7 +495,7 @@ export class Bot {
         this.mesh.position.y = this.position.y - (this.physics.height - 0.2);
         this.mesh.rotation.y = this.rotation.y;
         this.animateLimbs();
-        this.updateHealthBar();
+        this.updateHealthBar(delta);
 
         if (this.currentWeapon && this.currentWeapon.mesh && this.isAlive) {
             const limbs = this.mesh?.userData?.limbs;
@@ -729,7 +733,7 @@ export class Bot {
         });
     }
 
-    updateHealthBar() {
+    updateHealthBar(delta = 0.016) {
         if (!this.healthBar) return;
         const ratio = Math.max(0, Math.min(1, this.health / this.maxHealth));
         const fill = this.healthBar.children.find(child => child.userData?.isFill);
@@ -742,16 +746,27 @@ export class Bot {
         }
         const camera = this.scene.userData?.camera;
         if (camera) {
-            const dist = camera.position.distanceTo(this.position);
+            this.healthBarRefreshTimer = Math.max(0, this.healthBarRefreshTimer - delta);
+            this.healthBarLosTimer = Math.max(0, this.healthBarLosTimer - delta);
+            this.healthBarAimTimer = Math.max(0, this.healthBarAimTimer - delta);
+            if (this.healthBarRefreshTimer > 0) return;
+            this.healthBarRefreshTimer = 0.08 + Math.random() * 0.06;
+            const dx = camera.position.x - this.position.x;
+            const dz = camera.position.z - this.position.z;
+            const distSq = dx * dx + dz * dz;
             const entityManager = this.scene.userData?.entityManager;
-            let visible = dist < 18;
-            if (visible && entityManager?.hasLineOfSight) {
+            let visible = distSq < (19 * 19);
+            if (visible && entityManager?.hasLineOfSight && this.healthBarLosTimer <= 0) {
                 const from = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);
                 const to = new THREE.Vector3(this.position.x, this.position.y + (this.physics?.height || 1.8) * 0.65, this.position.z);
-                visible = entityManager.hasLineOfSight(from, to, true);
+                this.healthBarVisibleCached = entityManager.hasLineOfSight(from, to, true);
+                this.healthBarLosTimer = 0.22 + Math.random() * 0.12;
             }
-            this.healthBar.visible = visible;
-            this.healthBar.lookAt(camera.position);
+            this.healthBar.visible = visible && this.healthBarVisibleCached;
+            if (this.healthBar.visible && this.healthBarAimTimer <= 0) {
+                this.healthBar.lookAt(camera.position);
+                this.healthBarAimTimer = 0.12;
+            }
         }
     }
 

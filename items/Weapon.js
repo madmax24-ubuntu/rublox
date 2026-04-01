@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 const WEAPON_BALANCE = {
     fists: { damage: 8, range: 2.4, cooldown: 0.38, ammo: null, durability: null, projectileSpeed: 0 },
@@ -11,6 +12,23 @@ const WEAPON_BALANCE = {
     pistol: { damage: 18, range: 68, cooldown: 0.36, ammo: 90, durability: null, projectileSpeed: 82 },
     rifle: { damage: 24, range: 102, cooldown: 0.24, ammo: 120, durability: null, projectileSpeed: 98 }
 };
+
+// --- ОПТИМИЗАЦИЯ ---
+// Кэшируем геометрии и материалы, чтобы не создавать их для каждого нового оружия.
+// Это значительно снижает нагрузку на CPU и GPU, уменьшая фризы при создании объектов.
+const weaponResources = {
+    geometries: {},
+    materials: {}
+};
+
+// Хелпер для получения или создания кэшированного материала
+function getCachedMaterial(name, creator) {
+    if (!weaponResources.materials[name]) {
+        weaponResources.materials[name] = creator();
+    }
+    return weaponResources.materials[name];
+}
+// --- КОНЕЦ ОПТИМИЗАЦИИ ---
 
 export class Weapon {
     constructor(type, scene) {
@@ -60,6 +78,50 @@ export class Weapon {
         if (this.maxDurability !== null) this.durability = this.maxDurability;
     }
 
+    _createKnifeMesh(group) {
+        // --- ОПТИМИЗАЦИЯ ---
+        // Вместо создания 5 отдельных мешей, мы объединяем геометрии с одинаковым материалом.
+        // Это сокращает количество вызовов отрисовки (draw calls) с 5 до 3 для каждого ножа.
+        // Модель также кэшируется и клонируется, что почти моментально.
+        const key = 'knife_model';
+        if (weaponResources.geometries[key]) {
+            const cachedModel = weaponResources.geometries[key].clone();
+            group.add(cachedModel);
+            return;
+        }
+
+        const bladeMat = getCachedMaterial('knife_blade', () => new THREE.MeshStandardMaterial({ color: 0xd6d6d6, metalness: 0.85, roughness: 0.2, flatShading: true }));
+        const handleMat = getCachedMaterial('knife_handle', () => new THREE.MeshStandardMaterial({ color: 0x4e342e, roughness: 0.85, flatShading: true }));
+        const guardMat = getCachedMaterial('knife_guard', () => new THREE.MeshStandardMaterial({ color: 0x212121, roughness: 0.5, metalness: 0.3, flatShading: true }));
+
+        // Объединяем все части лезвия в одну геометрию
+        const bladeGeom1 = new THREE.BoxGeometry(0.08, 0.5, 0.02);
+        bladeGeom1.translate(0, 0.18, 0);
+        const bladeGeom2 = new THREE.ConeGeometry(0.05, 0.18, 6);
+        bladeGeom2.translate(0, 0.5, 0);
+        const mergedBladeGeom = BufferGeometryUtils.mergeBufferGeometries([bladeGeom1, bladeGeom2]);
+        const blade = new THREE.Mesh(mergedBladeGeom, bladeMat);
+
+        // Рукоять (уже один меш, но для консистентности можно и ее в группу)
+        const handle = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.2, 0.06), handleMat);
+        handle.position.y = -0.18;
+
+        // Объединяем все части гарды в одну геометрию
+        const guardGeom1 = new THREE.BoxGeometry(0.16, 0.04, 0.06);
+        guardGeom1.translate(0, -0.02, 0);
+        const guardGeom2 = new THREE.BoxGeometry(0.12, 0.05, 0.06);
+        guardGeom2.translate(0, -0.32, 0);
+        const mergedGuardGeom = BufferGeometryUtils.mergeBufferGeometries([guardGeom1, guardGeom2]);
+        const guard = new THREE.Mesh(mergedGuardGeom, guardMat);
+
+        const model = new THREE.Group();
+        model.add(blade, handle, guard);
+
+        // Кэшируем всю модель для будущего использования
+        weaponResources.geometries[key] = model;
+        group.add(model.clone());
+    }
+
     createMesh() {
         const group = new THREE.Group();
 
@@ -68,57 +130,7 @@ export class Weapon {
                 this.mesh = null;
                 return;
             case 'knife':
-                const bladeMat = new THREE.MeshStandardMaterial({
-                    color: 0xd6d6d6,
-                    metalness: 0.85,
-                    roughness: 0.2,
-                    flatShading: true
-                });
-                const handleMat = new THREE.MeshStandardMaterial({
-                    color: 0x4e342e,
-                    roughness: 0.85,
-                    flatShading: true
-                });
-                const guardMat = new THREE.MeshStandardMaterial({
-                    color: 0x212121,
-                    roughness: 0.5,
-                    metalness: 0.3,
-                    flatShading: true
-                });
-
-                const blade = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.08, 0.5, 0.02),
-                    bladeMat
-                );
-                blade.position.y = 0.18;
-                const tip = new THREE.Mesh(
-                    new THREE.ConeGeometry(0.05, 0.18, 6),
-                    bladeMat
-                );
-                tip.position.y = 0.5;
-
-                const guard = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.16, 0.04, 0.06),
-                    guardMat
-                );
-                guard.position.y = -0.02;
-
-                const handle = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.12, 0.2, 0.06),
-                    handleMat
-                );
-                handle.position.y = -0.18;
-                const pommel = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.12, 0.05, 0.06),
-                    guardMat
-                );
-                pommel.position.y = -0.32;
-
-                group.add(blade);
-                group.add(tip);
-                group.add(guard);
-                group.add(handle);
-                group.add(pommel);
+                this._createKnifeMesh(group);
                 break;
 
             case 'bow': {

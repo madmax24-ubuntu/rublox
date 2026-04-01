@@ -37,11 +37,11 @@ export class MapGenerator {
         this.spawnCourtyardRadius = 54;
         this.houseVariants = [
             { width: 9.2, depth: 7.8, height: 4.4, doorWidth: 2.4, wallColor: 0xc9b08d, roofColor: 0x5f4638, style: "classic" },
-            { width: 8.8, depth: 7.2, height: 4.2, doorWidth: 2.2, wallColor: 0xb7c2cc, roofColor: 0x455a64, style: "concrete" },
+            { width: 8.8, depth: 7.2, height: 4.2, doorWidth: 2.2, wallColor: 0xd1bfa3, roofColor: 0x6a4e3a, style: "cozy" },
             { width: 10.2, depth: 8.6, height: 4.9, doorWidth: 2.8, wallColor: 0xd6c1a5, roofColor: 0x6d4c41, style: "farm" },
-            { width: 11.0, depth: 9.0, height: 5.0, doorWidth: 3.0, wallColor: 0xc8d2dc, roofColor: 0x4f5c63, style: "modern" },
+            { width: 11.0, depth: 9.0, height: 5.0, doorWidth: 3.0, wallColor: 0xcfb190, roofColor: 0x5a4335, style: "village" },
             { width: 12.6, depth: 9.8, height: 5.4, doorWidth: 3.2, wallColor: 0xbfa07e, roofColor: 0x614735, style: "longhouse" },
-            { width: 10.8, depth: 10.8, height: 5.2, doorWidth: 2.6, wallColor: 0xaeb9c3, roofColor: 0x384850, style: "outpost" }
+            { width: 10.8, depth: 10.8, height: 5.2, doorWidth: 2.6, wallColor: 0xd8c3a6, roofColor: 0x6a4b36, style: "outpost" }
         ];
         this.hangarVariants = [
             { width: 62.0, depth: 38.0, height: 18.0, doorWidth: 18.0, wallColor: 0x7a8a95, roofColor: 0x3f4b53, style: "megaA" },
