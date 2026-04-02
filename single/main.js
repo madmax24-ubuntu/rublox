@@ -108,11 +108,18 @@ class Game {
         const height = Math.max(1, window.innerHeight);
         this.camera.aspect = width / height;
         this.camera.updateProjectionMatrix();
-        this.renderer.setSize(width, height, false);
+        this.renderer.setSize(width, height, true);
         const pixelRatio = this.isMobile()
             ? Math.min(window.devicePixelRatio || 1, 1.5)
             : Math.min(window.devicePixelRatio || 1, 1.3);
         this.renderer.setPixelRatio(pixelRatio);
+        this.renderer.setViewport(0, 0, width, height);
+        this.renderer.setScissorTest(false);
+        if (this.renderer.domElement) {
+            this.renderer.domElement.style.width = '100%';
+            this.renderer.domElement.style.height = '100%';
+            this.renderer.domElement.style.display = 'block';
+        }
     }
 
     onAppHidden() {
@@ -129,6 +136,10 @@ class Game {
     onAppVisible(reason = 'resume') {
         this.gameLoop?.resetDelta?.();
         this.applyRendererSizing();
+        if (this.isMobile()) {
+            setTimeout(() => this.applyRendererSizing(), 120);
+            setTimeout(() => this.applyRendererSizing(), 320);
+        }
         this.recoverViewState(reason);
         this.resumeGraceTimer = Math.max(this.resumeGraceTimer || 0, 0.45);
         this.propVisibilityTimer = 0.2;
@@ -1620,12 +1631,16 @@ class Game {
                     await this.enterFullscreen();
                     await this.lockOrientation();
                     this.updateOrientationUI();
+                    this.applyRendererSizing();
+                    setTimeout(() => this.applyRendererSizing(), 180);
                     this.player?.resetView?.();
                     const retry = async () => {
                         if (!document.fullscreenElement) {
                             await this.enterFullscreen();
                             await this.lockOrientation();
                             this.updateOrientationUI();
+                            this.applyRendererSizing();
+                            setTimeout(() => this.applyRendererSizing(), 180);
                             this.player?.resetView?.();
                         }
                         window.removeEventListener('touchend', retry);
