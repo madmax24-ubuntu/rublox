@@ -106,7 +106,6 @@ export class Player {
         if (type === 'laser') return 'Лазер';
         if (type === 'shotgun') return 'Дробовик';
         if (type === 'flamethrower') return 'Огнемёт';
-        if (type === 'axe') return 'Топор';
         if (type === 'pistol') return 'Пистолет';
         if (type === 'rifle') return 'Винтовка';
         return type || 'Предмет';
@@ -609,7 +608,7 @@ export class Player {
                     this.punchTime = this.punchDuration;
                 }
             }
-            if (activeWeapon.type === 'knife' || activeWeapon.type === 'axe') {
+            if (activeWeapon.type === 'knife') {
                 if (this.weaponSwingTime <= 0) {
                     this.weaponSwingTime = this.weaponSwingDuration;
                 }
@@ -708,10 +707,10 @@ export class Player {
                 this.viewWeapon.rotation.copy(this.viewWeaponBase.rotation);
             }
 
-            if ((this.viewWeaponType === 'knife' || this.viewWeaponType === 'axe') && this.weaponSwingTime > 0) {
+            if (this.viewWeaponType === 'knife' && this.weaponSwingTime > 0) {
                 const t = 1 - this.weaponSwingTime / this.weaponSwingDuration;
                 const swing = Math.sin(t * Math.PI);
-                const swingMul = this.viewWeaponType === 'axe' ? 0.75 : 0.6;
+                const swingMul = 0.6;
                 this.viewWeapon.rotation.z -= swing * swingMul;
                 this.viewWeapon.position.z -= swing * 0.08;
             }
@@ -1062,10 +1061,6 @@ export class Player {
             base.position.set(0.2, -0.22, -1.02);
             base.rotation.set(0.02, Math.PI, Math.PI / 2.2);
             base.scale = 0.68;
-        } else if (type === 'axe') {
-            base.position.set(0.24, -0.3, -0.74);
-            base.rotation.set(-Math.PI / 2 + 0.08, Math.PI, 0.12);
-            base.scale = 1.0;
         } else if (type === 'shotgun') {
             base.position.set(0.26, -0.32, -0.75);
             base.rotation.set(-0.06, Math.PI, Math.PI / 14);
@@ -1146,7 +1141,7 @@ export class Player {
         let weapon = this.currentWeapon || this.fists;
         if (!weapon || !target || !target.isAlive) return null;
 
-        if ((weapon.type === 'knife' || weapon.type === 'axe') && weapon.durability !== null && weapon.durability <= 0) {
+        if (weapon.type === 'knife' && weapon.durability !== null && weapon.durability <= 0) {
             this.currentWeapon = null;
             weapon = this.fists;
         }

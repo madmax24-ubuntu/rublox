@@ -277,6 +277,26 @@ export class MapGenerator {
         const iceSpikes = [];
         const boulders = [];
         const spawnWorld = this.getSpawnWorld();
+        const addFloorTile = (tile, world, tileHeight, gx, gy) => {
+            const biome = this.getBiomeVisualTheme(tile.biome || this.surfaceTheme);
+            const variant = this.getFloorVariant(biome, gx, gy);
+            const key = `${biome}:${variant}`;
+            if (!floorsByBiome.has(key)) floorsByBiome.set(key, []);
+            floorsByBiome.get(key).push({ x: world.x, z: world.z, gx, gy, variant, biome });
+            this.floorTiles.push({ x: world.x, z: world.z, gx, gy, biome, y: tileHeight });
+            if (Math.hypot(world.x - spawnWorld.x, world.z - spawnWorld.z) <= this.spawnCourtyardRadius) {
+                return;
+            }
+            if (this.isNearRailCorridor(world.x, world.z, 2.8)) {
+                return;
+            }
+            if (tile.prop === "tree") trees.push({ x: world.x, z: world.z, y: tileHeight });
+            if (tile.prop === "jungleTree") jungleTrees.push({ x: world.x, z: world.z, y: tileHeight });
+            if (tile.prop === "rock") rocks.push({ x: world.x, z: world.z, y: tileHeight });
+            if (tile.prop === "cactus") cacti.push({ x: world.x, z: world.z, y: tileHeight });
+            if (tile.prop === "ice") iceSpikes.push({ x: world.x, z: world.z, y: tileHeight });
+            if (tile.prop === "boulder") boulders.push({ x: world.x, z: world.z, y: tileHeight });
+        };
 
         for (let y = 0; y < this.gridHeight; y++) {
             for (let x = 0; x < this.gridWidth; x++) {
@@ -284,27 +304,20 @@ export class MapGenerator {
                 const world = this.toWorld(x, y);
                 const tileHeight = this.heightMap?.[y]?.[x] ?? 0;
                 if (tile.type === "wall") {
-                    walls.push({ x: world.x, z: world.z, y: tileHeight });
-                    this.addColliderBox(new THREE.Vector3(world.x, tileHeight + this.wallHeight / 2, world.z), this.tileSize, this.wallHeight, this.tileSize, false);
+                    const distSpawn = Math.hypot(world.x - spawnWorld.x, world.z - spawnWorld.z);
+                    const isBoundary = x === 0 || y === 0 || x === this.gridWidth - 1 || y === this.gridHeight - 1;
+                    const keepNoise = Math.abs(Math.sin((x + 11.3) * 0.41 + (y - 7.7) * 0.37 + this.seed * 0.0017));
+                    const keepWall = isBoundary || distSpawn < this.spawnCourtyardRadius + 14 || keepNoise > 0.82;
+                    if (keepWall) {
+                        walls.push({ x: world.x, z: world.z, y: tileHeight });
+                        this.addColliderBox(new THREE.Vector3(world.x, tileHeight + this.wallHeight / 2, world.z), this.tileSize, this.wallHeight, this.tileSize, false);
+                    } else {
+                        tile.type = 'floor';
+                        tile.biome = tile.biome || this.tileGen.pickBiome(x, y);
+                        addFloorTile(tile, world, tileHeight, x, y);
+                    }
                 } else {
-                    const biome = this.getBiomeVisualTheme(tile.biome || this.surfaceTheme);
-                    const variant = this.getFloorVariant(biome, x, y);
-                    const key = `${biome}:${variant}`;
-                    if (!floorsByBiome.has(key)) floorsByBiome.set(key, []);
-                    floorsByBiome.get(key).push({ x: world.x, z: world.z, gx: x, gy: y, variant, biome });
-                    this.floorTiles.push({ x: world.x, z: world.z, gx: x, gy: y, biome, y: tileHeight });
-                    if (Math.hypot(world.x - spawnWorld.x, world.z - spawnWorld.z) <= this.spawnCourtyardRadius) {
-                        continue;
-                    }
-                    if (this.isNearRailCorridor(world.x, world.z, 2.8)) {
-                        continue;
-                    }
-                    if (tile.prop === "tree") trees.push({ x: world.x, z: world.z, y: tileHeight });
-                    if (tile.prop === "jungleTree") jungleTrees.push({ x: world.x, z: world.z, y: tileHeight });
-                    if (tile.prop === "rock") rocks.push({ x: world.x, z: world.z, y: tileHeight });
-                    if (tile.prop === "cactus") cacti.push({ x: world.x, z: world.z, y: tileHeight });
-                    if (tile.prop === "ice") iceSpikes.push({ x: world.x, z: world.z, y: tileHeight });
-                    if (tile.prop === "boulder") boulders.push({ x: world.x, z: world.z, y: tileHeight });
+                    addFloorTile(tile, world, tileHeight, x, y);
                 }
             }
         }
@@ -1328,7 +1341,7 @@ export class MapGenerator {
         };
 
         const guaranteedNearHangars = placeStructure('hangar', 2, nearSpawnCandidates);
-        placeStructure('house', 68);
+        placeStructure('house', 96);
         placeStructure('hangar', 6 - guaranteedNearHangars);
         this.buildTreeHouses(candidates, rand, placed);
 

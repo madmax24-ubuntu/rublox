@@ -4,7 +4,6 @@ import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js'
 const WEAPON_BALANCE = {
     fists: { damage: 8, range: 2.4, cooldown: 0.38, ammo: null, durability: null, projectileSpeed: 0 },
     knife: { damage: 20, range: 3.1, cooldown: 0.45, ammo: null, durability: 80, projectileSpeed: 0 },
-    axe: { damage: 30, range: 3.0, cooldown: 0.82, ammo: null, durability: 95, projectileSpeed: 0 },
     bow: { damage: 24, range: 20, cooldown: 1.22, ammo: 48, durability: null, projectileSpeed: 46 },
     laser: { damage: 28, range: 94, cooldown: 0.34, ammo: 30, durability: null, projectileSpeed: 62 },
     shotgun: { damage: 11, range: 17, cooldown: 0.95, ammo: 36, durability: null, projectileSpeed: 52, pellets: 8 },
@@ -118,33 +117,6 @@ export class Weapon {
         model.add(blade, handle, guard);
 
         // РљСЌС€РёСЂСѓРµРј РІСЃСЋ РјРѕРґРµР»СЊ РґР»СЏ Р±СѓРґСѓС‰РµРіРѕ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ
-        weaponResources.geometries[key] = model;
-        group.add(model.clone());
-    }
-
-    _createAxeMesh(group) {
-        const key = 'axe_model';
-        if (weaponResources.geometries[key]) {
-            const cachedModel = weaponResources.geometries[key].clone();
-            group.add(cachedModel);
-            return;
-        }
-
-        const woodMat = getCachedMaterial('axe_wood', () => new THREE.MeshStandardMaterial({ color: 0x6d4c41, roughness: 0.7, flatShading: true }));
-        const metalMat = getCachedMaterial('axe_metal', () => new THREE.MeshStandardMaterial({ color: 0xb0bec5, metalness: 0.6, roughness: 0.3, flatShading: true }));
-
-        const handle = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.9, 0.08), woodMat);
-        handle.position.y = -0.1;
-
-        const headGeom = new THREE.BoxGeometry(0.42, 0.18, 0.12);
-        headGeom.translate(0.12, 0.35, 0);
-        const bladeGeom = new THREE.BoxGeometry(0.18, 0.32, 0.08);
-        bladeGeom.translate(0.32, 0.35, 0);
-        const mergedMetalGeom = BufferGeometryUtils.mergeBufferGeometries([headGeom, bladeGeom]);
-        const metalPart = new THREE.Mesh(mergedMetalGeom, metalMat);
-
-        const model = new THREE.Group();
-        model.add(handle, metalPart);
         weaponResources.geometries[key] = model;
         group.add(model.clone());
     }
@@ -464,10 +436,6 @@ export class Weapon {
                 this._createFlamethrowerMesh(group);
                 break;
             }
-            case 'axe': {
-                this._createAxeMesh(group);
-                break;
-            }
         }
 
         this.mesh = group;
@@ -528,8 +496,8 @@ export class Weapon {
         const isHeadshot = Math.abs(owner.position.y - hitHeight) < 0.3;
 
         const finalDamage = isHeadshot ? this.damage * 2 : this.damage;
-        const knockback = this.type === 'knife' ? 5 : this.type === 'axe' ? 6 : 4;
-        if ((this.type === 'knife' || this.type === 'axe') && this.durability !== null) {
+        const knockback = this.type === 'knife' ? 5 : 4;
+        if (this.type === 'knife' && this.durability !== null) {
             this.durability = Math.max(0, this.durability - 1);
         }
         return { hit: true, damage: finalDamage, isHeadshot, knockback };
@@ -797,7 +765,7 @@ export class Weapon {
                 || this.type === 'rifle'
             ) {
                 yawOffset = Math.PI / 2;
-            } else if (this.type === 'bow' || this.type === 'knife' || this.type === 'axe') {
+            } else if (this.type === 'bow' || this.type === 'knife') {
                 pitchOffset = -Math.PI / 2;
             }
             this.mesh.rotation.set(rotation.x + pitchOffset, rotation.y + yawOffset, rotation.z + rollOffset);

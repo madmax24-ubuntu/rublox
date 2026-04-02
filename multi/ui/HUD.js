@@ -1,6 +1,19 @@
 ﻿export class HUD {
     constructor() {
+        this.perkOptions = [
+            { value: 'quickHands', label: 'Быстрые руки', desc: 'Сильно ускоряет атаки и использование оружия ближнего боя.' },
+            { value: 'silentStep', label: 'Тихий шаг', desc: 'Почти убирает шум шагов и делает тебя заметно тише.' },
+            { value: 'moreAmmo', label: 'Больше патронов', desc: 'Сильно увеличивает запас патронов и прочность оружия.' },
+            { value: 'fastRun', label: 'Быстрый бег', desc: 'Заметно повышает скорость перемещения весь матч.' },
+            { value: 'thickSkin', label: 'Плотная кожа', desc: 'Снижает входящий урон и дает больше шансов выжить.' },
+            { value: 'steadyAim', label: 'Стабильный прицел', desc: 'Сильно режет отдачу и упрощает стрельбу.' },
+            { value: 'autoFire', label: 'AUTO FIRE', desc: 'Автоматически стреляет по цели, когда прицел наведен на врага.' }
+        ];
         this.createHUD();
+    }
+
+    getSlotDisplayNumber(slotIndex) {
+        return ((slotIndex + 1) % 10).toString();
     }
 
     createHUD() {
@@ -27,6 +40,36 @@
         `;
         const root = document.getElementById('gameRoot') || document.body;
         root.appendChild(hud);
+
+        const visionOverlay = document.createElement('div');
+        visionOverlay.id = 'visionOverlay';
+        visionOverlay.style.cssText = `
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 940;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            background:
+                linear-gradient(180deg, rgba(2,8,14,0.36) 0%, rgba(2,8,14,0.1) 18%, rgba(2,8,14,0.1) 82%, rgba(0,0,0,0.46) 100%),
+                linear-gradient(90deg, rgba(0,0,0,0.44) 0%, rgba(0,0,0,0.06) 20%, rgba(0,0,0,0.06) 80%, rgba(0,0,0,0.44) 100%);
+        `;
+        hud.appendChild(visionOverlay);
+
+        const lootFeed = document.createElement('div');
+        lootFeed.id = 'lootFeed';
+        lootFeed.style.cssText = `
+            position: absolute;
+            top: ${px(78)}px;
+            right: ${px(16)}px;
+            display: flex;
+            flex-direction: column;
+            gap: ${px(8)}px;
+            max-width: min(${px(280)}px, 72vw);
+            z-index: 1350;
+            pointer-events: none;
+        `;
+        hud.appendChild(lootFeed);
 
         const topBar = document.createElement('div');
         topBar.style.cssText = `
@@ -208,7 +251,7 @@
                 position: relative;
                 pointer-events: auto;
             `;
-            slot.textContent = i;
+            slot.textContent = this.getSlotDisplayNumber(i);
 
             const slotNumber = document.createElement('div');
             slotNumber.style.cssText = `
@@ -218,7 +261,7 @@
                 font-size: ${px(10)}px;
                 color: rgba(255, 255, 255, 0.7);
             `;
-            slotNumber.textContent = i;
+            slotNumber.textContent = this.getSlotDisplayNumber(i);
             slot.appendChild(slotNumber);
 
             slot.addEventListener('click', () => {
@@ -482,6 +525,20 @@
                 <div style="font-size:${px(12)}px;opacity:0.8;margin-bottom:${px(12)}px;">
                     WASD - движение · Мышь - обзор · E - взаимодействие · Space - прыжок · ЛКМ - атака · M - пауза
                 </div>
+                <div style="display:grid;gap:${px(8)}px;margin-bottom:${px(12)}px;">
+                    <label style="display:grid;gap:${px(4)}px;font-size:${px(12)}px;">
+                        <span>Музыка</span>
+                        <input id="pauseMusicVolume" type="range" min="0" max="0.4" step="0.01" value="0.14">
+                    </label>
+                    <label style="display:grid;gap:${px(4)}px;font-size:${px(12)}px;">
+                        <span>Эффекты</span>
+                        <input id="pauseSfxVolume" type="range" min="0" max="0.55" step="0.01" value="0.22">
+                    </label>
+                    <label style="display:grid;gap:${px(4)}px;font-size:${px(12)}px;">
+                        <span>Чувствительность</span>
+                        <input id="pauseSensitivity" type="range" min="0.5" max="2.4" step="0.05" value="1">
+                    </label>
+                </div>
                 <div id="keybindSection" style="display:${isMobile ? 'none' : 'block'};margin-bottom:${px(10)}px;">
                     <div style="font-size:${px(12)}px;opacity:0.8;margin-bottom:${px(6)}px;">Управление (кликни, чтобы переназначить)</div>
                     <div id="keybindList" style="display:grid;gap:${px(6)}px;"></div>
@@ -501,8 +558,9 @@
         ammoInfo.id = 'ammoInfo';
         ammoInfo.style.cssText = `
             position: absolute;
-            bottom: ${px(isMobile ? 70 : 90)}px;
-            right: ${px(16)}px;
+            ${isMobile ? `top: ${px(126)}px;` : ''}
+            ${isMobile ? 'bottom: auto;' : `bottom: ${px(90)}px;`}
+            right: ${isMobile ? 'max(16px, 4vw)' : `${px(16)}px`};
             background: rgba(14, 26, 36, 0.88);
             padding: ${px(8)}px ${px(14)}px;
             border-radius: ${px(8)}px;
@@ -510,13 +568,14 @@
             font-size: ${px(14)}px;
             font-weight: 700;
             text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+            z-index: 1200;
         `;
         ammoInfo.textContent = '';
         hud.appendChild(ammoInfo);
 
         const perkButton = document.createElement('div');
         perkButton.id = 'perkButton';
-        perkButton.textContent = 'ПЕРК';
+        perkButton.textContent = 'ПЕРК ДО СТАРТА';
         perkButton.style.cssText = `
             position: absolute;
             bottom: ${px(isMobile ? 320 : 210)}px;
@@ -542,55 +601,152 @@
         perkPanel.id = 'perkPanel';
         perkPanel.style.cssText = `
             position: absolute;
-            bottom: ${px(isMobile ? 350 : 240)}px;
-            left: ${px(16)}px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             background: rgba(14, 26, 36, 0.95);
-            padding: ${px(12)}px ${px(14)}px;
+            padding: ${px(16)}px ${px(18)}px;
             border-radius: ${px(12)}px;
-            border: 2px solid rgba(255, 255, 255, 0.14);
+            border: 2px solid rgba(255, 191, 0, 0.2);
             display: none;
             pointer-events: auto;
-            min-width: ${px(210)}px;
-            max-height: ${isMobile ? '45vh' : '60vh'};
+            min-width: min(${px(290)}px, 82vw);
+            max-width: min(${px(340)}px, 86vw);
+            max-height: ${isMobile ? '55vh' : '60vh'};
             overflow-y: auto;
-            z-index: 1200;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            touch-action: pan-y;
+            z-index: 1500;
+            box-shadow: 0 18px 40px rgba(0,0,0,0.42);
         `;
-                perkPanel.innerHTML = `
-            <div style="font-size:${px(12)}px;font-weight:800;margin-bottom:${px(8)}px;">Выбор перка</div>
-            <button class="perk-btn" data-perk="quickHands">Быстрые руки</button>
-            <button class="perk-btn" data-perk="silentStep">Тихий шаг</button>
-            <button class="perk-btn" data-perk="moreAmmo">Больше патронов</button>
-            <button class="perk-btn" data-perk="fastRun">Быстрый бег</button>
-            <button class="perk-btn" data-perk="thickSkin">Плотная кожа</button>
-            <button class="perk-btn" data-perk="steadyAim">Стабильный прицел</button>
-            <button class="perk-btn" data-perk="autoFire">AUTO FIRE</button>
-        `;
-        this.perkButtons = Array.from(perkPanel.querySelectorAll('.perk-btn'));
-        this.perkButtons.forEach(btn => {
-            btn.style.cssText = `
-                width: 100%;
-                margin: ${px(4)}px 0;
-                padding: ${px(8)}px ${px(10)}px;
-                border-radius: ${px(8)}px;
-                border: 1px solid rgba(255, 255, 255, 0.12);
-                background: rgba(255, 255, 255, 0.08);
-                color: #e9f0f6;
-                font-weight: 700;
-                cursor: pointer;
+        let perkTouchStartY = 0;
+        let perkScrollStart = 0;
+        let perkTouchMoved = false;
+        perkPanel.addEventListener('touchstart', (e) => {
+            const touch = e.touches?.[0];
+            if (!touch) return;
+            perkTouchStartY = touch.clientY;
+            perkScrollStart = perkPanel.scrollTop;
+            perkTouchMoved = false;
+            perkPanel.dataset.touchScrollMoved = '0';
+        }, { passive: true });
+        perkPanel.addEventListener('touchmove', (e) => {
+            const touch = e.touches?.[0];
+            if (!touch) return;
+            const deltaY = touch.clientY - perkTouchStartY;
+            if (Math.abs(deltaY) > 8) {
+                perkTouchMoved = true;
+                perkPanel.dataset.touchScrollMoved = '1';
+            }
+            if (perkPanel.scrollHeight > perkPanel.clientHeight + 2) {
+                perkPanel.scrollTop = perkScrollStart - deltaY;
+                e.stopPropagation();
+                e.preventDefault();
+            }
+        }, { passive: false });
+        perkPanel.addEventListener('touchend', () => {
+            requestAnimationFrame(() => {
+                perkPanel.dataset.touchScrollMoved = perkTouchMoved ? '1' : '0';
+            });
+        }, { passive: true });
+        perkPanel.addEventListener('wheel', (e) => {
+            e.stopPropagation();
+        }, { passive: true });
+        if (isMobile) {
+            perkPanel.innerHTML = `
+                <div style="font-size:${px(18)}px;font-weight:900;margin-bottom:${px(6)}px;">Выбор перка</div>
+                <div style="font-size:${px(11)}px;opacity:0.76;margin-bottom:${px(10)}px;">На телефоне выбор идет кнопками. Листание страницы не требуется.</div>
+                <div id="perkMobileCard" style="
+                    background: rgba(255,255,255,0.06);
+                    border: 1px solid rgba(255,255,255,0.12);
+                    border-radius: ${px(10)}px;
+                    padding: ${px(12)}px;
+                    min-height: ${px(108)}px;
+                    display: grid;
+                    gap: ${px(8)}px;
+                    margin-bottom: ${px(10)}px;
+                ">
+                    <div id="perkMobileTitle" style="font-size:${px(16)}px;font-weight:900;"></div>
+                    <div id="perkMobileDesc" style="font-size:${px(12)}px;line-height:1.35;opacity:0.84;"></div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:${px(8)}px;margin-bottom:${px(8)}px;">
+                    <div id="perkPrev" class="perk-btn">Назад</div>
+                    <div id="perkNext" class="perk-btn">Вперёд</div>
+                </div>
+                <div id="perkSelectMobile" class="perk-btn" style="width:100%;">Выбрать перк</div>
             `;
-            btn.addEventListener('click', (e) => {
-                const perk = e.currentTarget.getAttribute('data-perk');
+            this.perkButtons = [];
+            const mobileButtons = Array.from(perkPanel.querySelectorAll('.perk-btn'));
+            mobileButtons.forEach(btn => {
+                btn.style.cssText = `
+                    width: 100%;
+                    margin: 0;
+                    padding: ${px(10)}px ${px(10)}px;
+                    border-radius: ${px(8)}px;
+                    border: 1px solid rgba(255, 255, 255, 0.12);
+                    background: rgba(255, 255, 255, 0.08);
+                    color: #e9f0f6;
+                    font-weight: 700;
+                    cursor: pointer;
+                    pointer-events: auto;
+                    user-select: none;
+                    -webkit-user-select: none;
+                    touch-action: manipulation;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                `;
+            });
+            const bindTap = (el, fn) => {
+                if (!el) return;
+                const run = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    fn();
+                };
+                el.addEventListener('pointerdown', run);
+                el.addEventListener('touchstart', run, { passive: false });
+                el.addEventListener('mousedown', run);
+            };
+            bindTap(perkPanel.querySelector('#perkPrev'), () => {
+                this.setPerkMenuSelection((this.perkMenuIndex ?? 0) - 1);
+            });
+            bindTap(perkPanel.querySelector('#perkNext'), () => {
+                this.setPerkMenuSelection((this.perkMenuIndex ?? 0) + 1);
+            });
+            bindTap(perkPanel.querySelector('#perkSelectMobile'), () => {
+                const perk = this.getPerkMenuValue();
+                if (!perk) return;
                 document.dispatchEvent(new CustomEvent('selectPerk', { detail: perk }));
                 this.togglePerkPanel(false);
             });
-            btn.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const perk = e.currentTarget.getAttribute('data-perk');
-                document.dispatchEvent(new CustomEvent('selectPerk', { detail: perk }));
-                this.togglePerkPanel(false);
-            }, { passive: false });
-        });
+        } else {
+            perkPanel.innerHTML = `
+                <div style="font-size:${px(18)}px;font-weight:900;margin-bottom:${px(6)}px;">Выбор перка</div>
+                <div style="font-size:${px(11)}px;opacity:0.76;margin-bottom:${px(10)}px;">Перк выбирается один раз перед матчем и действует весь раунд.</div>
+                ${this.perkOptions.map(opt => `<button class="perk-btn" data-perk="${opt.value}">${opt.label}</button>`).join('')}
+            `;
+            this.perkButtons = Array.from(perkPanel.querySelectorAll('.perk-btn'));
+            this.perkButtons.forEach(btn => {
+                btn.style.cssText = `
+                    width: 100%;
+                    margin: ${px(4)}px 0;
+                    padding: ${px(8)}px ${px(10)}px;
+                    border-radius: ${px(8)}px;
+                    border: 1px solid rgba(255, 255, 255, 0.12);
+                    background: rgba(255, 255, 255, 0.08);
+                    color: #e9f0f6;
+                    font-weight: 700;
+                    cursor: pointer;
+                `;
+                btn.addEventListener('click', (e) => {
+                    const perk = e.currentTarget.getAttribute('data-perk');
+                    document.dispatchEvent(new CustomEvent('selectPerk', { detail: perk }));
+                    this.togglePerkPanel(false);
+                });
+            });
+        }
         hud.appendChild(perkPanel);
 
         const scoreboard = document.createElement('div');
@@ -626,6 +782,7 @@
         document.head.appendChild(style);
 
         this.bindPauseUI();
+        this.bindSettingsUI();
         this.initKeybindUI();
         if (isMobile) {
             this.initTouchLayout();
@@ -652,6 +809,35 @@
                 e.stopPropagation();
                 this.toggleEditControls();
             }, { passive: false });
+        }
+    }
+
+    bindSettingsUI() {
+        const music = document.getElementById('pauseMusicVolume');
+        const sfx = document.getElementById('pauseSfxVolume');
+        const sensitivity = document.getElementById('pauseSensitivity');
+        const emitAudio = () => {
+            document.dispatchEvent(new CustomEvent('setAudioSettings', {
+                detail: {
+                    musicVolume: Number(music?.value || 0.14),
+                    sfxVolume: Number(sfx?.value || 0.22)
+                }
+            }));
+        };
+        if (music) {
+            music.addEventListener('input', emitAudio);
+            music.addEventListener('change', emitAudio);
+        }
+        if (sfx) {
+            sfx.addEventListener('input', emitAudio);
+            sfx.addEventListener('change', emitAudio);
+        }
+        if (sensitivity) {
+            const emitSensitivity = () => {
+                document.dispatchEvent(new CustomEvent('setLookSensitivity', { detail: Number(sensitivity.value || 1) }));
+            };
+            sensitivity.addEventListener('input', emitSensitivity);
+            sensitivity.addEventListener('change', emitSensitivity);
         }
     }
 
@@ -886,6 +1072,15 @@
         if (perkInfo) perkInfo.textContent = `\u041f\u0435\u0440\u043a: ${label}`;
     }
 
+    setSettingsValues(settings = {}) {
+        const music = document.getElementById('pauseMusicVolume');
+        const sfx = document.getElementById('pauseSfxVolume');
+        const sensitivity = document.getElementById('pauseSensitivity');
+        if (music && settings.musicVolume !== undefined) music.value = String(settings.musicVolume);
+        if (sfx && settings.sfxVolume !== undefined) sfx.value = String(settings.sfxVolume);
+        if (sensitivity && settings.lookSensitivity !== undefined) sensitivity.value = String(settings.lookSensitivity);
+    }
+
     updateInventory(items, selectedSlot) {
         for (let i = 0; i < 10; i++) {
             const slot = document.getElementById(`slot${i}`);
@@ -908,8 +1103,6 @@
                 else if (item.type === 'laser') icon.textContent = 'LAS';
                 else if (item.type === 'shotgun') icon.textContent = 'SG';
                 else if (item.type === 'flamethrower') icon.textContent = 'FIRE';
-                else if (item.type === 'axe') icon.textContent = 'AXE';
-                else if (item.type === 'spear') icon.textContent = 'SPR';
                 else if (item.type === 'pistol') icon.textContent = 'PST';
                 else if (item.type === 'rifle') icon.textContent = 'RIF';
 
@@ -994,6 +1187,39 @@
         }, 3200);
     }
 
+    showLootNotification(text) {
+        const feed = document.getElementById('lootFeed');
+        if (!feed || !text) return;
+
+        const item = document.createElement('div');
+        item.style.cssText = `
+            background: rgba(14, 26, 36, 0.92);
+            border: 2px solid rgba(255, 191, 0, 0.24);
+            border-radius: 10px;
+            padding: 10px 12px;
+            color: #f7fbff;
+            font-size: 13px;
+            font-weight: 700;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.28);
+            transform: translateX(16px);
+            opacity: 0;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        `;
+        item.textContent = text;
+        feed.appendChild(item);
+
+        requestAnimationFrame(() => {
+            item.style.transform = 'translateX(0)';
+            item.style.opacity = '1';
+        });
+
+        setTimeout(() => {
+            item.style.transform = 'translateX(18px)';
+            item.style.opacity = '0';
+            setTimeout(() => item.remove(), 220);
+        }, 2400);
+    }
+
     showHitMarker() {
         const hit = document.getElementById('hitMarker');
         if (!hit) return;
@@ -1004,10 +1230,21 @@
         }, 120);
     }
 
-    setStormActive(active) {
+    setStormActive(active, type = 'storm') {
         const storm = document.getElementById('stormOverlay');
         if (!storm) return;
+        if (type === 'radiation') {
+            storm.style.background = 'radial-gradient(circle at 30% 30%, rgba(120, 255, 160, 0.18), rgba(12, 30, 18, 0.58))';
+        } else {
+            storm.style.background = 'radial-gradient(circle at 30% 30%, rgba(120, 140, 255, 0.2), rgba(20, 30, 40, 0.55))';
+        }
         storm.style.opacity = active ? '1' : '0';
+    }
+
+    setVisionIntensity(intensity = 0) {
+        const overlay = document.getElementById('visionOverlay');
+        if (!overlay) return;
+        overlay.style.opacity = `${Math.max(0, Math.min(0.85, intensity))}`;
     }
 
     showScoreboard(lines = []) {
@@ -1018,19 +1255,53 @@
         board.style.display = 'block';
     }
 
+    hideScoreboard() {
+        const board = document.getElementById('scoreboard');
+        if (board) {
+            board.style.display = 'none';
+        }
+    }
+
+    setPerkSelectionEnabled(enabled) {
+        const perkButton = document.getElementById('perkButton');
+        const perkPanel = document.getElementById('perkPanel');
+        if (perkButton) {
+            perkButton.style.display = enabled ? 'block' : 'none';
+        }
+        if (!enabled && perkPanel) {
+            perkPanel.style.display = 'none';
+        }
+    }
+
     togglePerkPanel(force) {
         const panel = document.getElementById('perkPanel');
         if (!panel) return;
         if (typeof force === 'boolean') {
             panel.style.display = force ? 'block' : 'none';
+            if (force) {
+                this.setPerkMenuSelection(this.getPerkMenuSelection());
+            }
             return;
         }
         panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+        if (panel.style.display === 'block') {
+            this.setPerkMenuSelection(this.getPerkMenuSelection());
+        }
     }
 
     setPerkMenuSelection(index) {
-        if (!this.perkButtons || !this.perkButtons.length) return;
-        const safeIndex = ((index % this.perkButtons.length) + this.perkButtons.length) % this.perkButtons.length;
+        const count = this.perkButtons?.length ? this.perkButtons.length : this.perkOptions.length;
+        if (!count) return;
+        const safeIndex = ((index % count) + count) % count;
+        if (!this.perkButtons || !this.perkButtons.length) {
+            this.perkMenuIndex = safeIndex;
+            const title = document.getElementById('perkMobileTitle');
+            const desc = document.getElementById('perkMobileDesc');
+            const option = this.perkOptions[safeIndex];
+            if (title) title.textContent = option?.label || '';
+            if (desc) desc.textContent = option?.desc || '';
+            return;
+        }
         this.perkButtons.forEach((btn, i) => {
             if (i === safeIndex) {
                 btn.style.background = 'rgba(255, 179, 0, 0.3)';
@@ -1041,6 +1312,17 @@
             }
         });
         this.perkMenuIndex = safeIndex;
+        const panel = document.getElementById('perkPanel');
+        const selected = this.perkButtons[safeIndex];
+        if (panel && selected) {
+            const itemTop = selected.offsetTop;
+            const itemBottom = itemTop + selected.offsetHeight;
+            if (itemTop < panel.scrollTop) {
+                panel.scrollTop = itemTop - 6;
+            } else if (itemBottom > panel.scrollTop + panel.clientHeight) {
+                panel.scrollTop = itemBottom - panel.clientHeight + 6;
+            }
+        }
     }
 
     getPerkMenuSelection() {
@@ -1048,7 +1330,10 @@
     }
 
     getPerkMenuValue() {
-        if (!this.perkButtons || !this.perkButtons.length) return null;
+        if (!this.perkButtons || !this.perkButtons.length) {
+            const idx = this.perkMenuIndex ?? 0;
+            return this.perkOptions[idx]?.value || null;
+        }
         const idx = this.perkMenuIndex ?? 0;
         return this.perkButtons[idx]?.getAttribute('data-perk') || null;
     }

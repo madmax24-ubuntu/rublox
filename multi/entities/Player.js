@@ -53,6 +53,7 @@ export class Player {
         this.cameraOffset = new THREE.Vector3(0, 1.5, 0);
         this.mouseSensitivity = 0.001;
         this.mobileLookSensitivity = 0.003;
+        this.lookSensitivityMultiplier = 1;
         this.lastLookSide = 0;
         this.euler = new THREE.Euler(0, 0, 0, 'YXZ');
 
@@ -86,6 +87,42 @@ export class Player {
         this.burnDamagePerSecond = 0;
         this.burnAttacker = null;
         this.lastFlashTime = 0;
+        this.bowCharge = 0;
+        this.bowChargeMax = 1.2;
+        this.bowMinCharge = 0.14;
+        this.wasFireHeld = false;
+        this.healthRegenDelay = 7;
+        this.healthRegenDuration = 7;
+        this.lastDamageAt = -Infinity;
+
+        const starterKnife = new Weapon('knife', this.scene);
+        this.inventory.addItem(starterKnife);
+        this.selectSlot(0);
+    }
+
+    getWeaponDisplayName(type) {
+        if (type === 'knife') return 'Нож';
+        if (type === 'bow') return 'Лук';
+        if (type === 'laser') return 'Лазер';
+        if (type === 'shotgun') return 'Дробовик';
+        if (type === 'flamethrower') return 'Огнемёт';
+        if (type === 'pistol') return 'Пистолет';
+        if (type === 'rifle') return 'Винтовка';
+        return type || 'Предмет';
+    }
+
+    addAmmoToWeaponType(weaponType, amount) {
+        if (!weaponType || !amount || amount <= 0) return 0;
+        const target = this.inventory.getItems().find(item => item?.type === weaponType && item.ammo !== null && item.ammo !== undefined);
+        if (!target) return 0;
+        const before = target.ammo ?? 0;
+        const maxAmmo = target.maxAmmo ?? before + amount;
+        target.ammo = Math.min(maxAmmo, before + amount);
+        return Math.max(0, target.ammo - before);
+    }
+
+    setLookSensitivityMultiplier(value = 1) {
+        this.lookSensitivityMultiplier = Math.max(0.35, Math.min(2.6, value));
     }
 
     resetView() {
@@ -287,6 +324,7 @@ export class Player {
         if (!this.isAlive) return;
         this.audioSynthRef = audioSynth;
         this.updateBurning(delta);
+        this.updateHealthRegen(delta);
         if (this.trailCooldown > 0) {
             this.trailCooldown = Math.max(0, this.trailCooldown - delta);
         }
@@ -314,7 +352,7 @@ export class Player {
                         this.mobileLookSensitivity = 5.7 / side;
                     }
                 }
-                const sensitivity = this.input.isMobile ? this.mobileLookSensitivity : this.mouseSensitivity * 1.4;
+                const sensitivity = (this.input.isMobile ? this.mobileLookSensitivity : this.mouseSensitivity * 1.4) * this.lookSensitivityMultiplier;
                 this.rotation.y -= dx * sensitivity;
                 this.rotation.x -= dy * sensitivity;
                 const maxPitch = Math.PI / 2.4;
@@ -366,6 +404,10 @@ export class Player {
                 moveDirection.normalize();
             }
 
+            const heldWeapon = this.currentWeapon || this.fists;
+            if (!isFrozen && heldWeapon?.type === 'bow' && this.input.isKeyPressed('MouseLeft')) {
+                this.slowFactor = Math.min(this.slowFactor, 0.52);
+            }
             const speed = this.physics.speed * this.slowFactor;
             this.physics.velocity.x = moveDirection.x * speed;
             this.physics.velocity.z = moveDirection.z * speed;
@@ -473,11 +515,53 @@ export class Player {
         }
 
         const activeWeapon = this.currentWeapon || this.fists;
-        const autoTarget = this.autoFire ? this.getAutoFireTarget(entityManager) : null;
+        const autoTarget = this.autoFire && activeWeapon.type !== 'bow' ? this.getAutoFireTarget(entityManager) : null;
         const isRangedWeapon = ['bow', 'laser', 'shotgun', 'flamethrower', 'pistol', 'rifle'].includes(activeWeapon.type);
-        const fireRequested = this.input.isKeyPressed('MouseLeft') || (!!autoTarget && !isFrozen && isRangedWeapon);
-        if (!isFrozen && fireRequested && this.attackCooldown <= 0) {
-            if (activeWeapon.type === 'bow' || activeWeapon.type === 'laser' || activeWeapon.type === 'shotgun' || activeWeapon.type === 'flamethrower' || activeWeapon.type === 'pistol' || activeWeapon.type === 'rifle') {
+        const fireHeld = this.input.isKeyPressed('MouseLeft');
+        const fireRequested = fireHeld || (!!autoTarget && !isFrozen && isRangedWeapon);
+        if (activeWeapon.type === 'bow') {
+            if (!isFrozen && fireHeld) {
+                this.bowCharge = Math.min(this.bowChargeMax, this.bowCharge + delta);
+                this.weaponActionTime = this.weaponActionDuration;
+                this.weaponActionType = 'bow';
+            }
+
+            const shouldReleaseBow = !fireHeld && this.wasFireHeld && this.bowCharge >= this.bowMinCharge;
+            if (!isFrozen && shouldReleaseBow && this.attackCooldown <= 0) {
+                const direction = new THREE.Vector3();
+                this.camera.getWorldDirection(direction);
+                const chargeRatio = Math.max(0.35, Math.min(1, this.bowCharge / this.bowChargeMax));
+                const result = activeWeapon.attack(this, null, audioSynth, direction, { chargeRatio });
+                const muzzle = new THREE.Vector3();
+                this.camera.getWorldPosition(muzzle);
+                muzzle.add(direction.clone().multiplyScalar(0.6));
+
+                if (result && result.projectiles) {
+                    for (const proj of result.projectiles) {
+                        proj.owner = this;
+                        proj.mesh.position.copy(muzzle);
+                        entityManager.addProjectile(proj);
+                    }
+                } else if (result && result.projectile) {
+                    result.projectile.direction = direction;
+                    result.projectile.owner = this;
+                    result.projectile.mesh.position.copy(muzzle);
+                    if (result.projectile.velocity) {
+                        result.projectile.velocity.copy(direction).multiplyScalar(result.projectile.speed);
+                    }
+                    result.projectile.mesh.lookAt(muzzle.clone().add(direction));
+                    entityManager.addProjectile(result.projectile);
+                }
+                this.viewKick = (0.14 + chargeRatio * 0.18) * this.recoilScale;
+                this.weaponActionTime = this.weaponActionDuration + chargeRatio * 0.08;
+                this.weaponActionType = activeWeapon.type;
+                this.attackCooldown = Math.max(0.35, activeWeapon.cooldown * (0.95 - chargeRatio * 0.3)) * this.attackSpeedMultiplier;
+            }
+            if (!fireHeld) {
+                this.bowCharge = 0;
+            }
+        } else if (!isFrozen && fireRequested && this.attackCooldown <= 0) {
+            if (activeWeapon.type === 'laser' || activeWeapon.type === 'shotgun' || activeWeapon.type === 'flamethrower' || activeWeapon.type === 'pistol' || activeWeapon.type === 'rifle') {
                 const direction = new THREE.Vector3();
                 if (autoTarget) {
                     direction.subVectors(autoTarget.position, this.camera.position).normalize();
@@ -524,13 +608,14 @@ export class Player {
                     this.punchTime = this.punchDuration;
                 }
             }
-            if (activeWeapon.type === 'knife' || activeWeapon.type === 'axe' || activeWeapon.type === 'spear') {
+            if (activeWeapon.type === 'knife') {
                 if (this.weaponSwingTime <= 0) {
                     this.weaponSwingTime = this.weaponSwingDuration;
                 }
             }
             this.attackCooldown = activeWeapon.cooldown * this.attackSpeedMultiplier;
         }
+        this.wasFireHeld = fireHeld;
 
         if (!isFrozen && this.input.isKeyPressed('KeyE')) {
             const nearestChest = lootManager.getChests().find(chest => {
@@ -622,10 +707,10 @@ export class Player {
                 this.viewWeapon.rotation.copy(this.viewWeaponBase.rotation);
             }
 
-            if ((this.viewWeaponType === 'knife' || this.viewWeaponType === 'axe' || this.viewWeaponType === 'spear') && this.weaponSwingTime > 0) {
+            if (this.viewWeaponType === 'knife' && this.weaponSwingTime > 0) {
                 const t = 1 - this.weaponSwingTime / this.weaponSwingDuration;
                 const swing = Math.sin(t * Math.PI);
-                const swingMul = this.viewWeaponType === 'axe' ? 0.75 : this.viewWeaponType === 'spear' ? 0.45 : 0.6;
+                const swingMul = 0.6;
                 this.viewWeapon.rotation.z -= swing * swingMul;
                 this.viewWeapon.position.z -= swing * 0.08;
             }
@@ -680,20 +765,26 @@ export class Player {
     }
 
     pickupLoot(loot) {
+        const feedParts = [];
         if (loot.type === 'weapon') {
             const weapon = new Weapon(loot.weaponType, this.scene);
             this.applyWeaponPerk(weapon);
             const result = this.inventory.addItem(weapon);
             if (result.added) {
+                feedParts.push(`Лут: ${this.getWeaponDisplayName(loot.weaponType)}`);
                 if (!this.currentWeapon || !this.inventory.getSelectedWeapon()) {
                     this.selectSlot(result.slot);
                 }
             } else {
+                if (result.slot >= 0) {
+                    feedParts.push(`Пополнение: ${this.getWeaponDisplayName(loot.weaponType)}`);
+                }
                 weapon.dispose();
             }
             this.updateViewWeapon();
         } else if (loot.type === 'armor') {
             this.armor = Math.min(this.maxArmor, this.armor + loot.amount);
+            feedParts.push(`Броня +${Math.round(loot.amount)}`);
         } else if (loot.type === 'ammo') {
             const amount = loot.amount || 0;
             if (amount > 0) {
@@ -702,17 +793,34 @@ export class Player {
                     ? this.currentWeapon
                     : candidates[0];
                 if (target) {
+                    const before = target.ammo ?? 0;
                     target.ammo = Math.min(target.maxAmmo ?? target.ammo, (target.ammo ?? 0) + amount);
+                    const gained = Math.max(0, (target.ammo ?? 0) - before);
+                    if (gained > 0) {
+                        feedParts.push(`${this.getWeaponDisplayName(target.type)}: +${gained} патр.`);
+                    }
                 }
             }
         }
+        if (loot.bonusAmmo) {
+            const gained = this.addAmmoToWeaponType(loot.bonusAmmo.weaponType, loot.bonusAmmo.amount);
+            if (gained > 0) {
+                feedParts.push(`${this.getWeaponDisplayName(loot.bonusAmmo.weaponType)}: +${gained} патр.`);
+            }
+        }
         this.stats.loot += 1;
+        if (feedParts.length) {
+            this.hudRef?.showLootNotification?.(feedParts.join(' • '));
+        }
     }
 
     takeDamage(damage, isHeadshot = false, attacker = null, knockbackStrength = 0, source = null) {
         if (this.isInvulnerable) return false;
 
         const finalDamage = (isHeadshot ? damage * 2 : damage) * (1 - this.damageReduction) * this.damageTakenMultiplier;
+        if (finalDamage > 0) {
+            this.lastDamageAt = performance.now() / 1000;
+        }
         if (attacker?.stats) {
             attacker.stats.damage += finalDamage;
         }
@@ -791,20 +899,21 @@ export class Player {
         this.physics.speed = this.baseSpeed;
 
         if (perk === 'quickHands') {
-            this.attackSpeedMultiplier = 0.75;
+            this.attackSpeedMultiplier = 0.5;
         } else if (perk === 'silentStep') {
-            this.footstepVolume = Math.min(0.35, baseFootstep);
+            this.footstepVolume = Math.min(0.12, baseFootstep);
             this.isSilent = true;
         } else if (perk === 'moreAmmo') {
-            this.perkAmmoBonus = 1.35;
+            this.perkAmmoBonus = 2.1;
         } else if (perk === 'fastRun') {
-            this.physics.speed = this.baseSpeed * 1.35;
+            this.physics.speed = this.baseSpeed * 1.7;
         } else if (perk === 'thickSkin') {
-            this.damageReduction = 0.2;
+            this.damageReduction = 0.42;
         } else if (perk === 'steadyAim') {
-            this.recoilScale = 0.6;
+            this.recoilScale = 0.2;
         } else if (perk === 'autoFire') {
             this.autoFire = true;
+            this.recoilScale = 0.55;
         }
 
         if (this.fists) {
@@ -827,6 +936,14 @@ export class Player {
                 weapon.durability = weapon.maxDurability;
             }
         }
+    }
+
+    updateHealthRegen(delta) {
+        if (!this.isAlive || this.health >= this.maxHealth) return;
+        const now = performance.now() / 1000;
+        if (now - this.lastDamageAt < this.healthRegenDelay) return;
+        const regenPerSecond = this.maxHealth / this.healthRegenDuration;
+        this.health = Math.min(this.maxHealth, this.health + regenPerSecond * delta);
     }
 
     setInvulnerable(value) {
@@ -944,14 +1061,6 @@ export class Player {
             base.position.set(0.2, -0.22, -1.02);
             base.rotation.set(0.02, Math.PI, Math.PI / 2.2);
             base.scale = 0.68;
-        } else if (type === 'axe') {
-            base.position.set(0.24, -0.3, -0.74);
-            base.rotation.set(-Math.PI / 2 + 0.08, Math.PI, 0.12);
-            base.scale = 1.0;
-        } else if (type === 'spear') {
-            base.position.set(0.2, -0.28, -0.98);
-            base.rotation.set(-Math.PI / 2, Math.PI, 0.02);
-            base.scale = 1.0;
         } else if (type === 'shotgun') {
             base.position.set(0.26, -0.32, -0.75);
             base.rotation.set(-0.06, Math.PI, Math.PI / 14);
@@ -1032,7 +1141,7 @@ export class Player {
         let weapon = this.currentWeapon || this.fists;
         if (!weapon || !target || !target.isAlive) return null;
 
-        if ((weapon.type === 'knife' || weapon.type === 'axe' || weapon.type === 'spear') && weapon.durability !== null && weapon.durability <= 0) {
+        if (weapon.type === 'knife' && weapon.durability !== null && weapon.durability <= 0) {
             this.currentWeapon = null;
             weapon = this.fists;
         }
@@ -1042,17 +1151,8 @@ export class Player {
         }
 
         const distance = this.position.distanceTo(target.position);
-        const attackRange = weapon.type === 'laser'
-            ? 40
-            : weapon.type === 'bow'
-                ? 40
-                : weapon.type === 'pistol'
-                    ? 35
-                    : weapon.type === 'rifle'
-                        ? 45
-                        : weapon.type === 'fists'
-                            ? 2.5
-                            : 3;
+        const baseRange = weapon.range || (weapon.type === 'fists' ? 2.4 : 3);
+        const attackRange = baseRange * (weapon.type === 'shotgun' ? 0.9 : 1.0);
 
         if (distance > attackRange) return null;
 

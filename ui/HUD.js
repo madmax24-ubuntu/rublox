@@ -1103,7 +1103,6 @@
                 else if (item.type === 'laser') icon.textContent = 'LAS';
                 else if (item.type === 'shotgun') icon.textContent = 'SG';
                 else if (item.type === 'flamethrower') icon.textContent = 'FIRE';
-                else if (item.type === 'axe') icon.textContent = 'AXE';
                 else if (item.type === 'pistol') icon.textContent = 'PST';
                 else if (item.type === 'rifle') icon.textContent = 'RIF';
 

@@ -329,15 +329,13 @@ export class LootManager {
             return { type: 'weapon', weaponType: 'shotgun' };
         } else if (rand < 0.40) { // 15% для лука
             return { type: 'weapon', weaponType: 'bow' };
-        } else if (rand < 0.55) { // 15% для топора
-            return { type: 'weapon', weaponType: 'axe' };
-        } else if (rand < 0.68) { // 13% для пистолета
+        } else if (rand < 0.68) { // 28% для пистолета/винтовки и т.п. без топора
             return { type: 'weapon', weaponType: 'pistol' };
-        } else if (rand < 0.78) { // 10% для винтовки
+        } else if (rand < 0.80) { // 12% для винтовки
             return { type: 'weapon', weaponType: 'rifle' };
-        } else if (rand < 0.90) { // 12% для патронов
+        } else if (rand < 0.91) { // 11% для патронов
             return { type: 'ammo', amount: 10 + Math.floor(Math.random() * 9) };
-        } else { // 10% для брони
+        } else { // 9% для брони
             return { type: 'armor', amount: 25 + Math.random() * 25 };
         }
     }

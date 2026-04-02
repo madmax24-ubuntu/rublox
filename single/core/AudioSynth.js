@@ -1,5 +1,6 @@
 export class AudioSynth {
     constructor() {
+        this.isMobileDevice = typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
         this.audioContext = null;
         this.sounds = {};
         this.musicGain = null;
@@ -8,6 +9,12 @@ export class AudioSynth {
         this.reverbGain = null;
         this.ambientNodes = [];
         this.ambientRunning = false;
+        this.musicStarted = false;
+        this.musicLoopTimer = null;
+        this.musicThemeIndex = 0;
+        this.musicVolume = this.isMobileDevice ? 0.12 : 0.14;
+        this.sfxVolume = this.isMobileDevice ? 0.16 : 0.22;
+        this.radiationRainNodes = null;
         this.init();
     }
 
@@ -20,7 +27,7 @@ export class AudioSynth {
             this.reverbGain = this.audioContext.createGain();
 
             this.reverb.buffer = this.createImpulse(2.0, 1.6);
-            this.reverbGain.gain.value = 0.22;
+            this.reverbGain.gain.value = 0.12;
 
             this.musicGain.connect(this.audioContext.destination);
             this.sfxGain.connect(this.audioContext.destination);
@@ -28,10 +35,24 @@ export class AudioSynth {
             this.reverb.connect(this.reverbGain);
             this.reverbGain.connect(this.audioContext.destination);
 
-            this.musicGain.gain.value = 0.28;
-            this.sfxGain.gain.value = 0.45;
+            this.musicGain.gain.value = this.musicVolume;
+            this.sfxGain.gain.value = this.sfxVolume;
         } catch (e) {
             console.warn('Web Audio API not supported');
+        }
+    }
+
+    setMusicVolume(value = 0.14) {
+        this.musicVolume = Math.max(0, Math.min(0.5, value));
+        if (this.musicGain) {
+            this.musicGain.gain.value = this.musicVolume;
+        }
+    }
+
+    setSfxVolume(value = 0.22) {
+        this.sfxVolume = Math.max(0, Math.min(0.65, value));
+        if (this.sfxGain) {
+            this.sfxGain.gain.value = this.sfxVolume;
         }
     }
 
@@ -58,7 +79,7 @@ export class AudioSynth {
         for (let i = 0; i < data.length; i++) {
             const white = Math.random() * 2 - 1;
             last = (last + 0.02 * white) / 1.02;
-            data[i] = last * 2.0;
+            data[i] = Math.max(-0.72, Math.min(0.72, last * 0.82));
         }
         return buffer;
     }
@@ -128,7 +149,7 @@ export class AudioSynth {
         windBand.frequency.value = 180;
         windBand.Q.value = 0.5;
         const windGain = ctx.createGain();
-        windGain.gain.value = 0.035;
+        windGain.gain.value = this.isMobileDevice ? 0.018 : 0.032;
         wind.connect(windFilter);
         windFilter.connect(windBand);
         windBand.connect(windGain);
@@ -140,7 +161,7 @@ export class AudioSynth {
         rumbleOsc.type = 'sine';
         rumbleOsc.frequency.value = 38;
         const rumbleGain = ctx.createGain();
-        rumbleGain.gain.value = 0.035;
+        rumbleGain.gain.value = this.isMobileDevice ? 0.02 : 0.034;
         const rumbleFilter = ctx.createBiquadFilter();
         rumbleFilter.type = 'lowpass';
         rumbleFilter.frequency.value = 120;
@@ -157,7 +178,7 @@ export class AudioSynth {
         rustleFilter.type = 'highpass';
         rustleFilter.frequency.value = 1200;
         const rustleGain = ctx.createGain();
-        rustleGain.gain.value = 0.02;
+        rustleGain.gain.value = this.isMobileDevice ? 0.007 : 0.017;
         rustle.connect(rustleFilter);
         rustleFilter.connect(rustleGain);
         rustleGain.connect(this.sfxGain);
@@ -170,7 +191,7 @@ export class AudioSynth {
             const gain = ctx.createGain();
             osc.type = 'sine';
             osc.frequency.value = 1400 + Math.random() * 300;
-            gain.gain.value = 0.015;
+            gain.gain.value = this.isMobileDevice ? 0.008 : 0.013;
             osc.connect(gain);
             gain.connect(this.sfxGain);
             osc.start();
@@ -420,6 +441,66 @@ export class AudioSynth {
         hiss.stop(now + 0.7);
     }
 
+    startRadiationRain(position = null) {
+        if (!this.audioContext || this.radiationRainNodes) return;
+        const ctx = this.audioContext;
+        const noise = ctx.createBufferSource();
+        noise.buffer = this.createNoiseBuffer(2.6);
+        noise.loop = true;
+
+        const hp = ctx.createBiquadFilter();
+        hp.type = 'highpass';
+        hp.frequency.value = 1400;
+
+        const lp = ctx.createBiquadFilter();
+        lp.type = 'lowpass';
+        lp.frequency.value = 6800;
+
+        const rainGain = ctx.createGain();
+        rainGain.gain.value = this.isMobileDevice ? 0.016 : 0.036;
+
+        noise.connect(hp);
+        hp.connect(lp);
+        lp.connect(rainGain);
+        if (position) {
+            const panner = this.createPanner(position);
+            rainGain.connect(panner);
+            panner.connect(this.sfxGain);
+            this.radiationRainNodes = { noise, hp, lp, rainGain, panner, tickTimer: null };
+        } else {
+            rainGain.connect(this.sfxGain);
+            this.radiationRainNodes = { noise, hp, lp, rainGain, tickTimer: null };
+        }
+        noise.start();
+
+        const tickTimer = setInterval(() => {
+            if (!this.audioContext || !this.radiationRainNodes) return;
+            const now = this.audioContext.currentTime;
+            const click = this.audioContext.createOscillator();
+            const clickGain = this.audioContext.createGain();
+            click.type = 'square';
+            click.frequency.setValueAtTime(1600 + Math.random() * 900, now);
+            clickGain.gain.setValueAtTime(this.isMobileDevice ? 0.006 : 0.013, now);
+            clickGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
+            click.connect(clickGain);
+            clickGain.connect(this.sfxGain);
+            click.start(now);
+            click.stop(now + 0.065);
+        }, this.isMobileDevice ? 360 : 260);
+        this.radiationRainNodes.tickTimer = tickTimer;
+    }
+
+    stopRadiationRain() {
+        if (!this.radiationRainNodes) return;
+        try {
+            this.radiationRainNodes.noise?.stop?.();
+        } catch {}
+        if (this.radiationRainNodes.tickTimer) {
+            clearInterval(this.radiationRainNodes.tickTimer);
+        }
+        this.radiationRainNodes = null;
+    }
+
     playHurt() {
         if (!this.audioContext) return;
 
@@ -480,29 +561,41 @@ export class AudioSynth {
         const now = ctx.currentTime;
         const osc = ctx.createOscillator();
         const osc2 = ctx.createOscillator();
+        const sub = ctx.createOscillator();
         const gainNode = ctx.createGain();
         const filter = ctx.createBiquadFilter();
+        const formant = ctx.createBiquadFilter();
         const noise = ctx.createBufferSource();
 
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(120 + Math.random() * 20, now);
-        osc.frequency.exponentialRampToValueAtTime(70, now + 0.6);
+        osc.frequency.setValueAtTime(108 + Math.random() * 18, now);
+        osc.frequency.exponentialRampToValueAtTime(62, now + 0.95);
 
         osc2.type = 'triangle';
-        osc2.frequency.setValueAtTime(90, now);
-        osc2.frequency.exponentialRampToValueAtTime(55, now + 0.6);
+        osc2.frequency.setValueAtTime(78, now);
+        osc2.frequency.exponentialRampToValueAtTime(44, now + 0.95);
 
-        noise.buffer = this.createNoiseBuffer(0.6);
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(520, now);
+        sub.type = 'sine';
+        sub.frequency.setValueAtTime(48, now);
+        sub.frequency.exponentialRampToValueAtTime(34, now + 0.95);
 
-        gainNode.gain.setValueAtTime(0.32, now);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.7);
+        noise.buffer = this.createNoiseBuffer(1.0);
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(360, now);
+        filter.Q.value = 0.55;
+        formant.type = 'lowpass';
+        formant.frequency.setValueAtTime(680, now);
+        formant.Q.value = 0.45;
+
+        gainNode.gain.setValueAtTime(this.isMobileDevice ? 0.11 : 0.2, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.012, now + 1.0);
 
         osc.connect(filter);
         osc2.connect(filter);
+        sub.connect(filter);
         noise.connect(filter);
-        filter.connect(gainNode);
+        filter.connect(formant);
+        formant.connect(gainNode);
         if (position) {
             this.connectSfx(gainNode, position);
         } else {
@@ -511,10 +604,12 @@ export class AudioSynth {
 
         osc.start(now);
         osc2.start(now);
+        sub.start(now);
         noise.start(now);
-        osc.stop(now + 0.7);
-        osc2.stop(now + 0.7);
-        noise.stop(now + 0.7);
+        osc.stop(now + 1.0);
+        osc2.stop(now + 1.0);
+        sub.stop(now + 1.0);
+        noise.stop(now + 1.0);
     }
 
     playZombieAttack(position = null) {
@@ -522,35 +617,52 @@ export class AudioSynth {
         const ctx = this.audioContext;
         const now = ctx.currentTime;
         const growl = ctx.createOscillator();
+        const shriek = ctx.createOscillator();
         const rasp = ctx.createBufferSource();
         const gain = ctx.createGain();
         const filter = ctx.createBiquadFilter();
+        const hiFilter = ctx.createBiquadFilter();
+        const hiGain = ctx.createGain();
 
         growl.type = 'sawtooth';
-        growl.frequency.setValueAtTime(160, now);
-        growl.frequency.exponentialRampToValueAtTime(90, now + 0.25);
+        growl.frequency.setValueAtTime(150, now);
+        growl.frequency.exponentialRampToValueAtTime(80, now + 0.38);
+
+        shriek.type = 'triangle';
+        shriek.frequency.setValueAtTime(980, now);
+        shriek.frequency.exponentialRampToValueAtTime(420, now + 0.26);
 
         rasp.buffer = this.createNoiseBuffer(0.2);
         filter.type = 'bandpass';
-        filter.frequency.setValueAtTime(500, now);
-        filter.Q.value = 0.8;
+        filter.frequency.setValueAtTime(520, now);
+        filter.Q.value = 0.9;
+        hiFilter.type = 'highpass';
+        hiFilter.frequency.setValueAtTime(1200, now);
 
-        gain.gain.setValueAtTime(0.25, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+        gain.gain.setValueAtTime(this.isMobileDevice ? 0.12 : 0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.012, now + 0.42);
+        hiGain.gain.setValueAtTime(this.isMobileDevice ? 0.04 : 0.08, now);
+        hiGain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
 
         growl.connect(filter);
         rasp.connect(filter);
         filter.connect(gain);
+        shriek.connect(hiFilter);
+        hiFilter.connect(hiGain);
         if (position) {
             this.connectSfx(gain, position);
+            this.connectSfx(hiGain, position);
         } else {
             gain.connect(this.sfxGain);
+            hiGain.connect(this.sfxGain);
         }
 
         growl.start(now);
+        shriek.start(now);
         rasp.start(now);
-        growl.stop(now + 0.35);
-        rasp.stop(now + 0.35);
+        growl.stop(now + 0.42);
+        shriek.stop(now + 0.28);
+        rasp.stop(now + 0.42);
     }
 
     playBowShot() {
@@ -699,28 +811,73 @@ export class AudioSynth {
     }
 
     playMusic() {
-        if (!this.audioContext) return;
+        if (!this.audioContext || this.musicStarted) return;
+        this.musicStarted = true;
 
-        const playTone = (freq, time, duration) => {
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
+        const themes = [
+            {
+                duration: 7.2,
+                notes: [
+                    [196, 0.0, 1.6, 'sine'],
+                    [247, 1.5, 1.3, 'triangle'],
+                    [174, 3.0, 1.5, 'sine'],
+                    [220, 4.7, 1.6, 'triangle']
+                ]
+            },
+            {
+                duration: 7.8,
+                notes: [
+                    [220, 0.0, 1.2, 'triangle'],
+                    [262, 1.2, 1.4, 'sine'],
+                    [294, 2.9, 1.0, 'triangle'],
+                    [196, 4.3, 1.8, 'sine'],
+                    [165, 5.9, 1.2, 'triangle']
+                ]
+            },
+            {
+                duration: 7.5,
+                notes: [
+                    [165, 0.0, 1.6, 'sine'],
+                    [196, 1.7, 1.1, 'triangle'],
+                    [147, 3.1, 1.5, 'sine'],
+                    [220, 4.8, 1.4, 'triangle']
+                ]
+            }
+        ];
 
-            oscillator.type = 'sine';
-            oscillator.frequency.value = freq;
+        const playTheme = (index) => {
+            if (!this.audioContext || !this.musicGain) return;
+            const theme = themes[index % themes.length];
+            const now = this.audioContext.currentTime;
+            for (const [freq, time, duration, type] of theme.notes) {
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                const filter = this.audioContext.createBiquadFilter();
 
-            gainNode.gain.setValueAtTime(0.05, this.audioContext.currentTime + time);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + time + duration);
+                oscillator.type = type;
+                oscillator.frequency.value = freq;
+                filter.type = 'lowpass';
+                filter.frequency.value = 1200;
 
-            oscillator.connect(gainNode);
-            gainNode.connect(this.musicGain);
+                gainNode.gain.setValueAtTime(0.0001, now + time);
+                gainNode.gain.exponentialRampToValueAtTime(0.045, now + time + 0.08);
+                gainNode.gain.exponentialRampToValueAtTime(0.008, now + time + duration);
 
-            oscillator.start(this.audioContext.currentTime + time);
-            oscillator.stop(this.audioContext.currentTime + time + duration);
+                oscillator.connect(filter);
+                filter.connect(gainNode);
+                gainNode.connect(this.musicGain);
+
+                oscillator.start(now + time);
+                oscillator.stop(now + time + duration + 0.05);
+            }
+
+            clearTimeout(this.musicLoopTimer);
+            this.musicLoopTimer = setTimeout(() => {
+                this.musicThemeIndex = (index + 1) % themes.length;
+                playTheme(this.musicThemeIndex);
+            }, theme.duration * 1000);
         };
 
-        playTone(220, 0, 1.5);
-        playTone(280, 1.5, 1.5);
-        playTone(180, 3, 1.5);
-        playTone(260, 4.5, 1.5);
+        playTheme(this.musicThemeIndex);
     }
 }
