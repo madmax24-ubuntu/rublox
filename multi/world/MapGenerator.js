@@ -1809,6 +1809,56 @@ export class MapGenerator {
         return this.hangarSpots.map(pos => ({ x: pos.x, z: pos.z, width: pos.width, depth: pos.depth, height: pos.height }));
     }
 
+    getStructureAtPoint(x, z, margin = 0.2) {
+        for (const house of this.houseSpots || []) {
+            if (this.isPointInsideStructure(x, z, house, 'house', margin)) {
+                return { structure: house, type: 'house' };
+            }
+        }
+        for (const hangar of this.hangarSpots || []) {
+            if (this.isPointInsideStructure(x, z, hangar, 'hangar', margin)) {
+                return { structure: hangar, type: 'hangar' };
+            }
+        }
+        return null;
+    }
+
+    getStructureEntryPoint(structure, type = 'house', fromPosition = null) {
+        if (!structure) return null;
+        const w = structure.width || (type === 'hangar' ? 58 : 9);
+        const d = structure.depth || (type === 'hangar' ? 36 : 8);
+        const candidates = [];
+
+        // Main front door
+        candidates.push({ x: structure.x, z: structure.z + d * 0.58 });
+        // Massive hangars have a second rear opening
+        if (type === 'hangar') {
+            candidates.push({ x: structure.x, z: structure.z - d * 0.58 });
+        }
+        // Side fallback points near corners
+        candidates.push({ x: structure.x - w * 0.54, z: structure.z + d * 0.2 });
+        candidates.push({ x: structure.x + w * 0.54, z: structure.z + d * 0.2 });
+
+        let best = null;
+        let bestScore = Infinity;
+        for (const p of candidates) {
+            let point = p;
+            if (!this.isWalkableAt(point.x, point.z) || !this.isChestClear(point.x, point.z, 0.9, true)) {
+                const fallback = this.findClearPointAround(point.x, point.z, 0.9, 0.3, 4.5);
+                if (!fallback) continue;
+                point = fallback;
+            }
+            const score = fromPosition
+                ? Math.hypot(point.x - fromPosition.x, point.z - fromPosition.z)
+                : 0;
+            if (score < bestScore) {
+                bestScore = score;
+                best = point;
+            }
+        }
+        return best ? { x: best.x, z: best.z } : null;
+    }
+
     getRailLayout() {
         return (this.railLayout || []).map(route => ({
             axis: route.axis,

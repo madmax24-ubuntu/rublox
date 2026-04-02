@@ -446,7 +446,7 @@ export class BotBrain {
         const hangarChest = this.findBestHangarChest(bot, lootManager);
         if (hangarChest && (this.prefersHangarLoot || this.hasLowCombatResources(bot))) {
             bot.state = 'explore';
-            bot.patrolTarget = new THREE.Vector3(hangarChest.position.x, hangarChest.position.y, hangarChest.position.z);
+            bot.patrolTarget = this.getLootApproachTarget(bot, hangarChest.position);
             this.stateTimer = 10;
             return;
         }
@@ -463,7 +463,7 @@ export class BotBrain {
 
         if (chest) {
             bot.state = 'explore';
-            bot.patrolTarget = new THREE.Vector3(chest.position.x, chest.position.y, chest.position.z);
+            bot.patrolTarget = this.getLootApproachTarget(bot, chest.position);
             this.stateTimer = 10;
         } else {
             const hangarTarget = this.findStrategicHangarTarget(bot, lootManager);
@@ -608,7 +608,7 @@ export class BotBrain {
             if (dist > maxRange) continue;
             const crowd = this.countBotsTargetingPoint(bot, chest.position, 10.5);
             const near = this.countBotsNearPoint(bot, chest.position, 8.5);
-            const score = dist + crowd * 22 + near * 10;
+            const score = dist + crowd * 34 + near * 18;
             if (score < bestScore) {
                 bestScore = score;
                 nearest = chest;
@@ -616,6 +616,26 @@ export class BotBrain {
         }
         
         return nearest;
+    }
+
+    getLootApproachTarget(bot, targetPosition) {
+        const map = bot.mapRef;
+        if (!map || !targetPosition) return null;
+        const info = map.getStructureAtPoint?.(targetPosition.x, targetPosition.z, 0.35);
+        if (!info) {
+            return new THREE.Vector3(targetPosition.x, 0, targetPosition.z);
+        }
+
+        const inside = map.isPointInsideStructure?.(bot.position.x, bot.position.z, info.structure, info.type, 0.2);
+        if (inside) {
+            return new THREE.Vector3(targetPosition.x, 0, targetPosition.z);
+        }
+
+        const entry = map.getStructureEntryPoint?.(info.structure, info.type, bot.position);
+        if (entry) {
+            return new THREE.Vector3(entry.x, 0, entry.z);
+        }
+        return new THREE.Vector3(targetPosition.x, 0, targetPosition.z);
     }
 
     countBotsTargetingPoint(bot, point, radius = 10) {
@@ -1185,6 +1205,13 @@ export class BotBrain {
             return;
         }
 
+        const localCrowd = this.countBotsNearPoint(bot, bot.position, 7.5);
+        if (localCrowd >= 4 && Math.random() < 0.55) {
+            this.setRandomPatrolTarget(bot, 24, 70);
+            bot.moveTowards(bot.patrolTarget, bot.physics.speed * 1.2);
+            return;
+        }
+
         if (bot.isStuck) {
             bot.isStuck = false;
             this.setRandomPatrolTarget(bot, 18, 64);
@@ -1207,6 +1234,12 @@ export class BotBrain {
                 // РџСЂРѕРІРµСЂСЏРµРј СЃСѓРЅРґСѓРєРё СЂСЏРґРѕРј
                 const chest = this.findNearestChest(bot, lootManager, 5);
                 if (chest && !chest.userData.isOpen) {
+                    const approach = this.getLootApproachTarget(bot, chest.position);
+                    if (approach && bot.position.distanceTo(approach) > 2.6) {
+                        bot.patrolTarget = approach;
+                        bot.moveTowards(bot.patrolTarget, bot.physics.speed * 1.08);
+                        return;
+                    }
                     const loot = lootManager.tryOpenChest(chest, bot);
                     if (loot && bot.pickupLoot) bot.pickupLoot(loot);
                 }

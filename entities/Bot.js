@@ -536,27 +536,27 @@ export class Bot {
         this.separationTimer = Math.max(0, this.separationTimer - delta);
         if (entityManager && this.isAlive && !this.isFrozen && this.separationTimer <= 0) {
             const nearby = entityManager.getNearbyEntities
-                ? entityManager.getNearbyEntities(this.position, 3.8, 'Bot')
+                ? entityManager.getNearbyEntities(this.position, 5.2, 'Bot')
                 : entityManager.getEntities();
             let sep = new THREE.Vector3();
             let count = 0;
             for (const e of nearby) {
                 if (e === this || !e.isAlive || e.constructor?.name !== 'Bot') continue;
                 const dist = this.position.distanceTo(e.position);
-                if (dist > 0.01 && dist < 3.4) {
-                    const pushPower = 1.15 / Math.max(0.25, Math.pow(dist, 1.1));
+                if (dist > 0.01 && dist < 4.8) {
+                    const pushPower = 1.55 / Math.max(0.22, Math.pow(dist, 1.08));
                     const push = this.position.clone().sub(e.position).normalize().multiplyScalar(pushPower);
                     sep.add(push);
                     count += 1;
                 }
             }
             if (count > 0) {
-                sep.multiplyScalar(1.1);
+                sep.multiplyScalar(1.35);
                 sep.add(new THREE.Vector3((Math.random() - 0.5) * 0.45, 0, (Math.random() - 0.5) * 0.45));
                 this.physics.velocity.x += sep.x;
                 this.physics.velocity.z += sep.z;
             }
-            this.separationTimer = 0.08 + Math.random() * 0.05;
+            this.separationTimer = 0.05 + Math.random() * 0.04;
         }
     }
 
