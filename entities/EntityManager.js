@@ -204,12 +204,14 @@ export class EntityManager {
             const basePos = entity.position;
             const h = entity.physics?.height || 1.8;
             const r = entity.physics?.radius || 0.45;
-            const bodyBonus = entity.constructor?.name === 'Bot' ? 0.75 : entity.constructor?.name === 'Zombie' ? 0.65 : 0.45;
+            const bodyBonus = entity.constructor?.name === 'Bot' ? 0.62 : entity.constructor?.name === 'Zombie' ? 0.74 : 0.45;
             const hitRadius = r + bodyBonus;
 
             const hit = this.distancePointToSegmentFast(basePos.x, basePos.y + h * 0.2, basePos.z, p0, p1, seg, segLenSq) <= hitRadius
                 || this.distancePointToSegmentFast(basePos.x, basePos.y + h * 0.55, basePos.z, p0, p1, seg, segLenSq) <= hitRadius
-                || this.distancePointToSegmentFast(basePos.x, basePos.y + h * 0.9, basePos.z, p0, p1, seg, segLenSq) <= hitRadius;
+                || this.distancePointToSegmentFast(basePos.x, basePos.y + h * 0.9, basePos.z, p0, p1, seg, segLenSq) <= hitRadius
+                || this.distancePointToSegmentFast(basePos.x, basePos.y + h * 0.35, basePos.z, p0, p1, seg, segLenSq) <= hitRadius
+                || this.distancePointToSegmentFast(basePos.x, basePos.y + h * 0.72, basePos.z, p0, p1, seg, segLenSq) <= hitRadius;
             if (hit) {
                 return entity;
             }

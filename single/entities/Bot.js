@@ -14,7 +14,7 @@ export class Bot {
             velocity: new THREE.Vector3(0, 0, 0),
             onGround: false,
             height: 1.9,
-            radius: 0.4,
+            radius: 0.47,
             speed: 6 + Math.random() * 2
         };
 
@@ -63,6 +63,10 @@ export class Bot {
         this.healthRegenDuration = 7;
         this.lastDamageAt = -Infinity;
         this.noCombatUntil = 0;
+        this.healthBarRefreshTimer = Math.random() * 0.12;
+        this.healthBarLosTimer = 0;
+        this.healthBarAimTimer = 0;
+        this.healthBarVisibleCached = true;
 
         this.variants = [
             {
@@ -438,7 +442,7 @@ export class Bot {
             this.mesh.position.y = this.position.y - (this.physics.height - 0.2);
             this.mesh.rotation.y = this.rotation.y;
             this.animateLimbs();
-            this.updateHealthBar();
+            this.updateHealthBar(delta);
             return;
         }
 
@@ -451,7 +455,7 @@ export class Bot {
             this.mesh.position.y = this.position.y - (this.physics.height - 0.2);
             this.mesh.rotation.y = this.rotation.y;
             this.animateLimbs();
-            this.updateHealthBar();
+            this.updateHealthBar(delta);
             return;
         }
 
@@ -491,7 +495,7 @@ export class Bot {
         this.mesh.position.y = this.position.y - (this.physics.height - 0.2);
         this.mesh.rotation.y = this.rotation.y;
         this.animateLimbs();
-        this.updateHealthBar();
+        this.updateHealthBar(delta);
 
         if (this.currentWeapon && this.currentWeapon.mesh && this.isAlive) {
             const limbs = this.mesh?.userData?.limbs;
@@ -532,25 +536,27 @@ export class Bot {
         this.separationTimer = Math.max(0, this.separationTimer - delta);
         if (entityManager && this.isAlive && !this.isFrozen && this.separationTimer <= 0) {
             const nearby = entityManager.getNearbyEntities
-                ? entityManager.getNearbyEntities(this.position, 2.4, 'Bot')
+                ? entityManager.getNearbyEntities(this.position, 3.8, 'Bot')
                 : entityManager.getEntities();
             let sep = new THREE.Vector3();
             let count = 0;
             for (const e of nearby) {
                 if (e === this || !e.isAlive || e.constructor?.name !== 'Bot') continue;
                 const dist = this.position.distanceTo(e.position);
-                if (dist > 0.01 && dist < 2.2) {
-                    const push = this.position.clone().sub(e.position).normalize().multiplyScalar(1 / dist);
+                if (dist > 0.01 && dist < 3.4) {
+                    const pushPower = 1.15 / Math.max(0.25, Math.pow(dist, 1.1));
+                    const push = this.position.clone().sub(e.position).normalize().multiplyScalar(pushPower);
                     sep.add(push);
                     count += 1;
                 }
             }
             if (count > 0) {
-                sep.multiplyScalar(0.6);
+                sep.multiplyScalar(1.1);
+                sep.add(new THREE.Vector3((Math.random() - 0.5) * 0.45, 0, (Math.random() - 0.5) * 0.45));
                 this.physics.velocity.x += sep.x;
                 this.physics.velocity.z += sep.z;
             }
-            this.separationTimer = 0.16 + Math.random() * 0.06;
+            this.separationTimer = 0.08 + Math.random() * 0.05;
         }
     }
 
@@ -729,7 +735,7 @@ export class Bot {
         });
     }
 
-    updateHealthBar() {
+    updateHealthBar(delta = 0.016) {
         if (!this.healthBar) return;
         const ratio = Math.max(0, Math.min(1, this.health / this.maxHealth));
         const fill = this.healthBar.children.find(child => child.userData?.isFill);
@@ -742,16 +748,27 @@ export class Bot {
         }
         const camera = this.scene.userData?.camera;
         if (camera) {
-            const dist = camera.position.distanceTo(this.position);
+            this.healthBarRefreshTimer = Math.max(0, this.healthBarRefreshTimer - delta);
+            this.healthBarLosTimer = Math.max(0, this.healthBarLosTimer - delta);
+            this.healthBarAimTimer = Math.max(0, this.healthBarAimTimer - delta);
+            if (this.healthBarRefreshTimer > 0) return;
+            this.healthBarRefreshTimer = 0.08 + Math.random() * 0.06;
+            const dx = camera.position.x - this.position.x;
+            const dz = camera.position.z - this.position.z;
+            const distSq = dx * dx + dz * dz;
             const entityManager = this.scene.userData?.entityManager;
-            let visible = dist < 18;
-            if (visible && entityManager?.hasLineOfSight) {
+            let visible = distSq < (19 * 19);
+            if (visible && entityManager?.hasLineOfSight && this.healthBarLosTimer <= 0) {
                 const from = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);
                 const to = new THREE.Vector3(this.position.x, this.position.y + (this.physics?.height || 1.8) * 0.65, this.position.z);
-                visible = entityManager.hasLineOfSight(from, to, true);
+                this.healthBarVisibleCached = entityManager.hasLineOfSight(from, to, true);
+                this.healthBarLosTimer = 0.22 + Math.random() * 0.12;
             }
-            this.healthBar.visible = visible;
-            this.healthBar.lookAt(camera.position);
+            this.healthBar.visible = visible && this.healthBarVisibleCached;
+            if (this.healthBar.visible && this.healthBarAimTimer <= 0) {
+                this.healthBar.lookAt(camera.position);
+                this.healthBarAimTimer = 0.12;
+            }
         }
     }
 

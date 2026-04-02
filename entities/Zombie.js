@@ -10,7 +10,7 @@ export class Zombie {
             velocity: new THREE.Vector3(0, 0, 0),
             onGround: false,
             height: 1.9,
-            radius: 0.45,
+            radius: 0.52,
             speed: 4.8
         };
 
@@ -33,6 +33,7 @@ export class Zombie {
         this.mesh = this.createMesh();
         const scale = this.variant === 'brute' ? 1.5 : this.variant === 'mutant' ? 1.4 : 1.3;
         this.mesh.scale.setScalar(scale);
+        this.physics.radius = this.variant === 'brute' ? 0.58 : this.variant === 'mutant' ? 0.55 : 0.52;
         this.scene.add(this.mesh);
     }
 

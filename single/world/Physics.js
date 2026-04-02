@@ -11,6 +11,7 @@ export class Physics {
         this.colliderGrid = new Map();
         this.colliderGridCellSize = 16;
         this.colliderGridCount = this.colliders.length;
+        this.dynamicColliders = this.colliders.filter(box => box.dynamic);
         if (this.colliders.length) {
             this.rebuildColliderGrid();
         }
@@ -31,7 +32,11 @@ export class Physics {
         this.colliders = this.mapGenerator.getColliders?.() || this.colliders;
         if (this.colliders.length !== this.colliderGridCount) {
             this.colliderGridCount = this.colliders.length;
+            this.dynamicColliders = this.colliders.filter(box => box.dynamic);
             this.rebuildColliderGrid();
+        }
+        if (this.mapGenerator.dynamicColliders) {
+            this.dynamicColliders = this.colliders.filter(box => box.dynamic);
         }
         for (const entity of this.entities) {
             if (!entity.physics) continue;
@@ -72,7 +77,25 @@ export class Physics {
                 entity.physics.onGround = false;
             }
 
+            const trainSupport = this.mapGenerator.getTrainSupportAt?.(entity.position, entity.physics.height);
+            if (trainSupport) {
+                entity.position.x += trainSupport.dx;
+                entity.position.z += trainSupport.dz;
+                entity.position.y = Math.max(entity.position.y, trainSupport.topY + entity.physics.height);
+                entity.physics.onGround = true;
+            }
+
             this.resolveCollisions(entity);
+
+            const surfaceAfterCollisions = Math.max(
+                this.mapGenerator.getHeightAt(entity.position.x, entity.position.z),
+                this.getColliderSurfaceHeight(entity.position, entity.physics.height)
+            );
+            if (entity.position.y < surfaceAfterCollisions + entity.physics.height) {
+                entity.position.y = surfaceAfterCollisions + entity.physics.height;
+                entity.physics.onGround = true;
+                entity.physics.velocity.y = Math.max(0, entity.physics.velocity.y);
+            }
 
             if (!entity.physics.wasOnGround && entity.physics.onGround) {
                 const fallDistance = entity.physics.fallStartY - entity.position.y;
@@ -103,41 +126,54 @@ export class Physics {
 
     resolveCollisions(entity) {
         if (!this.colliders.length) return;
-        const radius = entity.physics?.radius || 0.5;
+        const type = entity.constructor?.name;
+        const bonusRadius = type === 'Zombie' ? 0.1 : type === 'Bot' ? 0.07 : 0;
+        const radius = (entity.physics?.radius || 0.5) + bonusRadius;
         const pos = entity.position;
         const height = entity.physics?.height || 1.7;
         const bottom = pos.y - height;
 
         const nearby = this.getNearbyColliders(pos, radius + 0.5);
-        for (const box of nearby) {
-            if (box.enabled === false) continue;
-            if (pos.y < box.min.y + 0.05) continue;
-            if (bottom > box.max.y - 0.05) continue;
+        for (let pass = 0; pass < 2; pass++) {
+            for (const box of nearby) {
+                if (box.enabled === false) continue;
+                if (pos.y < box.min.y + 0.05) continue;
+                if (bottom > box.max.y - 0.05) continue;
 
-            const clampedX = Math.max(box.min.x, Math.min(box.max.x, pos.x));
-            const clampedZ = Math.max(box.min.z, Math.min(box.max.z, pos.z));
-            const dx = pos.x - clampedX;
-            const dz = pos.z - clampedZ;
-            const distSq = dx * dx + dz * dz;
+                const clampedX = Math.max(box.min.x, Math.min(box.max.x, pos.x));
+                const clampedZ = Math.max(box.min.z, Math.min(box.max.z, pos.z));
+                const dx = pos.x - clampedX;
+                const dz = pos.z - clampedZ;
+                const distSq = dx * dx + dz * dz;
 
-            if (distSq > radius * radius) continue;
+                if (distSq > radius * radius) continue;
 
-            if (distSq === 0) {
-                const left = Math.abs(pos.x - box.min.x);
-                const right = Math.abs(box.max.x - pos.x);
-                const back = Math.abs(pos.z - box.min.z);
-                const front = Math.abs(box.max.z - pos.z);
-                const minPen = Math.min(left, right, back, front);
+                if (distSq === 0) {
+                    const left = Math.abs(pos.x - box.min.x);
+                    const right = Math.abs(box.max.x - pos.x);
+                    const back = Math.abs(pos.z - box.min.z);
+                    const front = Math.abs(box.max.z - pos.z);
+                    const minPen = Math.min(left, right, back, front);
 
-                if (minPen === left) pos.x = box.min.x - radius;
-                else if (minPen === right) pos.x = box.max.x + radius;
-                else if (minPen === back) pos.z = box.min.z - radius;
-                else pos.z = box.max.z + radius;
-            } else {
-                const dist = Math.sqrt(distSq);
-                const push = (radius - dist) + 0.01;
-                pos.x += (dx / dist) * push;
-                pos.z += (dz / dist) * push;
+                    if (minPen === left) pos.x = box.min.x - radius;
+                    else if (minPen === right) pos.x = box.max.x + radius;
+                    else if (minPen === back) pos.z = box.min.z - radius;
+                    else pos.z = box.max.z + radius;
+                } else {
+                    const dist = Math.sqrt(distSq);
+                    const push = (radius - dist) + 0.012;
+                    const nx = dx / dist;
+                    const nz = dz / dist;
+                    pos.x += nx * push;
+                    pos.z += nz * push;
+                    if (entity.physics?.velocity) {
+                        const outDot = entity.physics.velocity.x * nx + entity.physics.velocity.z * nz;
+                        if (outDot < 0) {
+                            entity.physics.velocity.x -= nx * outDot;
+                            entity.physics.velocity.z -= nz * outDot;
+                        }
+                    }
+                }
             }
         }
     }
@@ -200,6 +236,15 @@ export class Physics {
                     seen.add(box);
                     results.push(box);
                 }
+            }
+        }
+        if (this.dynamicColliders.length) {
+            for (const box of this.dynamicColliders) {
+                if (seen.has(box)) continue;
+                if (position.x + radius < box.min.x || position.x - radius > box.max.x) continue;
+                if (position.z + radius < box.min.z || position.z - radius > box.max.z) continue;
+                seen.add(box);
+                results.push(box);
             }
         }
         return results;

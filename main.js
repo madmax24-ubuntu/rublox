@@ -1036,6 +1036,13 @@ class Game {
             this.spawnTimer -= delta;
             this.player.isFrozen = false;
             this.bots.forEach(bot => { bot.isFrozen = false; });
+            if (!this.spawnScatterTargets || this.spawnScatterTargets.length === 0) {
+                const floor = this.map.getFloorTiles?.() || [];
+                const minR = (this.map.spawnCourtyardRadius || 54) + 24;
+                this.spawnScatterTargets = floor
+                    .filter(t => Math.hypot(t.x, t.z) > minR)
+                    .sort((a, b) => Math.hypot(a.x, a.z) - Math.hypot(b.x, b.z));
+            }
             for (let i = 0; i < this.bots.length; i++) {
                 const bot = this.bots[i];
                 bot.target = null;
@@ -1043,13 +1050,22 @@ class Game {
                 bot.allies = [];
                 bot.state = 'spawn';
                 if (!bot.patrolTarget) {
-                    const angle = (i / Math.max(1, this.bots.length)) * Math.PI * 2;
-                    const distance = this.zone.getCurrentRadius() * 0.32 + (i % 5) * 3.5;
-                    bot.patrolTarget = new THREE.Vector3(
-                        Math.cos(angle) * distance,
-                        0,
-                        Math.sin(angle) * distance
-                    );
+                    const scatter = this.spawnScatterTargets?.length
+                        ? this.spawnScatterTargets[(i * 37 + 13) % this.spawnScatterTargets.length]
+                        : null;
+                    if (scatter) {
+                        const jitterX = (Math.random() - 0.5) * 8;
+                        const jitterZ = (Math.random() - 0.5) * 8;
+                        bot.patrolTarget = new THREE.Vector3(scatter.x + jitterX, 0, scatter.z + jitterZ);
+                    } else {
+                        const angle = (i / Math.max(1, this.bots.length)) * Math.PI * 2;
+                        const distance = this.zone.getCurrentRadius() * 0.32 + (i % 5) * 3.5;
+                        bot.patrolTarget = new THREE.Vector3(
+                            Math.cos(angle) * distance,
+                            0,
+                            Math.sin(angle) * distance
+                        );
+                    }
                 }
             }
 

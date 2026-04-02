@@ -14,7 +14,7 @@ export class Bot {
             velocity: new THREE.Vector3(0, 0, 0),
             onGround: false,
             height: 1.9,
-            radius: 0.4,
+            radius: 0.47,
             speed: 6 + Math.random() * 2
         };
 
@@ -536,25 +536,27 @@ export class Bot {
         this.separationTimer = Math.max(0, this.separationTimer - delta);
         if (entityManager && this.isAlive && !this.isFrozen && this.separationTimer <= 0) {
             const nearby = entityManager.getNearbyEntities
-                ? entityManager.getNearbyEntities(this.position, 2.4, 'Bot')
+                ? entityManager.getNearbyEntities(this.position, 3.8, 'Bot')
                 : entityManager.getEntities();
             let sep = new THREE.Vector3();
             let count = 0;
             for (const e of nearby) {
                 if (e === this || !e.isAlive || e.constructor?.name !== 'Bot') continue;
                 const dist = this.position.distanceTo(e.position);
-                if (dist > 0.01 && dist < 2.2) {
-                    const push = this.position.clone().sub(e.position).normalize().multiplyScalar(1 / dist);
+                if (dist > 0.01 && dist < 3.4) {
+                    const pushPower = 1.15 / Math.max(0.25, Math.pow(dist, 1.1));
+                    const push = this.position.clone().sub(e.position).normalize().multiplyScalar(pushPower);
                     sep.add(push);
                     count += 1;
                 }
             }
             if (count > 0) {
-                sep.multiplyScalar(0.6);
+                sep.multiplyScalar(1.1);
+                sep.add(new THREE.Vector3((Math.random() - 0.5) * 0.45, 0, (Math.random() - 0.5) * 0.45));
                 this.physics.velocity.x += sep.x;
                 this.physics.velocity.z += sep.z;
             }
-            this.separationTimer = 0.16 + Math.random() * 0.06;
+            this.separationTimer = 0.08 + Math.random() * 0.05;
         }
     }
 

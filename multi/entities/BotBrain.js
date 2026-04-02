@@ -246,6 +246,10 @@ export class BotBrain {
     makeSmartDecision(bot, entityManager, lootManager, threatLevel) {
         const context = this.buildUtilityContext(bot, entityManager, lootManager, threatLevel);
         const decision = this.utilityAI.chooseBestAction(context);
+        const localCrowd = this.countBotsNearPoint(bot, bot.position, 8.5);
+        if (localCrowd >= 4 && (decision.action === 'attack' || decision.action === 'ambush')) {
+            decision.action = context.lowResources ? 'loot' : 'patrol';
+        }
         if (this.independentMode && decision.action === 'regroup') {
             decision.action = 'loot';
         }
@@ -536,7 +540,7 @@ export class BotBrain {
             const entity = entityManager.getEntityById(enemyData.id);
             if (!entity || !entity.isAlive) continue;
             const attackers = this.countAttackersForTarget(bot, entity, entityManager);
-            const attackerLimit = 1;
+            const attackerLimit = entity?.constructor?.name === 'Player' ? 2 : 1;
             if (attackers >= attackerLimit) continue;
             
             let score = 0;
@@ -572,9 +576,14 @@ export class BotBrain {
             if (!entity?.isAlive) continue;
             if (entity === bot) continue;
             if (entity.constructor?.name !== 'Bot') continue;
-            if (entity.target === target && ['hunt', 'ambush', 'trainCombat'].includes(entity.state)) {
+            if (entity.target !== target) continue;
+            const dist = entity.position?.distanceTo ? entity.position.distanceTo(target.position) : Infinity;
+            if (dist > 28) continue;
+            if (['hunt', 'ambush', 'trainCombat', 'betray'].includes(entity.state)) {
                 count += 1;
+                continue;
             }
+            count += 0.5;
         }
         return count;
     }
@@ -1225,6 +1234,14 @@ export class BotBrain {
             bot.state = 'patrol';
             return;
         }
+        const attackers = this.countAttackersForTarget(bot, bot.target, entityManager);
+        const attackerLimit = bot.target?.constructor?.name === 'Player' ? 2 : 1;
+        if (attackers >= attackerLimit) {
+            bot.target = null;
+            bot.state = 'patrol';
+            this.setRandomPatrolTarget(bot, 24, 70);
+            return;
+        }
         
         const dist = bot.position.distanceTo(bot.target.position);
         const head = (ent) => new THREE.Vector3(
@@ -1398,6 +1415,14 @@ export class BotBrain {
 
         bot.target = opportunity.enemy;
         bot.trainTarget = opportunity.train;
+        const attackers = this.countAttackersForTarget(bot, bot.target, entityManager);
+        if (attackers >= 2) {
+            bot.state = 'patrol';
+            bot.target = null;
+            bot.trainTarget = null;
+            this.setRandomPatrolTarget(bot, 24, 70);
+            return;
+        }
         const train = opportunity.train;
         const onTrain = this.isBotOnTrain(bot, train);
 

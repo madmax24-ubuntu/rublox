@@ -1068,9 +1068,9 @@ export class MapGenerator {
         const baseY = this.getHeightAt(position.x, position.z);
         const wallY = baseY + height / 2;
 
-        const floorThickness = isMassiveHangar ? 0.12 : 0.1;
+        const floorThickness = isMassiveHangar ? 0.2 : 0.1;
         const floor = new THREE.Mesh(new THREE.BoxGeometry(width * 0.96, floorThickness, depth * 0.96), floorMat);
-        const floorTopY = baseY + (isMassiveHangar ? 0.12 : 0.1);
+        const floorTopY = baseY + (isMassiveHangar ? 0.2 : 0.1);
         floor.position.set(position.x, floorTopY - floorThickness * 0.5, position.z);
         floor.userData.mapGenerated = true;
         group.add(floor);
@@ -1168,99 +1168,98 @@ export class MapGenerator {
                 false
             );
 
-            const catwalkMat = new THREE.MeshStandardMaterial({
+            const levelMat = new THREE.MeshStandardMaterial({
                 color: 0x6f7e86,
-                roughness: 0.8,
-                flatShading: true
+                roughness: 0.82,
+                flatShading: true,
+                polygonOffset: true,
+                polygonOffsetFactor: -1,
+                polygonOffsetUnits: -1
             });
             const railMat = new THREE.MeshStandardMaterial({
                 color: 0x2f3b42,
                 roughness: 0.7,
                 flatShading: true
             });
-            const levelHeights = [baseY + height * 0.34, baseY + height * 0.62];
-            for (const levelY of levelHeights) {
-                const sideWidth = width * 0.32;
-                const sideDepth = depth * 0.8;
-                const deckLeft = new THREE.Mesh(new THREE.BoxGeometry(sideWidth, 0.24, sideDepth), catwalkMat);
-                deckLeft.position.set(position.x - width * 0.26, levelY, position.z - depth * 0.05);
-                deckLeft.userData.mapGenerated = true;
-                group.add(deckLeft);
-                this.addColliderBox(deckLeft.position.clone(), sideWidth, 0.24, sideDepth, true);
 
-                const deckRight = new THREE.Mesh(new THREE.BoxGeometry(sideWidth, 0.24, sideDepth), catwalkMat);
-                deckRight.position.set(position.x + width * 0.26, levelY, position.z - depth * 0.05);
-                deckRight.userData.mapGenerated = true;
-                group.add(deckRight);
-                this.addColliderBox(deckRight.position.clone(), sideWidth, 0.24, sideDepth, true);
+            const innerW = width * 0.86;
+            const innerD = depth * 0.82;
+            const slabH = 0.24;
+            const levels = [baseY + height * 0.35, baseY + height * 0.61];
+            const stairWell = {
+                x: position.x + width * 0.24,
+                z: position.z + depth * 0.08,
+                w: Math.max(5.8, width * 0.12),
+                d: Math.max(8.8, depth * 0.22)
+            };
 
-                const bridgeFront = new THREE.Mesh(new THREE.BoxGeometry(width * 0.22, 0.2, depth * 0.22), catwalkMat);
-                bridgeFront.position.set(position.x, levelY + 0.02, position.z - depth * 0.24);
-                bridgeFront.userData.mapGenerated = true;
-                group.add(bridgeFront);
-                this.addColliderBox(bridgeFront.position.clone(), width * 0.22, 0.2, depth * 0.22, true);
+            const addWalkable = (x, y, z, w, h, d, mat = levelMat) => {
+                const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+                mesh.position.set(x, y, z);
+                mesh.userData.mapGenerated = true;
+                group.add(mesh);
+                this.addColliderBox(mesh.position.clone(), w, h, d, true);
+                return mesh;
+            };
+            const addSolid = (x, y, z, w, h, d, mat = wallMat) => {
+                const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+                mesh.position.set(x, y, z);
+                mesh.userData.mapGenerated = true;
+                group.add(mesh);
+                this.addColliderBox(mesh.position.clone(), w, h, d, false);
+                return mesh;
+            };
+            const addClosedLevel = (topY) => {
+                const y = topY - slabH * 0.5;
+                const xMin = position.x - innerW * 0.5;
+                const xMax = position.x + innerW * 0.5;
+                const zMin = position.z - innerD * 0.5;
+                const zMax = position.z + innerD * 0.5;
+                const holeMinX = THREE.MathUtils.clamp(stairWell.x - stairWell.w * 0.5, xMin + 1.2, xMax - 1.2);
+                const holeMaxX = THREE.MathUtils.clamp(stairWell.x + stairWell.w * 0.5, xMin + 1.2, xMax - 1.2);
+                const holeMinZ = THREE.MathUtils.clamp(stairWell.z - stairWell.d * 0.5, zMin + 1.2, zMax - 1.2);
+                const holeMaxZ = THREE.MathUtils.clamp(stairWell.z + stairWell.d * 0.5, zMin + 1.2, zMax - 1.2);
 
-                const bridgeBack = new THREE.Mesh(new THREE.BoxGeometry(width * 0.22, 0.2, depth * 0.22), catwalkMat);
-                bridgeBack.position.set(position.x, levelY + 0.02, position.z + depth * 0.24);
-                bridgeBack.userData.mapGenerated = true;
-                group.add(bridgeBack);
-                this.addColliderBox(bridgeBack.position.clone(), width * 0.22, 0.2, depth * 0.22, true);
+                const leftW = holeMinX - xMin;
+                const rightW = xMax - holeMaxX;
+                const frontD = holeMinZ - zMin;
+                const backD = zMax - holeMaxZ;
 
-                const centralUpperCorridor = new THREE.Mesh(new THREE.BoxGeometry(width * 0.14, 0.18, depth * 0.72), catwalkMat);
-                centralUpperCorridor.position.set(position.x, levelY + 0.03, position.z);
-                centralUpperCorridor.userData.mapGenerated = true;
-                group.add(centralUpperCorridor);
-                this.addColliderBox(centralUpperCorridor.position.clone(), width * 0.14, 0.18, depth * 0.72, true);
-
-                const railDepth = sideDepth * 0.98;
-                const railLeftOuter = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.0, railDepth), railMat);
-                railLeftOuter.position.set(deckLeft.position.x - sideWidth * 0.5 + 0.08, levelY + 0.55, deckLeft.position.z);
-                railLeftOuter.userData.mapGenerated = true;
-                group.add(railLeftOuter);
-                const railRightOuter = railLeftOuter.clone();
-                railRightOuter.position.x = deckRight.position.x + sideWidth * 0.5 - 0.08;
-                group.add(railRightOuter);
-            }
-
-            const addStairRun = (sx, sy, sz, dx, dy, dz, steps, stepW, stepH, stepD) => {
+                if (leftW > 0.45) addWalkable((xMin + holeMinX) * 0.5, y, position.z, leftW, slabH, innerD);
+                if (rightW > 0.45) addWalkable((holeMaxX + xMax) * 0.5, y, position.z, rightW, slabH, innerD);
+                if (frontD > 0.45) addWalkable(stairWell.x, y, (zMin + holeMinZ) * 0.5, stairWell.w, slabH, frontD);
+                if (backD > 0.45) addWalkable(stairWell.x, y, (holeMaxZ + zMax) * 0.5, stairWell.w, slabH, backD);
+            };
+            const addStraightStairs = (start, end, steps, widthS, depthS) => {
                 for (let i = 0; i < steps; i++) {
                     const t = i / Math.max(1, steps - 1);
-                    const px = sx + dx * t;
-                    const py = sy + dy * t;
-                    const pz = sz + dz * t;
-                    const step = new THREE.Mesh(new THREE.BoxGeometry(stepW, stepH, stepD), catwalkMat);
-                    step.position.set(px, py, pz);
-                    step.userData.mapGenerated = true;
-                    group.add(step);
-                    this.addColliderBox(step.position.clone(), stepW, stepH, stepD, true);
+                    const px = start.x + (end.x - start.x) * t;
+                    const py = start.y + (end.y - start.y) * t;
+                    const pz = start.z + (end.z - start.z) * t;
+                    addWalkable(px, py, pz, widthS, 0.28, depthS);
                 }
             };
 
-            addStairRun(
-                position.x - width * 0.38,
-                baseY + 0.72,
-                position.z + depth * 0.32,
-                width * 0.17,
-                (levelHeights[0] - baseY) - 0.12,
-                -depth * 0.28,
-                9,
-                2.2,
-                0.24,
-                1.18
-            );
+            addClosedLevel(levels[0]);
+            addClosedLevel(levels[1]);
 
-            addStairRun(
-                position.x + width * 0.34,
-                levelHeights[0] + 0.32,
-                position.z - depth * 0.14,
-                -width * 0.16,
-                (levelHeights[1] - levelHeights[0]) - 0.08,
-                -depth * 0.22,
-                8,
-                2.1,
-                0.24,
-                1.12
-            );
+            const stairsW = Math.max(2.8, stairWell.w * 0.58);
+            const stairsD = 1.12;
+            const firstStart = new THREE.Vector3(stairWell.x, floorTopY + 0.16, stairWell.z + stairWell.d * 0.44);
+            const firstEnd = new THREE.Vector3(stairWell.x, levels[0] + 0.12, stairWell.z - stairWell.d * 0.44);
+            addStraightStairs(firstStart, firstEnd, 10, stairsW, stairsD);
+
+            const midLanding = addWalkable(stairWell.x - stairsW * 0.84, levels[0] + 0.14, stairWell.z - stairWell.d * 0.46, stairsW * 1.7, 0.26, 2.1);
+
+            const secondStart = new THREE.Vector3(stairWell.x - stairsW * 0.88, levels[0] + 0.24, stairWell.z - stairWell.d * 0.02);
+            const secondEnd = new THREE.Vector3(stairWell.x - stairsW * 0.88, levels[1] + 0.14, stairWell.z + stairWell.d * 0.46);
+            addStraightStairs(secondStart, secondEnd, 10, stairsW, stairsD);
+
+            addSolid(stairWell.x + stairWell.w * 0.5 + 0.16, midLanding.position.y + 0.52, stairWell.z, 0.24, 1.24, stairWell.d + 1.5, railMat);
+            addSolid(stairWell.x - stairWell.w * 0.5 - 0.16, midLanding.position.y + 0.52, stairWell.z, 0.24, 1.24, stairWell.d + 1.5, railMat);
+
+            const topCat = addWalkable(position.x, levels[1] + 0.14, position.z - innerD * 0.34, innerW * 0.72, 0.24, 2.3);
+            addSolid(topCat.position.x, topCat.position.y + 0.54, topCat.position.z - 1.05, topCat.geometry.parameters.width, 1.08, 0.2, railMat);
         }
     }
 
@@ -1379,6 +1378,9 @@ export class MapGenerator {
                 material.polygonOffsetUnits = -2;
                 material.userData.patchOptimized = true;
             }
+            if (this.isPatchOverlappingStructure(x, z, width, depth, 1.6)) {
+                return null;
+            }
             const patch = new THREE.Mesh(new THREE.BoxGeometry(width, 0.1, depth), material);
             patch.position.set(x, this.getHeightAt(x, z) + yOffset, z);
             patch.userData.mapGenerated = true;
@@ -1409,7 +1411,8 @@ export class MapGenerator {
                 const wz = tile.z + (rand() - 0.5) * 8;
                 const w = 9 + rand() * 10;
                 const d = 9 + rand() * 10;
-                addPatch(wx, wz, w, d, lakeMat, 0.5);
+                const patch = addPatch(wx, wz, w, d, lakeMat, 0.5);
+                if (!patch) continue;
                 this.waterPatches.push({ x: wx, z: wz, width: w, depth: d });
                 this.fogZones.push({ x: wx, z: wz, radius: Math.max(w, d) * 0.72, density: 0.024 + rand() * 0.016 });
                 markPlaced(tile.x, tile.z);
@@ -1419,7 +1422,8 @@ export class MapGenerator {
             if (style === "ash") {
                 const w = 8 + rand() * 8;
                 const d = 8 + rand() * 8;
-                addPatch(tile.x, tile.z, w, d, lavaMat, 0.5);
+                const patch = addPatch(tile.x, tile.z, w, d, lavaMat, 0.5);
+                if (!patch) continue;
                 this.lavaPatches.push({ x: tile.x, z: tile.z, width: w, depth: d });
                 markPlaced(tile.x, tile.z);
                 patchUsed += 1;
@@ -1428,7 +1432,8 @@ export class MapGenerator {
             if (style === "snow") {
                 const w = 9 + rand() * 10;
                 const d = 9 + rand() * 10;
-                addPatch(tile.x, tile.z, w, d, iceLakeMat, 0.5);
+                const patch = addPatch(tile.x, tile.z, w, d, iceLakeMat, 0.5);
+                if (!patch) continue;
                 this.waterPatches.push({ x: tile.x, z: tile.z, width: w, depth: d });
                 markPlaced(tile.x, tile.z);
                 patchUsed += 1;
@@ -1437,7 +1442,8 @@ export class MapGenerator {
             if (style === "sand") {
                 const width = 12 + rand() * 12;
                 const depth = 12 + rand() * 12;
-                addPatch(tile.x, tile.z, width, depth, new THREE.MeshStandardMaterial({ color: 0xe0bf72, roughness: 1, flatShading: true }), 0.48);
+                const patch = addPatch(tile.x, tile.z, width, depth, new THREE.MeshStandardMaterial({ color: 0xe0bf72, roughness: 1, flatShading: true }), 0.48);
+                if (!patch) continue;
                 markPlaced(tile.x, tile.z);
                 patchUsed += 1;
                 continue;
@@ -1445,7 +1451,8 @@ export class MapGenerator {
 
             const width = 10 + rand() * 14;
             const depth = 10 + rand() * 14;
-            addPatch(tile.x, tile.z, width, depth, grassMat, 0.48);
+            const patch = addPatch(tile.x, tile.z, width, depth, grassMat, 0.48);
+            if (!patch) continue;
             markPlaced(tile.x, tile.z);
             patchUsed += 1;
             const grassCount = 18 + Math.floor(rand() * 24);
@@ -2009,6 +2016,23 @@ export class MapGenerator {
         const halfW = width * 0.5 - margin;
         const halfD = depth * 0.5 - margin;
         return Math.abs(x - structure.x) <= halfW && Math.abs(z - structure.z) <= halfD;
+    }
+
+    isPatchOverlappingStructure(x, z, width, depth, margin = 0) {
+        const halfW = width * 0.5 + margin;
+        const halfD = depth * 0.5 + margin;
+        const overlap = (s, type = 'house') => {
+            const sw = (s.width || (type === 'hangar' ? 24 : 8)) * 0.5 + margin;
+            const sd = (s.depth || (type === 'hangar' ? 18 : 8)) * 0.5 + margin;
+            return Math.abs(x - s.x) <= (halfW + sw) && Math.abs(z - s.z) <= (halfD + sd);
+        };
+        for (const h of this.houseSpots || []) {
+            if (overlap(h, 'house')) return true;
+        }
+        for (const h of this.hangarSpots || []) {
+            if (overlap(h, 'hangar')) return true;
+        }
+        return false;
     }
 
     isWalkableAt(x, z) {
