@@ -13,6 +13,7 @@ export class GameLoop {
     start() {
         this.isRunning = true;
         this.clock.start();
+        this.resetDelta();
         this.animate();
     }
 
@@ -20,22 +21,32 @@ export class GameLoop {
         this.isRunning = false;
     }
 
+    resetDelta() {
+        if (!this.clock.running) {
+            this.clock.start();
+        }
+        this.clock.getDelta();
+    }
+
     animate() {
         if (!this.isRunning) return;
 
         requestAnimationFrame(() => this.animate());
 
+        // Do not advance simulation when the tab/app is hidden.
+        if (typeof document !== 'undefined' && document.hidden) {
+            this.resetDelta();
+            return;
+        }
+
         const delta = this.clock.getDelta();
-        
-        // Ограничиваем delta для предотвращения больших скачков
+        // Clamp delta to avoid large physics/AI jumps after tab switching.
         const clampedDelta = Math.min(delta, 0.1);
 
-        // Обновление игры
         if (this.game.update) {
             this.game.update(clampedDelta);
         }
 
-        // Рендеринг
         if (this.game.render) {
             this.game.render();
         }

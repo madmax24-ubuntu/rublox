@@ -102,6 +102,43 @@ class Game {
         rotateOverlay.style.display = this.isStarted && isPortrait ? 'flex' : 'none';
     }
 
+    applyRendererSizing() {
+        if (!this.renderer || !this.camera) return;
+        const width = Math.max(1, window.innerWidth);
+        const height = Math.max(1, window.innerHeight);
+        this.camera.aspect = width / height;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(width, height, false);
+        const pixelRatio = this.isMobile()
+            ? Math.min(window.devicePixelRatio || 1, 1.5)
+            : Math.min(window.devicePixelRatio || 1, 1.3);
+        this.renderer.setPixelRatio(pixelRatio);
+    }
+
+    onAppHidden() {
+        this.input?.clearInputState?.();
+        this.gameLoop?.resetDelta?.();
+        this.lastVisibilityHiddenAt = performance.now();
+        this.resumeGraceTimer = Math.max(this.resumeGraceTimer || 0, 0.45);
+        if (this.isStarted && !this.isPaused) {
+            this.autoPausedByVisibility = true;
+            this.setPaused(true);
+        }
+    }
+
+    onAppVisible(reason = 'resume') {
+        this.gameLoop?.resetDelta?.();
+        this.applyRendererSizing();
+        this.recoverViewState(reason);
+        this.resumeGraceTimer = Math.max(this.resumeGraceTimer || 0, 0.45);
+        this.propVisibilityTimer = 0.2;
+        this.rainUpdateAccumulator = 0;
+        if (this.map?.updatePropVisibility && this.player?.position) {
+            this.map.updatePropVisibility(this.player.position);
+            this.lastPropVisibilityPos.copy(this.player.position);
+        }
+    }
+
     hideStartScreen() {
         document.body?.classList?.add('game-started');
         const startScreen = document.getElementById('startScreen');
@@ -125,23 +162,20 @@ class Game {
     initializeGame() {
         const isMobile = this.isMobile();
         this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.2, 1400);
         this.scene.userData.camera = this.camera;
 
         this.renderer = new THREE.WebGLRenderer({
             antialias: true,
             powerPreference: "high-performance",
-            precision: "mediump",
+            precision: "highp",
             stencil: false,
             depth: true,
             logarithmicDepthBuffer: false
         });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.shadowMap.enabled = false;
-        const pixelRatio = this.isMobile()
-            ? Math.min(window.devicePixelRatio || 1, 1.45)
-            : Math.min(window.devicePixelRatio || 1, 1.25);
-        this.renderer.setPixelRatio(pixelRatio);
+        this.applyRendererSizing();
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
         const gameRoot = document.getElementById('gameRoot');
@@ -203,6 +237,10 @@ class Game {
         };
         this.randomEventTimer = 35 + Math.random() * 25;
         this.activeEvent = { type: null, timer: 0, prevFog: null };
+        this.resumeGraceTimer = 0;
+        this.lastVisibilityHiddenAt = 0;
+        this.rainUpdateAccumulator = 0;
+        this.poiWarmupTimer = 0;
 
         this.env = new Environment(this.scene);
         this.map = new MapGenerator(this.scene);
@@ -269,6 +307,7 @@ class Game {
         this.oneWayGates = this.map.getOneWayGates?.() || [];
         this.poiZombieSeeded = false;
         this.isPaused = false;
+        this.autoPausedByVisibility = false;
 
         for (let i = 0; i < this.bots.length; i++) {
             this.botBrains.push(new BotBrain());
@@ -279,7 +318,7 @@ class Game {
         this.countdownTimer = this.countdownTime;
         this.spawnTime = 20;
         this.spawnTimer = this.spawnTime;
-        this.botLootPhaseDuration = 18;
+        this.botLootPhaseDuration = 26;
         this.zonePhase = 'waiting';
         this.zonePhaseTimer = 28;
         this.zonePhaseIndex = 0;
@@ -294,9 +333,7 @@ class Game {
         this.hud.showGameMessage('Выберите перк до старта матча. Клавиша P');
 
         window.addEventListener('resize', () => {
-            this.camera.aspect = window.innerWidth / window.innerHeight;
-            this.camera.updateProjectionMatrix();
-            this.renderer.setSize(window.innerWidth, window.innerHeight);
+            this.applyRendererSizing();
             this.updateOrientationUI();
         });
 
@@ -310,13 +347,32 @@ class Game {
         });
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
-                this.input?.clearInputState?.();
+                this.onAppHidden();
                 return;
             }
-            this.recoverViewState('visibility-resume');
+            this.onAppVisible('visibility-resume');
         });
-        window.addEventListener('focus', () => this.recoverViewState('focus'));
-        window.addEventListener('pageshow', () => this.recoverViewState('pageshow'));
+        window.addEventListener('blur', () => {
+            this.onAppHidden();
+        });
+        window.addEventListener('focus', () => {
+            this.onAppVisible('focus');
+        });
+        window.addEventListener('pageshow', () => {
+            this.onAppVisible('pageshow');
+        });
+        window.addEventListener('pagehide', () => {
+            this.onAppHidden();
+        });
+
+        const canvas = this.renderer.domElement;
+        canvas.addEventListener('webglcontextlost', (event) => {
+            event.preventDefault();
+            this.onAppHidden();
+        }, false);
+        canvas.addEventListener('webglcontextrestored', () => {
+            this.onAppVisible('webglcontextrestored');
+        });
 
         document.addEventListener('togglePause', () => {
             this.setPaused(!this.isPaused);
@@ -334,6 +390,9 @@ class Game {
             if (this.isMobile()) this.lockOrientation();
         }
         this.isPaused = value;
+        if (!this.isPaused) {
+            this.autoPausedByVisibility = false;
+        }
         this.hud.showPause(this.isPaused);
         this.input?.clearInputState?.();
         if (this.isPaused) this.yandex?.gameplayStop?.();
@@ -350,6 +409,7 @@ class Game {
         }
         this.recoverViewState(this.isPaused ? 'pause' : 'unpause');
         if (!this.isPaused) {
+            this.gameLoop?.resetDelta?.();
             setTimeout(() => this.recoverViewState('post-unpause'), 40);
         }
     }
@@ -711,6 +771,11 @@ class Game {
 
     updateRadiationRainEffect(delta) {
         if (!this.radiationRainActive || !this.radiationRainEffect?.lines || !this.player) return;
+        this.rainUpdateAccumulator = (this.rainUpdateAccumulator || 0) + delta;
+        const step = this.isMobile() ? (1 / 36) : (1 / 60);
+        if (this.rainUpdateAccumulator < step) return;
+        delta = this.rainUpdateAccumulator;
+        this.rainUpdateAccumulator = 0;
         const effect = this.radiationRainEffect;
         const positions = effect.positions;
         const area = effect.area;
@@ -922,8 +987,10 @@ class Game {
         if (this.spawnBurstCooldown > 0) return;
         const start = performance.now();
         let operations = 0;
-        while ((this.pendingZombieBursts.length || this.pendingPoiBursts.length) && operations < 3) {
-            if ((performance.now() - start) > 2.4) break;
+        const opBudget = this.isMobile() ? 2 : 3;
+        const msBudget = this.isMobile() ? 1.6 : 2.2;
+        while ((this.pendingZombieBursts.length || this.pendingPoiBursts.length) && operations < opBudget) {
+            if ((performance.now() - start) > msBudget) break;
             if (this.pendingZombieBursts.length) {
                 const job = this.pendingZombieBursts[0];
                 const batch = Math.min(job.chunk, job.remaining);
@@ -944,10 +1011,14 @@ class Game {
                 continue;
             }
         }
-        this.spawnBurstCooldown = 0.02;
+        this.spawnBurstCooldown = this.isMobile() ? 0.03 : 0.02;
     }
 
     update(delta) {
+        if (this.resumeGraceTimer > 0) {
+            this.resumeGraceTimer = Math.max(0, this.resumeGraceTimer - delta);
+        }
+
         if (this.input.isKeyPressed('KeyM')) {
             if (!this.pauseKeyLatch) {
                 this.setPaused(!this.isPaused);
@@ -1030,7 +1101,6 @@ class Game {
                 this.player.isFrozen = false;
                 this.bots.forEach(bot => { bot.isFrozen = false; });
                 this.queueZombieBurst(true, 1.6, 120, 22, this.isMobile() ? 4 : 6);
-                this.queuePoiBurst(1.1, this.isMobile() ? 4 : 6, this.isMobile() ? 2 : 3);
             }
         } else if (this.gameState === 'spawn') {
             this.spawnTimer -= delta;
@@ -1085,9 +1155,7 @@ class Game {
                 this.map.setCourtyardGateOpen(false);
                 this.gateClosed = true;
                 this.audioSynth.playStoneDoorClose?.(this.map.getCourtyardExitPosition());
-                if (!this.poiZombieSeeded) {
-                    this.queuePoiBurst(1.25, this.isMobile() ? 4 : 6, this.isMobile() ? 2 : 3);
-                }
+                this.poiWarmupTimer = 7;
                 const kickOut = (entity) => {
                     if (this.map.isInsideCourtyard(entity.position)) {
                         const exitPos = this.map.getCourtyardExitPosition();
@@ -1108,6 +1176,12 @@ class Game {
         if (this.gameState === 'playing') {
             this.player.setInvulnerable(false);
             this.bots.forEach(bot => bot.setInvulnerable(false));
+            if (!this.poiZombieSeeded && this.poiWarmupTimer > 0) {
+                this.poiWarmupTimer = Math.max(0, this.poiWarmupTimer - delta);
+                if (this.poiWarmupTimer <= 0) {
+                    this.queuePoiBurst(1.25, this.isMobile() ? 4 : 6, this.isMobile() ? 2 : 3);
+                }
+            }
             this.updateZoneCycle(delta);
             this.chestRespawnTimer = Math.max(0, this.chestRespawnTimer - delta);
             if (this.chestRespawnTimer <= 0) {
@@ -1161,11 +1235,11 @@ class Game {
         this.propVisibilityTimer -= delta;
         if (this.propVisibilityTimer <= 0) {
             const movedSq = this.lastPropVisibilityPos.distanceToSquared(this.player.position);
-            if (movedSq > 9 || this.propVisibilityTimer <= -0.7) {
+            if (movedSq > 9 || this.propVisibilityTimer <= -0.7 || this.resumeGraceTimer > 0) {
                 this.map.updatePropVisibility?.(this.player.position);
                 this.lastPropVisibilityPos.copy(this.player.position);
             }
-            this.propVisibilityTimer = 0.35;
+            this.propVisibilityTimer = this.isMobile() ? 0.5 : 0.35;
         }
         this.noteCooldown = Math.max(0, this.noteCooldown - delta);
         if (this.noteCooldown === 0 && this.map.getStoryNotes) {
@@ -1248,11 +1322,14 @@ class Game {
             this.audioSynth.updateListener(this.camera.position, forward);
         }
 
-        const targetFraction = this.isMobile() ? 0.45 : (delta > 0.022 ? 0.5 : 0.75);
+        const botCount = this.bots.length;
+        const targetFraction = this.isMobile()
+            ? (botCount > 40 ? 0.28 : 0.36)
+            : (delta > 0.022 ? 0.42 : (botCount > 48 ? 0.45 : 0.56));
         const minBotsPerFrame = this.isMobile() ? 6 : 10;
         const botsPerFrame = Math.min(
-            this.bots.length,
-            Math.max(minBotsPerFrame, Math.ceil(this.bots.length * targetFraction))
+            botCount,
+            Math.max(minBotsPerFrame, Math.ceil(botCount * targetFraction))
         );
         this.botUpdateIndex = (this.botUpdateIndex || 0);
 
@@ -1302,10 +1379,10 @@ class Game {
 
         const zombieCount = this.zombies.length;
         const zombiesPerFrame = Math.max(
-            this.isMobile() ? 16 : 24,
-            Math.min(zombieCount, Math.ceil(zombieCount * (this.isMobile() ? 0.45 : 0.65)))
+            this.isMobile() ? 10 : 16,
+            Math.min(zombieCount, Math.ceil(zombieCount * (this.isMobile() ? 0.28 : 0.4)))
         );
-        const zombieDeltaScale = zombieCount > 0 ? (zombieCount / zombiesPerFrame) : 1;
+        const zombieDeltaScale = zombieCount > 0 ? Math.min(2.6, zombieCount / Math.max(1, zombiesPerFrame)) : 1;
         for (let i = 0; i < zombiesPerFrame && i < zombieCount; i++) {
             const zIndex = (this.zombieUpdateIndex + i) % zombieCount;
             const zombie = this.zombies[zIndex];
@@ -1425,7 +1502,7 @@ class Game {
 
         const aliveNow = this.zombies.filter(z => z?.isAlive).length;
         const maxAlive = 260;
-        let budget = Math.max(0, Math.min(maxAlive - aliveNow, Math.floor((houseSpots.length * 1.2 + hangarSpots.length * 4.5) * intensity)));
+        let budget = Math.max(0, Math.min(maxAlive - aliveNow, Math.floor((houseSpots.length * 1.3 + hangarSpots.length * 8.5) * intensity)));
         budget = Math.min(budget, Math.max(0, Number.isFinite(maxSpawn) ? maxSpawn : budget));
         if (budget <= 0) return 0;
 
@@ -1437,8 +1514,10 @@ class Game {
             this.poiSpawnCursor = (this.poiSpawnCursor + 1) % points.length;
             attempts++;
             if (budget <= 0) break;
-            const baseCount = point.type === "hangar" ? (4 + Math.floor(Math.random() * 4)) : (2 + Math.floor(Math.random() * 2));
-            const pack = Math.max(1, Math.floor(baseCount * intensity));
+            const baseCount = point.type === "hangar"
+                ? (10 + Math.floor(Math.random() * 4))
+                : (2 + Math.floor(Math.random() * 3));
+            const pack = Math.max(1, Math.floor(baseCount * intensity * (point.type === "hangar" ? 1.15 : 1)));
             for (let i = 0; i < pack; i++) {
                 if (budget <= 0) break;
                 if (spawned >= maxSpawn) break;

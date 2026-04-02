@@ -327,10 +327,7 @@ export class MapGenerator {
             const variant = Number(variantRaw) || 0;
             const floorMat = new THREE.MeshLambertMaterial({
                 color: this.getBiomeVariantColor(biomeKey, variant),
-                flatShading: true,
-                polygonOffset: true,
-                polygonOffsetFactor: 1,
-                polygonOffsetUnits: 1
+                flatShading: true
             });
             const inst = new THREE.InstancedMesh(floorGeo, floorMat, floors.length);
             const matrix = new THREE.Matrix4();
@@ -852,19 +849,23 @@ export class MapGenerator {
         }
         for (const hangar of this.hangarSpots) {
             let placed = 0;
-            const targetCount = 4 + Math.floor(rand() * 2);
+            const targetCount = 18 + Math.floor(rand() * 7);
             const w = hangar.width || 60;
             const d = hangar.depth || 36;
-            const points = [
-                { x: hangar.x - w * 0.24, z: hangar.z - d * 0.24 },
-                { x: hangar.x + w * 0.24, z: hangar.z - d * 0.24 },
-                { x: hangar.x - w * 0.24, z: hangar.z + d * 0.24 },
-                { x: hangar.x + w * 0.24, z: hangar.z + d * 0.24 },
-                { x: hangar.x - w * 0.34, z: hangar.z },
-                { x: hangar.x + w * 0.34, z: hangar.z },
-                { x: hangar.x, z: hangar.z - d * 0.26 },
-                { x: hangar.x, z: hangar.z + d * 0.2 }
-            ];
+            const points = [];
+            const gx = [-0.34, -0.18, 0, 0.18, 0.34];
+            const gz = [-0.28, -0.14, 0, 0.14, 0.28];
+            for (const nx of gx) {
+                for (const nz of gz) {
+                    points.push({ x: hangar.x + w * nx, z: hangar.z + d * nz });
+                }
+            }
+            points.push(
+                { x: hangar.x - w * 0.42, z: hangar.z - d * 0.3 },
+                { x: hangar.x + w * 0.42, z: hangar.z - d * 0.3 },
+                { x: hangar.x - w * 0.42, z: hangar.z + d * 0.3 },
+                { x: hangar.x + w * 0.42, z: hangar.z + d * 0.3 }
+            );
             for (let i = points.length - 1; i > 0; i--) {
                 const j = Math.floor(rand() * (i + 1));
                 [points[i], points[j]] = [points[j], points[i]];
@@ -876,7 +877,7 @@ export class MapGenerator {
                 const key = `${Math.round(x)}:${Math.round(z)}`;
                 if (used.has(key)) continue;
                 if (!this.isPointInsideStructure(x, z, hangar, 'hangar', 0.4)) continue;
-                if (!this.isChestClear(x, z, 1.1, true)) continue;
+                if (!this.isChestClear(x, z, 0.95, true)) continue;
                 this.chestSpots.push({ x, z, grade: 'hangar' });
                 used.add(key);
                 placed += 1;
@@ -1069,25 +1070,8 @@ export class MapGenerator {
             roughness: 0.82,
             flatShading: true
         });
-        const floorMat = new THREE.MeshStandardMaterial({
-            color: 0x9e9e9e,
-            roughness: 0.9,
-            flatShading: true,
-            polygonOffset: true,
-            polygonOffsetFactor: -2,
-            polygonOffsetUnits: -3
-        });
-
         const baseY = this.getHeightAt(position.x, position.z);
         const wallY = baseY + height / 2;
-
-        const floorThickness = isMassiveHangar ? 0.2 : 0.1;
-        const floor = new THREE.Mesh(new THREE.BoxGeometry(width * 0.96, floorThickness, depth * 0.96), floorMat);
-        const floorTopY = baseY + (isMassiveHangar ? 0.2 : 0.1);
-        floor.position.set(position.x, floorTopY - floorThickness * 0.5, position.z);
-        floor.userData.mapGenerated = true;
-        group.add(floor);
-        this.addColliderBox(floor.position.clone(), width * 0.96, floorThickness, depth * 0.96, true);
 
         const roof = new THREE.Mesh(new THREE.BoxGeometry(width + 0.3, 0.3, depth + 0.3), roofMat);
         roof.position.set(position.x, baseY + height + 0.2, position.z);
@@ -1145,11 +1129,27 @@ export class MapGenerator {
         group.add(rightWall);
         this.addColliderBox(new THREE.Vector3(rightWall.position.x, colliderWallY, rightWall.position.z), wallThickness + 0.25, colliderWallH, depth + 0.2, false);
 
-        const backWall = new THREE.Mesh(new THREE.BoxGeometry(width, height, wallThickness), wallMat);
-        backWall.position.set(position.x, wallY, position.z - depth / 2 + wallThickness / 2);
-        backWall.userData.mapGenerated = true;
-        group.add(backWall);
-        this.addColliderBox(new THREE.Vector3(backWall.position.x, colliderWallY, backWall.position.z), width + 0.2, colliderWallH, wallThickness + 0.25, false);
+        if (isMassiveHangar) {
+            const backDoorWidth = Math.max(4.8, Math.min(width - 4, doorWidth * 0.82));
+            const backSegmentWidth = Math.max(1.2, (width - backDoorWidth) / 2);
+            const backLeft = new THREE.Mesh(new THREE.BoxGeometry(backSegmentWidth, height, wallThickness), wallMat);
+            backLeft.position.set(position.x - backDoorWidth / 2 - backSegmentWidth / 2, wallY, position.z - depth / 2 + wallThickness / 2);
+            backLeft.userData.mapGenerated = true;
+            group.add(backLeft);
+            this.addColliderBox(new THREE.Vector3(backLeft.position.x, colliderWallY, backLeft.position.z), backSegmentWidth + 0.12, colliderWallH, wallThickness + 0.25, false);
+
+            const backRight = new THREE.Mesh(new THREE.BoxGeometry(backSegmentWidth, height, wallThickness), wallMat);
+            backRight.position.set(position.x + backDoorWidth / 2 + backSegmentWidth / 2, wallY, position.z - depth / 2 + wallThickness / 2);
+            backRight.userData.mapGenerated = true;
+            group.add(backRight);
+            this.addColliderBox(new THREE.Vector3(backRight.position.x, colliderWallY, backRight.position.z), backSegmentWidth + 0.12, colliderWallH, wallThickness + 0.25, false);
+        } else {
+            const backWall = new THREE.Mesh(new THREE.BoxGeometry(width, height, wallThickness), wallMat);
+            backWall.position.set(position.x, wallY, position.z - depth / 2 + wallThickness / 2);
+            backWall.userData.mapGenerated = true;
+            group.add(backWall);
+            this.addColliderBox(new THREE.Vector3(backWall.position.x, colliderWallY, backWall.position.z), width + 0.2, colliderWallH, wallThickness + 0.25, false);
+        }
 
         const frontSegmentWidth = (width - doorWidth) / 2;
         const frontLeft = new THREE.Mesh(new THREE.BoxGeometry(frontSegmentWidth, height, wallThickness), wallMat);
@@ -1180,99 +1180,7 @@ export class MapGenerator {
                 wallThickness + 0.25,
                 false
             );
-
-            const levelMat = new THREE.MeshStandardMaterial({
-                color: 0x6f7e86,
-                roughness: 0.82,
-                flatShading: true,
-                polygonOffset: true,
-                polygonOffsetFactor: -1,
-                polygonOffsetUnits: -1
-            });
-            const railMat = new THREE.MeshStandardMaterial({
-                color: 0x2f3b42,
-                roughness: 0.7,
-                flatShading: true
-            });
-
-            const innerW = width * 0.86;
-            const innerD = depth * 0.82;
-            const slabH = 0.24;
-            const levels = [baseY + height * 0.35, baseY + height * 0.61];
-            const stairWell = {
-                x: position.x + width * 0.24,
-                z: position.z + depth * 0.08,
-                w: Math.max(5.8, width * 0.12),
-                d: Math.max(8.8, depth * 0.22)
-            };
-
-            const addWalkable = (x, y, z, w, h, d, mat = levelMat) => {
-                const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
-                mesh.position.set(x, y, z);
-                mesh.userData.mapGenerated = true;
-                group.add(mesh);
-                this.addColliderBox(mesh.position.clone(), w, h, d, true);
-                return mesh;
-            };
-            const addSolid = (x, y, z, w, h, d, mat = wallMat) => {
-                const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
-                mesh.position.set(x, y, z);
-                mesh.userData.mapGenerated = true;
-                group.add(mesh);
-                this.addColliderBox(mesh.position.clone(), w, h, d, false);
-                return mesh;
-            };
-            const addClosedLevel = (topY) => {
-                const y = topY - slabH * 0.5;
-                const xMin = position.x - innerW * 0.5;
-                const xMax = position.x + innerW * 0.5;
-                const zMin = position.z - innerD * 0.5;
-                const zMax = position.z + innerD * 0.5;
-                const holeMinX = THREE.MathUtils.clamp(stairWell.x - stairWell.w * 0.5, xMin + 1.2, xMax - 1.2);
-                const holeMaxX = THREE.MathUtils.clamp(stairWell.x + stairWell.w * 0.5, xMin + 1.2, xMax - 1.2);
-                const holeMinZ = THREE.MathUtils.clamp(stairWell.z - stairWell.d * 0.5, zMin + 1.2, zMax - 1.2);
-                const holeMaxZ = THREE.MathUtils.clamp(stairWell.z + stairWell.d * 0.5, zMin + 1.2, zMax - 1.2);
-
-                const leftW = holeMinX - xMin;
-                const rightW = xMax - holeMaxX;
-                const frontD = holeMinZ - zMin;
-                const backD = zMax - holeMaxZ;
-
-                if (leftW > 0.45) addWalkable((xMin + holeMinX) * 0.5, y, position.z, leftW, slabH, innerD);
-                if (rightW > 0.45) addWalkable((holeMaxX + xMax) * 0.5, y, position.z, rightW, slabH, innerD);
-                if (frontD > 0.45) addWalkable(stairWell.x, y, (zMin + holeMinZ) * 0.5, stairWell.w, slabH, frontD);
-                if (backD > 0.45) addWalkable(stairWell.x, y, (holeMaxZ + zMax) * 0.5, stairWell.w, slabH, backD);
-            };
-            const addStraightStairs = (start, end, steps, widthS, depthS) => {
-                for (let i = 0; i < steps; i++) {
-                    const t = i / Math.max(1, steps - 1);
-                    const px = start.x + (end.x - start.x) * t;
-                    const py = start.y + (end.y - start.y) * t;
-                    const pz = start.z + (end.z - start.z) * t;
-                    addWalkable(px, py, pz, widthS, 0.28, depthS);
-                }
-            };
-
-            addClosedLevel(levels[0]);
-            addClosedLevel(levels[1]);
-
-            const stairsW = Math.max(2.8, stairWell.w * 0.58);
-            const stairsD = 1.12;
-            const firstStart = new THREE.Vector3(stairWell.x, floorTopY + 0.16, stairWell.z + stairWell.d * 0.44);
-            const firstEnd = new THREE.Vector3(stairWell.x, levels[0] + 0.12, stairWell.z - stairWell.d * 0.44);
-            addStraightStairs(firstStart, firstEnd, 10, stairsW, stairsD);
-
-            const midLanding = addWalkable(stairWell.x - stairsW * 0.84, levels[0] + 0.14, stairWell.z - stairWell.d * 0.46, stairsW * 1.7, 0.26, 2.1);
-
-            const secondStart = new THREE.Vector3(stairWell.x - stairsW * 0.88, levels[0] + 0.24, stairWell.z - stairWell.d * 0.02);
-            const secondEnd = new THREE.Vector3(stairWell.x - stairsW * 0.88, levels[1] + 0.14, stairWell.z + stairWell.d * 0.46);
-            addStraightStairs(secondStart, secondEnd, 10, stairsW, stairsD);
-
-            addSolid(stairWell.x + stairWell.w * 0.5 + 0.16, midLanding.position.y + 0.52, stairWell.z, 0.24, 1.24, stairWell.d + 1.5, railMat);
-            addSolid(stairWell.x - stairWell.w * 0.5 - 0.16, midLanding.position.y + 0.52, stairWell.z, 0.24, 1.24, stairWell.d + 1.5, railMat);
-
-            const topCat = addWalkable(position.x, levels[1] + 0.14, position.z - innerD * 0.34, innerW * 0.72, 0.24, 2.3);
-            addSolid(topCat.position.x, topCat.position.y + 0.54, topCat.position.z - 1.05, topCat.geometry.parameters.width, 1.08, 0.2, railMat);
+            // Keep hangars open inside for clear combat and looting flow.
         }
     }
 
@@ -1384,13 +1292,7 @@ export class MapGenerator {
         const canPlace = (x, z, minDist) => !placed.some(p => Math.hypot(p.x - x, p.z - z) < minDist);
         const markPlaced = (x, z) => placed.push({ x, z });
 
-        const addPatch = (x, z, width, depth, material, yOffset = 0.46) => {
-            if (!material.userData.patchOptimized) {
-                material.polygonOffset = true;
-                material.polygonOffsetFactor = -2;
-                material.polygonOffsetUnits = -2;
-                material.userData.patchOptimized = true;
-            }
+        const addPatch = (x, z, width, depth, material, yOffset = 0.58) => {
             if (this.isPatchOverlappingStructure(x, z, width, depth, 1.6)) {
                 return null;
             }
@@ -1424,7 +1326,7 @@ export class MapGenerator {
                 const wz = tile.z + (rand() - 0.5) * 8;
                 const w = 9 + rand() * 10;
                 const d = 9 + rand() * 10;
-                const patch = addPatch(wx, wz, w, d, lakeMat, 0.5);
+                const patch = addPatch(wx, wz, w, d, lakeMat, 0.62);
                 if (!patch) continue;
                 this.waterPatches.push({ x: wx, z: wz, width: w, depth: d });
                 this.fogZones.push({ x: wx, z: wz, radius: Math.max(w, d) * 0.72, density: 0.024 + rand() * 0.016 });
@@ -1435,7 +1337,7 @@ export class MapGenerator {
             if (style === "ash") {
                 const w = 8 + rand() * 8;
                 const d = 8 + rand() * 8;
-                const patch = addPatch(tile.x, tile.z, w, d, lavaMat, 0.5);
+                const patch = addPatch(tile.x, tile.z, w, d, lavaMat, 0.62);
                 if (!patch) continue;
                 this.lavaPatches.push({ x: tile.x, z: tile.z, width: w, depth: d });
                 markPlaced(tile.x, tile.z);
@@ -1445,7 +1347,7 @@ export class MapGenerator {
             if (style === "snow") {
                 const w = 9 + rand() * 10;
                 const d = 9 + rand() * 10;
-                const patch = addPatch(tile.x, tile.z, w, d, iceLakeMat, 0.5);
+                const patch = addPatch(tile.x, tile.z, w, d, iceLakeMat, 0.62);
                 if (!patch) continue;
                 this.waterPatches.push({ x: tile.x, z: tile.z, width: w, depth: d });
                 markPlaced(tile.x, tile.z);
@@ -1455,7 +1357,7 @@ export class MapGenerator {
             if (style === "sand") {
                 const width = 12 + rand() * 12;
                 const depth = 12 + rand() * 12;
-                const patch = addPatch(tile.x, tile.z, width, depth, new THREE.MeshStandardMaterial({ color: 0xe0bf72, roughness: 1, flatShading: true }), 0.48);
+                const patch = addPatch(tile.x, tile.z, width, depth, new THREE.MeshStandardMaterial({ color: 0xe0bf72, roughness: 1, flatShading: true }), 0.6);
                 if (!patch) continue;
                 markPlaced(tile.x, tile.z);
                 patchUsed += 1;
@@ -1464,7 +1366,7 @@ export class MapGenerator {
 
             const width = 10 + rand() * 14;
             const depth = 10 + rand() * 14;
-            const patch = addPatch(tile.x, tile.z, width, depth, grassMat, 0.48);
+            const patch = addPatch(tile.x, tile.z, width, depth, grassMat, 0.6);
             if (!patch) continue;
             markPlaced(tile.x, tile.z);
             patchUsed += 1;
@@ -1483,7 +1385,7 @@ export class MapGenerator {
             if (swampTile) {
                 const w = 12;
                 const d = 12;
-                addPatch(swampTile.x, swampTile.z, w, d, lakeMat, 0.5);
+                addPatch(swampTile.x, swampTile.z, w, d, lakeMat, 0.62);
                 this.waterPatches.push({ x: swampTile.x, z: swampTile.z, width: w, depth: d });
                 this.fogZones.push({ x: swampTile.x, z: swampTile.z, radius: 8, density: 0.03 });
             }
@@ -1493,7 +1395,7 @@ export class MapGenerator {
             if (lavaTile) {
                 const w = 10;
                 const d = 10;
-                addPatch(lavaTile.x, lavaTile.z, w, d, lavaMat, 0.5);
+                addPatch(lavaTile.x, lavaTile.z, w, d, lavaMat, 0.62);
                 this.lavaPatches.push({ x: lavaTile.x, z: lavaTile.z, width: w, depth: d });
             }
         }
@@ -1509,26 +1411,17 @@ export class MapGenerator {
             color: 0x9e9e9e,
             roughness: 0.65,
             metalness: 0.25,
-            flatShading: true,
-            polygonOffset: true,
-            polygonOffsetFactor: -2,
-            polygonOffsetUnits: -2
+            flatShading: true
         });
         const sleeperMat = new THREE.MeshStandardMaterial({
             color: 0x5d4037,
             roughness: 0.9,
-            flatShading: true,
-            polygonOffset: true,
-            polygonOffsetFactor: -1,
-            polygonOffsetUnits: -1
+            flatShading: true
         });
         const ballastMat = new THREE.MeshStandardMaterial({
             color: 0x666666,
             roughness: 0.92,
-            flatShading: true,
-            polygonOffset: true,
-            polygonOffsetFactor: 1,
-            polygonOffsetUnits: 1
+            flatShading: true
         });
         const routeDefs = this.railLayout.length ? this.railLayout : [
             { axis: 'x', offset: -this.size * 0.34, halfWidth: 9.5 },
@@ -1551,17 +1444,20 @@ export class MapGenerator {
             const sleeperCount = Math.max(24, Math.floor(railLength / 3.4));
             const visualSegments = Math.max(18, Math.floor(railLength / 20));
             const visualSegmentLength = railLength / visualSegments;
-            const ballastHeight = isMobile ? 0.42 : 0.34;
-            const railHeight = isMobile ? 0.26 : 0.22;
-            const sleeperHeight = isMobile ? 0.24 : 0.2;
+            const ballastHeight = isMobile ? 0.22 : 0.2;
+            const railHeight = isMobile ? 0.17 : 0.16;
+            const sleeperHeight = isMobile ? 0.14 : 0.13;
             const ballastWidth = 7.8;
             const railOffset = 1.85;
-            const ballastCenterY = 0.48;
-            const railCenterY = ballastCenterY + ballastHeight * 0.5 + railHeight * 0.5 + 0.02;
-            const sleeperCenterY = ballastCenterY + ballastHeight * 0.5 + sleeperHeight * 0.5 + 0.01;
             for (let s = 0; s < visualSegments; s++) {
                 const t = (s + 0.5) / visualSegments;
                 const center = route.min + t * railLength;
+                const surfaceY = route.axis === 'x'
+                    ? this.getHeightAt(center, route.offset)
+                    : this.getHeightAt(route.offset, center);
+                const ballastCenterY = surfaceY + ballastHeight * 0.5 + 0.03;
+                const sleeperCenterY = ballastCenterY + ballastHeight * 0.5 + sleeperHeight * 0.5 + 0.01;
+                const railCenterY = sleeperCenterY + sleeperHeight * 0.5 + railHeight * 0.5 + 0.02;
                 const ballastGeo = route.axis === 'x'
                     ? new THREE.BoxGeometry(visualSegmentLength * 1.02, ballastHeight, ballastWidth)
                     : new THREE.BoxGeometry(ballastWidth, ballastHeight, visualSegmentLength * 1.02);
@@ -1591,6 +1487,11 @@ export class MapGenerator {
             for (let i = 0; i < sleeperCount; i++) {
                 const t = i / Math.max(1, sleeperCount - 1);
                 const p = route.min + t * (route.max - route.min);
+                const surfaceY = route.axis === 'x'
+                    ? this.getHeightAt(p, route.offset)
+                    : this.getHeightAt(route.offset, p);
+                const ballastCenterY = surfaceY + ballastHeight * 0.5 + 0.03;
+                const sleeperCenterY = ballastCenterY + ballastHeight * 0.5 + sleeperHeight * 0.5 + 0.01;
                 const sleeperGeo = route.axis === 'x'
                     ? new THREE.BoxGeometry(0.58, sleeperHeight, 4.8)
                     : new THREE.BoxGeometry(4.8, sleeperHeight, 0.58);

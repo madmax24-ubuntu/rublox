@@ -248,7 +248,9 @@ export class Zombie {
             this.alertPosition = target.position.clone();
             this.alertTimer = 2.8;
             if (dist < 2.6 && this.attackCooldown <= 0) {
-                target.takeDamage(9, false, this, 3.2);
+                const targetType = target?.constructor?.name;
+                const damage = targetType === 'Bot' ? 5.2 : 7.2;
+                target.takeDamage(damage, false, this, 3.2);
                 this.attackCooldown = 0.72;
                 if (audioSynth) {
                     audioSynth.playZombieAttack?.(this.position);
@@ -260,7 +262,7 @@ export class Zombie {
 
             if (audioSynth && this.soundTimer <= 0) {
                 audioSynth.playZombieMoan?.(this.position);
-                this.soundTimer = 1.2 + Math.random() * 1.7;
+                this.soundTimer = 1.5 + Math.random() * 1.9;
             }
         } else {
             if (this.alertPosition && this.alertTimer > 0) {
@@ -279,7 +281,7 @@ export class Zombie {
 
             if (audioSynth && this.soundTimer <= 0) {
                 audioSynth.playZombieMoan?.(this.position);
-                this.soundTimer = 2.2 + Math.random() * 3.2;
+                this.soundTimer = 2.6 + Math.random() * 3.6;
             }
         }
 
@@ -292,14 +294,21 @@ export class Zombie {
     }
 
     findNearestTarget(entityManager, maxDistance) {
+        const nearby = entityManager?.getNearbyEntities
+            ? entityManager.getNearbyEntities(this.position, maxDistance)
+            : entityManager.getEntities();
         let nearest = null;
-        let best = maxDistance;
-        for (const entity of entityManager.getEntities()) {
+        let bestScore = Infinity;
+        for (const entity of nearby) {
             if (!entity.isAlive || entity === this) continue;
             if (entity.constructor?.name === 'Zombie') continue;
             const dist = this.position.distanceTo(entity.position);
-            if (dist < best) {
-                best = dist;
+            if (dist > maxDistance) continue;
+            let score = dist;
+            if (entity.constructor?.name === 'Player') score -= 7;
+            if (entity.constructor?.name === 'Bot') score += 2.5;
+            if (score < bestScore) {
+                bestScore = score;
                 nearest = entity;
             }
         }

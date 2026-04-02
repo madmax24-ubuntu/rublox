@@ -7,36 +7,52 @@ export class Zone {
         this.currentRadius = mapSize / 2;
         this.targetRadius = mapSize / 2;
         this.shrinkSpeed = 1.2;
-        this.damagePerSecond = 3;
+        this.damagePerSecond = 22;
         this.zoneMesh = null;
         this.ringMesh = null;
         this.createZone();
     }
 
+    syncVisuals() {
+        if (this.zoneMesh) {
+            this.zoneMesh.scale.set(this.currentRadius, 1, this.currentRadius);
+        }
+        if (this.ringMesh) {
+            this.ringMesh.scale.set(this.currentRadius, 1, this.currentRadius);
+        }
+    }
+
     createZone() {
-        const geometry = new THREE.CylinderGeometry(1, 1, 200, 32, 1, true);
+        const geometry = new THREE.CylinderGeometry(1, 1, 200, 48, 1, true);
         const material = new THREE.MeshBasicMaterial({
-            color: 0x0000ff,
+            color: 0x4fc3ff,
             transparent: true,
-            opacity: 0.18,
+            opacity: 0.1,
+            depthWrite: false,
             side: THREE.DoubleSide
         });
 
         this.zoneMesh = new THREE.Mesh(geometry, material);
         this.zoneMesh.position.y = 50;
         this.zoneMesh.scale.set(this.currentRadius, 1, this.currentRadius);
+        this.zoneMesh.visible = true;
         this.scene.add(this.zoneMesh);
 
-        const ringGeo = new THREE.TorusGeometry(1, 0.08, 8, 64);
-        const ringMat = new THREE.MeshBasicMaterial({
+        const ringPoints = [];
+        const ringSegments = 128;
+        for (let i = 0; i < ringSegments; i++) {
+            const angle = (i / ringSegments) * Math.PI * 2;
+            ringPoints.push(new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle)));
+        }
+        const ringGeo = new THREE.BufferGeometry().setFromPoints(ringPoints);
+        const ringMat = new THREE.LineBasicMaterial({
             color: 0x4fc3ff,
             transparent: true,
-            opacity: 0.65
+            opacity: 0.9
         });
-        this.ringMesh = new THREE.Mesh(ringGeo, ringMat);
-        this.ringMesh.rotation.x = Math.PI / 2;
+        this.ringMesh = new THREE.LineLoop(ringGeo, ringMat);
         this.ringMesh.position.y = 0.5;
-        this.ringMesh.scale.set(this.currentRadius, this.currentRadius, this.currentRadius);
+        this.ringMesh.scale.set(this.currentRadius, 1, this.currentRadius);
         this.scene.add(this.ringMesh);
     }
 
@@ -46,22 +62,28 @@ export class Zone {
                 this.targetRadius,
                 this.currentRadius - this.shrinkSpeed * delta
             );
-
-            if (this.zoneMesh) {
-                this.zoneMesh.scale.set(this.currentRadius, 1, this.currentRadius);
-            }
-            if (this.ringMesh) {
-                this.ringMesh.scale.set(this.currentRadius, this.currentRadius, this.currentRadius);
-            }
+            this.syncVisuals();
         }
         if (this.ringMesh) {
-            const pulse = 0.45 + Math.sin(performance.now() * 0.004) * 0.2;
-            this.ringMesh.material.opacity = Math.max(0.2, pulse);
+            const pulse = 0.78 + Math.sin(performance.now() * 0.004) * 0.12;
+            this.ringMesh.material.opacity = Math.max(0.52, pulse);
+        }
+        if (this.zoneMesh) {
+            const pulse = 0.08 + Math.sin(performance.now() * 0.003) * 0.025;
+            this.zoneMesh.material.opacity = Math.max(0.06, pulse);
         }
     }
 
     shrink(newRadius) {
         this.targetRadius = Math.max(10, newRadius);
+    }
+
+    setCurrentRadius(radius) {
+        this.currentRadius = Math.max(10, radius);
+        if (this.targetRadius > this.currentRadius) {
+            this.targetRadius = this.currentRadius;
+        }
+        this.syncVisuals();
     }
 
     isInsideZone(position) {
@@ -74,8 +96,12 @@ export class Zone {
         return Math.max(0, distanceFromCenter - this.currentRadius);
     }
 
-    getDamage(delta) {
-        return this.damagePerSecond * delta;
+    getDamage(delta, position = null) {
+        if (!position) return this.damagePerSecond * delta;
+        const outside = this.getDistanceFromZone(position);
+        if (outside <= 0) return 0;
+        const scale = 1 + Math.min(7, outside / 12);
+        return this.damagePerSecond * scale * delta;
     }
 
     getCurrentRadius() {

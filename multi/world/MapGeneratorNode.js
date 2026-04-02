@@ -219,37 +219,21 @@ export class MapGenerator {
                         const roll = this.rand();
                         const baseBiome = this.getBaseBiome(biome);
                         if (baseBiome === 'forest') {
-                            if (roll < 0.22) tile.prop = 'tree';
-                            else if (roll < 0.32) tile.prop = 'bush';
-                            else if (roll < 0.38) tile.prop = 'stump';
-                            else if (roll < 0.42) tile.prop = 'log';
+                            if (roll < 0.13) tile.prop = 'tree';
                         } else if (baseBiome === 'jungle') {
-                            if (roll < 0.24) tile.prop = 'jungleTree';
-                            else if (roll < 0.34) tile.prop = 'bush';
-                            else if (roll < 0.39) tile.prop = 'ruin';
+                            if (roll < 0.13) tile.prop = 'jungleTree';
                         } else if (baseBiome === 'rock') {
-                            if (roll < 0.22) tile.prop = 'rock';
-                            else if (roll < 0.3) tile.prop = 'pillar';
-                            else if (roll < 0.36) tile.prop = 'boulder';
-                            else if (roll < 0.4) tile.prop = 'ruin';
+                            if (roll < 0.08) tile.prop = 'enemySpawn';
                         } else if (baseBiome === 'snow') {
-                            if (roll < 0.18) tile.prop = 'ice';
-                            else if (roll < 0.25) tile.prop = 'rock';
-                            else if (roll < 0.3) tile.prop = 'boulder';
+                            if (roll < 0.13) tile.prop = 'ice';
                         } else if (baseBiome === 'sand') {
-                            if (roll < 0.16) tile.prop = 'cactus';
-                            else if (roll < 0.24) tile.prop = 'rock';
-                            else if (roll < 0.28) tile.prop = 'boulder';
+                            if (roll < 0.13) tile.prop = 'cactus';
                         } else if (baseBiome === 'plains') {
-                            if (roll < 0.14) tile.prop = 'tree';
-                            else if (roll < 0.22) tile.prop = 'bush';
-                            else if (roll < 0.28) tile.prop = 'rock';
+                            if (roll < 0.1) tile.prop = 'tree';
                         }
 
                         if (!tile.prop) {
                             if (roll < 0.05) tile.prop = 'crate';
-                            else if (roll < 0.08) tile.prop = 'pillar';
-                            else if (roll < 0.1) tile.prop = 'ruin';
                         }
 
                         if (!tile.prop && roll < 0.105) {
