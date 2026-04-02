@@ -396,14 +396,14 @@ export class BotBrain {
         if (hangarTarget && Math.random() < 0.42) {
             bot.state = 'patrol';
             bot.target = null;
-            bot.patrolTarget = hangarTarget;
+            this.setBotPatrolTarget(bot, hangarTarget);
             this.stateTimer = 7.5;
             return;
         }
         if (houseTarget && Math.random() < 0.48) {
             bot.state = 'patrol';
             bot.target = null;
-            bot.patrolTarget = houseTarget;
+            this.setBotPatrolTarget(bot, houseTarget);
             this.stateTimer = 6.5;
             return;
         }
@@ -446,7 +446,7 @@ export class BotBrain {
         const hangarChest = this.findBestHangarChest(bot, lootManager);
         if (hangarChest && (this.prefersHangarLoot || this.hasLowCombatResources(bot))) {
             bot.state = 'explore';
-            bot.patrolTarget = this.getLootApproachTarget(bot, hangarChest.position);
+            this.setBotPatrolTarget(bot, this.getLootApproachTarget(bot, hangarChest.position));
             this.stateTimer = 10;
             return;
         }
@@ -463,20 +463,20 @@ export class BotBrain {
 
         if (chest) {
             bot.state = 'explore';
-            bot.patrolTarget = this.getLootApproachTarget(bot, chest.position);
+            this.setBotPatrolTarget(bot, this.getLootApproachTarget(bot, chest.position));
             this.stateTimer = 10;
         } else {
             const hangarTarget = this.findStrategicHangarTarget(bot, lootManager);
             if (hangarTarget) {
                 bot.state = 'explore';
-                bot.patrolTarget = hangarTarget;
+                this.setBotPatrolTarget(bot, hangarTarget);
                 this.stateTimer = 11;
                 return;
             }
             const houseTarget = this.findStrategicHouseTarget(bot, lootManager);
             if (houseTarget) {
                 bot.state = 'explore';
-                bot.patrolTarget = houseTarget;
+                this.setBotPatrolTarget(bot, houseTarget);
                 this.stateTimer = 9;
                 return;
             }
@@ -608,6 +608,7 @@ export class BotBrain {
             if (dist > maxRange) continue;
             const crowd = this.countBotsTargetingPoint(bot, chest.position, 10.5);
             const near = this.countBotsNearPoint(bot, chest.position, 8.5);
+            if (crowd >= 2 || near >= 3) continue;
             const score = dist + crowd * 34 + near * 18;
             if (score < bestScore) {
                 bestScore = score;
@@ -636,6 +637,51 @@ export class BotBrain {
             return new THREE.Vector3(entry.x, 0, entry.z);
         }
         return new THREE.Vector3(targetPosition.x, 0, targetPosition.z);
+    }
+
+    setBotPatrolTarget(bot, targetPosition) {
+        if (!bot || !targetPosition) return;
+        const target = new THREE.Vector3(targetPosition.x, 0, targetPosition.z);
+        const map = bot.mapRef;
+        bot.routeFinalTarget = null;
+        if (!map) {
+            bot.patrolTarget = target;
+            return;
+        }
+
+        const info = map.getStructureAtPoint?.(target.x, target.z, 0.35);
+        if (!info) {
+            bot.patrolTarget = target;
+            return;
+        }
+
+        const inside = map.isPointInsideStructure?.(
+            bot.position.x,
+            bot.position.z,
+            info.structure,
+            info.type,
+            0.2
+        );
+        if (inside) {
+            bot.patrolTarget = target;
+            return;
+        }
+
+        const entry = map.getStructureEntryPoint?.(info.structure, info.type, bot.position);
+        if (entry) {
+            bot.patrolTarget = new THREE.Vector3(entry.x, 0, entry.z);
+            bot.routeFinalTarget = target;
+            return;
+        }
+
+        bot.patrolTarget = target;
+    }
+
+    updatePatrolRoute(bot) {
+        if (!bot?.routeFinalTarget || !bot?.patrolTarget) return;
+        if (bot.position.distanceTo(bot.patrolTarget) > 3.4) return;
+        bot.patrolTarget = bot.routeFinalTarget.clone();
+        bot.routeFinalTarget = null;
     }
 
     countBotsTargetingPoint(bot, point, radius = 10) {
@@ -738,7 +784,8 @@ export class BotBrain {
             const lowResBoost = lowResources ? -16 : 0;
             const score = dist - closedChestBonus + pressurePenalty + lowResBoost;
             const crowd = this.countBotsTargetingPoint(bot, target, 18) + this.countBotsNearPoint(bot, target, 15);
-            const finalScore = score + crowd * 14;
+            if (crowd >= 4) continue;
+            const finalScore = score + crowd * 26;
             if (finalScore < bestScore) {
                 bestScore = finalScore;
                 best = target;
@@ -777,7 +824,8 @@ export class BotBrain {
                 closedChestBonus +
                 (this.getZonePressure(bot) > 0.82 ? dist * 0.25 : 0);
             const crowd = this.countBotsTargetingPoint(bot, center, 16) + this.countBotsNearPoint(bot, center, 14);
-            const finalScore = score + crowd * 12;
+            if (crowd >= 4) continue;
+            const finalScore = score + crowd * 20;
             if (finalScore < bestScore) {
                 bestScore = finalScore;
                 best = center;
@@ -998,7 +1046,7 @@ export class BotBrain {
         if (this.poiRetargetCooldown <= 0 && map?.getHangarSpots && Math.random() < hangarBias) {
             const hangarTarget = this.findStrategicHangarTarget(bot);
             if (hangarTarget) {
-                bot.patrolTarget = hangarTarget;
+                this.setBotPatrolTarget(bot, hangarTarget);
                 this.poiRetargetCooldown = 2.5 + Math.random() * 2.5;
                 return;
             }
@@ -1028,7 +1076,7 @@ export class BotBrain {
                     }
                 }
                 if (bestTarget) {
-                    bot.patrolTarget = new THREE.Vector3(bestTarget.x, 0, bestTarget.z);
+                    this.setBotPatrolTarget(bot, new THREE.Vector3(bestTarget.x, 0, bestTarget.z));
                     return;
                 }
             }
@@ -1218,13 +1266,14 @@ export class BotBrain {
         }
 
         if (this.shouldRecenter(bot)) {
-            bot.patrolTarget = this.getInwardTarget(bot, 28);
+            this.setBotPatrolTarget(bot, this.getInwardTarget(bot, 28));
             bot.moveTowards(bot.patrolTarget, bot.physics.speed * 1.15);
             return;
         }
         
         // Р”РІРёР¶РµРјСЃСЏ Рє С†РµР»Рё
         if (bot.patrolTarget) {
+            this.updatePatrolRoute(bot);
             if (bot.mapRef?.isWalkableAt && !bot.mapRef.isWalkableAt(bot.patrolTarget.x, bot.patrolTarget.z)) {
                 this.setRandomPatrolTarget(bot, 30, 80);
             }
@@ -1236,7 +1285,7 @@ export class BotBrain {
                 if (chest && !chest.userData.isOpen) {
                     const approach = this.getLootApproachTarget(bot, chest.position);
                     if (approach && bot.position.distanceTo(approach) > 2.6) {
-                        bot.patrolTarget = approach;
+                        this.setBotPatrolTarget(bot, approach);
                         bot.moveTowards(bot.patrolTarget, bot.physics.speed * 1.08);
                         return;
                     }
@@ -1247,7 +1296,7 @@ export class BotBrain {
                 // РЎС‚Р°РІРёРј РЅРѕРІСѓСЋ С†РµР»СЊ
                 const hangarTarget = this.findStrategicHangarTarget(bot, lootManager);
                 if (hangarTarget && Math.random() < 0.48) {
-                    bot.patrolTarget = hangarTarget;
+                    this.setBotPatrolTarget(bot, hangarTarget);
                 } else {
                     this.setRandomPatrolTarget(bot, 18, 56);
                 }
@@ -1413,7 +1462,7 @@ export class BotBrain {
             this.setRandomPatrolTarget(bot, 28, 80);
         }
         if (this.shouldRecenter(bot)) {
-            bot.patrolTarget = this.getInwardTarget(bot, 30);
+            this.setBotPatrolTarget(bot, this.getInwardTarget(bot, 30));
         }
         if (!bot.patrolTarget || bot.position.distanceTo(bot.patrolTarget) < 5) {
             this.setRandomPatrolTarget(bot, 18, 56);
@@ -1422,6 +1471,7 @@ export class BotBrain {
             this.setRandomPatrolTarget(bot, 18, 56);
         }
 
+        this.updatePatrolRoute(bot);
         bot.moveTowards(bot.patrolTarget, bot.physics.speed * 1.02);
         
         // РџСЂРѕРІРµСЂСЏРµРј СЃСѓРЅРґСѓРєРё РїРѕ РїСѓС‚Рё
@@ -1432,7 +1482,7 @@ export class BotBrain {
         } else if (Math.random() < 0.06) {
             const hangarTarget = this.findStrategicHangarTarget(bot, lootManager);
             if (hangarTarget) {
-                bot.patrolTarget = hangarTarget;
+                this.setBotPatrolTarget(bot, hangarTarget);
             }
         }
     }
