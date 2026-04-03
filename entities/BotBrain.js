@@ -56,6 +56,10 @@ export class BotBrain {
         this.utilityAI = new UtilityAI();
         this.lastUtilityDecision = null;
         this.independentMode = true;
+        this.simpleMode = true;
+        this.scanCooldown = 0;
+        this.lootingCooldown = 0;
+        this.simpleTarget = null;
         this.botListCache = null;
         this.botListCacheExpire = 0;
         this.botListCacheManager = null;
@@ -72,6 +76,10 @@ export class BotBrain {
 
     update(bot, delta, entityManager, lootManager, audioSynth) {
         if (!bot.isAlive) return;
+        if (this.simpleMode) {
+            this.updateSimple(bot, delta, entityManager, lootManager);
+            return;
+        }
         if (this.independentMode) {
             bot.allies = [];
             bot.assistTarget = null;
@@ -1587,6 +1595,125 @@ export class BotBrain {
             bot.trainTarget = null;
             this.trainLockTimer = 0;
         }
+    }
+
+    updateSimple(bot, delta, entityManager, lootManager) {
+        this.attackCooldown = Math.max(0, this.attackCooldown - delta);
+        this.scanCooldown = Math.max(0, this.scanCooldown - delta);
+        this.lootingCooldown = Math.max(0, this.lootingCooldown - delta);
+
+        // 1) Жесткий приоритет укрытия при радиационном дожде.
+        if (bot.state === 'retreat' && bot.patrolTarget) {
+            bot.moveTowards(bot.patrolTarget, bot.physics.speed * 1.1);
+            return;
+        }
+
+        // 2) Возврат в зону.
+        if (this.shouldRecenter(bot)) {
+            const inward = this.getInwardTarget(bot, 30);
+            this.setBotPatrolTarget(bot, inward);
+            bot.state = 'retreat';
+            bot.target = null;
+            bot.moveTowards(bot.patrolTarget, bot.physics.speed * 1.12);
+            return;
+        }
+
+        // 3) Лёгкий anti-crowd: при локальной толпе разводим бота.
+        const localCrowd = this.countBotsNearPoint(bot, bot.position, 7.2);
+        if (localCrowd >= 3 && Math.random() < 0.5) {
+            this.setRandomPatrolTarget(bot, 16, 42);
+            bot.state = 'patrol';
+            bot.target = null;
+            bot.moveTowards(bot.patrolTarget, bot.physics.speed * 1.03);
+            return;
+        }
+
+        // 4) Периодический скан ближайших целей.
+        if (this.scanCooldown <= 0) {
+            this.simpleTarget = this.findCombatTargetSimple(bot, entityManager);
+            this.scanCooldown = 0.35 + Math.random() * 0.25;
+        }
+
+        const target = this.simpleTarget;
+        if (target?.isAlive && !target.isFrozen) {
+            const attackers = this.countAttackersForTarget(bot, target, entityManager);
+            const attackerLimit = target?.constructor?.name === 'Player' ? 2 : 1;
+            if (attackers <= attackerLimit) {
+                const dist = bot.position.distanceTo(target.position);
+                const attackRange = bot.currentWeapon
+                    ? Math.max(2.2, (bot.currentWeapon.range || 3) * 0.84)
+                    : 2.1;
+                bot.target = target;
+                bot.state = 'hunt';
+                if (dist <= attackRange) {
+                    bot.lookAt(target.position);
+                    if (this.attackCooldown <= 0) {
+                        bot.attack(target, entityManager);
+                        this.attackCooldown = (bot.currentWeapon?.cooldown || 1) * 0.75;
+                    }
+                } else {
+                    bot.moveTowards(target.position, bot.physics.speed * 1.08);
+                    bot.lookAt(target.position);
+                }
+                return;
+            }
+        }
+
+        // 5) Лутаемся, если рядом есть неоткрытый сундук и на нем нет толпы.
+        if (this.lootingCooldown <= 0) {
+            const chest = this.findNearestChest(bot, lootManager, 72);
+            if (chest && !chest.userData?.isOpen) {
+                const approach = this.getLootApproachTarget(bot, chest.position) || chest.position;
+                this.setBotPatrolTarget(bot, approach);
+                bot.state = 'explore';
+                bot.target = null;
+                const d = bot.position.distanceTo(bot.patrolTarget);
+                if (d <= 3.2) {
+                    const loot = lootManager.tryOpenChest(chest, bot);
+                    if (loot && bot.pickupLoot) bot.pickupLoot(loot);
+                    this.lootingCooldown = 0.9 + Math.random() * 0.8;
+                } else {
+                    bot.moveTowards(bot.patrolTarget, bot.physics.speed * 1.02);
+                }
+                return;
+            }
+            this.lootingCooldown = 0.25;
+        }
+
+        // 6) Дефолтный патруль.
+        if (!bot.patrolTarget || bot.position.distanceTo(bot.patrolTarget) < 4) {
+            this.setRandomPatrolTarget(bot, 16, 46);
+        }
+        bot.state = 'patrol';
+        bot.target = null;
+        this.updatePatrolRoute(bot);
+        bot.moveTowards(bot.patrolTarget, bot.physics.speed);
+    }
+
+    findCombatTargetSimple(bot, entityManager) {
+        const nearby = entityManager.getNearbyEntities
+            ? entityManager.getNearbyEntities(bot.position, 36)
+            : entityManager.getEntities();
+        let best = null;
+        let bestScore = -Infinity;
+        for (const ent of nearby) {
+            if (!ent || ent === bot || !ent.isAlive) continue;
+            if (ent.constructor?.name !== 'Bot' && ent.constructor?.name !== 'Player') continue;
+            if (bot.noCombatUntil && performance.now() < bot.noCombatUntil) continue;
+            const dist = bot.position.distanceTo(ent.position);
+            if (dist > 36) continue;
+            let score = 100 - dist * 2.2;
+            if (ent.constructor?.name === 'Player') score += 16;
+            if (ent.currentWeapon) score += 8;
+            if (ent.health < 45) score += 12;
+            const attackers = this.countAttackersForTarget(bot, ent, entityManager);
+            score -= attackers * 20;
+            if (score > bestScore) {
+                bestScore = score;
+                best = ent;
+            }
+        }
+        return best;
     }
 
     handleCover(bot, delta, entityManager, threatLevel) {

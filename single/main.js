@@ -1190,7 +1190,7 @@ class Game {
             if (!this.poiZombieSeeded && this.poiWarmupTimer > 0) {
                 this.poiWarmupTimer = Math.max(0, this.poiWarmupTimer - delta);
                 if (this.poiWarmupTimer <= 0) {
-                    this.queuePoiBurst(1.25, this.isMobile() ? 4 : 6, this.isMobile() ? 2 : 3);
+                    this.queuePoiBurst(1.45, this.isMobile() ? 10 : 14, this.isMobile() ? 3 : 4);
                 }
             }
             this.updateZoneCycle(delta);
@@ -1333,24 +1333,11 @@ class Game {
             this.audioSynth.updateListener(this.camera.position, forward);
         }
 
-        const botCount = this.bots.length;
-        const targetFraction = this.isMobile()
-            ? (botCount > 40 ? 0.28 : 0.36)
-            : (delta > 0.022 ? 0.42 : (botCount > 48 ? 0.45 : 0.56));
-        const minBotsPerFrame = this.isMobile() ? 6 : 10;
-        const botsPerFrame = Math.min(
-            botCount,
-            Math.max(minBotsPerFrame, Math.ceil(botCount * targetFraction))
-        );
-        this.botUpdateIndex = (this.botUpdateIndex || 0);
-
-        for (let i = 0; i < botsPerFrame && i < this.bots.length; i++) {
-            const botIndex = (this.botUpdateIndex + i) % this.bots.length;
+        for (let botIndex = 0; botIndex < this.bots.length; botIndex++) {
             if (this.bots[botIndex].isAlive) {
                 this.bots[botIndex].update(delta, this.botBrains[botIndex], this.entityManager, this.lootManager, this.audioSynth, this.physics, this.zone);
             }
         }
-        this.botUpdateIndex = (this.botUpdateIndex + botsPerFrame) % this.bots.length;
         if (this.gameState === 'playing') {
             const hazardBatch = Math.max(
                 this.isMobile() ? 10 : 16,
@@ -1513,7 +1500,7 @@ class Game {
 
         const aliveNow = this.zombies.filter(z => z?.isAlive).length;
         const maxAlive = 260;
-        let budget = Math.max(0, Math.min(maxAlive - aliveNow, Math.floor((houseSpots.length * 1.3 + hangarSpots.length * 8.5) * intensity)));
+        let budget = Math.max(0, Math.min(maxAlive - aliveNow, Math.floor((houseSpots.length * 2.0 + hangarSpots.length * 10.5) * intensity)));
         budget = Math.min(budget, Math.max(0, Number.isFinite(maxSpawn) ? maxSpawn : budget));
         if (budget <= 0) return 0;
 
@@ -1526,8 +1513,8 @@ class Game {
             attempts++;
             if (budget <= 0) break;
             const baseCount = point.type === "hangar"
-                ? (10 + Math.floor(Math.random() * 4))
-                : (2 + Math.floor(Math.random() * 3));
+                ? (12 + Math.floor(Math.random() * 6))
+                : (3 + Math.floor(Math.random() * 3));
             const pack = Math.max(1, Math.floor(baseCount * intensity * (point.type === "hangar" ? 1.15 : 1)));
             for (let i = 0; i < pack; i++) {
                 if (budget <= 0) break;
@@ -1538,6 +1525,7 @@ class Game {
                     point.type === "hangar" ? 2.2 : 1.05
                 );
                 const guardSpot = interiorSpot
+                    || this.map.getStructureEntryPoint?.(point, point.type, this.player?.position || null)
                     || (point.type === "house"
                         ? (this.map.findClearPointAround?.(point.x, point.z, 0.8, 0.5, Math.max(3.2, Math.min(point.width || 8, point.depth || 8) * 0.35))
                             || this.map.findStructureGuardPoint?.(point, point.type))

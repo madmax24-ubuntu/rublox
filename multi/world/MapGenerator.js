@@ -1296,8 +1296,12 @@ export class MapGenerator {
             if (this.isPatchOverlappingStructure(x, z, width, depth, 1.6)) {
                 return null;
             }
+            material.polygonOffset = true;
+            material.polygonOffsetFactor = -2;
+            material.polygonOffsetUnits = -2;
             const patch = new THREE.Mesh(new THREE.BoxGeometry(width, 0.1, depth), material);
             patch.position.set(x, this.getHeightAt(x, z) + yOffset, z);
+            patch.renderOrder = 20;
             patch.userData.mapGenerated = true;
             this.scene.add(patch);
             return patch;
@@ -1326,7 +1330,7 @@ export class MapGenerator {
                 const wz = tile.z + (rand() - 0.5) * 8;
                 const w = 9 + rand() * 10;
                 const d = 9 + rand() * 10;
-                const patch = addPatch(wx, wz, w, d, lakeMat, 0.62);
+                const patch = addPatch(wx, wz, w, d, lakeMat, 0.8);
                 if (!patch) continue;
                 this.waterPatches.push({ x: wx, z: wz, width: w, depth: d });
                 this.fogZones.push({ x: wx, z: wz, radius: Math.max(w, d) * 0.72, density: 0.024 + rand() * 0.016 });
@@ -1337,7 +1341,7 @@ export class MapGenerator {
             if (style === "ash") {
                 const w = 8 + rand() * 8;
                 const d = 8 + rand() * 8;
-                const patch = addPatch(tile.x, tile.z, w, d, lavaMat, 0.62);
+                const patch = addPatch(tile.x, tile.z, w, d, lavaMat, 0.8);
                 if (!patch) continue;
                 this.lavaPatches.push({ x: tile.x, z: tile.z, width: w, depth: d });
                 markPlaced(tile.x, tile.z);
@@ -1347,7 +1351,7 @@ export class MapGenerator {
             if (style === "snow") {
                 const w = 9 + rand() * 10;
                 const d = 9 + rand() * 10;
-                const patch = addPatch(tile.x, tile.z, w, d, iceLakeMat, 0.62);
+                const patch = addPatch(tile.x, tile.z, w, d, iceLakeMat, 0.8);
                 if (!patch) continue;
                 this.waterPatches.push({ x: tile.x, z: tile.z, width: w, depth: d });
                 markPlaced(tile.x, tile.z);
@@ -1357,7 +1361,7 @@ export class MapGenerator {
             if (style === "sand") {
                 const width = 12 + rand() * 12;
                 const depth = 12 + rand() * 12;
-                const patch = addPatch(tile.x, tile.z, width, depth, new THREE.MeshStandardMaterial({ color: 0xe0bf72, roughness: 1, flatShading: true }), 0.6);
+                const patch = addPatch(tile.x, tile.z, width, depth, new THREE.MeshStandardMaterial({ color: 0xe0bf72, roughness: 1, flatShading: true }), 0.76);
                 if (!patch) continue;
                 markPlaced(tile.x, tile.z);
                 patchUsed += 1;
@@ -1366,7 +1370,7 @@ export class MapGenerator {
 
             const width = 10 + rand() * 14;
             const depth = 10 + rand() * 14;
-            const patch = addPatch(tile.x, tile.z, width, depth, grassMat, 0.6);
+            const patch = addPatch(tile.x, tile.z, width, depth, grassMat, 0.76);
             if (!patch) continue;
             markPlaced(tile.x, tile.z);
             patchUsed += 1;
@@ -1385,7 +1389,7 @@ export class MapGenerator {
             if (swampTile) {
                 const w = 12;
                 const d = 12;
-                addPatch(swampTile.x, swampTile.z, w, d, lakeMat, 0.62);
+                addPatch(swampTile.x, swampTile.z, w, d, lakeMat, 0.8);
                 this.waterPatches.push({ x: swampTile.x, z: swampTile.z, width: w, depth: d });
                 this.fogZones.push({ x: swampTile.x, z: swampTile.z, radius: 8, density: 0.03 });
             }
@@ -1395,7 +1399,7 @@ export class MapGenerator {
             if (lavaTile) {
                 const w = 10;
                 const d = 10;
-                addPatch(lavaTile.x, lavaTile.z, w, d, lavaMat, 0.62);
+                addPatch(lavaTile.x, lavaTile.z, w, d, lavaMat, 0.8);
                 this.lavaPatches.push({ x: lavaTile.x, z: lavaTile.z, width: w, depth: d });
             }
         }
@@ -1413,16 +1417,25 @@ export class MapGenerator {
             metalness: 0.25,
             flatShading: true
         });
+        railMat.polygonOffset = true;
+        railMat.polygonOffsetFactor = -1;
+        railMat.polygonOffsetUnits = -1;
         const sleeperMat = new THREE.MeshStandardMaterial({
             color: 0x5d4037,
             roughness: 0.9,
             flatShading: true
         });
+        sleeperMat.polygonOffset = true;
+        sleeperMat.polygonOffsetFactor = -1;
+        sleeperMat.polygonOffsetUnits = -1;
         const ballastMat = new THREE.MeshStandardMaterial({
             color: 0x666666,
             roughness: 0.92,
             flatShading: true
         });
+        ballastMat.polygonOffset = true;
+        ballastMat.polygonOffsetFactor = -1;
+        ballastMat.polygonOffsetUnits = -1;
         const routeDefs = this.railLayout.length ? this.railLayout : [
             { axis: 'x', offset: -this.size * 0.34, halfWidth: 9.5 },
             { axis: 'x', offset: this.size * 0.34, halfWidth: 9.5 }
