@@ -57,15 +57,17 @@ class Game {
     constructor(yandexBridge = null) {
         this.yandex = yandexBridge || new YandexBridge();
         this.isStarted = false;
-        this.initializeGame();
-    }
-
-    isMobile() {
-        return (
+        this.mobileMode = (
             'ontouchstart' in window
             || navigator.maxTouchPoints > 0
             || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '')
         );
+        this._tmpAudioForward = new THREE.Vector3();
+        this.initializeGame();
+    }
+
+    isMobile() {
+        return this.mobileMode;
     }
 
     async enterFullscreen() {
@@ -1328,9 +1330,8 @@ class Game {
             }
         }
         if (this.audioSynth && this.camera) {
-            const forward = new THREE.Vector3();
-            this.camera.getWorldDirection(forward);
-            this.audioSynth.updateListener(this.camera.position, forward);
+            this.camera.getWorldDirection(this._tmpAudioForward);
+            this.audioSynth.updateListener(this.camera.position, this._tmpAudioForward);
         }
 
         for (let botIndex = 0; botIndex < this.bots.length; botIndex++) {

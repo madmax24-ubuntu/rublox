@@ -12,6 +12,8 @@ export class Physics {
         this.colliderGridCellSize = 16;
         this.colliderGridCount = this.colliders.length;
         this.dynamicColliders = this.colliders.filter(box => box.dynamic);
+        this._nearbyResults = [];
+        this._queryStamp = 1;
         if (this.colliders.length) {
             this.rebuildColliderGrid();
         }
@@ -35,9 +37,6 @@ export class Physics {
             this.dynamicColliders = this.colliders.filter(box => box.dynamic);
             this.rebuildColliderGrid();
         }
-        if (this.mapGenerator.dynamicColliders) {
-            this.dynamicColliders = this.colliders.filter(box => box.dynamic);
-        }
         for (const entity of this.entities) {
             if (!entity.physics) continue;
             const isFrozen = entity.isFrozen === true;
@@ -59,7 +58,9 @@ export class Physics {
 
             // Обновляем позицию
             if (!isFrozen) {
-                entity.position.add(entity.physics.velocity.clone().multiplyScalar(delta));
+                entity.position.x += entity.physics.velocity.x * delta;
+                entity.position.y += entity.physics.velocity.y * delta;
+                entity.position.z += entity.physics.velocity.z * delta;
             }
 
             // Проверка коллизии с землей
@@ -219,31 +220,36 @@ export class Physics {
 
     getNearbyColliders(position, radius) {
         if (!this.colliderGrid.size) return this.colliders;
+        const results = this._nearbyResults;
+        results.length = 0;
         const cellSize = this.colliderGridCellSize;
         const minX = Math.floor((position.x - radius) / cellSize);
         const maxX = Math.floor((position.x + radius) / cellSize);
         const minZ = Math.floor((position.z - radius) / cellSize);
         const maxZ = Math.floor((position.z + radius) / cellSize);
-        const results = [];
-        const seen = new Set();
+        let stamp = this._queryStamp++;
+        if (stamp >= 0x3fffffff) {
+            this._queryStamp = 1;
+            stamp = 1;
+        }
         for (let x = minX; x <= maxX; x++) {
             for (let z = minZ; z <= maxZ; z++) {
                 const key = `${x},${z}`;
                 const bucket = this.colliderGrid.get(key);
                 if (!bucket) continue;
                 for (const box of bucket) {
-                    if (seen.has(box)) continue;
-                    seen.add(box);
+                    if (box._qStamp === stamp) continue;
+                    box._qStamp = stamp;
                     results.push(box);
                 }
             }
         }
         if (this.dynamicColliders.length) {
             for (const box of this.dynamicColliders) {
-                if (seen.has(box)) continue;
+                if (box._qStamp === stamp) continue;
                 if (position.x + radius < box.min.x || position.x - radius > box.max.x) continue;
                 if (position.z + radius < box.min.z || position.z - radius > box.max.z) continue;
-                seen.add(box);
+                box._qStamp = stamp;
                 results.push(box);
             }
         }

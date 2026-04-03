@@ -26,9 +26,14 @@ export class LootManager {
         this.chests = [];
         this.supplyDrops = [];
         this.lootDensity = 1;
+        this.isMobile = typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+        this.chestCellSize = 24;
+        this.chestIndex = new Map();
+        this.activeGlowChests = new Set();
         this.chestMaterials = this.createChestMaterials();
         this.chestReady = false;
         this.generateChestsAsync().then(() => {
+            this.rebuildChestIndex();
             this.chestReady = true;
         }).catch(() => {
             this.chestReady = true;
@@ -41,7 +46,9 @@ export class LootManager {
     }
     
     generateChests() {
-        const chestCount = Math.max(80, Math.floor(1400 * this.lootDensity));
+        const floorTiles = this.mapGenerator.getFloorTiles?.() || [];
+        const targetByMapSize = Math.floor(Math.max(140, floorTiles.length * (this.isMobile ? 0.08 : 0.12)));
+        const chestCount = Math.max(this.isMobile ? 150 : 220, Math.floor(targetByMapSize * this.lootDensity));
         const spots = this.mapGenerator.getChestSpots?.() || [];
 
         if (spots.length > 0) {
@@ -54,11 +61,14 @@ export class LootManager {
                 if (y < this.mapGenerator.waterLevel + 1) continue;
                 const chest = this.createChest(spot.x, y, spot.z, spot.grade || 'house');
                 this.chests.push(chest);
+                this.addChestToIndex(chest);
             }
-            if (this.chests.length > 0) return;
+            if (this.chests.length > 0) {
+                this.rebuildChestIndex();
+                return;
+            }
         }
 
-        const floorTiles = this.mapGenerator.getFloorTiles?.() || [];
         if (floorTiles.length) {
             const shuffled = [...floorTiles].sort(() => Math.random() - 0.5);
             const limit = Math.min(chestCount, shuffled.length);
@@ -67,7 +77,9 @@ export class LootManager {
                 const y = this.getChestPlacementY(tile.x, tile.z);
                 const chest = this.createChest(tile.x, y, tile.z);
                 this.chests.push(chest);
+                this.addChestToIndex(chest);
             }
+            this.rebuildChestIndex();
             return;
         }
 
@@ -85,12 +97,16 @@ export class LootManager {
 
             const chest = this.createChest(x, y, z);
             this.chests.push(chest);
+            this.addChestToIndex(chest);
         }
+        this.rebuildChestIndex();
     }
 
     // Асинхронная версия generateChests для устранения фризов при старте
     async generateChestsAsync() {
-        const chestCount = Math.max(80, Math.floor(1400 * this.lootDensity));
+        const floorTiles = this.mapGenerator.getFloorTiles?.() || [];
+        const targetByMapSize = Math.floor(Math.max(140, floorTiles.length * (this.isMobile ? 0.08 : 0.12)));
+        const chestCount = Math.max(this.isMobile ? 150 : 220, Math.floor(targetByMapSize * this.lootDensity));
         const spots = this.mapGenerator.getChestSpots?.() || [];
 
         if (spots.length > 0) {
@@ -113,7 +129,6 @@ export class LootManager {
             if (this.chests.length > 0) return;
         }
 
-        const floorTiles = this.mapGenerator.getFloorTiles?.() || [];
         if (floorTiles.length) {
             const shuffled = [...floorTiles].sort(() => Math.random() - 0.5);
             const limit = Math.min(chestCount, shuffled.length);
@@ -232,6 +247,71 @@ export class LootManager {
 
         this.scene.add(chestModel);
         return chestModel;
+    }
+
+    rebuildChestIndex() {
+        this.chestIndex.clear();
+        for (const chest of this.chests) {
+            this.addChestToIndex(chest);
+        }
+    }
+
+    addChestToIndex(chest) {
+        if (!chest?.position) return;
+        const size = this.chestCellSize;
+        const cx = Math.floor(chest.position.x / size);
+        const cz = Math.floor(chest.position.z / size);
+        const key = `${cx},${cz}`;
+        let bucket = this.chestIndex.get(key);
+        if (!bucket) {
+            bucket = [];
+            this.chestIndex.set(key, bucket);
+        }
+        bucket.push(chest);
+    }
+
+    getNearbyChests(position, radius = 12, onlyClosed = false) {
+        if (!position) return [];
+        const result = [];
+        const r2 = radius * radius;
+        const size = this.chestCellSize;
+        const minCx = Math.floor((position.x - radius) / size);
+        const maxCx = Math.floor((position.x + radius) / size);
+        const minCz = Math.floor((position.z - radius) / size);
+        const maxCz = Math.floor((position.z + radius) / size);
+
+        for (let cx = minCx; cx <= maxCx; cx++) {
+            for (let cz = minCz; cz <= maxCz; cz++) {
+                const bucket = this.chestIndex.get(`${cx},${cz}`);
+                if (!bucket) continue;
+                for (const chest of bucket) {
+                    if (!chest?.position) continue;
+                    if (onlyClosed && chest.userData?.isOpen) continue;
+                    const dx = chest.position.x - position.x;
+                    const dz = chest.position.z - position.z;
+                    if (dx * dx + dz * dz <= r2) {
+                        result.push(chest);
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    getNearestClosedChest(position, radius = 4.2) {
+        const nearby = this.getNearbyChests(position, radius, true);
+        let nearest = null;
+        let bestDistSq = radius * radius;
+        for (const chest of nearby) {
+            const dx = chest.position.x - position.x;
+            const dz = chest.position.z - position.z;
+            const distSq = dx * dx + dz * dz;
+            if (distSq < bestDistSq) {
+                bestDistSq = distSq;
+                nearest = chest;
+            }
+        }
+        return nearest;
     }
 
     createChestMaterials() {
@@ -378,41 +458,41 @@ export class LootManager {
 
     checkNearbyChests(position, audioSynth) {
         const checkDistance = 15;
+        const nearby = this.getNearbyChests(position, checkDistance, true);
+        const nextActive = new Set();
 
-        for (const chest of this.chests) {
-            if (chest.userData.isOpen) continue;
-
-            const chestPos = new THREE.Vector3(chest.position.x, chest.position.y, chest.position.z);
-            const distance = position.distanceTo(chestPos);
-
-            if (distance < checkDistance) {
-                if (chest.userData.glow) {
-                    chest.userData.glow.visible = true;
-                }
-
-                if (audioSynth && !chest.userData.soundPlayed) {
-                    audioSynth.playChestNearby();
-                    chest.userData.soundPlayed = true;
-                    setTimeout(() => {
-                        chest.userData.soundPlayed = false;
-                    }, 2000);
-                }
-            } else {
-                if (chest.userData.glow) {
-                    chest.userData.glow.visible = false;
-                }
+        for (const chest of nearby) {
+            nextActive.add(chest);
+            if (chest.userData.glow) {
+                chest.userData.glow.visible = true;
+            }
+            if (audioSynth && !chest.userData.soundPlayed) {
+                audioSynth.playChestNearby();
+                chest.userData.soundPlayed = true;
+                setTimeout(() => {
+                    chest.userData.soundPlayed = false;
+                }, 2000);
             }
         }
+
+        for (const chest of this.activeGlowChests) {
+            if (nextActive.has(chest)) continue;
+            if (chest?.userData?.glow) {
+                chest.userData.glow.visible = false;
+            }
+        }
+
+        this.activeGlowChests = nextActive;
     }
 
     tryOpenChest(chest, entity, audioSynth) {
         if (chest.userData.isOpen) return null;
-
-        const chestPos = new THREE.Vector3(chest.position.x, chest.position.y, chest.position.z);
-        const distance = entity.position.distanceTo(chestPos);
-        if (distance > 3.8) return null;
+        const dx = entity.position.x - chest.position.x;
+        const dz = entity.position.z - chest.position.z;
+        if ((dx * dx + dz * dz) > (3.8 * 3.8)) return null;
 
         chest.userData.isOpen = true;
+        this.activeGlowChests.delete(chest);
         const lid = chest.userData.lid;
         if (lid) {
             lid.rotation.x = -Math.PI / 3;
@@ -476,11 +556,13 @@ export class LootManager {
                 this.scene.remove(chest);
             }
             this.chests = this.chests.slice(0, keep);
+            this.rebuildChestIndex();
         }
     }
 
     spawnSupplyDrop(position) {
         const drop = this.createChest(position.x, position.y, position.z);
+        this.addChestToIndex(drop);
         drop.userData.isSupplyDrop = true;
         drop.userData.loot = this.generateLoot(true);
 

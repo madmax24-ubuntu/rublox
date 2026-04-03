@@ -67,6 +67,22 @@ export class Bot {
         this.healthBarLosTimer = 0;
         this.healthBarAimTimer = 0;
         this.healthBarVisibleCached = true;
+        this.steeringCooldown = 0;
+        this.cachedMoveDir = new THREE.Vector3(0, 0, 1);
+        this._tmpDirection = new THREE.Vector3();
+        this._tmpAvoid = new THREE.Vector3();
+        this._tmpTrainAvoid = new THREE.Vector3();
+        this._tmpProbe = new THREE.Vector3();
+        this._tmpProbe2 = new THREE.Vector3();
+        this._tmpProbe3 = new THREE.Vector3();
+        this._tmpUp = new THREE.Vector3(0, 1, 0);
+        this._tmpCenter = new THREE.Vector3();
+        this._tmpLosFrom = new THREE.Vector3();
+        this._tmpLosTo = new THREE.Vector3();
+        this._tmpArmWorld = new THREE.Vector3();
+        this._tmpForward = new THREE.Vector3();
+        this._tmpRight = new THREE.Vector3();
+        this._tmpErr = new THREE.Vector3();
 
         this.variants = [
             {
@@ -419,6 +435,7 @@ export class Bot {
         this.audioSynthRef = audioSynth;
         this.updateBurning(delta);
         this.updateHealthRegen(delta);
+        this.steeringCooldown = Math.max(0, this.steeringCooldown - delta);
 
         if (this.slowTimer > 0) {
             this.slowTimer = Math.max(0, this.slowTimer - delta);
@@ -447,9 +464,10 @@ export class Bot {
         }
 
         if (zone && typeof zone.isInsideZone === 'function' && !zone.isInsideZone(this.position)) {
-            const center = new THREE.Vector3(0, this.position.y, 0);
+            const center = this._tmpCenter.set(0, this.position.y, 0);
             this.target = null;
-            this.patrolTarget = center.clone();
+            if (!this.patrolTarget) this.patrolTarget = new THREE.Vector3();
+            this.patrolTarget.copy(center);
             this.moveTowards(center, this.physics.speed * 1.25);
             this.mesh.position.copy(this.position);
             this.mesh.position.y = this.position.y - (this.physics.height - 0.2);
@@ -501,18 +519,16 @@ export class Bot {
             const limbs = this.mesh?.userData?.limbs;
             if (limbs?.rightArm) {
                 this.mesh.updateMatrixWorld(true);
-                const armWorldPos = new THREE.Vector3();
-                limbs.rightArm.getWorldPosition(armWorldPos);
+                limbs.rightArm.getWorldPosition(this._tmpArmWorld);
+                this._tmpForward.set(Math.sin(this.rotation.y), 0, Math.cos(this.rotation.y));
+                this._tmpRight.set(Math.cos(this.rotation.y), 0, -Math.sin(this.rotation.y));
+                this._tmpProbe
+                    .copy(this._tmpArmWorld)
+                    .addScaledVector(this._tmpForward, 0.16)
+                    .addScaledVector(this._tmpRight, 0.08)
+                    .setY(this._tmpArmWorld.y - 0.18);
 
-                const forward = new THREE.Vector3(Math.sin(this.rotation.y), 0, Math.cos(this.rotation.y));
-                const right = new THREE.Vector3(Math.cos(this.rotation.y), 0, -Math.sin(this.rotation.y));
-                const weaponPos = armWorldPos
-                    .clone()
-                    .add(forward.multiplyScalar(0.16))
-                    .add(right.multiplyScalar(0.08))
-                    .add(new THREE.Vector3(0, -0.18, 0));
-
-                this.currentWeapon.setPosition(weaponPos);
+                this.currentWeapon.setPosition(this._tmpProbe);
                 this.currentWeapon.setRotation(this.rotation);
             }
         }
@@ -762,9 +778,9 @@ export class Bot {
             const entityManager = this.scene.userData?.entityManager;
             let visible = distSq < (19 * 19);
             if (visible && entityManager?.hasLineOfSight && this.healthBarLosTimer <= 0) {
-                const from = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);
-                const to = new THREE.Vector3(this.position.x, this.position.y + (this.physics?.height || 1.8) * 0.65, this.position.z);
-                this.healthBarVisibleCached = entityManager.hasLineOfSight(from, to, true);
+                this._tmpLosFrom.copy(camera.position);
+                this._tmpLosTo.set(this.position.x, this.position.y + (this.physics?.height || 1.8) * 0.65, this.position.z);
+                this.healthBarVisibleCached = entityManager.hasLineOfSight(this._tmpLosFrom, this._tmpLosTo, true);
                 this.healthBarLosTimer = 0.22 + Math.random() * 0.12;
             }
             this.healthBar.visible = visible && this.healthBarVisibleCached;
@@ -788,69 +804,60 @@ export class Bot {
     }
 
     moveTowards(target, speed) {
-        let direction = new THREE.Vector3()
-            .subVectors(target, this.position)
-            .normalize();
+        const toTargetX = target.x - this.position.x;
+        const toTargetZ = target.z - this.position.z;
+        const lenSq = toTargetX * toTargetX + toTargetZ * toTargetZ;
+        if (lenSq < 1e-6) {
+            this.physics.velocity.x = 0;
+            this.physics.velocity.z = 0;
+            return;
+        }
+        const invLen = 1 / Math.sqrt(lenSq);
+        const direction = this._tmpDirection.set(toTargetX * invLen, 0, toTargetZ * invLen);
 
         if (this.escapeDir && this.escapeTimer > 0) {
-            direction = this.escapeDir.clone();
+            direction.copy(this.escapeDir);
         }
 
-        const avoid = this.computeAvoidance(direction);
-        if (avoid.length() > 0) {
-            direction = direction.clone().add(avoid.multiplyScalar(1.35)).normalize();
-        }
-        const trainAvoid = this.computeTrainAvoidance(direction);
-        if (trainAvoid.lengthSq() > 0) {
-            direction = direction.clone().add(trainAvoid.multiplyScalar(1.55)).normalize();
-        }
-
-        const isBlocked = dir => {
-            if (!this.physicsRef?.getNearbyColliders) return false;
-            const probe = this.position.clone().add(dir.clone().multiplyScalar(1.6));
-            if (this.mapRef?.isWalkableAt && !this.mapRef.isWalkableAt(probe.x, probe.z)) {
-                return true;
-            }
-            const nearby = this.physicsRef.getNearbyColliders(probe, 1.8);
-            const bottom = this.position.y - this.physics.height + 0.2;
-            for (const box of nearby) {
-                if (box.enabled === false) continue;
-                if (probe.x < box.min.x - 0.1 || probe.x > box.max.x + 0.1) continue;
-                if (probe.z < box.min.z - 0.1 || probe.z > box.max.z + 0.1) continue;
-                if (bottom > box.max.y - 0.1) continue;
-                return true;
-            }
-            return false;
-        };
-
-        if (this.physicsRef) {
-            const dirs = [];
-            const baseAngles = [0, Math.PI / 8, -Math.PI / 8, Math.PI / 4, -Math.PI / 4, Math.PI / 2, -Math.PI / 2, Math.PI * 0.75, -Math.PI * 0.75, Math.PI];
-            for (const a of baseAngles) {
-                dirs.push(direction.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), a));
+        if (this.steeringCooldown <= 0) {
+            this.computeAvoidance(direction, this._tmpAvoid);
+            if (this._tmpAvoid.lengthSq() > 0.0001) {
+                direction.addScaledVector(this._tmpAvoid, 1.2).normalize();
             }
 
-            let bestDir = direction;
+            this.computeTrainAvoidance(direction, this._tmpTrainAvoid);
+            if (this._tmpTrainAvoid.lengthSq() > 0.0001) {
+                direction.addScaledVector(this._tmpTrainAvoid, 1.35).normalize();
+            }
+
+            const angles = [0, Math.PI / 10, -Math.PI / 10, Math.PI / 4, -Math.PI / 4];
             let bestScore = Infinity;
             let found = false;
-            for (const dir of dirs) {
-                if (isBlocked(dir)) continue;
-                const probe = this.position.clone().add(dir.clone().multiplyScalar(2.4));
-                const score = probe.distanceTo(target);
+            this._tmpProbe2.copy(direction);
+            for (const angle of angles) {
+                this._tmpProbe3.copy(direction).applyAxisAngle(this._tmpUp, angle);
+                if (this.isDirectionBlocked(this._tmpProbe3)) continue;
+                const px = this.position.x + this._tmpProbe3.x * 2.2;
+                const pz = this.position.z + this._tmpProbe3.z * 2.2;
+                const dx = target.x - px;
+                const dz = target.z - pz;
+                const score = dx * dx + dz * dz;
                 if (score < bestScore) {
                     bestScore = score;
-                    bestDir = dir;
+                    this._tmpProbe2.copy(this._tmpProbe3);
                     found = true;
                 }
             }
-            if (found) {
-                direction = bestDir;
-            } else {
-                const angle = (Math.random() * 0.9 - 0.45) + Math.PI / 2;
-                direction = direction.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), angle);
-                this.escapeDir = direction.clone();
+            if (!found) {
+                const angle = (Math.random() * 0.8 - 0.4) + Math.PI / 2;
+                this._tmpProbe2.copy(direction).applyAxisAngle(this._tmpUp, angle);
+                this.escapeDir = this._tmpProbe2.clone();
                 this.escapeTimer = 0.8;
             }
+            this.cachedMoveDir.copy(this._tmpProbe2).normalize();
+            this.steeringCooldown = 0.12 + Math.random() * 0.06;
+        } else {
+            direction.copy(this.cachedMoveDir);
         }
 
         const finalSpeed = speed * this.slowFactor;
@@ -865,9 +872,13 @@ export class Bot {
     }
 
     lookAt(target) {
-        const direction = new THREE.Vector3()
-            .subVectors(target, this.position)
-            .normalize();
+        const direction = this._tmpProbe.set(
+            target.x - this.position.x,
+            0,
+            target.z - this.position.z
+        );
+        if (direction.lengthSq() < 1e-6) return;
+        direction.normalize();
         const targetRot = Math.atan2(direction.x, direction.z);
         this.rotation.y = this.lerpAngle(this.rotation.y, targetRot, 0.25);
     }
@@ -899,25 +910,25 @@ export class Bot {
         if (distance > attackRange) return null;
 
         if (weapon.type === 'laser' || weapon.type === 'bow' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle') {
-            const direction = new THREE.Vector3()
+            const direction = this._tmpDirection
                 .subVectors(target.position, this.position)
                 .normalize();
             if (entityManager?.hasLineOfSight) {
-                const origin = new THREE.Vector3(this.position.x, this.position.y + (this.physics?.height || 1.8) * 0.55, this.position.z);
-                const aim = new THREE.Vector3(target.position.x, target.position.y + (target.physics?.height || 1.8) * 0.55, target.position.z);
-                if (!entityManager.hasLineOfSight(origin, aim, true)) {
+                this._tmpLosFrom.set(this.position.x, this.position.y + (this.physics?.height || 1.8) * 0.55, this.position.z);
+                this._tmpLosTo.set(target.position.x, target.position.y + (target.physics?.height || 1.8) * 0.55, target.position.z);
+                if (!entityManager.hasLineOfSight(this._tmpLosFrom, this._tmpLosTo, true)) {
                     this.nextAttackTime = now + 0.12;
                     return null;
                 }
             }
 
             if (weapon.type === 'bow') {
-                const err = new THREE.Vector3(
+                this._tmpErr.set(
                     (Math.random() - 0.5) * 0.08,
                     (Math.random() - 0.5) * 0.045,
                     (Math.random() - 0.5) * 0.08
                 );
-                direction.add(err).normalize();
+                direction.add(this._tmpErr).normalize();
             }
 
             const projectileData = weapon.type === 'bow'
@@ -983,13 +994,32 @@ export class Bot {
         }
     }
 
-    computeAvoidance(forward) {
-        const result = new THREE.Vector3();
+    isDirectionBlocked(dir) {
+        if (!this.physicsRef?.getNearbyColliders) return false;
+        this._tmpProbe.copy(this.position).addScaledVector(dir, 1.55);
+        if (this.mapRef?.isWalkableAt && !this.mapRef.isWalkableAt(this._tmpProbe.x, this._tmpProbe.z)) {
+            return true;
+        }
+        const nearby = this.physicsRef.getNearbyColliders(this._tmpProbe, 1.8);
+        const bottom = this.position.y - this.physics.height + 0.2;
+        for (const box of nearby) {
+            if (box.enabled === false) continue;
+            if (this._tmpProbe.x < box.min.x - 0.1 || this._tmpProbe.x > box.max.x + 0.1) continue;
+            if (this._tmpProbe.z < box.min.z - 0.1 || this._tmpProbe.z > box.max.z + 0.1) continue;
+            if (bottom > box.max.y - 0.1) continue;
+            return true;
+        }
+        return false;
+    }
+
+    computeAvoidance(forward, out = null) {
+        const result = out || this._tmpAvoid;
+        result.set(0, 0, 0);
         if (!this.physicsRef?.getNearbyColliders) return result;
         const radius = (this.physics?.radius || 0.5) + 0.6;
         const sampleDist = 2.2;
-        const probe = this.position.clone().add(forward.clone().multiplyScalar(sampleDist));
-        const nearby = this.physicsRef.getNearbyColliders(probe, 2.6);
+        this._tmpProbe2.copy(this.position).addScaledVector(forward, sampleDist);
+        const nearby = this.physicsRef.getNearbyColliders(this._tmpProbe2, 2.6);
         for (const box of nearby) {
             if (box.enabled === false) continue;
             if (box.walkable) continue;
@@ -1009,8 +1039,9 @@ export class Bot {
         return result;
     }
 
-    computeTrainAvoidance(forward) {
-        const result = new THREE.Vector3();
+    computeTrainAvoidance(forward, out = null) {
+        const result = out || this._tmpTrainAvoid;
+        result.set(0, 0, 0);
         if (this.ignoreTrainAvoidance || this.state === 'trainCombat') return result;
         const map = this.mapRef;
         if (!map?.getTrainCarsSnapshot) return result;
@@ -1028,11 +1059,12 @@ export class Bot {
             const halfWidth = (train.width || 4.8) * 0.5 + 1.4;
             if (acrossDist > halfWidth || alongDist > 13.5) continue;
 
-            const away = axisX
-                ? new THREE.Vector3(0, 0, this.position.z >= train.z ? 1 : -1)
-                : new THREE.Vector3(this.position.x >= train.x ? 1 : -1, 0, 0);
             const intensity = Math.max(0.1, 1 - alongDist / 13.5);
-            result.add(away.multiplyScalar(intensity));
+            if (axisX) {
+                result.z += (this.position.z >= train.z ? 1 : -1) * intensity;
+            } else {
+                result.x += (this.position.x >= train.x ? 1 : -1) * intensity;
+            }
         }
 
         if (result.lengthSq() <= 0.0001) return result;

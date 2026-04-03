@@ -11,6 +11,10 @@ export class EntityManager {
         this._tmpVecA = new THREE.Vector3();
         this._tmpVecB = new THREE.Vector3();
         this._tmpVecC = new THREE.Vector3();
+        this._tmpVecD = new THREE.Vector3();
+        this._tmpVecE = new THREE.Vector3();
+        this._tmpVecF = new THREE.Vector3();
+        this._nearbyQueryStamp = 1;
     }
 
     addEntity(entity) {
@@ -41,22 +45,30 @@ export class EntityManager {
         // Update projectiles
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             const proj = this.projectiles[i];
-            const prevPos = proj.mesh.position.clone();
-            proj.prevPos = prevPos.clone();
+            const prevPos = this._tmpVecD.copy(proj.mesh.position);
 
             let stepDistance = 0;
             if (proj.velocity) {
                 if (proj.gravity) {
                     proj.velocity.y -= proj.gravity * delta;
                 }
-                const moveStep = proj.velocity.clone().multiplyScalar(delta);
-                stepDistance = moveStep.length();
-                proj.mesh.position.add(moveStep);
+                const stepX = proj.velocity.x * delta;
+                const stepY = proj.velocity.y * delta;
+                const stepZ = proj.velocity.z * delta;
+                stepDistance = Math.sqrt(stepX * stepX + stepY * stepY + stepZ * stepZ);
+                proj.mesh.position.x += stepX;
+                proj.mesh.position.y += stepY;
+                proj.mesh.position.z += stepZ;
                 proj.direction.copy(proj.velocity).normalize();
             } else {
-                const moveVector = proj.direction.clone().multiplyScalar(proj.speed * delta);
-                stepDistance = moveVector.length();
-                proj.mesh.position.add(moveVector);
+                const speedStep = proj.speed * delta;
+                const stepX = proj.direction.x * speedStep;
+                const stepY = proj.direction.y * speedStep;
+                const stepZ = proj.direction.z * speedStep;
+                stepDistance = Math.sqrt(stepX * stepX + stepY * stepY + stepZ * stepZ);
+                proj.mesh.position.x += stepX;
+                proj.mesh.position.y += stepY;
+                proj.mesh.position.z += stepZ;
             }
             proj.travelled = (proj.travelled || 0) + stepDistance;
             if (proj.type === 'flame' && proj.mesh.material) {
@@ -65,11 +77,13 @@ export class EntityManager {
                 proj.mesh.material.opacity = Math.max(0, proj.lifetime / 0.6);
             }
             if (proj.align === 'arrow') {
-                const forward = new THREE.Vector3(1, 0, 0);
-                const quat = new THREE.Quaternion().setFromUnitVectors(forward, proj.direction.clone().normalize());
+                const forward = proj._forward || (proj._forward = new THREE.Vector3(1, 0, 0));
+                const quat = proj._quat || (proj._quat = new THREE.Quaternion());
+                quat.setFromUnitVectors(forward, this._tmpVecE.copy(proj.direction).normalize());
                 proj.mesh.quaternion.copy(quat);
             } else {
-                proj.mesh.lookAt(proj.mesh.position.clone().add(proj.direction));
+                this._tmpVecF.copy(proj.mesh.position).add(proj.direction);
+                proj.mesh.lookAt(this._tmpVecF);
             }
 
             if (physics) {
@@ -81,7 +95,7 @@ export class EntityManager {
                 }
             }
 
-            const hitEntity = this.checkProjectileHit(proj);
+            const hitEntity = this.checkProjectileHit(proj, prevPos, proj.mesh.position);
             if (hitEntity) {
                 hitEntity.takeDamage(proj.damage, false, proj.owner, proj.knockback || 0, proj.type);
                 if (proj.owner && typeof proj.owner.onHit === 'function') {
@@ -150,12 +164,12 @@ export class EntityManager {
     hasLineOfSight(from, to, ignoreWalkable = true) {
         const physics = this.physicsRef;
         if (!physics?.getNearbyColliders) return true;
-        const p0 = from.clone();
-        const p1 = to.clone();
-        const travel = p1.clone().sub(p0);
+        const p0 = this._tmpVecA.copy(from);
+        const p1 = this._tmpVecB.copy(to);
+        const travel = this._tmpVecC.subVectors(p1, p0);
         const length = travel.length();
         if (length <= 0.001) return true;
-        const probe = p0.clone().add(travel.multiplyScalar(0.5));
+        const probe = this._tmpVecE.copy(p0).addScaledVector(travel, 0.5);
         const nearby = physics.getNearbyColliders(probe, Math.max(2.5, length * 0.5 + 1.0));
         for (const box of nearby) {
             if (box.enabled === false) continue;
@@ -193,9 +207,9 @@ export class EntityManager {
         return true;
     }
 
-    checkProjectileHit(projectile) {
-        const p0 = projectile.prevPos || projectile.mesh.position;
-        const p1 = projectile.mesh.position;
+    checkProjectileHit(projectile, prevPos = null, currentPos = null) {
+        const p0 = prevPos || projectile.mesh.position;
+        const p1 = currentPos || projectile.mesh.position;
         const seg = this._tmpVecA.subVectors(p1, p0);
         const segLenSq = seg.lengthSq();
         for (const entity of this.entities) {
@@ -378,7 +392,11 @@ export class EntityManager {
         const maxCx = Math.floor((position.x + radius) / cellSize);
         const minCz = Math.floor((position.z - radius) / cellSize);
         const maxCz = Math.floor((position.z + radius) / cellSize);
-        const seen = new Set();
+        let stamp = this._nearbyQueryStamp++;
+        if (stamp >= 0x3fffffff) {
+            this._nearbyQueryStamp = 1;
+            stamp = 1;
+        }
 
         for (let cx = minCx; cx <= maxCx; cx++) {
             for (let cz = minCz; cz <= maxCz; cz++) {
@@ -387,12 +405,12 @@ export class EntityManager {
                 for (const entity of bucket) {
                     if (!entity?.isAlive) continue;
                     if (onlyType && entity.constructor?.name !== onlyType) continue;
-                    if (seen.has(entity.id)) continue;
+                    if (entity._nearbyStamp === stamp) continue;
                     const dx = entity.position.x - position.x;
                     const dz = entity.position.z - position.z;
                     if (dx * dx + dz * dz <= r2) {
                         out.push(entity);
-                        seen.add(entity.id);
+                        entity._nearbyStamp = stamp;
                     }
                 }
             }

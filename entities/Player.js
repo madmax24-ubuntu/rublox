@@ -51,6 +51,9 @@ export class Player {
         this.audioSynthRef = null;
 
         this.cameraOffset = new THREE.Vector3(0, 1.5, 0);
+        this._tmpFireDir = new THREE.Vector3();
+        this._tmpMuzzle = new THREE.Vector3();
+        this._tmpLookTarget = new THREE.Vector3();
         this.mouseSensitivity = 0.001;
         this.mobileLookSensitivity = 0.003;
         this.lookSensitivityMultiplier = 1;
@@ -562,16 +565,16 @@ export class Player {
             }
         } else if (!isFrozen && fireRequested && this.attackCooldown <= 0) {
             if (activeWeapon.type === 'laser' || activeWeapon.type === 'shotgun' || activeWeapon.type === 'flamethrower' || activeWeapon.type === 'pistol' || activeWeapon.type === 'rifle') {
-                const direction = new THREE.Vector3();
+                const direction = this._tmpFireDir;
                 if (autoTarget) {
                     direction.subVectors(autoTarget.position, this.camera.position).normalize();
                 } else {
                     this.camera.getWorldDirection(direction);
                 }
                 const result = activeWeapon.attack(this, null, audioSynth, direction);
-                const muzzle = new THREE.Vector3();
+                const muzzle = this._tmpMuzzle;
                 this.camera.getWorldPosition(muzzle);
-                muzzle.add(direction.clone().multiplyScalar(0.6));
+                muzzle.addScaledVector(direction, 0.6);
 
                 if (result && result.projectiles) {
                     for (const proj of result.projectiles) {
@@ -586,7 +589,8 @@ export class Player {
                     if (result.projectile.velocity) {
                         result.projectile.velocity.copy(direction).multiplyScalar(result.projectile.speed);
                     }
-                    result.projectile.mesh.lookAt(muzzle.clone().add(direction));
+                    this._tmpLookTarget.copy(muzzle).add(direction);
+                    result.projectile.mesh.lookAt(this._tmpLookTarget);
                     entityManager.addProjectile(result.projectile);
                 }
                 this.viewKick = 0.25 * this.recoilScale;
@@ -618,10 +622,12 @@ export class Player {
         this.wasFireHeld = fireHeld;
 
         if (!isFrozen && this.input.isKeyPressed('KeyE')) {
-            const nearestChest = lootManager.getChests().find(chest => {
-                if (chest.userData.isOpen) return false;
-                return this.position.distanceTo(chest.position) < 3;
-            });
+            const nearestChest = lootManager.getNearestClosedChest
+                ? lootManager.getNearestClosedChest(this.position, 3.2)
+                : lootManager.getChests().find(chest => {
+                    if (chest.userData.isOpen) return false;
+                    return this.position.distanceTo(chest.position) < 3;
+                });
 
             if (nearestChest) {
                 const loot = lootManager.tryOpenChest(nearestChest, this, audioSynth);

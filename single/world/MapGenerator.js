@@ -29,12 +29,18 @@ export class MapGenerator {
         this.railLayout = [];
         this.trainRoutes = [];
         this.trainCars = [];
+        this.trainCarsSnapshot = [];
         this.dynamicColliders = false;
         this.surfaceTheme = "plains";
         this.lavaPatches = [];
         this.waterPatches = [];
         this.fogZones = [];
         this.spawnCourtyardRadius = 54;
+        this._tmpMatrix = new THREE.Matrix4();
+        this._tmpPos = new THREE.Vector3();
+        this._tmpQuat = new THREE.Quaternion();
+        this._tmpScale = new THREE.Vector3(1, 1, 1);
+        this._zeroCenter = new THREE.Vector3(0, 0, 0);
         this.houseVariants = [
             { width: 9.2, depth: 7.8, height: 4.4, doorWidth: 2.4, wallColor: 0xc9b08d, roofColor: 0x5f4638, style: "classic" },
             { width: 8.8, depth: 7.2, height: 4.2, doorWidth: 2.2, wallColor: 0xd1bfa3, roofColor: 0x6a4e3a, style: "cozy" },
@@ -255,6 +261,7 @@ export class MapGenerator {
         this.hangarSpots = [];
         this.trainRoutes = [];
         this.trainCars = [];
+        this.trainCarsSnapshot = [];
         this.dynamicColliders = false;
         this.lavaPatches = [];
         this.waterPatches = [];
@@ -1296,12 +1303,10 @@ export class MapGenerator {
             if (this.isPatchOverlappingStructure(x, z, width, depth, 4.2)) {
                 return null;
             }
-            material.polygonOffset = true;
-            material.polygonOffsetFactor = -2;
-            material.polygonOffsetUnits = -2;
-            const patch = new THREE.Mesh(new THREE.BoxGeometry(width, 0.16, depth), material);
-            patch.position.set(x, this.getHeightAt(x, z) + yOffset, z);
-            patch.renderOrder = 20;
+            const patchHeight = 0.12;
+            const lift = Math.max(-0.015, Math.min(0.05, (yOffset - 0.55) * 0.08));
+            const patch = new THREE.Mesh(new THREE.BoxGeometry(width, patchHeight, depth), material);
+            patch.position.set(x, this.getHeightAt(x, z) + patchHeight * 0.5 + lift, z);
             patch.userData.mapGenerated = true;
             this.scene.add(patch);
             return patch;
@@ -1409,6 +1414,7 @@ export class MapGenerator {
     buildRailSystem() {
         this.trainRoutes = [];
         this.trainCars = [];
+        this.trainCarsSnapshot = [];
         this.dynamicColliders = false;
 
         const railMat = new THREE.MeshStandardMaterial({
@@ -1417,25 +1423,16 @@ export class MapGenerator {
             metalness: 0.25,
             flatShading: true
         });
-        railMat.polygonOffset = true;
-        railMat.polygonOffsetFactor = -1;
-        railMat.polygonOffsetUnits = -1;
         const sleeperMat = new THREE.MeshStandardMaterial({
             color: 0x5d4037,
             roughness: 0.9,
             flatShading: true
         });
-        sleeperMat.polygonOffset = true;
-        sleeperMat.polygonOffsetFactor = -1;
-        sleeperMat.polygonOffsetUnits = -1;
         const ballastMat = new THREE.MeshStandardMaterial({
             color: 0x666666,
             roughness: 0.92,
             flatShading: true
         });
-        ballastMat.polygonOffset = true;
-        ballastMat.polygonOffsetFactor = -1;
-        ballastMat.polygonOffsetUnits = -1;
         const routeDefs = this.railLayout.length ? this.railLayout : [
             { axis: 'x', offset: -this.size * 0.34, halfWidth: 9.5 },
             { axis: 'x', offset: this.size * 0.34, halfWidth: 9.5 }
@@ -1457,44 +1454,65 @@ export class MapGenerator {
             const sleeperCount = Math.max(24, Math.floor(railLength / 3.4));
             const visualSegments = Math.max(18, Math.floor(railLength / 20));
             const visualSegmentLength = railLength / visualSegments;
-            const ballastHeight = isMobile ? 0.22 : 0.2;
-            const railHeight = isMobile ? 0.17 : 0.16;
-            const sleeperHeight = isMobile ? 0.14 : 0.13;
+            const ballastHeight = isMobile ? 0.26 : 0.24;
+            const railHeight = isMobile ? 0.2 : 0.18;
+            const sleeperHeight = isMobile ? 0.18 : 0.16;
             const ballastWidth = 7.8;
             const railOffset = 1.85;
+            const ballastGeo = route.axis === 'x'
+                ? new THREE.BoxGeometry(visualSegmentLength * 1.02, ballastHeight, ballastWidth)
+                : new THREE.BoxGeometry(ballastWidth, ballastHeight, visualSegmentLength * 1.02);
+            const railGeo = route.axis === 'x'
+                ? new THREE.BoxGeometry(visualSegmentLength * 1.02, railHeight, 0.32)
+                : new THREE.BoxGeometry(0.32, railHeight, visualSegmentLength * 1.02);
+            const sleeperGeo = route.axis === 'x'
+                ? new THREE.BoxGeometry(0.58, sleeperHeight, 4.8)
+                : new THREE.BoxGeometry(4.8, sleeperHeight, 0.58);
+
+            const ballastInst = new THREE.InstancedMesh(ballastGeo, ballastMat, visualSegments);
+            const railLeftInst = new THREE.InstancedMesh(railGeo, railMat, visualSegments);
+            const railRightInst = new THREE.InstancedMesh(railGeo, railMat, visualSegments);
+            const sleeperInst = new THREE.InstancedMesh(sleeperGeo, sleeperMat, sleeperCount);
+            ballastInst.userData.mapGenerated = true;
+            railLeftInst.userData.mapGenerated = true;
+            railRightInst.userData.mapGenerated = true;
+            sleeperInst.userData.mapGenerated = true;
+
             for (let s = 0; s < visualSegments; s++) {
                 const t = (s + 0.5) / visualSegments;
                 const center = route.min + t * railLength;
                 const surfaceY = route.axis === 'x'
                     ? this.getHeightAt(center, route.offset)
                     : this.getHeightAt(route.offset, center);
-                const ballastCenterY = surfaceY + ballastHeight * 0.5 + 0.03;
-                const sleeperCenterY = ballastCenterY + ballastHeight * 0.5 + sleeperHeight * 0.5 + 0.01;
-                const railCenterY = sleeperCenterY + sleeperHeight * 0.5 + railHeight * 0.5 + 0.02;
-                const ballastGeo = route.axis === 'x'
-                    ? new THREE.BoxGeometry(visualSegmentLength * 1.02, ballastHeight, ballastWidth)
-                    : new THREE.BoxGeometry(ballastWidth, ballastHeight, visualSegmentLength * 1.02);
-                const railGeo = route.axis === 'x'
-                    ? new THREE.BoxGeometry(visualSegmentLength * 1.02, railHeight, 0.32)
-                    : new THREE.BoxGeometry(0.32, railHeight, visualSegmentLength * 1.02);
-
-                const ballast = new THREE.Mesh(ballastGeo, ballastMat);
-                const railLeft = new THREE.Mesh(railGeo, railMat);
-                const railRight = new THREE.Mesh(railGeo, railMat);
-                ballast.userData.mapGenerated = true;
-                railLeft.userData.mapGenerated = true;
-                railRight.userData.mapGenerated = true;
+                const ballastCenterY = surfaceY + ballastHeight * 0.5 + 0.1;
+                const sleeperCenterY = ballastCenterY + ballastHeight * 0.5 + sleeperHeight * 0.5 + 0.02;
+                const railCenterY = sleeperCenterY + sleeperHeight * 0.5 + railHeight * 0.5 + 0.03;
 
                 if (route.axis === 'x') {
-                    ballast.position.set(center, ballastCenterY, route.offset);
-                    railLeft.position.set(center, railCenterY, route.offset - railOffset);
-                    railRight.position.set(center, railCenterY, route.offset + railOffset);
+                    this._tmpPos.set(center, ballastCenterY, route.offset);
+                    this._tmpMatrix.compose(this._tmpPos, this._tmpQuat.identity(), this._tmpScale);
+                    ballastInst.setMatrixAt(s, this._tmpMatrix);
+
+                    this._tmpPos.set(center, railCenterY, route.offset - railOffset);
+                    this._tmpMatrix.compose(this._tmpPos, this._tmpQuat.identity(), this._tmpScale);
+                    railLeftInst.setMatrixAt(s, this._tmpMatrix);
+
+                    this._tmpPos.set(center, railCenterY, route.offset + railOffset);
+                    this._tmpMatrix.compose(this._tmpPos, this._tmpQuat.identity(), this._tmpScale);
+                    railRightInst.setMatrixAt(s, this._tmpMatrix);
                 } else {
-                    ballast.position.set(route.offset, ballastCenterY, center);
-                    railLeft.position.set(route.offset - railOffset, railCenterY, center);
-                    railRight.position.set(route.offset + railOffset, railCenterY, center);
+                    this._tmpPos.set(route.offset, ballastCenterY, center);
+                    this._tmpMatrix.compose(this._tmpPos, this._tmpQuat.identity(), this._tmpScale);
+                    ballastInst.setMatrixAt(s, this._tmpMatrix);
+
+                    this._tmpPos.set(route.offset - railOffset, railCenterY, center);
+                    this._tmpMatrix.compose(this._tmpPos, this._tmpQuat.identity(), this._tmpScale);
+                    railLeftInst.setMatrixAt(s, this._tmpMatrix);
+
+                    this._tmpPos.set(route.offset + railOffset, railCenterY, center);
+                    this._tmpMatrix.compose(this._tmpPos, this._tmpQuat.identity(), this._tmpScale);
+                    railRightInst.setMatrixAt(s, this._tmpMatrix);
                 }
-                group.add(ballast, railLeft, railRight);
             }
 
             for (let i = 0; i < sleeperCount; i++) {
@@ -1503,20 +1521,22 @@ export class MapGenerator {
                 const surfaceY = route.axis === 'x'
                     ? this.getHeightAt(p, route.offset)
                     : this.getHeightAt(route.offset, p);
-                const ballastCenterY = surfaceY + ballastHeight * 0.5 + 0.03;
-                const sleeperCenterY = ballastCenterY + ballastHeight * 0.5 + sleeperHeight * 0.5 + 0.01;
-                const sleeperGeo = route.axis === 'x'
-                    ? new THREE.BoxGeometry(0.58, sleeperHeight, 4.8)
-                    : new THREE.BoxGeometry(4.8, sleeperHeight, 0.58);
-                const sleeper = new THREE.Mesh(sleeperGeo, sleeperMat);
-                sleeper.userData.mapGenerated = true;
+                const ballastCenterY = surfaceY + ballastHeight * 0.5 + 0.1;
+                const sleeperCenterY = ballastCenterY + ballastHeight * 0.5 + sleeperHeight * 0.5 + 0.02;
                 if (route.axis === 'x') {
-                    sleeper.position.set(p, sleeperCenterY, route.offset);
+                    this._tmpPos.set(p, sleeperCenterY, route.offset);
                 } else {
-                    sleeper.position.set(route.offset, sleeperCenterY, p);
+                    this._tmpPos.set(route.offset, sleeperCenterY, p);
                 }
-                group.add(sleeper);
+                this._tmpMatrix.compose(this._tmpPos, this._tmpQuat.identity(), this._tmpScale);
+                sleeperInst.setMatrixAt(i, this._tmpMatrix);
             }
+
+            ballastInst.instanceMatrix.needsUpdate = true;
+            railLeftInst.instanceMatrix.needsUpdate = true;
+            railRightInst.instanceMatrix.needsUpdate = true;
+            sleeperInst.instanceMatrix.needsUpdate = true;
+            group.add(ballastInst, railLeftInst, railRightInst, sleeperInst);
             this.scene.add(group);
 
             this.trainRoutes.push(route);
@@ -1581,7 +1601,7 @@ export class MapGenerator {
             true
         );
 
-        this.trainCars.push({
+        const trainEntry = {
             route,
             mesh: train,
             t: startT,
@@ -1596,7 +1616,22 @@ export class MapGenerator {
             deltaZ: 0,
             prevX: train.position.x,
             prevZ: train.position.z
-        });
+        };
+        trainEntry.snapshot = {
+            x: train.position.x,
+            y: train.position.y,
+            z: train.position.z,
+            axis: route.axis,
+            direction,
+            speed: trainEntry.speed,
+            length: carLength,
+            width: carWidth,
+            dx: 0,
+            dz: 0,
+            topY: train.position.y + carHeight * 0.5 + 0.08
+        };
+        this.trainCars.push(trainEntry);
+        this.trainCarsSnapshot.push(trainEntry.snapshot);
     }
 
     update(delta) {
@@ -1636,6 +1671,19 @@ export class MapGenerator {
             train.deltaZ = train.mesh.position.z - prevZ;
             train.prevX = train.mesh.position.x;
             train.prevZ = train.mesh.position.z;
+            if (train.snapshot) {
+                train.snapshot.x = train.mesh.position.x;
+                train.snapshot.y = train.mesh.position.y;
+                train.snapshot.z = train.mesh.position.z;
+                train.snapshot.axis = train.route?.axis || 'x';
+                train.snapshot.direction = train.direction || 1;
+                train.snapshot.speed = train.speed || 0;
+                train.snapshot.length = train.carLength || 0;
+                train.snapshot.width = train.carWidth || 0;
+                train.snapshot.dx = train.deltaX || 0;
+                train.snapshot.dz = train.deltaZ || 0;
+                train.snapshot.topY = train.mesh.position.y + (train.carHeight || 0) * 0.5 + 0.08;
+            }
         }
     }
 
@@ -1669,7 +1717,19 @@ export class MapGenerator {
                 toRemove.push(obj);
             }
         });
-        toRemove.forEach(obj => this.scene.remove(obj));
+        for (const obj of toRemove) {
+            this.scene.remove(obj);
+            if (!obj.isInstancedMesh && obj.geometry) {
+                obj.geometry.dispose?.();
+            }
+            if (obj.material) {
+                if (Array.isArray(obj.material)) {
+                    for (const mat of obj.material) mat?.dispose?.();
+                } else {
+                    obj.material.dispose?.();
+                }
+            }
+        }
     }
 
     toWorld(x, y) {
@@ -1807,19 +1867,19 @@ export class MapGenerator {
     }
 
     getSpawnPads() {
-        return this.spawnPads.map(pos => pos.clone());
+        return this.spawnPads || [];
     }
 
     getChestSpots() {
-        return this.chestSpots.map(pos => ({ x: pos.x, z: pos.z, grade: pos.grade || 'house' }));
+        return this.chestSpots || [];
     }
 
     getHouseSpots() {
-        return this.houseSpots.map(pos => ({ x: pos.x, z: pos.z, width: pos.width, depth: pos.depth, height: pos.height }));
+        return this.houseSpots || [];
     }
 
     getHangarSpots() {
-        return this.hangarSpots.map(pos => ({ x: pos.x, z: pos.z, width: pos.width, depth: pos.depth, height: pos.height }));
+        return this.hangarSpots || [];
     }
 
     getStructureAtPoint(x, z, margin = 0.2) {
@@ -1873,27 +1933,11 @@ export class MapGenerator {
     }
 
     getRailLayout() {
-        return (this.railLayout || []).map(route => ({
-            axis: route.axis,
-            offset: route.offset,
-            halfWidth: route.halfWidth
-        }));
+        return this.railLayout || [];
     }
 
     getTrainCarsSnapshot() {
-        return (this.trainCars || []).map(car => ({
-            x: car.mesh?.position?.x ?? 0,
-            y: car.mesh?.position?.y ?? 0,
-            z: car.mesh?.position?.z ?? 0,
-            axis: car.route?.axis || 'x',
-            direction: car.direction || 1,
-            speed: car.speed || 0,
-            length: car.carLength || 0,
-            width: car.carWidth || 0,
-            dx: car.deltaX || 0,
-            dz: car.deltaZ || 0,
-            topY: (car.mesh?.position?.y ?? 0) + (car.carHeight || 0) * 0.5 + 0.08
-        }));
+        return this.trainCarsSnapshot || [];
     }
 
     getTrainSupportAt(position, entityHeight = 1.8) {
@@ -1920,7 +1964,7 @@ export class MapGenerator {
     }
 
     getFloorTiles() {
-        return (this.floorTiles || []).map(tile => ({ x: tile.x, z: tile.z, biome: tile.biome, y: tile.y }));
+        return this.floorTiles || [];
     }
 
     getTraps() {
@@ -1932,11 +1976,11 @@ export class MapGenerator {
     }
 
     getStoryNotes() {
-        return this.storyNotes.map(note => ({ position: note.position.clone(), text: note.text }));
+        return this.storyNotes || [];
     }
 
     getFogZones() {
-        return (this.fogZones || []).map(z => ({ ...z }));
+        return this.fogZones || [];
     }
 
     updatePropVisibility(playerPos) {
@@ -1944,13 +1988,13 @@ export class MapGenerator {
         const smallDistSq = 120 * 120;
         const leafDistSq = 150 * 150;
         for (const mesh of this.smallPropMeshes) {
-            const center = mesh.userData.center || new THREE.Vector3();
+            const center = mesh.userData.center || this._zeroCenter;
             const dx = center.x - playerPos.x;
             const dz = center.z - playerPos.z;
             mesh.visible = (dx * dx + dz * dz) < smallDistSq;
         }
         for (const mesh of this.leafMeshes) {
-            const center = mesh.userData.center || new THREE.Vector3();
+            const center = mesh.userData.center || this._zeroCenter;
             const dx = center.x - playerPos.x;
             const dz = center.z - playerPos.z;
             mesh.visible = (dx * dx + dz * dz) < leafDistSq;

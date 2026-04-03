@@ -15,6 +15,7 @@ export class BotBrain {
         this.cachedBots = null;
         this.cachedBotsUntil = 0;
         this.cachedManager = null;
+        this._tmpInward = new THREE.Vector3();
     }
 
     update(bot, delta, entityManager, lootManager, audioSynth) {
@@ -227,7 +228,9 @@ export class BotBrain {
     }
 
     findBestChest(bot, lootManager, maxRange = 80) {
-        const chests = lootManager?.getChests?.() || [];
+        const chests = lootManager?.getNearbyChests
+            ? lootManager.getNearbyChests(bot.position, maxRange, true)
+            : (lootManager?.getChests?.() || []);
         let best = null;
         let bestScore = Infinity;
 
@@ -291,7 +294,7 @@ export class BotBrain {
     updateRouteFinal(bot) {
         if (!bot.routeFinalTarget || !bot.patrolTarget) return;
         if (bot.position.distanceTo(bot.patrolTarget) > 2.6) return;
-        bot.patrolTarget = bot.routeFinalTarget.clone();
+        bot.patrolTarget.set(bot.routeFinalTarget.x, bot.routeFinalTarget.y || 0, bot.routeFinalTarget.z);
         bot.routeFinalTarget = null;
     }
 
@@ -379,23 +382,20 @@ export class BotBrain {
     getBotList(bot) {
         const manager = bot.entityManagerRef;
         if (!manager) return [];
-        const now = performance.now();
-        if (this.cachedBots && this.cachedManager === manager && now < this.cachedBotsUntil) {
-            return this.cachedBots;
-        }
-        this.cachedBots = (manager.entities || []).filter(e => e?.isAlive && e.constructor?.name === 'Bot');
-        this.cachedManager = manager;
-        this.cachedBotsUntil = now + 140;
-        return this.cachedBots;
+        return manager.entities || [];
     }
 
     countBotsNearPoint(bot, point, radius = 8) {
         if (!point) return 0;
-        const radiusSq = radius * radius;
         let count = 0;
-        const list = this.getBotList(bot);
+        const manager = bot.entityManagerRef;
+        const list = manager?.getNearbyEntities
+            ? manager.getNearbyEntities(point, radius + 1.2, 'Bot')
+            : this.getBotList(bot);
+        const radiusSq = radius * radius;
         for (const e of list) {
             if (e === bot || !e.isAlive) continue;
+            if (e.constructor?.name !== 'Bot') continue;
             const dx = e.position.x - point.x;
             const dz = e.position.z - point.z;
             if (dx * dx + dz * dz <= radiusSq) count++;
@@ -405,11 +405,15 @@ export class BotBrain {
 
     countBotsTargetingPoint(bot, point, radius = 10) {
         if (!point) return 0;
-        const radiusSq = radius * radius;
         let count = 0;
-        const list = this.getBotList(bot);
+        const manager = bot.entityManagerRef;
+        const list = manager?.getNearbyEntities
+            ? manager.getNearbyEntities(point, radius + 6, 'Bot')
+            : this.getBotList(bot);
+        const radiusSq = radius * radius;
         for (const e of list) {
             if (e === bot || !e.isAlive) continue;
+            if (e.constructor?.name !== 'Bot') continue;
             const t = e.patrolTarget || e.target?.position;
             if (!t) continue;
             const dx = t.x - point.x;
@@ -428,12 +432,16 @@ export class BotBrain {
     }
 
     getInwardTarget(bot, distance = 26) {
-        const dir = new THREE.Vector3(-bot.position.x, 0, -bot.position.z);
+        const dir = this._tmpInward.set(-bot.position.x, 0, -bot.position.z);
         if (dir.lengthSq() < 0.001) {
             dir.set(Math.random() - 0.5, 0, Math.random() - 0.5);
         }
         dir.normalize();
-        return bot.position.clone().add(dir.multiplyScalar(distance));
+        return {
+            x: bot.position.x + dir.x * distance,
+            y: bot.position.y,
+            z: bot.position.z + dir.z * distance
+        };
     }
 }
 
