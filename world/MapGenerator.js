@@ -1226,7 +1226,7 @@ export class MapGenerator {
             let created = 0;
             for (const tile of sourceCandidates) {
                 if (created >= count) break;
-                if (this.isNearRailCorridor(tile.x, tile.z, type === 'hangar' ? 16 : 14)) continue;
+                if (this.isNearRailCorridor(tile.x, tile.z, type === 'hangar' ? 44 : 16)) continue;
                 if (!this.isChestClear(tile.x, tile.z, type === 'hangar' ? 12 : 7)) continue;
                 if (!canPlace(tile.x, tile.z, type === 'hangar' ? 104 : 40)) continue;
 
@@ -1293,13 +1293,13 @@ export class MapGenerator {
         const markPlaced = (x, z) => placed.push({ x, z });
 
         const addPatch = (x, z, width, depth, material, yOffset = 0.58) => {
-            if (this.isPatchOverlappingStructure(x, z, width, depth, 1.6)) {
+            if (this.isPatchOverlappingStructure(x, z, width, depth, 4.2)) {
                 return null;
             }
             material.polygonOffset = true;
             material.polygonOffsetFactor = -2;
             material.polygonOffsetUnits = -2;
-            const patch = new THREE.Mesh(new THREE.BoxGeometry(width, 0.1, depth), material);
+            const patch = new THREE.Mesh(new THREE.BoxGeometry(width, 0.16, depth), material);
             patch.position.set(x, this.getHeightAt(x, z) + yOffset, z);
             patch.renderOrder = 20;
             patch.userData.mapGenerated = true;
@@ -1319,8 +1319,8 @@ export class MapGenerator {
         for (const tile of candidates) {
             if (patchUsed >= patchBudget) break;
             if (this.isNearRailCorridor(tile.x, tile.z, 16)) continue;
-            if (this.houseSpots.some(h => Math.abs(h.x - tile.x) < ((h.width || 9) * 0.56) && Math.abs(h.z - tile.z) < ((h.depth || 8) * 0.56))) continue;
-            if (this.hangarSpots.some(h => Math.abs(h.x - tile.x) < ((h.width || 58) * 0.58) && Math.abs(h.z - tile.z) < ((h.depth || 36) * 0.58))) continue;
+            if (this.houseSpots.some(h => Math.abs(h.x - tile.x) < ((h.width || 9) * 0.78) && Math.abs(h.z - tile.z) < ((h.depth || 8) * 0.78))) continue;
+            if (this.hangarSpots.some(h => Math.abs(h.x - tile.x) < ((h.width || 58) * 0.8) && Math.abs(h.z - tile.z) < ((h.depth || 36) * 0.8))) continue;
             if (this.isInSpawnCourtyardWorld(tile.x, tile.z, 8)) continue;
             if (!canPlace(tile.x, tile.z, 18)) continue;
 
@@ -1330,7 +1330,7 @@ export class MapGenerator {
                 const wz = tile.z + (rand() - 0.5) * 8;
                 const w = 9 + rand() * 10;
                 const d = 9 + rand() * 10;
-                const patch = addPatch(wx, wz, w, d, lakeMat, 0.8);
+                const patch = addPatch(wx, wz, w, d, lakeMat, 0.92);
                 if (!patch) continue;
                 this.waterPatches.push({ x: wx, z: wz, width: w, depth: d });
                 this.fogZones.push({ x: wx, z: wz, radius: Math.max(w, d) * 0.72, density: 0.024 + rand() * 0.016 });
@@ -1341,7 +1341,7 @@ export class MapGenerator {
             if (style === "ash") {
                 const w = 8 + rand() * 8;
                 const d = 8 + rand() * 8;
-                const patch = addPatch(tile.x, tile.z, w, d, lavaMat, 0.8);
+                const patch = addPatch(tile.x, tile.z, w, d, lavaMat, 0.92);
                 if (!patch) continue;
                 this.lavaPatches.push({ x: tile.x, z: tile.z, width: w, depth: d });
                 markPlaced(tile.x, tile.z);
@@ -1351,7 +1351,7 @@ export class MapGenerator {
             if (style === "snow") {
                 const w = 9 + rand() * 10;
                 const d = 9 + rand() * 10;
-                const patch = addPatch(tile.x, tile.z, w, d, iceLakeMat, 0.8);
+                const patch = addPatch(tile.x, tile.z, w, d, iceLakeMat, 0.92);
                 if (!patch) continue;
                 this.waterPatches.push({ x: tile.x, z: tile.z, width: w, depth: d });
                 markPlaced(tile.x, tile.z);
@@ -1361,7 +1361,7 @@ export class MapGenerator {
             if (style === "sand") {
                 const width = 12 + rand() * 12;
                 const depth = 12 + rand() * 12;
-                const patch = addPatch(tile.x, tile.z, width, depth, new THREE.MeshStandardMaterial({ color: 0xe0bf72, roughness: 1, flatShading: true }), 0.76);
+                const patch = addPatch(tile.x, tile.z, width, depth, new THREE.MeshStandardMaterial({ color: 0xe0bf72, roughness: 1, flatShading: true }), 0.9);
                 if (!patch) continue;
                 markPlaced(tile.x, tile.z);
                 patchUsed += 1;
@@ -1370,7 +1370,7 @@ export class MapGenerator {
 
             const width = 10 + rand() * 14;
             const depth = 10 + rand() * 14;
-            const patch = addPatch(tile.x, tile.z, width, depth, grassMat, 0.76);
+            const patch = addPatch(tile.x, tile.z, width, depth, grassMat, 0.9);
             if (!patch) continue;
             markPlaced(tile.x, tile.z);
             patchUsed += 1;
@@ -1389,7 +1389,7 @@ export class MapGenerator {
             if (swampTile) {
                 const w = 12;
                 const d = 12;
-                addPatch(swampTile.x, swampTile.z, w, d, lakeMat, 0.8);
+                addPatch(swampTile.x, swampTile.z, w, d, lakeMat, 0.92);
                 this.waterPatches.push({ x: swampTile.x, z: swampTile.z, width: w, depth: d });
                 this.fogZones.push({ x: swampTile.x, z: swampTile.z, radius: 8, density: 0.03 });
             }
@@ -1399,7 +1399,7 @@ export class MapGenerator {
             if (lavaTile) {
                 const w = 10;
                 const d = 10;
-                addPatch(lavaTile.x, lavaTile.z, w, d, lavaMat, 0.8);
+                addPatch(lavaTile.x, lavaTile.z, w, d, lavaMat, 0.92);
                 this.lavaPatches.push({ x: lavaTile.x, z: lavaTile.z, width: w, depth: d });
             }
         }

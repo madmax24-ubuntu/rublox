@@ -538,25 +538,28 @@ export class Bot {
             const nearby = entityManager.getNearbyEntities
                 ? entityManager.getNearbyEntities(this.position, 5.2, 'Bot')
                 : entityManager.getEntities();
-            let sep = new THREE.Vector3();
+            let sepX = 0;
+            let sepZ = 0;
             let count = 0;
             for (const e of nearby) {
                 if (e === this || !e.isAlive || e.constructor?.name !== 'Bot') continue;
-                const dist = this.position.distanceTo(e.position);
-                if (dist > 0.01 && dist < 4.8) {
+                const dx = this.position.x - e.position.x;
+                const dz = this.position.z - e.position.z;
+                const distSq = dx * dx + dz * dz;
+                if (distSq > 0.0001 && distSq < 23.04) {
+                    const dist = Math.sqrt(distSq);
+                    const inv = 1 / dist;
                     const pushPower = 1.55 / Math.max(0.22, Math.pow(dist, 1.08));
-                    const push = this.position.clone().sub(e.position).normalize().multiplyScalar(pushPower);
-                    sep.add(push);
+                    sepX += dx * inv * pushPower;
+                    sepZ += dz * inv * pushPower;
                     count += 1;
                 }
             }
             if (count > 0) {
-                sep.multiplyScalar(1.35);
-                sep.add(new THREE.Vector3((Math.random() - 0.5) * 0.45, 0, (Math.random() - 0.5) * 0.45));
-                this.physics.velocity.x += sep.x;
-                this.physics.velocity.z += sep.z;
+                this.physics.velocity.x += sepX * 1.35 + (Math.random() - 0.5) * 0.45;
+                this.physics.velocity.z += sepZ * 1.35 + (Math.random() - 0.5) * 0.45;
             }
-            this.separationTimer = 0.05 + Math.random() * 0.04;
+            this.separationTimer = 0.12 + Math.random() * 0.06;
         }
     }
 

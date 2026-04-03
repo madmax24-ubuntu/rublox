@@ -1505,6 +1505,45 @@ class Game {
         if (budget <= 0) return 0;
 
         let spawned = 0;
+        const spawnOneAtPoi = (point, forceInterior = false) => {
+            if (!point || budget <= 0 || spawned >= maxSpawn) return false;
+            const interiorSpot = this.map.findStructureInteriorPoint?.(
+                point,
+                point.type,
+                point.type === "hangar" ? 1.6 : 0.9,
+                forceInterior ? 40 : 24
+            );
+            const guardSpot = interiorSpot
+                || this.map.getStructureEntryPoint?.(point, point.type, this.player?.position || null)
+                || this.map.findStructureGuardPoint?.(point, point.type);
+            if (!guardSpot) return false;
+            const jitter = interiorSpot ? (point.type === "hangar" ? 1.2 : 0.8) : (point.type === "hangar" ? 2.2 : 1.2);
+            const x = guardSpot.x + (Math.random() - 0.5) * jitter;
+            const z = guardSpot.z + (Math.random() - 0.5) * jitter;
+            if (!this.map.isWalkableAt?.(x, z)) return false;
+            if (!this.map.isChestClear?.(x, z, 0.85, true)) return false;
+            const baseY = this.map.getSurfaceHeightAt?.(x, z) ?? this.map.getHeightAt(x, z);
+            const pos = new THREE.Vector3(x, baseY + 1.8, z);
+            if (pos.distanceTo(this.player.position) < 14) return false;
+            const zombie = new Zombie(this.scene, this.nextZombieId++, pos);
+            this.physics.addEntity(zombie);
+            this.entityManager.addEntity(zombie);
+            this.zombies.push(zombie);
+            spawned++;
+            budget--;
+            return true;
+        };
+
+        // Guaranteed presence: hangars always, houses partially.
+        for (const hangar of hangarSpots) {
+            if (budget <= 0 || spawned >= maxSpawn) break;
+            spawnOneAtPoi(hangar, true);
+        }
+        for (let i = 0; i < houseSpots.length; i += 3) {
+            if (budget <= 0 || spawned >= maxSpawn) break;
+            spawnOneAtPoi(houseSpots[i], true);
+        }
+
         let attempts = 0;
         const attemptLimit = Math.max(20, points.length * 3);
         while (budget > 0 && spawned < maxSpawn && attempts < attemptLimit) {
@@ -1519,32 +1558,7 @@ class Game {
             for (let i = 0; i < pack; i++) {
                 if (budget <= 0) break;
                 if (spawned >= maxSpawn) break;
-                const interiorSpot = this.map.findStructureInteriorPoint?.(
-                    point,
-                    point.type,
-                    point.type === "hangar" ? 2.2 : 1.05
-                );
-                const guardSpot = interiorSpot
-                    || this.map.getStructureEntryPoint?.(point, point.type, this.player?.position || null)
-                    || (point.type === "house"
-                        ? (this.map.findClearPointAround?.(point.x, point.z, 0.8, 0.5, Math.max(3.2, Math.min(point.width || 8, point.depth || 8) * 0.35))
-                            || this.map.findStructureGuardPoint?.(point, point.type))
-                        : this.map.findStructureGuardPoint?.(point, point.type));
-                if (!guardSpot) continue;
-                const jitter = interiorSpot ? 0.85 : (point.type === "hangar" ? 2.4 : 1.4);
-                const x = guardSpot.x + (Math.random() - 0.5) * jitter;
-                const z = guardSpot.z + (Math.random() - 0.5) * jitter;
-                if (!this.map.isWalkableAt?.(x, z)) continue;
-                if (!this.map.isChestClear?.(x, z, 0.9, true)) continue;
-                const baseY = this.map.getSurfaceHeightAt?.(x, z) ?? this.map.getHeightAt(x, z);
-                const pos = new THREE.Vector3(x, baseY + 1.8, z);
-                if (pos.distanceTo(this.player.position) < 16) continue;
-                const zombie = new Zombie(this.scene, this.nextZombieId++, pos);
-                this.physics.addEntity(zombie);
-                this.entityManager.addEntity(zombie);
-                this.zombies.push(zombie);
-                spawned++;
-                budget--;
+                spawnOneAtPoi(point, false);
             }
         }
         if (spawned > 0) this.poiZombieSeeded = true;
