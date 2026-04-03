@@ -16,8 +16,8 @@ export class BotBrain {
         this.decisionCooldown = 0;
         this.attackCooldown = 0;
         this.lastChestCheck = 0;
-        this.perceptionCooldown = Math.random() * 0.18;
-        this.memoryCleanupCooldown = 0.9 + Math.random() * 0.6;
+        this.perceptionCooldown = 0.2 + Math.random() * 0.25;
+        this.memoryCleanupCooldown = 1.2 + Math.random() * 0.7;
         
         // РџРµСЂСЃРѕРЅР°Р»РёР·Р°С†РёСЏ - РєР°Р¶РґС‹Р№ Р±РѕС‚ СѓРЅРёРєР°Р»РµРЅ
         this.personality = {
@@ -56,6 +56,9 @@ export class BotBrain {
         this.utilityAI = new UtilityAI();
         this.lastUtilityDecision = null;
         this.independentMode = true;
+        this.botListCache = null;
+        this.botListCacheExpire = 0;
+        this.botListCacheManager = null;
     }
     
     chooseInitialStrategy() {
@@ -88,7 +91,7 @@ export class BotBrain {
         // 1. Р’РѕСЃРїСЂРёСЏС‚РёРµ
         if (this.perceptionCooldown <= 0) {
             this.updatePerception(bot, entityManager, lootManager);
-            this.perceptionCooldown = Math.max(0.22, 0.46 - this.personality.intelligence * 0.14);
+            this.perceptionCooldown = Math.max(0.45, 0.9 - this.personality.intelligence * 0.2);
         }
         
         // 2. РћС†РµРЅРєР° СѓРіСЂРѕР·С‹
@@ -97,7 +100,7 @@ export class BotBrain {
         // 3. UtilityAI выбирает ключевое действие
         if (this.decisionCooldown <= 0) {
             this.makeSmartDecision(bot, entityManager, lootManager, threatLevel);
-            this.decisionCooldown = Math.max(0.14, 0.32 - this.personality.intelligence * 0.14);
+            this.decisionCooldown = Math.max(0.35, 0.7 - this.personality.intelligence * 0.2);
         }
 
         if (this.prefersTrainCombat) {
@@ -115,7 +118,7 @@ export class BotBrain {
         // 7. РћР±РЅРѕРІР»РµРЅРёРµ РїР°РјСЏС‚Рё
         if (this.memoryCleanupCooldown <= 0) {
             this.updateMemory(bot, entityManager);
-            this.memoryCleanupCooldown = 0.6 + Math.random() * 0.5;
+            this.memoryCleanupCooldown = 1.1 + Math.random() * 0.7;
         }
         
         // 8. РЈРїСЂР°РІР»РµРЅРёРµ СЃРѕСЋР·Р°РјРё
@@ -600,22 +603,29 @@ export class BotBrain {
         const chests = lootManager.getChests();
         let nearest = null;
         let bestScore = Infinity;
-        
+        const candidates = [];
         for (const chest of chests) {
             if (chest.userData.isOpen) continue;
-            
             const dist = bot.position.distanceTo(chest.position);
             if (dist > maxRange) continue;
-            const crowd = this.countBotsTargetingPoint(bot, chest.position, 10.5);
-            const near = this.countBotsNearPoint(bot, chest.position, 8.5);
+            candidates.push({ chest, dist });
+        }
+        if (!candidates.length) return null;
+
+        candidates.sort((a, b) => a.dist - b.dist);
+        const limit = Math.min(6, candidates.length);
+        for (let i = 0; i < limit; i++) {
+            const item = candidates[i];
+            const crowd = this.countBotsTargetingPoint(bot, item.chest.position, 10.5);
+            const near = this.countBotsNearPoint(bot, item.chest.position, 8.5);
             if (crowd >= 2 || near >= 3) continue;
-            const score = dist + crowd * 34 + near * 18;
+            const score = item.dist + crowd * 34 + near * 18;
             if (score < bestScore) {
                 bestScore = score;
-                nearest = chest;
+                nearest = item.chest;
             }
         }
-        
+
         return nearest;
     }
 
@@ -684,14 +694,31 @@ export class BotBrain {
         bot.routeFinalTarget = null;
     }
 
+    getBotListForScoring(bot) {
+        const manager = bot.entityManagerRef;
+        if (!manager) return [];
+        const now = performance.now();
+        if (
+            this.botListCache &&
+            this.botListCacheManager === manager &&
+            now < this.botListCacheExpire
+        ) {
+            return this.botListCache;
+        }
+        const entities = manager.entities || [];
+        this.botListCache = entities.filter(entity => entity?.isAlive && entity.constructor?.name === 'Bot');
+        this.botListCacheManager = manager;
+        this.botListCacheExpire = now + 120;
+        return this.botListCache;
+    }
+
     countBotsTargetingPoint(bot, point, radius = 10) {
         if (!point) return 0;
         const radiusSq = radius * radius;
         let count = 0;
-        const entities = bot.entityManagerRef?.entities || [];
+        const entities = this.getBotListForScoring(bot);
         for (const entity of entities) {
             if (!entity?.isAlive || entity === bot) continue;
-            if (entity.constructor?.name !== 'Bot') continue;
             const target = entity.patrolTarget || entity.target?.position;
             if (!target) continue;
             const dx = target.x - point.x;
@@ -705,10 +732,9 @@ export class BotBrain {
         if (!point) return 0;
         const radiusSq = radius * radius;
         let count = 0;
-        const entities = bot.entityManagerRef?.entities || [];
+        const entities = this.getBotListForScoring(bot);
         for (const entity of entities) {
             if (!entity?.isAlive || entity === bot) continue;
-            if (entity.constructor?.name !== 'Bot') continue;
             const dx = entity.position.x - point.x;
             const dz = entity.position.z - point.z;
             if (dx * dx + dz * dz <= radiusSq) count++;
@@ -1057,7 +1083,7 @@ export class BotBrain {
                 let bestTarget = null;
                 let bestScore = Infinity;
                 const preferredAngle = ((bot.id * 0.61803398875) % 1) * Math.PI * 2;
-                for (let i = 0; i < 34; i++) {
+                for (let i = 0; i < 12; i++) {
                     const tile = tiles[Math.floor(Math.random() * tiles.length)];
                     const dx = tile.x - bot.position.x;
                     const dz = tile.z - bot.position.z;
@@ -1068,7 +1094,10 @@ export class BotBrain {
                     if (map.isNearRailCorridor?.(tile.x, tile.z, 0.7)) continue;
                     const angle = Math.atan2(dz, dx);
                     const angleDiff = Math.abs(Math.atan2(Math.sin(angle - preferredAngle), Math.cos(angle - preferredAngle)));
-                    const crowd = this.countBotsTargetingPoint(bot, tile, 14) + this.countBotsNearPoint(bot, tile, 10);
+                    let crowd = 0;
+                    if (i % 2 === 0) {
+                        crowd = this.countBotsTargetingPoint(bot, tile, 14) + this.countBotsNearPoint(bot, tile, 10);
+                    }
                     const score = Math.abs(dist - (minDist + maxDist) * 0.5) + crowd * 12 + angleDiff * 2.2;
                     if (score < bestScore) {
                         bestScore = score;

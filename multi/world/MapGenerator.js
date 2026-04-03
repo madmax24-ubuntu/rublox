@@ -2135,35 +2135,35 @@ export class MapGenerator {
             group.add(roof);
 
             const ladderZ = z - 3.0;
-            const ladderStart = new THREE.Vector3(x + 9.8, baseY + 0.28, ladderZ);
-            const ladderEnd = new THREE.Vector3(x + 1.7, baseY + 8.55, ladderZ);
-            const stepsCount = 42;
-            for (let s = 0; s < stepsCount; s++) {
-                const t = s / (stepsCount - 1);
+            const ladderStart = new THREE.Vector3(x + 9.6, baseY + 0.4, ladderZ);
+            const ladderEnd = new THREE.Vector3(x + 1.4, baseY + 8.5, ladderZ);
+            const rampSteps = 20;
+            for (let s = 0; s < rampSteps; s++) {
+                const t = s / Math.max(1, rampSteps - 1);
                 const stepPos = ladderStart.clone().lerp(ladderEnd, t);
-                const step = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.16, 0.96), woodMat);
-                step.position.copy(stepPos);
-                step.userData.mapGenerated = true;
-                group.add(step);
-                this.addColliderBox(step.position.clone(), 2.8, 0.16, 0.96, true);
+                const slab = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.36, 2.0), woodMat);
+                slab.position.copy(stepPos);
+                slab.userData.mapGenerated = true;
+                group.add(slab);
+                this.addColliderBox(slab.position.clone(), 1.5, 0.36, 2.0, true);
             }
-            const topLanding = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.18, 1.6), woodMat);
-            topLanding.position.set(x + 1.2, baseY + 8.68, ladderZ);
+
+            const rungCount = 10;
+            for (let s = 0; s < rungCount; s++) {
+                const t = s / Math.max(1, rungCount - 1);
+                const stepPos = ladderStart.clone().lerp(ladderEnd, t);
+                const rung = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.12, 0.22), trunkMat);
+                rung.position.copy(stepPos);
+                rung.position.z += 1.02;
+                rung.userData.mapGenerated = true;
+                group.add(rung);
+            }
+
+            const topLanding = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.2, 2.2), woodMat);
+            topLanding.position.set(x + 1.1, baseY + 8.72, ladderZ);
             topLanding.userData.mapGenerated = true;
             group.add(topLanding);
-            this.addColliderBox(topLanding.position.clone(), 3.0, 0.18, 1.6, true);
-
-            const railLen = ladderStart.distanceTo(ladderEnd) + 0.6;
-            const railLeft = new THREE.Mesh(new THREE.BoxGeometry(0.16, railLen, 0.16), trunkMat);
-            const railRight = railLeft.clone();
-            const railMid = ladderStart.clone().add(ladderEnd).multiplyScalar(0.5);
-            railLeft.position.set(railMid.x, railMid.y, railMid.z - 0.58);
-            railRight.position.set(railMid.x, railMid.y, railMid.z + 0.58);
-            railLeft.rotation.z = -0.32;
-            railRight.rotation.z = -0.32;
-            railLeft.userData.mapGenerated = true;
-            railRight.userData.mapGenerated = true;
-            group.add(railLeft, railRight);
+            this.addColliderBox(topLanding.position.clone(), 3.2, 0.2, 2.2, true);
 
             const canopy = new THREE.Mesh(new THREE.BoxGeometry(11.5, 4.8, 11.5), leafMat);
             canopy.position.set(x, baseY + 14.4, z);
