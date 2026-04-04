@@ -73,6 +73,19 @@ const WEAPON_ASSET_CONFIG = {
 };
 
 const sharedLoadingManager = new THREE.LoadingManager();
+const _tmpAssetBox = new THREE.Box3();
+const _tmpAssetCenter = new THREE.Vector3();
+const _tmpAssetSize = new THREE.Vector3();
+
+function getTargetAssetLength(type) {
+    if (type === 'knife') return 0.9;
+    if (type === 'pistol') return 1.0;
+    if (type === 'shotgun') return 1.35;
+    if (type === 'rifle') return 1.45;
+    if (type === 'laser') return 1.3;
+    if (type === 'flamethrower') return 1.4;
+    return 1.2;
+}
 
 function getDefaultAssetColor(type) {
     if (type === 'knife') return 0xb7b7b7;
@@ -112,6 +125,22 @@ function sanitizeAssetMaterial(type, mat) {
         metalness: 0.24,
         flatShading: true
     });
+}
+
+function normalizeAssetObject(type, obj) {
+    _tmpAssetBox.setFromObject(obj);
+    if (_tmpAssetBox.isEmpty()) return;
+
+    _tmpAssetBox.getCenter(_tmpAssetCenter);
+    _tmpAssetBox.getSize(_tmpAssetSize);
+    const maxDim = Math.max(_tmpAssetSize.x, _tmpAssetSize.y, _tmpAssetSize.z, 0.0001);
+    const desired = getTargetAssetLength(type);
+    const s = desired / maxDim;
+    obj.scale.multiplyScalar(s);
+
+    _tmpAssetBox.setFromObject(obj);
+    _tmpAssetBox.getCenter(_tmpAssetCenter);
+    obj.position.sub(_tmpAssetCenter);
 }
 
 function cloneAssetTemplate(type) {
@@ -173,6 +202,7 @@ function loadWeaponAssetTemplate(type) {
                                 }
                             }
                         });
+                        normalizeAssetObject(type, obj);
                         root.add(obj);
                         weaponAssetCache.templates.set(type, root);
                         resolve(root);

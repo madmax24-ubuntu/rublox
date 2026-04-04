@@ -249,7 +249,7 @@ export class Zombie {
             this.alertTimer = 2.8;
             if (dist < 2.6 && this.attackCooldown <= 0) {
                 const targetType = target?.constructor?.name;
-                const damage = targetType === 'Bot' ? 5.2 : 7.2;
+                const damage = targetType === 'Bot' ? 2.6 : 7.2;
                 target.takeDamage(damage, false, this, 3.2);
                 this.attackCooldown = 0.72;
                 if (audioSynth) {
