@@ -457,7 +457,7 @@ export class AudioSynth {
         lp.frequency.value = 6800;
 
         const rainGain = ctx.createGain();
-        rainGain.gain.value = this.isMobileDevice ? 0.016 : 0.036;
+        rainGain.gain.value = this.isMobileDevice ? 0.012 : 0.028;
 
         noise.connect(hp);
         hp.connect(lp);
@@ -473,21 +473,8 @@ export class AudioSynth {
         }
         noise.start();
 
-        const tickTimer = setInterval(() => {
-            if (!this.audioContext || !this.radiationRainNodes) return;
-            const now = this.audioContext.currentTime;
-            const click = this.audioContext.createOscillator();
-            const clickGain = this.audioContext.createGain();
-            click.type = 'square';
-            click.frequency.setValueAtTime(1600 + Math.random() * 900, now);
-            clickGain.gain.setValueAtTime(this.isMobileDevice ? 0.006 : 0.013, now);
-            clickGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
-            click.connect(clickGain);
-            clickGain.connect(this.sfxGain);
-            click.start(now);
-            click.stop(now + 0.065);
-        }, this.isMobileDevice ? 360 : 260);
-        this.radiationRainNodes.tickTimer = tickTimer;
+        // Removed harsh periodic "click" layer that produced annoying crackle on mobile speakers.
+        this.radiationRainNodes.tickTimer = null;
     }
 
     stopRadiationRain() {

@@ -311,10 +311,9 @@ export class MapGenerator {
                 const world = this.toWorld(x, y);
                 const tileHeight = this.heightMap?.[y]?.[x] ?? 0;
                 if (tile.type === "wall") {
-                    const distSpawn = Math.hypot(world.x - spawnWorld.x, world.z - spawnWorld.z);
                     const isBoundary = x === 0 || y === 0 || x === this.gridWidth - 1 || y === this.gridHeight - 1;
-                    const keepNoise = Math.abs(Math.sin((x + 11.3) * 0.41 + (y - 7.7) * 0.37 + this.seed * 0.0017));
-                    const keepWall = isBoundary || distSpawn < this.spawnCourtyardRadius + 14 || keepNoise > 0.82;
+                    // Keep only outer border walls; inner stone blocks are converted to usable floor.
+                    const keepWall = isBoundary;
                     if (keepWall) {
                         walls.push({ x: world.x, z: world.z, y: tileHeight });
                         this.addColliderBox(new THREE.Vector3(world.x, tileHeight + this.wallHeight / 2, world.z), this.tileSize, this.wallHeight, this.tileSize, false);
@@ -2087,6 +2086,13 @@ export class MapGenerator {
 
     isLavaAt(x, z) {
         return this.lavaPatches.some(patch =>
+            Math.abs(x - patch.x) <= patch.width / 2 &&
+            Math.abs(z - patch.z) <= patch.depth / 2
+        );
+    }
+
+    isWaterAt(x, z) {
+        return this.waterPatches.some(patch =>
             Math.abs(x - patch.x) <= patch.width / 2 &&
             Math.abs(z - patch.z) <= patch.depth / 2
         );

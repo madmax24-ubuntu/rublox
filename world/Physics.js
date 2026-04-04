@@ -115,6 +115,15 @@ export class Physics {
                 if (typeof entity.takeDamage === 'function') {
                     entity.takeDamage(this.lavaDamagePerSecond * delta);
                 }
+                if (typeof entity.applyBurn === 'function') {
+                    entity.applyBurn(1.8, 3.2, null);
+                }
+            }
+
+            if (this.mapGenerator.isWaterAt?.(entity.position.x, entity.position.z)) {
+                if (typeof entity.applySlow === 'function') {
+                    entity.applySlow(0.68, 0.2);
+                }
             }
 
             // Трение
