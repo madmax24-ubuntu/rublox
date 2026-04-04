@@ -6,6 +6,7 @@ const rootDir = process.cwd();
 const SOURCE_ITEMS = [
   'index.html',
   'main.js',
+  'assets',
   'core',
   'entities',
   'items',
