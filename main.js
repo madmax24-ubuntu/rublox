@@ -251,6 +251,8 @@ class Game {
         };
         this.randomEventTimer = 35 + Math.random() * 25;
         this.activeEvent = { type: null, timer: 0, prevFog: null };
+        this.radiationRainGraceTimer = 0;
+        this.radiationRainDamageActive = false;
         this.resumeGraceTimer = 0;
         this.lastVisibilityHiddenAt = 0;
         this.rainUpdateAccumulator = 0;
@@ -775,6 +777,13 @@ class Game {
 
     setRadiationRainActive(active) {
         this.radiationRainActive = !!active;
+        if (active) {
+            this.radiationRainGraceTimer = 3.6;
+            this.radiationRainDamageActive = false;
+        } else {
+            this.radiationRainGraceTimer = 0;
+            this.radiationRainDamageActive = false;
+        }
         if (this.radiationRainEffect?.lines) {
             this.radiationRainEffect.lines.visible = !!active;
         }
@@ -904,6 +913,13 @@ class Game {
     updateRandomEvents(delta) {
         if (this.activeEvent.type) {
             this.activeEvent.timer -= delta;
+            if (this.activeEvent.type === 'radiationRain' && !this.radiationRainDamageActive) {
+                this.radiationRainGraceTimer = Math.max(0, this.radiationRainGraceTimer - delta);
+                if (this.radiationRainGraceTimer <= 0) {
+                    this.radiationRainDamageActive = true;
+                    this.hud.showGameMessage("Кислотный дождь начался!");
+                }
+            }
             if (this.activeEvent.timer <= 0) {
                 if (this.activeEvent.type === "blindness") {
                     if (this.env?.clearFogOverride) this.env.clearFogOverride();
@@ -1220,7 +1236,7 @@ class Game {
                 const damage = this.zone.getDamage(delta, this.player.position);
                 this.player.takeDamage(damage, false, null, 0, 'zone');
             }
-            if (this.activeEvent?.type === 'radiationRain' && !this.isShelteredFromRadiation(this.player.position)) {
+            if (this.activeEvent?.type === 'radiationRain' && this.radiationRainDamageActive && !this.isShelteredFromRadiation(this.player.position)) {
                 this.player.takeDamage(3.2 * delta, false, null, 0, 'storm');
             }
 
@@ -1245,7 +1261,7 @@ class Game {
             const outsideBoost = distanceOutside > 0 ? Math.min(0.24, distanceOutside * 0.015) : 0;
             const fogBoost = Math.min(0.24, Math.max(0, fogDensity - 0.004) * 30);
             const blindnessBoost = this.activeEvent?.type === 'blindness' ? 0.55 : 0;
-            const radiationBoost = this.activeEvent?.type === 'radiationRain' && !this.isShelteredFromRadiation(this.player.position) ? 0.08 : 0;
+            const radiationBoost = this.activeEvent?.type === 'radiationRain' && this.radiationRainDamageActive && !this.isShelteredFromRadiation(this.player.position) ? 0.08 : 0;
             this.hud.setVisionIntensity?.(0.12 + nightBoost + shrinkBoost + outsideBoost + fogBoost + blindnessBoost + radiationBoost);
         } else {
             this.hud.setVisionIntensity?.(0);
@@ -1410,8 +1426,10 @@ class Game {
                         bot.patrolTarget = shelter.clone();
                         bot.state = 'retreat';
                     }
-                    const rainDps = shelter ? 0.42 : 0.65;
-                    bot.takeDamage(rainDps * delta * hazardScale, false, null, 0, 'storm');
+                    if (this.radiationRainDamageActive) {
+                        const rainDps = shelter ? 0.22 : 0.34;
+                        bot.takeDamage(rainDps * delta * hazardScale, false, null, 0, 'storm');
+                    }
                 }
             }
             if (this.bots.length > 0) {

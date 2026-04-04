@@ -67,59 +67,94 @@ export class BotBrain {
             this.decisionCooldown = 0.34 + Math.random() * 0.22;
         }
 
-        this.executeState(bot, entityManager, lootManager);
+        this.executeState(bot, entityManager, lootManager, delta);
     }
 
     makeDecision(bot, entityManager, lootManager) {
-        const lowHealth = bot.health / bot.maxHealth < 0.52;
-        const lowResources = !bot.currentWeapon || lowHealth;
-        const localCrowd = this.countBotsNearPoint(bot, bot.position, 7);
+        const gear = this.getBotGearScore(bot);
+        const lowHealth = bot.health / bot.maxHealth < 0.48;
+        const lowResources = gear < 0.44 || lowHealth;
+        const localCrowd = this.countBotsNearPoint(bot, bot.position, 6.6);
+        const nearbyZombieThreat = this.countNearbyZombies(bot, entityManager, 10);
+        const nearbyLoot = this.findBestChest(bot, lootManager, lowResources ? 105 : 76);
+        const enemy = this.findBestEnemy(bot, entityManager, lowResources ? 30 : 52, gear);
 
-        const enemy = this.findBestEnemy(bot, entityManager, lowResources ? 34 : 46);
-        const chest = this.findBestChest(bot, lootManager, lowResources ? 92 : 72);
-
-        // If crowd is high, disperse first.
-        if (localCrowd >= 3 && Math.random() < 0.62) {
+        // Anti-stuck and anti-clump priority.
+        if (bot.isStuck || (localCrowd >= 3 && Math.random() < 0.7)) {
             bot.target = null;
             bot.lootTarget = null;
             bot.state = 'patrol';
-            this.setRandomPatrolTarget(bot, 16, 44);
+            this.setRandomPatrolTarget(bot, 18, 50);
             return;
         }
 
-        // Combat decision.
-        if (enemy && (bot.currentWeapon || bot.fists)) {
-            const dist = bot.position.distanceTo(enemy.position);
-            const enemyType = enemy.constructor?.name;
-            const isZombie = enemyType === 'Zombie';
-            const prefersFight = !lowResources || dist < 6 || enemyType === 'Player' || isZombie;
-            const forceFight = isZombie && dist < 12;
-            if (forceFight || (prefersFight && Math.random() < (this.aggression + 0.18))) {
-                bot.target = enemy;
+        // Survival: if zombies are too close, defend first.
+        if (nearbyZombieThreat > 0) {
+            const z = this.findClosestZombie(bot, entityManager, 13);
+            if (z) {
+                bot.target = z;
                 bot.lootTarget = null;
                 bot.state = 'hunt';
                 return;
             }
         }
 
-        // Loot decision.
-        if (chest && (lowResources || Math.random() < this.lootBias)) {
+        // Main rule: weak bot must loot first.
+        if (nearbyLoot && (lowResources || !bot.currentWeapon || Math.random() < this.lootBias)) {
             bot.target = null;
-            bot.lootTarget = chest;
+            bot.lootTarget = nearbyLoot;
             bot.state = 'explore';
-            const approach = this.getLootApproachTarget(bot, chest.position);
-            this.setPatrolTarget(bot, approach || chest.position);
+            const approach = this.getLootApproachTarget(bot, nearbyLoot.position);
+            this.setPatrolTarget(bot, approach || nearbyLoot.position);
+            return;
+        }
+
+        // Well-geared bots sometimes take train fights.
+        if (gear > 0.72 && this.shouldDoTrainCombat(bot)) {
+            const trainPoint = this.getTrainCombatTarget(bot);
+            if (trainPoint) {
+                bot.target = null;
+                bot.lootTarget = null;
+                bot.state = 'trainCombat';
+                bot.preferTrainCombat = true;
+                bot.trainCombatTimer = 9 + Math.random() * 7;
+                this.setPatrolTarget(bot, trainPoint);
+                return;
+            }
+        }
+
+        // Geared combat/hunt stage.
+        if (enemy && (bot.currentWeapon || bot.fists)) {
+            bot.target = enemy;
+            bot.lootTarget = null;
+            bot.state = 'hunt';
+            return;
+        }
+
+        // Optional continued looting even when geared.
+        if (nearbyLoot && Math.random() < 0.38) {
+            bot.target = null;
+            bot.lootTarget = nearbyLoot;
+            bot.state = 'explore';
+            const approach = this.getLootApproachTarget(bot, nearbyLoot.position);
+            this.setPatrolTarget(bot, approach || nearbyLoot.position);
             return;
         }
 
         // Patrol fallback.
         bot.target = null;
         bot.lootTarget = null;
+        bot.preferTrainCombat = false;
         bot.state = 'patrol';
-        this.setRandomPatrolTarget(bot, 16, 46);
+        this.setRandomPatrolTarget(bot, 18, 52);
     }
 
-    executeState(bot, entityManager, lootManager) {
+    executeState(bot, entityManager, lootManager, delta = 0.016) {
+        if (bot.state === 'trainCombat') {
+            this.handleTrainCombat(bot, entityManager, delta);
+            return;
+        }
+
         if (bot.state === 'hunt') {
             this.handleHunt(bot, entityManager);
             return;
@@ -185,6 +220,14 @@ export class BotBrain {
 
         const dist = bot.position.distanceTo(bot.patrolTarget);
         if (dist > 2.8) {
+            if (bot.isStuck) {
+                const newApproach = this.getLootApproachTarget(bot, chest.position);
+                if (newApproach) {
+                    this.setPatrolTarget(bot, newApproach);
+                } else {
+                    this.setRandomPatrolTarget(bot, 10, 28);
+                }
+            }
             bot.moveTowards(bot.patrolTarget, bot.physics.speed * 1.03);
             return;
         }
@@ -196,7 +239,35 @@ export class BotBrain {
         }
         bot.lootTarget = null;
         bot.state = 'patrol';
-        this.setRandomPatrolTarget(bot, 16, 40);
+        this.setRandomPatrolTarget(bot, 14, 36);
+    }
+
+    handleTrainCombat(bot, entityManager, delta = 0.016) {
+        bot.trainCombatTimer = Math.max(0, (bot.trainCombatTimer || 0) - delta);
+        bot.ignoreTrainAvoidance = true;
+
+        const trainEnemy = this.findBestEnemy(bot, entityManager, 34, this.getBotGearScore(bot));
+        if (trainEnemy) {
+            bot.target = trainEnemy;
+            this.handleHunt(bot, entityManager);
+            return;
+        }
+
+        if (!bot.patrolTarget || bot.position.distanceTo(bot.patrolTarget) < 3.2 || bot.trainCombatTimer <= 0) {
+            const nextPoint = this.getTrainCombatTarget(bot);
+            if (nextPoint) {
+                this.setPatrolTarget(bot, nextPoint);
+                bot.trainCombatTimer = 7 + Math.random() * 6;
+            } else {
+                bot.state = 'patrol';
+                bot.preferTrainCombat = false;
+                bot.ignoreTrainAvoidance = false;
+                this.setRandomPatrolTarget(bot, 16, 40);
+                return;
+            }
+        }
+        this.updateRouteFinal(bot);
+        bot.moveTowards(bot.patrolTarget, bot.physics.speed * 1.08);
     }
 
     handlePatrol(bot) {
@@ -213,7 +284,7 @@ export class BotBrain {
         bot.moveTowards(bot.patrolTarget, bot.physics.speed);
     }
 
-    findBestEnemy(bot, entityManager, range = 36) {
+    findBestEnemy(bot, entityManager, range = 36, gearScore = 0.5) {
         const nearby = entityManager.getNearbyEntities
             ? entityManager.getNearbyEntities(bot.position, range)
             : (entityManager.getEntities?.() || []);
@@ -236,9 +307,9 @@ export class BotBrain {
             const limit = type === 'Player' ? 2 : (type === 'Zombie' ? 3 : 1);
             if (attackers > limit) continue;
 
-            let score = 100 - dist * 2.1;
-            if (isPlayer) score += 16;
-            if (isZombie) score += 10;
+            let score = 100 - dist * 2.05;
+            if (isPlayer) score += (gearScore > 0.65 ? 24 : 12);
+            if (isZombie) score += (dist < 12 ? 16 : -8);
             if (!isZombie && !ent.currentWeapon) score += 7;
             if (ent.health < 45) score += 12;
             if (this.getZonePressure(bot) > 0.72) score -= 16;
@@ -267,7 +338,7 @@ export class BotBrain {
 
             const crowdTarget = this.countBotsTargetingPoint(bot, chest.position, 10);
             const crowdNear = this.countBotsNearPoint(bot, chest.position, 8);
-            if (crowdTarget >= 2 || crowdNear >= 3) continue;
+            if (crowdTarget >= 1 || crowdNear >= 2) continue;
 
             const grade = chest.userData?.grade || 'house';
             const gradeBonus = grade === 'hangar' ? -8 : 0;
@@ -384,6 +455,91 @@ export class BotBrain {
         }
 
         bot.patrolTarget = new THREE.Vector3(bot.position.x, 0, bot.position.z);
+    }
+
+    getBotGearScore(bot) {
+        let score = 0;
+        const weaponType = bot.currentWeapon?.type || 'fists';
+        if (weaponType === 'fists') score += 0.04;
+        else if (weaponType === 'knife') score += 0.2;
+        else if (weaponType === 'bow') score += 0.42;
+        else if (weaponType === 'shotgun') score += 0.65;
+        else if (weaponType === 'flamethrower') score += 0.7;
+        else if (weaponType === 'laser') score += 0.82;
+        else if (weaponType === 'pistol') score += 0.58;
+        else if (weaponType === 'rifle') score += 0.76;
+        score += Math.min(0.24, Math.max(0, (bot.armor || 0) / (bot.maxArmor || 100)) * 0.24);
+        score += Math.min(0.2, Math.max(0, bot.health / Math.max(1, bot.maxHealth)) * 0.2);
+        return Math.min(1, Math.max(0, score));
+    }
+
+    countNearbyZombies(bot, entityManager, range = 10) {
+        const near = entityManager.getNearbyEntities
+            ? entityManager.getNearbyEntities(bot.position, range)
+            : (entityManager.getEntities?.() || []);
+        let c = 0;
+        for (const e of near) {
+            if (!e?.isAlive) continue;
+            if (e.constructor?.name === 'Zombie') c++;
+        }
+        return c;
+    }
+
+    findClosestZombie(bot, entityManager, range = 12) {
+        const near = entityManager.getNearbyEntities
+            ? entityManager.getNearbyEntities(bot.position, range)
+            : (entityManager.getEntities?.() || []);
+        let best = null;
+        let bestD = range;
+        for (const e of near) {
+            if (!e?.isAlive || e.constructor?.name !== 'Zombie') continue;
+            const d = bot.position.distanceTo(e.position);
+            if (d < bestD) {
+                bestD = d;
+                best = e;
+            }
+        }
+        return best;
+    }
+
+    shouldDoTrainCombat(bot) {
+        if (!bot?.mapRef?.getRailLayout) return false;
+        if (bot.forceShelterActive) return false;
+        const rail = bot.mapRef.getRailLayout() || [];
+        if (!rail.length) return false;
+        return bot.preferTrainCombat || Math.random() < 0.28;
+    }
+
+    getTrainCombatTarget(bot) {
+        const map = bot?.mapRef;
+        if (!map?.getRailLayout) return null;
+        const rails = map.getRailLayout() || [];
+        if (!rails.length) return null;
+        let best = null;
+        let bestScore = Infinity;
+        const half = Math.max(40, (map.size || 240) * 0.42);
+        for (const r of rails) {
+            const along = (Math.random() * 2 - 1) * half;
+            const cx = r.axis === 'x' ? along : r.offset;
+            const cz = r.axis === 'x' ? r.offset : along;
+            const dx = bot.position.x - cx;
+            const dz = bot.position.z - cz;
+            const d = Math.hypot(dx, dz);
+            if (d < 7) continue;
+            const crowd = this.countBotsNearPoint(bot, { x: cx, z: cz }, 9);
+            const score = d + crowd * 18;
+            if (score < bestScore) {
+                bestScore = score;
+                best = { axis: r.axis, x: cx, z: cz };
+            }
+        }
+        if (!best) return null;
+        const side = Math.random() < 0.5 ? -1 : 1;
+        const offset = 1.9 + Math.random() * 0.8;
+        if (best.axis === 'x') {
+            return new THREE.Vector3(best.x, 0, best.z + side * offset);
+        }
+        return new THREE.Vector3(best.x + side * offset, 0, best.z);
     }
 
     countAttackersForTarget(bot, target, entityManager) {

@@ -73,8 +73,46 @@ const WEAPON_ASSET_CONFIG = {
 };
 
 const sharedLoadingManager = new THREE.LoadingManager();
-const sharedMTLLoader = new MTLLoader(sharedLoadingManager);
-const sharedOBJLoader = new OBJLoader(sharedLoadingManager);
+
+function getDefaultAssetColor(type) {
+    if (type === 'knife') return 0xb7b7b7;
+    if (type === 'laser') return 0x3f4c5a;
+    if (type === 'flamethrower') return 0x4b4b4b;
+    if (type === 'shotgun') return 0x5a4c3b;
+    if (type === 'pistol') return 0x565656;
+    if (type === 'rifle') return 0x4f5f4f;
+    return 0x6a6a6a;
+}
+
+function sanitizeAssetMaterial(type, mat) {
+    if (!mat) return null;
+    if (mat.isMeshStandardMaterial || mat.isMeshPhongMaterial || mat.isMeshLambertMaterial || mat.isMeshBasicMaterial) {
+        const hasMap = !!mat.map;
+        const color = new THREE.Color(hasMap ? 0xffffff : getDefaultAssetColor(type));
+        const next = new THREE.MeshStandardMaterial({
+            color,
+            map: mat.map || null,
+            normalMap: mat.normalMap || null,
+            roughnessMap: mat.roughnessMap || null,
+            metalnessMap: mat.metalnessMap || null,
+            aoMap: mat.aoMap || null,
+            emissiveMap: mat.emissiveMap || null,
+            emissive: 0x000000,
+            roughness: hasMap ? 0.62 : 0.45,
+            metalness: hasMap ? 0.18 : 0.28,
+            flatShading: true
+        });
+        if (next.map) next.map.colorSpace = THREE.SRGBColorSpace;
+        next.needsUpdate = true;
+        return next;
+    }
+    return new THREE.MeshStandardMaterial({
+        color: getDefaultAssetColor(type),
+        roughness: 0.45,
+        metalness: 0.24,
+        flatShading: true
+    });
+}
 
 function cloneAssetTemplate(type) {
     const template = weaponAssetCache.templates.get(type);
@@ -103,12 +141,18 @@ function loadWeaponAssetTemplate(type) {
     }
 
     const promise = new Promise((resolve) => {
-        sharedMTLLoader.load(
+        const mtlLoader = new MTLLoader(sharedLoadingManager);
+        const objLoader = new OBJLoader(sharedLoadingManager);
+        const lastSlash = Math.max(cfg.mtl.lastIndexOf('/'), cfg.obj.lastIndexOf('/'));
+        const resourcePath = lastSlash >= 0 ? cfg.mtl.slice(0, cfg.mtl.lastIndexOf('/') + 1) : '';
+        mtlLoader.setResourcePath(resourcePath);
+
+        mtlLoader.load(
             cfg.mtl,
             (materials) => {
                 materials.preload();
-                sharedOBJLoader.setMaterials(materials);
-                sharedOBJLoader.load(
+                objLoader.setMaterials(materials);
+                objLoader.load(
                     cfg.obj,
                     (obj) => {
                         const root = new THREE.Group();
@@ -121,8 +165,11 @@ function loadWeaponAssetTemplate(type) {
                                 child.castShadow = false;
                                 child.receiveShadow = false;
                                 if (child.material) {
-                                    child.material.flatShading = true;
-                                    child.material.needsUpdate = true;
+                                    if (Array.isArray(child.material)) {
+                                        child.material = child.material.map((mat) => sanitizeAssetMaterial(type, mat));
+                                    } else {
+                                        child.material = sanitizeAssetMaterial(type, child.material);
+                                    }
                                 }
                             }
                         });
