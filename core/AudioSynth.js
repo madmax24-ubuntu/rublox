@@ -15,6 +15,7 @@ export class AudioSynth {
         this.musicStarted = false;
         this.musicLoopTimer = null;
         this.musicThemeIndex = 0;
+        this.rainNoiseBuffer = null;
         this.musicVolume = this.isMobileDevice ? 0.11 : 0.14;
         this.sfxVolume = this.isMobileDevice ? 0.16 : 0.22;
         this.sampleBuffers = new Map();
@@ -137,6 +138,25 @@ export class AudioSynth {
             }
         }
         return impulse;
+    }
+
+    createRainNoiseBuffer(duration = 2.4) {
+        if (!this.audioContext) return null;
+        if (this.rainNoiseBuffer) return this.rainNoiseBuffer;
+        const rate = this.audioContext.sampleRate;
+        const length = Math.max(1, Math.floor(rate * duration));
+        const buffer = this.audioContext.createBuffer(1, length, rate);
+        const data = buffer.getChannelData(0);
+        let previous = 0;
+        for (let i = 0; i < length; i++) {
+            const white = Math.random() * 2 - 1;
+            // Soft filtered noise to avoid crackling and create rain-like texture.
+            previous = previous * 0.985 + white * 0.015;
+            const hiss = (Math.random() * 2 - 1) * 0.08;
+            data[i] = clamp(previous * 0.95 + hiss, -1, 1);
+        }
+        this.rainNoiseBuffer = buffer;
+        return buffer;
     }
 
     async loadSamples() {
@@ -382,25 +402,82 @@ export class AudioSynth {
 
     startRadiationRain(position = null) {
         if (!this.audioContext || this.radiationRainNodes) return;
+        const ctx = this.audioContext;
+        const noiseBuffer = this.createRainNoiseBuffer();
+        if (!noiseBuffer) return;
 
-        const playRainTick = () => {
-            this.playSample(this.sampleCatalog.rain, {
-                volume: this.isMobileDevice ? 0.03 : 0.05,
-                rateMin: 0.85,
-                rateMax: 1.25,
-                position,
-                reverbSend: 0.22
-            });
+        const makeLayer = (highpass, lowpass, gainValue, rate = 1) => {
+            const source = ctx.createBufferSource();
+            source.buffer = noiseBuffer;
+            source.loop = true;
+            source.playbackRate.value = rate;
+
+            const hp = ctx.createBiquadFilter();
+            hp.type = 'highpass';
+            hp.frequency.value = highpass;
+
+            const lp = ctx.createBiquadFilter();
+            lp.type = 'lowpass';
+            lp.frequency.value = lowpass;
+
+            const gain = ctx.createGain();
+            gain.gain.value = gainValue;
+
+            source.connect(hp);
+            hp.connect(lp);
+            lp.connect(gain);
+            gain.connect(this.sfxGain);
+
+            const send = ctx.createGain();
+            send.gain.value = this.isMobileDevice ? 0.12 : 0.2;
+            gain.connect(send);
+            send.connect(this.reverb);
+
+            source.start();
+            return { source, hp, lp, gain, send };
         };
 
-        playRainTick();
-        const tickTimer = setInterval(playRainTick, this.isMobileDevice ? 240 : 180);
-        this.radiationRainNodes = { tickTimer };
+        const layerSoft = makeLayer(350, 2600, this.isMobileDevice ? 0.06 : 0.09, 0.94);
+        const layerDrops = makeLayer(900, 5800, this.isMobileDevice ? 0.04 : 0.06, 1.06);
+
+        const tickTimer = setInterval(() => {
+            this.playSample(this.sampleCatalog.rain, {
+                volume: this.isMobileDevice ? 0.025 : 0.04,
+                rateMin: 0.78,
+                rateMax: 1.05,
+                position,
+                reverbSend: 0.26
+            });
+        }, this.isMobileDevice ? 900 : 700);
+
+        const rumbleTimer = setInterval(() => {
+            this.playSample(this.sampleCatalog.storm, {
+                volume: this.isMobileDevice ? 0.02 : 0.035,
+                rateMin: 0.72,
+                rateMax: 0.94,
+                position,
+                reverbSend: 0.35
+            });
+        }, this.isMobileDevice ? 7800 : 6200);
+
+        this.radiationRainNodes = { layerSoft, layerDrops, tickTimer, rumbleTimer };
     }
 
     stopRadiationRain() {
         if (!this.radiationRainNodes) return;
+        const stopLayer = (layer) => {
+            if (!layer) return;
+            try { layer.source?.stop?.(); } catch {}
+            try { layer.source?.disconnect?.(); } catch {}
+            try { layer.hp?.disconnect?.(); } catch {}
+            try { layer.lp?.disconnect?.(); } catch {}
+            try { layer.gain?.disconnect?.(); } catch {}
+            try { layer.send?.disconnect?.(); } catch {}
+        };
+        stopLayer(this.radiationRainNodes.layerSoft);
+        stopLayer(this.radiationRainNodes.layerDrops);
         if (this.radiationRainNodes.tickTimer) clearInterval(this.radiationRainNodes.tickTimer);
+        if (this.radiationRainNodes.rumbleTimer) clearInterval(this.radiationRainNodes.rumbleTimer);
         this.radiationRainNodes = null;
     }
 

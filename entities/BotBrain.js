@@ -26,6 +26,22 @@ export class BotBrain {
         this.repathCooldown = Math.max(0, this.repathCooldown - delta);
         this.lootCooldown = Math.max(0, this.lootCooldown - delta);
 
+        if (bot.forceShelterActive) {
+            if (bot.state === 'hide') {
+                bot.target = null;
+                bot.lootTarget = null;
+                return;
+            }
+            if (bot.state === 'retreat' && bot.patrolTarget) {
+                this.updateRouteFinal(bot);
+                bot.moveTowards(bot.patrolTarget, bot.physics.speed * 1.14);
+                if (bot.position.distanceTo(bot.patrolTarget) < 2.2) {
+                    bot.state = 'hide';
+                }
+                return;
+            }
+        }
+
         // Forced retreat (set by main.js during radiation rain).
         if (bot.state === 'retreat' && bot.patrolTarget) {
             this.updateRouteFinal(bot);

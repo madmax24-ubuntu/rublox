@@ -778,6 +778,13 @@ class Game {
         if (this.radiationRainEffect?.lines) {
             this.radiationRainEffect.lines.visible = !!active;
         }
+        if (!active && this.bots?.length) {
+            for (const bot of this.bots) {
+                if (!bot) continue;
+                bot.forceShelterActive = false;
+                if (bot.state === 'hide') bot.state = 'patrol';
+            }
+        }
         this.hud?.setStormActive?.(!!active, active ? 'radiation' : 'storm');
         if (active) {
             this.audioSynth?.startRadiationRain?.();
@@ -1354,6 +1361,26 @@ class Game {
             bot.update(botDelta, this.botBrains[botIndex], this.entityManager, this.lootManager, this.audioSynth, this.physics, this.zone);
         }
         if (this.gameState === 'playing') {
+            if (this.activeEvent?.type === 'radiationRain') {
+                for (const bot of this.bots) {
+                    if (!bot?.isAlive) continue;
+                    bot.forceShelterActive = true;
+                    if (this.isShelteredFromRadiation(bot.position)) {
+                        bot.target = null;
+                        bot.assistTarget = null;
+                        bot.lootTarget = null;
+                        bot.state = 'hide';
+                        continue;
+                    }
+                    const shelter = this.getNearestShelterTarget(bot.position);
+                    if (!shelter) continue;
+                    bot.target = null;
+                    bot.assistTarget = null;
+                    bot.lootTarget = null;
+                    bot.patrolTarget = shelter.clone();
+                    bot.state = 'retreat';
+                }
+            }
             const hazardBatch = Math.max(
                 this.isMobile() ? 10 : 16,
                 Math.min(this.bots.length, Math.ceil(this.bots.length * (this.isMobile() ? 0.35 : 0.5)))
@@ -1379,10 +1406,12 @@ class Game {
                     if (shelter) {
                         bot.target = null;
                         bot.assistTarget = null;
+                        bot.lootTarget = null;
                         bot.patrolTarget = shelter.clone();
                         bot.state = 'retreat';
                     }
-                    bot.takeDamage(1.45 * delta * hazardScale, false, null, 0, 'storm');
+                    const rainDps = shelter ? 0.42 : 0.65;
+                    bot.takeDamage(rainDps * delta * hazardScale, false, null, 0, 'storm');
                 }
             }
             if (this.bots.length > 0) {

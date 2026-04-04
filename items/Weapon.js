@@ -170,8 +170,10 @@ export class Weapon {
             ? new THREE.Color().setHSL(Math.random(), 0.85, 0.55)
             : null;
         this.mesh = null;
+        this.assetSwapPromise = null;
+        this._meshChangeListeners = new Set();
         this.createMesh();
-        this.trySwapToAssetModel();
+        this.assetSwapPromise = this.trySwapToAssetModel();
     }
 
     getProfile() {
@@ -571,9 +573,9 @@ export class Weapon {
 
     trySwapToAssetModel() {
         const cfg = WEAPON_ASSET_CONFIG[this.type];
-        if (!cfg || !this.scene || !this.mesh) return;
+        if (!cfg || !this.scene || !this.mesh) return Promise.resolve(false);
 
-        loadWeaponAssetTemplate(this.type).then((template) => {
+        return loadWeaponAssetTemplate(this.type).then((template) => {
             if (!template || !this.mesh || !this.scene) return;
 
             const clone = cloneAssetTemplate(this.type);
@@ -602,9 +604,29 @@ export class Weapon {
             this.scene.remove(old);
             this.mesh = clone;
             this.scene.add(this.mesh);
+            this.notifyMeshChanged();
+            return true;
         }).catch(() => {
             // Keep fallback procedural model.
+            return false;
         });
+    }
+
+    onMeshChanged(callback) {
+        if (typeof callback !== 'function') return () => {};
+        this._meshChangeListeners.add(callback);
+        return () => this._meshChangeListeners.delete(callback);
+    }
+
+    notifyMeshChanged() {
+        if (!this._meshChangeListeners.size) return;
+        for (const cb of [...this._meshChangeListeners]) {
+            try {
+                cb(this.mesh);
+            } catch {
+                // Ignore listener errors.
+            }
+        }
     }
 
     applyLaserTint(root) {

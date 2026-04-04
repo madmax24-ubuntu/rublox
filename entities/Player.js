@@ -40,6 +40,7 @@ export class Player {
         this.viewWeapon = null;
         this.viewWeaponType = null;
         this.viewWeaponBase = null;
+        this.viewWeaponRequestId = 0;
         this.viewKick = 0;
         this.punchTime = 0;
         this.punchDuration = 0.25;
@@ -1018,6 +1019,7 @@ export class Player {
     }
 
     animateViewModelWeapon(weaponType) {
+        const requestId = ++this.viewWeaponRequestId;
         if (!this.fpArms) return;
 
         if (this.viewWeapon) {
@@ -1030,21 +1032,39 @@ export class Player {
         if (!weaponType || weaponType === 'fists') return;
 
         const source = new Weapon(weaponType, this.scene);
-        if (!source.mesh) return;
-        const viewClone = source.mesh.clone();
-        this.scene.remove(source.mesh);
-        viewClone.visible = true;
-        const offset = this.getViewWeaponOffset(weaponType);
-        viewClone.scale.setScalar(offset.scale);
-        viewClone.position.copy(offset.position);
-        viewClone.rotation.copy(offset.rotation);
-        this.setupViewModel(viewClone);
-        this.fpArms.add(viewClone);
-        this.viewWeapon = viewClone;
-        this.viewWeaponBase = {
-            position: offset.position.clone(),
-            rotation: offset.rotation.clone()
+        const applyClone = () => {
+            if (requestId !== this.viewWeaponRequestId) return;
+            if (!source.mesh || !this.fpArms) return;
+
+            if (this.viewWeapon) {
+                this.fpArms.remove(this.viewWeapon);
+                this.viewWeapon = null;
+                this.viewWeaponBase = null;
+            }
+
+            const viewClone = source.mesh.clone();
+            this.scene.remove(source.mesh);
+            viewClone.visible = true;
+            const offset = this.getViewWeaponOffset(weaponType);
+            viewClone.scale.setScalar(offset.scale);
+            viewClone.position.copy(offset.position);
+            viewClone.rotation.copy(offset.rotation);
+            this.setupViewModel(viewClone);
+            this.fpArms.add(viewClone);
+            this.viewWeapon = viewClone;
+            this.viewWeaponBase = {
+                position: offset.position.clone(),
+                rotation: offset.rotation.clone()
+            };
         };
+        applyClone();
+
+        if (source.assetSwapPromise && typeof source.assetSwapPromise.then === 'function') {
+            source.assetSwapPromise.then((swapped) => {
+                if (!swapped) return;
+                applyClone();
+            }).catch(() => {});
+        }
     }
 
     updateViewWeapon() {
