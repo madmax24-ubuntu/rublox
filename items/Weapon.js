@@ -1,5 +1,7 @@
 ﻿import * as THREE from 'three';
 import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
+import { MTLLoader } from 'three/addons/loaders/MTLLoader.js';
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 
 const WEAPON_BALANCE = {
     fists: { damage: 8, range: 2.4, cooldown: 0.38, ammo: null, durability: null, projectileSpeed: 0 },
@@ -19,6 +21,129 @@ const weaponResources = {
     geometries: {},
     materials: {}
 };
+
+const weaponAssetCache = {
+    loading: new Map(),
+    templates: new Map()
+};
+
+const WEAPON_ASSET_CONFIG = {
+    knife: {
+        obj: 'assets/models/weapons/obj/Accessories/Bayonet_2.obj',
+        mtl: 'assets/models/weapons/obj/Accessories/Bayonet_2.mtl',
+        scale: 0.95,
+        rotation: new THREE.Euler(-Math.PI / 2, -Math.PI / 2, 0),
+        position: new THREE.Vector3(0, -0.05, 0)
+    },
+    pistol: {
+        obj: 'assets/models/weapons/obj/Pistol_4.obj',
+        mtl: 'assets/models/weapons/obj/Pistol_4.mtl',
+        scale: 0.65,
+        rotation: new THREE.Euler(0, -Math.PI / 2, 0),
+        position: new THREE.Vector3(0.04, 0.0, 0)
+    },
+    rifle: {
+        obj: 'assets/models/weapons/obj/AssaultRifle_3.obj',
+        mtl: 'assets/models/weapons/obj/AssaultRifle_3.mtl',
+        scale: 0.62,
+        rotation: new THREE.Euler(0, -Math.PI / 2, 0),
+        position: new THREE.Vector3(0.08, 0.0, 0)
+    },
+    shotgun: {
+        obj: 'assets/models/weapons/obj/Shotgun_2.obj',
+        mtl: 'assets/models/weapons/obj/Shotgun_2.mtl',
+        scale: 0.62,
+        rotation: new THREE.Euler(0, -Math.PI / 2, 0),
+        position: new THREE.Vector3(0.07, 0.0, 0)
+    },
+    laser: {
+        obj: 'assets/models/weapons/obj/SubmachineGun_4.obj',
+        mtl: 'assets/models/weapons/obj/SubmachineGun_4.mtl',
+        scale: 0.66,
+        rotation: new THREE.Euler(0, -Math.PI / 2, 0),
+        position: new THREE.Vector3(0.06, 0.0, 0)
+    },
+    flamethrower: {
+        obj: 'assets/models/weapons/obj/Bullpup_2.obj',
+        mtl: 'assets/models/weapons/obj/Bullpup_2.mtl',
+        scale: 0.62,
+        rotation: new THREE.Euler(0, -Math.PI / 2, 0),
+        position: new THREE.Vector3(0.06, 0.0, 0)
+    }
+};
+
+const sharedLoadingManager = new THREE.LoadingManager();
+const sharedMTLLoader = new MTLLoader(sharedLoadingManager);
+const sharedOBJLoader = new OBJLoader(sharedLoadingManager);
+
+function cloneAssetTemplate(type) {
+    const template = weaponAssetCache.templates.get(type);
+    if (!template) return null;
+    const clone = template.clone(true);
+    clone.userData.fromAssetTemplate = true;
+    clone.traverse(child => {
+        if (child.isMesh) {
+            child.frustumCulled = false;
+            child.castShadow = false;
+            child.receiveShadow = false;
+            child.userData.fromAssetTemplate = true;
+        }
+    });
+    return clone;
+}
+
+function loadWeaponAssetTemplate(type) {
+    const cfg = WEAPON_ASSET_CONFIG[type];
+    if (!cfg) return Promise.resolve(null);
+    if (weaponAssetCache.templates.has(type)) {
+        return Promise.resolve(weaponAssetCache.templates.get(type));
+    }
+    if (weaponAssetCache.loading.has(type)) {
+        return weaponAssetCache.loading.get(type);
+    }
+
+    const promise = new Promise((resolve) => {
+        sharedMTLLoader.load(
+            cfg.mtl,
+            (materials) => {
+                materials.preload();
+                sharedOBJLoader.setMaterials(materials);
+                sharedOBJLoader.load(
+                    cfg.obj,
+                    (obj) => {
+                        const root = new THREE.Group();
+                        obj.rotation.copy(cfg.rotation);
+                        obj.scale.setScalar(cfg.scale);
+                        obj.position.copy(cfg.position);
+                        obj.traverse(child => {
+                            if (child.isMesh) {
+                                child.frustumCulled = false;
+                                child.castShadow = false;
+                                child.receiveShadow = false;
+                                if (child.material) {
+                                    child.material.flatShading = true;
+                                    child.material.needsUpdate = true;
+                                }
+                            }
+                        });
+                        root.add(obj);
+                        weaponAssetCache.templates.set(type, root);
+                        resolve(root);
+                    },
+                    undefined,
+                    () => resolve(null)
+                );
+            },
+            undefined,
+            () => resolve(null)
+        );
+    }).finally(() => {
+        weaponAssetCache.loading.delete(type);
+    });
+
+    weaponAssetCache.loading.set(type, promise);
+    return promise;
+}
 
 // РҐРµР»РїРµСЂ РґР»СЏ РїРѕР»СѓС‡РµРЅРёСЏ РёР»Рё СЃРѕР·РґР°РЅРёСЏ РєСЌС€РёСЂРѕРІР°РЅРЅРѕРіРѕ РјР°С‚РµСЂРёР°Р»Р°
 function getCachedMaterial(name, creator) {
@@ -46,6 +171,7 @@ export class Weapon {
             : null;
         this.mesh = null;
         this.createMesh();
+        this.trySwapToAssetModel();
     }
 
     getProfile() {
@@ -443,6 +569,73 @@ export class Weapon {
         this.scene.add(this.mesh);
     }
 
+    trySwapToAssetModel() {
+        const cfg = WEAPON_ASSET_CONFIG[this.type];
+        if (!cfg || !this.scene || !this.mesh) return;
+
+        loadWeaponAssetTemplate(this.type).then((template) => {
+            if (!template || !this.mesh || !this.scene) return;
+
+            const clone = cloneAssetTemplate(this.type);
+            if (!clone) return;
+
+            if (this.type === 'laser' && this.laserColor) {
+                this.applyLaserTint(clone);
+            }
+            if (this.type === 'flamethrower') {
+                const tankMat = getCachedMaterial('flame_asset_tank', () => new THREE.MeshStandardMaterial({
+                    color: 0x8e9aa2,
+                    roughness: 0.4,
+                    metalness: 0.35,
+                    flatShading: true
+                }));
+                const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.35, 8), tankMat);
+                tank.position.set(-0.18, -0.18, 0);
+                clone.add(tank);
+            }
+
+            const old = this.mesh;
+            clone.visible = old.visible;
+            clone.position.copy(old.position);
+            clone.rotation.copy(old.rotation);
+
+            this.scene.remove(old);
+            this.mesh = clone;
+            this.scene.add(this.mesh);
+        }).catch(() => {
+            // Keep fallback procedural model.
+        });
+    }
+
+    applyLaserTint(root) {
+        root.traverse((child) => {
+            if (!child.isMesh || !child.material) return;
+            if (Array.isArray(child.material)) {
+                child.material = child.material.map((mat) => {
+                    const clone = mat.clone();
+                    const hsl = clone.color.getHSL({ h: 0, s: 0, l: 0 });
+                    if (hsl.l > 0.08) {
+                        clone.color.copy(this.laserColor);
+                        clone.emissive = this.laserColor.clone();
+                        clone.emissiveIntensity = 0.35;
+                        clone.needsUpdate = true;
+                    }
+                    return clone;
+                });
+            } else {
+                const mat = child.material.clone();
+                const hsl = mat.color.getHSL({ h: 0, s: 0, l: 0 });
+                if (hsl.l > 0.08) {
+                    mat.color.copy(this.laserColor);
+                    mat.emissive = this.laserColor.clone();
+                    mat.emissiveIntensity = 0.35;
+                    mat.needsUpdate = true;
+                }
+                child.material = mat;
+            }
+        });
+    }
+
     attack(owner, target, audioSynth, directionOverride = null, options = null) {
         const currentTime = performance.now() / 1000;
         if (currentTime - this.lastAttackTime < this.cooldown) {
@@ -776,8 +969,15 @@ export class Weapon {
         if (this.mesh) {
             this.scene.remove(this.mesh);
             this.mesh.traverse(child => {
+                if (child.userData?.fromAssetTemplate) return;
                 if (child.geometry) child.geometry.dispose();
-                if (child.material) child.material.dispose();
+                if (child.material) {
+                    if (Array.isArray(child.material)) {
+                        child.material.forEach(mat => mat?.dispose?.());
+                    } else {
+                        child.material.dispose();
+                    }
+                }
             });
         }
     }

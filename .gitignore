@@ -1,1 +1,6 @@
 *.zip
+# Yandex builds (never commit archives)
+single_yandex.zip
+multi_yandex.zip
+single.zip
+multi.zip
