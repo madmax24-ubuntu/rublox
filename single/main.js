@@ -457,7 +457,7 @@ class Game {
     }
 
     spawnBots() {
-        const botCount = 60;
+        const botCount = 40;
         const spawnPads = this.map.getSpawnPads?.() || [];
         const spawnRadius = 16;
         const botPads = spawnPads.length > 1 ? spawnPads.slice(1) : spawnPads;
