@@ -59,7 +59,7 @@ export class BotBrain {
         const lowResources = !bot.currentWeapon || lowHealth;
         const localCrowd = this.countBotsNearPoint(bot, bot.position, 7);
 
-        const enemy = this.findBestEnemy(bot, entityManager, lowResources ? 30 : 38);
+        const enemy = this.findBestEnemy(bot, entityManager, lowResources ? 34 : 46);
         const chest = this.findBestChest(bot, lootManager, lowResources ? 92 : 72);
 
         // If crowd is high, disperse first.
@@ -74,8 +74,11 @@ export class BotBrain {
         // Combat decision.
         if (enemy && (bot.currentWeapon || bot.fists)) {
             const dist = bot.position.distanceTo(enemy.position);
-            const prefersFight = !lowResources || dist < 6 || enemy.constructor?.name === 'Player';
-            if (prefersFight && Math.random() < (this.aggression + 0.18)) {
+            const enemyType = enemy.constructor?.name;
+            const isZombie = enemyType === 'Zombie';
+            const prefersFight = !lowResources || dist < 6 || enemyType === 'Player' || isZombie;
+            const forceFight = isZombie && dist < 12;
+            if (forceFight || (prefersFight && Math.random() < (this.aggression + 0.18))) {
                 bot.target = enemy;
                 bot.lootTarget = null;
                 bot.state = 'hunt';
@@ -124,7 +127,8 @@ export class BotBrain {
         }
 
         const attackers = this.countAttackersForTarget(bot, target, entityManager);
-        const maxAttackers = target.constructor?.name === 'Player' ? 2 : 1;
+        const targetType = target.constructor?.name;
+        const maxAttackers = targetType === 'Player' ? 2 : (targetType === 'Zombie' ? 3 : 1);
         if (attackers > maxAttackers) {
             bot.target = null;
             bot.state = 'patrol';
@@ -202,19 +206,24 @@ export class BotBrain {
         let bestScore = -Infinity;
         for (const ent of nearby) {
             if (!ent || ent === bot || !ent.isAlive) continue;
-            if (ent.constructor?.name !== 'Bot' && ent.constructor?.name !== 'Player') continue;
-            if (bot.noCombatUntil && performance.now() < bot.noCombatUntil) continue;
+            const type = ent.constructor?.name;
+            const isBot = type === 'Bot';
+            const isPlayer = type === 'Player';
+            const isZombie = type === 'Zombie';
+            if (!isBot && !isPlayer && !isZombie) continue;
+            if (!isZombie && bot.noCombatUntil && performance.now() < bot.noCombatUntil) continue;
 
             const dist = bot.position.distanceTo(ent.position);
             if (dist > range) continue;
 
             const attackers = this.countAttackersForTarget(bot, ent, entityManager);
-            const limit = ent.constructor?.name === 'Player' ? 2 : 1;
+            const limit = type === 'Player' ? 2 : (type === 'Zombie' ? 3 : 1);
             if (attackers > limit) continue;
 
             let score = 100 - dist * 2.1;
-            if (ent.constructor?.name === 'Player') score += 16;
-            if (!ent.currentWeapon) score += 7;
+            if (isPlayer) score += 16;
+            if (isZombie) score += 10;
+            if (!isZombie && !ent.currentWeapon) score += 7;
             if (ent.health < 45) score += 12;
             if (this.getZonePressure(bot) > 0.72) score -= 16;
             score -= attackers * 20;

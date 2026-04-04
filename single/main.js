@@ -334,7 +334,7 @@ class Game {
         this.countdownTimer = this.countdownTime;
         this.spawnTime = 20;
         this.spawnTimer = this.spawnTime;
-        this.botLootPhaseDuration = 26;
+        this.botLootPhaseDuration = 10;
         this.zonePhase = 'waiting';
         this.zonePhaseTimer = 28;
         this.zonePhaseIndex = 0;
@@ -493,6 +493,7 @@ class Game {
             bot.state = 'spawn';
             bot.target = null;
             bot.patrolTarget = null;
+            bot.pickupLoot?.({ type: 'weapon', weaponType: 'knife' });
             this.physics.addEntity(bot);
             this.entityManager.addEntity(bot);
             this.bots.push(bot);
