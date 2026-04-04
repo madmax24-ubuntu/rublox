@@ -202,9 +202,10 @@ function getCachedMaterial(name, creator) {
 // --- РљРћРќР•Р¦ РћРџРўРРњРР—РђР¦РР ---
 
 export class Weapon {
-    constructor(type, scene) {
+    constructor(type, scene, options = {}) {
         this.type = type; // 'knife', 'bow', 'laser', 'shotgun', 'flamethrower', 'pistol', 'rifle'
         this.scene = scene;
+        this.useAssetModel = options.useAssetModel !== false;
         this.damage = this.getDamage();
         this.range = this.getRange();
         this.cooldown = this.getCooldown();
@@ -220,7 +221,9 @@ export class Weapon {
         this.assetSwapPromise = null;
         this._meshChangeListeners = new Set();
         this.createMesh();
-        this.assetSwapPromise = this.trySwapToAssetModel();
+        if (this.useAssetModel) {
+            this.assetSwapPromise = this.trySwapToAssetModel();
+        }
     }
 
     getProfile() {
