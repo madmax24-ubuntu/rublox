@@ -52,6 +52,7 @@ import { EntityManager } from './entities/EntityManager.js';
 import { LootManager } from './items/LootManager.js';
 import { HUD } from './ui/HUD.js';
 import { YandexBridge } from './core/YandexBridge.js';
+import { GAME_CONFIG, ROUND_MODES } from './core/GameBalance.js';
 
 class Game {
     constructor(yandexBridge = null) {
@@ -228,11 +229,7 @@ class Game {
         this.partyMode = false;
         this.perkLocked = false;
         this.modeConfig = {
-            lootDensity: 0.85,
-            zombieMultiplier: 1.4,
-            footstepVolume: 0.7,
-            botVision: 0.9,
-            fogDensity: 0.0032
+            ...ROUND_MODES.hybrid
         };
         this.commandState = { help: false, enemy: false, gather: false };
         this.quickCommandCooldown = 0;
@@ -249,7 +246,7 @@ class Game {
             scavenger: false,
             survivor: false
         };
-        this.randomEventTimer = 35 + Math.random() * 25;
+        this.randomEventTimer = GAME_CONFIG.events.randomTimerMin + Math.random() * GAME_CONFIG.events.randomTimerVariance;
         this.activeEvent = { type: null, timer: 0, prevFog: null };
         this.radiationRainGraceTimer = 0;
         this.radiationRainDamageActive = false;
@@ -262,8 +259,11 @@ class Game {
         this.map = new MapGenerator(this.scene);
         this.physics = new Physics(this.scene, this.map);
         this.zone = new Zone(this.scene, this.map.size);
-        this.zoneDuration = 600;
-        this.zoneMinRadius = Math.max(24, this.zone.getCurrentRadius() * 0.15);
+        this.zoneDuration = GAME_CONFIG.zone.durationSeconds;
+        this.zoneMinRadius = Math.max(
+            GAME_CONFIG.zone.minRadiusAbsolute,
+            this.zone.getCurrentRadius() * GAME_CONFIG.zone.minRadiusFactor
+        );
         this.zone.shrink(this.zone.getCurrentRadius());
         this.zone.shrinkSpeed = 0;
         this.traps = this.map.getTraps?.() || [];
@@ -332,15 +332,15 @@ class Game {
         }
 
         this.gameState = 'countdown';
-        this.countdownTime = 10;
+        this.countdownTime = GAME_CONFIG.round.countdownSeconds;
         this.countdownTimer = this.countdownTime;
-        this.spawnTime = 20;
+        this.spawnTime = GAME_CONFIG.round.preFightInvulnerableSeconds;
         this.spawnTimer = this.spawnTime;
-        this.botLootPhaseDuration = 10;
+        this.botLootPhaseDuration = GAME_CONFIG.round.botLootPhaseSeconds;
         this.zonePhase = 'waiting';
-        this.zonePhaseTimer = 28;
+        this.zonePhaseTimer = GAME_CONFIG.zone.waitStartSeconds;
         this.zonePhaseIndex = 0;
-        this.zonePhaseCount = 8;
+        this.zonePhaseCount = GAME_CONFIG.zone.phaseCount;
         this.zonePhaseTarget = this.zone.getCurrentRadius();
         this.chestRespawnTimer = 55;
 
@@ -462,9 +462,11 @@ class Game {
     }
 
     spawnBots() {
-        const botCount = 40;
+        const botCount = this.isMobile()
+            ? GAME_CONFIG.bots.mobileCount
+            : GAME_CONFIG.bots.desktopCount;
         const spawnPads = this.map.getSpawnPads?.() || [];
-        const spawnRadius = 16;
+        const spawnRadius = GAME_CONFIG.bots.spawnRadius;
         const botPads = spawnPads.length > 1 ? spawnPads.slice(1) : spawnPads;
 
         for (let i = 0; i < botCount; i++) {
@@ -504,31 +506,8 @@ class Game {
 
     applyRoundMode(mode) {
         this.roundMode = mode || 'hybrid';
-        if (this.roundMode === 'hybrid') {
-            this.modeConfig.lootDensity = 0.85;
-            this.modeConfig.zombieMultiplier = 1.4;
-            this.modeConfig.footstepVolume = 0.7;
-            this.modeConfig.botVision = 0.9;
-            this.modeConfig.fogDensity = 0.0058;
-        } else if (this.roundMode === 'nightmare') {
-            this.modeConfig.lootDensity = 0.6;
-            this.modeConfig.zombieMultiplier = 2.2;
-            this.modeConfig.footstepVolume = 1;
-            this.modeConfig.botVision = 1.05;
-            this.modeConfig.fogDensity = 0.0068;
-        } else if (this.roundMode === 'stealth') {
-            this.modeConfig.lootDensity = 0.9;
-            this.modeConfig.zombieMultiplier = 1.1;
-            this.modeConfig.footstepVolume = 0.35;
-            this.modeConfig.botVision = 0.7;
-            this.modeConfig.fogDensity = 0.0076;
-        } else {
-            this.modeConfig.lootDensity = 1;
-            this.modeConfig.zombieMultiplier = 1;
-            this.modeConfig.footstepVolume = 1;
-            this.modeConfig.botVision = 1;
-            this.modeConfig.fogDensity = 0.0052;
-        }
+        const fallback = ROUND_MODES.classic;
+        this.modeConfig = { ...(ROUND_MODES[this.roundMode] || fallback) };
 
         this.hud.setRoundMode(this.roundMode === 'hybrid'
             ? 'Hybrid'
@@ -778,7 +757,7 @@ class Game {
     setRadiationRainActive(active) {
         this.radiationRainActive = !!active;
         if (active) {
-            this.radiationRainGraceTimer = 3.6;
+            this.radiationRainGraceTimer = GAME_CONFIG.events.radiation.graceSeconds;
             this.radiationRainDamageActive = false;
         } else {
             this.radiationRainGraceTimer = 0;
@@ -862,7 +841,7 @@ class Game {
 
     startZoneCycle() {
         this.zonePhase = 'waiting';
-        this.zonePhaseTimer = 28;
+        this.zonePhaseTimer = GAME_CONFIG.zone.waitStartSeconds;
         this.zonePhaseIndex = 0;
         this.zonePhaseTarget = this.zone.getCurrentRadius();
         this.chestRespawnTimer = 55;
@@ -885,9 +864,9 @@ class Game {
                 const stepDrop = (currentRadius - this.zoneMinRadius) / remainingSteps;
                 this.zonePhaseTarget = Math.max(this.zoneMinRadius, currentRadius - stepDrop);
                 this.zone.shrink(this.zonePhaseTarget);
-                this.zone.shrinkSpeed = Math.max(8, (currentRadius - this.zonePhaseTarget) / 10);
+                this.zone.shrinkSpeed = Math.max(8, (currentRadius - this.zonePhaseTarget) / GAME_CONFIG.zone.shrinkPhaseSeconds);
                 this.zonePhase = 'shrinking';
-                this.zonePhaseTimer = 10;
+                this.zonePhaseTimer = GAME_CONFIG.zone.shrinkPhaseSeconds;
             }
             return;
         }
@@ -905,7 +884,7 @@ class Game {
                 }
                 this.zonePhaseIndex += 1;
                 this.zonePhase = 'waiting';
-                this.zonePhaseTimer = this.zonePhaseIndex >= this.zonePhaseCount ? 9999 : 22;
+                this.zonePhaseTimer = this.zonePhaseIndex >= this.zonePhaseCount ? 9999 : GAME_CONFIG.zone.waitBetweenSeconds;
             }
         }
     }
@@ -957,12 +936,12 @@ class Game {
             this.hud.showGameMessage("Событие: Ночь");
         } else if (event === "radiationRain") {
             this.activeEvent.type = "radiationRain";
-            this.activeEvent.timer = 30;
+            this.activeEvent.timer = GAME_CONFIG.events.radiation.durationSeconds;
             this.setRadiationRainActive(true);
             this.hud.showGameMessage("Событие: Радиационный дождь. Прячьтесь в домах или ангарах!");
         }
 
-        this.randomEventTimer = 45 + Math.random() * 35;
+        this.randomEventTimer = GAME_CONFIG.events.nextEventMin + Math.random() * GAME_CONFIG.events.nextEventVariance;
     }
 
     queueZombieBurst(reset, multiplier, capOverride, count, chunk = 6) {
@@ -1237,7 +1216,7 @@ class Game {
                 this.player.takeDamage(damage, false, null, 0, 'zone');
             }
             if (this.activeEvent?.type === 'radiationRain' && this.radiationRainDamageActive && !this.isShelteredFromRadiation(this.player.position)) {
-                this.player.takeDamage(3.2 * delta, false, null, 0, 'storm');
+                this.player.takeDamage(GAME_CONFIG.events.radiation.playerDps * delta, false, null, 0, 'storm');
             }
 
             const distanceFromZone = this.zone.getDistanceFromZone(this.player.position);
@@ -1427,7 +1406,9 @@ class Game {
                         bot.state = 'retreat';
                     }
                     if (this.radiationRainDamageActive) {
-                        const rainDps = shelter ? 0.22 : 0.34;
+                        const rainDps = shelter
+                            ? GAME_CONFIG.events.radiation.botDpsNearShelter
+                            : GAME_CONFIG.events.radiation.botDpsFarShelter;
                         bot.takeDamage(rainDps * delta * hazardScale, false, null, 0, 'storm');
                     }
                 }
