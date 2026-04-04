@@ -175,6 +175,7 @@ class Game {
     initializeGame() {
         const isMobile = this.isMobile();
         this.scene = new THREE.Scene();
+        this.scene.userData.mobileMode = isMobile;
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.2, 1400);
         this.scene.userData.camera = this.camera;
 
@@ -297,6 +298,8 @@ class Game {
         this.botBrains = [];
         this.zombies = [];
         this.zombieUpdateIndex = 0;
+        this.botUpdateIndex = 0;
+        this.botFrameCounter = 0;
         this.botHazardCursor = 0;
         this.trapBotCursor = 0;
         this.pendingZombieBursts = [];
@@ -1334,10 +1337,20 @@ class Game {
             this.audioSynth.updateListener(this.camera.position, this._tmpAudioForward);
         }
 
+        this.botFrameCounter = (this.botFrameCounter + 1) % 2048;
+        const nearBotDistSq = this.isMobile() ? (80 * 80) : (110 * 110);
+        const farBotModulo = this.isMobile() ? 3 : 2;
         for (let botIndex = 0; botIndex < this.bots.length; botIndex++) {
-            if (this.bots[botIndex].isAlive) {
-                this.bots[botIndex].update(delta, this.botBrains[botIndex], this.entityManager, this.lootManager, this.audioSynth, this.physics, this.zone);
-            }
+            const bot = this.bots[botIndex];
+            if (!bot.isAlive) continue;
+            const dx = bot.position.x - this.player.position.x;
+            const dz = bot.position.z - this.player.position.z;
+            const distSq = dx * dx + dz * dz;
+            const isNear = distSq <= nearBotDistSq;
+            const shouldUpdate = isNear || ((bot.id + this.botFrameCounter) % farBotModulo === 0);
+            if (!shouldUpdate) continue;
+            const botDelta = isNear ? delta : delta * farBotModulo;
+            bot.update(botDelta, this.botBrains[botIndex], this.entityManager, this.lootManager, this.audioSynth, this.physics, this.zone);
         }
         if (this.gameState === 'playing') {
             const hazardBatch = Math.max(

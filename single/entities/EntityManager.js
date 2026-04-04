@@ -15,6 +15,8 @@ export class EntityManager {
         this._tmpVecE = new THREE.Vector3();
         this._tmpVecF = new THREE.Vector3();
         this._nearbyQueryStamp = 1;
+        this.aliveSurvivorsCache = [];
+        this.aliveSurvivorCount = 0;
     }
 
     addEntity(entity) {
@@ -120,16 +122,21 @@ export class EntityManager {
             }
         }
 
-        const aliveEntities = this.entities.filter(e => e.isAlive && this.isSurvivorEntity(e));
         this.updateEffects(delta);
-        return aliveEntities.length;
+        return this.aliveSurvivorCount;
     }
 
     rebuildSpatialIndex() {
         this.spatialIndex.clear();
+        this.aliveSurvivorsCache.length = 0;
+        this.aliveSurvivorCount = 0;
         const cellSize = this.spatialCellSize;
         for (const entity of this.entities) {
             if (!entity?.isAlive || !entity.position) continue;
+            if (this.isSurvivorEntity(entity)) {
+                this.aliveSurvivorsCache.push(entity);
+                this.aliveSurvivorCount++;
+            }
             const cx = Math.floor(entity.position.x / cellSize);
             const cz = Math.floor(entity.position.z / cellSize);
             const key = `${cx},${cz}`;
@@ -212,7 +219,11 @@ export class EntityManager {
         const p1 = currentPos || projectile.mesh.position;
         const seg = this._tmpVecA.subVectors(p1, p0);
         const segLenSq = seg.lengthSq();
-        for (const entity of this.entities) {
+        const segLen = Math.sqrt(segLenSq);
+        const mid = this._tmpVecB.copy(p0).addScaledVector(seg, 0.5);
+        const queryRadius = Math.max(2.2, segLen * 0.5 + 2.0);
+        const candidates = this.getNearbyEntities(mid, queryRadius);
+        for (const entity of candidates) {
             if (!entity.isAlive || entity === projectile.owner) continue;
 
             const basePos = entity.position;
@@ -365,11 +376,11 @@ export class EntityManager {
     }
 
     getAliveCount() {
-        return this.entities.filter(e => e.isAlive && this.isSurvivorEntity(e)).length;
+        return this.aliveSurvivorCount;
     }
 
     getAliveSurvivors() {
-        return this.entities.filter(e => e.isAlive && this.isSurvivorEntity(e));
+        return this.aliveSurvivorsCache;
     }
 
     getEntityById(id) {

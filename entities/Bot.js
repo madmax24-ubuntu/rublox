@@ -518,7 +518,7 @@ export class Bot {
         if (this.currentWeapon && this.currentWeapon.mesh && this.isAlive) {
             const limbs = this.mesh?.userData?.limbs;
             if (limbs?.rightArm) {
-                this.mesh.updateMatrixWorld(true);
+                this.mesh.updateMatrixWorld();
                 limbs.rightArm.getWorldPosition(this._tmpArmWorld);
                 this._tmpForward.set(Math.sin(this.rotation.y), 0, Math.cos(this.rotation.y));
                 this._tmpRight.set(Math.cos(this.rotation.y), 0, -Math.sin(this.rotation.y));
@@ -756,6 +756,7 @@ export class Bot {
 
     updateHealthBar(delta = 0.016) {
         if (!this.healthBar) return;
+        const isMobile = !!this.scene?.userData?.mobileMode;
         const ratio = Math.max(0, Math.min(1, this.health / this.maxHealth));
         const fill = this.healthBar.children.find(child => child.userData?.isFill);
         if (fill) {
@@ -771,22 +772,22 @@ export class Bot {
             this.healthBarLosTimer = Math.max(0, this.healthBarLosTimer - delta);
             this.healthBarAimTimer = Math.max(0, this.healthBarAimTimer - delta);
             if (this.healthBarRefreshTimer > 0) return;
-            this.healthBarRefreshTimer = 0.08 + Math.random() * 0.06;
+            this.healthBarRefreshTimer = isMobile ? 0.2 + Math.random() * 0.1 : 0.08 + Math.random() * 0.06;
             const dx = camera.position.x - this.position.x;
             const dz = camera.position.z - this.position.z;
             const distSq = dx * dx + dz * dz;
             const entityManager = this.scene.userData?.entityManager;
-            let visible = distSq < (19 * 19);
-            if (visible && entityManager?.hasLineOfSight && this.healthBarLosTimer <= 0) {
+            let visible = distSq < (isMobile ? (13 * 13) : (19 * 19));
+            if (!isMobile && visible && entityManager?.hasLineOfSight && this.healthBarLosTimer <= 0) {
                 this._tmpLosFrom.copy(camera.position);
                 this._tmpLosTo.set(this.position.x, this.position.y + (this.physics?.height || 1.8) * 0.65, this.position.z);
                 this.healthBarVisibleCached = entityManager.hasLineOfSight(this._tmpLosFrom, this._tmpLosTo, true);
                 this.healthBarLosTimer = 0.22 + Math.random() * 0.12;
             }
-            this.healthBar.visible = visible && this.healthBarVisibleCached;
+            this.healthBar.visible = isMobile ? visible : (visible && this.healthBarVisibleCached);
             if (this.healthBar.visible && this.healthBarAimTimer <= 0) {
                 this.healthBar.lookAt(camera.position);
-                this.healthBarAimTimer = 0.12;
+                this.healthBarAimTimer = isMobile ? 0.22 : 0.12;
             }
         }
     }
