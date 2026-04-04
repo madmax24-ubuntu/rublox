@@ -14,6 +14,7 @@ export class AudioSynth {
         this.musicThemeIndex = 0;
         this.musicVolume = this.isMobileDevice ? 0.12 : 0.14;
         this.sfxVolume = this.isMobileDevice ? 0.16 : 0.22;
+        this.sfxLimiter = null;
         this.radiationRainNodes = null;
         this.init();
     }
@@ -25,13 +26,20 @@ export class AudioSynth {
             this.sfxGain = this.audioContext.createGain();
             this.reverb = this.audioContext.createConvolver();
             this.reverbGain = this.audioContext.createGain();
+            this.sfxLimiter = this.audioContext.createDynamicsCompressor();
 
             this.reverb.buffer = this.createImpulse(2.0, 1.6);
             this.reverbGain.gain.value = 0.12;
+            this.sfxLimiter.threshold.value = -22;
+            this.sfxLimiter.knee.value = 18;
+            this.sfxLimiter.ratio.value = 5.5;
+            this.sfxLimiter.attack.value = 0.008;
+            this.sfxLimiter.release.value = 0.22;
 
             this.musicGain.connect(this.audioContext.destination);
-            this.sfxGain.connect(this.audioContext.destination);
-            this.sfxGain.connect(this.reverb);
+            this.sfxGain.connect(this.sfxLimiter);
+            this.sfxLimiter.connect(this.audioContext.destination);
+            this.sfxLimiter.connect(this.reverb);
             this.reverb.connect(this.reverbGain);
             this.reverbGain.connect(this.audioContext.destination);
 
@@ -136,32 +144,32 @@ export class AudioSynth {
         this.ambientRunning = true;
         const ctx = this.audioContext;
 
-        // Wind
-        const wind = ctx.createBufferSource();
-        wind.buffer = this.createNoiseBuffer(3.5);
-        wind.loop = true;
+        // Stable wind layer (no looped noise to avoid speaker crackle on mobile).
+        const windOscA = ctx.createOscillator();
+        const windOscB = ctx.createOscillator();
+        windOscA.type = 'sine';
+        windOscB.type = 'triangle';
+        windOscA.frequency.value = 118;
+        windOscB.frequency.value = 172;
         const windFilter = ctx.createBiquadFilter();
         windFilter.type = 'lowpass';
         windFilter.frequency.value = 420;
-        windFilter.Q.value = 0.4;
-        const windBand = ctx.createBiquadFilter();
-        windBand.type = 'bandpass';
-        windBand.frequency.value = 180;
-        windBand.Q.value = 0.5;
+        windFilter.Q.value = 0.45;
         const windGain = ctx.createGain();
-        windGain.gain.value = this.isMobileDevice ? 0.018 : 0.032;
-        wind.connect(windFilter);
-        windFilter.connect(windBand);
-        windBand.connect(windGain);
+        windGain.gain.value = this.isMobileDevice ? 0.011 : 0.019;
+        windOscA.connect(windFilter);
+        windOscB.connect(windFilter);
+        windFilter.connect(windGain);
         windGain.connect(this.sfxGain);
-        wind.start();
+        windOscA.start();
+        windOscB.start();
 
         // Mechanical rumble
         const rumbleOsc = ctx.createOscillator();
         rumbleOsc.type = 'sine';
         rumbleOsc.frequency.value = 38;
         const rumbleGain = ctx.createGain();
-        rumbleGain.gain.value = this.isMobileDevice ? 0.02 : 0.034;
+        rumbleGain.gain.value = this.isMobileDevice ? 0.014 : 0.024;
         const rumbleFilter = ctx.createBiquadFilter();
         rumbleFilter.type = 'lowpass';
         rumbleFilter.frequency.value = 120;
@@ -170,19 +178,35 @@ export class AudioSynth {
         rumbleGain.connect(this.sfxGain);
         rumbleOsc.start();
 
-        // Grass rustle
-        const rustle = ctx.createBufferSource();
-        rustle.buffer = this.createNoiseBuffer(2.5);
-        rustle.loop = true;
-        const rustleFilter = ctx.createBiquadFilter();
-        rustleFilter.type = 'highpass';
-        rustleFilter.frequency.value = 1200;
-        const rustleGain = ctx.createGain();
-        rustleGain.gain.value = this.isMobileDevice ? 0.007 : 0.017;
-        rustle.connect(rustleFilter);
-        rustleFilter.connect(rustleGain);
-        rustleGain.connect(this.sfxGain);
-        rustle.start();
+        // Gentle wind modulation.
+        const windLfo = ctx.createOscillator();
+        const windLfoGain = ctx.createGain();
+        windLfo.type = 'sine';
+        windLfo.frequency.value = 0.11;
+        windLfoGain.gain.value = this.isMobileDevice ? 0.004 : 0.007;
+        windLfo.connect(windLfoGain);
+        windLfoGain.connect(windGain.gain);
+        windLfo.start();
+
+        // Sparse grass rustle one-shots (enveloped, click-safe).
+        const rustleTimer = setInterval(() => {
+            if (!this.ambientRunning) return;
+            const now = ctx.currentTime;
+            const src = ctx.createBufferSource();
+            src.buffer = this.createNoiseBuffer(0.22);
+            const hp = ctx.createBiquadFilter();
+            hp.type = 'highpass';
+            hp.frequency.value = 950 + Math.random() * 350;
+            const g = ctx.createGain();
+            g.gain.setValueAtTime(0.0001, now);
+            g.gain.exponentialRampToValueAtTime(this.isMobileDevice ? 0.004 : 0.008, now + 0.03);
+            g.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
+            src.connect(hp);
+            hp.connect(g);
+            g.connect(this.sfxGain);
+            src.start(now);
+            src.stop(now + 0.22);
+        }, this.isMobileDevice ? 1800 : 1200);
 
         // Birds (sparse)
         const birdTimer = setInterval(() => {
@@ -198,15 +222,17 @@ export class AudioSynth {
             osc.stop(ctx.currentTime + 0.18);
         }, 6200);
 
-        this.ambientNodes.push({ wind, rumbleOsc, rustle, birdTimer });
+        this.ambientNodes.push({ windOscA, windOscB, rumbleOsc, windLfo, rustleTimer, birdTimer });
     }
 
     stopAmbient() {
         this.ambientRunning = false;
         for (const node of this.ambientNodes) {
-            node.wind?.stop?.();
+            node.windOscA?.stop?.();
+            node.windOscB?.stop?.();
             node.rumbleOsc?.stop?.();
-            node.rustle?.stop?.();
+            node.windLfo?.stop?.();
+            if (node.rustleTimer) clearInterval(node.rustleTimer);
             if (node.birdTimer) clearInterval(node.birdTimer);
         }
         this.ambientNodes = [];
