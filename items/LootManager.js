@@ -241,7 +241,16 @@ export class LootManager {
         chestModel.userData.isChest = true;
         chestModel.userData.isOpen = false;
         chestModel.userData.grade = grade;
-        chestModel.userData.loot = this.generateLoot(grade === 'hangar');
+        const rareChest = grade === 'hangar' || grade === 'train';
+        let generatedLoot = this.generateLoot(rareChest);
+        if (grade === 'train') {
+            const trainRoll = Math.random();
+            if (trainRoll < 0.5) generatedLoot = { type: 'weapon', weaponType: 'laser' };
+            else if (trainRoll < 0.78) generatedLoot = { type: 'weapon', weaponType: 'flamethrower' };
+            else if (trainRoll < 0.93) generatedLoot = { type: 'weapon', weaponType: 'rifle' };
+            else generatedLoot = { type: 'ammo', amount: 24 + Math.floor(Math.random() * 18) };
+        }
+        chestModel.userData.loot = generatedLoot;
         chestModel.userData.glow = glow;
         chestModel.userData.lid = lidMesh; // Сохраняем ссылку на крышку
 

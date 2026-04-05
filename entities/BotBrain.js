@@ -16,6 +16,7 @@ export class BotBrain {
         this.cachedBotsUntil = 0;
         this.cachedManager = null;
         this._tmpInward = new THREE.Vector3();
+        this._tmpPatrolVec = new THREE.Vector3();
     }
 
     update(bot, delta, entityManager, lootManager, audioSynth) {
@@ -71,6 +72,8 @@ export class BotBrain {
     }
 
     makeDecision(bot, entityManager, lootManager) {
+        const now = performance.now();
+        const preLootPhase = !!(bot.noCombatUntil && now < bot.noCombatUntil);
         const gear = this.getBotGearScore(bot);
         const lowHealth = bot.health / bot.maxHealth < 0.48;
         const lowResources = gear < 0.44 || lowHealth;
@@ -80,11 +83,11 @@ export class BotBrain {
         const enemy = this.findBestEnemy(bot, entityManager, lowResources ? 30 : 52, gear);
 
         // Anti-stuck and anti-clump priority.
-        if (bot.isStuck || (localCrowd >= 3 && Math.random() < 0.7)) {
+        if (bot.isStuck || (localCrowd >= 3 && Math.random() < 0.74)) {
             bot.target = null;
             bot.lootTarget = null;
             bot.state = 'patrol';
-            this.setRandomPatrolTarget(bot, 18, 50);
+            this.setSpreadPatrolTarget(bot, 24, 72);
             return;
         }
 
@@ -95,6 +98,26 @@ export class BotBrain {
                 bot.target = z;
                 bot.lootTarget = null;
                 bot.state = 'hunt';
+                return;
+            }
+        }
+
+        // During loot phase bots should primarily gather resources and rotate through POIs.
+        if (preLootPhase) {
+            if (nearbyLoot) {
+                bot.target = null;
+                bot.lootTarget = nearbyLoot;
+                bot.state = 'explore';
+                const approach = this.getLootApproachTarget(bot, nearbyLoot.position);
+                this.setPatrolTarget(bot, approach || nearbyLoot.position);
+                return;
+            }
+            const poi = this.getPoitarget(bot, lowResources ? 'loot' : 'safe');
+            if (poi) {
+                bot.target = null;
+                bot.lootTarget = null;
+                bot.state = 'patrol';
+                this.setPatrolTarget(bot, poi);
                 return;
             }
         }
@@ -124,7 +147,7 @@ export class BotBrain {
         }
 
         // Geared combat/hunt stage.
-        if (enemy && (bot.currentWeapon || bot.fists)) {
+        if (!preLootPhase && enemy && (bot.currentWeapon || bot.fists)) {
             bot.target = enemy;
             bot.lootTarget = null;
             bot.state = 'hunt';
@@ -146,7 +169,12 @@ export class BotBrain {
         bot.lootTarget = null;
         bot.preferTrainCombat = false;
         bot.state = 'patrol';
-        this.setRandomPatrolTarget(bot, 18, 52);
+        const poiFallback = this.getPoitarget(bot, 'safe');
+        if (poiFallback) {
+            this.setPatrolTarget(bot, poiFallback);
+        } else {
+            this.setRandomPatrolTarget(bot, 18, 52);
+        }
     }
 
     executeState(bot, entityManager, lootManager, delta = 0.016) {
@@ -173,7 +201,7 @@ export class BotBrain {
         if (!target?.isAlive) {
             bot.target = null;
             bot.state = 'patrol';
-            this.setRandomPatrolTarget(bot, 14, 36);
+            this.setSpreadPatrolTarget(bot, 18, 44);
             return;
         }
 
@@ -183,7 +211,7 @@ export class BotBrain {
         if (attackers > maxAttackers) {
             bot.target = null;
             bot.state = 'patrol';
-            this.setRandomPatrolTarget(bot, 14, 34);
+            this.setSpreadPatrolTarget(bot, 16, 40);
             return;
         }
 
@@ -210,7 +238,7 @@ export class BotBrain {
         if (!chest || chest.userData?.isOpen) {
             bot.lootTarget = null;
             bot.state = 'patrol';
-            this.setRandomPatrolTarget(bot, 14, 34);
+            this.setSpreadPatrolTarget(bot, 16, 40);
             return;
         }
 
@@ -225,7 +253,7 @@ export class BotBrain {
                 if (newApproach) {
                     this.setPatrolTarget(bot, newApproach);
                 } else {
-                    this.setRandomPatrolTarget(bot, 10, 28);
+                    this.setSpreadPatrolTarget(bot, 12, 34);
                 }
             }
             bot.moveTowards(bot.patrolTarget, bot.physics.speed * 1.03);
@@ -239,7 +267,7 @@ export class BotBrain {
         }
         bot.lootTarget = null;
         bot.state = 'patrol';
-        this.setRandomPatrolTarget(bot, 14, 36);
+        this.setSpreadPatrolTarget(bot, 18, 42);
     }
 
     handleTrainCombat(bot, entityManager, delta = 0.016) {
@@ -262,7 +290,7 @@ export class BotBrain {
                 bot.state = 'patrol';
                 bot.preferTrainCombat = false;
                 bot.ignoreTrainAvoidance = false;
-                this.setRandomPatrolTarget(bot, 16, 40);
+                this.setSpreadPatrolTarget(bot, 20, 50);
                 return;
             }
         }
@@ -271,17 +299,62 @@ export class BotBrain {
     }
 
     handlePatrol(bot) {
-        if (!bot.patrolTarget || bot.position.distanceTo(bot.patrolTarget) < 4.2 || this.repathCooldown <= 0) {
-            this.setRandomPatrolTarget(bot, 15, 42);
+        const crowdNearTarget = bot.patrolTarget ? this.countBotsNearPoint(bot, bot.patrolTarget, 8.4) : 0;
+        if (!bot.patrolTarget || bot.position.distanceTo(bot.patrolTarget) < 4.2 || this.repathCooldown <= 0 || crowdNearTarget >= 3) {
+            const poi = this.getPoitarget(bot, 'safe');
+            if (poi) {
+                this.setPatrolTarget(bot, poi);
+            } else {
+                this.setSpreadPatrolTarget(bot, 18, 52);
+            }
             this.repathCooldown = 1.2 + Math.random() * 1.1;
         }
 
         if (bot.mapRef?.isWalkableAt && !bot.mapRef.isWalkableAt(bot.patrolTarget.x, bot.patrolTarget.z)) {
-            this.setRandomPatrolTarget(bot, 16, 44);
+            this.setSpreadPatrolTarget(bot, 18, 52);
+        }
+
+        if (bot.isStuck && this.tryGuardPointRecovery(bot)) {
+            this.repathCooldown = 0.9;
+        } else if (bot.isStuck) {
+            this.setSpreadPatrolTarget(bot, 20, 58);
         }
 
         this.updateRouteFinal(bot);
         bot.moveTowards(bot.patrolTarget, bot.physics.speed);
+    }
+
+    getPoitarget(bot, mode = 'safe') {
+        const map = bot?.mapRef;
+        if (!map) return null;
+        const houses = map.getHouseSpots?.() || [];
+        const hangars = map.getHangarSpots?.() || [];
+        const points = [
+            ...houses.map((s) => ({ x: s.x, z: s.z, type: 'house', width: s.width || 9, depth: s.depth || 8 })),
+            ...hangars.map((s) => ({ x: s.x, z: s.z, type: 'hangar', width: s.width || 58, depth: s.depth || 36 }))
+        ];
+        if (!points.length) return null;
+
+        const zoneRadius = bot.zoneRef?.getCurrentRadius?.() || (map.size ? map.size * 0.5 : 220);
+        let best = null;
+        let bestScore = Infinity;
+        for (const p of points) {
+            const dist = Math.hypot(bot.position.x - p.x, bot.position.z - p.z);
+            if (dist < 6) continue;
+            if (Math.hypot(p.x, p.z) > zoneRadius * 0.88) continue;
+            const crowd = this.countBotsNearPoint(bot, p, p.type === 'hangar' ? 18 : 11);
+            if (crowd >= (p.type === 'hangar' ? 5 : 3)) continue;
+            const lootBias = mode === 'loot' ? (p.type === 'hangar' ? -10 : -4) : 0;
+            const score = dist + crowd * 16 + lootBias;
+            if (score < bestScore) {
+                bestScore = score;
+                best = p;
+            }
+        }
+        if (!best) return null;
+        const entry = map.getStructureEntryPoint?.(best, best.type, bot.position);
+        if (entry) return new THREE.Vector3(entry.x, 0, entry.z);
+        return new THREE.Vector3(best.x, 0, best.z);
     }
 
     findBestEnemy(bot, entityManager, range = 36, gearScore = 0.5) {
@@ -455,6 +528,47 @@ export class BotBrain {
         }
 
         bot.patrolTarget = new THREE.Vector3(bot.position.x, 0, bot.position.z);
+    }
+
+    setSpreadPatrolTarget(bot, minDist = 20, maxDist = 58) {
+        const preferredAngle = ((bot.id * 0.61803398875 + this.roleBias) % 1) * Math.PI * 2;
+        const targetDist = minDist + Math.random() * Math.max(1, (maxDist - minDist));
+        const angleJitter = (Math.random() - 0.5) * 1.6;
+        const candidate = this._tmpPatrolVec.set(
+            bot.position.x + Math.cos(preferredAngle + angleJitter) * targetDist,
+            0,
+            bot.position.z + Math.sin(preferredAngle + angleJitter) * targetDist
+        );
+
+        if (bot.mapRef?.isWalkableAt && bot.mapRef.isWalkableAt(candidate.x, candidate.z)) {
+            this.setPatrolTarget(bot, candidate);
+            return;
+        }
+        this.setRandomPatrolTarget(bot, minDist, maxDist);
+    }
+
+    tryGuardPointRecovery(bot) {
+        const map = bot?.mapRef;
+        if (!map?.getStructureAtPoint) return false;
+
+        const target = bot.routeFinalTarget || bot.patrolTarget;
+        if (!target) return false;
+
+        const info = map.getStructureAtPoint(target.x, target.z, 0.45);
+        if (!info) return false;
+
+        const guard = map.findStructureGuardPoint?.(info.structure, info.type);
+        if (guard) {
+            this.setPatrolTarget(bot, new THREE.Vector3(guard.x, 0, guard.z));
+            return true;
+        }
+
+        const entry = map.getStructureEntryPoint?.(info.structure, info.type, bot.position);
+        if (entry) {
+            this.setPatrolTarget(bot, new THREE.Vector3(entry.x, 0, entry.z));
+            return true;
+        }
+        return false;
     }
 
     getBotGearScore(bot) {

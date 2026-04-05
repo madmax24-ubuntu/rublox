@@ -21,6 +21,7 @@ export class MapGenerator {
         this.playerSpawn = null;
         this.storyPOIs = [];
         this.storyNotes = [];
+        this.poiZones = [];
         this.propMeshes = [];
         this.leafMeshes = [];
         this.smallPropMeshes = [];
@@ -257,6 +258,7 @@ export class MapGenerator {
         this.smallPropMeshes = [];
         this.storyPOIs = [];
         this.storyNotes = [];
+        this.poiZones = [];
         this.houseSpots = [];
         this.hangarSpots = [];
         this.trainRoutes = [];
@@ -1229,6 +1231,12 @@ export class MapGenerator {
 
         const placed = [];
         const canPlace = (x, z, minDist) => !placed.some(p => Math.hypot(p.x - x, p.z - z) < minDist);
+        const byTheme = (themes) => candidates.filter(t => themes.includes(this.getBiomeVisualTheme(t.biome || this.surfaceTheme)));
+        const forestCandidates = byTheme(['grass', 'swamp']);
+        const iceCandidates = byTheme(['snow']);
+        const industrialCandidates = byTheme(['mesa', 'ash']);
+        const mixedCandidates = candidates.filter(t => !iceCandidates.includes(t));
+        const nearRailCandidates = candidates.filter(t => this.isNearRailCorridor(t.x, t.z, 34));
 
         const placeStructure = (type, count, sourceCandidates = candidates) => {
             let created = 0;
@@ -1243,11 +1251,27 @@ export class MapGenerator {
                 if (type === 'house') {
                     const variant = this.houseVariants[Math.floor(rand() * this.houseVariants.length)];
                     this.addOpenBuildingShell(group, new THREE.Vector3(tile.x, 0, tile.z), variant);
-                    this.houseSpots.push({ x: tile.x, z: tile.z, width: variant.width, depth: variant.depth, height: variant.height, style: variant.style });
+                    this.houseSpots.push({
+                        x: tile.x,
+                        z: tile.z,
+                        width: variant.width,
+                        depth: variant.depth,
+                        height: variant.height,
+                        style: variant.style,
+                        biome: this.getBiomeVisualTheme(tile.biome || this.surfaceTheme)
+                    });
                 } else {
                     const variant = this.hangarVariants[Math.floor(rand() * this.hangarVariants.length)];
                     this.addOpenBuildingShell(group, new THREE.Vector3(tile.x, 0, tile.z), variant);
-                    this.hangarSpots.push({ x: tile.x, z: tile.z, width: variant.width, depth: variant.depth, height: variant.height, style: variant.style });
+                    this.hangarSpots.push({
+                        x: tile.x,
+                        z: tile.z,
+                        width: variant.width,
+                        depth: variant.depth,
+                        height: variant.height,
+                        style: variant.style,
+                        biome: this.getBiomeVisualTheme(tile.biome || this.surfaceTheme)
+                    });
                 }
                 this.scene.add(group);
                 placed.push({ x: tile.x, z: tile.z });
@@ -1257,18 +1281,31 @@ export class MapGenerator {
         };
 
         const guaranteedNearHangars = placeStructure('hangar', 2, nearSpawnCandidates);
-        placeStructure('house', 96);
-        placeStructure('hangar', 6 - guaranteedNearHangars);
-        this.buildTreeHouses(candidates, rand, placed);
+        const railHangars = placeStructure('hangar', 2, nearRailCandidates);
+        const iceHouses = placeStructure('house', 18, iceCandidates);
+        const forestHouses = placeStructure('house', 44, forestCandidates);
+        const mixedHouses = placeStructure('house', 58, mixedCandidates);
+        const hangarsNeeded = Math.max(0, 8 - guaranteedNearHangars - railHangars);
+        const lateHangars = placeStructure('hangar', hangarsNeeded, industrialCandidates.length ? industrialCandidates : candidates);
+        this.buildTreeHouses(forestCandidates.length ? forestCandidates : candidates, rand, placed);
+
+        this.poiZones = [
+            { type: 'rail', weight: 1.0, count: this.railLayout?.length || 0 },
+            { type: 'houses_forest', weight: 0.9, count: forestHouses },
+            { type: 'houses_ice', weight: 0.7, count: iceHouses },
+            { type: 'houses_mixed', weight: 0.8, count: mixedHouses },
+            { type: 'hangars', weight: 1.0, count: guaranteedNearHangars + railHangars + lateHangars }
+        ];
 
         const rockMat = new THREE.MeshStandardMaterial({ color: 0x696969, roughness: 0.92, flatShading: true });
         let rockPlaced = 0;
-        for (const tile of candidates) {
-            if (rockPlaced >= 12) break;
+        const boulderSource = industrialCandidates.length ? industrialCandidates : candidates;
+        for (const tile of boulderSource) {
+            if (rockPlaced >= 5) break;
             if (this.isNearRailCorridor(tile.x, tile.z, 12)) continue;
             if (!this.isChestClear(tile.x, tile.z, 6.6)) continue;
-            if (!canPlace(tile.x, tile.z, 22)) continue;
-            if (rand() > 0.28) continue;
+            if (!canPlace(tile.x, tile.z, 28)) continue;
+            if (rand() > 0.16) continue;
             const mesh = new THREE.Mesh(new THREE.DodecahedronGeometry(5.6 + rand() * 2.2, 0), rockMat);
             const scale = 1 + rand() * 0.45;
             mesh.scale.set(scale, 0.82 + rand() * 0.28, scale * (0.82 + rand() * 0.2));
@@ -1325,6 +1362,7 @@ export class MapGenerator {
         for (const tile of candidates) {
             if (patchUsed >= patchBudget) break;
             if (this.isNearRailCorridor(tile.x, tile.z, 16)) continue;
+            if (this.getStructureAtPoint(tile.x, tile.z, 1.2)) continue;
             if (this.houseSpots.some(h => Math.abs(h.x - tile.x) < ((h.width || 9) * 0.78) && Math.abs(h.z - tile.z) < ((h.depth || 8) * 0.78))) continue;
             if (this.hangarSpots.some(h => Math.abs(h.x - tile.x) < ((h.width || 58) * 0.8) && Math.abs(h.z - tile.z) < ((h.depth || 36) * 0.8))) continue;
             if (this.isInSpawnCourtyardWorld(tile.x, tile.z, 8)) continue;
@@ -1434,6 +1472,13 @@ export class MapGenerator {
             roughness: 0.92,
             flatShading: true
         });
+        // Reduce rail z-fighting/shimmering on mobile and long-distance views.
+        railMat.polygonOffset = true;
+        railMat.polygonOffsetFactor = -1;
+        railMat.polygonOffsetUnits = -2;
+        sleeperMat.polygonOffset = true;
+        sleeperMat.polygonOffsetFactor = -0.5;
+        sleeperMat.polygonOffsetUnits = -1;
         const routeDefs = this.railLayout.length ? this.railLayout : [
             { axis: 'x', offset: -this.size * 0.34, halfWidth: 9.5 },
             { axis: 'x', offset: this.size * 0.34, halfWidth: 9.5 }
@@ -1474,6 +1519,10 @@ export class MapGenerator {
             const railLeftInst = new THREE.InstancedMesh(railGeo, railMat, visualSegments);
             const railRightInst = new THREE.InstancedMesh(railGeo, railMat, visualSegments);
             const sleeperInst = new THREE.InstancedMesh(sleeperGeo, sleeperMat, sleeperCount);
+            ballastInst.frustumCulled = false;
+            railLeftInst.frustumCulled = false;
+            railRightInst.frustumCulled = false;
+            sleeperInst.frustumCulled = false;
             ballastInst.userData.mapGenerated = true;
             railLeftInst.userData.mapGenerated = true;
             railRightInst.userData.mapGenerated = true;
@@ -1731,6 +1780,28 @@ export class MapGenerator {
                 }
             }
         }
+
+        // Rail hotspots: rare, high-risk loot near train route ends.
+        for (const route of this.railLayout || []) {
+            const endpoints = [
+                route.axis === 'x' ? { x: route.min + 6, z: route.offset } : { x: route.offset, z: route.min + 6 },
+                route.axis === 'x' ? { x: route.max - 6, z: route.offset } : { x: route.offset, z: route.max - 6 }
+            ];
+            for (const ep of endpoints) {
+                const offsets = [
+                    { x: ep.x, z: ep.z },
+                    { x: ep.x + (route.axis === 'x' ? 0 : 4), z: ep.z + (route.axis === 'x' ? 4 : 0) }
+                ];
+                for (const p of offsets) {
+                    const key = `${Math.round(p.x)}:${Math.round(p.z)}`;
+                    if (used.has(key)) continue;
+                    if (!this.isWalkableAt(p.x, p.z)) continue;
+                    if (!this.isChestClear(p.x, p.z, 1.0, true)) continue;
+                    this.chestSpots.push({ x: p.x, z: p.z, grade: 'train' });
+                    used.add(key);
+                }
+            }
+        }
     }
 
     toWorld(x, y) {
@@ -1814,8 +1885,13 @@ export class MapGenerator {
     }
 
     getFloorVariant(biome, gx, gy) {
-        const n = this.hashNoise(gx / 7, gy / 7, 1);
-        return Math.floor(n * 3) % 3;
+        // Lower-frequency clustering reduces shimmering/checker flicker on mobile screens.
+        const n1 = this.hashNoise(gx / 18, gy / 18, 1);
+        const n2 = this.hashNoise((gx + 73) / 42, (gy - 41) / 42, 2);
+        const n = Math.max(0, Math.min(1, n1 * 0.72 + n2 * 0.28));
+        if (n < 0.34) return 0;
+        if (n < 0.68) return 1;
+        return 2;
     }
 
     getBiomeVariantColor(biome, variant) {

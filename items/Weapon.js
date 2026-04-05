@@ -5,13 +5,13 @@ import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 
 const WEAPON_BALANCE = {
     fists: { damage: 8, range: 2.4, cooldown: 0.38, ammo: null, durability: null, projectileSpeed: 0 },
-    knife: { damage: 20, range: 3.1, cooldown: 0.45, ammo: null, durability: 80, projectileSpeed: 0 },
-    bow: { damage: 24, range: 20, cooldown: 1.22, ammo: 48, durability: null, projectileSpeed: 46 },
-    laser: { damage: 28, range: 94, cooldown: 0.34, ammo: 30, durability: null, projectileSpeed: 62 },
-    shotgun: { damage: 11, range: 17, cooldown: 0.95, ammo: 36, durability: null, projectileSpeed: 52, pellets: 8 },
-    flamethrower: { damage: 4.2, range: 14, cooldown: 0.12, ammo: 260, durability: null, projectileSpeed: 16, flameCount: 4 },
-    pistol: { damage: 18, range: 68, cooldown: 0.36, ammo: 90, durability: null, projectileSpeed: 82 },
-    rifle: { damage: 24, range: 102, cooldown: 0.24, ammo: 120, durability: null, projectileSpeed: 98 }
+    knife: { damage: 22, range: 3.35, cooldown: 0.42, ammo: null, durability: 80, projectileSpeed: 0 },
+    bow: { damage: 20, range: 20, cooldown: 1.18, ammo: 48, durability: null, projectileSpeed: 46 },
+    laser: { damage: 23, range: 86, cooldown: 0.34, ammo: 30, durability: null, projectileSpeed: 62 },
+    shotgun: { damage: 13, range: 14, cooldown: 0.98, ammo: 36, durability: null, projectileSpeed: 48, pellets: 7 },
+    flamethrower: { damage: 3.8, range: 13.5, cooldown: 0.12, ammo: 260, durability: null, projectileSpeed: 16, flameCount: 4 },
+    pistol: { damage: 20, range: 62, cooldown: 0.36, ammo: 90, durability: null, projectileSpeed: 82 },
+    rifle: { damage: 27, range: 96, cooldown: 0.28, ammo: 120, durability: null, projectileSpeed: 98 }
 };
 
 // --- РћРџРўРРњРР—РђР¦РРЇ ---
@@ -235,7 +235,8 @@ export class Weapon {
     constructor(type, scene, options = {}) {
         this.type = type; // 'knife', 'bow', 'laser', 'shotgun', 'flamethrower', 'pistol', 'rifle'
         this.scene = scene;
-        this.useAssetModel = options.useAssetModel !== false;
+        // Asset models remain opt-in because some devices render imported materials incorrectly (black meshes).
+        this.useAssetModel = options.useAssetModel === true;
         this.damage = this.getDamage();
         this.range = this.getRange();
         this.cooldown = this.getCooldown();
@@ -822,7 +823,7 @@ export class Weapon {
                 );
                 const dir = direction.clone().add(spread).normalize();
                 const pellet = this.createProjectile(owner.position.clone(), dir);
-                pellet.lifetime = 0.32;
+                pellet.lifetime = Math.max(0.2, this.getProfile().range / Math.max(1, pellet.speed));
                 pellet.damage = this.damage;
                 pellets.push(pellet);
             }
@@ -982,6 +983,10 @@ export class Weapon {
             ? (WEAPON_BALANCE.flamethrower.projectileSpeed || 16)
             : (WEAPON_BALANCE[type]?.projectileSpeed || this.getProfile().projectileSpeed || 30);
 
+        const maxDistance = type === 'flame'
+            ? (WEAPON_BALANCE.flamethrower.range || 13.5)
+            : (WEAPON_BALANCE[type]?.range || this.getProfile().range || 60);
+
         return {
             mesh,
             direction: direction.clone(),
@@ -993,7 +998,7 @@ export class Weapon {
             gravity,
             lifetime: type === 'flame' ? 0.6 : 5,
             travelled: 0,
-            maxDistance: type === 'bow' ? 20 : Infinity,
+            maxDistance,
             align: type === 'bow' ? 'arrow' : null,
             type
         };

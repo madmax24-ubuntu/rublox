@@ -7,7 +7,7 @@ export const GAME_CONFIG = {
     round: {
         countdownSeconds: 10,
         preFightInvulnerableSeconds: 20,
-        botLootPhaseSeconds: 10
+        botLootPhaseSeconds: 18
     },
     zone: {
         durationSeconds: 600,
@@ -25,10 +25,10 @@ export const GAME_CONFIG = {
         nextEventVariance: 35,
         radiation: {
             durationSeconds: 30,
-            graceSeconds: 3.6,
+            graceSeconds: 4.0,
             playerDps: 3.2,
-            botDpsNearShelter: 0.22,
-            botDpsFarShelter: 0.34
+            botDpsNearShelter: 0.16,
+            botDpsFarShelter: 0.24
         }
     }
 };

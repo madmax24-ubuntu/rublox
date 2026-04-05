@@ -235,10 +235,14 @@ class Game {
         this.quickCommandCooldown = 0;
         this.dropTriggeredAt = new Set();
         this.perkMenuOpen = false;
+        this.perkSelectionRequired = false;
         this.perkMenuIndex = 0;
         this.perkKeyLatch = false;
         this.pauseKeyLatch = false;
         this.menuKeyLatch = { w: false, s: false, e: false };
+        this.hudStatsTimer = 0;
+        this.hudInventoryTimer = 0;
+        this.lastInventorySignature = '';
         this.noteCooldown = 0;
         this.achievementState = {
             firstBlood: false,
@@ -348,7 +352,13 @@ class Game {
         this.applyRoundMode('hybrid');
         this.applyUserSettings(this.loadUserSettings());
         this.hud.setPerkSelectionEnabled(true);
-        this.hud.showGameMessage('Выберите перк до старта матча. Клавиша P');
+        this.hud.setPerkPanelLock(true);
+        this.hud.showGameMessage(this.isMobile()
+            ? 'Выберите перк до старта матча'
+            : 'Выберите перк до старта матча. Клавиша P');
+        this.perkMenuOpen = true;
+        this.perkSelectionRequired = true;
+        this.hud.togglePerkPanel(true);
 
         window.addEventListener('resize', () => {
             this.applyRendererSizing();
@@ -579,6 +589,13 @@ class Game {
         this.audioSynth?.setSfxVolume?.(safe.sfxVolume);
         this.player?.setLookSensitivityMultiplier?.(safe.lookSensitivity);
         this.hud?.setSettingsValues?.(safe);
+    }
+
+    resetUserSettings() {
+        const defaults = { musicVolume: 0.14, sfxVolume: 0.22, lookSensitivity: 1 };
+        localStorage.setItem('mazearena_settings', JSON.stringify(defaults));
+        this.applyUserSettings(defaults);
+        this.hud?.showGameMessage?.('Настройки сброшены');
     }
 
     assignFriendlyBots(count = 2) {
@@ -1057,7 +1074,7 @@ class Game {
         const canSelectPerk = this.gameState === 'countdown' && !this.perkLocked;
         if (this.input.isKeyPressed('KeyP') && canSelectPerk) {
             if (!this.perkKeyLatch) {
-                this.perkMenuOpen = !this.perkMenuOpen;
+                this.perkMenuOpen = this.perkSelectionRequired ? true : !this.perkMenuOpen;
                 this.hud.togglePerkPanel(this.perkMenuOpen);
                 if (this.perkMenuOpen) {
                     this.perkMenuIndex = this.hud.getPerkMenuSelection();
@@ -1067,6 +1084,10 @@ class Game {
             }
         } else {
             this.perkKeyLatch = false;
+        }
+        if (this.perkSelectionRequired && canSelectPerk && !this.perkMenuOpen) {
+            this.perkMenuOpen = true;
+            this.hud.togglePerkPanel(true);
         }
 
         if (this.perkMenuOpen) {
@@ -1109,9 +1130,15 @@ class Game {
             this.hud.showCountdown(Math.ceil(this.countdownTimer));
 
             if (this.countdownTimer <= 0) {
+                if (!this.perkLocked) {
+                    this.applyPerk('quickHands');
+                    this.perkLocked = true;
+                }
                 this.gameState = 'spawn';
                 this.perkLocked = true;
+                this.perkSelectionRequired = false;
                 this.perkMenuOpen = false;
+                this.hud.setPerkPanelLock(false);
                 this.hud.togglePerkPanel(false);
                 this.hud.setPerkSelectionEnabled(false);
                 this.hud.hideCountdown();
@@ -1442,10 +1469,14 @@ class Game {
             this.updateAchievements(aliveCountBeforeHazards);
         }
 
-        this.hud.updateHealth(this.player.health, this.player.maxHealth);
-        this.hud.updateArmor(this.player.armor, this.player.maxArmor);
-        this.hud.updatePlayersCount(aliveCountBeforeHazards);
-        this.hud.updateAmmo(this.player.currentWeapon || this.player.fists);
+        this.hudStatsTimer -= delta;
+        if (this.hudStatsTimer <= 0) {
+            this.hud.updateHealth(this.player.health, this.player.maxHealth);
+            this.hud.updateArmor(this.player.armor, this.player.maxArmor);
+            this.hud.updatePlayersCount(aliveCountBeforeHazards);
+            this.hud.updateAmmo(this.player.currentWeapon || this.player.fists);
+            this.hudStatsTimer = this.isMobile() ? 0.1 : 0.06;
+        }
         if (this.traps && this.traps.length) {
             const applyTrap = (entity) => {
                 if (!entity.isAlive) return;
@@ -1495,7 +1526,13 @@ class Game {
             if (!item) return null;
             return { type: item.type };
         });
-        this.hud.updateInventory(inventoryItems, this.player.inventory.selectedSlot);
+        this.hudInventoryTimer -= delta;
+        const inventorySignature = `${this.player.inventory.selectedSlot}|${inventoryItems.map(item => item ? item.type : '-').join(',')}`;
+        if (this.hudInventoryTimer <= 0 || inventorySignature !== this.lastInventorySignature) {
+            this.hud.updateInventory(inventoryItems, this.player.inventory.selectedSlot);
+            this.lastInventorySignature = inventorySignature;
+            this.hudInventoryTimer = this.isMobile() ? 0.14 : 0.08;
+        }
 
         if (this.gameState === 'playing' && !this.roundFinished) {
             if (aliveCount === 0) {
@@ -1513,9 +1550,7 @@ class Game {
             }
         }
 
-        if (this.spawnTimer <= 0 || this.spawnTimer % 1 < 0.1) {
-            this.hud.updatePlayersCount(this.entityManager.getAliveCount());
-        }
+        // players count is updated by throttled hudStatsTimer block above
     }
 
     getLocalizedFogBoost(position) {
@@ -1703,6 +1738,8 @@ class Game {
             this.yandex?.gameplayStart?.();
 
             this.perkMenuOpen = !this.perkLocked;
+            this.perkSelectionRequired = !this.perkLocked;
+            this.hud.setPerkPanelLock(this.perkSelectionRequired);
             this.hud.togglePerkPanel(this.perkMenuOpen);
             if (this.perkMenuOpen) {
                 this.hud.showGameMessage('Выберите перк перед стартом матча');
@@ -1760,6 +1797,10 @@ window.addEventListener('DOMContentLoaded', () => {
         }
         game.applyPerk(perk);
         game.perkLocked = true;
+        game.perkSelectionRequired = false;
+        game.hud.setPerkPanelLock(false);
+        game.perkMenuOpen = false;
+        game.hud.togglePerkPanel(false);
         game.hud.showGameMessage('\u041f\u0435\u0440\u043a \u0430\u043a\u0442\u0438\u0432\u0438\u0440\u043e\u0432\u0430\u043d');
     });
 
@@ -1777,6 +1818,10 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!Number.isFinite(value)) return;
         const settings = game.saveUserSettings({ lookSensitivity: value });
         game.applyUserSettings(settings);
+    });
+
+    document.addEventListener('resetSettings', () => {
+        game.resetUserSettings();
     });
 
     const bindStartButton = (button) => {
