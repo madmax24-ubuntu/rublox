@@ -1656,7 +1656,7 @@ class Game {
             return true;
         };
 
-        // Guaranteed presence: hangars always (denser), houses partially.
+        // Guaranteed presence: hangars always (dense), houses lightly (1-2).
         for (const hangar of hangarSpots) {
             if (budget <= 0 || spawned >= maxSpawn) break;
             spawnOneAtPoi(hangar, true);
@@ -1664,7 +1664,7 @@ class Game {
                 spawnOneAtPoi(hangar, true);
             }
         }
-        for (let i = 0; i < houseSpots.length; i += 2) {
+        for (let i = 0; i < houseSpots.length; i += 3) {
             if (budget <= 0 || spawned >= maxSpawn) break;
             spawnOneAtPoi(houseSpots[i], true);
         }
@@ -1677,8 +1677,8 @@ class Game {
             attempts++;
             if (budget <= 0) break;
             const baseCount = point.type === "hangar"
-                ? (12 + Math.floor(Math.random() * 6))
-                : (3 + Math.floor(Math.random() * 3));
+                ? (14 + Math.floor(Math.random() * 8))
+                : (1 + Math.floor(Math.random() * 2));
             const pack = Math.max(1, Math.floor(baseCount * intensity * (point.type === "hangar" ? 1.15 : 1)));
             for (let i = 0; i < pack; i++) {
                 if (budget <= 0) break;

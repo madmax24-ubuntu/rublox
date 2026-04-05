@@ -1225,6 +1225,18 @@ export class MapGenerator {
                 const db = Math.hypot(b.x - spawnWorld.x, b.z - spawnWorld.z);
                 return da - db;
             });
+        const farOuterCandidates = candidates
+            .filter(tile => {
+                const dx = tile.x - spawnWorld.x;
+                const dz = tile.z - spawnWorld.z;
+                const d = Math.hypot(dx, dz);
+                return d >= this.size * 0.34;
+            })
+            .sort((a, b) => {
+                const da = Math.hypot(a.x - spawnWorld.x, a.z - spawnWorld.z);
+                const db = Math.hypot(b.x - spawnWorld.x, b.z - spawnWorld.z);
+                return db - da;
+            });
 
         for (let i = candidates.length - 1; i > 0; i--) {
             const j = Math.floor(rand() * (i + 1));
@@ -1282,11 +1294,12 @@ export class MapGenerator {
             return created;
         };
 
-        // Place hangars first, otherwise dense house placement can block all large POIs.
-        const guaranteedNearHangars = placeStructure('hangar', 2, nearSpawnCandidates);
-        const railHangars = placeStructure('hangar', 2, nearRailCandidates);
-        const hangarsNeeded = Math.max(0, 8 - guaranteedNearHangars - railHangars);
-        const lateHangars = placeStructure('hangar', hangarsNeeded, industrialCandidates.length ? industrialCandidates : candidates);
+        // Place hangars first and keep them on outer map edges (high risk/high reward POI).
+        const guaranteedNearHangars = placeStructure('hangar', 0, nearSpawnCandidates);
+        const edgeHangars = placeStructure('hangar', 4, farOuterCandidates.length ? farOuterCandidates : candidates);
+        const railHangars = placeStructure('hangar', 1, nearRailCandidates);
+        const hangarsNeeded = Math.max(0, 8 - guaranteedNearHangars - edgeHangars - railHangars);
+        const lateHangars = placeStructure('hangar', hangarsNeeded, industrialCandidates.length ? industrialCandidates : (farOuterCandidates.length ? farOuterCandidates : candidates));
         const iceHouses = placeStructure('house', 18, iceCandidates);
         const forestHouses = placeStructure('house', 44, forestCandidates);
         const mixedHouses = placeStructure('house', 58, mixedCandidates);
@@ -1297,7 +1310,7 @@ export class MapGenerator {
             { type: 'houses_forest', weight: 0.9, count: forestHouses },
             { type: 'houses_ice', weight: 0.7, count: iceHouses },
             { type: 'houses_mixed', weight: 0.8, count: mixedHouses },
-            { type: 'hangars', weight: 1.0, count: guaranteedNearHangars + railHangars + lateHangars }
+            { type: 'hangars', weight: 1.0, count: guaranteedNearHangars + edgeHangars + railHangars + lateHangars }
         ];
 
         const rockMat = new THREE.MeshStandardMaterial({ color: 0x696969, roughness: 0.92, flatShading: true });
