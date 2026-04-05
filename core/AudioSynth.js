@@ -5,7 +5,24 @@ export class AudioSynth {
         this.isMobileDevice = typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
         this.audioContext = null;
         this.musicGain = null;
+        this.masterSfxGain = null;
         this.sfxGain = null;
+        this.categoryGains = {
+            weapon: null,
+            ambient: null,
+            ui: null,
+            zombie: null,
+            weather: null,
+            sfx: null
+        };
+        this.categoryBaseVolumes = {
+            weapon: 1.0,
+            ambient: 0.62,
+            ui: 0.8,
+            zombie: 0.9,
+            weather: 0.78,
+            sfx: 0.85
+        };
         this.reverb = null;
         this.reverbGain = null;
         this.sfxLimiter = null;
@@ -16,23 +33,18 @@ export class AudioSynth {
         this.musicLoopTimer = null;
         this.musicThemeIndex = 0;
         this.rainNoiseBuffer = null;
-        this.musicVolume = this.isMobileDevice ? 0.09 : 0.12;
-        this.sfxVolume = this.isMobileDevice ? 0.13 : 0.18;
+        this.musicVolume = this.isMobileDevice ? 0.08 : 0.11;
+        this.sfxVolume = this.isMobileDevice ? 0.16 : 0.2;
         this.sampleBuffers = new Map();
         this.sampleLoadStarted = false;
         this.sampleLoadPromise = null;
 
         this.sampleCatalog = {
-            ambient: [
-                'assets/audio/rpg/cloth1.ogg',
-                'assets/audio/rpg/cloth2.ogg',
-                'assets/audio/rpg/cloth3.ogg',
-                'assets/audio/rpg/cloth4.ogg'
-            ],
+            ambient: [],
             rumble: [
-                'assets/audio/rpg/metalPot1.ogg',
-                'assets/audio/rpg/metalPot2.ogg',
-                'assets/audio/rpg/metalPot3.ogg'
+                'assets/audio/rpg/doorClose_2.ogg',
+                'assets/audio/rpg/doorClose_3.ogg',
+                'assets/audio/rpg/doorClose_4.ogg'
             ],
             footsteps: Array.from({ length: 10 }, (_, i) => `assets/audio/rpg/footstep0${i}.ogg`),
             hit: [
@@ -42,12 +54,11 @@ export class AudioSynth {
             ],
             hurt: [
                 'assets/audio/rpg/cloth3.ogg',
-                'assets/audio/rpg/cloth4.ogg',
-                'assets/audio/rpg/metalClick.ogg'
+                'assets/audio/rpg/cloth4.ogg'
             ],
             zoneDamage: [
-                'assets/audio/rpg/doorClose_4.ogg',
-                'assets/audio/rpg/metalPot2.ogg'
+                'assets/audio/rpg/cloth3.ogg',
+                'assets/audio/rpg/cloth4.ogg'
             ],
             zombieMoan: Array.from({ length: 12 }, (_, i) => `assets/audio/zombies/zombie-${i + 1}.wav`),
             zombieAttack: Array.from({ length: 12 }, (_, i) => `assets/audio/zombies/zombie-${i + 13}.wav`),
@@ -56,6 +67,9 @@ export class AudioSynth {
                 'assets/audio/rpg/drawKnife3.ogg'
             ],
             laser: [
+                'assets/audio/weapons/smg_sks.wav'
+            ],
+            machinegun: [
                 'assets/audio/weapons/smg_sks.wav'
             ],
             shotgun: [
@@ -90,13 +104,12 @@ export class AudioSynth {
                 'assets/audio/rpg/handleCoins2.ogg'
             ],
             storm: [
-                'assets/audio/rpg/doorClose_4.ogg',
-                'assets/audio/rpg/metalPot2.ogg'
+                'assets/audio/rpg/doorClose_4.ogg'
             ],
             rain: [
                 'assets/audio/rpg/cloth1.ogg',
                 'assets/audio/rpg/cloth2.ogg',
-                'assets/audio/rpg/cloth3.ogg'
+                'assets/audio/rpg/clothBelt.ogg'
             ]
         };
 
@@ -107,7 +120,14 @@ export class AudioSynth {
         try {
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
             this.musicGain = this.audioContext.createGain();
-            this.sfxGain = this.audioContext.createGain();
+            this.masterSfxGain = this.audioContext.createGain();
+            this.sfxGain = this.masterSfxGain;
+            this.categoryGains.weapon = this.audioContext.createGain();
+            this.categoryGains.ambient = this.audioContext.createGain();
+            this.categoryGains.ui = this.audioContext.createGain();
+            this.categoryGains.zombie = this.audioContext.createGain();
+            this.categoryGains.weather = this.audioContext.createGain();
+            this.categoryGains.sfx = this.audioContext.createGain();
             this.reverb = this.audioContext.createConvolver();
             this.reverbGain = this.audioContext.createGain();
             this.sfxLimiter = this.audioContext.createDynamicsCompressor();
@@ -121,14 +141,20 @@ export class AudioSynth {
             this.sfxLimiter.release.value = 0.22;
 
             this.musicGain.connect(this.audioContext.destination);
-            this.sfxGain.connect(this.sfxLimiter);
+            Object.keys(this.categoryGains).forEach((key) => {
+                const gainNode = this.categoryGains[key];
+                if (!gainNode) return;
+                gainNode.gain.value = this.categoryBaseVolumes[key] ?? 1;
+                gainNode.connect(this.masterSfxGain);
+            });
+            this.masterSfxGain.connect(this.sfxLimiter);
             this.sfxLimiter.connect(this.audioContext.destination);
             this.sfxLimiter.connect(this.reverb);
             this.reverb.connect(this.reverbGain);
             this.reverbGain.connect(this.audioContext.destination);
 
             this.musicGain.gain.value = this.musicVolume;
-            this.sfxGain.gain.value = this.sfxVolume;
+            this.masterSfxGain.gain.value = this.sfxVolume;
             this.loadSamples();
         } catch (e) {
             console.warn('Web Audio API not supported');
@@ -198,7 +224,19 @@ export class AudioSynth {
 
     setSfxVolume(value = 0.22) {
         this.sfxVolume = clamp(value, 0, 0.65);
-        if (this.sfxGain) this.sfxGain.gain.value = this.sfxVolume;
+        if (this.masterSfxGain) this.masterSfxGain.gain.value = this.sfxVolume;
+    }
+
+    setCategoryVolume(category, value = 1) {
+        const key = String(category || '').toLowerCase();
+        if (!this.categoryGains[key]) return;
+        this.categoryBaseVolumes[key] = clamp(value, 0, 1.4);
+        this.categoryGains[key].gain.value = this.categoryBaseVolumes[key];
+    }
+
+    getCategoryGain(category) {
+        const key = String(category || '').toLowerCase();
+        return this.categoryGains[key] || this.categoryGains.sfx || this.masterSfxGain;
     }
 
     createPanner(position) {
@@ -236,14 +274,15 @@ export class AudioSynth {
         }
     }
 
-    connectSfx(node, position) {
+    connectSfx(node, position, category = 'sfx') {
         if (!this.audioContext) return node;
+        const targetGain = this.getCategoryGain(category);
         if (position) {
             const panner = this.createPanner(position);
             node.connect(panner);
-            panner.connect(this.sfxGain);
+            panner.connect(targetGain);
         } else {
-            node.connect(this.sfxGain);
+            node.connect(targetGain);
         }
         return node;
     }
@@ -287,7 +326,7 @@ export class AudioSynth {
             }
         }
 
-        this.connectSfx(gainNode, options.position || null);
+        this.connectSfx(gainNode, options.position || null, options.category || 'sfx');
         source.start(now);
         if (!source.loop) {
             const maxDuration = options.maxDuration || buffer.duration;
@@ -296,7 +335,7 @@ export class AudioSynth {
         return true;
     }
 
-    fallbackTone(type, fromFreq, toFreq, duration, volume = 0.1, position = null) {
+    fallbackTone(type, fromFreq, toFreq, duration, volume = 0.1, position = null, category = 'sfx') {
         if (!this.audioContext) return;
         const ctx = this.audioContext;
         const now = ctx.currentTime;
@@ -308,12 +347,12 @@ export class AudioSynth {
         gain.gain.setValueAtTime(clamp(volume, 0.001, 0.8), now);
         gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
         osc.connect(gain);
-        this.connectSfx(gain, position);
+        this.connectSfx(gain, position, category);
         osc.start(now);
         osc.stop(now + duration);
     }
 
-    playProceduralShot(kind = 'generic', volume = 0.14, position = null) {
+    playProceduralShot(kind = 'generic', volume = 0.14, position = null, category = 'weapon') {
         if (!this.audioContext) return;
         const ctx = this.audioContext;
         const now = ctx.currentTime;
@@ -323,7 +362,7 @@ export class AudioSynth {
         f.frequency.value = kind === 'shotgun' ? 1200 : kind === 'flamethrower' ? 2200 : 2600;
         g.gain.value = clamp(volume, 0.01, 0.5);
         f.connect(g);
-        this.connectSfx(g, position);
+        this.connectSfx(g, position, category);
 
         const mk = (type, a, b, d, gainMul = 1) => {
             const o = ctx.createOscillator();
@@ -368,36 +407,27 @@ export class AudioSynth {
         const softAmbience = () => {
             if (!this.ambientRunning) return;
             const played = this.playSample(this.sampleCatalog.ambient, {
-                volume: this.isMobileDevice ? 0.025 : 0.04,
-                rateMin: 0.75,
-                rateMax: 1.15,
-                reverbSend: 0.25
+                volume: this.isMobileDevice ? 0.008 : 0.015,
+                rateMin: 0.76,
+                rateMax: 0.96,
+                reverbSend: 0.12,
+                maxDuration: 0.32,
+                category: 'ambient'
             });
             if (!played) {
-                this.fallbackTone('sine', 160, 120, 0.32, this.isMobileDevice ? 0.01 : 0.02);
+                this.fallbackTone('sine', 140, 102, 0.28, this.isMobileDevice ? 0.006 : 0.01, null, 'ambient');
             }
         };
 
         const lowRumble = () => {
             if (!this.ambientRunning) return;
-            const played = this.playSample(this.sampleCatalog.rumble, {
-                volume: this.isMobileDevice ? 0.02 : 0.035,
-                rateMin: 0.55,
-                rateMax: 0.75,
-                maxDuration: 0.7,
-                reverbSend: 0.3
-            });
-            if (!played) {
-                this.fallbackTone('sine', 68, 44, 0.5, this.isMobileDevice ? 0.015 : 0.022);
-            }
+            this.playWind();
         };
 
         softAmbience();
         lowRumble();
-        this.playWind();
-        this.ambientTimers.push(setInterval(softAmbience, this.isMobileDevice ? 2100 : 1600));
-        this.ambientTimers.push(setInterval(lowRumble, this.isMobileDevice ? 9500 : 7200));
-        this.ambientTimers.push(setInterval(() => this.playWind(), this.isMobileDevice ? 14000 : 11000));
+        this.ambientTimers.push(setInterval(softAmbience, this.isMobileDevice ? 4200 : 3200));
+        this.ambientTimers.push(setInterval(lowRumble, this.isMobileDevice ? 12000 : 9000));
     }
 
     stopAmbient() {
@@ -407,32 +437,32 @@ export class AudioSynth {
     }
 
     playGrieverMove(position) {
-        if (!this.playSample(this.sampleCatalog.rumble, { volume: 0.13, rateMin: 0.7, rateMax: 1.0, position, reverbSend: 0.2 })) {
-            this.fallbackTone('square', 130, 80, 0.12, 0.12, position);
+        if (!this.playSample(this.sampleCatalog.rumble, { volume: 0.13, rateMin: 0.7, rateMax: 1.0, position, reverbSend: 0.2, category: 'ambient' })) {
+            this.fallbackTone('square', 130, 80, 0.12, 0.12, position, 'ambient');
         }
     }
 
     playGrieverRoar(position) {
-        if (!this.playSample(this.sampleCatalog.zombieAttack, { volume: 0.2, rateMin: 0.5, rateMax: 0.8, position, reverbSend: 0.35 })) {
-            this.fallbackTone('sawtooth', 880, 210, 0.7, 0.22, position);
+        if (!this.playSample(this.sampleCatalog.zombieAttack, { volume: 0.2, rateMin: 0.5, rateMax: 0.8, position, reverbSend: 0.35, category: 'zombie' })) {
+            this.fallbackTone('sawtooth', 880, 210, 0.7, 0.22, position, 'zombie');
         }
     }
 
     playGrieverAttack(position) {
-        if (!this.playSample(this.sampleCatalog.hit, { volume: 0.2, rateMin: 0.6, rateMax: 0.95, position, reverbSend: 0.16 })) {
-            this.fallbackTone('triangle', 620, 180, 0.25, 0.22, position);
+        if (!this.playSample(this.sampleCatalog.hit, { volume: 0.2, rateMin: 0.6, rateMax: 0.95, position, reverbSend: 0.16, category: 'weapon' })) {
+            this.fallbackTone('triangle', 620, 180, 0.25, 0.22, position, 'weapon');
         }
     }
 
     playStoneDoorClose(position) {
-        if (!this.playSample(this.sampleCatalog.rumble, { volume: 0.22, rateMin: 0.6, rateMax: 0.85, position, reverbSend: 0.45 })) {
-            this.fallbackTone('sine', 80, 30, 1.1, 0.2, position);
+        if (!this.playSample(this.sampleCatalog.rumble, { volume: 0.22, rateMin: 0.6, rateMax: 0.85, position, reverbSend: 0.45, category: 'ambient' })) {
+            this.fallbackTone('sine', 80, 30, 1.1, 0.2, position, 'ambient');
         }
     }
 
     playBoxArrival(position) {
-        if (!this.playSample(this.sampleCatalog.rumble, { volume: 0.18, rateMin: 0.9, rateMax: 1.2, position, reverbSend: 0.35 })) {
-            this.fallbackTone('square', 180, 82, 0.9, 0.14, position);
+        if (!this.playSample(this.sampleCatalog.rumble, { volume: 0.18, rateMin: 0.9, rateMax: 1.2, position, reverbSend: 0.35, category: 'ambient' })) {
+            this.fallbackTone('square', 180, 82, 0.9, 0.14, position, 'ambient');
         }
     }
 
@@ -441,20 +471,21 @@ export class AudioSynth {
         if (!this.playSample(this.sampleCatalog.footsteps, {
             volume: (this.isMobileDevice ? 0.14 : 0.2) * gainScale,
             rateMin: 0.92,
-            rateMax: 1.08
+            rateMax: 1.08,
+            category: 'sfx'
         })) {
-            this.fallbackTone('triangle', 160, 90, 0.08, 0.05 * gainScale);
+            this.fallbackTone('triangle', 160, 90, 0.08, 0.05 * gainScale, null, 'sfx');
         }
     }
 
     playHit() {
-        if (!this.playSample(this.sampleCatalog.hit, { volume: this.isMobileDevice ? 0.12 : 0.18, rateMin: 0.95, rateMax: 1.12, reverbSend: 0.08 })) {
-            this.fallbackTone('square', 190, 105, 0.18, 0.14);
+        if (!this.playSample(this.sampleCatalog.hit, { volume: this.isMobileDevice ? 0.12 : 0.18, rateMin: 0.95, rateMax: 1.12, reverbSend: 0.08, category: 'weapon' })) {
+            this.fallbackTone('square', 190, 105, 0.18, 0.14, null, 'weapon');
         }
     }
 
     playStorm(position) {
-        this.playProceduralShot('storm', this.isMobileDevice ? 0.07 : 0.11, position);
+        this.playProceduralShot('storm', this.isMobileDevice ? 0.07 : 0.11, position, 'weather');
     }
 
     startRadiationRain(position = null) {
@@ -483,7 +514,7 @@ export class AudioSynth {
             source.connect(hp);
             hp.connect(lp);
             lp.connect(gain);
-            gain.connect(this.sfxGain);
+            gain.connect(this.getCategoryGain('weather'));
 
             const send = ctx.createGain();
             send.gain.value = this.isMobileDevice ? 0.12 : 0.2;
@@ -498,7 +529,7 @@ export class AudioSynth {
         const layerDrops = makeLayer(820, 6400, this.isMobileDevice ? 0.08 : 0.1, 1.06);
 
         const tickTimer = setInterval(() => {
-            this.playProceduralShot('zone', this.isMobileDevice ? 0.035 : 0.045, position);
+            this.playProceduralShot('zone', this.isMobileDevice ? 0.035 : 0.045, position, 'weather');
         }, this.isMobileDevice ? 1200 : 950);
 
         const rumbleTimer = setInterval(() => {
@@ -507,7 +538,8 @@ export class AudioSynth {
                 rateMin: 0.72,
                 rateMax: 0.94,
                 position,
-                reverbSend: 0.35
+                reverbSend: 0.35,
+                category: 'weather'
             });
         }, this.isMobileDevice ? 7800 : 6200);
 
@@ -533,24 +565,24 @@ export class AudioSynth {
     }
 
     playHurt() {
-        if (!this.playSample(this.sampleCatalog.hurt, { volume: this.isMobileDevice ? 0.1 : 0.14, rateMin: 0.95, rateMax: 1.1, reverbSend: 0.05 })) {
-            this.fallbackTone('sine', 220, 140, 0.25, 0.11);
+        if (!this.playSample(this.sampleCatalog.hurt, { volume: this.isMobileDevice ? 0.1 : 0.14, rateMin: 0.95, rateMax: 1.1, reverbSend: 0.05, category: 'sfx' })) {
+            this.fallbackTone('sine', 220, 140, 0.25, 0.11, null, 'sfx');
         }
     }
 
     playZoneDamage() {
-        this.playProceduralShot('zone', this.isMobileDevice ? 0.08 : 0.11, null);
+        this.playProceduralShot('zone', this.isMobileDevice ? 0.08 : 0.11, null, 'weather');
     }
 
     playZombieMoan(position = null) {
-        if (!this.playSample(this.sampleCatalog.zombieMoan, { volume: this.isMobileDevice ? 0.08 : 0.14, rateMin: 0.82, rateMax: 1.12, position, reverbSend: 0.26 })) {
-            this.fallbackTone('sawtooth', 112, 62, 0.9, 0.12, position);
+        if (!this.playSample(this.sampleCatalog.zombieMoan, { volume: this.isMobileDevice ? 0.08 : 0.14, rateMin: 0.82, rateMax: 1.12, position, reverbSend: 0.26, category: 'zombie' })) {
+            this.fallbackTone('sawtooth', 112, 62, 0.9, 0.12, position, 'zombie');
         }
     }
 
     playZombieAttack(position = null) {
-        if (!this.playSample(this.sampleCatalog.zombieAttack, { volume: this.isMobileDevice ? 0.09 : 0.16, rateMin: 0.9, rateMax: 1.15, position, reverbSend: 0.24 })) {
-            this.fallbackTone('sawtooth', 160, 82, 0.38, 0.14, position);
+        if (!this.playSample(this.sampleCatalog.zombieAttack, { volume: this.isMobileDevice ? 0.09 : 0.16, rateMin: 0.9, rateMax: 1.15, position, reverbSend: 0.24, category: 'zombie' })) {
+            this.fallbackTone('sawtooth', 160, 82, 0.38, 0.14, position, 'zombie');
         }
     }
 
@@ -559,20 +591,22 @@ export class AudioSynth {
             volume: this.isMobileDevice ? 0.07 : 0.11,
             rateMin: 0.9,
             rateMax: 1.08,
-            reverbSend: 0.05
+            reverbSend: 0.05,
+            category: 'weapon'
         });
-        this.playProceduralShot('bow', this.isMobileDevice ? 0.045 : 0.065);
+        this.playProceduralShot('bow', this.isMobileDevice ? 0.045 : 0.065, null, 'weapon');
     }
 
     playLaser() {
         const played = this.playSample(this.sampleCatalog.laser, {
-            volume: this.isMobileDevice ? 0.06 : 0.1,
-            rateMin: 1.35,
-            rateMax: 1.75,
-            maxDuration: 0.17,
-            reverbSend: 0.08
+            volume: this.isMobileDevice ? 0.055 : 0.09,
+            rateMin: 1.45,
+            rateMax: 1.9,
+            maxDuration: 0.12,
+            reverbSend: 0.08,
+            category: 'weapon'
         });
-        this.playProceduralShot('laser', played ? (this.isMobileDevice ? 0.038 : 0.055) : (this.isMobileDevice ? 0.058 : 0.086));
+        this.playProceduralShot('laser', played ? (this.isMobileDevice ? 0.038 : 0.055) : (this.isMobileDevice ? 0.058 : 0.086), null, 'weapon');
     }
 
     playShotgun(volume = 1) {
@@ -582,9 +616,10 @@ export class AudioSynth {
             rateMin: 0.9,
             rateMax: 1.05,
             maxDuration: 0.32,
-            reverbSend: 0.08
+            reverbSend: 0.08,
+            category: 'weapon'
         });
-        this.playProceduralShot('shotgun', played ? (this.isMobileDevice ? 0.028 : 0.04) : (this.isMobileDevice ? 0.056 : 0.078));
+        this.playProceduralShot('shotgun', played ? (this.isMobileDevice ? 0.028 : 0.04) : (this.isMobileDevice ? 0.056 : 0.078), null, 'weapon');
     }
 
     playPistol() {
@@ -593,9 +628,10 @@ export class AudioSynth {
             rateMin: 0.94,
             rateMax: 1.06,
             maxDuration: 0.2,
-            reverbSend: 0.04
+            reverbSend: 0.04,
+            category: 'weapon'
         });
-        this.playProceduralShot('generic', played ? (this.isMobileDevice ? 0.018 : 0.028) : (this.isMobileDevice ? 0.05 : 0.07));
+        this.playProceduralShot('generic', played ? (this.isMobileDevice ? 0.018 : 0.028) : (this.isMobileDevice ? 0.05 : 0.07), null, 'weapon');
     }
 
     playRifle() {
@@ -604,9 +640,22 @@ export class AudioSynth {
             rateMin: 0.98,
             rateMax: 1.08,
             maxDuration: 0.26,
-            reverbSend: 0.06
+            reverbSend: 0.06,
+            category: 'weapon'
         });
-        this.playProceduralShot('generic', played ? (this.isMobileDevice ? 0.022 : 0.032) : (this.isMobileDevice ? 0.055 : 0.076));
+        this.playProceduralShot('generic', played ? (this.isMobileDevice ? 0.022 : 0.032) : (this.isMobileDevice ? 0.055 : 0.076), null, 'weapon');
+    }
+
+    playMachinegun() {
+        const played = this.playSample(this.sampleCatalog.machinegun, {
+            volume: this.isMobileDevice ? 0.064 : 0.098,
+            rateMin: 1.15,
+            rateMax: 1.35,
+            maxDuration: 0.13,
+            reverbSend: 0.05,
+            category: 'weapon'
+        });
+        this.playProceduralShot('generic', played ? (this.isMobileDevice ? 0.016 : 0.026) : (this.isMobileDevice ? 0.05 : 0.07), null, 'weapon');
     }
 
     playFlamethrower() {
@@ -614,16 +663,18 @@ export class AudioSynth {
             volume: this.isMobileDevice ? 0.06 : 0.09,
             rateMin: 0.84,
             rateMax: 0.98,
-            reverbSend: 0.05
+            reverbSend: 0.05,
+            category: 'weapon'
         });
-        this.playProceduralShot('flamethrower', played ? (this.isMobileDevice ? 0.018 : 0.026) : (this.isMobileDevice ? 0.04 : 0.06));
+        this.playProceduralShot('flamethrower', played ? (this.isMobileDevice ? 0.018 : 0.026) : (this.isMobileDevice ? 0.04 : 0.06), null, 'weapon');
     }
 
     playTimerTick(volume = 1) {
         this.playSample(this.sampleCatalog.timer, {
             volume: (this.isMobileDevice ? 0.045 : 0.06) * clamp(volume, 0.4, 1.4),
             rateMin: 0.92,
-            rateMax: 1.08
+            rateMax: 1.08,
+            category: 'ui'
         });
     }
 
@@ -632,19 +683,20 @@ export class AudioSynth {
             volume: this.isMobileDevice ? 0.02 : 0.03,
             rateMin: 0.78,
             rateMax: 0.95,
-            reverbSend: 0.18
+            reverbSend: 0.18,
+            category: 'ambient'
         });
     }
 
     playChestOpen() {
-        if (!this.playSample(this.sampleCatalog.chestOpen, { volume: this.isMobileDevice ? 0.1 : 0.16, rateMin: 0.92, rateMax: 1.08, reverbSend: 0.12 })) {
-            this.fallbackTone('sine', 300, 500, 0.5, 0.15);
+        if (!this.playSample(this.sampleCatalog.chestOpen, { volume: this.isMobileDevice ? 0.1 : 0.16, rateMin: 0.92, rateMax: 1.08, reverbSend: 0.12, category: 'ui' })) {
+            this.fallbackTone('sine', 300, 500, 0.5, 0.15, null, 'ui');
         }
     }
 
     playChestNearby() {
-        if (!this.playSample(this.sampleCatalog.chestNearby, { volume: this.isMobileDevice ? 0.06 : 0.1, rateMin: 0.95, rateMax: 1.1, reverbSend: 0.08 })) {
-            this.fallbackTone('sine', 152, 158, 0.2, 0.06);
+        if (!this.playSample(this.sampleCatalog.chestNearby, { volume: this.isMobileDevice ? 0.06 : 0.1, rateMin: 0.95, rateMax: 1.1, reverbSend: 0.08, category: 'ui' })) {
+            this.fallbackTone('sine', 152, 158, 0.2, 0.06, null, 'ui');
         }
     }
 

@@ -114,7 +114,9 @@ export class MapGenerator {
     }
 
     generate() {
-        const sizeBase = (129 + Math.floor((this.seed % 10) * 6)) * 2;
+        const rawSizeBase = (129 + Math.floor((this.seed % 10) * 6)) * 2;
+        const isMobile = !!this.scene?.userData?.mobileMode;
+        const sizeBase = isMobile ? Math.max(188, Math.floor(rawSizeBase * 0.72)) : rawSizeBase;
         const width = sizeBase;
         const height = sizeBase;
         const data = this.tileGen.generate(width, height, this.seed);
@@ -2287,25 +2289,36 @@ export class MapGenerator {
             roof.userData.mapGenerated = true;
             group.add(roof);
 
-            const ladderZ = z - 3.0;
-            const ladderStart = new THREE.Vector3(x + 9.2, baseY + 0.25, ladderZ);
-            const ladderEnd = new THREE.Vector3(x + 1.3, baseY + 8.48, ladderZ);
-            const rampSteps = 52;
-            for (let s = 0; s < rampSteps; s++) {
-                const t = s / Math.max(1, rampSteps - 1);
-                const stepPos = ladderStart.clone().lerp(ladderEnd, t);
-                const slab = new THREE.Mesh(new THREE.BoxGeometry(1.95, 0.2, 1.15), woodMat);
-                slab.position.copy(stepPos);
-                slab.userData.mapGenerated = true;
-                group.add(slab);
-                this.addColliderBox(slab.position.clone(), 1.95, 0.2, 1.15, true);
+            const ladderZ = z - 2.95;
+            const stairStartX = x + 8.5;
+            const stairEndX = x + 1.25;
+            const stairStartY = baseY + 0.16;
+            const stairEndY = baseY + 8.56;
+            const stairSegments = 28;
+            const stairWidth = 2.4;
+            const stairThickness = 0.24;
+            for (let s = 0; s < stairSegments; s++) {
+                const t0 = s / stairSegments;
+                const t1 = (s + 1) / stairSegments;
+                const stepX = stairStartX + (stairEndX - stairStartX) * ((t0 + t1) * 0.5);
+                const stepY = stairStartY + (stairEndY - stairStartY) * ((t0 + t1) * 0.5);
+                const stepLength = Math.max(0.34, Math.hypot(
+                    (stairStartX + (stairEndX - stairStartX) * t1) - (stairStartX + (stairEndX - stairStartX) * t0),
+                    (stairStartY + (stairEndY - stairStartY) * t1) - (stairStartY + (stairEndY - stairStartY) * t0)
+                ) + 0.06);
+                const step = new THREE.Mesh(new THREE.BoxGeometry(stepLength, stairThickness, stairWidth), woodMat);
+                step.position.set(stepX, stepY, ladderZ);
+                step.rotation.z = Math.atan2(stairEndY - stairStartY, stairEndX - stairStartX);
+                step.userData.mapGenerated = true;
+                group.add(step);
+                this.addColliderBox(step.position.clone(), stepLength, stairThickness, stairWidth, true);
             }
 
-            const topLanding = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.22, 2.5), woodMat);
-            topLanding.position.set(x + 1.02, baseY + 8.72, ladderZ);
+            const topLanding = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.26, 3.0), woodMat);
+            topLanding.position.set(x + 1.06, baseY + 8.74, ladderZ);
             topLanding.userData.mapGenerated = true;
             group.add(topLanding);
-            this.addColliderBox(topLanding.position.clone(), 3.4, 0.22, 2.5, true);
+            this.addColliderBox(topLanding.position.clone(), 4.2, 0.26, 3.0, true);
 
             const canopy = new THREE.Mesh(new THREE.BoxGeometry(11.5, 4.8, 11.5), leafMat);
             canopy.position.set(x, baseY + 14.4, z);

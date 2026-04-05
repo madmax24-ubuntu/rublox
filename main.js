@@ -1393,20 +1393,26 @@ class Game {
             this.audioSynth.updateListener(this.camera.position, this._tmpAudioForward);
         }
 
-        this.botFrameCounter = (this.botFrameCounter + 1) % 2048;
-        const nearBotDistSq = this.isMobile() ? (80 * 80) : (110 * 110);
-        const farBotModulo = this.isMobile() ? 3 : 2;
+        this.botFrameCounter = (this.botFrameCounter + 1) % 8;
+        const farBotCullDistSq = this.isMobile() ? (95 * 95) : (135 * 135);
         for (let botIndex = 0; botIndex < this.bots.length; botIndex++) {
             const bot = this.bots[botIndex];
             if (!bot.isAlive) continue;
-            const dx = bot.position.x - this.player.position.x;
-            const dz = bot.position.z - this.player.position.z;
-            const distSq = dx * dx + dz * dz;
-            const isNear = distSq <= nearBotDistSq;
-            const shouldUpdate = isNear || ((bot.id + this.botFrameCounter) % farBotModulo === 0);
-            if (!shouldUpdate) continue;
-            const botDelta = isNear ? delta : delta * farBotModulo;
-            bot.update(botDelta, this.botBrains[botIndex], this.entityManager, this.lootManager, this.audioSynth, this.physics, this.zone);
+            const distSq = bot.position.distanceToSquared(this.player.position);
+            const isFarIdleBot = distSq > farBotCullDistSq
+                && !bot.target
+                && !bot.assistTarget
+                && bot.state !== 'combat'
+                && bot.state !== 'chase';
+            if (isFarIdleBot && ((this.botFrameCounter + botIndex) % 2) !== 0) {
+                if (bot.mesh) {
+                    bot.mesh.position.copy(bot.position);
+                    bot.mesh.position.y = bot.position.y - (bot.physics.height - 0.2);
+                    if (bot.healthBar) bot.updateHealthBar(0.05);
+                }
+                continue;
+            }
+            bot.update(delta, this.botBrains[botIndex], this.entityManager, this.lootManager, this.audioSynth, this.physics, this.zone);
         }
         if (this.gameState === 'playing') {
             if (this.activeEvent?.type === 'radiationRain') {
@@ -1476,12 +1482,11 @@ class Game {
             this.isMobile() ? 10 : 16,
             Math.min(zombieCount, Math.ceil(zombieCount * (this.isMobile() ? 0.28 : 0.4)))
         );
-        const zombieDeltaScale = zombieCount > 0 ? Math.min(2.6, zombieCount / Math.max(1, zombiesPerFrame)) : 1;
         for (let i = 0; i < zombiesPerFrame && i < zombieCount; i++) {
             const zIndex = (this.zombieUpdateIndex + i) % zombieCount;
             const zombie = this.zombies[zIndex];
             if (zombie?.isAlive) {
-                zombie.update(delta * zombieDeltaScale, this.entityManager, this.audioSynth);
+                zombie.update(delta, this.entityManager, this.audioSynth);
             }
         }
         if (zombieCount > 0) {

@@ -1186,6 +1186,7 @@ export class HUD {
                 else if (item.type === 'flamethrower') icon.textContent = 'FIRE';
                 else if (item.type === 'pistol') icon.textContent = 'PST';
                 else if (item.type === 'rifle') icon.textContent = 'RIF';
+                else if (item.type === 'machinegun') icon.textContent = 'MG';
 
                 if (!slot.querySelector('.weapon-icon')) {
                     slot.appendChild(icon);
@@ -1458,6 +1459,8 @@ export class HUD {
         } else if (weapon.type === 'pistol') {
             ammoInfo.textContent = `\u041f\u0430\u0442\u0440\u043e\u043d\u044b: ${weapon.ammo ?? 0}`;
         } else if (weapon.type === 'rifle') {
+            ammoInfo.textContent = `\u041f\u0430\u0442\u0440\u043e\u043d\u044b: ${weapon.ammo ?? 0}`;
+        } else if (weapon.type === 'machinegun') {
             ammoInfo.textContent = `\u041f\u0430\u0442\u0440\u043e\u043d\u044b: ${weapon.ammo ?? 0}`;
         } else {
             ammoInfo.textContent = '';

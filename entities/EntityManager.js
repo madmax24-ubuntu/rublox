@@ -323,10 +323,16 @@ export class EntityManager {
     removeProjectile(index) {
         const proj = this.projectiles[index];
         this.scene.remove(proj.mesh);
-        proj.mesh.traverse(child => {
-            if (child.geometry) child.geometry.dispose();
-            if (child.material) child.material.dispose();
-        });
+        // Projectile geometries/materials are shared and cached by Weapon runtime.
+        // Disposing them per-shot causes heavy GC churn and can invalidate
+        // materials still in use by other active projectiles.
+        if (proj?.mesh?.traverse) {
+            proj.mesh.traverse(child => {
+                if (child.isMesh) {
+                    child.visible = false;
+                }
+            });
+        }
         this.projectiles.splice(index, 1);
     }
 

@@ -126,7 +126,8 @@ export class Player {
         if (type === 'shotgun') return 'Дробовик';
         if (type === 'flamethrower') return 'Огнемёт';
         if (type === 'pistol') return 'Пистолет';
-        if (type === 'rifle') return 'Пулемет';
+        if (type === 'rifle') return 'Винтовка';
+        if (type === 'machinegun') return 'Пулемет';
         return type || 'Предмет';
     }
 
@@ -535,7 +536,7 @@ export class Player {
 
         const activeWeapon = this.currentWeapon || this.fists;
         const autoTarget = this.autoFire && activeWeapon.type !== 'bow' ? this.getAutoFireTarget(entityManager) : null;
-        const isRangedWeapon = ['bow', 'laser', 'shotgun', 'flamethrower', 'pistol', 'rifle'].includes(activeWeapon.type);
+        const isRangedWeapon = ['bow', 'laser', 'shotgun', 'flamethrower', 'pistol', 'rifle', 'machinegun'].includes(activeWeapon.type);
         const fireHeld = this.input.isKeyPressed('MouseLeft');
         const fireRequested = fireHeld || (!!autoTarget && !isFrozen && isRangedWeapon);
         if (activeWeapon.type === 'bow') {
@@ -581,7 +582,7 @@ export class Player {
                 this.bowCharge = 0;
             }
         } else if (!isFrozen && fireRequested && this.attackCooldown <= 0) {
-            if (activeWeapon.type === 'laser' || activeWeapon.type === 'shotgun' || activeWeapon.type === 'flamethrower' || activeWeapon.type === 'pistol' || activeWeapon.type === 'rifle') {
+            if (activeWeapon.type === 'laser' || activeWeapon.type === 'shotgun' || activeWeapon.type === 'flamethrower' || activeWeapon.type === 'pistol' || activeWeapon.type === 'rifle' || activeWeapon.type === 'machinegun') {
                 const direction = this._tmpFireDir;
                 if (autoTarget) {
                     direction.subVectors(autoTarget.position, this.camera.position).normalize();
@@ -738,7 +739,7 @@ export class Player {
                 this.viewWeapon.position.z -= swing * 0.08;
             }
 
-            if ((this.viewWeaponType === 'bow' || this.viewWeaponType === 'laser' || this.viewWeaponType === 'shotgun' || this.viewWeaponType === 'pistol' || this.viewWeaponType === 'rifle' || this.viewWeaponType === 'flamethrower') && this.viewKick > 0) {
+            if ((this.viewWeaponType === 'bow' || this.viewWeaponType === 'laser' || this.viewWeaponType === 'shotgun' || this.viewWeaponType === 'pistol' || this.viewWeaponType === 'rifle' || this.viewWeaponType === 'flamethrower' || this.viewWeaponType === 'machinegun') && this.viewKick > 0) {
                 this.viewWeapon.position.z -= this.viewKick * 0.2;
                 this.viewWeapon.rotation.x -= this.viewKick * 0.6;
             }
@@ -750,7 +751,7 @@ export class Player {
                     this.viewWeapon.position.z -= ease * 0.09;
                     this.viewWeapon.position.x -= ease * 0.03;
                     this.viewWeapon.rotation.y += ease * 0.06;
-                } else if (this.weaponActionType === 'laser' || this.weaponActionType === 'shotgun' || this.weaponActionType === 'pistol' || this.weaponActionType === 'rifle' || this.weaponActionType === 'flamethrower') {
+                } else if (this.weaponActionType === 'laser' || this.weaponActionType === 'shotgun' || this.weaponActionType === 'pistol' || this.weaponActionType === 'rifle' || this.weaponActionType === 'flamethrower' || this.weaponActionType === 'machinegun') {
                     this.viewWeapon.position.z -= ease * 0.1;
                     this.viewWeapon.rotation.x -= ease * 0.35;
                 }
@@ -1047,7 +1048,7 @@ export class Player {
         this.viewWeaponType = weaponType || null;
         if (!weaponType || weaponType === 'fists') return;
 
-        const source = new Weapon(weaponType, this.scene, { useAssetModel: true });
+        const source = new Weapon(weaponType, this.scene);
         const applyClone = () => {
             if (requestId !== this.viewWeaponRequestId) return;
             if (!source.mesh || !this.fpArms) return;
@@ -1074,13 +1075,6 @@ export class Player {
             };
         };
         applyClone();
-
-        if (source.assetSwapPromise && typeof source.assetSwapPromise.then === 'function') {
-            source.assetSwapPromise.then((swapped) => {
-                if (!swapped) return;
-                applyClone();
-            }).catch(() => {});
-        }
     }
 
     updateViewWeapon() {
@@ -1089,43 +1083,7 @@ export class Player {
     }
 
     getViewWeaponOffset(type) {
-        const base = {
-            scale: 0.72,
-            position: new THREE.Vector3(0.14, -0.44, -0.72),
-            rotation: new THREE.Euler(0, Math.PI, 0)
-        };
-
-        if (type === 'knife') {
-            base.position.set(0.2, -0.38, -0.76);
-            base.rotation.set(-Math.PI / 2 + 0.12, Math.PI, 0.08);
-            base.scale = 0.72;
-        } else if (type === 'bow') {
-            base.position.set(0.2, -0.22, -1.02);
-            base.rotation.set(0.02, Math.PI, Math.PI / 2.2);
-            base.scale = 0.68;
-        } else if (type === 'shotgun') {
-            base.position.set(0.24, -0.48, -0.92);
-            base.rotation.set(-Math.PI / 2 + 0.18, Math.PI, -0.1);
-            base.scale = 0.58;
-        } else if (type === 'flamethrower') {
-            base.position.set(0.24, -0.5, -0.94);
-            base.rotation.set(-Math.PI / 2 + 0.2, Math.PI, -0.1);
-            base.scale = 0.56;
-        } else if (type === 'laser') {
-            base.position.set(0.24, -0.48, -0.92);
-            base.rotation.set(-Math.PI / 2 + 0.2, Math.PI, -0.1);
-            base.scale = 0.56;
-        } else if (type === 'pistol') {
-            base.position.set(0.2, -0.5, -0.82);
-            base.rotation.set(-Math.PI / 2 + 0.34, Math.PI, -0.06);
-            base.scale = 0.62;
-        } else if (type === 'rifle') {
-            base.position.set(0.24, -0.5, -0.96);
-            base.rotation.set(-Math.PI / 2 + 0.2, Math.PI, -0.08);
-            base.scale = 0.56;
-        }
-
-        return base;
+        return Weapon.getViewPose(type);
     }
 
     updateThirdPersonWeapon() {
@@ -1187,7 +1145,7 @@ export class Player {
             this.currentWeapon = null;
             weapon = this.fists;
         }
-        if ((weapon.type === 'bow' || weapon.type === 'laser' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle') && weapon.ammo !== null && weapon.ammo <= 0) {
+        if ((weapon.type === 'bow' || weapon.type === 'laser' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle' || weapon.type === 'machinegun') && weapon.ammo !== null && weapon.ammo <= 0) {
             this.currentWeapon = null;
             weapon = this.fists;
         }
@@ -1198,7 +1156,7 @@ export class Player {
 
         if (distance > attackRange) return null;
 
-        if (weapon.type === 'laser' || weapon.type === 'bow' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle') {
+        if (weapon.type === 'laser' || weapon.type === 'bow' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle' || weapon.type === 'machinegun') {
             const direction = this._tmpAttackDirection
                 .subVectors(target.position, this.position)
                 .normalize();
