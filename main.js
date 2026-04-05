@@ -243,6 +243,7 @@ class Game {
         this.hudStatsTimer = 0;
         this.hudInventoryTimer = 0;
         this.lastInventorySignature = '';
+        this.lastCountdownSecond = null;
         this.noteCooldown = 0;
         this.achievementState = {
             firstBlood: false,
@@ -338,6 +339,7 @@ class Game {
         this.gameState = 'countdown';
         this.countdownTime = GAME_CONFIG.round.countdownSeconds;
         this.countdownTimer = this.countdownTime;
+        this.lastCountdownSecond = null;
         this.spawnTime = GAME_CONFIG.round.preFightInvulnerableSeconds;
         this.spawnTimer = this.spawnTime;
         this.botLootPhaseDuration = GAME_CONFIG.round.botLootPhaseSeconds;
@@ -1121,13 +1123,20 @@ class Game {
         }
         if (this.gameState === 'countdown') {
             this.countdownTimer -= delta;
+            const sec = Math.max(0, Math.ceil(this.countdownTimer));
+            if (sec !== this.lastCountdownSecond) {
+                this.lastCountdownSecond = sec;
+                if (sec > 0) {
+                    this.audioSynth?.playTimerTick?.(sec <= 3 ? 1.25 : 0.9);
+                }
+            }
 
             this.player.setInvulnerable(true);
             this.bots.forEach(bot => bot.setInvulnerable(true));
             this.player.isFrozen = true;
             this.bots.forEach(bot => { bot.isFrozen = true; });
 
-            this.hud.showCountdown(Math.ceil(this.countdownTimer));
+            this.hud.showCountdown(sec);
 
             if (this.countdownTimer <= 0) {
                 if (!this.perkLocked) {
@@ -1147,6 +1156,7 @@ class Game {
                 this.player.isFrozen = false;
                 this.bots.forEach(bot => { bot.isFrozen = false; });
                 this.queueZombieBurst(true, 1.6, 120, 22, this.isMobile() ? 4 : 6);
+                this.queuePoiBurst(1.4, this.isMobile() ? 12 : 18, this.isMobile() ? 3 : 4);
             }
         } else if (this.gameState === 'spawn') {
             this.spawnTimer -= delta;

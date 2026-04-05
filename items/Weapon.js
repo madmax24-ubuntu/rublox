@@ -59,7 +59,7 @@ const WEAPON_ASSET_CONFIG = {
     laser: {
         obj: 'assets/models/weapons/obj/SubmachineGun_4.obj',
         mtl: 'assets/models/weapons/obj/SubmachineGun_4.mtl',
-        scale: 0.66,
+        scale: 0.68,
         rotation: new THREE.Euler(0, -Math.PI / 2, 0),
         position: new THREE.Vector3(0.06, 0.0, 0)
     },
@@ -235,7 +235,7 @@ export class Weapon {
     constructor(type, scene, options = {}) {
         this.type = type; // 'knife', 'bow', 'laser', 'shotgun', 'flamethrower', 'pistol', 'rifle'
         this.scene = scene;
-        // Asset models enabled by default. Can be explicitly disabled via options.useAssetModel = false.
+        // Asset models enabled by default.
         this.useAssetModel = options.useAssetModel !== false;
         this.damage = this.getDamage();
         this.range = this.getRange();

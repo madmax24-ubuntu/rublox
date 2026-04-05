@@ -126,7 +126,7 @@ export class Player {
         if (type === 'shotgun') return 'Дробовик';
         if (type === 'flamethrower') return 'Огнемёт';
         if (type === 'pistol') return 'Пистолет';
-        if (type === 'rifle') return 'Винтовка';
+        if (type === 'rifle') return 'Пулемет';
         return type || 'Предмет';
     }
 

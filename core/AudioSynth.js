@@ -55,12 +55,12 @@ export class AudioSynth {
             zombieAttack: Array.from({ length: 12 }, (_, i) => `assets/audio/zombies/zombie-${i + 13}.wav`),
             bow: [
                 'assets/audio/rpg/drawKnife1.ogg',
-                'assets/audio/rpg/drawKnife2.ogg',
                 'assets/audio/rpg/drawKnife3.ogg'
             ],
             laser: [
                 'assets/audio/rpg/metalClick.ogg',
-                'assets/audio/rpg/metalLatch.ogg'
+                'assets/audio/rpg/metalLatch.ogg',
+                'assets/audio/rpg/bookClose.ogg'
             ],
             shotgun: [
                 'assets/audio/rpg/doorClose_3.ogg',
@@ -68,8 +68,8 @@ export class AudioSynth {
                 'assets/audio/rpg/metalPot3.ogg'
             ],
             pistol: [
-                'assets/audio/rpg/chop.ogg',
                 'assets/audio/rpg/metalClick.ogg',
+                'assets/audio/rpg/chop.ogg',
                 'assets/audio/rpg/drawKnife2.ogg'
             ],
             rifle: [
@@ -80,6 +80,15 @@ export class AudioSynth {
             flamethrower: [
                 'assets/audio/rpg/clothBelt.ogg',
                 'assets/audio/rpg/clothBelt2.ogg'
+            ],
+            timer: [
+                'assets/audio/rpg/metalClick.ogg',
+                'assets/audio/rpg/metalClick.ogg',
+                'assets/audio/rpg/bookClose.ogg'
+            ],
+            wind: [
+                'assets/audio/rpg/creak1.ogg',
+                'assets/audio/rpg/creak2.ogg'
             ],
             chestOpen: [
                 'assets/audio/rpg/bookOpen.ogg',
@@ -395,8 +404,10 @@ export class AudioSynth {
 
         softAmbience();
         lowRumble();
+        this.playWind();
         this.ambientTimers.push(setInterval(softAmbience, this.isMobileDevice ? 2100 : 1600));
         this.ambientTimers.push(setInterval(lowRumble, this.isMobileDevice ? 9500 : 7200));
+        this.ambientTimers.push(setInterval(() => this.playWind(), this.isMobileDevice ? 14000 : 11000));
     }
 
     stopAmbient() {
@@ -554,16 +565,40 @@ export class AudioSynth {
     }
 
     playBowShot() {
-        this.playProceduralShot('bow', this.isMobileDevice ? 0.1 : 0.14, null);
+        const played = this.playSample(this.sampleCatalog.bow, {
+            volume: this.isMobileDevice ? 0.07 : 0.11,
+            rateMin: 0.9,
+            rateMax: 1.08,
+            reverbSend: 0.05
+        });
+        if (!played) {
+            this.playProceduralShot('bow', this.isMobileDevice ? 0.1 : 0.14, null);
+        }
     }
 
     playLaser() {
-        this.playProceduralShot('laser', this.isMobileDevice ? 0.1 : 0.14, null);
+        const played = this.playSample(this.sampleCatalog.laser, {
+            volume: this.isMobileDevice ? 0.08 : 0.12,
+            rateMin: 0.9,
+            rateMax: 1.1,
+            reverbSend: 0.08
+        });
+        if (!played) {
+            this.playProceduralShot('laser', this.isMobileDevice ? 0.1 : 0.14, null);
+        }
     }
 
     playShotgun(volume = 1) {
         const scaled = clamp(volume, 0.1, 1.5);
-        this.playProceduralShot('shotgun', (this.isMobileDevice ? 0.14 : 0.2) * scaled, null);
+        const played = this.playSample(this.sampleCatalog.shotgun, {
+            volume: (this.isMobileDevice ? 0.11 : 0.17) * scaled,
+            rateMin: 0.82,
+            rateMax: 1.02,
+            reverbSend: 0.1
+        });
+        if (!played) {
+            this.playProceduralShot('shotgun', (this.isMobileDevice ? 0.14 : 0.2) * scaled, null);
+        }
     }
 
     playPistol() {
@@ -600,6 +635,23 @@ export class AudioSynth {
         if (!played) {
             this.playProceduralShot('flamethrower', this.isMobileDevice ? 0.08 : 0.12, null);
         }
+    }
+
+    playTimerTick(volume = 1) {
+        this.playSample(this.sampleCatalog.timer, {
+            volume: (this.isMobileDevice ? 0.045 : 0.06) * clamp(volume, 0.4, 1.4),
+            rateMin: 0.92,
+            rateMax: 1.08
+        });
+    }
+
+    playWind() {
+        this.playSample(this.sampleCatalog.wind, {
+            volume: this.isMobileDevice ? 0.02 : 0.03,
+            rateMin: 0.78,
+            rateMax: 0.95,
+            reverbSend: 0.18
+        });
     }
 
     playChestOpen() {

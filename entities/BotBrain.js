@@ -112,14 +112,11 @@ export class BotBrain {
                 this.setPatrolTarget(bot, approach || nearbyLoot.position);
                 return;
             }
-            const poi = this.getPoitarget(bot, lowResources ? 'loot' : 'safe', gear);
-            if (poi) {
-                bot.target = null;
-                bot.lootTarget = null;
-                bot.state = 'patrol';
-                this.setPatrolTarget(bot, poi);
-                return;
-            }
+            this.setSpreadPatrolTarget(bot, 22, 68);
+            bot.target = null;
+            bot.lootTarget = null;
+            bot.state = 'patrol';
+            return;
         }
 
         // Main rule: weak bot must loot first.
