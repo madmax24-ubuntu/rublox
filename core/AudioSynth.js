@@ -648,22 +648,22 @@ export class AudioSynth {
 
     playMachinegun() {
         const playedPrimary = this.playSample(this.sampleCatalog.machinegun, {
-            volume: this.isMobileDevice ? 0.085 : 0.125,
+            volume: this.isMobileDevice ? 0.13 : 0.19,
             rateMin: 1.15,
             rateMax: 1.35,
-            maxDuration: 0.18,
+            maxDuration: 0.2,
             reverbSend: 0.05,
             category: 'weapon'
         });
         const played = playedPrimary || this.playSample(this.sampleCatalog.rifle, {
-            volume: this.isMobileDevice ? 0.08 : 0.12,
+            volume: this.isMobileDevice ? 0.12 : 0.18,
             rateMin: 1.08,
             rateMax: 1.28,
             maxDuration: 0.16,
             reverbSend: 0.04,
             category: 'weapon'
         });
-        this.playProceduralShot('generic', played ? (this.isMobileDevice ? 0.03 : 0.045) : (this.isMobileDevice ? 0.06 : 0.085), null, 'weapon');
+        this.playProceduralShot('generic', played ? (this.isMobileDevice ? 0.07 : 0.1) : (this.isMobileDevice ? 0.09 : 0.13), null, 'weapon');
     }
 
     playFlamethrower() {

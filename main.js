@@ -1656,12 +1656,15 @@ class Game {
             return true;
         };
 
-        // Guaranteed presence: hangars always, houses partially.
+        // Guaranteed presence: hangars always (denser), houses partially.
         for (const hangar of hangarSpots) {
             if (budget <= 0 || spawned >= maxSpawn) break;
             spawnOneAtPoi(hangar, true);
+            if (budget > 0 && spawned < maxSpawn) {
+                spawnOneAtPoi(hangar, true);
+            }
         }
-        for (let i = 0; i < houseSpots.length; i += 3) {
+        for (let i = 0; i < houseSpots.length; i += 2) {
             if (budget <= 0 || spawned >= maxSpawn) break;
             spawnOneAtPoi(houseSpots[i], true);
         }

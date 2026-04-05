@@ -1282,13 +1282,14 @@ export class MapGenerator {
             return created;
         };
 
-        const guaranteedNearHangars = placeStructure('hangar', 0, nearSpawnCandidates);
+        // Place hangars first, otherwise dense house placement can block all large POIs.
+        const guaranteedNearHangars = placeStructure('hangar', 2, nearSpawnCandidates);
         const railHangars = placeStructure('hangar', 2, nearRailCandidates);
+        const hangarsNeeded = Math.max(0, 8 - guaranteedNearHangars - railHangars);
+        const lateHangars = placeStructure('hangar', hangarsNeeded, industrialCandidates.length ? industrialCandidates : candidates);
         const iceHouses = placeStructure('house', 18, iceCandidates);
         const forestHouses = placeStructure('house', 44, forestCandidates);
         const mixedHouses = placeStructure('house', 58, mixedCandidates);
-        const hangarsNeeded = Math.max(0, 8 - guaranteedNearHangars - railHangars);
-        const lateHangars = placeStructure('hangar', hangarsNeeded, industrialCandidates.length ? industrialCandidates : candidates);
         this.buildTreeHouses(forestCandidates.length ? forestCandidates : candidates, rand, placed);
 
         this.poiZones = [

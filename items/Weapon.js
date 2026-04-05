@@ -183,8 +183,8 @@ function createArrowProjectileMesh() {
 function getRotationOffsets(type) {
     if (type === 'knife') return { pitch: -Math.PI / 2, yaw: 0, roll: 0 };
     if (type === 'bow') return { pitch: -Math.PI / 2, yaw: 0, roll: Math.PI / 2 };
-    // Default third-person alignment: model should look the same way as owner forward.
-    return { pitch: 0, yaw: 0, roll: 0 };
+    // Third-person alignment for character forward (+Z in our actor space).
+    return { pitch: 0, yaw: Math.PI / 2, roll: 0 };
 }
 
 function getViewPoseForType(rawType) {
@@ -192,40 +192,40 @@ function getViewPoseForType(rawType) {
     const base = {
         scale: 0.72,
         position: new THREE.Vector3(0.14, -0.44, -0.72),
-        rotation: new THREE.Euler(0, -Math.PI / 2, 0)
+        rotation: new THREE.Euler(-0.08, -Math.PI / 2, 0)
     };
 
     if (type === 'knife') {
         base.position.set(0.2, -0.38, -0.76);
-        base.rotation.set(-Math.PI / 2 + 0.12, -Math.PI / 2, 0.08);
+        base.rotation.set(-0.34, -Math.PI / 2, 0.24);
         base.scale = 0.72;
     } else if (type === 'bow') {
         base.position.set(0.2, -0.22, -1.02);
-        base.rotation.set(0.02, -Math.PI / 2, Math.PI / 2.2);
+        base.rotation.set(0.08, -Math.PI / 2, Math.PI / 2.14);
         base.scale = 0.68;
     } else if (type === 'shotgun') {
         base.position.set(0.24, -0.48, -0.92);
-        base.rotation.set(-Math.PI / 2 + 0.18, -Math.PI / 2, -0.1);
+        base.rotation.set(-0.1, -Math.PI / 2, -0.1);
         base.scale = 0.58;
     } else if (type === 'flamethrower') {
         base.position.set(0.24, -0.5, -0.94);
-        base.rotation.set(-Math.PI / 2 + 0.2, -Math.PI / 2, -0.1);
+        base.rotation.set(-0.08, -Math.PI / 2, -0.1);
         base.scale = 0.56;
     } else if (type === 'laser') {
         base.position.set(0.24, -0.48, -0.92);
-        base.rotation.set(-Math.PI / 2 + 0.2, -Math.PI / 2, -0.1);
+        base.rotation.set(-0.06, -Math.PI / 2, -0.1);
         base.scale = 0.56;
     } else if (type === 'pistol') {
         base.position.set(0.2, -0.5, -0.82);
-        base.rotation.set(-Math.PI / 2 + 0.34, -Math.PI / 2, -0.06);
+        base.rotation.set(-0.04, -Math.PI / 2, -0.06);
         base.scale = 0.62;
     } else if (type === 'rifle') {
         base.position.set(0.24, -0.5, -0.96);
-        base.rotation.set(-Math.PI / 2 + 0.2, -Math.PI / 2, -0.08);
+        base.rotation.set(-0.08, -Math.PI / 2, -0.08);
         base.scale = 0.56;
     } else if (type === 'machinegun') {
         base.position.set(0.24, -0.5, -0.98);
-        base.rotation.set(-Math.PI / 2 + 0.16, -Math.PI / 2, -0.08);
+        base.rotation.set(-0.08, -Math.PI / 2, -0.08);
         base.scale = 0.58;
     }
 
