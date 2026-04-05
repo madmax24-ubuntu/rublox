@@ -1781,27 +1781,6 @@ export class MapGenerator {
             }
         }
 
-        // Rail hotspots: rare, high-risk loot near train route ends.
-        for (const route of this.railLayout || []) {
-            const endpoints = [
-                route.axis === 'x' ? { x: route.min + 6, z: route.offset } : { x: route.offset, z: route.min + 6 },
-                route.axis === 'x' ? { x: route.max - 6, z: route.offset } : { x: route.offset, z: route.max - 6 }
-            ];
-            for (const ep of endpoints) {
-                const offsets = [
-                    { x: ep.x, z: ep.z },
-                    { x: ep.x + (route.axis === 'x' ? 0 : 4), z: ep.z + (route.axis === 'x' ? 4 : 0) }
-                ];
-                for (const p of offsets) {
-                    const key = `${Math.round(p.x)}:${Math.round(p.z)}`;
-                    if (used.has(key)) continue;
-                    if (!this.isWalkableAt(p.x, p.z)) continue;
-                    if (!this.isChestClear(p.x, p.z, 1.0, true)) continue;
-                    this.chestSpots.push({ x: p.x, z: p.z, grade: 'train' });
-                    used.add(key);
-                }
-            }
-        }
     }
 
     toWorld(x, y) {
