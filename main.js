@@ -1599,7 +1599,6 @@ class Game {
             const x = guardSpot.x + (Math.random() - 0.5) * jitter;
             const z = guardSpot.z + (Math.random() - 0.5) * jitter;
             if (!this.map.isWalkableAt?.(x, z)) return false;
-            if (!this.map.isChestClear?.(x, z, 0.85, true)) return false;
             const baseY = this.map.getSurfaceHeightAt?.(x, z) ?? this.map.getHeightAt(x, z);
             const pos = new THREE.Vector3(x, baseY + 1.8, z);
             if (pos.distanceTo(this.player.position) < 14) return false;
@@ -1681,7 +1680,7 @@ class Game {
             const baseY = this.map.getSurfaceHeightAt?.(tile.x, tile.z) ?? this.map.getHeightAt(tile.x, tile.z);
             const pos = new THREE.Vector3(tile.x, baseY + 1.8, tile.z);
             if (pos.distanceTo(this.player.position) < (reset ? 20 : 24)) continue;
-            if (!this.map.isChestClear?.(tile.x, tile.z, 0.9, true)) continue;
+            if (!this.map.isWalkableAt?.(tile.x, tile.z)) continue;
             const zombie = new Zombie(this.scene, this.nextZombieId++, pos);
             this.physics.addEntity(zombie);
             this.entityManager.addEntity(zombie);

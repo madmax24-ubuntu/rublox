@@ -67,6 +67,16 @@ export class AudioSynth {
                 'assets/audio/rpg/metalPot1.ogg',
                 'assets/audio/rpg/metalPot3.ogg'
             ],
+            pistol: [
+                'assets/audio/rpg/chop.ogg',
+                'assets/audio/rpg/metalClick.ogg',
+                'assets/audio/rpg/drawKnife2.ogg'
+            ],
+            rifle: [
+                'assets/audio/rpg/metalPot1.ogg',
+                'assets/audio/rpg/doorClose_2.ogg',
+                'assets/audio/rpg/metalPot2.ogg'
+            ],
             flamethrower: [
                 'assets/audio/rpg/clothBelt.ogg',
                 'assets/audio/rpg/clothBelt2.ogg'
@@ -556,8 +566,40 @@ export class AudioSynth {
         this.playProceduralShot('shotgun', (this.isMobileDevice ? 0.14 : 0.2) * scaled, null);
     }
 
+    playPistol() {
+        const played = this.playSample(this.sampleCatalog.pistol, {
+            volume: this.isMobileDevice ? 0.08 : 0.12,
+            rateMin: 0.92,
+            rateMax: 1.08,
+            reverbSend: 0.06
+        });
+        if (!played) {
+            this.playProceduralShot('laser', this.isMobileDevice ? 0.075 : 0.1, null);
+        }
+    }
+
+    playRifle() {
+        const played = this.playSample(this.sampleCatalog.rifle, {
+            volume: this.isMobileDevice ? 0.1 : 0.14,
+            rateMin: 0.88,
+            rateMax: 1.03,
+            reverbSend: 0.08
+        });
+        if (!played) {
+            this.playProceduralShot('shotgun', this.isMobileDevice ? 0.1 : 0.14, null);
+        }
+    }
+
     playFlamethrower() {
-        this.playProceduralShot('flamethrower', this.isMobileDevice ? 0.08 : 0.12, null);
+        const played = this.playSample(this.sampleCatalog.flamethrower, {
+            volume: this.isMobileDevice ? 0.06 : 0.09,
+            rateMin: 0.84,
+            rateMax: 0.98,
+            reverbSend: 0.05
+        });
+        if (!played) {
+            this.playProceduralShot('flamethrower', this.isMobileDevice ? 0.08 : 0.12, null);
+        }
     }
 
     playChestOpen() {

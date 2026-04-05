@@ -687,7 +687,7 @@ export class MapGenerator {
         ];
 
         for (const seg of bodySegments) {
-            const piece = new THREE.Mesh(new THREE.CylinderGeometry(seg.sy, seg.sx, 2.05, 10, 1, true), goldMat);
+            const piece = new THREE.Mesh(new THREE.CylinderGeometry(seg.sy, seg.sx, 2.05, 10, 1, false), goldMat);
             piece.rotation.z = Math.PI / 2 + seg.rz;
             piece.scale.z = seg.sz / seg.sx;
             piece.position.set(seg.x, seg.y, seg.z);
@@ -705,7 +705,7 @@ export class MapGenerator {
                     Math.max(1.55, Math.hypot(b.x - a.x, b.y - a.y) + 0.45),
                     10,
                     1,
-                    true
+                    false
                 ),
                 goldMat
             );

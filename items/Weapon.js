@@ -235,8 +235,8 @@ export class Weapon {
     constructor(type, scene, options = {}) {
         this.type = type; // 'knife', 'bow', 'laser', 'shotgun', 'flamethrower', 'pistol', 'rifle'
         this.scene = scene;
-        // Asset models remain opt-in because some devices render imported materials incorrectly (black meshes).
-        this.useAssetModel = options.useAssetModel === true;
+        // Asset models enabled by default. Can be explicitly disabled via options.useAssetModel = false.
+        this.useAssetModel = options.useAssetModel !== false;
         this.damage = this.getDamage();
         this.range = this.getRange();
         this.cooldown = this.getCooldown();
@@ -767,9 +767,9 @@ export class Weapon {
             } else if (this.type === 'flamethrower') {
                 audioSynth.playFlamethrower?.();
             } else if (this.type === 'pistol') {
-                audioSynth.playShotgun?.(0.65);
+                audioSynth.playPistol?.();
             } else if (this.type === 'rifle') {
-                audioSynth.playShotgun?.(0.75);
+                audioSynth.playRifle?.();
             }
         }
 

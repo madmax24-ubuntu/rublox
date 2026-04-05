@@ -112,7 +112,7 @@ export class BotBrain {
                 this.setPatrolTarget(bot, approach || nearbyLoot.position);
                 return;
             }
-            const poi = this.getPoitarget(bot, lowResources ? 'loot' : 'safe');
+            const poi = this.getPoitarget(bot, lowResources ? 'loot' : 'safe', gear);
             if (poi) {
                 bot.target = null;
                 bot.lootTarget = null;
@@ -169,7 +169,7 @@ export class BotBrain {
         bot.lootTarget = null;
         bot.preferTrainCombat = false;
         bot.state = 'patrol';
-        const poiFallback = this.getPoitarget(bot, 'safe');
+        const poiFallback = this.getPoitarget(bot, 'safe', gear);
         if (poiFallback) {
             this.setPatrolTarget(bot, poiFallback);
         } else {
@@ -301,7 +301,7 @@ export class BotBrain {
     handlePatrol(bot) {
         const crowdNearTarget = bot.patrolTarget ? this.countBotsNearPoint(bot, bot.patrolTarget, 8.4) : 0;
         if (!bot.patrolTarget || bot.position.distanceTo(bot.patrolTarget) < 4.2 || this.repathCooldown <= 0 || crowdNearTarget >= 3) {
-            const poi = this.getPoitarget(bot, 'safe');
+            const poi = this.getPoitarget(bot, 'safe', this.getBotGearScore(bot));
             if (poi) {
                 this.setPatrolTarget(bot, poi);
             } else {
@@ -324,7 +324,7 @@ export class BotBrain {
         bot.moveTowards(bot.patrolTarget, bot.physics.speed);
     }
 
-    getPoitarget(bot, mode = 'safe') {
+    getPoitarget(bot, mode = 'safe', gearScore = 0.4) {
         const map = bot?.mapRef;
         if (!map) return null;
         const houses = map.getHouseSpots?.() || [];
@@ -342,10 +342,15 @@ export class BotBrain {
             const dist = Math.hypot(bot.position.x - p.x, bot.position.z - p.z);
             if (dist < 6) continue;
             if (Math.hypot(p.x, p.z) > zoneRadius * 0.88) continue;
-            const crowd = this.countBotsNearPoint(bot, p, p.type === 'hangar' ? 18 : 11);
-            if (crowd >= (p.type === 'hangar' ? 5 : 3)) continue;
-            const lootBias = mode === 'loot' ? (p.type === 'hangar' ? -10 : -4) : 0;
-            const score = dist + crowd * 16 + lootBias;
+            const crowd = this.countBotsNearPoint(bot, p, p.type === 'hangar' ? 20 : 11);
+            const hangarCrowdLimit = gearScore >= 0.68 ? 3 : 2;
+            if (crowd >= (p.type === 'hangar' ? hangarCrowdLimit : 3)) continue;
+            const hangarBias = p.type === 'hangar'
+                ? (mode === 'loot'
+                    ? (gearScore >= 0.68 ? -6 : 20)
+                    : (gearScore >= 0.78 ? -2 : 10))
+                : (mode === 'loot' ? -8 : 0);
+            const score = dist + crowd * 18 + hangarBias;
             if (score < bestScore) {
                 bestScore = score;
                 best = p;

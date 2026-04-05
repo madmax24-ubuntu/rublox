@@ -1047,7 +1047,7 @@ export class Player {
         this.viewWeaponType = weaponType || null;
         if (!weaponType || weaponType === 'fists') return;
 
-        const source = new Weapon(weaponType, this.scene, { useAssetModel: false });
+        const source = new Weapon(weaponType, this.scene, { useAssetModel: true });
         const applyClone = () => {
             if (requestId !== this.viewWeaponRequestId) return;
             if (!source.mesh || !this.fpArms) return;
