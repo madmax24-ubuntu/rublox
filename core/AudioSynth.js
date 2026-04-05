@@ -16,7 +16,7 @@ export class AudioSynth {
             sfx: null
         };
         this.categoryBaseVolumes = {
-            weapon: 1.2,
+            weapon: 2.05,
             ambient: 0.62,
             ui: 0.8,
             zombie: 0.9,
@@ -34,7 +34,7 @@ export class AudioSynth {
         this.musicThemeIndex = 0;
         this.rainNoiseBuffer = null;
         this.musicVolume = this.isMobileDevice ? 0.08 : 0.11;
-        this.sfxVolume = this.isMobileDevice ? 0.24 : 0.3;
+        this.sfxVolume = this.isMobileDevice ? 0.45 : 0.48;
         this.sampleBuffers = new Map();
         this.sampleLoadStarted = false;
         this.sampleLoadPromise = null;
@@ -84,8 +84,7 @@ export class AudioSynth {
                 'assets/audio/weapons/rifle_mosin.wav'
             ],
             flamethrower: [
-                'assets/audio/rpg/clothBelt.ogg',
-                'assets/audio/rpg/clothBelt2.ogg'
+                
             ],
             timer: [
                 'assets/audio/rpg/metalClick.ogg',
@@ -253,15 +252,15 @@ export class AudioSynth {
         if (this.musicGain) this.musicGain.gain.value = this.musicVolume;
     }
 
-    setSfxVolume(value = 0.22) {
-        this.sfxVolume = clamp(value, 0, 0.65);
+    setSfxVolume(value = 0.48) {
+        this.sfxVolume = clamp(value, 0, 1);
         if (this.masterSfxGain) this.masterSfxGain.gain.value = this.sfxVolume;
     }
 
     setCategoryVolume(category, value = 1) {
         const key = String(category || '').toLowerCase();
         if (!this.categoryGains[key]) return;
-        this.categoryBaseVolumes[key] = clamp(value, 0, 1.4);
+        this.categoryBaseVolumes[key] = clamp(value, 0, 2.5);
         this.categoryGains[key].gain.value = this.categoryBaseVolumes[key];
     }
 
@@ -642,14 +641,16 @@ export class AudioSynth {
 
     playLaser() {
         const played = this.playSample(this.sampleCatalog.laser, {
-            volume: this.isMobileDevice ? 0.11 : 0.16,
-            rateMin: 1.45,
-            rateMax: 1.9,
-            maxDuration: 0.48,
-            reverbSend: 0.08,
+            volume: this.isMobileDevice ? 0.38 : 0.55,
+            rateMin: 1.2,
+            rateMax: 1.5,
+            reverbSend: 0.1,
             category: 'weapon'
         });
-        this.playProceduralShot('laser', played ? (this.isMobileDevice ? 0.06 : 0.09) : (this.isMobileDevice ? 0.09 : 0.13), null, 'weapon');
+        this.playProceduralShot('laser', played ? (this.isMobileDevice ? 0.24 : 0.34) : (this.isMobileDevice ? 0.28 : 0.4), null, 'weapon');
+        if (!played) {
+            this.fallbackTone('sawtooth', 1100, 260, 0.17, this.isMobileDevice ? 0.19 : 0.28, null, 'weapon');
+        }
     }
 
     playShotgun(volume = 1) {
@@ -667,14 +668,16 @@ export class AudioSynth {
 
     playPistol() {
         const played = this.playSample(this.sampleCatalog.pistol, {
-            volume: this.isMobileDevice ? 0.12 : 0.18,
+            volume: this.isMobileDevice ? 0.38 : 0.55,
             rateMin: 0.94,
             rateMax: 1.06,
-            maxDuration: 0.5,
-            reverbSend: 0.04,
+            reverbSend: 0.06,
             category: 'weapon'
         });
-        this.playProceduralShot('generic', played ? (this.isMobileDevice ? 0.04 : 0.06) : (this.isMobileDevice ? 0.07 : 0.1), null, 'weapon');
+        this.playProceduralShot('generic', played ? (this.isMobileDevice ? 0.15 : 0.22) : (this.isMobileDevice ? 0.2 : 0.28), null, 'weapon');
+        if (!played) {
+            this.fallbackTone('square', 280, 92, 0.1, this.isMobileDevice ? 0.16 : 0.24, null, 'weapon');
+        }
     }
 
     playRifle() {
@@ -691,7 +694,7 @@ export class AudioSynth {
 
     playMachinegun() {
         const playedPrimary = this.playSample(this.sampleCatalog.machinegun, {
-            volume: this.isMobileDevice ? 0.22 : 0.32,
+            volume: this.isMobileDevice ? 0.42 : 0.62,
             rateMin: 1.15,
             rateMax: 1.35,
             maxDuration: 0.2,
@@ -706,19 +709,22 @@ export class AudioSynth {
             reverbSend: 0.04,
             category: 'weapon'
         });
-        this.playProceduralShot('generic', played ? (this.isMobileDevice ? 0.09 : 0.14) : (this.isMobileDevice ? 0.12 : 0.17), null, 'weapon');
+        this.playProceduralShot('generic', played ? (this.isMobileDevice ? 0.24 : 0.34) : (this.isMobileDevice ? 0.26 : 0.38), null, 'weapon');
     }
 
     playFlamethrower() {
         const played = this.playSample(this.sampleCatalog.flamethrower, {
-            volume: this.isMobileDevice ? 0.12 : 0.18,
-            rateMin: 0.58,
-            rateMax: 0.76,
-            maxDuration: 0.36,
+            volume: this.isMobileDevice ? 0.26 : 0.38,
+            rateMin: 0.45,
+            rateMax: 0.62,
+            maxDuration: 0.2,
             reverbSend: 0.08,
             category: 'weapon'
         });
-        this.playProceduralShot('flamethrower', played ? (this.isMobileDevice ? 0.08 : 0.12) : (this.isMobileDevice ? 0.1 : 0.14), null, 'weapon');
+        this.playProceduralShot('flamethrower', played ? (this.isMobileDevice ? 0.28 : 0.4) : (this.isMobileDevice ? 0.34 : 0.5), null, 'weapon');
+        if (!played) {
+            this.fallbackTone('triangle', 210, 58, 0.22, this.isMobileDevice ? 0.14 : 0.22, null, 'weapon');
+        }
     }
 
     playTimerTick(volume = 1) {

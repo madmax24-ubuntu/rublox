@@ -16,11 +16,13 @@ const setLoadingProgress = (ratio) => {
 };
 
 THREE.DefaultLoadingManager.onStart = function() {
+    if (document.body?.classList?.contains('game-started')) return;
     if (loadingOverlay) loadingOverlay.style.display = 'flex';
     setLoadingProgress(0.05);
 };
 
 THREE.DefaultLoadingManager.onProgress = function(url, loaded, total) {
+    if (document.body?.classList?.contains('game-started')) return;
     if (total > 0) {
         setLoadingProgress(loaded / total);
     } else {
@@ -58,6 +60,7 @@ class Game {
     constructor(yandexBridge = null) {
         this.yandex = yandexBridge || new YandexBridge();
         this.isStarted = false;
+        this.startingGame = false;
         this.mobileMode = (
             'ontouchstart' in window
             || navigator.maxTouchPoints > 0
@@ -130,6 +133,7 @@ class Game {
         this.gameLoop?.resetDelta?.();
         this.lastVisibilityHiddenAt = performance.now();
         this.resumeGraceTimer = Math.max(this.resumeGraceTimer || 0, 0.45);
+        if (this.startingGame) return;
         if (this.startTransitionUntil && performance.now() < this.startTransitionUntil) {
             return;
         }
@@ -142,6 +146,9 @@ class Game {
     onAppVisible(reason = 'resume') {
         this.gameLoop?.resetDelta?.();
         this.applyRendererSizing();
+        if (loadingOverlay && loadingOverlay.style.display !== 'none') {
+            loadingOverlay.style.display = 'none';
+        }
         if (this.isMobile()) {
             setTimeout(() => this.applyRendererSizing(), 120);
             setTimeout(() => this.applyRendererSizing(), 320);
@@ -150,6 +157,9 @@ class Game {
         this.resumeGraceTimer = Math.max(this.resumeGraceTimer || 0, 0.45);
         this.propVisibilityTimer = 0.2;
         this.rainUpdateAccumulator = 0;
+        if (this.isMobile() && this.autoPausedByVisibility && this.isPaused && this.isStarted) {
+            this.setPaused(false);
+        }
         if (this.map?.updatePropVisibility && this.player?.position) {
             this.map.updatePropVisibility(this.player.position);
             this.lastPropVisibilityPos.copy(this.player.position);
@@ -374,7 +384,7 @@ class Game {
         document.addEventListener('fullscreenchange', () => {
             if (!document.fullscreenElement) {
                 this.recoverViewState('fullscreen-exit');
-                if (this.isStarted && !this.isPaused) {
+                if (!this.startingGame && this.isStarted && !this.isPaused) {
                     this.setPaused(true);
                 }
             }
@@ -570,11 +580,11 @@ class Game {
             const saved = raw ? JSON.parse(raw) : {};
             return {
                 musicVolume: Math.max(0, Math.min(0.4, Number(saved.musicVolume ?? 0.14))),
-                sfxVolume: Math.max(0, Math.min(0.55, Number(saved.sfxVolume ?? 0.22))),
+                sfxVolume: Math.max(0, Math.min(1, Number(saved.sfxVolume ?? 0.48))),
                 lookSensitivity: Math.max(0.5, Math.min(2.4, Number(saved.lookSensitivity ?? 1)))
             };
         } catch (_) {
-            return { musicVolume: 0.14, sfxVolume: 0.22, lookSensitivity: 1 };
+            return { musicVolume: 0.14, sfxVolume: 0.48, lookSensitivity: 1 };
         }
     }
 
@@ -588,7 +598,7 @@ class Game {
     applyUserSettings(settings = {}) {
         const safe = {
             musicVolume: Math.max(0, Math.min(0.4, Number(settings.musicVolume ?? 0.14))),
-            sfxVolume: Math.max(0, Math.min(0.55, Number(settings.sfxVolume ?? 0.22))),
+            sfxVolume: Math.max(0, Math.min(1, Number(settings.sfxVolume ?? 0.48))),
             lookSensitivity: Math.max(0.5, Math.min(2.4, Number(settings.lookSensitivity ?? 1)))
         };
         this.audioSynth?.setMusicVolume?.(safe.musicVolume);
@@ -598,7 +608,7 @@ class Game {
     }
 
     resetUserSettings() {
-        const defaults = { musicVolume: 0.14, sfxVolume: 0.22, lookSensitivity: 1 };
+        const defaults = { musicVolume: 0.14, sfxVolume: 0.48, lookSensitivity: 1 };
         localStorage.setItem('mazearena_settings', JSON.stringify(defaults));
         this.applyUserSettings(defaults);
         this.hud?.showGameMessage?.('Настройки сброшены');
@@ -1057,6 +1067,9 @@ class Game {
     }
 
     update(delta) {
+        if (this.isStarted && loadingOverlay && loadingOverlay.style.display !== 'none') {
+            loadingOverlay.style.display = 'none';
+        }
         if (this.resumeGraceTimer > 0) {
             this.resumeGraceTimer = Math.max(0, this.resumeGraceTimer - delta);
         }
@@ -1752,6 +1765,7 @@ class Game {
     async startGame() {
         if (this.isStarted) return;
         this.isStarted = true;
+        this.startingGame = true;
         try {
             this.hideStartScreen();
             this.startTransitionUntil = performance.now() + 3500;
@@ -1814,12 +1828,25 @@ class Game {
 
             this.gameLoop.start();
             requestAnimationFrame(() => this.hideStartScreen());
+            if (loadingOverlay && loadingOverlay.style.display !== 'none') {
+                loadingOverlay.style.display = 'none';
+            }
+            setTimeout(() => {
+                if (this.isStarted && loadingOverlay && loadingOverlay.style.display !== 'none') {
+                    loadingOverlay.style.display = 'none';
+                }
+            }, 1200);
             this.startTransitionUntil = 0;
+            this.startingGame = false;
         } catch (err) {
             console.error('Failed to start game:', err);
             this.isStarted = false;
             this.startTransitionUntil = 0;
+            this.startingGame = false;
             this.showStartScreen();
+            if (loadingOverlay && loadingOverlay.style.display !== 'none') {
+                loadingOverlay.style.display = 'none';
+            }
             this.hud?.showGameMessage?.('Ошибка запуска. Нажмите старт снова.');
             throw err;
         }

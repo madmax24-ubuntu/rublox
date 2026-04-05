@@ -84,6 +84,7 @@ export class Bot {
         this._tmpArmWorld = new THREE.Vector3();
         this._tmpForward = new THREE.Vector3();
         this._tmpRight = new THREE.Vector3();
+        this._tmpWeaponRot = new THREE.Vector3();
         this._tmpErr = new THREE.Vector3();
 
         this.variants = [
@@ -179,6 +180,33 @@ export class Bot {
                 item.setVisible(item === this.currentWeapon && this.isAlive);
             }
         }
+    }
+
+    updateWeaponTransform() {
+        if (!this.currentWeapon || !this.currentWeapon.mesh || !this.isAlive) return;
+        const limbs = this.mesh?.userData?.limbs;
+        if (!limbs?.rightArm) return;
+
+        this.mesh.updateMatrixWorld();
+        limbs.rightArm.getWorldPosition(this._tmpArmWorld);
+        this._tmpForward.set(Math.sin(this.rotation.y), 0, Math.cos(this.rotation.y));
+        this._tmpRight.set(Math.cos(this.rotation.y), 0, -Math.sin(this.rotation.y));
+        const grip = Weapon.getThirdPersonGrip(this.currentWeapon.type);
+        this._tmpProbe
+            .copy(this._tmpArmWorld)
+            .addScaledVector(this._tmpForward, grip.forward)
+            .addScaledVector(this._tmpRight, grip.right)
+            .setY(this._tmpArmWorld.y + grip.up);
+        this.currentWeapon.setPosition(this._tmpProbe);
+        this._tmpWeaponRot.set(this.rotation.x, this.rotation.y, this.rotation.z);
+        if (this.currentWeapon.type === 'bow') {
+            this._tmpWeaponRot.x -= 0.26;
+        } else if (this.currentWeapon.type === 'knife') {
+            this._tmpWeaponRot.x -= 0.12;
+        } else if (this.currentWeapon.type === 'shotgun' || this.currentWeapon.type === 'rifle' || this.currentWeapon.type === 'machinegun' || this.currentWeapon.type === 'flamethrower' || this.currentWeapon.type === 'laser') {
+            this._tmpWeaponRot.x -= 0.08;
+        }
+        this.currentWeapon.setRotation(this._tmpWeaponRot);
     }
 
     createMesh() {
@@ -452,6 +480,7 @@ export class Bot {
             this.mesh.position.copy(this.position);
             this.mesh.position.y = this.position.y - (this.physics.height - 0.2);
             this.mesh.rotation.y = this.rotation.y;
+            this.updateWeaponTransform();
             return;
         }
 
@@ -463,6 +492,7 @@ export class Bot {
             this.mesh.rotation.y = this.rotation.y;
             this.animateLimbs();
             this.updateHealthBar(delta);
+            this.updateWeaponTransform();
             return;
         }
 
@@ -518,24 +548,7 @@ export class Bot {
         this.animateLimbs();
         this.updateHealthBar(delta);
 
-        if (this.currentWeapon && this.currentWeapon.mesh && this.isAlive) {
-            const limbs = this.mesh?.userData?.limbs;
-            if (limbs?.rightArm) {
-                this.mesh.updateMatrixWorld();
-                limbs.rightArm.getWorldPosition(this._tmpArmWorld);
-                this._tmpForward.set(Math.sin(this.rotation.y), 0, Math.cos(this.rotation.y));
-                this._tmpRight.set(Math.cos(this.rotation.y), 0, -Math.sin(this.rotation.y));
-                const grip = Weapon.getThirdPersonGrip(this.currentWeapon.type);
-                this._tmpProbe
-                    .copy(this._tmpArmWorld)
-                    .addScaledVector(this._tmpForward, grip.forward)
-                    .addScaledVector(this._tmpRight, grip.right)
-                    .setY(this._tmpArmWorld.y + grip.up);
-
-                this.currentWeapon.setPosition(this._tmpProbe);
-                this.currentWeapon.setRotation(this.rotation);
-            }
-        }
+        this.updateWeaponTransform();
 
         const moved = this.position.distanceTo(this.lastPosition);
         if (moved < 0.05 && !this.isFrozen) {
@@ -810,23 +823,7 @@ export class Bot {
         this.animateLimbs();
         if (this.healthBar) this.updateHealthBar(delta);
 
-        if (this.currentWeapon && this.currentWeapon.mesh && this.isAlive) {
-            const limbs = this.mesh?.userData?.limbs;
-            if (limbs?.rightArm) {
-                this.mesh.updateMatrixWorld();
-                limbs.rightArm.getWorldPosition(this._tmpArmWorld);
-                this._tmpForward.set(Math.sin(this.rotation.y), 0, Math.cos(this.rotation.y));
-                this._tmpRight.set(Math.cos(this.rotation.y), 0, -Math.sin(this.rotation.y));
-                const grip = Weapon.getThirdPersonGrip(this.currentWeapon.type);
-                this._tmpProbe
-                    .copy(this._tmpArmWorld)
-                    .addScaledVector(this._tmpForward, grip.forward)
-                    .addScaledVector(this._tmpRight, grip.right)
-                    .setY(this._tmpArmWorld.y + grip.up);
-                this.currentWeapon.setPosition(this._tmpProbe);
-                this.currentWeapon.setRotation(this.rotation);
-            }
-        }
+        this.updateWeaponTransform();
     }
 
     setInvulnerable(value) {

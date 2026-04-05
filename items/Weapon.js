@@ -184,7 +184,7 @@ function createArrowProjectileMesh() {
 
 function getRotationOffsets(type) {
     if (type === 'knife') return { pitch: -Math.PI / 2, yaw: 0, roll: 0 };
-    if (type === 'bow') return { pitch: -Math.PI / 2, yaw: 0, roll: Math.PI / 2 };
+    if (type === 'bow') return { pitch: 0.04, yaw: Math.PI / 2, roll: -0.04 };
     // Third-person alignment for character forward (+Z in our actor space).
     return { pitch: 0, yaw: Math.PI / 2, roll: 0 };
 }
@@ -236,14 +236,27 @@ function getViewPoseForType(rawType) {
 
 function getThirdPersonGripForType(rawType) {
     const type = normType(rawType);
-    const base = { forward: 0.16, right: 0.08, up: -0.18 };
-    if (type === 'knife') return { forward: 0.14, right: 0.1, up: -0.16 };
-    if (type === 'pistol') return { forward: 0.16, right: 0.09, up: -0.17 };
-    if (type === 'bow') return { forward: 0.2, right: 0.08, up: -0.16 };
-    if (type === 'shotgun') return { forward: 0.2, right: 0.08, up: -0.2 };
-    if (type === 'rifle' || type === 'machinegun') return { forward: 0.2, right: 0.08, up: -0.19 };
-    if (type === 'flamethrower' || type === 'laser') return { forward: 0.18, right: 0.08, up: -0.2 };
+    const base = { forward: 0.24, right: 0.14, up: -0.34 };
+    if (type === 'knife') return { forward: 0.2, right: 0.12, up: -0.28 };
+    if (type === 'pistol') return { forward: 0.24, right: 0.14, up: -0.32 };
+    if (type === 'bow') return { forward: 0.32, right: 0.2, up: -0.42 };
+    if (type === 'shotgun') return { forward: 0.28, right: 0.14, up: -0.38 };
+    if (type === 'rifle' || type === 'machinegun') return { forward: 0.3, right: 0.14, up: -0.4 };
+    if (type === 'flamethrower' || type === 'laser') return { forward: 0.28, right: 0.14, up: -0.4 };
     return base;
+}
+
+function getThirdPersonWorldScale(rawType) {
+    const type = normType(rawType);
+    if (type === 'knife') return 0.84;
+    if (type === 'bow') return 0.7;
+    if (type === 'pistol') return 0.78;
+    if (type === 'shotgun') return 0.74;
+    if (type === 'rifle') return 0.7;
+    if (type === 'machinegun') return 0.72;
+    if (type === 'flamethrower') return 0.7;
+    if (type === 'laser') return 0.72;
+    return 0.78;
 }
 
 export class Weapon {
@@ -314,6 +327,7 @@ export class Weapon {
         else if (this.type === 'laser') group.add(createGunModel('laser'));
 
         configureMeshForGameplay(group);
+        group.scale.setScalar(getThirdPersonWorldScale(this.type));
         group.visible = false;
         this.mesh = group;
         this.scene?.add(group);

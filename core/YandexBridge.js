@@ -81,6 +81,20 @@ export class YandexBridge {
         }
     }
 
+    shouldUseSdkRuntime() {
+        try {
+            if (window.YandexGamesSDKEnvironment) return true;
+            const params = new URLSearchParams(window.location.search || '');
+            if (params.get('yandex') === '1' || params.get('yg') === '1') return true;
+            const parentDiffers = !!(window.parent && window.parent !== window);
+            const ref = String(document.referrer || '').toLowerCase();
+            const fromYandexRef = /yandex|ya\.ru|yandexgames/.test(ref);
+            return parentDiffers && fromYandexRef;
+        } catch (_) {
+            return false;
+        }
+    }
+
     applyDomSafety() {
         const prevent = (e) => e.preventDefault();
         const preventScroll = (e) => {
@@ -175,7 +189,7 @@ export class YandexBridge {
         this.lang = this.getLangFromUrl();
 
         try {
-            if (window.YaGames?.init) {
+            if (window.YaGames?.init && this.shouldUseSdkRuntime()) {
                 this.ysdk = await window.YaGames.init();
                 this.lang = this.normalizeLang(
                     this.ysdk?.environment?.i18n?.lang

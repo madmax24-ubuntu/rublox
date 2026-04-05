@@ -541,7 +541,7 @@ export class HUD {
                     </label>
                     <label style="display:grid;gap:${px(4)}px;font-size:${px(12)}px;">
                         <span>Эффекты</span>
-                        <input id="pauseSfxVolume" type="range" min="0" max="0.55" step="0.01" value="0.22">
+                        <input id="pauseSfxVolume" type="range" min="0" max="1" step="0.01" value="0.48">
                     </label>
                     <label style="display:grid;gap:${px(4)}px;font-size:${px(12)}px;">
                         <span>Чувствительность</span>
@@ -893,7 +893,7 @@ export class HUD {
             document.dispatchEvent(new CustomEvent('setAudioSettings', {
                 detail: {
                     musicVolume: Number(music?.value || 0.14),
-                    sfxVolume: Number(sfx?.value || 0.22)
+                    sfxVolume: Number(sfx?.value || 0.48)
                 }
             }));
         };

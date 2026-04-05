@@ -69,6 +69,8 @@ export class Bot {
         this.healthBarVisibleCached = true;
         this.steeringCooldown = 0;
         this.cachedMoveDir = new THREE.Vector3(0, 0, 1);
+        this.visualLastPosition = this.position.clone();
+        this.visualSpeed = 0;
         this._tmpDirection = new THREE.Vector3();
         this._tmpAvoid = new THREE.Vector3();
         this._tmpTrainAvoid = new THREE.Vector3();
@@ -82,6 +84,7 @@ export class Bot {
         this._tmpArmWorld = new THREE.Vector3();
         this._tmpForward = new THREE.Vector3();
         this._tmpRight = new THREE.Vector3();
+        this._tmpWeaponRot = new THREE.Vector3();
         this._tmpErr = new THREE.Vector3();
 
         this.variants = [
@@ -177,6 +180,33 @@ export class Bot {
                 item.setVisible(item === this.currentWeapon && this.isAlive);
             }
         }
+    }
+
+    updateWeaponTransform() {
+        if (!this.currentWeapon || !this.currentWeapon.mesh || !this.isAlive) return;
+        const limbs = this.mesh?.userData?.limbs;
+        if (!limbs?.rightArm) return;
+
+        this.mesh.updateMatrixWorld();
+        limbs.rightArm.getWorldPosition(this._tmpArmWorld);
+        this._tmpForward.set(Math.sin(this.rotation.y), 0, Math.cos(this.rotation.y));
+        this._tmpRight.set(Math.cos(this.rotation.y), 0, -Math.sin(this.rotation.y));
+        const grip = Weapon.getThirdPersonGrip(this.currentWeapon.type);
+        this._tmpProbe
+            .copy(this._tmpArmWorld)
+            .addScaledVector(this._tmpForward, grip.forward)
+            .addScaledVector(this._tmpRight, grip.right)
+            .setY(this._tmpArmWorld.y + grip.up);
+        this.currentWeapon.setPosition(this._tmpProbe);
+        this._tmpWeaponRot.set(this.rotation.x, this.rotation.y, this.rotation.z);
+        if (this.currentWeapon.type === 'bow') {
+            this._tmpWeaponRot.x -= 0.26;
+        } else if (this.currentWeapon.type === 'knife') {
+            this._tmpWeaponRot.x -= 0.12;
+        } else if (this.currentWeapon.type === 'shotgun' || this.currentWeapon.type === 'rifle' || this.currentWeapon.type === 'machinegun' || this.currentWeapon.type === 'flamethrower' || this.currentWeapon.type === 'laser') {
+            this._tmpWeaponRot.x -= 0.08;
+        }
+        this.currentWeapon.setRotation(this._tmpWeaponRot);
     }
 
     createMesh() {
@@ -432,6 +462,7 @@ export class Bot {
         this.physicsRef = physics;
         this.zoneRef = zone || this.zoneRef;
         this.entityManagerRef = entityManager || this.entityManagerRef;
+        this.lootManagerRef = lootManager || this.lootManagerRef;
         this.audioSynthRef = audioSynth;
         this.updateBurning(delta);
         this.updateHealthRegen(delta);
@@ -449,6 +480,7 @@ export class Bot {
             this.mesh.position.copy(this.position);
             this.mesh.position.y = this.position.y - (this.physics.height - 0.2);
             this.mesh.rotation.y = this.rotation.y;
+            this.updateWeaponTransform();
             return;
         }
 
@@ -460,6 +492,7 @@ export class Bot {
             this.mesh.rotation.y = this.rotation.y;
             this.animateLimbs();
             this.updateHealthBar(delta);
+            this.updateWeaponTransform();
             return;
         }
 
@@ -515,23 +548,7 @@ export class Bot {
         this.animateLimbs();
         this.updateHealthBar(delta);
 
-        if (this.currentWeapon && this.currentWeapon.mesh && this.isAlive) {
-            const limbs = this.mesh?.userData?.limbs;
-            if (limbs?.rightArm) {
-                this.mesh.updateMatrixWorld();
-                limbs.rightArm.getWorldPosition(this._tmpArmWorld);
-                this._tmpForward.set(Math.sin(this.rotation.y), 0, Math.cos(this.rotation.y));
-                this._tmpRight.set(Math.cos(this.rotation.y), 0, -Math.sin(this.rotation.y));
-                this._tmpProbe
-                    .copy(this._tmpArmWorld)
-                    .addScaledVector(this._tmpForward, 0.16)
-                    .addScaledVector(this._tmpRight, 0.08)
-                    .setY(this._tmpArmWorld.y - 0.18);
-
-                this.currentWeapon.setPosition(this._tmpProbe);
-                this.currentWeapon.setRotation(this.rotation);
-            }
-        }
+        this.updateWeaponTransform();
 
         const moved = this.position.distanceTo(this.lastPosition);
         if (moved < 0.05 && !this.isFrozen) {
@@ -583,11 +600,12 @@ export class Bot {
         const limbs = this.mesh?.userData?.limbs;
         if (!limbs) return;
 
-        const speed = Math.sqrt(
+        const velocitySpeed = Math.sqrt(
             this.physics.velocity.x * this.physics.velocity.x +
             this.physics.velocity.z * this.physics.velocity.z
         );
-        const speedNorm = Math.min(1, speed / this.physics.speed);
+        const speed = Math.max(velocitySpeed, this.visualSpeed || 0);
+        const speedNorm = Math.min(1, speed / Math.max(0.001, this.physics.speed));
         const time = performance.now() / 1000;
 
         if (speedNorm > 0.05) {
@@ -792,6 +810,22 @@ export class Bot {
         }
     }
 
+    syncVisualAfterPhysics(delta = 0.016) {
+        if (!this.mesh) return;
+        const dt = Math.max(0.001, delta || 0.016);
+        const moved = this.position.distanceTo(this.visualLastPosition);
+        this.visualSpeed = moved / dt;
+        this.visualLastPosition.copy(this.position);
+
+        this.mesh.position.copy(this.position);
+        this.mesh.position.y = this.position.y - (this.physics.height - 0.2);
+        this.mesh.rotation.y = this.rotation.y;
+        this.animateLimbs();
+        if (this.healthBar) this.updateHealthBar(delta);
+
+        this.updateWeaponTransform();
+    }
+
     setInvulnerable(value) {
         this.isInvulnerable = value;
     }
@@ -899,7 +933,7 @@ export class Bot {
             this.currentWeapon = null;
             weapon = this.fists;
         }
-        if ((weapon.type === 'bow' || weapon.type === 'laser' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle') && weapon.ammo !== null && weapon.ammo <= 0) {
+        if ((weapon.type === 'bow' || weapon.type === 'laser' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle' || weapon.type === 'machinegun') && weapon.ammo !== null && weapon.ammo <= 0) {
             this.currentWeapon = null;
             weapon = this.fists;
         }
@@ -910,7 +944,7 @@ export class Bot {
 
         if (distance > attackRange) return null;
 
-        if (weapon.type === 'laser' || weapon.type === 'bow' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle') {
+        if (weapon.type === 'laser' || weapon.type === 'bow' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle' || weapon.type === 'machinegun') {
             const direction = this._tmpDirection
                 .subVectors(target.position, this.position)
                 .normalize();
