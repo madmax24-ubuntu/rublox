@@ -80,6 +80,7 @@ export class BotBrain {
         const localCrowd = this.countBotsNearPoint(bot, bot.position, 6.6);
         const nearbyZombieThreat = this.countNearbyZombies(bot, entityManager, 10);
         const nearbyLoot = this.findBestChest(bot, lootManager, lowResources ? 105 : 76);
+        const lootIsHangar = this.isHangarChest(bot, nearbyLoot);
         const enemy = this.findBestEnemy(bot, entityManager, lowResources ? 30 : 52, gear);
 
         // Anti-stuck and anti-clump priority.
@@ -104,7 +105,7 @@ export class BotBrain {
 
         // During loot phase bots should primarily gather resources and rotate through POIs.
         if (preLootPhase) {
-            if (nearbyLoot) {
+            if (nearbyLoot && (!lootIsHangar || localCrowd < 2 || gear > 0.72)) {
                 bot.target = null;
                 bot.lootTarget = nearbyLoot;
                 bot.state = 'explore';
@@ -120,7 +121,7 @@ export class BotBrain {
         }
 
         // Main rule: weak bot must loot first.
-        if (nearbyLoot && (lowResources || !bot.currentWeapon || Math.random() < this.lootBias)) {
+        if (nearbyLoot && (!lootIsHangar || localCrowd < 2 || gear > 0.72) && (lowResources || !bot.currentWeapon || Math.random() < this.lootBias)) {
             bot.target = null;
             bot.lootTarget = nearbyLoot;
             bot.state = 'explore';
@@ -152,7 +153,7 @@ export class BotBrain {
         }
 
         // Optional continued looting even when geared.
-        if (nearbyLoot && Math.random() < 0.38) {
+        if (nearbyLoot && (!lootIsHangar || localCrowd < 2 || gear > 0.8) && Math.random() < 0.38) {
             bot.target = null;
             bot.lootTarget = nearbyLoot;
             bot.state = 'explore';
@@ -336,16 +337,18 @@ export class BotBrain {
         let best = null;
         let bestScore = Infinity;
         for (const p of points) {
+            const isHangar = p.type === 'hangar';
+            if (isHangar && mode !== 'loot' && gearScore < 0.8) continue;
             const dist = Math.hypot(bot.position.x - p.x, bot.position.z - p.z);
             if (dist < 6) continue;
             if (Math.hypot(p.x, p.z) > zoneRadius * 0.88) continue;
-            const crowd = this.countBotsNearPoint(bot, p, p.type === 'hangar' ? 20 : 11);
-            const hangarCrowdLimit = gearScore >= 0.68 ? 3 : 2;
-            if (crowd >= (p.type === 'hangar' ? hangarCrowdLimit : 3)) continue;
-            const hangarBias = p.type === 'hangar'
+            const crowd = this.countBotsNearPoint(bot, p, isHangar ? 22 : 11);
+            const hangarCrowdLimit = gearScore >= 0.74 ? 2 : 1;
+            if (crowd >= (isHangar ? hangarCrowdLimit : 3)) continue;
+            const hangarBias = isHangar
                 ? (mode === 'loot'
-                    ? (gearScore >= 0.68 ? -6 : 20)
-                    : (gearScore >= 0.78 ? -2 : 10))
+                    ? (gearScore >= 0.74 ? 8 : 38)
+                    : 22)
                 : (mode === 'loot' ? -8 : 0);
             const score = dist + crowd * 18 + hangarBias;
             if (score < bestScore) {
@@ -415,9 +418,11 @@ export class BotBrain {
             const crowdNear = this.countBotsNearPoint(bot, chest.position, 8);
             if (crowdTarget >= 1 || crowdNear >= 2) continue;
 
-            const grade = chest.userData?.grade || 'house';
-            const gradeBonus = grade === 'hangar' ? -8 : 0;
-            const score = dist + crowdTarget * 24 + crowdNear * 15 + gradeBonus;
+            const isHangar = this.isHangarChest(bot, chest);
+            const structureCrowd = this.countBotsNearPoint(bot, chest.position, isHangar ? 24 : 10);
+            if (isHangar && structureCrowd >= 3) continue;
+            const gradePenalty = isHangar ? (this.getBotGearScore(bot) >= 0.72 ? 8 : 26) : 0;
+            const score = dist + crowdTarget * 24 + crowdNear * 15 + structureCrowd * 7 + gradePenalty;
             if (score < bestScore) {
                 bestScore = score;
                 best = chest;
@@ -616,6 +621,13 @@ export class BotBrain {
             }
         }
         return best;
+    }
+
+    isHangarChest(bot, chest) {
+        if (!bot || !chest) return false;
+        if (chest.userData?.grade === 'hangar') return true;
+        const info = bot.mapRef?.getStructureAtPoint?.(chest.position.x, chest.position.z, 0.4);
+        return info?.type === 'hangar';
     }
 
     shouldDoTrainCombat(bot) {

@@ -859,7 +859,7 @@ export class MapGenerator {
         }
         for (const hangar of this.hangarSpots) {
             let placed = 0;
-            const targetCount = 18 + Math.floor(rand() * 7);
+            const targetCount = 10 + Math.floor(rand() * 5);
             const w = hangar.width || 60;
             const d = hangar.depth || 36;
             const points = [];
@@ -1280,7 +1280,7 @@ export class MapGenerator {
             return created;
         };
 
-        const guaranteedNearHangars = placeStructure('hangar', 2, nearSpawnCandidates);
+        const guaranteedNearHangars = placeStructure('hangar', 0, nearSpawnCandidates);
         const railHangars = placeStructure('hangar', 2, nearRailCandidates);
         const iceHouses = placeStructure('house', 18, iceCandidates);
         const forestHouses = placeStructure('house', 44, forestCandidates);

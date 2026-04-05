@@ -259,6 +259,7 @@ class Game {
         this.lastVisibilityHiddenAt = 0;
         this.rainUpdateAccumulator = 0;
         this.poiWarmupTimer = 0;
+        this.zombieMaintainTimer = 6;
 
         this.env = new Environment(this.scene);
         this.map = new MapGenerator(this.scene);
@@ -1168,7 +1169,14 @@ class Game {
                 this.spawnScatterTargets = floor
                     .filter(t => Math.hypot(t.x, t.z) > minR)
                     .sort((a, b) => Math.hypot(a.x, a.z) - Math.hypot(b.x, b.z));
+                for (let i = this.spawnScatterTargets.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    const tmp = this.spawnScatterTargets[i];
+                    this.spawnScatterTargets[i] = this.spawnScatterTargets[j];
+                    this.spawnScatterTargets[j] = tmp;
+                }
             }
+            const usedScatter = new Set();
             for (let i = 0; i < this.bots.length; i++) {
                 const bot = this.bots[i];
                 bot.target = null;
@@ -1176,9 +1184,17 @@ class Game {
                 bot.allies = [];
                 bot.state = 'spawn';
                 if (!bot.patrolTarget) {
-                    const scatter = this.spawnScatterTargets?.length
-                        ? this.spawnScatterTargets[(i * 37 + 13) % this.spawnScatterTargets.length]
-                        : null;
+                    let scatter = null;
+                    if (this.spawnScatterTargets?.length) {
+                        for (let k = 0; k < this.spawnScatterTargets.length; k++) {
+                            const idx = (i * 11 + k * 17 + Math.floor(Math.random() * 13)) % this.spawnScatterTargets.length;
+                            if (!usedScatter.has(idx)) {
+                                usedScatter.add(idx);
+                                scatter = this.spawnScatterTargets[idx];
+                                break;
+                            }
+                        }
+                    }
                     if (scatter) {
                         const jitterX = (Math.random() - 0.5) * 8;
                         const jitterZ = (Math.random() - 0.5) * 8;
@@ -1470,6 +1486,20 @@ class Game {
         }
         if (zombieCount > 0) {
             this.zombieUpdateIndex = (this.zombieUpdateIndex + zombiesPerFrame) % zombieCount;
+        }
+
+        if (this.gameState === 'playing') {
+            this.zombieMaintainTimer = Math.max(0, this.zombieMaintainTimer - delta);
+            if (this.zombieMaintainTimer <= 0) {
+                const aliveZombies = this.zombies.filter(z => z?.isAlive).length;
+                const minAlive = this.isMobile() ? 12 : 16;
+                if (aliveZombies < minAlive) {
+                    const need = minAlive - aliveZombies;
+                    this.queuePoiBurst(1.25, Math.min(10, need), this.isMobile() ? 2 : 3);
+                    this.queueZombieBurst(false, 1.8, 180, Math.max(0, need - 4), this.isMobile() ? 3 : 4);
+                }
+                this.zombieMaintainTimer = 6 + Math.random() * 3;
+            }
         }
 
         const aliveCountBeforeHazards = this.entityManager.update(delta, this.physics, this.audioSynth);

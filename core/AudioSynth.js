@@ -16,24 +16,22 @@ export class AudioSynth {
         this.musicLoopTimer = null;
         this.musicThemeIndex = 0;
         this.rainNoiseBuffer = null;
-        this.musicVolume = this.isMobileDevice ? 0.11 : 0.14;
-        this.sfxVolume = this.isMobileDevice ? 0.16 : 0.22;
+        this.musicVolume = this.isMobileDevice ? 0.09 : 0.12;
+        this.sfxVolume = this.isMobileDevice ? 0.13 : 0.18;
         this.sampleBuffers = new Map();
         this.sampleLoadStarted = false;
         this.sampleLoadPromise = null;
 
         this.sampleCatalog = {
             ambient: [
-                'assets/audio/rpg/creak1.ogg',
-                'assets/audio/rpg/creak2.ogg',
-                'assets/audio/rpg/creak3.ogg',
                 'assets/audio/rpg/cloth1.ogg',
-                'assets/audio/rpg/cloth2.ogg'
+                'assets/audio/rpg/cloth2.ogg',
+                'assets/audio/rpg/cloth3.ogg',
+                'assets/audio/rpg/cloth4.ogg'
             ],
             rumble: [
-                'assets/audio/rpg/doorClose_1.ogg',
-                'assets/audio/rpg/doorClose_2.ogg',
                 'assets/audio/rpg/metalPot1.ogg',
+                'assets/audio/rpg/metalPot2.ogg',
                 'assets/audio/rpg/metalPot3.ogg'
             ],
             footsteps: Array.from({ length: 10 }, (_, i) => `assets/audio/rpg/footstep0${i}.ogg`),
@@ -58,24 +56,16 @@ export class AudioSynth {
                 'assets/audio/rpg/drawKnife3.ogg'
             ],
             laser: [
-                'assets/audio/rpg/metalClick.ogg',
-                'assets/audio/rpg/metalLatch.ogg',
-                'assets/audio/rpg/bookClose.ogg'
+                'assets/audio/weapons/smg_sks.wav'
             ],
             shotgun: [
-                'assets/audio/rpg/doorClose_3.ogg',
-                'assets/audio/rpg/metalPot1.ogg',
-                'assets/audio/rpg/metalPot3.ogg'
+                'assets/audio/weapons/shotgun_shotty.wav'
             ],
             pistol: [
-                'assets/audio/rpg/metalClick.ogg',
-                'assets/audio/rpg/chop.ogg',
-                'assets/audio/rpg/drawKnife2.ogg'
+                'assets/audio/weapons/pistol_cz.wav'
             ],
             rifle: [
-                'assets/audio/rpg/metalPot1.ogg',
-                'assets/audio/rpg/doorClose_2.ogg',
-                'assets/audio/rpg/metalPot2.ogg'
+                'assets/audio/weapons/rifle_mosin.wav'
             ],
             flamethrower: [
                 'assets/audio/rpg/clothBelt.ogg',
@@ -87,8 +77,8 @@ export class AudioSynth {
                 'assets/audio/rpg/bookClose.ogg'
             ],
             wind: [
-                'assets/audio/rpg/creak1.ogg',
-                'assets/audio/rpg/creak2.ogg'
+                'assets/audio/rpg/cloth1.ogg',
+                'assets/audio/rpg/cloth2.ogg'
             ],
             chestOpen: [
                 'assets/audio/rpg/bookOpen.ogg',
@@ -565,64 +555,58 @@ export class AudioSynth {
     }
 
     playBowShot() {
-        const played = this.playSample(this.sampleCatalog.bow, {
+        this.playSample(this.sampleCatalog.bow, {
             volume: this.isMobileDevice ? 0.07 : 0.11,
             rateMin: 0.9,
             rateMax: 1.08,
             reverbSend: 0.05
         });
-        if (!played) {
-            this.playProceduralShot('bow', this.isMobileDevice ? 0.1 : 0.14, null);
-        }
+        this.playProceduralShot('bow', this.isMobileDevice ? 0.045 : 0.065);
     }
 
     playLaser() {
         const played = this.playSample(this.sampleCatalog.laser, {
-            volume: this.isMobileDevice ? 0.08 : 0.12,
-            rateMin: 0.9,
-            rateMax: 1.1,
+            volume: this.isMobileDevice ? 0.06 : 0.1,
+            rateMin: 1.35,
+            rateMax: 1.75,
+            maxDuration: 0.17,
             reverbSend: 0.08
         });
-        if (!played) {
-            this.playProceduralShot('laser', this.isMobileDevice ? 0.1 : 0.14, null);
-        }
+        this.playProceduralShot('laser', played ? (this.isMobileDevice ? 0.038 : 0.055) : (this.isMobileDevice ? 0.058 : 0.086));
     }
 
     playShotgun(volume = 1) {
         const scaled = clamp(volume, 0.1, 1.5);
         const played = this.playSample(this.sampleCatalog.shotgun, {
-            volume: (this.isMobileDevice ? 0.11 : 0.17) * scaled,
-            rateMin: 0.82,
-            rateMax: 1.02,
-            reverbSend: 0.1
+            volume: (this.isMobileDevice ? 0.09 : 0.145) * scaled,
+            rateMin: 0.9,
+            rateMax: 1.05,
+            maxDuration: 0.32,
+            reverbSend: 0.08
         });
-        if (!played) {
-            this.playProceduralShot('shotgun', (this.isMobileDevice ? 0.14 : 0.2) * scaled, null);
-        }
+        this.playProceduralShot('shotgun', played ? (this.isMobileDevice ? 0.028 : 0.04) : (this.isMobileDevice ? 0.056 : 0.078));
     }
 
     playPistol() {
         const played = this.playSample(this.sampleCatalog.pistol, {
-            volume: this.isMobileDevice ? 0.08 : 0.12,
-            rateMin: 0.92,
-            rateMax: 1.08,
-            reverbSend: 0.06
+            volume: this.isMobileDevice ? 0.07 : 0.1,
+            rateMin: 0.94,
+            rateMax: 1.06,
+            maxDuration: 0.2,
+            reverbSend: 0.04
         });
-        if (!played) {
-            this.playProceduralShot('laser', this.isMobileDevice ? 0.075 : 0.1, null);
-        }
+        this.playProceduralShot('generic', played ? (this.isMobileDevice ? 0.018 : 0.028) : (this.isMobileDevice ? 0.05 : 0.07));
     }
 
     playRifle() {
         const played = this.playSample(this.sampleCatalog.rifle, {
-            volume: this.isMobileDevice ? 0.1 : 0.14,
-            rateMin: 0.88,
-            rateMax: 1.03,
-            reverbSend: 0.08
+            volume: this.isMobileDevice ? 0.075 : 0.115,
+            rateMin: 0.98,
+            rateMax: 1.08,
+            maxDuration: 0.26,
+            reverbSend: 0.06
         });
-        if (!played) {
-            this.playProceduralShot('shotgun', this.isMobileDevice ? 0.1 : 0.14, null);
-        }
+        this.playProceduralShot('generic', played ? (this.isMobileDevice ? 0.022 : 0.032) : (this.isMobileDevice ? 0.055 : 0.076));
     }
 
     playFlamethrower() {
@@ -632,9 +616,7 @@ export class AudioSynth {
             rateMax: 0.98,
             reverbSend: 0.05
         });
-        if (!played) {
-            this.playProceduralShot('flamethrower', this.isMobileDevice ? 0.08 : 0.12, null);
-        }
+        this.playProceduralShot('flamethrower', played ? (this.isMobileDevice ? 0.018 : 0.026) : (this.isMobileDevice ? 0.04 : 0.06));
     }
 
     playTimerTick(volume = 1) {

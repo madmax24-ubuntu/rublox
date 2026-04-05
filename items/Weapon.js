@@ -101,7 +101,15 @@ function sanitizeAssetMaterial(type, mat) {
     if (!mat) return null;
     if (mat.isMeshStandardMaterial || mat.isMeshPhongMaterial || mat.isMeshLambertMaterial || mat.isMeshBasicMaterial) {
         const hasMap = !!mat.map;
-        const color = new THREE.Color(hasMap ? 0xffffff : getDefaultAssetColor(type));
+        const color = hasMap
+            ? new THREE.Color(0xffffff)
+            : (mat.color ? mat.color.clone() : new THREE.Color(getDefaultAssetColor(type)));
+        if (!hasMap) {
+            const hsl = color.getHSL({ h: 0, s: 0, l: 0 });
+            if (hsl.l < 0.24) {
+                color.setHSL(hsl.h, Math.min(0.65, hsl.s + 0.12), 0.24 + (0.24 - hsl.l) * 0.5);
+            }
+        }
         const next = new THREE.MeshStandardMaterial({
             color,
             map: mat.map || null,
@@ -110,7 +118,7 @@ function sanitizeAssetMaterial(type, mat) {
             metalnessMap: mat.metalnessMap || null,
             aoMap: mat.aoMap || null,
             emissiveMap: mat.emissiveMap || null,
-            emissive: 0x000000,
+            emissive: hasMap ? 0x000000 : color.clone().multiplyScalar(0.06),
             roughness: hasMap ? 0.62 : 0.45,
             metalness: hasMap ? 0.18 : 0.28,
             flatShading: true
@@ -250,6 +258,7 @@ export class Weapon {
             : null;
         this.mesh = null;
         this.assetSwapPromise = null;
+        this.assetModelApplied = false;
         this._meshChangeListeners = new Set();
         this.createMesh();
         if (this.useAssetModel) {
@@ -684,6 +693,7 @@ export class Weapon {
 
             this.scene.remove(old);
             this.mesh = clone;
+            this.assetModelApplied = true;
             this.scene.add(this.mesh);
             this.notifyMeshChanged();
             return true;
@@ -1057,16 +1067,34 @@ export class Weapon {
             let yawOffset = 0;
             let pitchOffset = 0;
             let rollOffset = 0;
-            if (
-                this.type === 'laser'
-                || this.type === 'shotgun'
-                || this.type === 'flamethrower'
-                || this.type === 'pistol'
-                || this.type === 'rifle'
-            ) {
-                yawOffset = Math.PI / 2;
-            } else if (this.type === 'bow' || this.type === 'knife') {
-                pitchOffset = -Math.PI / 2;
+            if (this.assetModelApplied) {
+                if (
+                    this.type === 'laser'
+                    || this.type === 'shotgun'
+                    || this.type === 'flamethrower'
+                    || this.type === 'pistol'
+                    || this.type === 'rifle'
+                ) {
+                    yawOffset = Math.PI / 2;
+                    pitchOffset = -Math.PI / 2;
+                } else if (this.type === 'bow') {
+                    pitchOffset = -Math.PI / 2;
+                    rollOffset = Math.PI / 2;
+                } else if (this.type === 'knife') {
+                    pitchOffset = -Math.PI / 2;
+                }
+            } else {
+                if (
+                    this.type === 'laser'
+                    || this.type === 'shotgun'
+                    || this.type === 'flamethrower'
+                    || this.type === 'pistol'
+                    || this.type === 'rifle'
+                ) {
+                    yawOffset = Math.PI / 2;
+                } else if (this.type === 'bow' || this.type === 'knife') {
+                    pitchOffset = -Math.PI / 2;
+                }
             }
             this.mesh.rotation.set(rotation.x + pitchOffset, rotation.y + yawOffset, rotation.z + rollOffset);
         }

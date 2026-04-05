@@ -1090,39 +1090,39 @@ export class Player {
 
     getViewWeaponOffset(type) {
         const base = {
-            scale: 1.1,
-            position: new THREE.Vector3(0.18, -0.42, -0.6),
+            scale: 0.72,
+            position: new THREE.Vector3(0.14, -0.44, -0.72),
             rotation: new THREE.Euler(0, Math.PI, 0)
         };
 
         if (type === 'knife') {
-            base.position.set(0.22, -0.34, -0.66);
+            base.position.set(0.2, -0.38, -0.76);
             base.rotation.set(-Math.PI / 2 + 0.12, Math.PI, 0.08);
-            base.scale = 1.0;
+            base.scale = 0.72;
         } else if (type === 'bow') {
             base.position.set(0.2, -0.22, -1.02);
             base.rotation.set(0.02, Math.PI, Math.PI / 2.2);
             base.scale = 0.68;
         } else if (type === 'shotgun') {
-            base.position.set(0.26, -0.32, -0.75);
-            base.rotation.set(-0.06, Math.PI, Math.PI / 14);
-            base.scale = 1.05;
+            base.position.set(0.24, -0.48, -0.92);
+            base.rotation.set(-Math.PI / 2 + 0.18, Math.PI, -0.1);
+            base.scale = 0.58;
         } else if (type === 'flamethrower') {
-            base.position.set(0.26, -0.34, -0.78);
-            base.rotation.set(-0.06, Math.PI, Math.PI / 14);
-            base.scale = 1.08;
+            base.position.set(0.24, -0.5, -0.94);
+            base.rotation.set(-Math.PI / 2 + 0.2, Math.PI, -0.1);
+            base.scale = 0.56;
         } else if (type === 'laser') {
-            base.position.set(0.24, -0.36, -0.78);
-            base.rotation.set(-0.06, Math.PI, Math.PI / 14);
-            base.scale = 1.15;
+            base.position.set(0.24, -0.48, -0.92);
+            base.rotation.set(-Math.PI / 2 + 0.2, Math.PI, -0.1);
+            base.scale = 0.56;
         } else if (type === 'pistol') {
-            base.position.set(0.24, -0.34, -0.7);
-            base.rotation.set(-0.02, Math.PI, Math.PI / 18);
-            base.scale = 1.05;
+            base.position.set(0.2, -0.5, -0.82);
+            base.rotation.set(-Math.PI / 2 + 0.34, Math.PI, -0.06);
+            base.scale = 0.62;
         } else if (type === 'rifle') {
-            base.position.set(0.26, -0.3, -0.86);
-            base.rotation.set(-0.04, Math.PI, Math.PI / 16);
-            base.scale = 1.1;
+            base.position.set(0.24, -0.5, -0.96);
+            base.rotation.set(-Math.PI / 2 + 0.2, Math.PI, -0.08);
+            base.scale = 0.56;
         }
 
         return base;
