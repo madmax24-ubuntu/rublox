@@ -76,10 +76,12 @@ function createKnifeModel() {
     const handleMat = getMaterial('knife_handle', () => new THREE.MeshStandardMaterial({ color: 0x4e342e, roughness: 0.8, metalness: 0.05, flatShading: true }));
     const guardMat = getMaterial('knife_guard', () => new THREE.MeshStandardMaterial({ color: 0x262626, roughness: 0.45, metalness: 0.45, flatShading: true }));
 
-    group.add(createPart(getGeom('knife_h', () => new THREE.BoxGeometry(0.28, 0.1, 0.08)), handleMat, -0.2, 0, 0));
-    group.add(createPart(getGeom('knife_g', () => new THREE.BoxGeometry(0.08, 0.12, 0.12)), guardMat, -0.03, 0, 0));
-    group.add(createPart(getGeom('knife_b', () => new THREE.BoxGeometry(0.62, 0.06, 0.03)), bladeMat, 0.32, 0.01, 0));
-    group.add(createPart(getGeom('knife_t', () => new THREE.ConeGeometry(0.03, 0.12, 6)), bladeMat, 0.68, 0.01, 0, 0, 0, -Math.PI / 2));
+    group.add(createPart(getGeom('knife_h', () => new THREE.BoxGeometry(0.36, 0.1, 0.1)), handleMat, -0.24, -0.01, 0));
+    group.add(createPart(getGeom('knife_h2', () => new THREE.BoxGeometry(0.14, 0.12, 0.12)), handleMat, -0.39, -0.01, 0));
+    group.add(createPart(getGeom('knife_g', () => new THREE.BoxGeometry(0.09, 0.14, 0.14)), guardMat, -0.03, 0, 0));
+    group.add(createPart(getGeom('knife_b', () => new THREE.BoxGeometry(0.76, 0.06, 0.04)), bladeMat, 0.38, 0.01, 0));
+    group.add(createPart(getGeom('knife_bs', () => new THREE.BoxGeometry(0.64, 0.02, 0.03)), guardMat, 0.29, 0.045, 0));
+    group.add(createPart(getGeom('knife_t', () => new THREE.ConeGeometry(0.038, 0.16, 6)), bladeMat, 0.82, 0.01, 0, 0, 0, -Math.PI / 2));
     group.rotation.y = Math.PI;
     return group;
 }
@@ -190,43 +192,43 @@ function getRotationOffsets(type) {
 function getViewPoseForType(rawType) {
     const type = normType(rawType);
     const base = {
-        scale: 0.72,
-        position: new THREE.Vector3(0.14, -0.44, -0.72),
-        rotation: new THREE.Euler(-0.08, -Math.PI / 2, 0)
+        scale: 0.82,
+        position: new THREE.Vector3(0.2, -0.4, -0.78),
+        rotation: new THREE.Euler(0.04, -Math.PI / 2, 0.04)
     };
 
     if (type === 'knife') {
-        base.position.set(0.2, -0.38, -0.76);
-        base.rotation.set(-0.34, -Math.PI / 2, 0.24);
-        base.scale = 0.72;
+        base.position.set(0.25, -0.34, -0.8);
+        base.rotation.set(0.08, -Math.PI / 2, 0.08);
+        base.scale = 0.98;
     } else if (type === 'bow') {
-        base.position.set(0.2, -0.22, -1.02);
-        base.rotation.set(0.08, -Math.PI / 2, Math.PI / 2.14);
-        base.scale = 0.68;
+        base.position.set(0.24, -0.3, -0.98);
+        base.rotation.set(0.1, -Math.PI / 2, Math.PI / 2.08);
+        base.scale = 0.78;
     } else if (type === 'shotgun') {
-        base.position.set(0.24, -0.48, -0.92);
-        base.rotation.set(-0.1, -Math.PI / 2, -0.1);
-        base.scale = 0.58;
+        base.position.set(0.22, -0.42, -0.9);
+        base.rotation.set(0.05, -Math.PI / 2, -0.04);
+        base.scale = 0.7;
     } else if (type === 'flamethrower') {
-        base.position.set(0.24, -0.5, -0.94);
-        base.rotation.set(-0.08, -Math.PI / 2, -0.1);
-        base.scale = 0.56;
+        base.position.set(0.22, -0.44, -0.92);
+        base.rotation.set(0.04, -Math.PI / 2, -0.05);
+        base.scale = 0.68;
     } else if (type === 'laser') {
-        base.position.set(0.24, -0.48, -0.92);
-        base.rotation.set(-0.06, -Math.PI / 2, -0.1);
-        base.scale = 0.56;
+        base.position.set(0.22, -0.44, -0.92);
+        base.rotation.set(0.04, -Math.PI / 2, -0.05);
+        base.scale = 0.68;
     } else if (type === 'pistol') {
-        base.position.set(0.2, -0.5, -0.82);
-        base.rotation.set(-0.04, -Math.PI / 2, -0.06);
-        base.scale = 0.62;
+        base.position.set(0.2, -0.42, -0.82);
+        base.rotation.set(0.05, -Math.PI / 2, -0.02);
+        base.scale = 0.76;
     } else if (type === 'rifle') {
-        base.position.set(0.24, -0.5, -0.96);
-        base.rotation.set(-0.08, -Math.PI / 2, -0.08);
-        base.scale = 0.56;
+        base.position.set(0.22, -0.44, -0.95);
+        base.rotation.set(0.05, -Math.PI / 2, -0.05);
+        base.scale = 0.66;
     } else if (type === 'machinegun') {
-        base.position.set(0.24, -0.5, -0.98);
-        base.rotation.set(-0.08, -Math.PI / 2, -0.08);
-        base.scale = 0.58;
+        base.position.set(0.22, -0.45, -0.98);
+        base.rotation.set(0.05, -Math.PI / 2, -0.05);
+        base.scale = 0.67;
     }
 
     return base;

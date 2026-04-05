@@ -1780,6 +1780,7 @@ class Game {
                 console.warn('Fullscreen/orientation fallback:', fsErr);
             }
 
+            await this.audioSynth.unlock?.();
             this.audioSynth.playMusic();
             this.audioSynth.startAmbient();
             this.yandex?.gameplayStart?.();
@@ -1893,6 +1894,7 @@ window.addEventListener('DOMContentLoaded', () => {
     bindStartButton(document.getElementById('startButtonMobile'));
     bindStartButton(document.getElementById('startButton'));
 });
+
 
 
 
