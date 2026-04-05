@@ -130,6 +130,9 @@ class Game {
         this.gameLoop?.resetDelta?.();
         this.lastVisibilityHiddenAt = performance.now();
         this.resumeGraceTimer = Math.max(this.resumeGraceTimer || 0, 0.45);
+        if (this.startTransitionUntil && performance.now() < this.startTransitionUntil) {
+            return;
+        }
         if (this.isStarted && !this.isPaused) {
             this.autoPausedByVisibility = true;
             this.setPaused(true);
@@ -1508,6 +1511,10 @@ class Game {
         }
 
         const aliveCountBeforeHazards = this.entityManager.update(delta, this.physics, this.audioSynth);
+        for (const bot of this.bots) {
+            if (!bot?.isAlive) continue;
+            bot.syncVisualAfterPhysics?.(delta);
+        }
         if (this.gameState === 'playing') {
             this.trySupplyDrop(aliveCountBeforeHazards);
             this.updateRandomEvents(delta);
@@ -1747,6 +1754,7 @@ class Game {
         this.isStarted = true;
         try {
             this.hideStartScreen();
+            this.startTransitionUntil = performance.now() + 3500;
             this.hud.showPause(false);
             this.isPaused = false;
             this.partyMode = false;
@@ -1806,9 +1814,11 @@ class Game {
 
             this.gameLoop.start();
             requestAnimationFrame(() => this.hideStartScreen());
+            this.startTransitionUntil = 0;
         } catch (err) {
             console.error('Failed to start game:', err);
             this.isStarted = false;
+            this.startTransitionUntil = 0;
             this.showStartScreen();
             this.hud?.showGameMessage?.('Ошибка запуска. Нажмите старт снова.');
             throw err;

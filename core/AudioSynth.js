@@ -645,7 +645,7 @@ export class AudioSynth {
             volume: this.isMobileDevice ? 0.11 : 0.16,
             rateMin: 1.45,
             rateMax: 1.9,
-            maxDuration: 0.12,
+            maxDuration: 0.48,
             reverbSend: 0.08,
             category: 'weapon'
         });
@@ -670,7 +670,7 @@ export class AudioSynth {
             volume: this.isMobileDevice ? 0.12 : 0.18,
             rateMin: 0.94,
             rateMax: 1.06,
-            maxDuration: 0.2,
+            maxDuration: 0.5,
             reverbSend: 0.04,
             category: 'weapon'
         });
@@ -711,13 +711,14 @@ export class AudioSynth {
 
     playFlamethrower() {
         const played = this.playSample(this.sampleCatalog.flamethrower, {
-            volume: this.isMobileDevice ? 0.11 : 0.16,
-            rateMin: 0.84,
-            rateMax: 0.98,
-            reverbSend: 0.05,
+            volume: this.isMobileDevice ? 0.12 : 0.18,
+            rateMin: 0.58,
+            rateMax: 0.76,
+            maxDuration: 0.36,
+            reverbSend: 0.08,
             category: 'weapon'
         });
-        this.playProceduralShot('flamethrower', played ? (this.isMobileDevice ? 0.05 : 0.08) : (this.isMobileDevice ? 0.07 : 0.11), null, 'weapon');
+        this.playProceduralShot('flamethrower', played ? (this.isMobileDevice ? 0.08 : 0.12) : (this.isMobileDevice ? 0.1 : 0.14), null, 'weapon');
     }
 
     playTimerTick(volume = 1) {

@@ -69,6 +69,8 @@ export class Bot {
         this.healthBarVisibleCached = true;
         this.steeringCooldown = 0;
         this.cachedMoveDir = new THREE.Vector3(0, 0, 1);
+        this.visualLastPosition = this.position.clone();
+        this.visualSpeed = 0;
         this._tmpDirection = new THREE.Vector3();
         this._tmpAvoid = new THREE.Vector3();
         this._tmpTrainAvoid = new THREE.Vector3();
@@ -585,11 +587,12 @@ export class Bot {
         const limbs = this.mesh?.userData?.limbs;
         if (!limbs) return;
 
-        const speed = Math.sqrt(
+        const velocitySpeed = Math.sqrt(
             this.physics.velocity.x * this.physics.velocity.x +
             this.physics.velocity.z * this.physics.velocity.z
         );
-        const speedNorm = Math.min(1, speed / this.physics.speed);
+        const speed = Math.max(velocitySpeed, this.visualSpeed || 0);
+        const speedNorm = Math.min(1, speed / Math.max(0.001, this.physics.speed));
         const time = performance.now() / 1000;
 
         if (speedNorm > 0.05) {
@@ -790,6 +793,38 @@ export class Bot {
             if (this.healthBar.visible && this.healthBarAimTimer <= 0) {
                 this.healthBar.lookAt(camera.position);
                 this.healthBarAimTimer = isMobile ? 0.22 : 0.12;
+            }
+        }
+    }
+
+    syncVisualAfterPhysics(delta = 0.016) {
+        if (!this.mesh) return;
+        const dt = Math.max(0.001, delta || 0.016);
+        const moved = this.position.distanceTo(this.visualLastPosition);
+        this.visualSpeed = moved / dt;
+        this.visualLastPosition.copy(this.position);
+
+        this.mesh.position.copy(this.position);
+        this.mesh.position.y = this.position.y - (this.physics.height - 0.2);
+        this.mesh.rotation.y = this.rotation.y;
+        this.animateLimbs();
+        if (this.healthBar) this.updateHealthBar(delta);
+
+        if (this.currentWeapon && this.currentWeapon.mesh && this.isAlive) {
+            const limbs = this.mesh?.userData?.limbs;
+            if (limbs?.rightArm) {
+                this.mesh.updateMatrixWorld();
+                limbs.rightArm.getWorldPosition(this._tmpArmWorld);
+                this._tmpForward.set(Math.sin(this.rotation.y), 0, Math.cos(this.rotation.y));
+                this._tmpRight.set(Math.cos(this.rotation.y), 0, -Math.sin(this.rotation.y));
+                const grip = Weapon.getThirdPersonGrip(this.currentWeapon.type);
+                this._tmpProbe
+                    .copy(this._tmpArmWorld)
+                    .addScaledVector(this._tmpForward, grip.forward)
+                    .addScaledVector(this._tmpRight, grip.right)
+                    .setY(this._tmpArmWorld.y + grip.up);
+                this.currentWeapon.setPosition(this._tmpProbe);
+                this.currentWeapon.setRotation(this.rotation);
             }
         }
     }
