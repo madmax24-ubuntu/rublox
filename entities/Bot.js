@@ -186,30 +186,31 @@ export class Bot {
         if (!this.currentWeapon || !this.currentWeapon.mesh || !this.isAlive) return;
         const limbs = this.mesh?.userData?.limbs;
         if (!limbs?.rightArm) return;
-
-        this.mesh.updateMatrixWorld();
-        limbs.rightArm.getWorldPosition(this._tmpArmWorld);
-        this._tmpForward.set(Math.sin(this.rotation.y), 0, Math.cos(this.rotation.y));
-        this._tmpRight.set(Math.cos(this.rotation.y), 0, -Math.sin(this.rotation.y));
         const grip = Weapon.getThirdPersonGrip(this.currentWeapon.type);
-        const gripMul = this.currentWeapon.type === 'bow' ? 0.72 : 0.82;
-        const armYBias = this.currentWeapon.type === 'bow' ? -0.16 : -0.1;
-        this._tmpProbe
-            .copy(this._tmpArmWorld)
-            .addScaledVector(this._tmpForward, grip.forward * gripMul)
-            .addScaledVector(this._tmpRight, grip.right * gripMul)
-            .setY(this._tmpArmWorld.y + grip.up * gripMul + armYBias);
-        this.currentWeapon.setPosition(this._tmpProbe);
-        const aimPitch = THREE.MathUtils.clamp(this.rotation.x || 0, -0.2, 0.14);
-        this._tmpWeaponRot.set(aimPitch, this.rotation.y, 0);
-        if (this.currentWeapon.type === 'bow') {
-            this._tmpWeaponRot.x -= 0.08;
-        } else if (this.currentWeapon.type === 'knife') {
-            this._tmpWeaponRot.x -= 0.04;
-        } else if (this.currentWeapon.type === 'shotgun' || this.currentWeapon.type === 'rifle' || this.currentWeapon.type === 'machinegun' || this.currentWeapon.type === 'flamethrower' || this.currentWeapon.type === 'laser') {
-            this._tmpWeaponRot.x -= 0.03;
+        const mesh = this.currentWeapon.mesh;
+        if (mesh.parent !== limbs.rightArm) {
+            limbs.rightArm.add(mesh);
         }
-        this.currentWeapon.setRotation(this._tmpWeaponRot);
+        const gripMul = this.currentWeapon.type === 'bow' ? 0.64 : 0.74;
+        const armYBias = this.currentWeapon.type === 'bow' ? -0.2 : -0.16;
+        mesh.position.set(
+            grip.right * gripMul + 0.02,
+            grip.up * gripMul + armYBias,
+            grip.forward * gripMul + 0.12
+        );
+        this._tmpWeaponRot.set(0, 0, 0);
+        if (this.currentWeapon.type === 'bow') {
+            this._tmpWeaponRot.x = -0.12;
+            this._tmpWeaponRot.y = 0.04;
+        } else if (this.currentWeapon.type === 'knife') {
+            this._tmpWeaponRot.x = -0.08;
+            this._tmpWeaponRot.y = -0.05;
+        } else if (this.currentWeapon.type === 'pistol') {
+            this._tmpWeaponRot.x = -0.03;
+        } else if (this.currentWeapon.type === 'shotgun' || this.currentWeapon.type === 'rifle' || this.currentWeapon.type === 'machinegun' || this.currentWeapon.type === 'flamethrower' || this.currentWeapon.type === 'laser') {
+            this._tmpWeaponRot.x = -0.06;
+        }
+        mesh.rotation.set(this._tmpWeaponRot.x, this._tmpWeaponRot.y + Math.PI / 2, this._tmpWeaponRot.z);
     }
 
     createMesh() {
@@ -976,6 +977,9 @@ export class Bot {
             if (projectileData && projectileData.projectiles) {
                 for (const proj of projectileData.projectiles) {
                     proj.owner = this;
+                    if (proj.type === 'bow' && proj.mesh) {
+                        proj.mesh.visible = false;
+                    }
                     entityManager?.addProjectile(proj);
                 }
                 this.nextAttackTime = now + cadence;
@@ -984,6 +988,9 @@ export class Bot {
             if (projectileData && projectileData.projectile) {
                 projectileData.projectile.direction = direction;
                 projectileData.projectile.owner = this;
+                if (projectileData.projectile.type === 'bow' && projectileData.projectile.mesh) {
+                    projectileData.projectile.mesh.visible = false;
+                }
                 if (entityManager) {
                     entityManager.addProjectile(projectileData.projectile);
                 }

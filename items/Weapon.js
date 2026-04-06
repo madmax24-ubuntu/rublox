@@ -557,7 +557,11 @@ export class Weapon {
 
     dispose() {
         if (!this.mesh) return;
-        this.scene?.remove(this.mesh);
+        if (this.mesh.parent) {
+            this.mesh.parent.remove(this.mesh);
+        } else {
+            this.scene?.remove(this.mesh);
+        }
         this.mesh = null;
         this._meshChangeListeners.clear();
     }

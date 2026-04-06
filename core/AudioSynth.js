@@ -662,10 +662,10 @@ export class AudioSynth {
 
     playLaser() {
         if (!this.canPlayWeaponSfx('laser', this.weaponSfxCooldown.laser)) return;
-        // Dedicated synthetic laser "pew": short high chirp with bright transient.
-        this.playProceduralShot('laser', this.isMobileDevice ? 0.3 : 0.46, null, 'weapon');
-        this.fallbackTone('square', 1800, 460, 0.09, this.isMobileDevice ? 0.16 : 0.24, null, 'weapon');
-        this.fallbackTone('sine', 980, 280, 0.14, this.isMobileDevice ? 0.12 : 0.18, null, 'weapon');
+        // Dedicated synthetic laser "pew": bright attack + quick energy tail.
+        this.playProceduralShot('laser', this.isMobileDevice ? 0.36 : 0.52, null, 'weapon');
+        this.fallbackTone('square', 2200, 620, 0.08, this.isMobileDevice ? 0.2 : 0.3, null, 'weapon');
+        this.fallbackTone('triangle', 1400, 340, 0.12, this.isMobileDevice ? 0.14 : 0.22, null, 'weapon');
     }
 
     playShotgun(volume = 1) {
@@ -688,26 +688,30 @@ export class AudioSynth {
             volume: this.isMobileDevice ? 0.46 : 0.66,
             rateMin: 0.94,
             rateMax: 1.06,
+            maxDuration: 0.2,
             reverbSend: 0.06,
             category: 'weapon'
         });
-        this.playProceduralShot('generic', played ? (this.isMobileDevice ? 0.15 : 0.22) : (this.isMobileDevice ? 0.2 : 0.28), null, 'weapon');
+        this.playProceduralShot('generic', played ? (this.isMobileDevice ? 0.21 : 0.32) : (this.isMobileDevice ? 0.24 : 0.36), null, 'weapon');
         if (!played) {
-            this.fallbackTone('square', 280, 92, 0.1, this.isMobileDevice ? 0.16 : 0.24, null, 'weapon');
+            this.fallbackTone('square', 320, 110, 0.11, this.isMobileDevice ? 0.2 : 0.28, null, 'weapon');
         }
     }
 
     playRifle() {
         if (!this.canPlayWeaponSfx('rifle', this.weaponSfxCooldown.rifle)) return;
         const played = this.playSample(this.sampleCatalog.rifle, {
-            volume: this.isMobileDevice ? 0.13 : 0.2,
-            rateMin: 0.98,
-            rateMax: 1.08,
-            maxDuration: 0.26,
+            volume: this.isMobileDevice ? 0.24 : 0.36,
+            rateMin: 0.88,
+            rateMax: 0.98,
+            maxDuration: 0.18,
             reverbSend: 0.06,
             category: 'weapon'
         });
-        this.playProceduralShot('generic', played ? (this.isMobileDevice ? 0.05 : 0.07) : (this.isMobileDevice ? 0.08 : 0.11), null, 'weapon');
+        this.playProceduralShot('generic', played ? (this.isMobileDevice ? 0.14 : 0.22) : (this.isMobileDevice ? 0.2 : 0.28), null, 'weapon');
+        if (!played) {
+            this.fallbackTone('triangle', 240, 90, 0.13, this.isMobileDevice ? 0.18 : 0.24, null, 'weapon');
+        }
     }
 
     playMachinegun() {
@@ -721,29 +725,30 @@ export class AudioSynth {
             category: 'weapon'
         });
         const played = playedPrimary || this.playSample(this.sampleCatalog.rifle, {
-            volume: this.isMobileDevice ? 0.2 : 0.28,
+            volume: this.isMobileDevice ? 0.28 : 0.38,
             rateMin: 1.08,
             rateMax: 1.28,
             maxDuration: 0.16,
             reverbSend: 0.04,
             category: 'weapon'
         });
-        this.playProceduralShot('generic', played ? (this.isMobileDevice ? 0.24 : 0.34) : (this.isMobileDevice ? 0.26 : 0.38), null, 'weapon');
+        this.playProceduralShot('generic', played ? (this.isMobileDevice ? 0.3 : 0.42) : (this.isMobileDevice ? 0.34 : 0.48), null, 'weapon');
     }
 
     playFlamethrower() {
         if (!this.canPlayWeaponSfx('flamethrower', this.weaponSfxCooldown.flamethrower)) return;
         const played = this.playSample(this.sampleCatalog.flamethrower, {
-            volume: this.isMobileDevice ? 0.26 : 0.38,
+            volume: this.isMobileDevice ? 0.3 : 0.44,
             rateMin: 0.45,
             rateMax: 0.62,
             maxDuration: 0.2,
             reverbSend: 0.08,
             category: 'weapon'
         });
-        this.playProceduralShot('flamethrower', played ? (this.isMobileDevice ? 0.28 : 0.4) : (this.isMobileDevice ? 0.34 : 0.5), null, 'weapon');
+        this.playProceduralShot('flamethrower', played ? (this.isMobileDevice ? 0.34 : 0.5) : (this.isMobileDevice ? 0.38 : 0.56), null, 'weapon');
         if (!played) {
-            this.fallbackTone('triangle', 210, 58, 0.22, this.isMobileDevice ? 0.14 : 0.22, null, 'weapon');
+            this.fallbackTone('sawtooth', 280, 95, 0.2, this.isMobileDevice ? 0.14 : 0.2, null, 'weapon');
+            this.fallbackTone('triangle', 190, 60, 0.26, this.isMobileDevice ? 0.18 : 0.26, null, 'weapon');
         }
     }
 

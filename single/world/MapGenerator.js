@@ -2303,37 +2303,34 @@ export class MapGenerator {
             roof.userData.mapGenerated = true;
             group.add(roof);
 
-            // Walkable stairs to the tree-house entrance (+Z side).
+            // Walkable staircase to tree-house (no jump needed).
             const ladderX = x;
             const doorZ = z + hutDepth * 0.5 - hutWall * 0.5;
-            const stairEndZ = doorZ + 0.28;
-            const stairStartZ = stairEndZ + 7.4;
-            const stairStartY = baseY + 0.16;
-            const stairEndY = baseY + 8.58;
-            const stairSegments = 48;
-            const stairWidth = 2.2;
-            const stairThickness = 0.24;
+            const stairEndZ = doorZ + 0.32;
+            const stairStartZ = stairEndZ + 7.8;
+            const stairStartY = baseY + 0.04;
+            const stairEndY = baseY + 8.68;
+            const stairSegments = 72;
+            const stairWidth = 2.6;
+            const stairThickness = 0.22;
+            const dz = (stairEndZ - stairStartZ) / stairSegments;
             for (let s = 0; s < stairSegments; s++) {
-                const t0 = s / stairSegments;
-                const t1 = (s + 1) / stairSegments;
-                const stepZ = stairStartZ + (stairEndZ - stairStartZ) * ((t0 + t1) * 0.5);
-                const stepY = stairStartY + (stairEndY - stairStartY) * ((t0 + t1) * 0.5);
-                const stepLength = Math.max(0.3, Math.hypot(
-                    (stairStartZ + (stairEndZ - stairStartZ) * t1) - (stairStartZ + (stairEndZ - stairStartZ) * t0),
-                    (stairStartY + (stairEndY - stairStartY) * t1) - (stairStartY + (stairEndY - stairStartY) * t0)
-                ) + 0.08);
-                const step = new THREE.Mesh(new THREE.BoxGeometry(stairWidth, stairThickness, stepLength), woodMat);
-                step.position.set(ladderX, stepY, stepZ);
+                const t = (s + 1) / stairSegments;
+                const stepTopY = stairStartY + (stairEndY - stairStartY) * t;
+                const stepZ = stairStartZ + dz * (s + 0.5);
+                const stepLen = Math.max(0.24, Math.abs(dz) + 0.08);
+                const step = new THREE.Mesh(new THREE.BoxGeometry(stairWidth, stairThickness, stepLen), woodMat);
+                step.position.set(ladderX, stepTopY - stairThickness * 0.5, stepZ);
                 step.userData.mapGenerated = true;
                 group.add(step);
-                this.addColliderBox(step.position.clone(), stairWidth, stairThickness, stepLength, true);
+                this.addColliderBox(step.position.clone(), stairWidth, stairThickness, stepLen, true);
             }
 
-            const topLanding = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.26, 2.8), woodMat);
-            topLanding.position.set(x, baseY + 8.74, doorZ + 0.42);
+            const topLanding = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.26, 2.9), woodMat);
+            topLanding.position.set(x, baseY + 8.78, doorZ + 0.46);
             topLanding.userData.mapGenerated = true;
             group.add(topLanding);
-            this.addColliderBox(topLanding.position.clone(), 3.4, 0.26, 2.8, true);
+            this.addColliderBox(topLanding.position.clone(), 3.6, 0.26, 2.9, true);
 
             const canopy = new THREE.Mesh(new THREE.BoxGeometry(11.5, 4.8, 11.5), leafMat);
             canopy.position.set(x, baseY + 14.4, z);
