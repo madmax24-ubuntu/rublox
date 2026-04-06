@@ -490,7 +490,7 @@ export class Bot {
             this.physics.velocity.x = 0;
             this.physics.velocity.z = 0;
             this.mesh.position.copy(this.position);
-            this.mesh.position.y = this.position.y - (this.physics.height - 0.2);
+            this.mesh.position.y = this.position.y - (this.physics.height - 0.38);
             this.mesh.rotation.y = this.rotation.y;
             this.updateWeaponTransform();
             return;
@@ -500,7 +500,7 @@ export class Bot {
             this.assistTimer = Math.max(0, this.assistTimer - delta);
             this.moveTowards(this.assistTarget.position, this.physics.speed * 1.35);
             this.mesh.position.copy(this.position);
-            this.mesh.position.y = this.position.y - (this.physics.height - 0.2);
+            this.mesh.position.y = this.position.y - (this.physics.height - 0.38);
             this.mesh.rotation.y = this.rotation.y;
             this.animateLimbs();
             this.updateHealthBar(delta);
@@ -515,7 +515,7 @@ export class Bot {
             this.patrolTarget.copy(center);
             this.moveTowards(center, this.physics.speed * 1.25);
             this.mesh.position.copy(this.position);
-            this.mesh.position.y = this.position.y - (this.physics.height - 0.2);
+            this.mesh.position.y = this.position.y - (this.physics.height - 0.38);
             this.mesh.rotation.y = this.rotation.y;
             this.animateLimbs();
             this.updateHealthBar(delta);
@@ -555,7 +555,7 @@ export class Bot {
         }
 
         this.mesh.position.copy(this.position);
-        this.mesh.position.y = this.position.y - (this.physics.height - 0.2);
+        this.mesh.position.y = this.position.y - (this.physics.height - 0.38);
         this.mesh.rotation.y = this.rotation.y;
         this.animateLimbs();
         this.updateHealthBar(delta);
@@ -708,7 +708,7 @@ export class Bot {
             this.isFrozen = true;
             this.physics.velocity.set(0, 0, 0);
             this.mesh.position.copy(this.position);
-            this.mesh.position.y = this.position.y - (this.physics.height - 0.2) - 0.8;
+            this.mesh.position.y = this.position.y - (this.physics.height - 0.38) - 0.8;
             this.mesh.rotation.set(-Math.PI / 2, this.rotation.y, 0);
             this.syncWeaponVisibility();
             if (attacker?.stats) {
@@ -840,7 +840,7 @@ export class Bot {
         this.visualLastPosition.copy(this.position);
 
         this.mesh.position.copy(this.position);
-        this.mesh.position.y = this.position.y - (this.physics.height - 0.2);
+        this.mesh.position.y = this.position.y - (this.physics.height - 0.38);
         this.mesh.rotation.y = this.rotation.y;
         this.animateLimbs();
         if (this.healthBar) this.updateHealthBar(delta);

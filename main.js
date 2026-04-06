@@ -501,13 +501,13 @@ class Game {
                 const padIndex = i % botPads.length;
                 const cycle = Math.floor(i / botPads.length);
                 const pad = botPads[padIndex];
-                const padTop = pad.y;
                 const angleBase = (padIndex / Math.max(1, botPads.length)) * Math.PI * 2;
                 const angle = angleBase + cycle * (Math.PI / 3);
                 const radius = cycle === 0 ? 0 : 0.62 + (cycle - 1) * 0.34;
                 const offsetX = Math.cos(angle) * radius;
                 const offsetZ = Math.sin(angle) * radius;
-                spawnPos = new THREE.Vector3(pad.x + offsetX, padTop + 1.9, pad.z + offsetZ);
+                const groundY = this.map.getHeightAt?.(pad.x + offsetX, pad.z + offsetZ) ?? pad.y;
+                spawnPos = new THREE.Vector3(pad.x + offsetX, groundY + 1.9, pad.z + offsetZ);
             } else {
                 const angle = (i / botCount) * Math.PI * 2;
                 spawnPos = new THREE.Vector3(
@@ -1519,6 +1519,7 @@ class Game {
                     this.queuePoiBurst(1.25, Math.min(10, need), this.isMobile() ? 2 : 3);
                     this.queueZombieBurst(false, 1.8, 180, Math.max(0, need - 4), this.isMobile() ? 3 : 4);
                 }
+                this.ensurePoiZombiePresence(this.isMobile() ? 5 : 8);
                 this.zombieMaintainTimer = 6 + Math.random() * 3;
             }
         }
@@ -1665,7 +1666,7 @@ class Game {
                 : (point.type === "hangar" ? 2.0 : 1.05);
             const x = fallbackSpot.x + (Math.random() - 0.5) * jitter;
             const z = fallbackSpot.z + (Math.random() - 0.5) * jitter;
-            if (!this.map.isWalkableAt?.(x, z)) return false;
+            if (!interiorSpot && !this.map.isWalkableAt?.(x, z)) return false;
             const baseY = (point.type === "house" || point.type === "hangar")
                 ? (this.map.getHeightAt?.(x, z) ?? 0)
                 : (this.map.getSurfaceHeightAt?.(x, z) ?? this.map.getHeightAt(x, z));
@@ -1715,6 +1716,33 @@ class Game {
         }
         if (spawned > 0) this.poiZombieSeeded = true;
         return spawned;
+    }
+
+    ensurePoiZombiePresence(limitPerTick = 6) {
+        const points = this.poiSpawnCandidates?.length ? this.poiSpawnCandidates : [
+            ...(this.map.getHouseSpots?.() || []).map(s => ({ ...s, type: 'house' })),
+            ...(this.map.getHangarSpots?.() || []).map(s => ({ ...s, type: 'hangar' }))
+        ];
+        if (!points.length) return 0;
+        const checks = Math.min(points.length, Math.max(1, limitPerTick | 0));
+        let injected = 0;
+        for (let i = 0; i < checks; i++) {
+            const point = points[(this.poiSpawnCursor + i) % points.length];
+            const radius = point.type === 'hangar' ? 18 : 11;
+            let present = false;
+            for (let z = 0; z < this.zombies.length; z++) {
+                const zombie = this.zombies[z];
+                if (!zombie?.isAlive) continue;
+                if (Math.hypot(zombie.position.x - point.x, zombie.position.z - point.z) <= radius) {
+                    present = true;
+                    break;
+                }
+            }
+            if (present) continue;
+            injected += this.spawnPoiZombieGuards(point.type === 'hangar' ? 0.35 : 0.2, 1);
+        }
+        this.poiSpawnCursor = (this.poiSpawnCursor + checks) % points.length;
+        return injected;
     }
 
     spawnZombies(reset = true, multiplier = 1, capOverride = null, forceCount = null) {

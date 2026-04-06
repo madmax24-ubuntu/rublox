@@ -19,7 +19,7 @@ export class AudioSynth {
             weapon: 2.35,
             ambient: 0.62,
             ui: 0.8,
-            zombie: 0.9,
+            zombie: 1.35,
             weather: 0.78,
             sfx: 0.85
         };
@@ -74,10 +74,7 @@ export class AudioSynth {
             ],
             zombieMoan: Array.from({ length: 12 }, (_, i) => `assets/audio/zombies/zombie-${i + 1}.wav`),
             zombieAttack: Array.from({ length: 12 }, (_, i) => `assets/audio/zombies/zombie-${i + 13}.wav`),
-            bow: [
-                'assets/audio/rpg/drawKnife1.ogg',
-                'assets/audio/rpg/drawKnife3.ogg'
-            ],
+            bow: [],
             laser: [
                 
             ],
@@ -285,8 +282,8 @@ export class AudioSynth {
         panner.panningModel = 'HRTF';
         panner.distanceModel = 'inverse';
         panner.refDistance = 3;
-        panner.maxDistance = 140;
-        panner.rolloffFactor = 1.15;
+        panner.maxDistance = 220;
+        panner.rolloffFactor = 0.85;
         if (position) {
             panner.positionX.value = position.x;
             panner.positionY.value = position.y;
@@ -672,29 +669,21 @@ export class AudioSynth {
     }
 
     playZombieMoan(position = null) {
-        if (!this.playSample(this.sampleCatalog.zombieMoan, { volume: this.isMobileDevice ? 0.08 : 0.14, rateMin: 0.82, rateMax: 1.12, position, reverbSend: 0.26, category: 'zombie' })) {
-            this.fallbackTone('sawtooth', 112, 62, 0.9, 0.12, position, 'zombie');
+        if (!this.playSample(this.sampleCatalog.zombieMoan, { volume: this.isMobileDevice ? 0.2 : 0.32, rateMin: 0.88, rateMax: 1.08, position, reverbSend: 0.18, category: 'zombie', maxDuration: 0.75 })) {
+            this.fallbackTone('sawtooth', 112, 62, 0.9, 0.18, position, 'zombie');
         }
     }
 
     playZombieAttack(position = null) {
-        if (!this.playSample(this.sampleCatalog.zombieAttack, { volume: this.isMobileDevice ? 0.09 : 0.16, rateMin: 0.9, rateMax: 1.15, position, reverbSend: 0.24, category: 'zombie' })) {
-            this.fallbackTone('sawtooth', 160, 82, 0.38, 0.14, position, 'zombie');
+        if (!this.playSample(this.sampleCatalog.zombieAttack, { volume: this.isMobileDevice ? 0.24 : 0.36, rateMin: 0.95, rateMax: 1.1, position, reverbSend: 0.12, category: 'zombie', maxDuration: 0.42 })) {
+            this.fallbackTone('sawtooth', 160, 82, 0.38, 0.22, position, 'zombie');
         }
     }
 
     playBowShot(position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`bow:${emitterKey}`, this.weaponSfxCooldown.bow)) return;
-        this.playSample(this.sampleCatalog.bow, {
-            volume: this.isMobileDevice ? 0.2 : 0.28,
-            rateMin: 0.9,
-            rateMax: 1.08,
-            reverbSend: 0.05,
-            maxDuration: 0.22,
-            position,
-            category: 'weapon'
-        });
-        this.playProceduralShot('bow', this.isMobileDevice ? 0.12 : 0.18, position, 'weapon');
+        this.fallbackTone('triangle', 980, 210, 0.11, this.isMobileDevice ? 0.28 : 0.36, position, 'weapon');
+        this.fallbackTone('sine', 520, 170, 0.16, this.isMobileDevice ? 0.18 : 0.24, position, 'weapon');
     }
 
     playLaser(position = null, emitterKey = 'global') {
@@ -731,17 +720,17 @@ export class AudioSynth {
     playPistol(position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`pistol:${emitterKey}`, this.weaponSfxCooldown.pistol)) return;
         const played = this.playSample(this.sampleCatalog.pistol, {
-            volume: this.isMobileDevice ? 0.95 : 1.25,
-            rateMin: 0.94,
-            rateMax: 1.06,
-            reverbSend: 0.06,
-            maxDuration: 0.24,
+            volume: this.isMobileDevice ? 1.35 : 1.7,
+            rateMin: 0.96,
+            rateMax: 1.03,
+            reverbSend: 0.03,
+            maxDuration: 0.18,
             position,
             category: 'weapon'
         });
-        this.playProceduralShot('generic', played ? (this.isMobileDevice ? 0.12 : 0.18) : (this.isMobileDevice ? 0.26 : 0.38), position, 'weapon');
+        this.playProceduralShot('generic', played ? (this.isMobileDevice ? 0.2 : 0.26) : (this.isMobileDevice ? 0.26 : 0.38), position, 'weapon');
         if (!played) {
-            this.fallbackTone('square', 320, 110, 0.11, this.isMobileDevice ? 0.24 : 0.34, position, 'weapon');
+            this.fallbackTone('square', 420, 120, 0.1, this.isMobileDevice ? 0.34 : 0.46, position, 'weapon');
         }
     }
 

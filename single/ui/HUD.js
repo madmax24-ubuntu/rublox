@@ -741,16 +741,22 @@ export class HUD {
                 let pressed = false;
                 el.addEventListener('touchstart', (e) => {
                     pressed = true;
+                    perkPanel.dataset.touchScrollMoved = '0';
+                    e.preventDefault();
                     e.stopPropagation();
-                }, { passive: true });
+                }, { passive: false });
                 el.addEventListener('touchend', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     if (!pressed) return;
                     pressed = false;
-                    if (perkPanel.dataset.touchScrollMoved === '1') return;
                     fn();
                 }, { passive: false });
+                el.addEventListener('pointerup', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    fn();
+                });
                 el.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
