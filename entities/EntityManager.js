@@ -125,6 +125,11 @@ export class EntityManager {
                 continue;
             }
 
+            if (proj.type === 'bow' && proj.velocity && proj.velocity.lengthSq() < 9) {
+                this.removeProjectile(i);
+                continue;
+            }
+
             proj.lifetime -= delta;
             if (proj.lifetime <= 0) {
                 this.removeProjectile(i);

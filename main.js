@@ -1759,6 +1759,7 @@ class Game {
     }
 
     render() {
+        this.renderFrameCount = (this.renderFrameCount || 0) + 1;
         this.renderer.render(this.scene, this.camera);
     }
 
@@ -1766,6 +1767,7 @@ class Game {
         if (this.isStarted) return;
         this.isStarted = true;
         this.startingGame = true;
+        this.startAttemptAt = performance.now();
         try {
             this.hideStartScreen();
             this.startTransitionUntil = performance.now() + 3500;
@@ -1775,31 +1777,33 @@ class Game {
             this.applyRoundMode('hybrid');
             await new Promise(resolve => requestAnimationFrame(() => resolve()));
 
-            try {
-                if (this.isMobile()) {
+            if (this.isMobile()) {
+                // Important: do not block game start on fullscreen promises (some mobile browsers keep them pending).
+                this.enterFullscreen().catch(() => {});
+                this.lockOrientation().catch(() => {});
+                this.updateOrientationUI();
+                this.applyRendererSizing();
+                setTimeout(() => this.applyRendererSizing(), 180);
+                setTimeout(() => this.applyRendererSizing(), 420);
+                this.player?.resetView?.();
+                const retry = async () => {
+                    if (!document.fullscreenElement) {
+                        this.enterFullscreen().catch(() => {});
+                        this.lockOrientation().catch(() => {});
+                        this.updateOrientationUI();
+                        this.applyRendererSizing();
+                        setTimeout(() => this.applyRendererSizing(), 180);
+                        this.player?.resetView?.();
+                    }
+                    window.removeEventListener('touchend', retry);
+                };
+                window.addEventListener('touchend', retry, { passive: false });
+            } else {
+                try {
                     await this.enterFullscreen();
-                    await this.lockOrientation();
-                    this.updateOrientationUI();
-                    this.applyRendererSizing();
-                    setTimeout(() => this.applyRendererSizing(), 180);
-                    this.player?.resetView?.();
-                    const retry = async () => {
-                        if (!document.fullscreenElement) {
-                            await this.enterFullscreen();
-                            await this.lockOrientation();
-                            this.updateOrientationUI();
-                            this.applyRendererSizing();
-                            setTimeout(() => this.applyRendererSizing(), 180);
-                            this.player?.resetView?.();
-                        }
-                        window.removeEventListener('touchend', retry);
-                    };
-                    window.addEventListener('touchend', retry, { passive: false });
-                } else {
-                    await this.enterFullscreen();
+                } catch (fsErr) {
+                    console.warn('Fullscreen/orientation fallback:', fsErr);
                 }
-            } catch (fsErr) {
-                console.warn('Fullscreen/orientation fallback:', fsErr);
             }
 
             await this.audioSynth.unlock?.();
@@ -1827,6 +1831,9 @@ class Game {
             }
 
             this.gameLoop.start();
+            this.applyRendererSizing();
+            this.recoverViewState('start');
+            this.render();
             requestAnimationFrame(() => this.hideStartScreen());
             if (loadingOverlay && loadingOverlay.style.display !== 'none') {
                 loadingOverlay.style.display = 'none';
@@ -1913,7 +1920,9 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!button) return;
         const handleStart = async (e) => {
             if (e?.cancelable) e.preventDefault();
+            if (game.startingGame || game.isStarted) return;
             try {
+                await game.audioSynth?.unlock?.();
                 await game.startGame();
             } catch (err) {
                 console.error('Start failed:', err);

@@ -236,13 +236,13 @@ function getViewPoseForType(rawType) {
 
 function getThirdPersonGripForType(rawType) {
     const type = normType(rawType);
-    const base = { forward: 0.24, right: 0.14, up: -0.34 };
-    if (type === 'knife') return { forward: 0.2, right: 0.12, up: -0.28 };
-    if (type === 'pistol') return { forward: 0.24, right: 0.14, up: -0.32 };
-    if (type === 'bow') return { forward: 0.32, right: 0.2, up: -0.42 };
-    if (type === 'shotgun') return { forward: 0.28, right: 0.14, up: -0.38 };
-    if (type === 'rifle' || type === 'machinegun') return { forward: 0.3, right: 0.14, up: -0.4 };
-    if (type === 'flamethrower' || type === 'laser') return { forward: 0.28, right: 0.14, up: -0.4 };
+    const base = { forward: 0.21, right: 0.12, up: -0.31 };
+    if (type === 'knife') return { forward: 0.18, right: 0.1, up: -0.26 };
+    if (type === 'pistol') return { forward: 0.21, right: 0.12, up: -0.3 };
+    if (type === 'bow') return { forward: 0.26, right: 0.16, up: -0.36 };
+    if (type === 'shotgun') return { forward: 0.24, right: 0.12, up: -0.34 };
+    if (type === 'rifle' || type === 'machinegun') return { forward: 0.25, right: 0.12, up: -0.35 };
+    if (type === 'flamethrower' || type === 'laser') return { forward: 0.24, right: 0.12, up: -0.35 };
     return base;
 }
 
@@ -485,7 +485,7 @@ export class Weapon {
             owner: null,
             knockback,
             gravity,
-            lifetime: type === 'flame' ? 0.6 : 5,
+            lifetime: type === 'flame' ? 0.6 : (type === 'bow' ? 1.6 : 2.8),
             travelled: 0,
             maxDistance,
             align: type === 'bow' ? 'arrow' : null,

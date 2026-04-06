@@ -40,6 +40,16 @@ export class AudioSynth {
         this.sampleLoadPromise = null;
         this._unlockHandlersBound = false;
         this._unlockInProgress = null;
+        this.lastWeaponSfxTime = Object.create(null);
+        this.weaponSfxCooldown = {
+            bow: 0.08,
+            laser: 0.09,
+            shotgun: 0.11,
+            pistol: 0.06,
+            rifle: 0.065,
+            machinegun: 0.05,
+            flamethrower: 0.055
+        };
 
         this.sampleCatalog = {
             ambient: [],
@@ -69,7 +79,7 @@ export class AudioSynth {
                 'assets/audio/rpg/drawKnife3.ogg'
             ],
             laser: [
-                'assets/audio/weapons/smg_sks.wav'
+                
             ],
             machinegun: [
                 'assets/audio/weapons/smg_sks.wav'
@@ -442,6 +452,16 @@ export class AudioSynth {
         }
     }
 
+    canPlayWeaponSfx(type, minInterval = 0) {
+        const now = performance.now() / 1000;
+        const key = String(type || 'generic');
+        const interval = Math.max(0, Number.isFinite(minInterval) ? minInterval : 0);
+        const last = this.lastWeaponSfxTime[key] || 0;
+        if (now - last < interval) return false;
+        this.lastWeaponSfxTime[key] = now;
+        return true;
+    }
+
     startAmbient() {
         if (!this.audioContext || this.ambientRunning) return;
         this.ambientRunning = true;
@@ -629,6 +649,7 @@ export class AudioSynth {
     }
 
     playBowShot() {
+        if (!this.canPlayWeaponSfx('bow', this.weaponSfxCooldown.bow)) return;
         this.playSample(this.sampleCatalog.bow, {
             volume: this.isMobileDevice ? 0.12 : 0.18,
             rateMin: 0.9,
@@ -640,20 +661,15 @@ export class AudioSynth {
     }
 
     playLaser() {
-        const played = this.playSample(this.sampleCatalog.laser, {
-            volume: this.isMobileDevice ? 0.38 : 0.55,
-            rateMin: 1.2,
-            rateMax: 1.5,
-            reverbSend: 0.1,
-            category: 'weapon'
-        });
-        this.playProceduralShot('laser', played ? (this.isMobileDevice ? 0.24 : 0.34) : (this.isMobileDevice ? 0.28 : 0.4), null, 'weapon');
-        if (!played) {
-            this.fallbackTone('sawtooth', 1100, 260, 0.17, this.isMobileDevice ? 0.19 : 0.28, null, 'weapon');
-        }
+        if (!this.canPlayWeaponSfx('laser', this.weaponSfxCooldown.laser)) return;
+        // Dedicated synthetic laser "pew": short high chirp with bright transient.
+        this.playProceduralShot('laser', this.isMobileDevice ? 0.3 : 0.46, null, 'weapon');
+        this.fallbackTone('square', 1800, 460, 0.09, this.isMobileDevice ? 0.16 : 0.24, null, 'weapon');
+        this.fallbackTone('sine', 980, 280, 0.14, this.isMobileDevice ? 0.12 : 0.18, null, 'weapon');
     }
 
     playShotgun(volume = 1) {
+        if (!this.canPlayWeaponSfx('shotgun', this.weaponSfxCooldown.shotgun)) return;
         const scaled = clamp(volume, 0.1, 1.5);
         const played = this.playSample(this.sampleCatalog.shotgun, {
             volume: (this.isMobileDevice ? 0.16 : 0.24) * scaled,
@@ -667,8 +683,9 @@ export class AudioSynth {
     }
 
     playPistol() {
+        if (!this.canPlayWeaponSfx('pistol', this.weaponSfxCooldown.pistol)) return;
         const played = this.playSample(this.sampleCatalog.pistol, {
-            volume: this.isMobileDevice ? 0.38 : 0.55,
+            volume: this.isMobileDevice ? 0.46 : 0.66,
             rateMin: 0.94,
             rateMax: 1.06,
             reverbSend: 0.06,
@@ -681,6 +698,7 @@ export class AudioSynth {
     }
 
     playRifle() {
+        if (!this.canPlayWeaponSfx('rifle', this.weaponSfxCooldown.rifle)) return;
         const played = this.playSample(this.sampleCatalog.rifle, {
             volume: this.isMobileDevice ? 0.13 : 0.2,
             rateMin: 0.98,
@@ -693,8 +711,9 @@ export class AudioSynth {
     }
 
     playMachinegun() {
+        if (!this.canPlayWeaponSfx('machinegun', this.weaponSfxCooldown.machinegun)) return;
         const playedPrimary = this.playSample(this.sampleCatalog.machinegun, {
-            volume: this.isMobileDevice ? 0.42 : 0.62,
+            volume: this.isMobileDevice ? 0.58 : 0.8,
             rateMin: 1.15,
             rateMax: 1.35,
             maxDuration: 0.2,
@@ -713,6 +732,7 @@ export class AudioSynth {
     }
 
     playFlamethrower() {
+        if (!this.canPlayWeaponSfx('flamethrower', this.weaponSfxCooldown.flamethrower)) return;
         const played = this.playSample(this.sampleCatalog.flamethrower, {
             volume: this.isMobileDevice ? 0.26 : 0.38,
             rateMin: 0.45,

@@ -192,19 +192,22 @@ export class Bot {
         this._tmpForward.set(Math.sin(this.rotation.y), 0, Math.cos(this.rotation.y));
         this._tmpRight.set(Math.cos(this.rotation.y), 0, -Math.sin(this.rotation.y));
         const grip = Weapon.getThirdPersonGrip(this.currentWeapon.type);
+        const gripMul = this.currentWeapon.type === 'bow' ? 0.72 : 0.82;
+        const armYBias = this.currentWeapon.type === 'bow' ? -0.16 : -0.1;
         this._tmpProbe
             .copy(this._tmpArmWorld)
-            .addScaledVector(this._tmpForward, grip.forward)
-            .addScaledVector(this._tmpRight, grip.right)
-            .setY(this._tmpArmWorld.y + grip.up);
+            .addScaledVector(this._tmpForward, grip.forward * gripMul)
+            .addScaledVector(this._tmpRight, grip.right * gripMul)
+            .setY(this._tmpArmWorld.y + grip.up * gripMul + armYBias);
         this.currentWeapon.setPosition(this._tmpProbe);
-        this._tmpWeaponRot.set(this.rotation.x, this.rotation.y, this.rotation.z);
+        const aimPitch = THREE.MathUtils.clamp(this.rotation.x || 0, -0.2, 0.14);
+        this._tmpWeaponRot.set(aimPitch, this.rotation.y, 0);
         if (this.currentWeapon.type === 'bow') {
-            this._tmpWeaponRot.x -= 0.26;
-        } else if (this.currentWeapon.type === 'knife') {
-            this._tmpWeaponRot.x -= 0.12;
-        } else if (this.currentWeapon.type === 'shotgun' || this.currentWeapon.type === 'rifle' || this.currentWeapon.type === 'machinegun' || this.currentWeapon.type === 'flamethrower' || this.currentWeapon.type === 'laser') {
             this._tmpWeaponRot.x -= 0.08;
+        } else if (this.currentWeapon.type === 'knife') {
+            this._tmpWeaponRot.x -= 0.04;
+        } else if (this.currentWeapon.type === 'shotgun' || this.currentWeapon.type === 'rifle' || this.currentWeapon.type === 'machinegun' || this.currentWeapon.type === 'flamethrower' || this.currentWeapon.type === 'laser') {
+            this._tmpWeaponRot.x -= 0.03;
         }
         this.currentWeapon.setRotation(this._tmpWeaponRot);
     }
