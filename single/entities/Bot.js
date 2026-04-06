@@ -1,4 +1,4 @@
-﻿import * as THREE from 'three';
+import * as THREE from 'three';
 import { Inventory } from '../items/Inventory.js';
 import { Weapon } from '../items/Weapon.js';
 import { spawnDamagePopup } from './DamagePopup.js';
@@ -190,6 +190,14 @@ export class Bot {
         const mesh = this.currentWeapon.mesh;
         if (mesh.parent !== limbs.rightArm) {
             limbs.rightArm.add(mesh);
+        }
+        if (!mesh.userData?.damageTintConfigured) {
+            mesh.userData.damageTintConfigured = true;
+            mesh.userData.ignoreDamageTint = true;
+            mesh.traverse((child) => {
+                if (!child.userData) child.userData = {};
+                child.userData.ignoreDamageTint = true;
+            });
         }
         const gripMul = this.currentWeapon.type === 'bow' ? 0.64 : 0.74;
         const armYBias = this.currentWeapon.type === 'bow' ? -0.2 : -0.16;
@@ -770,10 +778,20 @@ export class Bot {
 
     setBurnVisual(intensity) {
         this.mesh.traverse(child => {
+            if (child.userData?.ignoreDamageTint) return;
             if (!child.material || !child.material.emissive) return;
+            this.ensureTintMaterial(child);
             child.material.emissive.setHex(0xff6d00);
             child.material.emissiveIntensity = intensity;
         });
+    }
+
+    ensureTintMaterial(child) {
+        if (!child?.material || child.userData?.ignoreDamageTint) return;
+        if (child.userData?.tintMaterialOwned) return;
+        if (Array.isArray(child.material)) return;
+        child.material = child.material.clone();
+        child.userData.tintMaterialOwned = true;
     }
 
     updateHealthBar(delta = 0.016) {
@@ -971,8 +989,8 @@ export class Bot {
             }
 
             const projectileData = weapon.type === 'bow'
-                ? weapon.attack(this, null, null, direction, { chargeRatio: 0.55 })
-                : weapon.attack(this, null, null, direction);
+                ? weapon.attack(this, null, this.audioSynthRef, direction, { chargeRatio: 0.55 })
+                : weapon.attack(this, null, this.audioSynthRef, direction);
             const cadence = Math.max(0.09, (weapon.cooldown || 0.2) * (weapon.type === 'bow' ? 0.95 : 0.82));
             if (projectileData && projectileData.projectiles) {
                 for (const proj of projectileData.projectiles) {
@@ -998,7 +1016,7 @@ export class Bot {
                 return { fired: true, damage: weapon.damage };
             }
         } else {
-            const result = weapon.attack(this, target);
+            const result = weapon.attack(this, target, this.audioSynthRef);
             if (result && result.hit) {
                 const killed = target.takeDamage(result.damage, result.isHeadshot, this, result.knockback || 0);
                 this.nextAttackTime = now + Math.max(0.12, (weapon.cooldown || 0.3) * 0.85);
@@ -1143,12 +1161,15 @@ export class Bot {
         if (now - this.lastFlashTime < 90) return;
         this.lastFlashTime = now;
         this.mesh.traverse(child => {
+            if (child.userData?.ignoreDamageTint) return;
             if (!child.material || !child.material.emissive) return;
+            this.ensureTintMaterial(child);
             child.material.emissive.setHex(0xff2d2d);
             child.material.emissiveIntensity = 0.7;
         });
         setTimeout(() => {
             this.mesh.traverse(child => {
+                if (child.userData?.ignoreDamageTint) return;
                 if (!child.material || !child.material.emissive) return;
                 child.material.emissiveIntensity = 0;
             });
@@ -1162,4 +1183,7 @@ export class Bot {
         return a + diff * t;
     }
 }
+
+
+
 

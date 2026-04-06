@@ -840,6 +840,8 @@ export class Player {
 
     takeDamage(damage, isHeadshot = false, attacker = null, knockbackStrength = 0, source = null) {
         if (this.isInvulnerable) return false;
+        const hpBefore = this.health;
+        const armorBefore = this.armor;
 
         const finalDamage = (isHeadshot ? damage * 2 : damage) * (1 - this.damageReduction) * this.damageTakenMultiplier;
         if (finalDamage > 0) {
@@ -874,15 +876,18 @@ export class Player {
             }
             this.clearBurning();
         }
+        const hpDelta = Math.max(0, hpBefore - this.health);
+        const armorDelta = Math.max(0, armorBefore - this.armor);
+        const tookRealDamage = (hpDelta + armorDelta) > 0.001;
         const isDotDamage = source === 'zone' || source === 'storm' || source === 'burn' || source === 'trap';
-        if (!isDotDamage) {
+        if (!isDotDamage && tookRealDamage) {
             this.flashDamage();
             spawnDamagePopup(this.scene, this.position, finalDamage, { color: '#ff5b5b', key: 'player' });
         }
         if (source === 'flame' && this.isAlive) {
             this.applyBurn(2.2, 4.2, attacker);
         }
-        if (this.audioSynthRef) {
+        if (this.audioSynthRef && tookRealDamage) {
             if (source === 'zone' && this.audioSynthRef.playZoneDamage) {
                 this.audioSynthRef.playZoneDamage();
             } else if (this.audioSynthRef.playHurt) {
@@ -1161,7 +1166,7 @@ export class Player {
                 .subVectors(target.position, this.position)
                 .normalize();
 
-            const projectileData = weapon.attack(this, null, null, direction);
+            const projectileData = weapon.attack(this, null, this.audioSynthRef, direction);
             if (projectileData && projectileData.projectiles) {
                 for (const proj of projectileData.projectiles) {
                     proj.owner = this;
@@ -1178,7 +1183,7 @@ export class Player {
                 return { fired: true, damage: weapon.damage };
             }
         } else {
-            const result = weapon.attack(this, target);
+            const result = weapon.attack(this, target, this.audioSynthRef);
             if (result && result.hit) {
                 target.takeDamage(result.damage, result.isHeadshot, this, result.knockback || 0);
                 return { hit: true, damage: result.damage, killed: target.health <= 0 };
@@ -1188,3 +1193,4 @@ export class Player {
         return null;
     }
 }
+

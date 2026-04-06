@@ -66,6 +66,7 @@ function configureMeshForGameplay(mesh) {
             child.receiveShadow = false;
             child.frustumCulled = false;
             child.renderOrder = 4;
+            child.userData.ignoreDamageTint = true;
         }
     });
 }
@@ -327,6 +328,7 @@ export class Weapon {
         else if (this.type === 'laser') group.add(createGunModel('laser'));
 
         configureMeshForGameplay(group);
+        group.userData.ignoreDamageTint = true;
         group.scale.setScalar(getThirdPersonWorldScale(this.type));
         group.visible = false;
         this.mesh = group;
@@ -355,14 +357,16 @@ export class Weapon {
 
         this.animateAttack();
         if (audioSynth) {
-            if (this.type === 'knife' || this.type === 'fists') audioSynth.playHit?.();
-            else if (this.type === 'bow') audioSynth.playBowShot?.();
-            else if (this.type === 'laser') audioSynth.playLaser?.();
-            else if (this.type === 'shotgun') audioSynth.playShotgun?.();
-            else if (this.type === 'flamethrower') audioSynth.playFlamethrower?.();
-            else if (this.type === 'pistol') audioSynth.playPistol?.();
-            else if (this.type === 'machinegun') audioSynth.playMachinegun?.();
-            else if (this.type === 'rifle') audioSynth.playRifle?.();
+            const srcPos = owner?.position || null;
+            const srcKey = owner?.id !== undefined ? `id:${owner.id}` : (owner?.constructor?.name || 'entity');
+            if (this.type === 'knife' || this.type === 'fists') audioSynth.playHit?.(srcPos, srcKey);
+            else if (this.type === 'bow') audioSynth.playBowShot?.(srcPos, srcKey);
+            else if (this.type === 'laser') audioSynth.playLaser?.(srcPos, srcKey);
+            else if (this.type === 'shotgun') audioSynth.playShotgun?.(1, srcPos, srcKey);
+            else if (this.type === 'flamethrower') audioSynth.playFlamethrower?.(srcPos, srcKey);
+            else if (this.type === 'pistol') audioSynth.playPistol?.(srcPos, srcKey);
+            else if (this.type === 'machinegun') audioSynth.playMachinegun?.(srcPos, srcKey);
+            else if (this.type === 'rifle') audioSynth.playRifle?.(srcPos, srcKey);
         }
 
         if (this.type === 'fists' || this.type === 'knife') {
