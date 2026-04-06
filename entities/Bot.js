@@ -18,10 +18,10 @@ export class Bot {
             speed: 6.6 + Math.random() * 2.2
         };
 
-        this.maxHealth = 96;
+        this.maxHealth = 138;
         this.health = this.maxHealth;
-        this.armor = 0;
-        this.maxArmor = 100;
+        this.armor = 36;
+        this.maxArmor = 120;
         this.isInvulnerable = false;
         this.isAlive = true;
 
@@ -177,7 +177,11 @@ export class Bot {
         const items = this.inventory.getItems?.() || [];
         for (const item of items) {
             if (item?.mesh) {
-                item.setVisible(item === this.currentWeapon && this.isAlive);
+                const isActive = item === this.currentWeapon && this.isAlive;
+                item.setVisible(isActive);
+                if (!isActive && item.mesh.parent && item.mesh.parent !== this.scene) {
+                    item.mesh.parent.remove(item.mesh);
+                }
             }
         }
     }

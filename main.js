@@ -272,7 +272,7 @@ class Game {
         this.lastVisibilityHiddenAt = 0;
         this.rainUpdateAccumulator = 0;
         this.poiWarmupTimer = 0;
-        this.zombieMaintainTimer = 6;
+        this.zombieMaintainTimer = 3.6;
 
         this.env = new Environment(this.scene);
         this.map = new MapGenerator(this.scene);
@@ -1173,7 +1173,7 @@ class Game {
                 this.player.isFrozen = false;
                 this.bots.forEach(bot => { bot.isFrozen = false; });
                 this.queueZombieBurst(true, 1.6, 120, 22, this.isMobile() ? 4 : 6);
-                this.queuePoiBurst(1.4, this.isMobile() ? 12 : 18, this.isMobile() ? 3 : 4);
+                this.queuePoiBurst(1.7, this.isMobile() ? 18 : 28, this.isMobile() ? 4 : 5);
             }
         } else if (this.gameState === 'spawn') {
             this.spawnTimer -= delta;
@@ -1267,7 +1267,7 @@ class Game {
             if (!this.poiZombieSeeded && this.poiWarmupTimer > 0) {
                 this.poiWarmupTimer = Math.max(0, this.poiWarmupTimer - delta);
                 if (this.poiWarmupTimer <= 0) {
-                    this.queuePoiBurst(1.45, this.isMobile() ? 10 : 14, this.isMobile() ? 3 : 4);
+                    this.queuePoiBurst(1.65, this.isMobile() ? 16 : 22, this.isMobile() ? 4 : 5);
                 }
             }
             this.updateZoneCycle(delta);
@@ -1513,14 +1513,14 @@ class Game {
             this.zombieMaintainTimer = Math.max(0, this.zombieMaintainTimer - delta);
             if (this.zombieMaintainTimer <= 0) {
                 const aliveZombies = this.zombies.filter(z => z?.isAlive).length;
-                const minAlive = this.isMobile() ? 12 : 16;
+                const minAlive = this.isMobile() ? 16 : 22;
                 if (aliveZombies < minAlive) {
                     const need = minAlive - aliveZombies;
-                    this.queuePoiBurst(1.25, Math.min(10, need), this.isMobile() ? 2 : 3);
-                    this.queueZombieBurst(false, 1.8, 180, Math.max(0, need - 4), this.isMobile() ? 3 : 4);
+                    this.queuePoiBurst(1.45, Math.min(14, need + 2), this.isMobile() ? 3 : 4);
+                    this.queueZombieBurst(false, 2.0, 180, Math.max(0, need - 2), this.isMobile() ? 4 : 5);
                 }
-                this.ensurePoiZombiePresence(this.isMobile() ? 5 : 8);
-                this.zombieMaintainTimer = 6 + Math.random() * 3;
+                this.ensurePoiZombiePresence(this.isMobile() ? 8 : 12);
+                this.zombieMaintainTimer = 3.2 + Math.random() * 1.4;
             }
         }
 
@@ -1643,8 +1643,8 @@ class Game {
         const hangarSpots = points.filter(p => p.type === 'hangar');
 
         const aliveNow = this.zombies.filter(z => z?.isAlive).length;
-        const maxAlive = 260;
-        let budget = Math.max(0, Math.min(maxAlive - aliveNow, Math.floor((houseSpots.length * 2.0 + hangarSpots.length * 10.5) * intensity)));
+        const maxAlive = 320;
+        let budget = Math.max(0, Math.min(maxAlive - aliveNow, Math.floor((houseSpots.length * 2.4 + hangarSpots.length * 13.0) * intensity)));
         budget = Math.min(budget, Math.max(0, Number.isFinite(maxSpawn) ? maxSpawn : budget));
         if (budget <= 0) return 0;
 
@@ -1681,7 +1681,7 @@ class Game {
             return true;
         };
 
-        // Guaranteed presence: hangars always (dense), houses always light guard.
+        // Guaranteed presence: hangars always dense, houses always at least one guard.
         for (const hangar of hangarSpots) {
             if (budget <= 0 || spawned >= maxSpawn) break;
             spawnOneAtPoi(hangar, true);
@@ -1695,6 +1695,9 @@ class Game {
         for (let i = 0; i < houseSpots.length; i++) {
             if (budget <= 0 || spawned >= maxSpawn) break;
             spawnOneAtPoi(houseSpots[i], true);
+            if (budget > 0 && spawned < maxSpawn && Math.random() < 0.55) {
+                spawnOneAtPoi(houseSpots[i], false);
+            }
         }
 
         let attempts = 0;
@@ -1705,8 +1708,8 @@ class Game {
             attempts++;
             if (budget <= 0) break;
             const baseCount = point.type === "hangar"
-                ? (14 + Math.floor(Math.random() * 8))
-                : (1 + Math.floor(Math.random() * 2));
+                ? (16 + Math.floor(Math.random() * 10))
+                : (2 + Math.floor(Math.random() * 2));
             const pack = Math.max(1, Math.floor(baseCount * intensity * (point.type === "hangar" ? 1.15 : 1)));
             for (let i = 0; i < pack; i++) {
                 if (budget <= 0) break;
@@ -1726,6 +1729,43 @@ class Game {
         if (!points.length) return 0;
         const checks = Math.min(points.length, Math.max(1, limitPerTick | 0));
         let injected = 0;
+        const aliveNow = this.zombies.filter(z => z?.isAlive).length;
+        const maxAlive = this.isMobile() ? 190 : 260;
+        let remainingBudget = Math.max(0, maxAlive - aliveNow);
+        if (remainingBudget <= 0) return 0;
+
+        const spawnNearPoint = (point) => {
+            if (!point || remainingBudget <= 0) return 0;
+            const localNeed = point.type === 'hangar' ? 3 : 1;
+            let made = 0;
+            for (let n = 0; n < localNeed && remainingBudget > 0; n++) {
+                const interiorSpot = this.map.findStructureInteriorPoint?.(
+                    point,
+                    point.type,
+                    point.type === 'hangar' ? 1.9 : 1.0,
+                    42
+                );
+                const guardSpot = interiorSpot
+                    || this.map.getStructureEntryPoint?.(point, point.type, this.player?.position || null)
+                    || this.map.findStructureGuardPoint?.(point, point.type)
+                    || { x: point.x, z: point.z };
+                const jitter = interiorSpot ? (point.type === 'hangar' ? 1.25 : 0.85) : (point.type === 'hangar' ? 2.25 : 1.15);
+                const x = guardSpot.x + (Math.random() - 0.5) * jitter;
+                const z = guardSpot.z + (Math.random() - 0.5) * jitter;
+                if (!interiorSpot && !this.map.isWalkableAt?.(x, z)) continue;
+                const y = this.map.getHeightAt?.(x, z) ?? 0;
+                const pos = new THREE.Vector3(x, y + 1.8, z);
+                if (this.player?.position && pos.distanceTo(this.player.position) < 10) continue;
+                const zombie = new Zombie(this.scene, this.nextZombieId++, pos);
+                this.physics.addEntity(zombie);
+                this.entityManager.addEntity(zombie);
+                this.zombies.push(zombie);
+                remainingBudget--;
+                made++;
+            }
+            return made;
+        };
+
         for (let i = 0; i < checks; i++) {
             const point = points[(this.poiSpawnCursor + i) % points.length];
             const radius = point.type === 'hangar' ? 18 : 11;
@@ -1739,7 +1779,7 @@ class Game {
                 }
             }
             if (present) continue;
-            injected += this.spawnPoiZombieGuards(point.type === 'hangar' ? 0.35 : 0.2, 1);
+            injected += spawnNearPoint(point);
         }
         this.poiSpawnCursor = (this.poiSpawnCursor + checks) % points.length;
         return injected;

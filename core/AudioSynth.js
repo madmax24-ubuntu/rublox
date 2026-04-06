@@ -16,7 +16,7 @@ export class AudioSynth {
             sfx: null
         };
         this.categoryBaseVolumes = {
-            weapon: 2.35,
+            weapon: 2.85,
             ambient: 0.62,
             ui: 0.8,
             zombie: 1.35,
@@ -720,33 +720,33 @@ export class AudioSynth {
     playPistol(position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`pistol:${emitterKey}`, this.weaponSfxCooldown.pistol)) return;
         const played = this.playSample(this.sampleCatalog.pistol, {
-            volume: this.isMobileDevice ? 1.65 : 2.0,
-            rateMin: 0.96,
+            volume: this.isMobileDevice ? 2.6 : 3.05,
+            rateMin: 0.98,
             rateMax: 1.03,
-            reverbSend: 0.03,
-            maxDuration: 0.18,
+            reverbSend: 0.01,
+            maxDuration: 0.12,
             position,
             category: 'weapon'
         });
-        this.playProceduralShot('generic', played ? (this.isMobileDevice ? 0.28 : 0.36) : (this.isMobileDevice ? 0.34 : 0.46), position, 'weapon');
         if (!played) {
-            this.fallbackTone('square', 420, 120, 0.1, this.isMobileDevice ? 0.34 : 0.46, position, 'weapon');
+            this.playProceduralShot('generic', this.isMobileDevice ? 0.26 : 0.34, position, 'weapon');
+            this.fallbackTone('square', 420, 120, 0.1, this.isMobileDevice ? 0.3 : 0.4, position, 'weapon');
         }
     }
 
     playRifle(position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`rifle:${emitterKey}`, this.weaponSfxCooldown.rifle)) return;
         const played = this.playSample(this.sampleCatalog.rifle, {
-            volume: this.isMobileDevice ? 1.08 : 1.35,
-            rateMin: 0.88,
-            rateMax: 0.98,
-            reverbSend: 0.06,
-            maxDuration: 0.26,
+            volume: this.isMobileDevice ? 2.1 : 2.65,
+            rateMin: 0.95,
+            rateMax: 1.02,
+            reverbSend: 0.015,
+            maxDuration: 0.15,
             position,
             category: 'weapon'
         });
-        this.playProceduralShot('generic', played ? (this.isMobileDevice ? 0.2 : 0.28) : (this.isMobileDevice ? 0.3 : 0.42), position, 'weapon');
         if (!played) {
+            this.playProceduralShot('generic', this.isMobileDevice ? 0.24 : 0.34, position, 'weapon');
             this.fallbackTone('triangle', 240, 90, 0.13, this.isMobileDevice ? 0.2 : 0.28, position, 'weapon');
         }
     }
@@ -754,24 +754,26 @@ export class AudioSynth {
     playMachinegun(position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`machinegun:${emitterKey}`, this.weaponSfxCooldown.machinegun)) return;
         const playedPrimary = this.playSample(this.sampleCatalog.machinegun, {
-            volume: this.isMobileDevice ? 0.92 : 1.2,
-            rateMin: 1.15,
-            rateMax: 1.35,
-            reverbSend: 0.05,
-            maxDuration: 0.18,
+            volume: this.isMobileDevice ? 2.0 : 2.45,
+            rateMin: 1.02,
+            rateMax: 1.15,
+            reverbSend: 0.005,
+            maxDuration: 0.09,
             position,
             category: 'weapon'
         });
         const played = playedPrimary || this.playSample(this.sampleCatalog.rifle, {
-            volume: this.isMobileDevice ? 0.62 : 0.84,
+            volume: this.isMobileDevice ? 1.65 : 2.0,
             rateMin: 1.08,
-            rateMax: 1.28,
-            reverbSend: 0.04,
-            maxDuration: 0.18,
+            rateMax: 1.18,
+            reverbSend: 0.005,
+            maxDuration: 0.09,
             position,
             category: 'weapon'
         });
-        this.playProceduralShot('generic', played ? (this.isMobileDevice ? 0.22 : 0.3) : (this.isMobileDevice ? 0.4 : 0.56), position, 'weapon');
+        if (!played) {
+            this.playProceduralShot('generic', this.isMobileDevice ? 0.26 : 0.36, position, 'weapon');
+        }
     }
 
     playFlamethrower(position = null, emitterKey = 'global') {
