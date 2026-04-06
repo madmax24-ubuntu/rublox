@@ -1806,7 +1806,7 @@ class Game {
                 }
             }
 
-            await this.audioSynth.unlock?.();
+            this.audioSynth.unlock?.().catch(() => {});
             this.audioSynth.playMusic();
             this.audioSynth.startAmbient();
             this.yandex?.gameplayStart?.();
@@ -1922,7 +1922,7 @@ window.addEventListener('DOMContentLoaded', () => {
             if (e?.cancelable) e.preventDefault();
             if (game.startingGame || game.isStarted) return;
             try {
-                await game.audioSynth?.unlock?.();
+                game.audioSynth?.unlock?.().catch(() => {});
                 await game.startGame();
             } catch (err) {
                 console.error('Start failed:', err);
