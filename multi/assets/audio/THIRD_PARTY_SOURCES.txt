@@ -1,0 +1,3 @@
+﻿RPGsounds_Kenney.zip: https://lpc.opengameart.org/content/50-rpg-sound-effects
+Zombie pack: https://opengameart.org/content/zombies-sound-pack
+Gunshot sounds (CC-BY 3.0): https://lpc.opengameart.org/content/gunshot-sounds

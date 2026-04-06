@@ -1,6 +1,16 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Archives
 *.zip
-# Yandex builds (never commit archives)
+*.7z
 single_yandex.zip
 multi_yandex.zip
 single.zip
 multi.zip
+
+# OS/IDE
+.DS_Store
+Thumbs.db
+.vscode/

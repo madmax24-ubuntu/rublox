@@ -14,6 +14,8 @@ export class EntityManager {
         this._tmpVecD = new THREE.Vector3();
         this._tmpVecE = new THREE.Vector3();
         this._tmpVecF = new THREE.Vector3();
+        this._tmpSegDir = new THREE.Vector3();
+        this._tmpProbePos = new THREE.Vector3();
         this._nearbyQueryStamp = 1;
         this.aliveSurvivorsCache = [];
         this.aliveSurvivorCount = 0;
@@ -99,18 +101,25 @@ export class EntityManager {
 
             const hitEntity = this.checkProjectileHit(proj, prevPos, proj.mesh.position);
             if (hitEntity) {
-                hitEntity.takeDamage(proj.damage, false, proj.owner, proj.knockback || 0, proj.type);
+                const damage = this.computeProjectileDamage(proj);
+                const isHeadshot = this.isProjectileHeadshot(proj, hitEntity);
+                hitEntity.takeDamage(damage, isHeadshot, proj.owner, proj.knockback || 0, proj.type);
                 if (proj.owner && typeof proj.owner.onHit === 'function') {
-                    proj.owner.onHit({ position: proj.mesh.position.clone(), type: proj.type });
+                    proj.owner.onHit({
+                        position: proj.mesh.position.clone(),
+                        type: proj.type,
+                        damage,
+                        headshot: isHeadshot
+                    });
                 }
-                this.spawnImpactEffect(proj.mesh.position.clone(), proj.type, true);
+                this.spawnImpactEffect(this._tmpVecF.copy(proj.mesh.position), proj.type, true, isHeadshot);
                 this.removeProjectile(i);
                 continue;
             }
 
             if (proj.travelled >= (proj.maxDistance ?? Infinity)) {
                 if (proj.type === 'bow') {
-                    this.spawnImpactEffect(proj.mesh.position.clone(), proj.type, false);
+                    this.spawnImpactEffect(this._tmpVecF.copy(proj.mesh.position), proj.type, false);
                 }
                 this.removeProjectile(i);
                 continue;
@@ -124,6 +133,41 @@ export class EntityManager {
 
         this.updateEffects(delta);
         return this.aliveSurvivorCount;
+    }
+
+    computeProjectileDamage(projectile) {
+        const base = Math.max(0, projectile?.damage || 0);
+        if (base <= 0) return 0;
+        const maxDist = Math.max(0.001, projectile?.maxDistance || 1);
+        const t = Math.max(0, Math.min(1, (projectile?.travelled || 0) / maxDist));
+        const type = projectile?.type;
+        let mult = 1;
+
+        if (type === 'shotgun') {
+            if (t <= 0.25) mult = 1.0;
+            else if (t <= 0.65) mult = 1.0 - (t - 0.25) * 1.15;
+            else mult = 0.36;
+        } else if (type === 'flame') {
+            mult = 0.92 - t * 0.46;
+        } else if (type === 'bow') {
+            mult = 1.0 - Math.max(0, t - 0.45) * 0.5;
+        } else if (type === 'pistol') {
+            mult = 1.0 - Math.max(0, t - 0.35) * 0.42;
+        } else if (type === 'rifle') {
+            mult = 1.0 - Math.max(0, t - 0.6) * 0.22;
+        } else if (type === 'laser') {
+            mult = 1.0 - Math.max(0, t - 0.65) * 0.16;
+        }
+
+        mult = Math.max(0.22, Math.min(1.15, mult));
+        return Math.max(1, Math.round(base * mult));
+    }
+
+    isProjectileHeadshot(projectile, entity) {
+        if (!projectile?.mesh?.position || !entity?.position) return false;
+        const h = entity.physics?.height || 1.8;
+        const headY = entity.position.y + h * 0.82;
+        return projectile.mesh.position.y >= headY;
     }
 
     rebuildSpatialIndex() {
@@ -152,17 +196,17 @@ export class EntityManager {
     checkProjectileWallHit(projectile, prevPos, physics) {
         if (!physics.getNearbyColliders) return false;
         const pos = projectile.mesh.position;
-        const travel = pos.clone().sub(prevPos);
+        const travel = this._tmpSegDir.subVectors(pos, prevPos);
         const length = travel.length();
         if (length <= 0.001) return false;
-        const dir = travel.clone().normalize();
-        const probe = prevPos.clone().add(dir.clone().multiplyScalar(length * 0.5));
+        const dir = travel.normalize();
+        const probe = this._tmpProbePos.copy(prevPos).addScaledVector(dir, length * 0.5);
         const nearby = physics.getNearbyColliders(probe, Math.max(2.5, length * 0.6 + 0.8));
         for (const box of nearby) {
             if (box.enabled === false) continue;
             if (box.walkable) continue;
             if (this.segmentIntersectsBox(prevPos, pos, box)) {
-                return pos.clone();
+                return this._tmpVecF.copy(pos);
             }
         }
         return false;
@@ -279,14 +323,20 @@ export class EntityManager {
     removeProjectile(index) {
         const proj = this.projectiles[index];
         this.scene.remove(proj.mesh);
-        proj.mesh.traverse(child => {
-            if (child.geometry) child.geometry.dispose();
-            if (child.material) child.material.dispose();
-        });
+        // Projectile geometries/materials are shared and cached by Weapon runtime.
+        // Disposing them per-shot causes heavy GC churn and can invalidate
+        // materials still in use by other active projectiles.
+        if (proj?.mesh?.traverse) {
+            proj.mesh.traverse(child => {
+                if (child.isMesh) {
+                    child.visible = false;
+                }
+            });
+        }
         this.projectiles.splice(index, 1);
     }
 
-    spawnImpactEffect(position, type = 'generic', isHit = false) {
+    spawnImpactEffect(position, type = 'generic', isHit = false, isHeadshot = false) {
         const group = new THREE.Group();
         const color = type === 'laser'
             ? 0xfff176
@@ -306,9 +356,17 @@ export class EntityManager {
         const geo = new THREE.SphereGeometry(type === 'laser' ? 0.18 : 0.12, 8, 8);
         const puff = new THREE.Mesh(geo, mat);
         group.add(puff);
+        if (isHeadshot) {
+            const crown = new THREE.Mesh(
+                new THREE.SphereGeometry(0.08, 6, 6),
+                new THREE.MeshBasicMaterial({ color: 0xffeb3b, transparent: true, opacity: 0.9 })
+            );
+            crown.position.y = 0.18;
+            group.add(crown);
+        }
         group.position.copy(position);
         group.userData.effect = true;
-        group.userData.life = type === 'flame' ? 0.3 : 0.45;
+        group.userData.life = type === 'flame' ? 0.3 : (isHeadshot ? 0.55 : 0.45);
         this.scene.add(group);
         this.effects.push(group);
     }
@@ -358,16 +416,21 @@ export class EntityManager {
 
     getNearestEnemy(position, maxDistance = Infinity) {
         let nearest = null;
-        let minDistance = maxDistance;
+        let minDistanceSq = maxDistance * maxDistance;
 
         for (const entity of this.entities) {
             if (!entity.isAlive) continue;
 
-            const distance = position.distanceTo(entity.position);
+            const dx = entity.position.x - position.x;
+            const dy = entity.position.y - position.y;
+            const dz = entity.position.z - position.z;
+            const distanceSq = dx * dx + dy * dy + dz * dz;
+            const distance = Math.sqrt(distanceSq);
             const radius = entity.physics?.radius || 0.4;
             const effective = Math.max(0, distance - radius * 0.6);
-            if (effective < minDistance && distance > 0.1) {
-                minDistance = effective;
+            const effectiveSq = effective * effective;
+            if (effectiveSq < minDistanceSq && distance > 0.1) {
+                minDistanceSq = effectiveSq;
                 nearest = entity;
             }
         }

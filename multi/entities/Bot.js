@@ -432,6 +432,7 @@ export class Bot {
         this.physicsRef = physics;
         this.zoneRef = zone || this.zoneRef;
         this.entityManagerRef = entityManager || this.entityManagerRef;
+        this.lootManagerRef = lootManager || this.lootManagerRef;
         this.audioSynthRef = audioSynth;
         this.updateBurning(delta);
         this.updateHealthRegen(delta);
@@ -522,11 +523,12 @@ export class Bot {
                 limbs.rightArm.getWorldPosition(this._tmpArmWorld);
                 this._tmpForward.set(Math.sin(this.rotation.y), 0, Math.cos(this.rotation.y));
                 this._tmpRight.set(Math.cos(this.rotation.y), 0, -Math.sin(this.rotation.y));
+                const grip = Weapon.getThirdPersonGrip(this.currentWeapon.type);
                 this._tmpProbe
                     .copy(this._tmpArmWorld)
-                    .addScaledVector(this._tmpForward, 0.16)
-                    .addScaledVector(this._tmpRight, 0.08)
-                    .setY(this._tmpArmWorld.y - 0.18);
+                    .addScaledVector(this._tmpForward, grip.forward)
+                    .addScaledVector(this._tmpRight, grip.right)
+                    .setY(this._tmpArmWorld.y + grip.up);
 
                 this.currentWeapon.setPosition(this._tmpProbe);
                 this.currentWeapon.setRotation(this.rotation);
@@ -899,7 +901,7 @@ export class Bot {
             this.currentWeapon = null;
             weapon = this.fists;
         }
-        if ((weapon.type === 'bow' || weapon.type === 'laser' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle') && weapon.ammo !== null && weapon.ammo <= 0) {
+        if ((weapon.type === 'bow' || weapon.type === 'laser' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle' || weapon.type === 'machinegun') && weapon.ammo !== null && weapon.ammo <= 0) {
             this.currentWeapon = null;
             weapon = this.fists;
         }
@@ -910,7 +912,7 @@ export class Bot {
 
         if (distance > attackRange) return null;
 
-        if (weapon.type === 'laser' || weapon.type === 'bow' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle') {
+        if (weapon.type === 'laser' || weapon.type === 'bow' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle' || weapon.type === 'machinegun') {
             const direction = this._tmpDirection
                 .subVectors(target.position, this.position)
                 .normalize();

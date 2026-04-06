@@ -40,6 +40,7 @@ export class Player {
         this.viewWeapon = null;
         this.viewWeaponType = null;
         this.viewWeaponBase = null;
+        this.viewWeaponRequestId = 0;
         this.viewKick = 0;
         this.punchTime = 0;
         this.punchDuration = 0.25;
@@ -54,6 +55,21 @@ export class Player {
         this._tmpFireDir = new THREE.Vector3();
         this._tmpMuzzle = new THREE.Vector3();
         this._tmpLookTarget = new THREE.Vector3();
+        this._tmpZeroMove = new THREE.Vector3();
+        this._tmpMoveDirection = new THREE.Vector3();
+        this._tmpCameraDirection = new THREE.Vector3();
+        this._tmpRightDirection = new THREE.Vector3();
+        this._tmpUp = new THREE.Vector3(0, 1, 0);
+        this._tmpTrailPos = new THREE.Vector3();
+        this._tmpCameraPosition = new THREE.Vector3();
+        this._tmpShakeOffset = new THREE.Vector3();
+        this._tmpKnockbackDir = new THREE.Vector3();
+        this._tmpSocketPos = new THREE.Vector3();
+        this._tmpSocketQuat = new THREE.Quaternion();
+        this._tmpAutoForward = new THREE.Vector3();
+        this._tmpAutoToTarget = new THREE.Vector3();
+        this._tmpAutoAimPoint = new THREE.Vector3();
+        this._tmpAttackDirection = new THREE.Vector3();
         this.mouseSensitivity = 0.001;
         this.mobileLookSensitivity = 0.003;
         this.lookSensitivityMultiplier = 1;
@@ -111,6 +127,7 @@ export class Player {
         if (type === 'flamethrower') return 'Огнемёт';
         if (type === 'pistol') return 'Пистолет';
         if (type === 'rifle') return 'Винтовка';
+        if (type === 'machinegun') return 'Пулемет';
         return type || 'Предмет';
     }
 
@@ -367,7 +384,7 @@ export class Player {
         }
 
         const isFrozen = this.isFrozen === true;
-        const moveVector = isFrozen ? new THREE.Vector3() : this.input.getMovementVector();
+        const moveVector = isFrozen ? this._tmpZeroMove.set(0, 0, 0) : this.input.getMovementVector();
         if (this.slowTimer > 0) {
             this.slowTimer = Math.max(0, this.slowTimer - delta);
         } else {
@@ -379,28 +396,28 @@ export class Player {
             this.physics.velocity.z = 0;
         }
         if (moveVector.length() > 0) {
-            let moveDirection = new THREE.Vector3();
+            const moveDirection = this._tmpMoveDirection.set(0, 0, 0);
 
             if (controls && controls.isLocked) {
-                const cameraDirection = new THREE.Vector3();
+                const cameraDirection = this._tmpCameraDirection;
                 controls.getObject().getWorldDirection(cameraDirection);
                 cameraDirection.y = 0;
                 cameraDirection.normalize();
 
-                const rightDirection = new THREE.Vector3();
-                rightDirection.crossVectors(cameraDirection, new THREE.Vector3(0, 1, 0));
+                const rightDirection = this._tmpRightDirection;
+                rightDirection.crossVectors(cameraDirection, this._tmpUp);
 
                 moveDirection.addScaledVector(cameraDirection, -moveVector.z);
                 moveDirection.addScaledVector(rightDirection, moveVector.x);
                 moveDirection.normalize();
             } else {
-                const cameraDirection = new THREE.Vector3();
+                const cameraDirection = this._tmpCameraDirection;
                 this.camera.getWorldDirection(cameraDirection);
                 cameraDirection.y = 0;
                 cameraDirection.normalize();
 
-                const rightDirection = new THREE.Vector3();
-                rightDirection.crossVectors(cameraDirection, new THREE.Vector3(0, 1, 0));
+                const rightDirection = this._tmpRightDirection;
+                rightDirection.crossVectors(cameraDirection, this._tmpUp);
 
                 moveDirection.addScaledVector(cameraDirection, -moveVector.z);
                 moveDirection.addScaledVector(rightDirection, moveVector.x);
@@ -429,7 +446,7 @@ export class Player {
         }
 
         if (this.perk === 'fastRun' && entityManager && moveVector.length() > 0.2 && this.trailCooldown === 0) {
-            const trailPos = this.position.clone();
+            const trailPos = this._tmpTrailPos.copy(this.position);
             trailPos.y = 0.4;
             entityManager.spawnSpeedTrail?.(trailPos, 0x4bb3ff);
             this.trailCooldown = 0.08;
@@ -460,12 +477,12 @@ export class Player {
         this.mesh.rotation.y = this.rotation.y;
         this.animateLimbs();
 
-        const cameraPosition = new THREE.Vector3(
+        const cameraPosition = this._tmpCameraPosition.set(
             Math.round(this.position.x * 100) / 100,
             this.position.y + this.cameraOffset.y,
             Math.round(this.position.z * 100) / 100
         );
-        const shakeOffset = new THREE.Vector3();
+        const shakeOffset = this._tmpShakeOffset.set(0, 0, 0);
         if (this.cameraShakeTime > 0) {
             const t = this.cameraShakeTime / this.cameraShakeDuration;
             const strength = this.cameraShakeStrength * t;
@@ -478,7 +495,7 @@ export class Player {
         }
 
         if (controls && controls.isLocked) {
-            controls.getObject().position.copy(cameraPosition.clone().add(shakeOffset));
+            controls.getObject().position.copy(cameraPosition).add(shakeOffset);
             controls.getObject().position.y = this.position.y + this.cameraOffset.y;
             if (this.lastCameraPosition) {
                 const dist = cameraPosition.distanceTo(this.lastCameraPosition);
@@ -491,7 +508,7 @@ export class Player {
                 this.lastCameraPosition = cameraPosition.clone();
             }
         } else {
-            this.camera.position.copy(cameraPosition.clone().add(shakeOffset));
+            this.camera.position.copy(cameraPosition).add(shakeOffset);
             this.camera.rotation.set(this.rotation.x, this.rotation.y, 0, 'YXZ');
             this.camera.up.set(0, 1, 0);
         }
@@ -519,7 +536,7 @@ export class Player {
 
         const activeWeapon = this.currentWeapon || this.fists;
         const autoTarget = this.autoFire && activeWeapon.type !== 'bow' ? this.getAutoFireTarget(entityManager) : null;
-        const isRangedWeapon = ['bow', 'laser', 'shotgun', 'flamethrower', 'pistol', 'rifle'].includes(activeWeapon.type);
+        const isRangedWeapon = ['bow', 'laser', 'shotgun', 'flamethrower', 'pistol', 'rifle', 'machinegun'].includes(activeWeapon.type);
         const fireHeld = this.input.isKeyPressed('MouseLeft');
         const fireRequested = fireHeld || (!!autoTarget && !isFrozen && isRangedWeapon);
         if (activeWeapon.type === 'bow') {
@@ -531,13 +548,13 @@ export class Player {
 
             const shouldReleaseBow = !fireHeld && this.wasFireHeld && this.bowCharge >= this.bowMinCharge;
             if (!isFrozen && shouldReleaseBow && this.attackCooldown <= 0) {
-                const direction = new THREE.Vector3();
+                const direction = this._tmpFireDir;
                 this.camera.getWorldDirection(direction);
                 const chargeRatio = Math.max(0.35, Math.min(1, this.bowCharge / this.bowChargeMax));
                 const result = activeWeapon.attack(this, null, audioSynth, direction, { chargeRatio });
-                const muzzle = new THREE.Vector3();
+                const muzzle = this._tmpMuzzle;
                 this.camera.getWorldPosition(muzzle);
-                muzzle.add(direction.clone().multiplyScalar(0.6));
+                muzzle.addScaledVector(direction, 0.6);
 
                 if (result && result.projectiles) {
                     for (const proj of result.projectiles) {
@@ -546,13 +563,14 @@ export class Player {
                         entityManager.addProjectile(proj);
                     }
                 } else if (result && result.projectile) {
-                    result.projectile.direction = direction;
+                    result.projectile.direction.copy(direction);
                     result.projectile.owner = this;
                     result.projectile.mesh.position.copy(muzzle);
                     if (result.projectile.velocity) {
                         result.projectile.velocity.copy(direction).multiplyScalar(result.projectile.speed);
                     }
-                    result.projectile.mesh.lookAt(muzzle.clone().add(direction));
+                    this._tmpLookTarget.copy(muzzle).add(direction);
+                    result.projectile.mesh.lookAt(this._tmpLookTarget);
                     entityManager.addProjectile(result.projectile);
                 }
                 this.viewKick = (0.14 + chargeRatio * 0.18) * this.recoilScale;
@@ -564,7 +582,7 @@ export class Player {
                 this.bowCharge = 0;
             }
         } else if (!isFrozen && fireRequested && this.attackCooldown <= 0) {
-            if (activeWeapon.type === 'laser' || activeWeapon.type === 'shotgun' || activeWeapon.type === 'flamethrower' || activeWeapon.type === 'pistol' || activeWeapon.type === 'rifle') {
+            if (activeWeapon.type === 'laser' || activeWeapon.type === 'shotgun' || activeWeapon.type === 'flamethrower' || activeWeapon.type === 'pistol' || activeWeapon.type === 'rifle' || activeWeapon.type === 'machinegun') {
                 const direction = this._tmpFireDir;
                 if (autoTarget) {
                     direction.subVectors(autoTarget.position, this.camera.position).normalize();
@@ -583,7 +601,7 @@ export class Player {
                         entityManager.addProjectile(proj);
                     }
                 } else if (result && result.projectile) {
-                    result.projectile.direction = direction;
+                    result.projectile.direction.copy(direction);
                     result.projectile.owner = this;
                     result.projectile.mesh.position.copy(muzzle);
                     if (result.projectile.velocity) {
@@ -721,7 +739,7 @@ export class Player {
                 this.viewWeapon.position.z -= swing * 0.08;
             }
 
-            if ((this.viewWeaponType === 'bow' || this.viewWeaponType === 'laser' || this.viewWeaponType === 'shotgun' || this.viewWeaponType === 'pistol' || this.viewWeaponType === 'rifle' || this.viewWeaponType === 'flamethrower') && this.viewKick > 0) {
+            if ((this.viewWeaponType === 'bow' || this.viewWeaponType === 'laser' || this.viewWeaponType === 'shotgun' || this.viewWeaponType === 'pistol' || this.viewWeaponType === 'rifle' || this.viewWeaponType === 'flamethrower' || this.viewWeaponType === 'machinegun') && this.viewKick > 0) {
                 this.viewWeapon.position.z -= this.viewKick * 0.2;
                 this.viewWeapon.rotation.x -= this.viewKick * 0.6;
             }
@@ -733,7 +751,7 @@ export class Player {
                     this.viewWeapon.position.z -= ease * 0.09;
                     this.viewWeapon.position.x -= ease * 0.03;
                     this.viewWeapon.rotation.y += ease * 0.06;
-                } else if (this.weaponActionType === 'laser' || this.weaponActionType === 'shotgun' || this.weaponActionType === 'pistol' || this.weaponActionType === 'rifle' || this.weaponActionType === 'flamethrower') {
+                } else if (this.weaponActionType === 'laser' || this.weaponActionType === 'shotgun' || this.weaponActionType === 'pistol' || this.weaponActionType === 'rifle' || this.weaponActionType === 'flamethrower' || this.weaponActionType === 'machinegun') {
                     this.viewWeapon.position.z -= ease * 0.1;
                     this.viewWeapon.rotation.x -= ease * 0.35;
                 }
@@ -873,7 +891,7 @@ export class Player {
         }
         if (attacker && this.isAlive) {
             const strength = knockbackStrength > 0 ? knockbackStrength : 3;
-            const dir = new THREE.Vector3().subVectors(this.position, attacker.position).normalize();
+            const dir = this._tmpKnockbackDir.subVectors(this.position, attacker.position).normalize();
             this.physics.velocity.x += dir.x * strength;
             this.physics.velocity.z += dir.z * strength;
             this.physics.velocity.y += 2;
@@ -1018,6 +1036,7 @@ export class Player {
     }
 
     animateViewModelWeapon(weaponType) {
+        const requestId = ++this.viewWeaponRequestId;
         if (!this.fpArms) return;
 
         if (this.viewWeapon) {
@@ -1030,21 +1049,32 @@ export class Player {
         if (!weaponType || weaponType === 'fists') return;
 
         const source = new Weapon(weaponType, this.scene);
-        if (!source.mesh) return;
-        const viewClone = source.mesh.clone();
-        this.scene.remove(source.mesh);
-        viewClone.visible = true;
-        const offset = this.getViewWeaponOffset(weaponType);
-        viewClone.scale.setScalar(offset.scale);
-        viewClone.position.copy(offset.position);
-        viewClone.rotation.copy(offset.rotation);
-        this.setupViewModel(viewClone);
-        this.fpArms.add(viewClone);
-        this.viewWeapon = viewClone;
-        this.viewWeaponBase = {
-            position: offset.position.clone(),
-            rotation: offset.rotation.clone()
+        const applyClone = () => {
+            if (requestId !== this.viewWeaponRequestId) return;
+            if (!source.mesh || !this.fpArms) return;
+
+            if (this.viewWeapon) {
+                this.fpArms.remove(this.viewWeapon);
+                this.viewWeapon = null;
+                this.viewWeaponBase = null;
+            }
+
+            const viewClone = source.mesh.clone();
+            this.scene.remove(source.mesh);
+            viewClone.visible = true;
+            const offset = this.getViewWeaponOffset(weaponType);
+            viewClone.scale.setScalar(offset.scale);
+            viewClone.position.copy(offset.position);
+            viewClone.rotation.copy(offset.rotation);
+            this.setupViewModel(viewClone);
+            this.fpArms.add(viewClone);
+            this.viewWeapon = viewClone;
+            this.viewWeaponBase = {
+                position: offset.position.clone(),
+                rotation: offset.rotation.clone()
+            };
         };
+        applyClone();
     }
 
     updateViewWeapon() {
@@ -1053,50 +1083,14 @@ export class Player {
     }
 
     getViewWeaponOffset(type) {
-        const base = {
-            scale: 1.1,
-            position: new THREE.Vector3(0.18, -0.42, -0.6),
-            rotation: new THREE.Euler(0, Math.PI, 0)
-        };
-
-        if (type === 'knife') {
-            base.position.set(0.22, -0.34, -0.66);
-            base.rotation.set(-Math.PI / 2 + 0.12, Math.PI, 0.08);
-            base.scale = 1.0;
-        } else if (type === 'bow') {
-            base.position.set(0.2, -0.22, -1.02);
-            base.rotation.set(0.02, Math.PI, Math.PI / 2.2);
-            base.scale = 0.68;
-        } else if (type === 'shotgun') {
-            base.position.set(0.26, -0.32, -0.75);
-            base.rotation.set(-0.06, Math.PI, Math.PI / 14);
-            base.scale = 1.05;
-        } else if (type === 'flamethrower') {
-            base.position.set(0.26, -0.34, -0.78);
-            base.rotation.set(-0.06, Math.PI, Math.PI / 14);
-            base.scale = 1.08;
-        } else if (type === 'laser') {
-            base.position.set(0.24, -0.36, -0.78);
-            base.rotation.set(-0.06, Math.PI, Math.PI / 14);
-            base.scale = 1.15;
-        } else if (type === 'pistol') {
-            base.position.set(0.24, -0.34, -0.7);
-            base.rotation.set(-0.02, Math.PI, Math.PI / 18);
-            base.scale = 1.05;
-        } else if (type === 'rifle') {
-            base.position.set(0.26, -0.3, -0.86);
-            base.rotation.set(-0.04, Math.PI, Math.PI / 16);
-            base.scale = 1.1;
-        }
-
-        return base;
+        return Weapon.getViewPose(type);
     }
 
     updateThirdPersonWeapon() {
         const socket = this.mesh?.userData?.weaponSocket;
         if (!socket || !this.currentWeapon?.mesh) return;
-        const worldPos = new THREE.Vector3();
-        const worldQuat = new THREE.Quaternion();
+        const worldPos = this._tmpSocketPos;
+        const worldQuat = this._tmpSocketQuat;
         socket.getWorldPosition(worldPos);
         socket.getWorldQuaternion(worldQuat);
 
@@ -1106,7 +1100,7 @@ export class Player {
 
     getAutoFireTarget(entityManager) {
         if (!entityManager) return null;
-        const forward = new THREE.Vector3();
+        const forward = this._tmpAutoForward;
         this.camera.getWorldDirection(forward);
         const origin = this.camera.position;
         const maxDistance = this.currentWeapon?.range || 60;
@@ -1115,13 +1109,13 @@ export class Player {
 
         for (const entity of entityManager.getEntities()) {
             if (!entity || !entity.isAlive || entity === this) continue;
-            const toTarget = new THREE.Vector3().subVectors(entity.position, origin);
+            const toTarget = this._tmpAutoToTarget.subVectors(entity.position, origin);
             const dist = toTarget.length();
             if (dist > maxDistance || dist < 1.2) continue;
             toTarget.normalize();
             const dot = forward.dot(toTarget);
             if (dot < 0.988) continue;
-            const aimPoint = new THREE.Vector3(
+            const aimPoint = this._tmpAutoAimPoint.set(
                 entity.position.x,
                 entity.position.y + (entity.physics?.height || 1.8) * 0.55,
                 entity.position.z
@@ -1151,7 +1145,7 @@ export class Player {
             this.currentWeapon = null;
             weapon = this.fists;
         }
-        if ((weapon.type === 'bow' || weapon.type === 'laser' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle') && weapon.ammo !== null && weapon.ammo <= 0) {
+        if ((weapon.type === 'bow' || weapon.type === 'laser' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle' || weapon.type === 'machinegun') && weapon.ammo !== null && weapon.ammo <= 0) {
             this.currentWeapon = null;
             weapon = this.fists;
         }
@@ -1162,8 +1156,8 @@ export class Player {
 
         if (distance > attackRange) return null;
 
-        if (weapon.type === 'laser' || weapon.type === 'bow' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle') {
-            const direction = new THREE.Vector3()
+        if (weapon.type === 'laser' || weapon.type === 'bow' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle' || weapon.type === 'machinegun') {
+            const direction = this._tmpAttackDirection
                 .subVectors(target.position, this.position)
                 .normalize();
 

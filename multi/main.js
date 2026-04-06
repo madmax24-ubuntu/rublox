@@ -52,6 +52,7 @@ import { EntityManager } from './entities/EntityManager.js';
 import { LootManager } from './items/LootManager.js';
 import { HUD } from './ui/HUD.js';
 import { YandexBridge } from './core/YandexBridge.js';
+import { GAME_CONFIG, ROUND_MODES } from './core/GameBalance.js';
 
 class Game {
     constructor(yandexBridge = null) {
@@ -228,20 +229,21 @@ class Game {
         this.partyMode = false;
         this.perkLocked = false;
         this.modeConfig = {
-            lootDensity: 0.85,
-            zombieMultiplier: 1.4,
-            footstepVolume: 0.7,
-            botVision: 0.9,
-            fogDensity: 0.0032
+            ...ROUND_MODES.hybrid
         };
         this.commandState = { help: false, enemy: false, gather: false };
         this.quickCommandCooldown = 0;
         this.dropTriggeredAt = new Set();
         this.perkMenuOpen = false;
+        this.perkSelectionRequired = false;
         this.perkMenuIndex = 0;
         this.perkKeyLatch = false;
         this.pauseKeyLatch = false;
         this.menuKeyLatch = { w: false, s: false, e: false };
+        this.hudStatsTimer = 0;
+        this.hudInventoryTimer = 0;
+        this.lastInventorySignature = '';
+        this.lastCountdownSecond = null;
         this.noteCooldown = 0;
         this.achievementState = {
             firstBlood: false,
@@ -249,19 +251,25 @@ class Game {
             scavenger: false,
             survivor: false
         };
-        this.randomEventTimer = 35 + Math.random() * 25;
+        this.randomEventTimer = GAME_CONFIG.events.randomTimerMin + Math.random() * GAME_CONFIG.events.randomTimerVariance;
         this.activeEvent = { type: null, timer: 0, prevFog: null };
+        this.radiationRainGraceTimer = 0;
+        this.radiationRainDamageActive = false;
         this.resumeGraceTimer = 0;
         this.lastVisibilityHiddenAt = 0;
         this.rainUpdateAccumulator = 0;
         this.poiWarmupTimer = 0;
+        this.zombieMaintainTimer = 6;
 
         this.env = new Environment(this.scene);
         this.map = new MapGenerator(this.scene);
         this.physics = new Physics(this.scene, this.map);
         this.zone = new Zone(this.scene, this.map.size);
-        this.zoneDuration = 600;
-        this.zoneMinRadius = Math.max(24, this.zone.getCurrentRadius() * 0.15);
+        this.zoneDuration = GAME_CONFIG.zone.durationSeconds;
+        this.zoneMinRadius = Math.max(
+            GAME_CONFIG.zone.minRadiusAbsolute,
+            this.zone.getCurrentRadius() * GAME_CONFIG.zone.minRadiusFactor
+        );
         this.zone.shrink(this.zone.getCurrentRadius());
         this.zone.shrinkSpeed = 0;
         this.traps = this.map.getTraps?.() || [];
@@ -330,15 +338,16 @@ class Game {
         }
 
         this.gameState = 'countdown';
-        this.countdownTime = 10;
+        this.countdownTime = GAME_CONFIG.round.countdownSeconds;
         this.countdownTimer = this.countdownTime;
-        this.spawnTime = 20;
+        this.lastCountdownSecond = null;
+        this.spawnTime = GAME_CONFIG.round.preFightInvulnerableSeconds;
         this.spawnTimer = this.spawnTime;
-        this.botLootPhaseDuration = 10;
+        this.botLootPhaseDuration = GAME_CONFIG.round.botLootPhaseSeconds;
         this.zonePhase = 'waiting';
-        this.zonePhaseTimer = 28;
+        this.zonePhaseTimer = GAME_CONFIG.zone.waitStartSeconds;
         this.zonePhaseIndex = 0;
-        this.zonePhaseCount = 8;
+        this.zonePhaseCount = GAME_CONFIG.zone.phaseCount;
         this.zonePhaseTarget = this.zone.getCurrentRadius();
         this.chestRespawnTimer = 55;
 
@@ -346,7 +355,13 @@ class Game {
         this.applyRoundMode('hybrid');
         this.applyUserSettings(this.loadUserSettings());
         this.hud.setPerkSelectionEnabled(true);
-        this.hud.showGameMessage('Выберите перк до старта матча. Клавиша P');
+        this.hud.setPerkPanelLock(true);
+        this.hud.showGameMessage(this.isMobile()
+            ? 'Выберите перк до старта матча'
+            : 'Выберите перк до старта матча. Клавиша P');
+        this.perkMenuOpen = true;
+        this.perkSelectionRequired = true;
+        this.hud.togglePerkPanel(true);
 
         window.addEventListener('resize', () => {
             this.applyRendererSizing();
@@ -460,9 +475,11 @@ class Game {
     }
 
     spawnBots() {
-        const botCount = 40;
+        const botCount = this.isMobile()
+            ? GAME_CONFIG.bots.mobileCount
+            : GAME_CONFIG.bots.desktopCount;
         const spawnPads = this.map.getSpawnPads?.() || [];
-        const spawnRadius = 16;
+        const spawnRadius = GAME_CONFIG.bots.spawnRadius;
         const botPads = spawnPads.length > 1 ? spawnPads.slice(1) : spawnPads;
 
         for (let i = 0; i < botCount; i++) {
@@ -502,31 +519,8 @@ class Game {
 
     applyRoundMode(mode) {
         this.roundMode = mode || 'hybrid';
-        if (this.roundMode === 'hybrid') {
-            this.modeConfig.lootDensity = 0.85;
-            this.modeConfig.zombieMultiplier = 1.4;
-            this.modeConfig.footstepVolume = 0.7;
-            this.modeConfig.botVision = 0.9;
-            this.modeConfig.fogDensity = 0.0058;
-        } else if (this.roundMode === 'nightmare') {
-            this.modeConfig.lootDensity = 0.6;
-            this.modeConfig.zombieMultiplier = 2.2;
-            this.modeConfig.footstepVolume = 1;
-            this.modeConfig.botVision = 1.05;
-            this.modeConfig.fogDensity = 0.0068;
-        } else if (this.roundMode === 'stealth') {
-            this.modeConfig.lootDensity = 0.9;
-            this.modeConfig.zombieMultiplier = 1.1;
-            this.modeConfig.footstepVolume = 0.35;
-            this.modeConfig.botVision = 0.7;
-            this.modeConfig.fogDensity = 0.0076;
-        } else {
-            this.modeConfig.lootDensity = 1;
-            this.modeConfig.zombieMultiplier = 1;
-            this.modeConfig.footstepVolume = 1;
-            this.modeConfig.botVision = 1;
-            this.modeConfig.fogDensity = 0.0052;
-        }
+        const fallback = ROUND_MODES.classic;
+        this.modeConfig = { ...(ROUND_MODES[this.roundMode] || fallback) };
 
         this.hud.setRoundMode(this.roundMode === 'hybrid'
             ? 'Hybrid'
@@ -598,6 +592,13 @@ class Game {
         this.audioSynth?.setSfxVolume?.(safe.sfxVolume);
         this.player?.setLookSensitivityMultiplier?.(safe.lookSensitivity);
         this.hud?.setSettingsValues?.(safe);
+    }
+
+    resetUserSettings() {
+        const defaults = { musicVolume: 0.14, sfxVolume: 0.22, lookSensitivity: 1 };
+        localStorage.setItem('mazearena_settings', JSON.stringify(defaults));
+        this.applyUserSettings(defaults);
+        this.hud?.showGameMessage?.('Настройки сброшены');
     }
 
     assignFriendlyBots(count = 2) {
@@ -775,8 +776,22 @@ class Game {
 
     setRadiationRainActive(active) {
         this.radiationRainActive = !!active;
+        if (active) {
+            this.radiationRainGraceTimer = GAME_CONFIG.events.radiation.graceSeconds;
+            this.radiationRainDamageActive = false;
+        } else {
+            this.radiationRainGraceTimer = 0;
+            this.radiationRainDamageActive = false;
+        }
         if (this.radiationRainEffect?.lines) {
             this.radiationRainEffect.lines.visible = !!active;
+        }
+        if (!active && this.bots?.length) {
+            for (const bot of this.bots) {
+                if (!bot) continue;
+                bot.forceShelterActive = false;
+                if (bot.state === 'hide') bot.state = 'patrol';
+            }
         }
         this.hud?.setStormActive?.(!!active, active ? 'radiation' : 'storm');
         if (active) {
@@ -846,7 +861,7 @@ class Game {
 
     startZoneCycle() {
         this.zonePhase = 'waiting';
-        this.zonePhaseTimer = 28;
+        this.zonePhaseTimer = GAME_CONFIG.zone.waitStartSeconds;
         this.zonePhaseIndex = 0;
         this.zonePhaseTarget = this.zone.getCurrentRadius();
         this.chestRespawnTimer = 55;
@@ -869,9 +884,9 @@ class Game {
                 const stepDrop = (currentRadius - this.zoneMinRadius) / remainingSteps;
                 this.zonePhaseTarget = Math.max(this.zoneMinRadius, currentRadius - stepDrop);
                 this.zone.shrink(this.zonePhaseTarget);
-                this.zone.shrinkSpeed = Math.max(8, (currentRadius - this.zonePhaseTarget) / 10);
+                this.zone.shrinkSpeed = Math.max(8, (currentRadius - this.zonePhaseTarget) / GAME_CONFIG.zone.shrinkPhaseSeconds);
                 this.zonePhase = 'shrinking';
-                this.zonePhaseTimer = 10;
+                this.zonePhaseTimer = GAME_CONFIG.zone.shrinkPhaseSeconds;
             }
             return;
         }
@@ -889,7 +904,7 @@ class Game {
                 }
                 this.zonePhaseIndex += 1;
                 this.zonePhase = 'waiting';
-                this.zonePhaseTimer = this.zonePhaseIndex >= this.zonePhaseCount ? 9999 : 22;
+                this.zonePhaseTimer = this.zonePhaseIndex >= this.zonePhaseCount ? 9999 : GAME_CONFIG.zone.waitBetweenSeconds;
             }
         }
     }
@@ -897,6 +912,13 @@ class Game {
     updateRandomEvents(delta) {
         if (this.activeEvent.type) {
             this.activeEvent.timer -= delta;
+            if (this.activeEvent.type === 'radiationRain' && !this.radiationRainDamageActive) {
+                this.radiationRainGraceTimer = Math.max(0, this.radiationRainGraceTimer - delta);
+                if (this.radiationRainGraceTimer <= 0) {
+                    this.radiationRainDamageActive = true;
+                    this.hud.showGameMessage("Кислотный дождь начался!");
+                }
+            }
             if (this.activeEvent.timer <= 0) {
                 if (this.activeEvent.type === "blindness") {
                     if (this.env?.clearFogOverride) this.env.clearFogOverride();
@@ -934,12 +956,12 @@ class Game {
             this.hud.showGameMessage("Событие: Ночь");
         } else if (event === "radiationRain") {
             this.activeEvent.type = "radiationRain";
-            this.activeEvent.timer = 30;
+            this.activeEvent.timer = GAME_CONFIG.events.radiation.durationSeconds;
             this.setRadiationRainActive(true);
             this.hud.showGameMessage("Событие: Радиационный дождь. Прячьтесь в домах или ангарах!");
         }
 
-        this.randomEventTimer = 45 + Math.random() * 35;
+        this.randomEventTimer = GAME_CONFIG.events.nextEventMin + Math.random() * GAME_CONFIG.events.nextEventVariance;
     }
 
     queueZombieBurst(reset, multiplier, capOverride, count, chunk = 6) {
@@ -1055,7 +1077,7 @@ class Game {
         const canSelectPerk = this.gameState === 'countdown' && !this.perkLocked;
         if (this.input.isKeyPressed('KeyP') && canSelectPerk) {
             if (!this.perkKeyLatch) {
-                this.perkMenuOpen = !this.perkMenuOpen;
+                this.perkMenuOpen = this.perkSelectionRequired ? true : !this.perkMenuOpen;
                 this.hud.togglePerkPanel(this.perkMenuOpen);
                 if (this.perkMenuOpen) {
                     this.perkMenuIndex = this.hud.getPerkMenuSelection();
@@ -1065,6 +1087,10 @@ class Game {
             }
         } else {
             this.perkKeyLatch = false;
+        }
+        if (this.perkSelectionRequired && canSelectPerk && !this.perkMenuOpen) {
+            this.perkMenuOpen = true;
+            this.hud.togglePerkPanel(true);
         }
 
         if (this.perkMenuOpen) {
@@ -1098,18 +1124,31 @@ class Game {
         }
         if (this.gameState === 'countdown') {
             this.countdownTimer -= delta;
+            const sec = Math.max(0, Math.ceil(this.countdownTimer));
+            if (sec !== this.lastCountdownSecond) {
+                this.lastCountdownSecond = sec;
+                if (sec > 0) {
+                    this.audioSynth?.playTimerTick?.(sec <= 3 ? 1.25 : 0.9);
+                }
+            }
 
             this.player.setInvulnerable(true);
             this.bots.forEach(bot => bot.setInvulnerable(true));
             this.player.isFrozen = true;
             this.bots.forEach(bot => { bot.isFrozen = true; });
 
-            this.hud.showCountdown(Math.ceil(this.countdownTimer));
+            this.hud.showCountdown(sec);
 
             if (this.countdownTimer <= 0) {
+                if (!this.perkLocked) {
+                    this.applyPerk('quickHands');
+                    this.perkLocked = true;
+                }
                 this.gameState = 'spawn';
                 this.perkLocked = true;
+                this.perkSelectionRequired = false;
                 this.perkMenuOpen = false;
+                this.hud.setPerkPanelLock(false);
                 this.hud.togglePerkPanel(false);
                 this.hud.setPerkSelectionEnabled(false);
                 this.hud.hideCountdown();
@@ -1118,6 +1157,7 @@ class Game {
                 this.player.isFrozen = false;
                 this.bots.forEach(bot => { bot.isFrozen = false; });
                 this.queueZombieBurst(true, 1.6, 120, 22, this.isMobile() ? 4 : 6);
+                this.queuePoiBurst(1.4, this.isMobile() ? 12 : 18, this.isMobile() ? 3 : 4);
             }
         } else if (this.gameState === 'spawn') {
             this.spawnTimer -= delta;
@@ -1129,7 +1169,14 @@ class Game {
                 this.spawnScatterTargets = floor
                     .filter(t => Math.hypot(t.x, t.z) > minR)
                     .sort((a, b) => Math.hypot(a.x, a.z) - Math.hypot(b.x, b.z));
+                for (let i = this.spawnScatterTargets.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    const tmp = this.spawnScatterTargets[i];
+                    this.spawnScatterTargets[i] = this.spawnScatterTargets[j];
+                    this.spawnScatterTargets[j] = tmp;
+                }
             }
+            const usedScatter = new Set();
             for (let i = 0; i < this.bots.length; i++) {
                 const bot = this.bots[i];
                 bot.target = null;
@@ -1137,9 +1184,17 @@ class Game {
                 bot.allies = [];
                 bot.state = 'spawn';
                 if (!bot.patrolTarget) {
-                    const scatter = this.spawnScatterTargets?.length
-                        ? this.spawnScatterTargets[(i * 37 + 13) % this.spawnScatterTargets.length]
-                        : null;
+                    let scatter = null;
+                    if (this.spawnScatterTargets?.length) {
+                        for (let k = 0; k < this.spawnScatterTargets.length; k++) {
+                            const idx = (i * 11 + k * 17 + Math.floor(Math.random() * 13)) % this.spawnScatterTargets.length;
+                            if (!usedScatter.has(idx)) {
+                                usedScatter.add(idx);
+                                scatter = this.spawnScatterTargets[idx];
+                                break;
+                            }
+                        }
+                    }
                     if (scatter) {
                         const jitterX = (Math.random() - 0.5) * 8;
                         const jitterZ = (Math.random() - 0.5) * 8;
@@ -1213,8 +1268,8 @@ class Game {
                 const damage = this.zone.getDamage(delta, this.player.position);
                 this.player.takeDamage(damage, false, null, 0, 'zone');
             }
-            if (this.activeEvent?.type === 'radiationRain' && !this.isShelteredFromRadiation(this.player.position)) {
-                this.player.takeDamage(3.2 * delta, false, null, 0, 'storm');
+            if (this.activeEvent?.type === 'radiationRain' && this.radiationRainDamageActive && !this.isShelteredFromRadiation(this.player.position)) {
+                this.player.takeDamage(GAME_CONFIG.events.radiation.playerDps * delta, false, null, 0, 'storm');
             }
 
             const distanceFromZone = this.zone.getDistanceFromZone(this.player.position);
@@ -1238,7 +1293,7 @@ class Game {
             const outsideBoost = distanceOutside > 0 ? Math.min(0.24, distanceOutside * 0.015) : 0;
             const fogBoost = Math.min(0.24, Math.max(0, fogDensity - 0.004) * 30);
             const blindnessBoost = this.activeEvent?.type === 'blindness' ? 0.55 : 0;
-            const radiationBoost = this.activeEvent?.type === 'radiationRain' && !this.isShelteredFromRadiation(this.player.position) ? 0.08 : 0;
+            const radiationBoost = this.activeEvent?.type === 'radiationRain' && this.radiationRainDamageActive && !this.isShelteredFromRadiation(this.player.position) ? 0.08 : 0;
             this.hud.setVisionIntensity?.(0.12 + nightBoost + shrinkBoost + outsideBoost + fogBoost + blindnessBoost + radiationBoost);
         } else {
             this.hud.setVisionIntensity?.(0);
@@ -1338,22 +1393,48 @@ class Game {
             this.audioSynth.updateListener(this.camera.position, this._tmpAudioForward);
         }
 
-        this.botFrameCounter = (this.botFrameCounter + 1) % 2048;
-        const nearBotDistSq = this.isMobile() ? (80 * 80) : (110 * 110);
-        const farBotModulo = this.isMobile() ? 3 : 2;
+        this.botFrameCounter = (this.botFrameCounter + 1) % 8;
+        const farBotCullDistSq = this.isMobile() ? (95 * 95) : (135 * 135);
         for (let botIndex = 0; botIndex < this.bots.length; botIndex++) {
             const bot = this.bots[botIndex];
             if (!bot.isAlive) continue;
-            const dx = bot.position.x - this.player.position.x;
-            const dz = bot.position.z - this.player.position.z;
-            const distSq = dx * dx + dz * dz;
-            const isNear = distSq <= nearBotDistSq;
-            const shouldUpdate = isNear || ((bot.id + this.botFrameCounter) % farBotModulo === 0);
-            if (!shouldUpdate) continue;
-            const botDelta = isNear ? delta : delta * farBotModulo;
-            bot.update(botDelta, this.botBrains[botIndex], this.entityManager, this.lootManager, this.audioSynth, this.physics, this.zone);
+            const distSq = bot.position.distanceToSquared(this.player.position);
+            const isFarIdleBot = distSq > farBotCullDistSq
+                && !bot.target
+                && !bot.assistTarget
+                && bot.state !== 'combat'
+                && bot.state !== 'chase';
+            if (isFarIdleBot && ((this.botFrameCounter + botIndex) % 2) !== 0) {
+                if (bot.mesh) {
+                    bot.mesh.position.copy(bot.position);
+                    bot.mesh.position.y = bot.position.y - (bot.physics.height - 0.2);
+                    if (bot.healthBar) bot.updateHealthBar(0.05);
+                }
+                continue;
+            }
+            bot.update(delta, this.botBrains[botIndex], this.entityManager, this.lootManager, this.audioSynth, this.physics, this.zone);
         }
         if (this.gameState === 'playing') {
+            if (this.activeEvent?.type === 'radiationRain') {
+                for (const bot of this.bots) {
+                    if (!bot?.isAlive) continue;
+                    bot.forceShelterActive = true;
+                    if (this.isShelteredFromRadiation(bot.position)) {
+                        bot.target = null;
+                        bot.assistTarget = null;
+                        bot.lootTarget = null;
+                        bot.state = 'hide';
+                        continue;
+                    }
+                    const shelter = this.getNearestShelterTarget(bot.position);
+                    if (!shelter) continue;
+                    bot.target = null;
+                    bot.assistTarget = null;
+                    bot.lootTarget = null;
+                    bot.patrolTarget = shelter.clone();
+                    bot.state = 'retreat';
+                }
+            }
             const hazardBatch = Math.max(
                 this.isMobile() ? 10 : 16,
                 Math.min(this.bots.length, Math.ceil(this.bots.length * (this.isMobile() ? 0.35 : 0.5)))
@@ -1379,10 +1460,16 @@ class Game {
                     if (shelter) {
                         bot.target = null;
                         bot.assistTarget = null;
+                        bot.lootTarget = null;
                         bot.patrolTarget = shelter.clone();
                         bot.state = 'retreat';
                     }
-                    bot.takeDamage(1.45 * delta * hazardScale, false, null, 0, 'storm');
+                    if (this.radiationRainDamageActive) {
+                        const rainDps = shelter
+                            ? GAME_CONFIG.events.radiation.botDpsNearShelter
+                            : GAME_CONFIG.events.radiation.botDpsFarShelter;
+                        bot.takeDamage(rainDps * delta * hazardScale, false, null, 0, 'storm');
+                    }
                 }
             }
             if (this.bots.length > 0) {
@@ -1395,16 +1482,29 @@ class Game {
             this.isMobile() ? 10 : 16,
             Math.min(zombieCount, Math.ceil(zombieCount * (this.isMobile() ? 0.28 : 0.4)))
         );
-        const zombieDeltaScale = zombieCount > 0 ? Math.min(2.6, zombieCount / Math.max(1, zombiesPerFrame)) : 1;
         for (let i = 0; i < zombiesPerFrame && i < zombieCount; i++) {
             const zIndex = (this.zombieUpdateIndex + i) % zombieCount;
             const zombie = this.zombies[zIndex];
             if (zombie?.isAlive) {
-                zombie.update(delta * zombieDeltaScale, this.entityManager, this.audioSynth);
+                zombie.update(delta, this.entityManager, this.audioSynth);
             }
         }
         if (zombieCount > 0) {
             this.zombieUpdateIndex = (this.zombieUpdateIndex + zombiesPerFrame) % zombieCount;
+        }
+
+        if (this.gameState === 'playing') {
+            this.zombieMaintainTimer = Math.max(0, this.zombieMaintainTimer - delta);
+            if (this.zombieMaintainTimer <= 0) {
+                const aliveZombies = this.zombies.filter(z => z?.isAlive).length;
+                const minAlive = this.isMobile() ? 12 : 16;
+                if (aliveZombies < minAlive) {
+                    const need = minAlive - aliveZombies;
+                    this.queuePoiBurst(1.25, Math.min(10, need), this.isMobile() ? 2 : 3);
+                    this.queueZombieBurst(false, 1.8, 180, Math.max(0, need - 4), this.isMobile() ? 3 : 4);
+                }
+                this.zombieMaintainTimer = 6 + Math.random() * 3;
+            }
         }
 
         const aliveCountBeforeHazards = this.entityManager.update(delta, this.physics, this.audioSynth);
@@ -1414,10 +1514,14 @@ class Game {
             this.updateAchievements(aliveCountBeforeHazards);
         }
 
-        this.hud.updateHealth(this.player.health, this.player.maxHealth);
-        this.hud.updateArmor(this.player.armor, this.player.maxArmor);
-        this.hud.updatePlayersCount(aliveCountBeforeHazards);
-        this.hud.updateAmmo(this.player.currentWeapon || this.player.fists);
+        this.hudStatsTimer -= delta;
+        if (this.hudStatsTimer <= 0) {
+            this.hud.updateHealth(this.player.health, this.player.maxHealth);
+            this.hud.updateArmor(this.player.armor, this.player.maxArmor);
+            this.hud.updatePlayersCount(aliveCountBeforeHazards);
+            this.hud.updateAmmo(this.player.currentWeapon || this.player.fists);
+            this.hudStatsTimer = this.isMobile() ? 0.1 : 0.06;
+        }
         if (this.traps && this.traps.length) {
             const applyTrap = (entity) => {
                 if (!entity.isAlive) return;
@@ -1467,7 +1571,13 @@ class Game {
             if (!item) return null;
             return { type: item.type };
         });
-        this.hud.updateInventory(inventoryItems, this.player.inventory.selectedSlot);
+        this.hudInventoryTimer -= delta;
+        const inventorySignature = `${this.player.inventory.selectedSlot}|${inventoryItems.map(item => item ? item.type : '-').join(',')}`;
+        if (this.hudInventoryTimer <= 0 || inventorySignature !== this.lastInventorySignature) {
+            this.hud.updateInventory(inventoryItems, this.player.inventory.selectedSlot);
+            this.lastInventorySignature = inventorySignature;
+            this.hudInventoryTimer = this.isMobile() ? 0.14 : 0.08;
+        }
 
         if (this.gameState === 'playing' && !this.roundFinished) {
             if (aliveCount === 0) {
@@ -1485,9 +1595,7 @@ class Game {
             }
         }
 
-        if (this.spawnTimer <= 0 || this.spawnTimer % 1 < 0.1) {
-            this.hud.updatePlayersCount(this.entityManager.getAliveCount());
-        }
+        // players count is updated by throttled hudStatsTimer block above
     }
 
     getLocalizedFogBoost(position) {
@@ -1536,7 +1644,6 @@ class Game {
             const x = guardSpot.x + (Math.random() - 0.5) * jitter;
             const z = guardSpot.z + (Math.random() - 0.5) * jitter;
             if (!this.map.isWalkableAt?.(x, z)) return false;
-            if (!this.map.isChestClear?.(x, z, 0.85, true)) return false;
             const baseY = this.map.getSurfaceHeightAt?.(x, z) ?? this.map.getHeightAt(x, z);
             const pos = new THREE.Vector3(x, baseY + 1.8, z);
             if (pos.distanceTo(this.player.position) < 14) return false;
@@ -1618,7 +1725,7 @@ class Game {
             const baseY = this.map.getSurfaceHeightAt?.(tile.x, tile.z) ?? this.map.getHeightAt(tile.x, tile.z);
             const pos = new THREE.Vector3(tile.x, baseY + 1.8, tile.z);
             if (pos.distanceTo(this.player.position) < (reset ? 20 : 24)) continue;
-            if (!this.map.isChestClear?.(tile.x, tile.z, 0.9, true)) continue;
+            if (!this.map.isWalkableAt?.(tile.x, tile.z)) continue;
             const zombie = new Zombie(this.scene, this.nextZombieId++, pos);
             this.physics.addEntity(zombie);
             this.entityManager.addEntity(zombie);
@@ -1675,6 +1782,8 @@ class Game {
             this.yandex?.gameplayStart?.();
 
             this.perkMenuOpen = !this.perkLocked;
+            this.perkSelectionRequired = !this.perkLocked;
+            this.hud.setPerkPanelLock(this.perkSelectionRequired);
             this.hud.togglePerkPanel(this.perkMenuOpen);
             if (this.perkMenuOpen) {
                 this.hud.showGameMessage('Выберите перк перед стартом матча');
@@ -1732,6 +1841,10 @@ window.addEventListener('DOMContentLoaded', () => {
         }
         game.applyPerk(perk);
         game.perkLocked = true;
+        game.perkSelectionRequired = false;
+        game.hud.setPerkPanelLock(false);
+        game.perkMenuOpen = false;
+        game.hud.togglePerkPanel(false);
         game.hud.showGameMessage('\u041f\u0435\u0440\u043a \u0430\u043a\u0442\u0438\u0432\u0438\u0440\u043e\u0432\u0430\u043d');
     });
 
@@ -1749,6 +1862,10 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!Number.isFinite(value)) return;
         const settings = game.saveUserSettings({ lookSensitivity: value });
         game.applyUserSettings(settings);
+    });
+
+    document.addEventListener('resetSettings', () => {
+        game.resetUserSettings();
     });
 
     const bindStartButton = (button) => {

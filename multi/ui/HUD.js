@@ -1,5 +1,6 @@
-﻿export class HUD {
+export class HUD {
     constructor() {
+        this.perkPanelLocked = false;
         this.perkOptions = [
             { value: 'quickHands', label: 'Быстрые руки', desc: 'Сильно ускоряет атаки и использование оружия ближнего боя.' },
             { value: 'silentStep', label: 'Тихий шаг', desc: 'Почти убирает шум шагов и делает тебя заметно тише.' },
@@ -74,12 +75,16 @@
         const topBar = document.createElement('div');
         topBar.style.cssText = `
             position: absolute;
-            top: ${px(16)}px;
+            top: ${px(isMobile ? 14 : 16)}px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
+            flex-wrap: ${isMobile ? 'wrap' : 'nowrap'};
+            justify-content: center;
             gap: ${px(12)}px;
+            row-gap: ${px(8)}px;
             align-items: center;
+            max-width: ${isMobile ? '96vw' : 'none'};
         `;
         hud.appendChild(topBar);
 
@@ -90,8 +95,9 @@
             padding: ${px(8)}px ${px(18)}px;
             border-radius: ${px(10)}px;
             border: 2px solid rgba(255, 255, 255, 0.12);
-            font-size: ${px(18)}px;
+            font-size: ${px(isMobile ? 14 : 18)}px;
             font-weight: 700;
+            flex: ${isMobile ? '1 1 auto' : '0 0 auto'};
         `;
         playersCount.textContent = '\u0418\u0433\u0440\u043e\u043a\u043e\u0432: 32';
         topBar.appendChild(playersCount);
@@ -103,7 +109,8 @@
             padding: ${px(8)}px ${px(16)}px;
             border-radius: ${px(10)}px;
             border: 2px solid rgba(255, 255, 255, 0.12);
-            font-size: ${px(14)}px;
+            font-size: ${px(isMobile ? 12 : 14)}px;
+            flex: ${isMobile ? '1 1 auto' : '0 0 auto'};
         `;
         zoneInfo.textContent = '\u0417\u043e\u043d\u0430: \u0411\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u0430\u044f';
         topBar.appendChild(zoneInfo);
@@ -115,8 +122,9 @@
             padding: ${px(6)}px ${px(14)}px;
             border-radius: ${px(10)}px;
             border: 2px solid rgba(255, 255, 255, 0.08);
-            font-size: ${px(12)}px;
+            font-size: ${px(isMobile ? 11 : 12)}px;
             font-weight: 700;
+            opacity: ${isMobile ? '0.88' : '1'};
         `;
         modeInfo.textContent = '\u0420\u0435\u0436\u0438\u043c: Classic';
         topBar.appendChild(modeInfo);
@@ -128,8 +136,9 @@
             padding: ${px(6)}px ${px(12)}px;
             border-radius: ${px(10)}px;
             border: 2px solid rgba(255, 255, 255, 0.08);
-            font-size: ${px(12)}px;
+            font-size: ${px(isMobile ? 11 : 12)}px;
             font-weight: 700;
+            opacity: ${isMobile ? '0.88' : '1'};
         `;
         perkInfo.textContent = '\u041f\u0435\u0440\u043a: -';
         topBar.appendChild(perkInfo);
@@ -546,6 +555,7 @@
                 <div style="display:flex;gap:${px(8)}px;flex-wrap:wrap;">
                     <button id="pauseResume" class="perk-btn" style="flex:1;">Продолжить</button>
                     <button id="pauseEdit" class="perk-btn" style="flex:1;display:${isMobile ? 'block' : 'none'};">Настроить кнопки</button>
+                    <button id="pauseResetSettings" class="perk-btn" style="flex:1;">Сбросить настройки</button>
                 </div>
                 <div id="pauseHint" style="margin-top:${px(10)}px;font-size:${px(11)}px;opacity:0.7;display:${isMobile ? 'block' : 'none'};">
                     Перетащи кнопки управления, чтобы расположить их удобнее.
@@ -597,8 +607,35 @@
         }, { passive: false });
         hud.appendChild(perkButton);
 
+        const perkBackdrop = document.createElement('div');
+        perkBackdrop.id = 'perkBackdrop';
+        perkBackdrop.style.cssText = `
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(6, 12, 18, 0.68);
+            backdrop-filter: blur(2px);
+            z-index: 1480;
+            pointer-events: auto;
+        `;
+        perkBackdrop.addEventListener('click', (e) => {
+            if (e.target !== perkBackdrop) return;
+            if (this.perkPanelLocked) return;
+            this.togglePerkPanel(false);
+        });
+        perkBackdrop.addEventListener('touchstart', (e) => {
+            if (e.target !== perkBackdrop) return;
+            if (this.perkPanelLocked) return;
+            e.preventDefault();
+            this.togglePerkPanel(false);
+        }, { passive: false });
+        hud.appendChild(perkBackdrop);
+
         const perkPanel = document.createElement('div');
         perkPanel.id = 'perkPanel';
+        perkPanel.setAttribute('data-allow-scroll', '1');
         perkPanel.style.cssText = `
             position: absolute;
             top: 50%;
@@ -669,6 +706,7 @@
                 ">
                     <div id="perkMobileTitle" style="font-size:${px(16)}px;font-weight:900;"></div>
                     <div id="perkMobileDesc" style="font-size:${px(12)}px;line-height:1.35;opacity:0.84;"></div>
+                    <div id="perkMobileIndex" style="font-size:${px(11)}px;opacity:0.7;"></div>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:${px(8)}px;margin-bottom:${px(8)}px;">
                     <div id="perkPrev" class="perk-btn">Назад</div>
@@ -700,14 +738,24 @@
             });
             const bindTap = (el, fn) => {
                 if (!el) return;
-                const run = (e) => {
+                let pressed = false;
+                el.addEventListener('touchstart', (e) => {
+                    pressed = true;
+                    e.stopPropagation();
+                }, { passive: true });
+                el.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!pressed) return;
+                    pressed = false;
+                    if (perkPanel.dataset.touchScrollMoved === '1') return;
+                    fn();
+                }, { passive: false });
+                el.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     fn();
-                };
-                el.addEventListener('pointerdown', run);
-                el.addEventListener('touchstart', run, { passive: false });
-                el.addEventListener('mousedown', run);
+                });
             };
             bindTap(perkPanel.querySelector('#perkPrev'), () => {
                 this.setPerkMenuSelection((this.perkMenuIndex ?? 0) - 1);
@@ -721,6 +769,21 @@
                 document.dispatchEvent(new CustomEvent('selectPerk', { detail: perk }));
                 this.togglePerkPanel(false);
             });
+            perkPanel.addEventListener('touchmove', (e) => {
+                const t = e.touches?.[0];
+                if (!t || !perkPanel.dataset.swipeStartX) return;
+                const dx = t.clientX - Number(perkPanel.dataset.swipeStartX);
+                if (Math.abs(dx) > 56) {
+                    if (dx > 0) this.setPerkMenuSelection((this.perkMenuIndex ?? 0) - 1);
+                    else this.setPerkMenuSelection((this.perkMenuIndex ?? 0) + 1);
+                    perkPanel.dataset.swipeStartX = String(t.clientX);
+                }
+            }, { passive: true });
+            perkPanel.addEventListener('touchstart', (e) => {
+                const t = e.touches?.[0];
+                if (!t) return;
+                perkPanel.dataset.swipeStartX = String(t.clientX);
+            }, { passive: true });
         } else {
             perkPanel.innerHTML = `
                 <div style="font-size:${px(18)}px;font-weight:900;margin-bottom:${px(6)}px;">Выбор перка</div>
@@ -747,7 +810,7 @@
                 });
             });
         }
-        hud.appendChild(perkPanel);
+        perkBackdrop.appendChild(perkPanel);
 
         const scoreboard = document.createElement('div');
         scoreboard.id = 'scoreboard';
@@ -792,6 +855,7 @@
     bindPauseUI() {
         const resume = document.getElementById('pauseResume');
         const edit = document.getElementById('pauseEdit');
+        const reset = document.getElementById('pauseResetSettings');
         if (resume) {
             resume.addEventListener('click', () => {
                 document.dispatchEvent(new CustomEvent('togglePause'));
@@ -809,6 +873,15 @@
                 e.stopPropagation();
                 this.toggleEditControls();
             }, { passive: false });
+        }
+        if (reset) {
+            const run = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                document.dispatchEvent(new CustomEvent('resetSettings'));
+            };
+            reset.addEventListener('click', run);
+            reset.addEventListener('touchstart', run, { passive: false });
         }
     }
 
@@ -1070,6 +1143,14 @@
     setPerk(label) {
         const perkInfo = document.getElementById('perkInfo');
         if (perkInfo) perkInfo.textContent = `\u041f\u0435\u0440\u043a: ${label}`;
+        const perkButton = document.getElementById('perkButton');
+        if (perkButton) {
+            if (label && label !== '-') {
+                perkButton.textContent = `ПЕРК: ${label}`;
+            } else {
+                perkButton.textContent = 'ПЕРК ДО СТАРТА';
+            }
+        }
     }
 
     setSettingsValues(settings = {}) {
@@ -1105,6 +1186,7 @@
                 else if (item.type === 'flamethrower') icon.textContent = 'FIRE';
                 else if (item.type === 'pistol') icon.textContent = 'PST';
                 else if (item.type === 'rifle') icon.textContent = 'RIF';
+                else if (item.type === 'machinegun') icon.textContent = 'MG';
 
                 if (!slot.querySelector('.weapon-icon')) {
                     slot.appendChild(icon);
@@ -1265,25 +1347,42 @@
     setPerkSelectionEnabled(enabled) {
         const perkButton = document.getElementById('perkButton');
         const perkPanel = document.getElementById('perkPanel');
+        const perkBackdrop = document.getElementById('perkBackdrop');
         if (perkButton) {
             perkButton.style.display = enabled ? 'block' : 'none';
         }
         if (!enabled && perkPanel) {
             perkPanel.style.display = 'none';
         }
+        if (!enabled && perkBackdrop) {
+            perkBackdrop.style.display = 'none';
+        }
+    }
+
+    setPerkPanelLock(locked) {
+        this.perkPanelLocked = !!locked;
+        const perkButton = document.getElementById('perkButton');
+        if (perkButton) {
+            perkButton.style.opacity = this.perkPanelLocked ? '0.95' : '1';
+        }
     }
 
     togglePerkPanel(force) {
         const panel = document.getElementById('perkPanel');
-        if (!panel) return;
+        const backdrop = document.getElementById('perkBackdrop');
+        if (!panel || !backdrop) return;
+        const currentlyOpen = panel.style.display === 'block';
+        if (this.perkPanelLocked && force !== true && force !== false && currentlyOpen) return;
         if (typeof force === 'boolean') {
             panel.style.display = force ? 'block' : 'none';
+            backdrop.style.display = force ? 'flex' : 'none';
             if (force) {
                 this.setPerkMenuSelection(this.getPerkMenuSelection());
             }
             return;
         }
         panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+        backdrop.style.display = panel.style.display === 'block' ? 'flex' : 'none';
         if (panel.style.display === 'block') {
             this.setPerkMenuSelection(this.getPerkMenuSelection());
         }
@@ -1297,9 +1396,11 @@
             this.perkMenuIndex = safeIndex;
             const title = document.getElementById('perkMobileTitle');
             const desc = document.getElementById('perkMobileDesc');
+            const idx = document.getElementById('perkMobileIndex');
             const option = this.perkOptions[safeIndex];
             if (title) title.textContent = option?.label || '';
             if (desc) desc.textContent = option?.desc || '';
+            if (idx) idx.textContent = `${safeIndex + 1}/${this.perkOptions.length}`;
             return;
         }
         this.perkButtons.forEach((btn, i) => {
@@ -1359,11 +1460,14 @@
             ammoInfo.textContent = `\u041f\u0430\u0442\u0440\u043e\u043d\u044b: ${weapon.ammo ?? 0}`;
         } else if (weapon.type === 'rifle') {
             ammoInfo.textContent = `\u041f\u0430\u0442\u0440\u043e\u043d\u044b: ${weapon.ammo ?? 0}`;
+        } else if (weapon.type === 'machinegun') {
+            ammoInfo.textContent = `\u041f\u0430\u0442\u0440\u043e\u043d\u044b: ${weapon.ammo ?? 0}`;
         } else {
             ammoInfo.textContent = '';
         }
     }
 }
+
 
 
 
