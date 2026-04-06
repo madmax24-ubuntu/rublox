@@ -15,10 +15,10 @@ export class Bot {
             onGround: false,
             height: 1.9,
             radius: 0.47,
-            speed: 6 + Math.random() * 2
+            speed: 6.6 + Math.random() * 2.2
         };
 
-        this.maxHealth = 80;
+        this.maxHealth = 96;
         this.health = this.maxHealth;
         this.armor = 0;
         this.maxArmor = 100;

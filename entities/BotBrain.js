@@ -49,7 +49,7 @@ export class BotBrain {
             bot._fsmCtx = ctx;
             const nextState = this.pickState(bot, ctx);
             bot.state = nextState;
-            this.decisionCooldown = 0.24 + ((bot.id * 0.013) % 0.06);
+            this.decisionCooldown = 0.16 + ((bot.id * 0.011) % 0.05);
         } else {
             ctx.outsideZone = ctx.zone?.isInsideZone ? !ctx.zone.isInsideZone(bot.position) : false;
             ctx.zoneDistance = ctx.zone?.getDistanceFromZone ? ctx.zone.getDistanceFromZone(bot.position) : 0;
@@ -85,7 +85,7 @@ export class BotBrain {
         const outsideZone = zone?.isInsideZone ? !zone.isInsideZone(bot.position) : false;
         const zoneDistance = zone?.getDistanceFromZone ? zone.getDistanceFromZone(bot.position) : 0;
 
-        const visionRadius = Math.max(24, 54 * this.visionMultiplier);
+        const visionRadius = Math.max(30, 68 * this.visionMultiplier);
         const closeCombatRadius = 18;
         const nearby = entityManager?.getNearbyEntities
             ? entityManager.getNearbyEntities(bot.position, visionRadius)
@@ -178,6 +178,7 @@ export class BotBrain {
         }
 
         if (ctx.nearestEnemy) {
+            if (ctx.nearestEnemyDist < 26) return STATES.COMBAT;
             if (!armed && ctx.lootTarget) return STATES.LOOT;
             if (underPressure || ctx.gear >= 0.45) return STATES.COMBAT;
             return STATES.CHASE;
@@ -235,13 +236,13 @@ export class BotBrain {
         if (dist <= range) {
             if (this.attackCooldown <= 0) {
                 bot.attack(target, entityManager);
-                this.attackCooldown = Math.max(0.08, (weapon.cooldown || 0.2) * 0.8);
+                this.attackCooldown = Math.max(0.06, (weapon.cooldown || 0.2) * 0.62);
             }
             return;
         }
 
         bot.patrolTarget = target.position;
-        bot.moveTowards(target.position, bot.physics.speed * 1.12);
+        bot.moveTowards(target.position, bot.physics.speed * 1.2);
     }
 
     actZoneRetreat(bot, ctx) {
@@ -291,7 +292,7 @@ export class BotBrain {
         const t = ctx.nearestEnemy;
         if (!t?.isAlive) return null;
 
-        const maxAttackers = t.constructor?.name === 'Player' ? 2 : 2;
+        const maxAttackers = t.constructor?.name === 'Player' ? 3 : 2;
         const attackers = this.countAttackers(entityManager, t, bot);
         if (attackers >= maxAttackers) return null;
         return t;
