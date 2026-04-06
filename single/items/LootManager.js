@@ -32,6 +32,7 @@ export class LootManager {
         this.activeGlowChests = new Set();
         this.chestMaterials = this.createChestMaterials();
         this.chestReady = false;
+        this.claimTTL = 2.4;
         this.generateChestsAsync().then(() => {
             this.rebuildChestIndex();
             this.chestReady = true;
@@ -41,8 +42,15 @@ export class LootManager {
     }
 
     getChestPlacementY(x, z) {
-        const surfaceY = this.mapGenerator.getSurfaceHeightAt?.(x, z) ?? this.mapGenerator.getHeightAt(x, z);
-        return surfaceY + 0.02;
+        const structure = this.mapGenerator.getStructureAtPoint?.(x, z, 0.2);
+        // Inside buildings we anchor to terrain height so chests do not end up on roof/floor colliders.
+        const baseY = structure
+            ? (this.mapGenerator.getHeightAt?.(x, z) ?? 0)
+            : (this.mapGenerator.getSurfaceHeightAt?.(x, z) ?? this.mapGenerator.getHeightAt(x, z));
+        const surfaceY = baseY;
+        // Keep chest bottom clearly above floor to avoid half-sunken look
+        // on uneven or stepped walkable colliders.
+        return surfaceY + 0.38;
     }
     
     generateChests() {
@@ -241,12 +249,53 @@ export class LootManager {
         chestModel.userData.isChest = true;
         chestModel.userData.isOpen = false;
         chestModel.userData.grade = grade;
-        chestModel.userData.loot = this.generateLoot(grade === 'hangar');
+        chestModel.userData.claimedBy = null;
+        chestModel.userData.claimExpireAt = 0;
+        const rareChest = grade === 'hangar' || grade === 'train';
+        let generatedLoot = this.generateLoot(rareChest);
+        if (grade === 'train') {
+            const trainRoll = Math.random();
+            if (trainRoll < 0.42) generatedLoot = { type: 'weapon', weaponType: 'laser' };
+            else if (trainRoll < 0.72) generatedLoot = { type: 'weapon', weaponType: 'flamethrower' };
+            else if (trainRoll < 0.9) generatedLoot = { type: 'weapon', weaponType: 'machinegun' };
+            else if (trainRoll < 0.98) generatedLoot = { type: 'weapon', weaponType: 'rifle' };
+            else generatedLoot = { type: 'ammo', amount: 24 + Math.floor(Math.random() * 18) };
+        }
+        chestModel.userData.loot = generatedLoot;
         chestModel.userData.glow = glow;
         chestModel.userData.lid = lidMesh; // Сохраняем ссылку на крышку
 
         this.scene.add(chestModel);
         return chestModel;
+    }
+
+    nowSeconds() {
+        return performance.now() / 1000;
+    }
+
+    clearExpiredClaim(chest) {
+        const ud = chest?.userData;
+        if (!ud) return;
+        if (!ud.claimedBy) return;
+        if ((ud.claimExpireAt || 0) > this.nowSeconds()) return;
+        ud.claimedBy = null;
+        ud.claimExpireAt = 0;
+    }
+
+    isChestClaimedByOther(chest, actorId) {
+        const ud = chest?.userData;
+        if (!ud || ud.isOpen) return false;
+        this.clearExpiredClaim(chest);
+        return !!ud.claimedBy && ud.claimedBy !== actorId;
+    }
+
+    claimChest(chest, actorId, ttl = this.claimTTL) {
+        if (!chest?.userData || !actorId || chest.userData.isOpen) return false;
+        this.clearExpiredClaim(chest);
+        if (chest.userData.claimedBy && chest.userData.claimedBy !== actorId) return false;
+        chest.userData.claimedBy = actorId;
+        chest.userData.claimExpireAt = this.nowSeconds() + Math.max(0.5, ttl || this.claimTTL);
+        return true;
     }
 
     rebuildChestIndex() {
@@ -286,6 +335,7 @@ export class LootManager {
                 if (!bucket) continue;
                 for (const chest of bucket) {
                     if (!chest?.position) continue;
+                    this.clearExpiredClaim(chest);
                     if (onlyClosed && chest.userData?.isOpen) continue;
                     const dx = chest.position.x - position.x;
                     const dz = chest.position.z - position.z;
@@ -393,6 +443,7 @@ export class LootManager {
             const rareRoll = Math.random();
             if (rareRoll < 0.4) return { type: 'weapon', weaponType: 'laser' };
             if (rareRoll < 0.7) return { type: 'weapon', weaponType: 'flamethrower' };
+            if (rareRoll < 0.87) return { type: 'weapon', weaponType: 'machinegun' };
             if (rareRoll < 0.95) return { type: 'weapon', weaponType: 'shotgun' };
             return { type: 'armor', amount: 60 + Math.random() * 40 };
         }
@@ -401,21 +452,23 @@ export class LootManager {
         // Эта версия использует понятную цепочку "else if", что упрощает понимание и настройку вероятностей.
         // Вероятности сохранены близкими к первоначальному замыслу.
         const rand = Math.random();
-        if (rand < 0.02) { // 2% для лазера (ранее был недостижим)
+        if (rand < 0.02) { // 2% для лазера
             return { type: 'weapon', weaponType: 'laser' };
         } else if (rand < 0.12) { // 10% для огнемета
             return { type: 'weapon', weaponType: 'flamethrower' };
         } else if (rand < 0.25) { // 13% для дробовика
             return { type: 'weapon', weaponType: 'shotgun' };
-        } else if (rand < 0.40) { // 15% для лука
+        } else if (rand < 0.36) { // 11% для лука
             return { type: 'weapon', weaponType: 'bow' };
-        } else if (rand < 0.68) { // 28% для пистолета/винтовки и т.п. без топора
+        } else if (rand < 0.6) { // 24% для пистолета
             return { type: 'weapon', weaponType: 'pistol' };
-        } else if (rand < 0.80) { // 12% для винтовки
+        } else if (rand < 0.74) { // 14% для винтовки
             return { type: 'weapon', weaponType: 'rifle' };
-        } else if (rand < 0.91) { // 11% для патронов
+        } else if (rand < 0.84) { // 10% для пулемета
+            return { type: 'weapon', weaponType: 'machinegun' };
+        } else if (rand < 0.93) { // 9% для патронов
             return { type: 'ammo', amount: 10 + Math.floor(Math.random() * 9) };
-        } else { // 9% для брони
+        } else { // 7% для брони
             return { type: 'armor', amount: 25 + Math.random() * 25 };
         }
     }
@@ -466,12 +519,9 @@ export class LootManager {
             if (chest.userData.glow) {
                 chest.userData.glow.visible = true;
             }
-            if (audioSynth && !chest.userData.soundPlayed) {
+            if (audioSynth && !chest.userData.nearHintPlayed) {
                 audioSynth.playChestNearby();
-                chest.userData.soundPlayed = true;
-                setTimeout(() => {
-                    chest.userData.soundPlayed = false;
-                }, 2000);
+                chest.userData.nearHintPlayed = true;
             }
         }
 
@@ -479,6 +529,9 @@ export class LootManager {
             if (nextActive.has(chest)) continue;
             if (chest?.userData?.glow) {
                 chest.userData.glow.visible = false;
+            }
+            if (chest?.userData) {
+                chest.userData.nearHintPlayed = false;
             }
         }
 
@@ -492,6 +545,8 @@ export class LootManager {
         if ((dx * dx + dz * dz) > (3.8 * 3.8)) return null;
 
         chest.userData.isOpen = true;
+        chest.userData.claimedBy = null;
+        chest.userData.claimExpireAt = 0;
         this.activeGlowChests.delete(chest);
         const lid = chest.userData.lid;
         if (lid) {
@@ -521,6 +576,8 @@ export class LootManager {
     resetChest(chest, loot = null) {
         if (!chest?.userData?.isChest) return false;
         chest.userData.isOpen = false;
+        chest.userData.claimedBy = null;
+        chest.userData.claimExpireAt = 0;
         chest.userData.loot = loot || this.generateLoot(!!chest.userData.isSupplyDrop);
         chest.userData.soundPlayed = false;
         if (chest.userData.lid) {

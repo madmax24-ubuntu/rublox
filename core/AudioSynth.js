@@ -690,6 +690,7 @@ export class AudioSynth {
             rateMin: 0.9,
             rateMax: 1.08,
             reverbSend: 0.05,
+            maxDuration: 0.22,
             position,
             category: 'weapon'
         });
@@ -720,6 +721,7 @@ export class AudioSynth {
             rateMin: 0.92,
             rateMax: 1.04,
             reverbSend: 0.08,
+            maxDuration: 0.34,
             position,
             category: 'weapon'
         });
@@ -733,6 +735,7 @@ export class AudioSynth {
             rateMin: 0.94,
             rateMax: 1.06,
             reverbSend: 0.06,
+            maxDuration: 0.24,
             position,
             category: 'weapon'
         });
@@ -749,6 +752,7 @@ export class AudioSynth {
             rateMin: 0.88,
             rateMax: 0.98,
             reverbSend: 0.06,
+            maxDuration: 0.26,
             position,
             category: 'weapon'
         });
@@ -788,6 +792,7 @@ export class AudioSynth {
             rateMin: 0.45,
             rateMax: 0.62,
             reverbSend: 0.08,
+            maxDuration: 0.2,
             position,
             category: 'weapon'
         });

@@ -1659,12 +1659,16 @@ class Game {
             const guardSpot = interiorSpot
                 || this.map.getStructureEntryPoint?.(point, point.type, this.player?.position || null)
                 || this.map.findStructureGuardPoint?.(point, point.type);
-            if (!guardSpot) return false;
-            const jitter = interiorSpot ? (point.type === "hangar" ? 1.2 : 0.8) : (point.type === "hangar" ? 2.2 : 1.2);
-            const x = guardSpot.x + (Math.random() - 0.5) * jitter;
-            const z = guardSpot.z + (Math.random() - 0.5) * jitter;
+            const fallbackSpot = guardSpot || { x: point.x, z: point.z };
+            const jitter = interiorSpot
+                ? (point.type === "hangar" ? 1.2 : 0.8)
+                : (point.type === "hangar" ? 2.0 : 1.05);
+            const x = fallbackSpot.x + (Math.random() - 0.5) * jitter;
+            const z = fallbackSpot.z + (Math.random() - 0.5) * jitter;
             if (!this.map.isWalkableAt?.(x, z)) return false;
-            const baseY = this.map.getSurfaceHeightAt?.(x, z) ?? this.map.getHeightAt(x, z);
+            const baseY = (point.type === "house" || point.type === "hangar")
+                ? (this.map.getHeightAt?.(x, z) ?? 0)
+                : (this.map.getSurfaceHeightAt?.(x, z) ?? this.map.getHeightAt(x, z));
             const pos = new THREE.Vector3(x, baseY + 1.8, z);
             if (pos.distanceTo(this.player.position) < 14) return false;
             const zombie = new Zombie(this.scene, this.nextZombieId++, pos);
@@ -1676,15 +1680,18 @@ class Game {
             return true;
         };
 
-        // Guaranteed presence: hangars always (dense), houses lightly (1-2).
+        // Guaranteed presence: hangars always (dense), houses always light guard.
         for (const hangar of hangarSpots) {
             if (budget <= 0 || spawned >= maxSpawn) break;
             spawnOneAtPoi(hangar, true);
             if (budget > 0 && spawned < maxSpawn) {
                 spawnOneAtPoi(hangar, true);
             }
+            if (budget > 0 && spawned < maxSpawn) {
+                spawnOneAtPoi(hangar, false);
+            }
         }
-        for (let i = 0; i < houseSpots.length; i += 3) {
+        for (let i = 0; i < houseSpots.length; i++) {
             if (budget <= 0 || spawned >= maxSpawn) break;
             spawnOneAtPoi(houseSpots[i], true);
         }

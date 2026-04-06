@@ -42,7 +42,12 @@ export class LootManager {
     }
 
     getChestPlacementY(x, z) {
-        const surfaceY = this.mapGenerator.getSurfaceHeightAt?.(x, z) ?? this.mapGenerator.getHeightAt(x, z);
+        const structure = this.mapGenerator.getStructureAtPoint?.(x, z, 0.2);
+        // Inside buildings we anchor to terrain height so chests do not end up on roof/floor colliders.
+        const baseY = structure
+            ? (this.mapGenerator.getHeightAt?.(x, z) ?? 0)
+            : (this.mapGenerator.getSurfaceHeightAt?.(x, z) ?? this.mapGenerator.getHeightAt(x, z));
+        const surfaceY = baseY;
         // Keep chest bottom clearly above floor to avoid half-sunken look
         // on uneven or stepped walkable colliders.
         return surfaceY + 0.38;
@@ -514,12 +519,9 @@ export class LootManager {
             if (chest.userData.glow) {
                 chest.userData.glow.visible = true;
             }
-            if (audioSynth && !chest.userData.soundPlayed) {
+            if (audioSynth && !chest.userData.nearHintPlayed) {
                 audioSynth.playChestNearby();
-                chest.userData.soundPlayed = true;
-                setTimeout(() => {
-                    chest.userData.soundPlayed = false;
-                }, 2000);
+                chest.userData.nearHintPlayed = true;
             }
         }
 
@@ -527,6 +529,9 @@ export class LootManager {
             if (nextActive.has(chest)) continue;
             if (chest?.userData?.glow) {
                 chest.userData.glow.visible = false;
+            }
+            if (chest?.userData) {
+                chest.userData.nearHintPlayed = false;
             }
         }
 
