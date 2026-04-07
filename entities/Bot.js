@@ -18,7 +18,7 @@ export class Bot {
             speed: 6.6 + Math.random() * 2.2
         };
 
-        this.maxHealth = 138;
+        this.maxHealth = 200;
         this.health = this.maxHealth;
         this.armor = 36;
         this.maxArmor = 120;
