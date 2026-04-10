@@ -126,6 +126,16 @@ export class Physics {
                 }
             }
 
+            const zoneSlow = this.mapGenerator.getSlowFactorAt?.(entity.position.x, entity.position.z) ?? 1;
+            if (zoneSlow < 0.999) {
+                if (typeof entity.applySlow === 'function') {
+                    entity.applySlow(zoneSlow, 0.2);
+                } else if (entity.physics?.velocity) {
+                    entity.physics.velocity.x *= zoneSlow;
+                    entity.physics.velocity.z *= zoneSlow;
+                }
+            }
+
             // Трение
             if (entity.physics.onGround) {
                 entity.physics.velocity.x *= 0.8;

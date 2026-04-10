@@ -35,8 +35,23 @@ export class MapGenerator {
         this.surfaceTheme = "plains";
         this.lavaPatches = [];
         this.waterPatches = [];
+        this.slowZones = [];
+        this.explosiveBarrelSpots = [];
+        this.verticalCoverSpots = [];
         this.fogZones = [];
+        this.cornucopiaGroup = null;
+        this.cornucopiaDestroyed = false;
         this.spawnCourtyardRadius = 54;
+        this.biomeSectors = [
+            { id: "whispering_forest", name: "Шепчущий лес" },
+            { id: "stone_labyrinth", name: "Каменный лабиринт" },
+            { id: "industrial", name: "Индустриал" },
+            { id: "flooded_suburb", name: "Затопленный пригород" },
+            { id: "blockpost", name: "Блокпост" },
+            { id: "skeletal_canyon", name: "Скелетный каньон" },
+            { id: "agro_complex", name: "Агрокомплекс" },
+            { id: "rail_hub", name: "Ж/Д узел" }
+        ];
         this._tmpMatrix = new THREE.Matrix4();
         this._tmpPos = new THREE.Vector3();
         this._tmpQuat = new THREE.Quaternion();
@@ -91,7 +106,9 @@ export class MapGenerator {
             redwood: 0x1e5f3a,
             badlands: 0xc56a3a,
             volcanic: 0x3b3b3b,
-            mushroom: 0x7b4a9a
+            mushroom: 0x7b4a9a,
+            wasteland: 0x9b8d7c,
+            industrial: 0x7b8790
         };
         const seed = (this.seed || 1) >>> 0;
         let state = seed ^ 0x9e3779b9;
@@ -126,6 +143,7 @@ export class MapGenerator {
         this.size = Math.max(this.gridWidth, this.gridHeight) * this.tileSize;
         this.halfSize = this.size / 2;
         this.playerSpawn = data.playerSpawn;
+        this.assignSectorBiomes();
         this.surfaceTheme = this.pickSurfaceTheme();
         this.decorateBiomeTiles();
         this.initRailLayout();
@@ -134,6 +152,7 @@ export class MapGenerator {
 
         this.clearSpawnZone();
         this.buildMeshes();
+        this.buildExplosiveBarrelSpots();
         this.buildSpawnPads();
         this.buildStoryPOIs();
         this.buildChests();
@@ -148,6 +167,7 @@ export class MapGenerator {
 
     decorateBiomeTiles() {
         if (!this.grid?.length) return;
+        const pNoise = (x, y, scale = 0.02) => this.perlin2D(x * scale + 17.31, y * scale - 9.77, this.seed ^ 0x6f4a7c15);
         const randFor = (x, y) => {
             const v = Math.sin((x + 13.1) * 12.9898 + (y - 7.7) * 78.233 + this.seed * 0.0001) * 43758.5453;
             return v - Math.floor(v);
@@ -161,6 +181,11 @@ export class MapGenerator {
                     delete tile.prop;
                     continue;
                 }
+                const macroNoise = pNoise(x, y, 0.012);
+                const microNoise = pNoise(x + 99, y - 61, 0.03);
+                if (macroNoise > 0.78 && microNoise > 0.1) tile.biome = 'industrial';
+                else if (macroNoise < -0.64) tile.biome = 'wasteland';
+
                 const style = this.getBiomeVisualTheme(tile.biome);
                 const roll = randFor(x, y);
                 if (style === "grass") {
@@ -175,11 +200,17 @@ export class MapGenerator {
                     else if (roll < 0.17) tile.prop = "boulder";
                     else delete tile.prop;
                 } else if (style === "snow") {
-                    if (roll < 0.14) tile.prop = "ice";
-                    else if (roll < 0.18) tile.prop = "boulder";
+                    // Сосульки убраны: оставляем только крупные валуны.
+                    if (roll < 0.18) tile.prop = "boulder";
                     else delete tile.prop;
                 } else if (style === "mesa" || style === "ash") {
                     if (roll < 0.16) tile.prop = "boulder";
+                    else delete tile.prop;
+                } else if (style === "industrial") {
+                    if (roll < 0.09) tile.prop = "boulder";
+                    else delete tile.prop;
+                } else if (style === "wasteland") {
+                    if (roll < 0.07) tile.prop = "boulder";
                     else delete tile.prop;
                 } else if (style === "jungle") {
                     if (roll < 0.1) tile.prop = "jungleTree";
@@ -269,6 +300,9 @@ export class MapGenerator {
         this.dynamicColliders = false;
         this.lavaPatches = [];
         this.waterPatches = [];
+        this.slowZones = [];
+        this.explosiveBarrelSpots = [];
+        this.verticalCoverSpots = [];
         this.fogZones = [];
         const wallMat = new THREE.MeshStandardMaterial({
             color: 0x8d8d8d,
@@ -375,10 +409,185 @@ export class MapGenerator {
         const filteredJungleTrees = this.filterPropsOutsideStructures(jungleTrees, 2.5, 5.5);
         const filteredRocks = this.filterPropsOutsideStructures(rocks, 1.8, 4.2);
         const filteredCacti = this.filterPropsOutsideStructures(cacti, 2.0, 4.8);
-        const filteredIceSpikes = this.filterPropsOutsideStructures(iceSpikes, 3.2, 12.0);
+        const filteredIceSpikes = [];
         const filteredBoulders = this.filterPropsOutsideStructures(boulders, 2.2, 5.0);
         this.buildProps(filteredTrees, filteredJungleTrees, filteredRocks, filteredCacti, filteredIceSpikes, filteredBoulders);
         this.buildThemeGroundFeatures();
+        this.buildVerticalCoverObjects();
+        this.buildBiomeSectorSetpieces();
+    }
+
+    getSectorForWorld(x, z) {
+        if (!this.biomeSectors?.length || !this.playerSpawn) return null;
+        const center = this.getSpawnWorld();
+        const angle = Math.atan2(z - center.z, x - center.x);
+        const normalized = (angle + Math.PI) / (Math.PI * 2);
+        const index = Math.max(0, Math.min(this.biomeSectors.length - 1, Math.floor(normalized * this.biomeSectors.length)));
+        return this.biomeSectors[index]?.id || null;
+    }
+
+    buildBiomeSectorSetpieces() {
+        if (!this.floorTiles?.length) return;
+        const rand = (() => {
+            let state = (this.seed ^ 0x4f1bbcdc) >>> 0;
+            return () => {
+                state = (state * 1664525 + 1013904223) >>> 0;
+                return state / 0x100000000;
+            };
+        })();
+        const bySector = new Map();
+        for (const tile of this.floorTiles) {
+            const sector = this.getSectorForWorld(tile.x, tile.z);
+            if (!sector) continue;
+            if (!bySector.has(sector)) bySector.set(sector, []);
+            bySector.get(sector).push(tile);
+        }
+
+        const placed = [];
+        const canPlace = (x, z, minDist = 8) => !placed.some(p => Math.hypot(p.x - x, p.z - z) < minDist);
+        const mark = (x, z) => placed.push({ x, z });
+
+        const createBox = (x, z, w, h, d, mat, walkable = false, yBias = 0) => {
+            const y = this.getHeightAt(x, z);
+            const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+            mesh.position.set(x, y + h * 0.5 + yBias, z);
+            mesh.userData.mapGenerated = true;
+            this.scene.add(mesh);
+            this.addColliderBox(mesh.position.clone(), w, h, d, walkable);
+            return mesh;
+        };
+
+        const stoneMat = new THREE.MeshStandardMaterial({ color: 0x868b92, roughness: 0.88, flatShading: true });
+        const rustyMat = new THREE.MeshStandardMaterial({ color: 0x6f7a82, roughness: 0.72, metalness: 0.18, flatShading: true });
+        const sandbagMat = new THREE.MeshStandardMaterial({ color: 0xb39a74, roughness: 0.95, flatShading: true });
+        const boneMat = new THREE.MeshStandardMaterial({ color: 0xc9c2ae, roughness: 0.8, flatShading: true });
+        const shelfMat = new THREE.MeshStandardMaterial({ color: 0x5f4b3d, roughness: 0.85, flatShading: true });
+        const railCarMat = new THREE.MeshStandardMaterial({ color: 0x49545f, roughness: 0.62, metalness: 0.22, flatShading: true });
+
+        const placeWhisperingForest = () => {
+            const tiles = bySector.get('whispering_forest') || [];
+            const maxCount = Math.min(48, Math.floor(tiles.length / 65));
+            for (let i = 0; i < maxCount; i++) {
+                const t = tiles[Math.floor(rand() * tiles.length)];
+                if (!t) continue;
+                if (this.isInSpawnCourtyardWorld(t.x, t.z, 16)) continue;
+                if (!canPlace(t.x, t.z, 7)) continue;
+                createBox(t.x, t.z, 3.8, 2.1 + rand() * 0.8, 3.8, new THREE.MeshStandardMaterial({ color: 0x3f7e43, roughness: 0.95, flatShading: true }), false, 0.08);
+                mark(t.x, t.z);
+            }
+        };
+
+        const placeStoneLabyrinth = () => {
+            const tiles = bySector.get('stone_labyrinth') || [];
+            if (!tiles.length) return;
+            const rows = 18;
+            const cols = 12;
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if ((r + c) % 3 === 0) continue;
+                    const idx = ((r * cols + c) * 17 + (this.seed % 97)) % tiles.length;
+                    const t = tiles[idx];
+                    if (!t) continue;
+                    if (!canPlace(t.x, t.z, 6.5)) continue;
+                    if (this.isInSpawnCourtyardWorld(t.x, t.z, 18)) continue;
+                    const len = 8 + rand() * 6;
+                    const vertical = rand() > 0.5;
+                    createBox(t.x, t.z, vertical ? 2.2 : len, 8.8, vertical ? len : 2.2, stoneMat, false, 0.2);
+                    mark(t.x, t.z);
+                }
+            }
+        };
+
+        const placeIndustrial = () => {
+            const tiles = bySector.get('industrial') || [];
+            const maxCount = Math.min(34, Math.floor(tiles.length / 92));
+            for (let i = 0; i < maxCount; i++) {
+                const t = tiles[Math.floor(rand() * tiles.length)];
+                if (!t) continue;
+                if (!canPlace(t.x, t.z, 9.5)) continue;
+                const w = 5 + rand() * 3.5;
+                const d = 2.8 + rand() * 1.4;
+                const h = 2 + rand() * 1.8;
+                const mesh = createBox(t.x, t.z, w, h, d, rustyMat, true, 0.08);
+                mesh.rotation.y = rand() > 0.5 ? 0 : Math.PI / 2;
+                mark(t.x, t.z);
+            }
+        };
+
+        const placeBlockpost = () => {
+            const tiles = bySector.get('blockpost') || [];
+            const maxCount = Math.min(36, Math.floor(tiles.length / 120));
+            for (let i = 0; i < maxCount; i++) {
+                const t = tiles[Math.floor(rand() * tiles.length)];
+                if (!t) continue;
+                if (!canPlace(t.x, t.z, 9)) continue;
+                const mesh = createBox(t.x, t.z, 5 + rand() * 2, 1.35, 2.2, sandbagMat, false, 0.06);
+                mesh.rotation.y = rand() * Math.PI * 2;
+                this.traps.push({
+                    position: new THREE.Vector3(t.x, this.getHeightAt(t.x, t.z) + 0.12, t.z),
+                    radius: 3.1,
+                    damage: 3.2,
+                    slow: 0.6
+                });
+                mark(t.x, t.z);
+            }
+        };
+
+        const placeSkeletalCanyon = () => {
+            const tiles = bySector.get('skeletal_canyon') || [];
+            const maxCount = Math.min(28, Math.floor(tiles.length / 120));
+            for (let i = 0; i < maxCount; i++) {
+                const t = tiles[Math.floor(rand() * tiles.length)];
+                if (!t) continue;
+                if (!canPlace(t.x, t.z, 11)) continue;
+                const y = this.getHeightAt(t.x, t.z);
+                const bone = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.62, 7 + rand() * 5, 8), boneMat);
+                bone.position.set(t.x, y + 2.4, t.z);
+                bone.rotation.z = Math.PI / 2 + (rand() - 0.5) * 0.3;
+                bone.rotation.y = rand() * Math.PI * 2;
+                bone.userData.mapGenerated = true;
+                this.scene.add(bone);
+                this.addColliderBox(new THREE.Vector3(t.x, y + 2.4, t.z), 7.8, 1.3, 1.3, false);
+                mark(t.x, t.z);
+            }
+        };
+
+        const placeAgroComplex = () => {
+            const tiles = bySector.get('agro_complex') || [];
+            const maxCount = Math.min(26, Math.floor(tiles.length / 110));
+            for (let i = 0; i < maxCount; i++) {
+                const t = tiles[Math.floor(rand() * tiles.length)];
+                if (!t) continue;
+                if (!canPlace(t.x, t.z, 10)) continue;
+                const rack = createBox(t.x, t.z, 4.8, 2.6, 1.2, shelfMat, false, 0.08);
+                rack.rotation.y = rand() > 0.5 ? 0 : Math.PI / 2;
+                this.slowZones.push({ x: t.x, z: t.z, width: 4.6, depth: 3.4, factor: 0.74, type: 'glass' });
+                mark(t.x, t.z);
+            }
+        };
+
+        const placeRailHubCars = () => {
+            const tiles = bySector.get('rail_hub') || [];
+            if (!tiles.length) return;
+            const maxCount = Math.min(12, Math.max(6, Math.floor(tiles.length / 240)));
+            for (let i = 0; i < maxCount; i++) {
+                const t = tiles[Math.floor(rand() * tiles.length)];
+                if (!t) continue;
+                if (!canPlace(t.x, t.z, 15)) continue;
+                if (this.isNearRailCorridor(t.x, t.z, 3.5)) continue;
+                const mesh = createBox(t.x, t.z, 16 + rand() * 4, 4.6, 4.2, railCarMat, false, 0.12);
+                mesh.rotation.y = rand() > 0.5 ? 0 : Math.PI / 2;
+                mark(t.x, t.z);
+            }
+        };
+
+        placeWhisperingForest();
+        placeStoneLabyrinth();
+        placeIndustrial();
+        placeBlockpost();
+        placeSkeletalCanyon();
+        placeAgroComplex();
+        placeRailHubCars();
     }
 
     buildProps(trees, jungleTrees, rocks, cacti, iceSpikes, boulders) {
@@ -587,6 +796,7 @@ export class MapGenerator {
         const baseY = this.getHeightAt(spawnWorld.x, spawnWorld.z);
         const group = new THREE.Group();
         group.userData.mapGenerated = true;
+        this.cornucopiaDestroyed = false;
 
         const goldMat = new THREE.MeshStandardMaterial({
             color: 0xd2a03a,
@@ -805,6 +1015,45 @@ export class MapGenerator {
         this.addColliderBox(new THREE.Vector3(spawnWorld.x - 0.9, baseY + 3.0, spawnWorld.z), 9.8, 6.2, 5.6, false);
 
         this.scene.add(group);
+        this.cornucopiaGroup = group;
+    }
+
+    getCornucopiaCenter() {
+        const spawnWorld = this.getSpawnWorld();
+        return new THREE.Vector3(
+            spawnWorld.x,
+            this.getHeightAt(spawnWorld.x, spawnWorld.z) + 0.8,
+            spawnWorld.z
+        );
+    }
+
+    detonateCornucopia() {
+        if (this.cornucopiaDestroyed) return;
+        this.cornucopiaDestroyed = true;
+        if (!this.cornucopiaGroup) return;
+        const center = this.getCornucopiaCenter();
+        const debrisMat = new THREE.MeshStandardMaterial({
+            color: 0xc48a2f,
+            roughness: 0.62,
+            metalness: 0.28,
+            flatShading: true
+        });
+        for (let i = 0; i < 14; i++) {
+            const chunk = new THREE.Mesh(
+                new THREE.BoxGeometry(0.65 + Math.random() * 0.9, 0.4 + Math.random() * 0.55, 0.5 + Math.random() * 0.8),
+                debrisMat
+            );
+            chunk.position.copy(center).add(new THREE.Vector3(
+                (Math.random() - 0.5) * 5.2,
+                1.1 + Math.random() * 1.8,
+                (Math.random() - 0.5) * 5.2
+            ));
+            chunk.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+            chunk.userData.mapGenerated = true;
+            this.scene.add(chunk);
+        }
+        this.cornucopiaGroup.visible = false;
+        this.cornucopiaGroup = null;
     }
 
     buildChests() {
@@ -1393,6 +1642,7 @@ export class MapGenerator {
                 const patch = addPatch(wx, wz, w, d, lakeMat, 0.92);
                 if (!patch) continue;
                 this.waterPatches.push({ x: wx, z: wz, width: w, depth: d });
+                this.slowZones.push({ x: wx, z: wz, width: w * 0.96, depth: d * 0.96, factor: 0.6, type: 'swamp' });
                 this.fogZones.push({ x: wx, z: wz, radius: Math.max(w, d) * 0.72, density: 0.024 + rand() * 0.016 });
                 markPlaced(tile.x, tile.z);
                 patchUsed += 1;
@@ -1414,6 +1664,7 @@ export class MapGenerator {
                 const patch = addPatch(tile.x, tile.z, w, d, iceLakeMat, 0.92);
                 if (!patch) continue;
                 this.waterPatches.push({ x: tile.x, z: tile.z, width: w, depth: d });
+                this.slowZones.push({ x: tile.x, z: tile.z, width: w * 0.94, depth: d * 0.94, factor: 0.62, type: 'ice' });
                 markPlaced(tile.x, tile.z);
                 patchUsed += 1;
                 continue;
@@ -1451,6 +1702,7 @@ export class MapGenerator {
                 const d = 12;
                 addPatch(swampTile.x, swampTile.z, w, d, lakeMat, 0.92);
                 this.waterPatches.push({ x: swampTile.x, z: swampTile.z, width: w, depth: d });
+                this.slowZones.push({ x: swampTile.x, z: swampTile.z, width: w * 0.96, depth: d * 0.96, factor: 0.6, type: 'swamp' });
                 this.fogZones.push({ x: swampTile.x, z: swampTile.z, radius: 8, density: 0.03 });
             }
         }
@@ -1464,6 +1716,126 @@ export class MapGenerator {
             }
         }
         this.buildTallGrass(tallGrassPoints);
+    }
+
+    buildVerticalCoverObjects() {
+        if (!this.floorTiles?.length) return;
+        const rand = (() => {
+            let state = (this.seed ^ 0x5f7a1b29) >>> 0;
+            return () => {
+                state = (state * 1664525 + 1013904223) >>> 0;
+                return state / 0x100000000;
+            };
+        })();
+        const candidates = [...this.floorTiles].sort(() => rand() - 0.5);
+        const concreteMat = new THREE.MeshStandardMaterial({ color: 0x8d9398, roughness: 0.86, flatShading: true });
+        const containerMat = new THREE.MeshStandardMaterial({ color: 0x607d8b, roughness: 0.65, metalness: 0.2, flatShading: true });
+        const accentMat = new THREE.MeshStandardMaterial({ color: 0x30424d, roughness: 0.55, flatShading: true });
+        const placed = [];
+        const canPlace = (x, z, minDist) => !placed.some(p => Math.hypot(p.x - x, p.z - z) < minDist);
+
+        const createCover = (x, z, type = 'container') => {
+            const y = this.getHeightAt(x, z);
+            if (type === 'container') {
+                const w = 6 + rand() * 2.5;
+                const h = 2 + rand() * 1.2;
+                const d = 3.2 + rand() * 1.6;
+                const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), containerMat);
+                body.position.set(x, y + h * 0.5, z);
+                body.rotation.y = rand() > 0.5 ? 0 : Math.PI / 2;
+                body.userData.mapGenerated = true;
+                this.scene.add(body);
+                this.addColliderBox(body.position.clone(), w, h, d, true);
+                const rib = new THREE.Mesh(new THREE.BoxGeometry(w * 0.92, 0.18, d * 0.8), accentMat);
+                rib.position.set(x, y + h - 0.2, z);
+                rib.rotation.y = body.rotation.y;
+                rib.userData.mapGenerated = true;
+                this.scene.add(rib);
+                this.verticalCoverSpots.push({ x, z, topY: y + h, type: 'container' });
+            } else {
+                const size = 2.4 + rand() * 2.8;
+                const h = 1.2 + rand() * 2.2;
+                const block = new THREE.Mesh(new THREE.BoxGeometry(size, h, size), concreteMat);
+                block.position.set(x, y + h * 0.5, z);
+                block.rotation.y = rand() * Math.PI * 2;
+                block.userData.mapGenerated = true;
+                this.scene.add(block);
+                this.addColliderBox(block.position.clone(), size, h, size, true);
+                this.verticalCoverSpots.push({ x, z, topY: y + h, type: 'concrete' });
+            }
+            placed.push({ x, z });
+        };
+
+        const target = Math.max(42, Math.floor(this.floorTiles.length / 500));
+        let done = 0;
+        for (const tile of candidates) {
+            if (done >= target) break;
+            if (this.isInSpawnCourtyardWorld(tile.x, tile.z, 14)) continue;
+            if (this.isNearRailCorridor(tile.x, tile.z, 6)) continue;
+            if (!this.isChestClear(tile.x, tile.z, 2.2)) continue;
+            if (this.getStructureAtPoint(tile.x, tile.z, 2.6)) continue;
+            if (!canPlace(tile.x, tile.z, 10 + rand() * 6)) continue;
+            createCover(tile.x, tile.z, rand() < 0.56 ? 'container' : 'block');
+            done += 1;
+        }
+    }
+
+    assignSectorBiomes() {
+        if (!this.grid?.length || !this.playerSpawn || !this.biomeSectors?.length) return;
+        const sectorCount = this.biomeSectors.length;
+        const center = this.toWorld(this.playerSpawn.x, this.playerSpawn.y);
+
+        for (let y = 0; y < this.gridHeight; y++) {
+            for (let x = 0; x < this.gridWidth; x++) {
+                const tile = this.grid[y]?.[x];
+                if (!tile || tile.type !== "floor") continue;
+                const world = this.toWorld(x, y);
+                const angle = Math.atan2(world.z - center.z, world.x - center.x);
+                const normalized = (angle + Math.PI) / (Math.PI * 2);
+                const index = Math.max(0, Math.min(sectorCount - 1, Math.floor(normalized * sectorCount)));
+                tile.biome = this.biomeSectors[index].id;
+                tile.biomeSector = index;
+            }
+        }
+    }
+
+    buildExplosiveBarrelSpots() {
+        this.explosiveBarrelSpots = [];
+        const rand = (() => {
+            let state = (this.seed ^ 0x97c4a51d) >>> 0;
+            return () => {
+                state = (state * 1664525 + 1013904223) >>> 0;
+                return state / 0x100000000;
+            };
+        })();
+        const spots = [];
+        for (const hangar of this.hangarSpots || []) {
+            const w = hangar.width || 58;
+            const d = hangar.depth || 36;
+            for (let i = 0; i < 7; i++) {
+                const x = hangar.x + (rand() * 2 - 1) * (w * 0.32);
+                const z = hangar.z + (rand() * 2 - 1) * (d * 0.32);
+                if (!this.isWalkableAt(x, z)) continue;
+                spots.push({ x, z });
+            }
+        }
+        for (const house of this.houseSpots || []) {
+            const w = house.width || 9;
+            const d = house.depth || 8;
+            for (let i = 0; i < 2; i++) {
+                const x = house.x + (rand() * 2 - 1) * (w * 0.22);
+                const z = house.z + (rand() * 2 - 1) * (d * 0.22);
+                if (!this.isWalkableAt(x, z)) continue;
+                spots.push({ x, z });
+            }
+        }
+        for (const s of spots) {
+            if (this.isInSpawnCourtyardWorld(s.x, s.z, 12)) continue;
+            if (!this.isChestClear(s.x, s.z, 0.9, true)) continue;
+            const y = this.getHeightAt(s.x, s.z);
+            this.explosiveBarrelSpots.push({ x: s.x, y: y + 0.1, z: s.z });
+            this.addColliderBox(new THREE.Vector3(s.x, y + 0.82, s.z), 1.1, 1.6, 1.1, false);
+        }
     }
 
     buildRailSystem() {
@@ -1701,6 +2073,16 @@ export class MapGenerator {
     }
 
     update(delta) {
+        if (this.slowZones?.length) {
+            for (let i = this.slowZones.length - 1; i >= 0; i--) {
+                const zone = this.slowZones[i];
+                if (!zone || !zone.ttl) continue;
+                zone.ttl -= delta;
+                if (zone.ttl <= 0) {
+                    this.slowZones.splice(i, 1);
+                }
+            }
+        }
         if (!this.trainCars.length) return;
         for (const train of this.trainCars) {
             const prevX = train.mesh.position.x;
@@ -1796,6 +2178,8 @@ export class MapGenerator {
                 }
             }
         }
+        this.cornucopiaGroup = null;
+        this.cornucopiaDestroyed = false;
 
     }
 
@@ -1839,8 +2223,79 @@ export class MapGenerator {
         return h / 0x100000000;
     }
 
+    random2(ix, iy, salt = 0) {
+        let h = Math.imul((ix | 0) ^ (this.seed | 0) ^ salt, 374761393);
+        h = Math.imul(h ^ (iy | 0), 668265263);
+        h = (h ^ (h >>> 13)) >>> 0;
+        h = Math.imul(h, 1274126177) >>> 0;
+        return (h ^ (h >>> 16)) / 0x100000000;
+    }
+
+    smoothstep(t) {
+        return t * t * (3 - 2 * t);
+    }
+
+    lerp(a, b, t) {
+        return a + (b - a) * t;
+    }
+
+    valueNoise2D(x, y, salt = 0) {
+        const x0 = Math.floor(x);
+        const y0 = Math.floor(y);
+        const x1 = x0 + 1;
+        const y1 = y0 + 1;
+        const tx = this.smoothstep(x - x0);
+        const ty = this.smoothstep(y - y0);
+        const n00 = this.random2(x0, y0, salt);
+        const n10 = this.random2(x1, y0, salt);
+        const n01 = this.random2(x0, y1, salt);
+        const n11 = this.random2(x1, y1, salt);
+        const nx0 = this.lerp(n00, n10, tx);
+        const nx1 = this.lerp(n01, n11, tx);
+        return this.lerp(nx0, nx1, ty);
+    }
+
+    perlin2D(x, y, salt = 0) {
+        let total = 0;
+        let amp = 1;
+        let freq = 1;
+        let norm = 0;
+        for (let i = 0; i < 4; i++) {
+            const n = this.valueNoise2D(x * freq, y * freq, salt + i * 7331) * 2 - 1;
+            total += n * amp;
+            norm += amp;
+            amp *= 0.5;
+            freq *= 2;
+        }
+        return norm > 0 ? total / norm : 0;
+    }
+
     buildHeightMap() {
-        return Array.from({ length: this.gridHeight }, () => Array(this.gridWidth).fill(0));
+        const map = Array.from({ length: this.gridHeight }, () => Array(this.gridWidth).fill(0));
+        const scaleA = 0.026;
+        const scaleB = 0.065;
+        for (let y = 0; y < this.gridHeight; y++) {
+            for (let x = 0; x < this.gridWidth; x++) {
+                const tile = this.grid?.[y]?.[x];
+                if (!tile || tile.type !== 'floor') {
+                    map[y][x] = 0;
+                    continue;
+                }
+                const biome = tile.biome || this.surfaceTheme;
+                const nA = this.perlin2D(x * scaleA, y * scaleA, 0x1771);
+                const nB = this.perlin2D(x * scaleB, y * scaleB, 0x3a91);
+                const n = Math.max(-1, Math.min(1, nA * 0.72 + nB * 0.28));
+                const biomeMul = biome === 'industrial' ? 0.35
+                    : biome === 'wasteland' ? 0.48
+                    : biome === 'rock' || biome === 'mesa' ? 0.82
+                    : biome === 'jungle' ? 0.66
+                    : biome === 'swamp' ? 0.42
+                    : 0.58;
+                const height = Math.max(0, n * biomeMul + biomeMul * 0.28);
+                map[y][x] = Math.round(height / 0.2) * 0.2;
+            }
+        }
+        return map;
     }
 
     getBiomeHeight(biome, n) {
@@ -1905,8 +2360,16 @@ export class MapGenerator {
 
     getBiomeVisualTheme(biome) {
         const b = (biome || "").toLowerCase();
+        if (b === "whispering_forest") return "jungle";
+        if (b === "stone_labyrinth") return "mesa";
+        if (b === "flooded_suburb") return "swamp";
+        if (b === "blockpost") return "ash";
+        if (b === "skeletal_canyon") return "mesa";
+        if (b === "agro_complex") return "grass";
+        if (b === "rail_hub") return "industrial";
         if (["jungle", "redwood"].includes(b)) return "jungle";
         if (["swamp", "mushroom"].includes(b)) return "swamp";
+        if (["industrial", "wasteland"].includes(b)) return "industrial";
         if (["lava", "volcanic", "badlands"].includes(b)) return "ash";
         if (["snow", "ice", "tundra", "taiga"].includes(b)) return "snow";
         if (["sand", "savanna"].includes(b)) return "sand";
@@ -2152,6 +2615,22 @@ export class MapGenerator {
         for (const hangar of this.hangarSpots || []) {
             if (this.isUnderStructureRoof(position, hangar, 'hangar')) return true;
         }
+        for (const cover of this.verticalCoverSpots || []) {
+            if (cover.type !== 'container') continue;
+            if (Math.abs(position.x - cover.x) > 3.6) continue;
+            if (Math.abs(position.z - cover.z) > 2.8) continue;
+            if (position.y <= (cover.topY || 0) + 1.25) return true;
+        }
+        const trainCars = this.getTrainCarsSnapshot?.() || [];
+        for (const car of trainCars) {
+            const halfW = (car.width || 4.8) * 0.55;
+            const halfL = (car.length || 14) * 0.55;
+            const inside = car.axis === 'x'
+                ? (Math.abs(position.x - car.x) <= halfL && Math.abs(position.z - car.z) <= halfW)
+                : (Math.abs(position.x - car.x) <= halfW && Math.abs(position.z - car.z) <= halfL);
+            if (!inside) continue;
+            if (position.y <= (car.topY || this.getHeightAt(car.x, car.z) + 2.8) + 0.9) return true;
+        }
         return false;
     }
 
@@ -2167,6 +2646,54 @@ export class MapGenerator {
             Math.abs(x - patch.x) <= patch.width / 2 &&
             Math.abs(z - patch.z) <= patch.depth / 2
         );
+    }
+
+    getSlowZones() {
+        return this.slowZones || [];
+    }
+
+    getExplosiveBarrelSpots() {
+        return this.explosiveBarrelSpots || [];
+    }
+
+    getSlowFactorAt(x, z) {
+        if (!this.slowZones?.length) return 1;
+        let factor = 1;
+        for (const zone of this.slowZones) {
+            if (Math.abs(x - zone.x) <= (zone.width || 0) / 2 &&
+                Math.abs(z - zone.z) <= (zone.depth || 0) / 2) {
+                factor = Math.min(factor, zone.factor || 0.6);
+            }
+        }
+        return factor;
+    }
+
+    getSlowZoneTypeAt(x, z) {
+        if (!this.slowZones?.length) return null;
+        for (const zone of this.slowZones) {
+            if (Math.abs(x - zone.x) <= (zone.width || 0) / 2 &&
+                Math.abs(z - zone.z) <= (zone.depth || 0) / 2) {
+                return zone.type || null;
+            }
+        }
+        return null;
+    }
+
+    addCraterSlowZone(x, z, radius = 5, factor = 0.62, lifeSeconds = 35) {
+        const width = Math.max(3, radius * 2);
+        const depth = Math.max(3, radius * 2);
+        this.slowZones.push({ x, z, width, depth, factor, type: 'crater', ttl: lifeSeconds });
+
+        const craterMat = new THREE.MeshStandardMaterial({
+            color: 0x4d3a33,
+            roughness: 0.95,
+            flatShading: true
+        });
+        const crater = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius * 0.72, 0.22, 14), craterMat);
+        crater.position.set(x, this.getHeightAt(x, z) + 0.05, z);
+        crater.userData.mapGenerated = true;
+        crater.userData.craterLife = lifeSeconds;
+        this.scene.add(crater);
     }
 
     findClearPointAround(cx, cz, colliderRadius = 0.8, startRadius = 0.6, maxRadius = 6.5) {

@@ -1,4 +1,4 @@
-﻿import * as THREE from 'three';
+import * as THREE from 'three';
 import { Inventory } from '../items/Inventory.js';
 import { Weapon } from '../items/Weapon.js';
 import { spawnDamagePopup } from './DamagePopup.js';
@@ -15,13 +15,14 @@ export class Bot {
             onGround: false,
             height: 1.9,
             radius: 0.47,
-            speed: 6 + Math.random() * 2
+            speed: 6.6 + Math.random() * 2.2
         };
 
         this.maxHealth = 200;
         this.health = this.maxHealth;
-        this.armor = 0;
-        this.maxArmor = 100;
+        this.medkits = 1;
+        this.armor = 36;
+        this.maxArmor = 120;
         this.isInvulnerable = false;
         this.isAlive = true;
 
@@ -69,6 +70,8 @@ export class Bot {
         this.healthBarVisibleCached = true;
         this.steeringCooldown = 0;
         this.cachedMoveDir = new THREE.Vector3(0, 0, 1);
+        this.visualLastPosition = this.position.clone();
+        this.visualSpeed = 0;
         this._tmpDirection = new THREE.Vector3();
         this._tmpAvoid = new THREE.Vector3();
         this._tmpTrainAvoid = new THREE.Vector3();
@@ -82,6 +85,7 @@ export class Bot {
         this._tmpArmWorld = new THREE.Vector3();
         this._tmpForward = new THREE.Vector3();
         this._tmpRight = new THREE.Vector3();
+        this._tmpWeaponRot = new THREE.Vector3();
         this._tmpErr = new THREE.Vector3();
 
         this.variants = [
@@ -174,9 +178,52 @@ export class Bot {
         const items = this.inventory.getItems?.() || [];
         for (const item of items) {
             if (item?.mesh) {
-                item.setVisible(item === this.currentWeapon && this.isAlive);
+                const isActive = item === this.currentWeapon && this.isAlive;
+                item.setVisible(isActive);
+                if (!isActive && item.mesh.parent && item.mesh.parent !== this.scene) {
+                    item.mesh.parent.remove(item.mesh);
+                }
             }
         }
+    }
+
+    updateWeaponTransform() {
+        if (!this.currentWeapon || !this.currentWeapon.mesh || !this.isAlive) return;
+        const limbs = this.mesh?.userData?.limbs;
+        if (!limbs?.rightArm) return;
+        const grip = Weapon.getThirdPersonGrip(this.currentWeapon.type);
+        const mesh = this.currentWeapon.mesh;
+        if (mesh.parent !== limbs.rightArm) {
+            limbs.rightArm.add(mesh);
+        }
+        if (!mesh.userData?.damageTintConfigured) {
+            mesh.userData.damageTintConfigured = true;
+            mesh.userData.ignoreDamageTint = true;
+            mesh.traverse((child) => {
+                if (!child.userData) child.userData = {};
+                child.userData.ignoreDamageTint = true;
+            });
+        }
+        const gripMul = this.currentWeapon.type === 'bow' ? 0.64 : 0.74;
+        const armYBias = this.currentWeapon.type === 'bow' ? -0.2 : -0.16;
+        mesh.position.set(
+            grip.right * gripMul + 0.02,
+            grip.up * gripMul + armYBias,
+            grip.forward * gripMul + 0.12
+        );
+        this._tmpWeaponRot.set(0, 0, 0);
+        if (this.currentWeapon.type === 'bow') {
+            this._tmpWeaponRot.x = -0.12;
+            this._tmpWeaponRot.y = 0.04;
+        } else if (this.currentWeapon.type === 'knife') {
+            this._tmpWeaponRot.x = -0.08;
+            this._tmpWeaponRot.y = -0.05;
+        } else if (this.currentWeapon.type === 'pistol') {
+            this._tmpWeaponRot.x = -0.03;
+        } else if (this.currentWeapon.type === 'shotgun' || this.currentWeapon.type === 'rifle' || this.currentWeapon.type === 'machinegun' || this.currentWeapon.type === 'flamethrower' || this.currentWeapon.type === 'laser') {
+            this._tmpWeaponRot.x = -0.06;
+        }
+        mesh.rotation.set(this._tmpWeaponRot.x, this._tmpWeaponRot.y + Math.PI / 2, this._tmpWeaponRot.z);
     }
 
     createMesh() {
@@ -448,8 +495,9 @@ export class Bot {
             this.physics.velocity.x = 0;
             this.physics.velocity.z = 0;
             this.mesh.position.copy(this.position);
-            this.mesh.position.y = this.position.y - (this.physics.height - 0.2);
+            this.mesh.position.y = this.position.y - (this.physics.height - 0.38);
             this.mesh.rotation.y = this.rotation.y;
+            this.updateWeaponTransform();
             return;
         }
 
@@ -457,10 +505,11 @@ export class Bot {
             this.assistTimer = Math.max(0, this.assistTimer - delta);
             this.moveTowards(this.assistTarget.position, this.physics.speed * 1.35);
             this.mesh.position.copy(this.position);
-            this.mesh.position.y = this.position.y - (this.physics.height - 0.2);
+            this.mesh.position.y = this.position.y - (this.physics.height - 0.38);
             this.mesh.rotation.y = this.rotation.y;
             this.animateLimbs();
             this.updateHealthBar(delta);
+            this.updateWeaponTransform();
             return;
         }
 
@@ -471,7 +520,7 @@ export class Bot {
             this.patrolTarget.copy(center);
             this.moveTowards(center, this.physics.speed * 1.25);
             this.mesh.position.copy(this.position);
-            this.mesh.position.y = this.position.y - (this.physics.height - 0.2);
+            this.mesh.position.y = this.position.y - (this.physics.height - 0.38);
             this.mesh.rotation.y = this.rotation.y;
             this.animateLimbs();
             this.updateHealthBar(delta);
@@ -511,29 +560,12 @@ export class Bot {
         }
 
         this.mesh.position.copy(this.position);
-        this.mesh.position.y = this.position.y - (this.physics.height - 0.2);
+        this.mesh.position.y = this.position.y - (this.physics.height - 0.38);
         this.mesh.rotation.y = this.rotation.y;
         this.animateLimbs();
         this.updateHealthBar(delta);
 
-        if (this.currentWeapon && this.currentWeapon.mesh && this.isAlive) {
-            const limbs = this.mesh?.userData?.limbs;
-            if (limbs?.rightArm) {
-                this.mesh.updateMatrixWorld();
-                limbs.rightArm.getWorldPosition(this._tmpArmWorld);
-                this._tmpForward.set(Math.sin(this.rotation.y), 0, Math.cos(this.rotation.y));
-                this._tmpRight.set(Math.cos(this.rotation.y), 0, -Math.sin(this.rotation.y));
-                const grip = Weapon.getThirdPersonGrip(this.currentWeapon.type);
-                this._tmpProbe
-                    .copy(this._tmpArmWorld)
-                    .addScaledVector(this._tmpForward, grip.forward)
-                    .addScaledVector(this._tmpRight, grip.right)
-                    .setY(this._tmpArmWorld.y + grip.up);
-
-                this.currentWeapon.setPosition(this._tmpProbe);
-                this.currentWeapon.setRotation(this.rotation);
-            }
-        }
+        this.updateWeaponTransform();
 
         const moved = this.position.distanceTo(this.lastPosition);
         if (moved < 0.05 && !this.isFrozen) {
@@ -585,11 +617,12 @@ export class Bot {
         const limbs = this.mesh?.userData?.limbs;
         if (!limbs) return;
 
-        const speed = Math.sqrt(
+        const velocitySpeed = Math.sqrt(
             this.physics.velocity.x * this.physics.velocity.x +
             this.physics.velocity.z * this.physics.velocity.z
         );
-        const speedNorm = Math.min(1, speed / this.physics.speed);
+        const speed = Math.max(velocitySpeed, this.visualSpeed || 0);
+        const speedNorm = Math.min(1, speed / Math.max(0.001, this.physics.speed));
         const time = performance.now() / 1000;
 
         if (speedNorm > 0.05) {
@@ -647,6 +680,8 @@ export class Bot {
                     target.ammo = Math.min(target.maxAmmo ?? target.ammo, (target.ammo ?? 0) + amount);
                 }
             }
+        } else if (loot.type === 'heal') {
+            this.medkits = Math.min(4, (this.medkits || 0) + (loot.amount > 35 ? 2 : 1));
         }
         this.stats.loot += 1;
     }
@@ -680,7 +715,7 @@ export class Bot {
             this.isFrozen = true;
             this.physics.velocity.set(0, 0, 0);
             this.mesh.position.copy(this.position);
-            this.mesh.position.y = this.position.y - (this.physics.height - 0.2) - 0.8;
+            this.mesh.position.y = this.position.y - (this.physics.height - 0.38) - 0.8;
             this.mesh.rotation.set(-Math.PI / 2, this.rotation.y, 0);
             this.syncWeaponVisibility();
             if (attacker?.stats) {
@@ -750,10 +785,20 @@ export class Bot {
 
     setBurnVisual(intensity) {
         this.mesh.traverse(child => {
+            if (child.userData?.ignoreDamageTint) return;
             if (!child.material || !child.material.emissive) return;
+            this.ensureTintMaterial(child);
             child.material.emissive.setHex(0xff6d00);
             child.material.emissiveIntensity = intensity;
         });
+    }
+
+    ensureTintMaterial(child) {
+        if (!child?.material || child.userData?.ignoreDamageTint) return;
+        if (child.userData?.tintMaterialOwned) return;
+        if (Array.isArray(child.material)) return;
+        child.material = child.material.clone();
+        child.userData.tintMaterialOwned = true;
     }
 
     updateHealthBar(delta = 0.016) {
@@ -794,6 +839,22 @@ export class Bot {
         }
     }
 
+    syncVisualAfterPhysics(delta = 0.016) {
+        if (!this.mesh) return;
+        const dt = Math.max(0.001, delta || 0.016);
+        const moved = this.position.distanceTo(this.visualLastPosition);
+        this.visualSpeed = moved / dt;
+        this.visualLastPosition.copy(this.position);
+
+        this.mesh.position.copy(this.position);
+        this.mesh.position.y = this.position.y - (this.physics.height - 0.38);
+        this.mesh.rotation.y = this.rotation.y;
+        this.animateLimbs();
+        if (this.healthBar) this.updateHealthBar(delta);
+
+        this.updateWeaponTransform();
+    }
+
     setInvulnerable(value) {
         this.isInvulnerable = value;
     }
@@ -804,6 +865,17 @@ export class Bot {
         if (now - this.lastDamageAt < this.healthRegenDelay) return;
         const regenPerSecond = this.maxHealth / this.healthRegenDuration;
         this.health = Math.min(this.maxHealth, this.health + regenPerSecond * delta);
+    }
+
+    useMedkit() {
+        if (!this.isAlive) return false;
+        if ((this.medkits || 0) <= 0) return false;
+        if (this.health >= this.maxHealth * 0.98) return false;
+        this.medkits -= 1;
+        this.health = Math.min(this.maxHealth, this.health + 70);
+        this.armor = Math.min(this.maxArmor, this.armor + 12);
+        this.lastDamageAt = -Infinity;
+        return true;
     }
 
     moveTowards(target, speed) {
@@ -935,12 +1007,15 @@ export class Bot {
             }
 
             const projectileData = weapon.type === 'bow'
-                ? weapon.attack(this, null, null, direction, { chargeRatio: 0.55 })
-                : weapon.attack(this, null, null, direction);
+                ? weapon.attack(this, null, this.audioSynthRef, direction, { chargeRatio: 0.55 })
+                : weapon.attack(this, null, this.audioSynthRef, direction);
             const cadence = Math.max(0.09, (weapon.cooldown || 0.2) * (weapon.type === 'bow' ? 0.95 : 0.82));
             if (projectileData && projectileData.projectiles) {
                 for (const proj of projectileData.projectiles) {
                     proj.owner = this;
+                    if (proj.type === 'bow' && proj.mesh) {
+                        proj.mesh.visible = false;
+                    }
                     entityManager?.addProjectile(proj);
                 }
                 this.nextAttackTime = now + cadence;
@@ -949,6 +1024,9 @@ export class Bot {
             if (projectileData && projectileData.projectile) {
                 projectileData.projectile.direction = direction;
                 projectileData.projectile.owner = this;
+                if (projectileData.projectile.type === 'bow' && projectileData.projectile.mesh) {
+                    projectileData.projectile.mesh.visible = false;
+                }
                 if (entityManager) {
                     entityManager.addProjectile(projectileData.projectile);
                 }
@@ -956,7 +1034,7 @@ export class Bot {
                 return { fired: true, damage: weapon.damage };
             }
         } else {
-            const result = weapon.attack(this, target);
+            const result = weapon.attack(this, target, this.audioSynthRef);
             if (result && result.hit) {
                 const killed = target.takeDamage(result.damage, result.isHeadshot, this, result.knockback || 0);
                 this.nextAttackTime = now + Math.max(0.12, (weapon.cooldown || 0.3) * 0.85);
@@ -1101,12 +1179,15 @@ export class Bot {
         if (now - this.lastFlashTime < 90) return;
         this.lastFlashTime = now;
         this.mesh.traverse(child => {
+            if (child.userData?.ignoreDamageTint) return;
             if (!child.material || !child.material.emissive) return;
+            this.ensureTintMaterial(child);
             child.material.emissive.setHex(0xff2d2d);
             child.material.emissiveIntensity = 0.7;
         });
         setTimeout(() => {
             this.mesh.traverse(child => {
+                if (child.userData?.ignoreDamageTint) return;
                 if (!child.material || !child.material.emissive) return;
                 child.material.emissiveIntensity = 0;
             });
@@ -1120,4 +1201,7 @@ export class Bot {
         return a + diff * t;
     }
 }
+
+
+
 

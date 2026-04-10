@@ -435,6 +435,10 @@ export class Player {
             const currentTime = performance.now() / 1000;
             if (this.physics.onGround && currentTime - this.lastFootstepTime > 0.5 && audioSynth) {
                 audioSynth.playFootstep(this.footstepVolume);
+                const surfaceType = this.mapRef?.getSlowZoneTypeAt?.(this.position.x, this.position.z);
+                if (surfaceType === 'glass') {
+                    audioSynth.playGlassStep?.(this.position, `player-${Math.floor(currentTime * 10)}`);
+                }
                 this.lastFootstepTime = currentTime;
             }
 
@@ -824,6 +828,15 @@ export class Player {
                         feedParts.push(`${this.getWeaponDisplayName(target.type)}: +${gained} патр.`);
                     }
                 }
+            }
+        } else if (loot.type === 'heal') {
+            const healAmount = loot.amount || 45;
+            const beforeHp = this.health;
+            this.health = Math.min(this.maxHealth, this.health + healAmount);
+            this.armor = Math.min(this.maxArmor, this.armor + Math.round(healAmount * 0.12));
+            const restored = Math.max(0, Math.round(this.health - beforeHp));
+            if (restored > 0) {
+                feedParts.push(`Аптечка: +${restored} HP`);
             }
         }
         if (loot.bonusAmmo) {

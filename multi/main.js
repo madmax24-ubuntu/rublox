@@ -16,11 +16,13 @@ const setLoadingProgress = (ratio) => {
 };
 
 THREE.DefaultLoadingManager.onStart = function() {
+    if (document.body?.classList?.contains('game-started')) return;
     if (loadingOverlay) loadingOverlay.style.display = 'flex';
     setLoadingProgress(0.05);
 };
 
 THREE.DefaultLoadingManager.onProgress = function(url, loaded, total) {
+    if (document.body?.classList?.contains('game-started')) return;
     if (total > 0) {
         setLoadingProgress(loaded / total);
     } else {
@@ -48,6 +50,7 @@ import { Player } from './entities/Player.js';
 import { Bot } from './entities/Bot.js';
 import { BotBrain } from './entities/BotBrain.js';
 import { Zombie } from './entities/Zombie.js';
+import { ExplosiveBarrel } from './entities/Environment.js';
 import { EntityManager } from './entities/EntityManager.js';
 import { LootManager } from './items/LootManager.js';
 import { HUD } from './ui/HUD.js';
@@ -58,6 +61,7 @@ class Game {
     constructor(yandexBridge = null) {
         this.yandex = yandexBridge || new YandexBridge();
         this.isStarted = false;
+        this.startingGame = false;
         this.mobileMode = (
             'ontouchstart' in window
             || navigator.maxTouchPoints > 0
@@ -130,6 +134,10 @@ class Game {
         this.gameLoop?.resetDelta?.();
         this.lastVisibilityHiddenAt = performance.now();
         this.resumeGraceTimer = Math.max(this.resumeGraceTimer || 0, 0.45);
+        if (this.startingGame) return;
+        if (this.startTransitionUntil && performance.now() < this.startTransitionUntil) {
+            return;
+        }
         if (this.isStarted && !this.isPaused) {
             this.autoPausedByVisibility = true;
             this.setPaused(true);
@@ -139,6 +147,9 @@ class Game {
     onAppVisible(reason = 'resume') {
         this.gameLoop?.resetDelta?.();
         this.applyRendererSizing();
+        if (loadingOverlay && loadingOverlay.style.display !== 'none') {
+            loadingOverlay.style.display = 'none';
+        }
         if (this.isMobile()) {
             setTimeout(() => this.applyRendererSizing(), 120);
             setTimeout(() => this.applyRendererSizing(), 320);
@@ -147,6 +158,9 @@ class Game {
         this.resumeGraceTimer = Math.max(this.resumeGraceTimer || 0, 0.45);
         this.propVisibilityTimer = 0.2;
         this.rainUpdateAccumulator = 0;
+        if (this.isMobile() && this.autoPausedByVisibility && this.isPaused && this.isStarted) {
+            this.setPaused(false);
+        }
         if (this.map?.updatePropVisibility && this.player?.position) {
             this.map.updatePropVisibility(this.player.position);
             this.lastPropVisibilityPos.copy(this.player.position);
@@ -258,10 +272,14 @@ class Game {
         this.resumeGraceTimer = 0;
         this.lastVisibilityHiddenAt = 0;
         this.rainUpdateAccumulator = 0;
+        this.weatherSyncTimer = 0;
+        this.lastWeatherType = 'clear';
         this.poiWarmupTimer = 0;
-        this.zombieMaintainTimer = 6;
+        this.zombieMaintainTimer = 3.6;
 
         this.env = new Environment(this.scene);
+        this.env.enableWeather = true;
+        this.audioSynth?.setWeatherState?.(this.env.getWeatherType?.() || 'clear');
         this.map = new MapGenerator(this.scene);
         this.physics = new Physics(this.scene, this.map);
         this.zone = new Zone(this.scene, this.map.size);
@@ -305,6 +323,8 @@ class Game {
         this.bots = [];
         this.botBrains = [];
         this.zombies = [];
+        this.environmentEntities = [];
+        this.environmentUpdateIndex = 0;
         this.zombieUpdateIndex = 0;
         this.botUpdateIndex = 0;
         this.botFrameCounter = 0;
@@ -319,6 +339,7 @@ class Game {
         this.poiSpawnCursor = 0;
         this.spawnBots();
         this.rebuildSpawnCaches();
+        this.spawnEnvironmentEntities();
         this.gateClosed = false;
         this.nightNotified = false;
         this.nightWaveTimer = 0;
@@ -329,6 +350,14 @@ class Game {
         this.deathHandled = false;
         this.scoreboardShown = false;
         this.oneWayGates = this.map.getOneWayGates?.() || [];
+        this.centerBlast = {
+            active: false,
+            timer: 0,
+            radius: 0,
+            cooldown: 0
+        };
+        this.centerBlastVfx = null;
+        this.minimapTimer = 0;
         this.poiZombieSeeded = false;
         this.isPaused = false;
         this.autoPausedByVisibility = false;
@@ -371,7 +400,7 @@ class Game {
         document.addEventListener('fullscreenchange', () => {
             if (!document.fullscreenElement) {
                 this.recoverViewState('fullscreen-exit');
-                if (this.isStarted && !this.isPaused) {
+                if (!this.startingGame && this.isStarted && !this.isPaused) {
                     this.setPaused(true);
                 }
             }
@@ -488,13 +517,13 @@ class Game {
                 const padIndex = i % botPads.length;
                 const cycle = Math.floor(i / botPads.length);
                 const pad = botPads[padIndex];
-                const padTop = pad.y;
                 const angleBase = (padIndex / Math.max(1, botPads.length)) * Math.PI * 2;
                 const angle = angleBase + cycle * (Math.PI / 3);
                 const radius = cycle === 0 ? 0 : 0.62 + (cycle - 1) * 0.34;
                 const offsetX = Math.cos(angle) * radius;
                 const offsetZ = Math.sin(angle) * radius;
-                spawnPos = new THREE.Vector3(pad.x + offsetX, padTop + 1.9, pad.z + offsetZ);
+                const groundY = this.map.getHeightAt?.(pad.x + offsetX, pad.z + offsetZ) ?? pad.y;
+                spawnPos = new THREE.Vector3(pad.x + offsetX, groundY + 1.9, pad.z + offsetZ);
             } else {
                 const angle = (i / botCount) * Math.PI * 2;
                 spawnPos = new THREE.Vector3(
@@ -567,11 +596,11 @@ class Game {
             const saved = raw ? JSON.parse(raw) : {};
             return {
                 musicVolume: Math.max(0, Math.min(0.4, Number(saved.musicVolume ?? 0.14))),
-                sfxVolume: Math.max(0, Math.min(0.55, Number(saved.sfxVolume ?? 0.22))),
+                sfxVolume: Math.max(0, Math.min(1, Number(saved.sfxVolume ?? 0.48))),
                 lookSensitivity: Math.max(0.5, Math.min(2.4, Number(saved.lookSensitivity ?? 1)))
             };
         } catch (_) {
-            return { musicVolume: 0.14, sfxVolume: 0.22, lookSensitivity: 1 };
+            return { musicVolume: 0.14, sfxVolume: 0.48, lookSensitivity: 1 };
         }
     }
 
@@ -585,7 +614,7 @@ class Game {
     applyUserSettings(settings = {}) {
         const safe = {
             musicVolume: Math.max(0, Math.min(0.4, Number(settings.musicVolume ?? 0.14))),
-            sfxVolume: Math.max(0, Math.min(0.55, Number(settings.sfxVolume ?? 0.22))),
+            sfxVolume: Math.max(0, Math.min(1, Number(settings.sfxVolume ?? 0.48))),
             lookSensitivity: Math.max(0.5, Math.min(2.4, Number(settings.lookSensitivity ?? 1)))
         };
         this.audioSynth?.setMusicVolume?.(safe.musicVolume);
@@ -595,7 +624,7 @@ class Game {
     }
 
     resetUserSettings() {
-        const defaults = { musicVolume: 0.14, sfxVolume: 0.22, lookSensitivity: 1 };
+        const defaults = { musicVolume: 0.14, sfxVolume: 0.48, lookSensitivity: 1 };
         localStorage.setItem('mazearena_settings', JSON.stringify(defaults));
         this.applyUserSettings(defaults);
         this.hud?.showGameMessage?.('Настройки сброшены');
@@ -837,6 +866,99 @@ class Game {
         return this.map?.isShelteredFromRain?.(position) || false;
     }
 
+    spawnEnvironmentEntities() {
+        if (!this.map?.getExplosiveBarrelSpots) return;
+        if (this.environmentEntities?.length) {
+            for (const ent of this.environmentEntities) {
+                ent?.dispose?.();
+            }
+        }
+        this.environmentEntities = [];
+        const spots = this.map.getExplosiveBarrelSpots() || [];
+        const maxCount = this.isMobile() ? 26 : 44;
+        for (let i = 0; i < spots.length && i < maxCount; i++) {
+            const s = spots[i];
+            const barrel = new ExplosiveBarrel(
+                this.scene,
+                new THREE.Vector3(s.x, s.y, s.z),
+                {
+                    id: `barrel-${i}`,
+                    explosionRadius: 10,
+                    explosionDamage: 56,
+                    knockback: 11
+                }
+            );
+            this.environmentEntities.push(barrel);
+            this.entityManager.addEntity(barrel);
+            this.physics.addEntity(barrel);
+        }
+        this.environmentUpdateIndex = 0;
+    }
+
+    triggerCenterDetonation() {
+        const center = this.map?.getCornucopiaCenter?.() || new THREE.Vector3(0, 0.8, 0);
+        this.centerBlast.active = true;
+        this.centerBlast.timer = 5.0;
+        this.centerBlast.radius = 18;
+        this.centerBlast.cooldown = 0;
+        this.map?.detonateCornucopia?.();
+        this.hud.showGameMessage('Центр уничтожен! Разбегайтесь по биомам!');
+        this.audioSynth?.playExplosion?.(center);
+
+        if (this.centerBlastVfx?.parent) {
+            this.centerBlastVfx.parent.remove(this.centerBlastVfx);
+        }
+        const ring = new THREE.Mesh(
+            new THREE.RingGeometry(this.centerBlast.radius * 0.7, this.centerBlast.radius, 36),
+            new THREE.MeshBasicMaterial({
+                color: 0xff5722,
+                transparent: true,
+                opacity: 0.62,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            })
+        );
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.set(center.x, center.y + 0.12, center.z);
+        ring.renderOrder = 40;
+        ring.userData.mapGenerated = true;
+        this.scene.add(ring);
+        this.centerBlastVfx = ring;
+    }
+
+    updateCenterDetonation(delta) {
+        if (!this.centerBlast.active) return;
+        this.centerBlast.timer = Math.max(0, this.centerBlast.timer - delta);
+        this.centerBlast.cooldown = Math.max(0, this.centerBlast.cooldown - delta);
+        const center = this.map?.getCornucopiaCenter?.() || new THREE.Vector3(0, 0.8, 0);
+        const radius = this.centerBlast.radius || 18;
+        const radiusSq = radius * radius;
+        const applyLethalTick = (entity) => {
+            if (!entity?.isAlive || !entity?.position || typeof entity.takeDamage !== 'function') return;
+            const dx = entity.position.x - center.x;
+            const dz = entity.position.z - center.z;
+            if ((dx * dx + dz * dz) > radiusSq) return;
+            entity.takeDamage(85 * delta, false, null, 0, 'centerBlast');
+        };
+        applyLethalTick(this.player);
+        for (const bot of this.bots) applyLethalTick(bot);
+        for (const zombie of this.zombies) applyLethalTick(zombie);
+
+        if (this.centerBlastVfx) {
+            const pulse = 1 + Math.sin(performance.now() * 0.016) * 0.05;
+            this.centerBlastVfx.scale.setScalar(pulse);
+            this.centerBlastVfx.material.opacity = 0.28 + (this.centerBlast.timer / 5) * 0.45;
+        }
+
+        if (this.centerBlast.timer <= 0) {
+            this.centerBlast.active = false;
+            if (this.centerBlastVfx?.parent) {
+                this.centerBlastVfx.parent.remove(this.centerBlastVfx);
+            }
+            this.centerBlastVfx = null;
+        }
+    }
+
     getNearestShelterTarget(position) {
         const houses = this.map?.getHouseSpots?.() || [];
         const hangars = this.map?.getHangarSpots?.() || [];
@@ -1054,6 +1176,9 @@ class Game {
     }
 
     update(delta) {
+        if (this.isStarted && loadingOverlay && loadingOverlay.style.display !== 'none') {
+            loadingOverlay.style.display = 'none';
+        }
         if (this.resumeGraceTimer > 0) {
             this.resumeGraceTimer = Math.max(0, this.resumeGraceTimer - delta);
         }
@@ -1074,6 +1199,7 @@ class Game {
 
         this.handleQuickCommands(delta);
         this.processDeferredSpawns(delta);
+        this.updateCenterDetonation(delta);
         const canSelectPerk = this.gameState === 'countdown' && !this.perkLocked;
         if (this.input.isKeyPressed('KeyP') && canSelectPerk) {
             if (!this.perkKeyLatch) {
@@ -1154,10 +1280,11 @@ class Game {
                 this.hud.hideCountdown();
                 this.hud.showGameMessage('\u0414\u043e\u0431\u0440\u043e \u043f\u043e\u0436\u0430\u043b\u043e\u0432\u0430\u0442\u044c \u043d\u0430 \u0413\u043e\u043b\u043e\u0434\u043d\u044b\u0435 \u0438\u0433\u0440\u044b, \u0432\u044b\u0436\u0438\u0432\u0435\u0442 \u0441\u0438\u043b\u044c\u043d\u0435\u0439\u0448\u0438\u0439!');
                 this.audioSynth.playBoxArrival?.(new THREE.Vector3(0, 1, 0));
+                this.triggerCenterDetonation();
                 this.player.isFrozen = false;
                 this.bots.forEach(bot => { bot.isFrozen = false; });
                 this.queueZombieBurst(true, 1.6, 120, 22, this.isMobile() ? 4 : 6);
-                this.queuePoiBurst(1.4, this.isMobile() ? 12 : 18, this.isMobile() ? 3 : 4);
+                this.queuePoiBurst(1.7, this.isMobile() ? 18 : 28, this.isMobile() ? 4 : 5);
             }
         } else if (this.gameState === 'spawn') {
             this.spawnTimer -= delta;
@@ -1251,7 +1378,7 @@ class Game {
             if (!this.poiZombieSeeded && this.poiWarmupTimer > 0) {
                 this.poiWarmupTimer = Math.max(0, this.poiWarmupTimer - delta);
                 if (this.poiWarmupTimer <= 0) {
-                    this.queuePoiBurst(1.45, this.isMobile() ? 10 : 14, this.isMobile() ? 3 : 4);
+                    this.queuePoiBurst(1.65, this.isMobile() ? 16 : 22, this.isMobile() ? 4 : 5);
                 }
             }
             this.updateZoneCycle(delta);
@@ -1493,21 +1620,41 @@ class Game {
             this.zombieUpdateIndex = (this.zombieUpdateIndex + zombiesPerFrame) % zombieCount;
         }
 
+        if (this.environmentEntities?.length) {
+            const envCount = this.environmentEntities.length;
+            const perFrame = Math.max(
+                this.isMobile() ? 6 : 10,
+                Math.min(envCount, Math.ceil(envCount * 0.5))
+            );
+            for (let i = 0; i < perFrame; i++) {
+                const idx = (this.environmentUpdateIndex + i) % envCount;
+                const ent = this.environmentEntities[idx];
+                if (!ent?.isAlive) continue;
+                ent.update?.(delta, this.entityManager, this.map, this.audioSynth);
+            }
+            this.environmentUpdateIndex = (this.environmentUpdateIndex + perFrame) % envCount;
+        }
+
         if (this.gameState === 'playing') {
             this.zombieMaintainTimer = Math.max(0, this.zombieMaintainTimer - delta);
             if (this.zombieMaintainTimer <= 0) {
                 const aliveZombies = this.zombies.filter(z => z?.isAlive).length;
-                const minAlive = this.isMobile() ? 12 : 16;
+                const minAlive = this.isMobile() ? 16 : 22;
                 if (aliveZombies < minAlive) {
                     const need = minAlive - aliveZombies;
-                    this.queuePoiBurst(1.25, Math.min(10, need), this.isMobile() ? 2 : 3);
-                    this.queueZombieBurst(false, 1.8, 180, Math.max(0, need - 4), this.isMobile() ? 3 : 4);
+                    this.queuePoiBurst(1.45, Math.min(14, need + 2), this.isMobile() ? 3 : 4);
+                    this.queueZombieBurst(false, 2.0, 180, Math.max(0, need - 2), this.isMobile() ? 4 : 5);
                 }
-                this.zombieMaintainTimer = 6 + Math.random() * 3;
+                this.ensurePoiZombiePresence(this.isMobile() ? 8 : 12);
+                this.zombieMaintainTimer = 3.2 + Math.random() * 1.4;
             }
         }
 
         const aliveCountBeforeHazards = this.entityManager.update(delta, this.physics, this.audioSynth);
+        for (const bot of this.bots) {
+            if (!bot?.isAlive) continue;
+            bot.syncVisualAfterPhysics?.(delta);
+        }
         if (this.gameState === 'playing') {
             this.trySupplyDrop(aliveCountBeforeHazards);
             this.updateRandomEvents(delta);
@@ -1588,6 +1735,25 @@ class Game {
         }
 
         this.env.update(delta);
+        this.weatherSyncTimer = Math.max(0, this.weatherSyncTimer - delta);
+        if (this.weatherSyncTimer <= 0) {
+            const changedWeather = this.env?.consumeWeatherChange?.();
+            const weatherType = changedWeather || this.env?.getWeatherType?.() || 'clear';
+            if (weatherType !== this.lastWeatherType) {
+                this.lastWeatherType = weatherType;
+                this.audioSynth?.setWeatherState?.(weatherType);
+                if (this.gameState === 'playing') {
+                    if (weatherType === 'rain') {
+                        this.hud.showGameMessage('Погода: Дождь');
+                    } else if (weatherType === 'snow') {
+                        this.hud.showGameMessage('Погода: Снег');
+                    } else {
+                        this.hud.showGameMessage('Погода: Ясно');
+                    }
+                }
+            }
+            this.weatherSyncTimer = 1.2;
+        }
         if (this.scene?.fog && this.gameState === 'playing') {
             const localFogBoost = this.getLocalizedFogBoost(this.player.position);
             if (localFogBoost > 0) {
@@ -1622,8 +1788,8 @@ class Game {
         const hangarSpots = points.filter(p => p.type === 'hangar');
 
         const aliveNow = this.zombies.filter(z => z?.isAlive).length;
-        const maxAlive = 260;
-        let budget = Math.max(0, Math.min(maxAlive - aliveNow, Math.floor((houseSpots.length * 2.0 + hangarSpots.length * 10.5) * intensity)));
+        const maxAlive = 320;
+        let budget = Math.max(0, Math.min(maxAlive - aliveNow, Math.floor((houseSpots.length * 2.4 + hangarSpots.length * 13.0) * intensity)));
         budget = Math.min(budget, Math.max(0, Number.isFinite(maxSpawn) ? maxSpawn : budget));
         if (budget <= 0) return 0;
 
@@ -1639,12 +1805,16 @@ class Game {
             const guardSpot = interiorSpot
                 || this.map.getStructureEntryPoint?.(point, point.type, this.player?.position || null)
                 || this.map.findStructureGuardPoint?.(point, point.type);
-            if (!guardSpot) return false;
-            const jitter = interiorSpot ? (point.type === "hangar" ? 1.2 : 0.8) : (point.type === "hangar" ? 2.2 : 1.2);
-            const x = guardSpot.x + (Math.random() - 0.5) * jitter;
-            const z = guardSpot.z + (Math.random() - 0.5) * jitter;
-            if (!this.map.isWalkableAt?.(x, z)) return false;
-            const baseY = this.map.getSurfaceHeightAt?.(x, z) ?? this.map.getHeightAt(x, z);
+            const fallbackSpot = guardSpot || { x: point.x, z: point.z };
+            const jitter = interiorSpot
+                ? (point.type === "hangar" ? 1.2 : 0.8)
+                : (point.type === "hangar" ? 2.0 : 1.05);
+            const x = fallbackSpot.x + (Math.random() - 0.5) * jitter;
+            const z = fallbackSpot.z + (Math.random() - 0.5) * jitter;
+            if (!interiorSpot && !this.map.isWalkableAt?.(x, z)) return false;
+            const baseY = (point.type === "house" || point.type === "hangar")
+                ? (this.map.getHeightAt?.(x, z) ?? 0)
+                : (this.map.getSurfaceHeightAt?.(x, z) ?? this.map.getHeightAt(x, z));
             const pos = new THREE.Vector3(x, baseY + 1.8, z);
             if (pos.distanceTo(this.player.position) < 14) return false;
             const zombie = new Zombie(this.scene, this.nextZombieId++, pos);
@@ -1656,14 +1826,23 @@ class Game {
             return true;
         };
 
-        // Guaranteed presence: hangars always, houses partially.
+        // Guaranteed presence: hangars always dense, houses always at least one guard.
         for (const hangar of hangarSpots) {
             if (budget <= 0 || spawned >= maxSpawn) break;
             spawnOneAtPoi(hangar, true);
+            if (budget > 0 && spawned < maxSpawn) {
+                spawnOneAtPoi(hangar, true);
+            }
+            if (budget > 0 && spawned < maxSpawn) {
+                spawnOneAtPoi(hangar, false);
+            }
         }
-        for (let i = 0; i < houseSpots.length; i += 3) {
+        for (let i = 0; i < houseSpots.length; i++) {
             if (budget <= 0 || spawned >= maxSpawn) break;
             spawnOneAtPoi(houseSpots[i], true);
+            if (budget > 0 && spawned < maxSpawn && Math.random() < 0.55) {
+                spawnOneAtPoi(houseSpots[i], false);
+            }
         }
 
         let attempts = 0;
@@ -1674,8 +1853,8 @@ class Game {
             attempts++;
             if (budget <= 0) break;
             const baseCount = point.type === "hangar"
-                ? (12 + Math.floor(Math.random() * 6))
-                : (3 + Math.floor(Math.random() * 3));
+                ? (16 + Math.floor(Math.random() * 10))
+                : (2 + Math.floor(Math.random() * 2));
             const pack = Math.max(1, Math.floor(baseCount * intensity * (point.type === "hangar" ? 1.15 : 1)));
             for (let i = 0; i < pack; i++) {
                 if (budget <= 0) break;
@@ -1685,6 +1864,70 @@ class Game {
         }
         if (spawned > 0) this.poiZombieSeeded = true;
         return spawned;
+    }
+
+    ensurePoiZombiePresence(limitPerTick = 6) {
+        const points = this.poiSpawnCandidates?.length ? this.poiSpawnCandidates : [
+            ...(this.map.getHouseSpots?.() || []).map(s => ({ ...s, type: 'house' })),
+            ...(this.map.getHangarSpots?.() || []).map(s => ({ ...s, type: 'hangar' }))
+        ];
+        if (!points.length) return 0;
+        const checks = Math.min(points.length, Math.max(1, limitPerTick | 0));
+        let injected = 0;
+        const aliveNow = this.zombies.filter(z => z?.isAlive).length;
+        const maxAlive = this.isMobile() ? 190 : 260;
+        let remainingBudget = Math.max(0, maxAlive - aliveNow);
+        if (remainingBudget <= 0) return 0;
+
+        const spawnNearPoint = (point) => {
+            if (!point || remainingBudget <= 0) return 0;
+            const localNeed = point.type === 'hangar' ? 3 : 1;
+            let made = 0;
+            for (let n = 0; n < localNeed && remainingBudget > 0; n++) {
+                const interiorSpot = this.map.findStructureInteriorPoint?.(
+                    point,
+                    point.type,
+                    point.type === 'hangar' ? 1.9 : 1.0,
+                    42
+                );
+                const guardSpot = interiorSpot
+                    || this.map.getStructureEntryPoint?.(point, point.type, this.player?.position || null)
+                    || this.map.findStructureGuardPoint?.(point, point.type)
+                    || { x: point.x, z: point.z };
+                const jitter = interiorSpot ? (point.type === 'hangar' ? 1.25 : 0.85) : (point.type === 'hangar' ? 2.25 : 1.15);
+                const x = guardSpot.x + (Math.random() - 0.5) * jitter;
+                const z = guardSpot.z + (Math.random() - 0.5) * jitter;
+                if (!interiorSpot && !this.map.isWalkableAt?.(x, z)) continue;
+                const y = this.map.getHeightAt?.(x, z) ?? 0;
+                const pos = new THREE.Vector3(x, y + 1.8, z);
+                if (this.player?.position && pos.distanceTo(this.player.position) < 10) continue;
+                const zombie = new Zombie(this.scene, this.nextZombieId++, pos);
+                this.physics.addEntity(zombie);
+                this.entityManager.addEntity(zombie);
+                this.zombies.push(zombie);
+                remainingBudget--;
+                made++;
+            }
+            return made;
+        };
+
+        for (let i = 0; i < checks; i++) {
+            const point = points[(this.poiSpawnCursor + i) % points.length];
+            const radius = point.type === 'hangar' ? 18 : 11;
+            let present = false;
+            for (let z = 0; z < this.zombies.length; z++) {
+                const zombie = this.zombies[z];
+                if (!zombie?.isAlive) continue;
+                if (Math.hypot(zombie.position.x - point.x, zombie.position.z - point.z) <= radius) {
+                    present = true;
+                    break;
+                }
+            }
+            if (present) continue;
+            injected += spawnNearPoint(point);
+        }
+        this.poiSpawnCursor = (this.poiSpawnCursor + checks) % points.length;
+        return injected;
     }
 
     spawnZombies(reset = true, multiplier = 1, capOverride = null, forceCount = null) {
@@ -1736,47 +1979,54 @@ class Game {
     }
 
     render() {
+        this.renderFrameCount = (this.renderFrameCount || 0) + 1;
         this.renderer.render(this.scene, this.camera);
     }
 
     async startGame() {
         if (this.isStarted) return;
         this.isStarted = true;
+        this.startingGame = true;
+        this.startAttemptAt = performance.now();
         try {
             this.hideStartScreen();
+            this.startTransitionUntil = performance.now() + 3500;
             this.hud.showPause(false);
             this.isPaused = false;
             this.partyMode = false;
             this.applyRoundMode('hybrid');
             await new Promise(resolve => requestAnimationFrame(() => resolve()));
 
-            try {
-                if (this.isMobile()) {
+            if (this.isMobile()) {
+                // Important: do not block game start on fullscreen promises (some mobile browsers keep them pending).
+                this.enterFullscreen().catch(() => {});
+                this.lockOrientation().catch(() => {});
+                this.updateOrientationUI();
+                this.applyRendererSizing();
+                setTimeout(() => this.applyRendererSizing(), 180);
+                setTimeout(() => this.applyRendererSizing(), 420);
+                this.player?.resetView?.();
+                const retry = async () => {
+                    if (!document.fullscreenElement) {
+                        this.enterFullscreen().catch(() => {});
+                        this.lockOrientation().catch(() => {});
+                        this.updateOrientationUI();
+                        this.applyRendererSizing();
+                        setTimeout(() => this.applyRendererSizing(), 180);
+                        this.player?.resetView?.();
+                    }
+                    window.removeEventListener('touchend', retry);
+                };
+                window.addEventListener('touchend', retry, { passive: false });
+            } else {
+                try {
                     await this.enterFullscreen();
-                    await this.lockOrientation();
-                    this.updateOrientationUI();
-                    this.applyRendererSizing();
-                    setTimeout(() => this.applyRendererSizing(), 180);
-                    this.player?.resetView?.();
-                    const retry = async () => {
-                        if (!document.fullscreenElement) {
-                            await this.enterFullscreen();
-                            await this.lockOrientation();
-                            this.updateOrientationUI();
-                            this.applyRendererSizing();
-                            setTimeout(() => this.applyRendererSizing(), 180);
-                            this.player?.resetView?.();
-                        }
-                        window.removeEventListener('touchend', retry);
-                    };
-                    window.addEventListener('touchend', retry, { passive: false });
-                } else {
-                    await this.enterFullscreen();
+                } catch (fsErr) {
+                    console.warn('Fullscreen/orientation fallback:', fsErr);
                 }
-            } catch (fsErr) {
-                console.warn('Fullscreen/orientation fallback:', fsErr);
             }
 
+            this.audioSynth.unlock?.().catch(() => {});
             this.audioSynth.playMusic();
             this.audioSynth.startAmbient();
             this.yandex?.gameplayStart?.();
@@ -1801,11 +2051,29 @@ class Game {
             }
 
             this.gameLoop.start();
+            this.applyRendererSizing();
+            this.recoverViewState('start');
+            this.render();
             requestAnimationFrame(() => this.hideStartScreen());
+            if (loadingOverlay && loadingOverlay.style.display !== 'none') {
+                loadingOverlay.style.display = 'none';
+            }
+            setTimeout(() => {
+                if (this.isStarted && loadingOverlay && loadingOverlay.style.display !== 'none') {
+                    loadingOverlay.style.display = 'none';
+                }
+            }, 1200);
+            this.startTransitionUntil = 0;
+            this.startingGame = false;
         } catch (err) {
             console.error('Failed to start game:', err);
             this.isStarted = false;
+            this.startTransitionUntil = 0;
+            this.startingGame = false;
             this.showStartScreen();
+            if (loadingOverlay && loadingOverlay.style.display !== 'none') {
+                loadingOverlay.style.display = 'none';
+            }
             this.hud?.showGameMessage?.('Ошибка запуска. Нажмите старт снова.');
             throw err;
         }
@@ -1872,7 +2140,9 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!button) return;
         const handleStart = async (e) => {
             if (e?.cancelable) e.preventDefault();
+            if (game.startingGame || game.isStarted) return;
             try {
+                game.audioSynth?.unlock?.().catch(() => {});
                 await game.startGame();
             } catch (err) {
                 console.error('Start failed:', err);
@@ -1890,6 +2160,7 @@ window.addEventListener('DOMContentLoaded', () => {
     bindStartButton(document.getElementById('startButtonMobile'));
     bindStartButton(document.getElementById('startButton'));
 });
+
 
 
 

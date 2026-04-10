@@ -66,6 +66,7 @@ function configureMeshForGameplay(mesh) {
             child.receiveShadow = false;
             child.frustumCulled = false;
             child.renderOrder = 4;
+            child.userData.ignoreDamageTint = true;
         }
     });
 }
@@ -76,10 +77,12 @@ function createKnifeModel() {
     const handleMat = getMaterial('knife_handle', () => new THREE.MeshStandardMaterial({ color: 0x4e342e, roughness: 0.8, metalness: 0.05, flatShading: true }));
     const guardMat = getMaterial('knife_guard', () => new THREE.MeshStandardMaterial({ color: 0x262626, roughness: 0.45, metalness: 0.45, flatShading: true }));
 
-    group.add(createPart(getGeom('knife_h', () => new THREE.BoxGeometry(0.28, 0.1, 0.08)), handleMat, -0.2, 0, 0));
-    group.add(createPart(getGeom('knife_g', () => new THREE.BoxGeometry(0.08, 0.12, 0.12)), guardMat, -0.03, 0, 0));
-    group.add(createPart(getGeom('knife_b', () => new THREE.BoxGeometry(0.62, 0.06, 0.03)), bladeMat, 0.32, 0.01, 0));
-    group.add(createPart(getGeom('knife_t', () => new THREE.ConeGeometry(0.03, 0.12, 6)), bladeMat, 0.68, 0.01, 0, 0, 0, -Math.PI / 2));
+    group.add(createPart(getGeom('knife_h', () => new THREE.BoxGeometry(0.36, 0.1, 0.1)), handleMat, -0.24, -0.01, 0));
+    group.add(createPart(getGeom('knife_h2', () => new THREE.BoxGeometry(0.14, 0.12, 0.12)), handleMat, -0.39, -0.01, 0));
+    group.add(createPart(getGeom('knife_g', () => new THREE.BoxGeometry(0.09, 0.14, 0.14)), guardMat, -0.03, 0, 0));
+    group.add(createPart(getGeom('knife_b', () => new THREE.BoxGeometry(0.76, 0.06, 0.04)), bladeMat, 0.38, 0.01, 0));
+    group.add(createPart(getGeom('knife_bs', () => new THREE.BoxGeometry(0.64, 0.02, 0.03)), guardMat, 0.29, 0.045, 0));
+    group.add(createPart(getGeom('knife_t', () => new THREE.ConeGeometry(0.038, 0.16, 6)), bladeMat, 0.82, 0.01, 0, 0, 0, -Math.PI / 2));
     group.rotation.y = Math.PI;
     return group;
 }
@@ -182,50 +185,51 @@ function createArrowProjectileMesh() {
 
 function getRotationOffsets(type) {
     if (type === 'knife') return { pitch: -Math.PI / 2, yaw: 0, roll: 0 };
-    if (type === 'bow') return { pitch: -Math.PI / 2, yaw: 0, roll: Math.PI / 2 };
+    if (type === 'bow') return { pitch: 0.04, yaw: Math.PI / 2, roll: -0.04 };
+    // Third-person alignment for character forward (+Z in our actor space).
     return { pitch: 0, yaw: Math.PI / 2, roll: 0 };
 }
 
 function getViewPoseForType(rawType) {
     const type = normType(rawType);
     const base = {
-        scale: 0.72,
-        position: new THREE.Vector3(0.14, -0.44, -0.72),
-        rotation: new THREE.Euler(0, Math.PI, 0)
+        scale: 0.82,
+        position: new THREE.Vector3(0.2, -0.4, -0.78),
+        rotation: new THREE.Euler(0.04, -Math.PI / 2, 0.04)
     };
 
     if (type === 'knife') {
-        base.position.set(0.2, -0.38, -0.76);
-        base.rotation.set(-Math.PI / 2 + 0.12, Math.PI, 0.08);
-        base.scale = 0.72;
+        base.position.set(0.25, -0.34, -0.8);
+        base.rotation.set(0.08, -Math.PI / 2, 0.08);
+        base.scale = 0.98;
     } else if (type === 'bow') {
-        base.position.set(0.2, -0.22, -1.02);
-        base.rotation.set(0.02, Math.PI, Math.PI / 2.2);
-        base.scale = 0.68;
+        base.position.set(0.24, -0.3, -0.98);
+        base.rotation.set(0.1, -Math.PI / 2, Math.PI / 2.08);
+        base.scale = 0.78;
     } else if (type === 'shotgun') {
-        base.position.set(0.24, -0.48, -0.92);
-        base.rotation.set(-Math.PI / 2 + 0.18, Math.PI, -0.1);
-        base.scale = 0.58;
+        base.position.set(0.22, -0.42, -0.9);
+        base.rotation.set(0.05, -Math.PI / 2, -0.04);
+        base.scale = 0.7;
     } else if (type === 'flamethrower') {
-        base.position.set(0.24, -0.5, -0.94);
-        base.rotation.set(-Math.PI / 2 + 0.2, Math.PI, -0.1);
-        base.scale = 0.56;
+        base.position.set(0.22, -0.44, -0.92);
+        base.rotation.set(0.04, -Math.PI / 2, -0.05);
+        base.scale = 0.68;
     } else if (type === 'laser') {
-        base.position.set(0.24, -0.48, -0.92);
-        base.rotation.set(-Math.PI / 2 + 0.2, Math.PI, -0.1);
-        base.scale = 0.56;
+        base.position.set(0.22, -0.44, -0.92);
+        base.rotation.set(0.04, -Math.PI / 2, -0.05);
+        base.scale = 0.68;
     } else if (type === 'pistol') {
-        base.position.set(0.2, -0.5, -0.82);
-        base.rotation.set(-Math.PI / 2 + 0.34, Math.PI, -0.06);
-        base.scale = 0.62;
+        base.position.set(0.2, -0.42, -0.82);
+        base.rotation.set(0.05, -Math.PI / 2, -0.02);
+        base.scale = 0.76;
     } else if (type === 'rifle') {
-        base.position.set(0.24, -0.5, -0.96);
-        base.rotation.set(-Math.PI / 2 + 0.2, Math.PI, -0.08);
-        base.scale = 0.56;
+        base.position.set(0.22, -0.44, -0.95);
+        base.rotation.set(0.05, -Math.PI / 2, -0.05);
+        base.scale = 0.66;
     } else if (type === 'machinegun') {
-        base.position.set(0.24, -0.5, -0.98);
-        base.rotation.set(-Math.PI / 2 + 0.16, Math.PI, -0.08);
-        base.scale = 0.58;
+        base.position.set(0.22, -0.45, -0.98);
+        base.rotation.set(0.05, -Math.PI / 2, -0.05);
+        base.scale = 0.67;
     }
 
     return base;
@@ -233,14 +237,27 @@ function getViewPoseForType(rawType) {
 
 function getThirdPersonGripForType(rawType) {
     const type = normType(rawType);
-    const base = { forward: 0.16, right: 0.08, up: -0.18 };
-    if (type === 'knife') return { forward: 0.14, right: 0.1, up: -0.16 };
-    if (type === 'pistol') return { forward: 0.16, right: 0.09, up: -0.17 };
-    if (type === 'bow') return { forward: 0.2, right: 0.08, up: -0.16 };
-    if (type === 'shotgun') return { forward: 0.2, right: 0.08, up: -0.2 };
-    if (type === 'rifle' || type === 'machinegun') return { forward: 0.2, right: 0.08, up: -0.19 };
-    if (type === 'flamethrower' || type === 'laser') return { forward: 0.18, right: 0.08, up: -0.2 };
+    const base = { forward: 0.21, right: 0.12, up: -0.31 };
+    if (type === 'knife') return { forward: 0.18, right: 0.1, up: -0.26 };
+    if (type === 'pistol') return { forward: 0.21, right: 0.12, up: -0.3 };
+    if (type === 'bow') return { forward: 0.26, right: 0.16, up: -0.36 };
+    if (type === 'shotgun') return { forward: 0.24, right: 0.12, up: -0.34 };
+    if (type === 'rifle' || type === 'machinegun') return { forward: 0.25, right: 0.12, up: -0.35 };
+    if (type === 'flamethrower' || type === 'laser') return { forward: 0.24, right: 0.12, up: -0.35 };
     return base;
+}
+
+function getThirdPersonWorldScale(rawType) {
+    const type = normType(rawType);
+    if (type === 'knife') return 0.84;
+    if (type === 'bow') return 0.7;
+    if (type === 'pistol') return 0.78;
+    if (type === 'shotgun') return 0.74;
+    if (type === 'rifle') return 0.7;
+    if (type === 'machinegun') return 0.72;
+    if (type === 'flamethrower') return 0.7;
+    if (type === 'laser') return 0.72;
+    return 0.78;
 }
 
 export class Weapon {
@@ -311,6 +328,8 @@ export class Weapon {
         else if (this.type === 'laser') group.add(createGunModel('laser'));
 
         configureMeshForGameplay(group);
+        group.userData.ignoreDamageTint = true;
+        group.scale.setScalar(getThirdPersonWorldScale(this.type));
         group.visible = false;
         this.mesh = group;
         this.scene?.add(group);
@@ -338,14 +357,16 @@ export class Weapon {
 
         this.animateAttack();
         if (audioSynth) {
-            if (this.type === 'knife' || this.type === 'fists') audioSynth.playHit?.();
-            else if (this.type === 'bow') audioSynth.playBowShot?.();
-            else if (this.type === 'laser') audioSynth.playLaser?.();
-            else if (this.type === 'shotgun') audioSynth.playShotgun?.();
-            else if (this.type === 'flamethrower') audioSynth.playFlamethrower?.();
-            else if (this.type === 'pistol') audioSynth.playPistol?.();
-            else if (this.type === 'machinegun') audioSynth.playMachinegun?.();
-            else if (this.type === 'rifle') audioSynth.playRifle?.();
+            const srcPos = owner?.position || null;
+            const srcKey = owner?.id !== undefined ? `id:${owner.id}` : (owner?.constructor?.name || 'entity');
+            if (this.type === 'knife' || this.type === 'fists') audioSynth.playHit?.(srcPos, srcKey);
+            else if (this.type === 'bow') audioSynth.playBowShot?.(srcPos, srcKey);
+            else if (this.type === 'laser') audioSynth.playLaser?.(srcPos, srcKey);
+            else if (this.type === 'shotgun') audioSynth.playShotgun?.(1, srcPos, srcKey);
+            else if (this.type === 'flamethrower') audioSynth.playFlamethrower?.(srcPos, srcKey);
+            else if (this.type === 'pistol') audioSynth.playPistol?.(srcPos, srcKey);
+            else if (this.type === 'machinegun') audioSynth.playMachinegun?.(srcPos, srcKey);
+            else if (this.type === 'rifle') audioSynth.playRifle?.(srcPos, srcKey);
         }
 
         if (this.type === 'fists' || this.type === 'knife') {
@@ -468,7 +489,7 @@ export class Weapon {
             owner: null,
             knockback,
             gravity,
-            lifetime: type === 'flame' ? 0.6 : 5,
+            lifetime: type === 'flame' ? 0.6 : (type === 'bow' ? 1.6 : 2.8),
             travelled: 0,
             maxDistance,
             align: type === 'bow' ? 'arrow' : null,
@@ -540,7 +561,11 @@ export class Weapon {
 
     dispose() {
         if (!this.mesh) return;
-        this.scene?.remove(this.mesh);
+        if (this.mesh.parent) {
+            this.mesh.parent.remove(this.mesh);
+        } else {
+            this.scene?.remove(this.mesh);
+        }
         this.mesh = null;
         this._meshChangeListeners.clear();
     }

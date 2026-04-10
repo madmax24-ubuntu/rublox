@@ -5,6 +5,7 @@ const STATES = {
     LOOT: 'loot',
     COMBAT: 'combat',
     CHASE: 'chase',
+    SURVIVAL: 'survival',
     ZONE_RETREAT: 'zoneRetreat',
     SHELTER: 'shelter'
 };
@@ -67,6 +68,10 @@ export class BotBrain {
             this.actZoneRetreat(bot, ctx);
             return;
         }
+        if (bot.state === STATES.SURVIVAL) {
+            this.actSurvival(bot, ctx);
+            return;
+        }
         if (bot.state === STATES.LOOT) {
             this.actLoot(bot, ctx, lootManager);
             return;
@@ -86,7 +91,7 @@ export class BotBrain {
         const zoneDistance = zone?.getDistanceFromZone ? zone.getDistanceFromZone(bot.position) : 0;
 
         const visionRadius = Math.max(30, 68 * this.visionMultiplier);
-        const closeCombatRadius = 18;
+        const closeCombatRadius = 24;
         const nearby = entityManager?.getNearbyEntities
             ? entityManager.getNearbyEntities(bot.position, visionRadius)
             : (entityManager?.getEntities?.() || []);
@@ -160,8 +165,8 @@ export class BotBrain {
             return STATES.SPAWN_SPREAD;
         }
 
-        const undergeared = ctx.gear < 0.24;
-        if (undergeared && ctx.lootTarget && (!ctx.nearestEnemy || ctx.nearestEnemyDist > 9.5)) {
+        const undergeared = ctx.gear < 0.18;
+        if (undergeared && ctx.lootTarget && (!ctx.nearestEnemy || ctx.nearestEnemyDist > 7.5)) {
             return STATES.LOOT;
         }
 
@@ -169,8 +174,13 @@ export class BotBrain {
         const veryLowHp = ctx.hp < 0.2;
         const underPressure = ctx.nearestEnemy && ctx.nearestEnemyDist < ctx.closeCombatRadius;
         const armed = !!bot.currentWeapon && bot.currentWeapon.type !== 'fists';
+        const hasMedkit = (bot.medkits || 0) > 0;
 
-        if (veryLowHp && ctx.shelterTarget) return STATES.ZONE_RETREAT;
+        if ((veryLowHp && hasMedkit) || (lowHp && hasMedkit && underPressure)) {
+            return STATES.SURVIVAL;
+        }
+
+        if (veryLowHp && ctx.shelterTarget && (!ctx.nearestEnemy || ctx.nearestEnemyDist > 10)) return STATES.ZONE_RETREAT;
         if (lowHp && !armed && ctx.lootTarget) return STATES.LOOT;
 
         if (ctx.nearestZombie && ctx.nearestZombieDist < 8) {
@@ -178,9 +188,9 @@ export class BotBrain {
         }
 
         if (ctx.nearestEnemy) {
-            if (ctx.nearestEnemyDist < 26) return STATES.COMBAT;
+            if (ctx.nearestEnemyDist < 36) return STATES.COMBAT;
             if (!armed && ctx.lootTarget) return STATES.LOOT;
-            if (underPressure || ctx.gear >= 0.45) return STATES.COMBAT;
+            if (underPressure || ctx.gear >= 0.32) return STATES.COMBAT;
             return STATES.CHASE;
         }
 
@@ -210,7 +220,7 @@ export class BotBrain {
         bot.lookAt(chest.position);
         if (dist > 2.9) {
             bot.patrolTarget = chest.position;
-            bot.moveTowards(chest.position, bot.physics.speed * 1.05);
+            bot.moveTowards(chest.position, bot.physics.speed * 1.08);
             return;
         }
 
@@ -230,19 +240,19 @@ export class BotBrain {
         bot.target = target;
         const dist = bot.position.distanceTo(target.position);
         const weapon = bot.currentWeapon || bot.fists;
-        const range = Math.max(2.5, (weapon.range || 3) * (weapon.type === 'shotgun' ? 0.82 : 0.9));
+        const range = Math.max(2.7, (weapon.range || 3) * (weapon.type === 'shotgun' ? 0.88 : 0.95));
 
         bot.lookAt(target.position);
         if (dist <= range) {
             if (this.attackCooldown <= 0) {
                 bot.attack(target, entityManager);
-                this.attackCooldown = Math.max(0.06, (weapon.cooldown || 0.2) * 0.62);
+                this.attackCooldown = Math.max(0.05, (weapon.cooldown || 0.2) * 0.5);
             }
             return;
         }
 
         bot.patrolTarget = target.position;
-        bot.moveTowards(target.position, bot.physics.speed * 1.2);
+        bot.moveTowards(target.position, bot.physics.speed * 1.3);
     }
 
     actZoneRetreat(bot, ctx) {
@@ -262,7 +272,7 @@ export class BotBrain {
 
         if (!target) return;
         bot.patrolTarget = target;
-        bot.moveTowards(target, bot.physics.speed * 1.2);
+        bot.moveTowards(target, bot.physics.speed * 1.25);
     }
 
     actShelter(bot, ctx, lootManager) {
@@ -283,6 +293,19 @@ export class BotBrain {
             bot.physics.velocity.x *= 0.7;
             bot.physics.velocity.z *= 0.7;
         }
+    }
+
+    actSurvival(bot, ctx) {
+        if ((bot.health / Math.max(1, bot.maxHealth || 100)) < 0.55) {
+            bot.useMedkit?.();
+        }
+        const shelter = ctx.shelterTarget || this.findNearestShelterTarget(bot);
+        if (shelter) {
+            bot.patrolTarget = shelter;
+            bot.moveTowards(shelter, bot.physics.speed * 1.18);
+            return;
+        }
+        this.actZoneRetreat(bot, ctx);
     }
 
     pickCombatTarget(bot, ctx, entityManager) {

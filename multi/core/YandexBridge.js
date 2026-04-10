@@ -81,6 +81,44 @@ export class YandexBridge {
         }
     }
 
+    shouldUseSdkRuntime() {
+        try {
+            if (window.YandexGamesSDKEnvironment) return true;
+            const params = new URLSearchParams(window.location.search || '');
+            if (params.get('yandex') === '1' || params.get('yg') === '1') return true;
+            const parentDiffers = !!(window.parent && window.parent !== window);
+            const ref = String(document.referrer || '').toLowerCase();
+            const fromYandexRef = /yandex|ya\.ru|yandexgames/.test(ref);
+            return parentDiffers && fromYandexRef;
+        } catch (_) {
+            return false;
+        }
+    }
+
+    loadSdkScript() {
+        if (window.YaGames?.init) return Promise.resolve(true);
+        return new Promise((resolve) => {
+            try {
+                const existing = document.querySelector('script[data-yg-sdk="1"]');
+                if (existing) {
+                    existing.addEventListener('load', () => resolve(true), { once: true });
+                    existing.addEventListener('error', () => resolve(false), { once: true });
+                    return;
+                }
+                const script = document.createElement('script');
+                script.src = 'https://yandex.ru/games/sdk/v2';
+                script.async = true;
+                script.defer = true;
+                script.dataset.ygSdk = '1';
+                script.onload = () => resolve(true);
+                script.onerror = () => resolve(false);
+                document.head.appendChild(script);
+            } catch (_) {
+                resolve(false);
+            }
+        });
+    }
+
     applyDomSafety() {
         const prevent = (e) => e.preventDefault();
         const preventScroll = (e) => {
@@ -175,7 +213,10 @@ export class YandexBridge {
         this.lang = this.getLangFromUrl();
 
         try {
-            if (window.YaGames?.init) {
+            if (this.shouldUseSdkRuntime()) {
+                await this.loadSdkScript();
+            }
+            if (window.YaGames?.init && this.shouldUseSdkRuntime()) {
                 this.ysdk = await window.YaGames.init();
                 this.lang = this.normalizeLang(
                     this.ysdk?.environment?.i18n?.lang

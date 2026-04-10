@@ -20,6 +20,7 @@ export class Bot {
 
         this.maxHealth = 200;
         this.health = this.maxHealth;
+        this.medkits = 1;
         this.armor = 36;
         this.maxArmor = 120;
         this.isInvulnerable = false;
@@ -679,6 +680,8 @@ export class Bot {
                     target.ammo = Math.min(target.maxAmmo ?? target.ammo, (target.ammo ?? 0) + amount);
                 }
             }
+        } else if (loot.type === 'heal') {
+            this.medkits = Math.min(4, (this.medkits || 0) + (loot.amount > 35 ? 2 : 1));
         }
         this.stats.loot += 1;
     }
@@ -862,6 +865,17 @@ export class Bot {
         if (now - this.lastDamageAt < this.healthRegenDelay) return;
         const regenPerSecond = this.maxHealth / this.healthRegenDuration;
         this.health = Math.min(this.maxHealth, this.health + regenPerSecond * delta);
+    }
+
+    useMedkit() {
+        if (!this.isAlive) return false;
+        if ((this.medkits || 0) <= 0) return false;
+        if (this.health >= this.maxHealth * 0.98) return false;
+        this.medkits -= 1;
+        this.health = Math.min(this.maxHealth, this.health + 70);
+        this.armor = Math.min(this.maxArmor, this.armor + 12);
+        this.lastDamageAt = -Infinity;
+        return true;
     }
 
     moveTowards(target, speed) {

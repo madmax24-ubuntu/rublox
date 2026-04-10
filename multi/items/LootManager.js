@@ -42,7 +42,12 @@ export class LootManager {
     }
 
     getChestPlacementY(x, z) {
-        const surfaceY = this.mapGenerator.getSurfaceHeightAt?.(x, z) ?? this.mapGenerator.getHeightAt(x, z);
+        const structure = this.mapGenerator.getStructureAtPoint?.(x, z, 0.2);
+        // Inside buildings we anchor to terrain height so chests do not end up on roof/floor colliders.
+        const baseY = structure
+            ? (this.mapGenerator.getHeightAt?.(x, z) ?? 0)
+            : (this.mapGenerator.getSurfaceHeightAt?.(x, z) ?? this.mapGenerator.getHeightAt(x, z));
+        const surfaceY = baseY;
         // Keep chest bottom clearly above floor to avoid half-sunken look
         // on uneven or stepped walkable colliders.
         return surfaceY + 0.38;
@@ -440,7 +445,8 @@ export class LootManager {
             if (rareRoll < 0.7) return { type: 'weapon', weaponType: 'flamethrower' };
             if (rareRoll < 0.87) return { type: 'weapon', weaponType: 'machinegun' };
             if (rareRoll < 0.95) return { type: 'weapon', weaponType: 'shotgun' };
-            return { type: 'armor', amount: 60 + Math.random() * 40 };
+            if (rareRoll < 0.985) return { type: 'armor', amount: 60 + Math.random() * 40 };
+            return { type: 'heal', amount: 55 };
         }
 
         // Предыдущая логика генерации добычи была запутанной и содержала недостижимый код.
@@ -461,9 +467,11 @@ export class LootManager {
             return { type: 'weapon', weaponType: 'rifle' };
         } else if (rand < 0.84) { // 10% для пулемета
             return { type: 'weapon', weaponType: 'machinegun' };
-        } else if (rand < 0.93) { // 9% для патронов
+        } else if (rand < 0.9) { // 6% для аптечки
+            return { type: 'heal', amount: 40 + Math.random() * 25 };
+        } else if (rand < 0.95) { // 5% для патронов
             return { type: 'ammo', amount: 10 + Math.floor(Math.random() * 9) };
-        } else { // 7% для брони
+        } else { // 5% для брони
             return { type: 'armor', amount: 25 + Math.random() * 25 };
         }
     }
@@ -514,12 +522,9 @@ export class LootManager {
             if (chest.userData.glow) {
                 chest.userData.glow.visible = true;
             }
-            if (audioSynth && !chest.userData.soundPlayed) {
+            if (audioSynth && !chest.userData.nearHintPlayed) {
                 audioSynth.playChestNearby();
-                chest.userData.soundPlayed = true;
-                setTimeout(() => {
-                    chest.userData.soundPlayed = false;
-                }, 2000);
+                chest.userData.nearHintPlayed = true;
             }
         }
 
@@ -527,6 +532,9 @@ export class LootManager {
             if (nextActive.has(chest)) continue;
             if (chest?.userData?.glow) {
                 chest.userData.glow.visible = false;
+            }
+            if (chest?.userData) {
+                chest.userData.nearHintPlayed = false;
             }
         }
 

@@ -27,7 +27,7 @@ export class Zone {
         const material = new THREE.MeshBasicMaterial({
             color: 0x4fc3ff,
             transparent: true,
-            opacity: 0.1,
+            opacity: 0.22,
             depthWrite: false,
             side: THREE.DoubleSide
         });
@@ -48,7 +48,7 @@ export class Zone {
         const ringMat = new THREE.LineBasicMaterial({
             color: 0x4fc3ff,
             transparent: true,
-            opacity: 0.9
+            opacity: 1.0
         });
         this.ringMesh = new THREE.LineLoop(ringGeo, ringMat);
         this.ringMesh.position.y = 0.5;
@@ -65,12 +65,12 @@ export class Zone {
             this.syncVisuals();
         }
         if (this.ringMesh) {
-            const pulse = 0.78 + Math.sin(performance.now() * 0.004) * 0.12;
-            this.ringMesh.material.opacity = Math.max(0.52, pulse);
+            const pulse = 0.9 + Math.sin(performance.now() * 0.004) * 0.08;
+            this.ringMesh.material.opacity = Math.max(0.75, pulse);
         }
         if (this.zoneMesh) {
-            const pulse = 0.08 + Math.sin(performance.now() * 0.003) * 0.025;
-            this.zoneMesh.material.opacity = Math.max(0.06, pulse);
+            const pulse = 0.2 + Math.sin(performance.now() * 0.003) * 0.04;
+            this.zoneMesh.material.opacity = Math.max(0.14, pulse);
         }
     }
 

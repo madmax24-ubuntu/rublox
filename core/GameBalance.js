@@ -1,11 +1,11 @@
 export const GAME_CONFIG = {
     bots: {
-        desktopCount: 40,
-        mobileCount: 32,
+        desktopCount: 39,
+        mobileCount: 39,
         spawnRadius: 16
     },
     round: {
-        countdownSeconds: 10,
+        countdownSeconds: 15,
         preFightInvulnerableSeconds: 20,
         botLootPhaseSeconds: 8
     },

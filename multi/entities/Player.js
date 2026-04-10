@@ -435,6 +435,10 @@ export class Player {
             const currentTime = performance.now() / 1000;
             if (this.physics.onGround && currentTime - this.lastFootstepTime > 0.5 && audioSynth) {
                 audioSynth.playFootstep(this.footstepVolume);
+                const surfaceType = this.mapRef?.getSlowZoneTypeAt?.(this.position.x, this.position.z);
+                if (surfaceType === 'glass') {
+                    audioSynth.playGlassStep?.(this.position, `player-${Math.floor(currentTime * 10)}`);
+                }
                 this.lastFootstepTime = currentTime;
             }
 
@@ -825,6 +829,15 @@ export class Player {
                     }
                 }
             }
+        } else if (loot.type === 'heal') {
+            const healAmount = loot.amount || 45;
+            const beforeHp = this.health;
+            this.health = Math.min(this.maxHealth, this.health + healAmount);
+            this.armor = Math.min(this.maxArmor, this.armor + Math.round(healAmount * 0.12));
+            const restored = Math.max(0, Math.round(this.health - beforeHp));
+            if (restored > 0) {
+                feedParts.push(`Аптечка: +${restored} HP`);
+            }
         }
         if (loot.bonusAmmo) {
             const gained = this.addAmmoToWeaponType(loot.bonusAmmo.weaponType, loot.bonusAmmo.amount);
@@ -840,6 +853,8 @@ export class Player {
 
     takeDamage(damage, isHeadshot = false, attacker = null, knockbackStrength = 0, source = null) {
         if (this.isInvulnerable) return false;
+        const hpBefore = this.health;
+        const armorBefore = this.armor;
 
         const finalDamage = (isHeadshot ? damage * 2 : damage) * (1 - this.damageReduction) * this.damageTakenMultiplier;
         if (finalDamage > 0) {
@@ -874,15 +889,18 @@ export class Player {
             }
             this.clearBurning();
         }
+        const hpDelta = Math.max(0, hpBefore - this.health);
+        const armorDelta = Math.max(0, armorBefore - this.armor);
+        const tookRealDamage = (hpDelta + armorDelta) > 0.001;
         const isDotDamage = source === 'zone' || source === 'storm' || source === 'burn' || source === 'trap';
-        if (!isDotDamage) {
+        if (!isDotDamage && tookRealDamage) {
             this.flashDamage();
             spawnDamagePopup(this.scene, this.position, finalDamage, { color: '#ff5b5b', key: 'player' });
         }
         if (source === 'flame' && this.isAlive) {
             this.applyBurn(2.2, 4.2, attacker);
         }
-        if (this.audioSynthRef) {
+        if (this.audioSynthRef && tookRealDamage) {
             if (source === 'zone' && this.audioSynthRef.playZoneDamage) {
                 this.audioSynthRef.playZoneDamage();
             } else if (this.audioSynthRef.playHurt) {
@@ -1161,7 +1179,7 @@ export class Player {
                 .subVectors(target.position, this.position)
                 .normalize();
 
-            const projectileData = weapon.attack(this, null, null, direction);
+            const projectileData = weapon.attack(this, null, this.audioSynthRef, direction);
             if (projectileData && projectileData.projectiles) {
                 for (const proj of projectileData.projectiles) {
                     proj.owner = this;
@@ -1178,7 +1196,7 @@ export class Player {
                 return { fired: true, damage: weapon.damage };
             }
         } else {
-            const result = weapon.attack(this, target);
+            const result = weapon.attack(this, target, this.audioSynthRef);
             if (result && result.hit) {
                 target.takeDamage(result.damage, result.isHeadshot, this, result.knockback || 0);
                 return { hit: true, damage: result.damage, killed: target.health <= 0 };
@@ -1188,3 +1206,4 @@ export class Player {
         return null;
     }
 }
+

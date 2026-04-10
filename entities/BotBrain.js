@@ -5,6 +5,7 @@ const STATES = {
     LOOT: 'loot',
     COMBAT: 'combat',
     CHASE: 'chase',
+    SURVIVAL: 'survival',
     ZONE_RETREAT: 'zoneRetreat',
     SHELTER: 'shelter'
 };
@@ -65,6 +66,10 @@ export class BotBrain {
         }
         if (bot.state === STATES.ZONE_RETREAT) {
             this.actZoneRetreat(bot, ctx);
+            return;
+        }
+        if (bot.state === STATES.SURVIVAL) {
+            this.actSurvival(bot, ctx);
             return;
         }
         if (bot.state === STATES.LOOT) {
@@ -169,6 +174,11 @@ export class BotBrain {
         const veryLowHp = ctx.hp < 0.2;
         const underPressure = ctx.nearestEnemy && ctx.nearestEnemyDist < ctx.closeCombatRadius;
         const armed = !!bot.currentWeapon && bot.currentWeapon.type !== 'fists';
+        const hasMedkit = (bot.medkits || 0) > 0;
+
+        if ((veryLowHp && hasMedkit) || (lowHp && hasMedkit && underPressure)) {
+            return STATES.SURVIVAL;
+        }
 
         if (veryLowHp && ctx.shelterTarget && (!ctx.nearestEnemy || ctx.nearestEnemyDist > 10)) return STATES.ZONE_RETREAT;
         if (lowHp && !armed && ctx.lootTarget) return STATES.LOOT;
@@ -283,6 +293,19 @@ export class BotBrain {
             bot.physics.velocity.x *= 0.7;
             bot.physics.velocity.z *= 0.7;
         }
+    }
+
+    actSurvival(bot, ctx) {
+        if ((bot.health / Math.max(1, bot.maxHealth || 100)) < 0.55) {
+            bot.useMedkit?.();
+        }
+        const shelter = ctx.shelterTarget || this.findNearestShelterTarget(bot);
+        if (shelter) {
+            bot.patrolTarget = shelter;
+            bot.moveTowards(shelter, bot.physics.speed * 1.18);
+            return;
+        }
+        this.actZoneRetreat(bot, ctx);
     }
 
     pickCombatTarget(bot, ctx, entityManager) {

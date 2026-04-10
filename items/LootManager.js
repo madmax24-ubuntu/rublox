@@ -445,7 +445,8 @@ export class LootManager {
             if (rareRoll < 0.7) return { type: 'weapon', weaponType: 'flamethrower' };
             if (rareRoll < 0.87) return { type: 'weapon', weaponType: 'machinegun' };
             if (rareRoll < 0.95) return { type: 'weapon', weaponType: 'shotgun' };
-            return { type: 'armor', amount: 60 + Math.random() * 40 };
+            if (rareRoll < 0.985) return { type: 'armor', amount: 60 + Math.random() * 40 };
+            return { type: 'heal', amount: 55 };
         }
 
         // Предыдущая логика генерации добычи была запутанной и содержала недостижимый код.
@@ -466,9 +467,11 @@ export class LootManager {
             return { type: 'weapon', weaponType: 'rifle' };
         } else if (rand < 0.84) { // 10% для пулемета
             return { type: 'weapon', weaponType: 'machinegun' };
-        } else if (rand < 0.93) { // 9% для патронов
+        } else if (rand < 0.9) { // 6% для аптечки
+            return { type: 'heal', amount: 40 + Math.random() * 25 };
+        } else if (rand < 0.95) { // 5% для патронов
             return { type: 'ammo', amount: 10 + Math.floor(Math.random() * 9) };
-        } else { // 7% для брони
+        } else { // 5% для брони
             return { type: 'armor', amount: 25 + Math.random() * 25 };
         }
     }

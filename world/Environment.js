@@ -9,6 +9,8 @@ export class Environment {
         this.weatherTimer = 18 + Math.random() * 18;
         this.enableWeather = false;
         this.targetFog = 0.0028;
+        this.currentWeather = 'clear';
+        this.weatherChanged = true;
         this.forceNightTimer = 0;
         this.overrideFog = null;
         this.overrideFogColor = null;
@@ -61,20 +63,24 @@ export class Environment {
             this.weatherTimer -= delta;
             if (this.weatherTimer <= 0) {
                 const roll = Math.random();
-                if (roll < 0.5) this.weatherType = 'clear';
-                else if (roll < 0.8) this.weatherType = 'fog';
-                else this.weatherType = 'rain';
+                const prev = this.weatherType;
+                if (roll < 0.46) this.weatherType = 'clear';
+                else if (roll < 0.76) this.weatherType = 'rain';
+                else this.weatherType = 'snow';
+                if (prev !== this.weatherType) {
+                    this.weatherChanged = true;
+                }
                 this.weatherTimer = 20 + Math.random() * 25;
             }
 
-            if (this.weatherType === 'fog') {
-                this.targetFog = 0.0065;
-                intensity *= 0.75;
-                skyColor.lerp(new THREE.Color(0xa0b3c0), 0.3);
-            } else if (this.weatherType === 'rain') {
+            if (this.weatherType === 'rain') {
                 this.targetFog = 0.0048;
                 intensity *= 0.65;
                 skyColor.lerp(new THREE.Color(0x7a8a9a), 0.35);
+            } else if (this.weatherType === 'snow') {
+                this.targetFog = 0.0059;
+                intensity *= 0.78;
+                skyColor.lerp(new THREE.Color(0xd7e4f5), 0.42);
             } else {
                 this.targetFog = 0.0036;
             }
@@ -109,6 +115,7 @@ export class Environment {
             const target = forcedNight ? 0.08 : 0.2 + intensity * 0.75;
             this.hemi.intensity = THREE.MathUtils.lerp(this.hemi.intensity, target, delta * 0.8);
         }
+        this.currentWeather = this.weatherType;
     }
 
     forceNight(duration = 20) {
@@ -123,5 +130,15 @@ export class Environment {
     clearFogOverride() {
         this.overrideFog = null;
         this.overrideFogColor = null;
+    }
+
+    consumeWeatherChange() {
+        if (!this.weatherChanged) return null;
+        this.weatherChanged = false;
+        return this.currentWeather || this.weatherType || 'clear';
+    }
+
+    getWeatherType() {
+        return this.currentWeather || this.weatherType || 'clear';
     }
 }

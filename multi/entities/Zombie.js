@@ -23,7 +23,25 @@ export class Zombie {
         this.alertTimer = 0;
         this.alertTarget = null;
         this.alertPosition = null;
-        this.variant = ['brute', 'stalker', 'mutant'][Math.floor(Math.random() * 3)];
+        const roll = Math.random();
+        this.variant = roll < 0.5 ? 'runner' : (roll < 0.78 ? 'normal' : 'heavy');
+        if (this.variant === 'runner') {
+            this.maxHealth = 42;
+            this.health = 42;
+            this.physics.speed = 7.6;
+            this.knockbackMultiplier = 1.2;
+        } else if (this.variant === 'heavy') {
+            this.maxHealth = 180;
+            this.health = 180;
+            this.physics.speed = 3.2;
+            this.physics.radius = 0.62;
+            this.knockbackMultiplier = 0;
+        } else {
+            this.maxHealth = 72;
+            this.health = 72;
+            this.physics.speed = 5.1;
+            this.knockbackMultiplier = 0.8;
+        }
         this.stats = { damage: 0, kills: 0, loot: 0 };
         this.burnTimer = 0;
         this.burnTickTimer = 0;
@@ -31,16 +49,16 @@ export class Zombie {
         this.burnAttacker = null;
 
         this.mesh = this.createMesh();
-        const scale = this.variant === 'brute' ? 1.5 : this.variant === 'mutant' ? 1.4 : 1.3;
+        const scale = this.variant === 'heavy' ? 1.56 : this.variant === 'runner' ? 1.2 : 1.35;
         this.mesh.scale.setScalar(scale);
-        this.physics.radius = this.variant === 'brute' ? 0.58 : this.variant === 'mutant' ? 0.55 : 0.52;
+        this.physics.radius = this.variant === 'heavy' ? 0.6 : this.variant === 'runner' ? 0.48 : 0.54;
         this.scene.add(this.mesh);
     }
 
     createMesh() {
         const group = new THREE.Group();
-        const bodyColor = this.variant === 'brute' ? 0x1b241f : this.variant === 'mutant' ? 0x1f2a23 : 0x1c2621;
-        const headColor = this.variant === 'brute' ? 0x222c26 : this.variant === 'mutant' ? 0x263029 : 0x202a24;
+        const bodyColor = this.variant === 'heavy' ? 0x1b241f : this.variant === 'runner' ? 0x26352c : 0x1f2a23;
+        const headColor = this.variant === 'heavy' ? 0x222c26 : this.variant === 'runner' ? 0x2c3c31 : 0x263029;
         const bodyMat = new THREE.MeshStandardMaterial({
             color: bodyColor,
             roughness: 0.85,
@@ -83,7 +101,7 @@ export class Zombie {
         rib.position.set(0, 0.95, 0.34);
         group.add(rib);
 
-        if (this.variant !== 'stalker') {
+        if (this.variant !== 'runner') {
             const shoulderPlate = new THREE.Mesh(
                 new THREE.BoxGeometry(1.0, 0.18, 0.55),
                 armorMat
@@ -145,8 +163,8 @@ export class Zombie {
         const rightArm = new THREE.Mesh(armGeo, bodyMat);
         leftArm.position.set(-0.52, 1.0, 0.12);
         rightArm.position.set(0.52, 1.0, 0.12);
-        leftArm.rotation.x = this.variant === 'brute' ? -0.95 : -0.8;
-        rightArm.rotation.x = this.variant === 'brute' ? -0.95 : -0.8;
+        leftArm.rotation.x = this.variant === 'heavy' ? -0.95 : -0.8;
+        rightArm.rotation.x = this.variant === 'heavy' ? -0.95 : -0.8;
         group.add(leftArm);
         group.add(rightArm);
 
@@ -174,7 +192,7 @@ export class Zombie {
         rightClaw.rotation.x = Math.PI / 2;
         group.add(rightClaw);
 
-        if (this.variant === 'brute') {
+        if (this.variant === 'heavy') {
             const backpack = new THREE.Mesh(
                 new THREE.BoxGeometry(0.55, 0.7, 0.25),
                 armorMat
@@ -190,7 +208,7 @@ export class Zombie {
         spineGlow.position.set(0, 1.1, -0.52);
         group.add(spineGlow);
 
-        if (this.variant === 'stalker') {
+        if (this.variant === 'runner') {
             const mask = new THREE.Mesh(
                 new THREE.BoxGeometry(0.68, 0.68, 0.06),
                 new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.4, flatShading: true })
@@ -199,7 +217,7 @@ export class Zombie {
             group.add(mask);
         }
 
-        if (this.variant === 'mutant') {
+        if (this.variant === 'heavy') {
             const spikesGeo = new THREE.ConeGeometry(0.06, 0.18, 5);
             const spikesMat = new THREE.MeshStandardMaterial({ color: 0x263238, roughness: 0.5, flatShading: true });
             for (let i = 0; i < 5; i++) {
@@ -249,9 +267,10 @@ export class Zombie {
             this.alertTimer = 2.8;
             if (dist < 2.6 && this.attackCooldown <= 0) {
                 const targetType = target?.constructor?.name;
-                const damage = targetType === 'Bot' ? 2.6 : 7.2;
+                const baseDamage = this.variant === 'heavy' ? 9.2 : this.variant === 'runner' ? 5.8 : 7.2;
+                const damage = targetType === 'Bot' ? baseDamage * 0.42 : baseDamage;
                 target.takeDamage(damage, false, this, 3.2);
-                this.attackCooldown = 0.72;
+                this.attackCooldown = this.variant === 'runner' ? 0.52 : (this.variant === 'heavy' ? 1.05 : 0.72);
                 if (audioSynth) {
                     audioSynth.playZombieAttack?.(this.position);
                 }
@@ -289,7 +308,7 @@ export class Zombie {
         this.mesh.position.y = this.position.y - (this.physics.height - 0.2);
         this.mesh.rotation.y = this.rotation.y;
         const pulse = 1 + Math.sin(performance.now() * 0.008 + this.id) * 0.015;
-        this.mesh.scale.setScalar((this.variant === 'brute' ? 1.5 : this.variant === 'mutant' ? 1.4 : 1.3) * pulse);
+        this.mesh.scale.setScalar((this.variant === 'heavy' ? 1.56 : this.variant === 'runner' ? 1.2 : 1.35) * pulse);
         this.animateLimbs();
     }
 
@@ -380,11 +399,12 @@ export class Zombie {
         }
 
         if (attacker && this.isAlive) {
-            const strength = knockbackStrength > 0 ? knockbackStrength : 2.5;
+            const strengthBase = knockbackStrength > 0 ? knockbackStrength : 2.5;
+            const strength = strengthBase * (this.knockbackMultiplier ?? 1);
             const dir = new THREE.Vector3().subVectors(this.position, attacker.position).normalize();
             this.physics.velocity.x += dir.x * strength;
             this.physics.velocity.z += dir.z * strength;
-            this.physics.velocity.y += 1.5;
+            this.physics.velocity.y += 1.5 * (this.knockbackMultiplier ?? 1);
             this.alertTarget = attacker;
             this.alertPosition = attacker.position.clone();
             this.alertTimer = Math.max(this.alertTimer, 3.2);
