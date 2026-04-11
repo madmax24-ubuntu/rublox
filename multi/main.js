@@ -358,6 +358,7 @@ class Game {
         };
         this.centerBlastVfx = null;
         this.minimapTimer = 0;
+        this.noBugCheckTimer = 0;
         this.poiZombieSeeded = false;
         this.isPaused = false;
         this.autoPausedByVisibility = false;
@@ -522,7 +523,11 @@ class Game {
                 const radius = cycle === 0 ? 0 : 0.62 + (cycle - 1) * 0.34;
                 const offsetX = Math.cos(angle) * radius;
                 const offsetZ = Math.sin(angle) * radius;
-                const groundY = this.map.getHeightAt?.(pad.x + offsetX, pad.z + offsetZ) ?? pad.y;
+                const groundY = this.map.raycastGroundY?.(
+                    pad.x + offsetX,
+                    pad.z + offsetZ,
+                    this.map.getSurfaceHeightAt?.(pad.x + offsetX, pad.z + offsetZ) ?? this.map.getHeightAt?.(pad.x + offsetX, pad.z + offsetZ) ?? pad.y
+                ) ?? pad.y;
                 spawnPos = new THREE.Vector3(pad.x + offsetX, groundY + 1.9, pad.z + offsetZ);
             } else {
                 const angle = (i / botCount) * Math.PI * 2;
@@ -866,6 +871,53 @@ class Game {
         return this.map?.isShelteredFromRain?.(position) || false;
     }
 
+    enforceNoBugPolicy(delta) {
+        this.noBugCheckTimer = Math.max(0, this.noBugCheckTimer - delta);
+        if (this.noBugCheckTimer > 0) return;
+        this.noBugCheckTimer = this.isMobile() ? 0.45 : 0.3;
+
+        if (this.isStarted) {
+            const startScreen = document.getElementById('startScreen');
+            if (startScreen && startScreen.style.display !== 'none') {
+                this.hideStartScreen();
+            }
+        }
+
+        const mapSize = this.map?.size || 512;
+        const maxAbs = mapSize * 0.78;
+        const sanitize = (entity) => {
+            if (!entity?.position) return;
+            const p = entity.position;
+            if (!Number.isFinite(p.x) || !Number.isFinite(p.y) || !Number.isFinite(p.z)) {
+                const pads = this.map.getSpawnPads?.() || [];
+                const base = pads[0] || new THREE.Vector3(0, 1.6, 0);
+                p.set(base.x, base.y + (entity.physics?.height || 1.8), base.z);
+                entity.physics?.velocity?.set?.(0, 0, 0);
+                return;
+            }
+            p.x = Math.max(-maxAbs, Math.min(maxAbs, p.x));
+            p.z = Math.max(-maxAbs, Math.min(maxAbs, p.z));
+            const surface = this.map?.getSurfaceHeightAt?.(p.x, p.z) ?? (this.map?.getHeightAt?.(p.x, p.z) ?? 0.4);
+            const minY = surface + (entity.physics?.height || 1.8) - 2.5;
+            const maxY = surface + 140;
+            if (p.y < minY || p.y > maxY) {
+                p.y = surface + (entity.physics?.height || 1.8);
+                entity.physics?.velocity?.set?.(0, 0, 0);
+            }
+        };
+
+        sanitize(this.player);
+        for (let i = 0; i < this.bots.length; i++) sanitize(this.bots[i]);
+        for (let i = 0; i < this.zombies.length; i++) sanitize(this.zombies[i]);
+
+        if (this.zone) {
+            if (!this.zone.zoneMesh || !this.zone.ringMesh) {
+                this.zone.createZone?.();
+            }
+            this.zone.syncVisuals?.();
+        }
+    }
+
     spawnEnvironmentEntities() {
         if (!this.map?.getExplosiveBarrelSpots) return;
         if (this.environmentEntities?.length) {
@@ -1064,7 +1116,7 @@ class Game {
 
         if (event === "blindness") {
             this.activeEvent.type = "blindness";
-            this.activeEvent.timer = 26;
+            this.activeEvent.timer = 4;
             if (this.env?.setFogOverride) {
                 this.env.setFogOverride(0.085, 0x030307);
             } else if (this.scene?.fog) {
@@ -1176,6 +1228,7 @@ class Game {
     }
 
     update(delta) {
+        this.enforceNoBugPolicy(delta);
         if (this.isStarted && loadingOverlay && loadingOverlay.style.display !== 'none') {
             loadingOverlay.style.display = 'none';
         }
@@ -1530,7 +1583,8 @@ class Game {
                 && !bot.target
                 && !bot.assistTarget
                 && bot.state !== 'combat'
-                && bot.state !== 'chase';
+                && bot.state !== 'chase'
+                && bot.state !== 'engage';
             if (isFarIdleBot && ((this.botFrameCounter + botIndex) % 2) !== 0) {
                 if (bot.mesh) {
                     bot.mesh.position.copy(bot.position);
@@ -1725,6 +1779,29 @@ class Game {
             this.lastInventorySignature = inventorySignature;
             this.hudInventoryTimer = this.isMobile() ? 0.14 : 0.08;
         }
+        this.minimapTimer -= delta;
+        if (this.minimapTimer <= 0) {
+            const botPoints = [];
+            for (let i = 0; i < this.bots.length; i++) {
+                const bot = this.bots[i];
+                if (!bot?.isAlive) continue;
+                botPoints.push({ x: bot.position.x, z: bot.position.z });
+            }
+            const zombiePoints = [];
+            for (let i = 0; i < this.zombies.length && zombiePoints.length < 96; i++) {
+                const zombie = this.zombies[i];
+                if (!zombie?.isAlive) continue;
+                zombiePoints.push({ x: zombie.position.x, z: zombie.position.z });
+            }
+            this.hud.updateMinimap?.({
+                mapSize: this.map.size,
+                zoneRadius: this.zone.getCurrentRadius(),
+                player: { x: this.player.position.x, z: this.player.position.z },
+                bots: botPoints,
+                zombies: zombiePoints
+            });
+            this.minimapTimer = this.isMobile() ? 0.16 : 0.1;
+        }
 
         if (this.gameState === 'playing' && !this.roundFinished) {
             if (aliveCount === 0) {
@@ -1812,9 +1889,11 @@ class Game {
             const x = fallbackSpot.x + (Math.random() - 0.5) * jitter;
             const z = fallbackSpot.z + (Math.random() - 0.5) * jitter;
             if (!interiorSpot && !this.map.isWalkableAt?.(x, z)) return false;
-            const baseY = (point.type === "house" || point.type === "hangar")
-                ? (this.map.getHeightAt?.(x, z) ?? 0)
-                : (this.map.getSurfaceHeightAt?.(x, z) ?? this.map.getHeightAt(x, z));
+            const baseY = this.map.raycastGroundY?.(
+                x,
+                z,
+                this.map.getSurfaceHeightAt?.(x, z) ?? this.map.getHeightAt?.(x, z) ?? 0
+            ) ?? 0;
             const pos = new THREE.Vector3(x, baseY + 1.8, z);
             if (pos.distanceTo(this.player.position) < 14) return false;
             const zombie = new Zombie(this.scene, this.nextZombieId++, pos);
@@ -1965,7 +2044,11 @@ class Game {
             this.zombieSpawnCursor = (this.zombieSpawnCursor + 1) % floorTiles.length;
             attempts++;
             if (spawned >= count) break;
-            const baseY = this.map.getSurfaceHeightAt?.(tile.x, tile.z) ?? this.map.getHeightAt(tile.x, tile.z);
+            const baseY = this.map.raycastGroundY?.(
+                tile.x,
+                tile.z,
+                this.map.getSurfaceHeightAt?.(tile.x, tile.z) ?? this.map.getHeightAt?.(tile.x, tile.z) ?? 0
+            ) ?? 0;
             const pos = new THREE.Vector3(tile.x, baseY + 1.8, tile.z);
             if (pos.distanceTo(this.player.position) < (reset ? 20 : 24)) continue;
             if (!this.map.isWalkableAt?.(tile.x, tile.z)) continue;

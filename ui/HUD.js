@@ -143,6 +143,36 @@ export class HUD {
         perkInfo.textContent = '\u041f\u0435\u0440\u043a: -';
         topBar.appendChild(perkInfo);
 
+        const minimapWrap = document.createElement('div');
+        minimapWrap.id = 'minimapWrap';
+        minimapWrap.style.cssText = `
+            position: absolute;
+            top: ${px(isMobile ? 66 : 74)}px;
+            right: ${px(14)}px;
+            width: ${px(isMobile ? 120 : 156)}px;
+            height: ${px(isMobile ? 120 : 156)}px;
+            background: rgba(14, 26, 36, 0.86);
+            border: 2px solid rgba(255, 255, 255, 0.14);
+            border-radius: ${px(12)}px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.26);
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 1180;
+        `;
+        const minimapCanvas = document.createElement('canvas');
+        minimapCanvas.id = 'minimapCanvas';
+        minimapCanvas.width = isMobile ? 200 : 260;
+        minimapCanvas.height = isMobile ? 200 : 260;
+        minimapCanvas.style.cssText = `
+            width: 100%;
+            height: 100%;
+            display: block;
+        `;
+        minimapWrap.appendChild(minimapCanvas);
+        hud.appendChild(minimapWrap);
+        this.minimapCanvas = minimapCanvas;
+        this.minimapCtx = minimapCanvas.getContext('2d', { alpha: true });
+
         const leftPanel = document.createElement('div');
         leftPanel.style.cssText = `
             position: absolute;
@@ -1470,6 +1500,75 @@ export class HUD {
             ammoInfo.textContent = `\u041f\u0430\u0442\u0440\u043e\u043d\u044b: ${weapon.ammo ?? 0}`;
         } else {
             ammoInfo.textContent = '';
+        }
+    }
+
+    updateMinimap(data = {}) {
+        const ctx = this.minimapCtx;
+        const canvas = this.minimapCanvas;
+        if (!ctx || !canvas) return;
+        const size = canvas.width;
+        const half = size * 0.5;
+        const mapSize = Math.max(1, data.mapSize || 1);
+        const scale = size / mapSize;
+        const toMap = (x = 0, z = 0) => ({
+            x: half + x * scale,
+            y: half + z * scale
+        });
+
+        ctx.clearRect(0, 0, size, size);
+        ctx.fillStyle = 'rgba(10, 18, 26, 0.92)';
+        ctx.fillRect(0, 0, size, size);
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+        ctx.lineWidth = Math.max(1, size * 0.005);
+        for (let i = 1; i < 4; i++) {
+            const p = (size / 4) * i;
+            ctx.beginPath();
+            ctx.moveTo(p, 0);
+            ctx.lineTo(p, size);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, p);
+            ctx.lineTo(size, p);
+            ctx.stroke();
+        }
+
+        const zoneRadius = Math.max(0, data.zoneRadius || 0) * scale;
+        if (zoneRadius > 1) {
+            ctx.beginPath();
+            ctx.arc(half, half, zoneRadius, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(38, 140, 255, 0.08)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(96, 190, 255, 0.95)';
+            ctx.lineWidth = Math.max(2, size * 0.008);
+            ctx.stroke();
+        }
+
+        const drawDot = (x, z, color, r) => {
+            const p = toMap(x, z);
+            if (p.x < 0 || p.y < 0 || p.x > size || p.y > size) return;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+        };
+
+        const botR = Math.max(1.8, size * 0.012);
+        const zombieR = Math.max(1.5, size * 0.01);
+        const playerR = Math.max(2.4, size * 0.0145);
+        const bots = data.bots || [];
+        const zombies = data.zombies || [];
+        for (let i = 0; i < bots.length; i++) {
+            const b = bots[i];
+            drawDot(b.x, b.z, '#ffcf33', botR);
+        }
+        for (let i = 0; i < zombies.length; i++) {
+            const z = zombies[i];
+            drawDot(z.x, z.z, '#ff4b4b', zombieR);
+        }
+        if (data.player) {
+            drawDot(data.player.x, data.player.z, '#3cff7a', playerR);
         }
     }
 }

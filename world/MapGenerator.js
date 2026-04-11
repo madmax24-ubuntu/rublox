@@ -41,22 +41,20 @@ export class MapGenerator {
         this.fogZones = [];
         this.cornucopiaGroup = null;
         this.cornucopiaDestroyed = false;
+        this.useStaticBiomeLayer = true;
+        this.biomeLayerMesh = null;
+        this.biomeLayerTexture = null;
         this.spawnCourtyardRadius = 54;
-        this.biomeSectors = [
-            { id: "whispering_forest", name: "Шепчущий лес" },
-            { id: "stone_labyrinth", name: "Каменный лабиринт" },
-            { id: "industrial", name: "Индустриал" },
-            { id: "flooded_suburb", name: "Затопленный пригород" },
-            { id: "blockpost", name: "Блокпост" },
-            { id: "skeletal_canyon", name: "Скелетный каньон" },
-            { id: "agro_complex", name: "Агрокомплекс" },
-            { id: "rail_hub", name: "Ж/Д узел" }
-        ];
+        this.biomeSectors = this.getBiomeSectorsByMapSize(256);
         this._tmpMatrix = new THREE.Matrix4();
         this._tmpPos = new THREE.Vector3();
         this._tmpQuat = new THREE.Quaternion();
         this._tmpScale = new THREE.Vector3(1, 1, 1);
         this._zeroCenter = new THREE.Vector3(0, 0, 0);
+        this._groundRaycaster = new THREE.Raycaster();
+        this._groundRayDir = new THREE.Vector3(0, -1, 0);
+        this.mapObjectsCollection = null;
+        this.mapObjects = [];
         this.houseVariants = [
             { width: 9.2, depth: 7.8, height: 4.4, doorWidth: 2.4, wallColor: 0xc9b08d, roofColor: 0x5f4638, style: "classic" },
             { width: 8.8, depth: 7.2, height: 4.2, doorWidth: 2.2, wallColor: 0xd1bfa3, roofColor: 0x6a4e3a, style: "cozy" },
@@ -131,9 +129,10 @@ export class MapGenerator {
     }
 
     generate() {
-        const rawSizeBase = (129 + Math.floor((this.seed % 10) * 6)) * 2;
+        const rawSizeBase = (129 + Math.floor((this.seed % 10) * 6));
         const isMobile = !!this.scene?.userData?.mobileMode;
-        const sizeBase = isMobile ? Math.max(188, Math.floor(rawSizeBase * 0.72)) : rawSizeBase;
+        const sizeBase = isMobile ? Math.max(96, Math.floor(rawSizeBase * 0.72)) : rawSizeBase;
+        this.biomeSectors = this.getBiomeSectorsByMapSize(sizeBase);
         const width = sizeBase;
         const height = sizeBase;
         const data = this.tileGen.generate(width, height, this.seed);
@@ -163,6 +162,28 @@ export class MapGenerator {
         const themes = ['plains', 'forest', 'sand', 'snow', 'swamp', 'mesa'];
         const index = Math.abs(this.seed || 1) % themes.length;
         return themes[index];
+    }
+
+    getBiomeSectorsByMapSize(sizeBase = 256) {
+        const full = [
+            { id: "tropical_jungle", name: "Тропические джунгли" },
+            { id: "industrial_ruins", name: "Промышленные руины" },
+            { id: "train_graveyard", name: "Кладбище поездов" },
+            { id: "toxic_swamp", name: "Токсичное болото" },
+            { id: "frozen_tundra", name: "Замерзшая тундра" },
+            { id: "desert_canyon", name: "Пустынный каньон" },
+            { id: "urban_decay", name: "Городские руины" },
+            { id: "pine_forest", name: "Густой сосновый лес" }
+        ];
+        if (sizeBase >= 220) return full;
+        return [
+            full[0],
+            full[1],
+            full[2],
+            full[3],
+            full[4],
+            full[5]
+        ];
     }
 
     decorateBiomeTiles() {
@@ -304,6 +325,11 @@ export class MapGenerator {
         this.explosiveBarrelSpots = [];
         this.verticalCoverSpots = [];
         this.fogZones = [];
+        this.mapObjects = [];
+        this.mapObjectsCollection = new THREE.Group();
+        this.mapObjectsCollection.name = "MapObjects";
+        this.mapObjectsCollection.userData.mapGenerated = true;
+        this.scene.add(this.mapObjectsCollection);
         const wallMat = new THREE.MeshStandardMaterial({
             color: 0x8d8d8d,
             roughness: 0.85,
@@ -366,27 +392,31 @@ export class MapGenerator {
             }
         }
 
-        floorsByBiome.forEach((floors, key) => {
-            const [biomeKey, variantRaw] = key.split(":");
-            const variant = Number(variantRaw) || 0;
-            const floorMat = new THREE.MeshLambertMaterial({
-                color: this.getBiomeVariantColor(biomeKey, variant),
-                flatShading: true
+        if (this.useStaticBiomeLayer) {
+            this.buildStaticBiomeLayer();
+        } else {
+            floorsByBiome.forEach((floors, key) => {
+                const [biomeKey, variantRaw] = key.split(":");
+                const variant = Number(variantRaw) || 0;
+                const floorMat = new THREE.MeshLambertMaterial({
+                    color: this.getBiomeVariantColor(biomeKey, variant),
+                    flatShading: true
+                });
+                const inst = new THREE.InstancedMesh(floorGeo, floorMat, floors.length);
+                const matrix = new THREE.Matrix4();
+                const position = new THREE.Vector3();
+                const rotation = new THREE.Quaternion();
+                const scale = new THREE.Vector3(1, 1, 1);
+                floors.forEach((f, i) => {
+                    const h = this.heightMap?.[f.gy]?.[f.gx] ?? 0;
+                    position.set(f.x, h + 0.2, f.z);
+                    matrix.compose(position, rotation, scale);
+                    inst.setMatrixAt(i, matrix);
+                });
+                inst.userData.mapGenerated = true;
+                this.scene.add(inst);
             });
-            const inst = new THREE.InstancedMesh(floorGeo, floorMat, floors.length);
-            const matrix = new THREE.Matrix4();
-            const position = new THREE.Vector3();
-            const rotation = new THREE.Quaternion();
-            const scale = new THREE.Vector3(1, 1, 1);
-            floors.forEach((f, i) => {
-                const h = this.heightMap?.[f.gy]?.[f.gx] ?? 0;
-                position.set(f.x, h + 0.2, f.z);
-                matrix.compose(position, rotation, scale);
-                inst.setMatrixAt(i, matrix);
-            });
-            inst.userData.mapGenerated = true;
-            this.scene.add(inst);
-        });
+        }
 
         if (walls.length) {
             const inst = new THREE.InstancedMesh(wallGeo, wallMat, walls.length);
@@ -414,7 +444,319 @@ export class MapGenerator {
         this.buildProps(filteredTrees, filteredJungleTrees, filteredRocks, filteredCacti, filteredIceSpikes, filteredBoulders);
         this.buildThemeGroundFeatures();
         this.buildVerticalCoverObjects();
-        this.buildBiomeSectorSetpieces();
+        this.buildStructuredEnvironment();
+    }
+
+    addToMapObjects(obj) {
+        if (!obj) return;
+        obj.userData = obj.userData || {};
+        obj.userData.mapGenerated = true;
+        if (this.mapObjectsCollection) this.mapObjectsCollection.add(obj);
+        else this.scene.add(obj);
+        this.mapObjects.push(obj);
+    }
+
+    isInsideTerrainBounds(x, z, margin = 2) {
+        const limit = this.halfSize - margin;
+        return Math.abs(x) <= limit && Math.abs(z) <= limit;
+    }
+
+    buildStructuredEnvironment() {
+        if (!this.floorTiles?.length) return;
+        const center = this.getSpawnWorld();
+        const arenaRadius = Math.min(300, this.halfSize - 8);
+        const voidRadius = 40;
+        const midRadius = Math.max(120, arenaRadius * 0.63);
+        const isMobile = !!this.scene?.userData?.mobileMode;
+        const densityMul = 3;
+        const chainLenMin = 6;
+        const chainLenMax = 12;
+        let state = (this.seed ^ 0x7f4a7c31) >>> 0;
+        const rand = () => {
+            state = (state * 1664525 + 1013904223) >>> 0;
+            return state / 0x100000000;
+        };
+
+        const ruinsTiles = [];
+        const highTiles = [];
+        const transitionTiles = [];
+        const transitionBand = 18;
+        for (const t of this.floorTiles) {
+            const dx = t.x - center.x;
+            const dz = t.z - center.z;
+            const dist = Math.hypot(dx, dz);
+            if (dist <= voidRadius || dist > arenaRadius) continue;
+            if (Math.abs(dist - midRadius) <= transitionBand) transitionTiles.push(t);
+            if (dist <= midRadius + transitionBand) ruinsTiles.push(t);
+            if (dist >= midRadius - transitionBand) highTiles.push(t);
+        }
+
+        const occupied = new Set();
+        const cell = 6;
+        const claim = (x, z) => {
+            const key = `${Math.round(x / cell)}:${Math.round(z / cell)}`;
+            if (occupied.has(key)) return false;
+            occupied.add(key);
+            return true;
+        };
+
+        const sampleGroundY = (x, z) => {
+            if (!this.isInsideTerrainBounds(x, z, 1)) return null;
+            const y = this.raycastGroundY?.(x, z, this.getSurfaceHeightAt(x, z));
+            return Number.isFinite(y) ? y : null;
+        };
+        const isNoSpawn = (x, z) => Math.hypot(x - center.x, z - center.z) <= (voidRadius + 6);
+
+        const wallEntries = [];
+        const debrisEntries = [];
+        const boulderEntries = [];
+        const spikeEntries = [];
+        const snap90 = [0, Math.PI * 0.5, Math.PI, Math.PI * 1.5];
+        const pickTile = (tiles) => (tiles.length ? tiles[(rand() * tiles.length) | 0] : null);
+
+        const pushDebris = (x, z, spread, count) => {
+            for (let i = 0; i < count; i++) {
+                const px = x + (rand() - 0.5) * spread;
+                const pz = z + (rand() - 0.5) * spread;
+                if (!claim(px, pz)) continue;
+                const y = sampleGroundY(px, pz);
+                if (y === null) continue;
+                const s = 0.6 + rand() * 1.4;
+                debrisEntries.push({ x: px, y: y + s * 0.5, z: pz, w: s, h: 0.35 + rand() * 0.55, d: s, ry: rand() * Math.PI * 2 });
+            }
+        };
+
+        const pushArchway = (x, z, baseAngle) => {
+            if (isNoSpawn(x, z)) return;
+            const y = sampleGroundY(x, z);
+            if (y === null) return;
+            const angle = snap90[((baseAngle / (Math.PI * 0.5)) | 0) & 3];
+            const nx = Math.cos(angle);
+            const nz = Math.sin(angle);
+            const px = -nz;
+            const pz = nx;
+            const halfSpan = 4.8;
+            const leftX = x + px * halfSpan;
+            const leftZ = z + pz * halfSpan;
+            const rightX = x - px * halfSpan;
+            const rightZ = z - pz * halfSpan;
+            wallEntries.push({ x: leftX, y: y + 5, z: leftZ, w: 2, h: 10, d: 2, ry: angle, walkable: false });
+            wallEntries.push({ x: rightX, y: y + 5, z: rightZ, w: 2, h: 10, d: 2, ry: angle, walkable: false });
+            wallEntries.push({ x, y: y + 10.8, z, w: 12, h: 2, d: 2, ry: angle, walkable: false });
+            pushDebris(x, z, 11, 5 + ((rand() * 3) | 0));
+        };
+
+        const pushLWall = (x, z, baseAngle) => {
+            if (isNoSpawn(x, z)) return;
+            const y = sampleGroundY(x, z);
+            if (y === null) return;
+            const angle = snap90[((baseAngle / (Math.PI * 0.5)) | 0) & 3];
+            wallEntries.push({ x, y: y + 5, z, w: 2, h: 10, d: 20, ry: angle, walkable: false });
+            const sideAngle = angle + Math.PI * 0.5;
+            const ox = Math.cos(angle) * 6;
+            const oz = Math.sin(angle) * 6;
+            wallEntries.push({ x: x + ox, y: y + 5, z: z + oz, w: 2, h: 10, d: 14, ry: sideAngle, walkable: false });
+            pushDebris(x + ox * 0.5, z + oz * 0.5, 9, 4 + ((rand() * 3) | 0));
+        };
+
+        const pushHighlands = (x, z) => {
+            if (isNoSpawn(x, z)) return;
+            const y = sampleGroundY(x, z);
+            if (y === null) return;
+            const isSpike = rand() < 0.5;
+            if (isSpike) {
+                const h = 18 + rand() * 12;
+                const r = 5 + rand() * 4;
+                spikeEntries.push({
+                    x, y: y + h * 0.5, z,
+                    sx: r * 1.8, sy: h, sz: r * 1.8,
+                    rx: rand() * 0.35, ry: rand() * Math.PI * 2, rz: rand() * 0.35,
+                    colliderW: r * 1.5, colliderH: h, colliderD: r * 1.5
+                });
+            } else {
+                const s = 14 + rand() * 12;
+                boulderEntries.push({
+                    x, y: y + s * 0.5, z,
+                    sx: s, sy: s * (0.8 + rand() * 0.4), sz: s * (0.85 + rand() * 0.35),
+                    rx: rand() * Math.PI * 2, ry: rand() * Math.PI * 2, rz: rand() * Math.PI * 2,
+                    colliderW: s * 0.95, colliderH: s * 0.95, colliderD: s * 0.95
+                });
+            }
+        };
+
+        const makeChain = (tiles, handler, minDist = 9, startPoint = null, startDir = null) => {
+            const start = pickTile(tiles);
+            const sx = startPoint?.x ?? start?.x;
+            const sz = startPoint?.z ?? start?.z;
+            if (!Number.isFinite(sx) || !Number.isFinite(sz)) return;
+            let x = sx;
+            let z = sz;
+            let dir = Number.isFinite(startDir) ? startDir : rand() * Math.PI * 2;
+            const count = chainLenMin + ((rand() * (chainLenMax - chainLenMin + 1)) | 0);
+            for (let i = 0; i < count; i++) {
+                const jx = (rand() - 0.5) * 2.2;
+                const jz = (rand() - 0.5) * 2.2;
+                const px = x + jx;
+                const pz = z + jz;
+                const d = Math.hypot(px - center.x, pz - center.z);
+                if (!isNoSpawn(px, pz) && d <= arenaRadius && claim(px, pz)) {
+                    handler(px, pz, dir);
+                }
+                dir += (rand() - 0.5) * 0.55;
+                const step = minDist + rand() * 5;
+                x += Math.cos(dir) * step;
+                z += Math.sin(dir) * step;
+            }
+        };
+        const buildPrimaryCorridorChains = () => {
+            const spokes = isMobile ? 10 : 14;
+            for (let i = 0; i < spokes; i++) {
+                const angle = (i / spokes) * Math.PI * 2 + (rand() - 0.5) * 0.18;
+                const r = voidRadius + 16 + rand() * 14;
+                const sx = center.x + Math.cos(angle) * r;
+                const sz = center.z + Math.sin(angle) * r;
+                const tangential = angle + (rand() > 0.5 ? Math.PI * 0.5 : -Math.PI * 0.5);
+                makeChain(ruinsTiles, (x, z, dir) => (rand() < 0.52 ? pushArchway(x, z, dir) : pushLWall(x, z, dir)), 11, { x: sx, z: sz }, tangential);
+            }
+            const outer = isMobile ? 8 : 12;
+            for (let i = 0; i < outer; i++) {
+                const angle = (i / outer) * Math.PI * 2 + (rand() - 0.5) * 0.22;
+                const r = midRadius + 24 + rand() * 24;
+                const sx = center.x + Math.cos(angle) * r;
+                const sz = center.z + Math.sin(angle) * r;
+                const chord = angle + (rand() > 0.5 ? Math.PI * 0.35 : -Math.PI * 0.35);
+                makeChain(highTiles, (x, z) => pushHighlands(x, z), 12.5, { x: sx, z: sz }, chord);
+            }
+        };
+
+        const ruinsChains = (isMobile ? 14 : 24) * densityMul;
+        const highChains = (isMobile ? 10 : 16) * densityMul;
+        const transitionChains = (isMobile ? 8 : 12) * densityMul;
+        for (let i = 0; i < ruinsChains; i++) {
+            makeChain(ruinsTiles, (x, z, dir) => (rand() < 0.5 ? pushArchway(x, z, dir) : pushLWall(x, z, dir)), 10);
+        }
+        for (let i = 0; i < highChains; i++) {
+            makeChain(highTiles, (x, z) => pushHighlands(x, z), 12);
+        }
+        for (let i = 0; i < transitionChains; i++) {
+            makeChain(transitionTiles, (x, z, dir) => {
+                if (rand() < 0.5) {
+                    if (rand() < 0.5) pushArchway(x, z, dir);
+                    else pushLWall(x, z, dir);
+                } else {
+                    pushHighlands(x, z);
+                }
+            }, 10.5);
+        }
+        buildPrimaryCorridorChains();
+
+        const makeBoxInstanced = (entries, mat, walkable = false) => {
+            if (!entries.length) return;
+            const geo = new THREE.BoxGeometry(1, 1, 1);
+            const inst = new THREE.InstancedMesh(geo, mat, entries.length);
+            const m = new THREE.Matrix4();
+            const p = new THREE.Vector3();
+            const q = new THREE.Quaternion();
+            const s = new THREE.Vector3();
+            const up = new THREE.Vector3(0, 1, 0);
+            let write = 0;
+            for (let i = 0; i < entries.length; i++) {
+                const e = entries[i];
+                if (!this.isInsideTerrainBounds(e.x, e.z, 1)) continue;
+                p.set(e.x, e.y, e.z);
+                q.setFromAxisAngle(up, e.ry || 0);
+                s.set(e.w, e.h, e.d);
+                m.compose(p, q, s);
+                inst.setMatrixAt(write, m);
+                this.addColliderBox(new THREE.Vector3(e.x, e.y, e.z), e.w, e.h, e.d, walkable);
+                write++;
+            }
+            if (!write) {
+                geo.dispose?.();
+                return;
+            }
+            inst.count = write;
+            inst.userData.collisionType = walkable ? "box_walkable" : "box_solid";
+            inst.userData.hasCollision = true;
+            this.addToMapObjects(inst);
+        };
+
+        const makeGeomInstanced = (entries, geometry, mat) => {
+            if (!entries.length) return;
+            const inst = new THREE.InstancedMesh(geometry, mat, entries.length);
+            const m = new THREE.Matrix4();
+            const p = new THREE.Vector3();
+            const q = new THREE.Quaternion();
+            const euler = new THREE.Euler();
+            const s = new THREE.Vector3();
+            let write = 0;
+            for (let i = 0; i < entries.length; i++) {
+                const it = entries[i];
+                if (!this.isInsideTerrainBounds(it.x, it.z, 1)) continue;
+                p.set(it.x, it.y, it.z);
+                euler.set(it.rx || 0, it.ry || 0, it.rz || 0, 'XYZ');
+                q.setFromEuler(euler);
+                s.set(it.sx || 1, it.sy || 1, it.sz || 1);
+                m.compose(p, q, s);
+                inst.setMatrixAt(write, m);
+                this.addColliderBox(
+                    new THREE.Vector3(it.x, it.y, it.z),
+                    it.colliderW || (it.sx || 1),
+                    it.colliderH || (it.sy || 1),
+                    it.colliderD || (it.sz || 1),
+                    false
+                );
+                write++;
+            }
+            if (!write) return;
+            inst.count = write;
+            inst.userData.collisionType = "mesh_solid";
+            inst.userData.hasCollision = true;
+            this.addToMapObjects(inst);
+        };
+
+        makeBoxInstanced(
+            wallEntries,
+            new THREE.MeshStandardMaterial({ color: 0x7a8088, roughness: 0.9, flatShading: true }),
+            false
+        );
+        makeBoxInstanced(
+            debrisEntries,
+            new THREE.MeshStandardMaterial({ color: 0x686d73, roughness: 0.95, flatShading: true }),
+            false
+        );
+        makeGeomInstanced(
+            boulderEntries,
+            new THREE.IcosahedronGeometry(1, 0),
+            new THREE.MeshStandardMaterial({ color: 0x6d5b4c, roughness: 0.96, flatShading: true })
+        );
+        makeGeomInstanced(
+            spikeEntries,
+            new THREE.ConeGeometry(1, 1, 8),
+            new THREE.MeshStandardMaterial({ color: 0x5b4c42, roughness: 0.92, flatShading: true })
+        );
+        this.validateMapObjectsCollection();
+    }
+
+    validateMapObjectsCollection() {
+        if (!this.mapObjectsCollection) return;
+        const toRemove = [];
+        for (const obj of this.mapObjectsCollection.children) {
+            if (!obj) continue;
+            if (!obj.userData?.mapGenerated) obj.userData = { ...(obj.userData || {}), mapGenerated: true };
+            const p = obj.position || this._zeroCenter;
+            if (!this.isInsideTerrainBounds(p.x || 0, p.z || 0, 0.5)) {
+                toRemove.push(obj);
+            }
+        }
+        for (const obj of toRemove) {
+            this.mapObjectsCollection.remove(obj);
+            if (obj.geometry && !obj.isInstancedMesh) obj.geometry.dispose?.();
+            if (obj.material) {
+                if (Array.isArray(obj.material)) obj.material.forEach((m) => m?.dispose?.());
+                else obj.material.dispose?.();
+            }
+        }
     }
 
     getSectorForWorld(x, z) {
@@ -444,17 +786,43 @@ export class MapGenerator {
         }
 
         const placed = [];
-        const canPlace = (x, z, minDist = 8) => !placed.some(p => Math.hypot(p.x - x, p.z - z) < minDist);
+        const decorSpacingScale = 0.55;
+        const canPlace = (x, z, minDist = 8) => !placed.some(p => Math.hypot(p.x - x, p.z - z) < (minDist * decorSpacingScale));
         const mark = (x, z) => placed.push({ x, z });
 
+        const stableYOffset = (x, z) => {
+            const n = Math.sin((x + 19.3) * 0.031 + (z - 11.7) * 0.027 + (this.seed || 1) * 0.00037);
+            return 0.02 + (n * 0.5 + 0.5) * 0.05;
+        };
         const createBox = (x, z, w, h, d, mat, walkable = false, yBias = 0) => {
-            const y = this.getHeightAt(x, z);
+            const y = this.getSurfaceHeightAt(x, z);
             const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
-            mesh.position.set(x, y + h * 0.5 + yBias, z);
+            mesh.position.set(x, y + h * 0.5 + yBias + stableYOffset(x, z), z);
             mesh.userData.mapGenerated = true;
             this.scene.add(mesh);
             this.addColliderBox(mesh.position.clone(), w, h, d, walkable);
             return mesh;
+        };
+        const createInstancedBoxes = (entries, mat, walkable = false) => {
+            if (!entries?.length) return;
+            const unit = new THREE.BoxGeometry(1, 1, 1);
+            const inst = new THREE.InstancedMesh(unit, mat, entries.length);
+            const matrix = new THREE.Matrix4();
+            const pos = new THREE.Vector3();
+            const quat = new THREE.Quaternion();
+            const scale = new THREE.Vector3();
+            const upAxis = new THREE.Vector3(0, 1, 0);
+            for (let i = 0; i < entries.length; i++) {
+                const e = entries[i];
+                pos.set(e.x, e.y, e.z);
+                quat.setFromAxisAngle(upAxis, e.ry || 0);
+                scale.set(e.w, e.h, e.d);
+                matrix.compose(pos, quat, scale);
+                inst.setMatrixAt(i, matrix);
+                this.addColliderBox(new THREE.Vector3(e.x, e.y, e.z), e.w, e.h, e.d, walkable);
+            }
+            inst.userData.mapGenerated = true;
+            this.scene.add(inst);
         };
 
         const stoneMat = new THREE.MeshStandardMaterial({ color: 0x868b92, roughness: 0.88, flatShading: true });
@@ -463,10 +831,11 @@ export class MapGenerator {
         const boneMat = new THREE.MeshStandardMaterial({ color: 0xc9c2ae, roughness: 0.8, flatShading: true });
         const shelfMat = new THREE.MeshStandardMaterial({ color: 0x5f4b3d, roughness: 0.85, flatShading: true });
         const railCarMat = new THREE.MeshStandardMaterial({ color: 0x49545f, roughness: 0.62, metalness: 0.22, flatShading: true });
+        const densityMul = 1.9;
 
         const placeWhisperingForest = () => {
-            const tiles = bySector.get('whispering_forest') || [];
-            const maxCount = Math.min(48, Math.floor(tiles.length / 65));
+            const tiles = bySector.get('tropical_jungle') || [];
+            const maxCount = Math.min(Math.floor(48 * densityMul), Math.floor(tiles.length / 48));
             for (let i = 0; i < maxCount; i++) {
                 const t = tiles[Math.floor(rand() * tiles.length)];
                 if (!t) continue;
@@ -478,10 +847,10 @@ export class MapGenerator {
         };
 
         const placeStoneLabyrinth = () => {
-            const tiles = bySector.get('stone_labyrinth') || [];
+            const tiles = bySector.get('desert_canyon') || [];
             if (!tiles.length) return;
-            const rows = 18;
-            const cols = 12;
+            const rows = Math.floor(18 * densityMul);
+            const cols = Math.floor(12 * densityMul);
             for (let r = 0; r < rows; r++) {
                 for (let c = 0; c < cols; c++) {
                     if ((r + c) % 3 === 0) continue;
@@ -492,15 +861,16 @@ export class MapGenerator {
                     if (this.isInSpawnCourtyardWorld(t.x, t.z, 18)) continue;
                     const len = 8 + rand() * 6;
                     const vertical = rand() > 0.5;
-                    createBox(t.x, t.z, vertical ? 2.2 : len, 8.8, vertical ? len : 2.2, stoneMat, false, 0.2);
+                    createBox(t.x, t.z, vertical ? 2.2 : len, 8.8, vertical ? len : 2.2, stoneMat, false, 0.18);
                     mark(t.x, t.z);
                 }
             }
         };
 
         const placeIndustrial = () => {
-            const tiles = bySector.get('industrial') || [];
-            const maxCount = Math.min(34, Math.floor(tiles.length / 92));
+            const tiles = bySector.get('industrial_ruins') || [];
+            const maxCount = Math.min(Math.floor(34 * densityMul), Math.floor(tiles.length / 66));
+            const boxes = [];
             for (let i = 0; i < maxCount; i++) {
                 const t = tiles[Math.floor(rand() * tiles.length)];
                 if (!t) continue;
@@ -508,21 +878,28 @@ export class MapGenerator {
                 const w = 5 + rand() * 3.5;
                 const d = 2.8 + rand() * 1.4;
                 const h = 2 + rand() * 1.8;
-                const mesh = createBox(t.x, t.z, w, h, d, rustyMat, true, 0.08);
-                mesh.rotation.y = rand() > 0.5 ? 0 : Math.PI / 2;
+                const y = this.getSurfaceHeightAt(t.x, t.z) + h * 0.5 + 0.08 + stableYOffset(t.x, t.z);
+                const ry = rand() > 0.5 ? 0 : Math.PI / 2;
+                boxes.push({ x: t.x, y, z: t.z, w, h, d, ry });
                 mark(t.x, t.z);
             }
+            createInstancedBoxes(boxes, rustyMat, true);
         };
 
         const placeBlockpost = () => {
-            const tiles = bySector.get('blockpost') || [];
-            const maxCount = Math.min(36, Math.floor(tiles.length / 120));
+            const tiles = bySector.get('urban_decay') || [];
+            const maxCount = Math.min(Math.floor(36 * densityMul), Math.floor(tiles.length / 86));
+            const bags = [];
             for (let i = 0; i < maxCount; i++) {
                 const t = tiles[Math.floor(rand() * tiles.length)];
                 if (!t) continue;
                 if (!canPlace(t.x, t.z, 9)) continue;
-                const mesh = createBox(t.x, t.z, 5 + rand() * 2, 1.35, 2.2, sandbagMat, false, 0.06);
-                mesh.rotation.y = rand() * Math.PI * 2;
+                const w = 5 + rand() * 2;
+                const h = 1.35;
+                const d = 2.2;
+                const y = this.getSurfaceHeightAt(t.x, t.z) + h * 0.5 + 0.06 + stableYOffset(t.x, t.z);
+                const ry = rand() * Math.PI * 2;
+                bags.push({ x: t.x, y, z: t.z, w, h, d, ry });
                 this.traps.push({
                     position: new THREE.Vector3(t.x, this.getHeightAt(t.x, t.z) + 0.12, t.z),
                     radius: 3.1,
@@ -531,16 +908,17 @@ export class MapGenerator {
                 });
                 mark(t.x, t.z);
             }
+            createInstancedBoxes(bags, sandbagMat, false);
         };
 
         const placeSkeletalCanyon = () => {
-            const tiles = bySector.get('skeletal_canyon') || [];
-            const maxCount = Math.min(28, Math.floor(tiles.length / 120));
+            const tiles = bySector.get('frozen_tundra') || [];
+            const maxCount = Math.min(Math.floor(28 * densityMul), Math.floor(tiles.length / 86));
             for (let i = 0; i < maxCount; i++) {
                 const t = tiles[Math.floor(rand() * tiles.length)];
                 if (!t) continue;
                 if (!canPlace(t.x, t.z, 11)) continue;
-                const y = this.getHeightAt(t.x, t.z);
+                const y = this.getSurfaceHeightAt(t.x, t.z) + stableYOffset(t.x, t.z);
                 const bone = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.62, 7 + rand() * 5, 8), boneMat);
                 bone.position.set(t.x, y + 2.4, t.z);
                 bone.rotation.z = Math.PI / 2 + (rand() - 0.5) * 0.3;
@@ -553,8 +931,8 @@ export class MapGenerator {
         };
 
         const placeAgroComplex = () => {
-            const tiles = bySector.get('agro_complex') || [];
-            const maxCount = Math.min(26, Math.floor(tiles.length / 110));
+            const tiles = bySector.get('toxic_swamp') || [];
+            const maxCount = Math.min(Math.floor(26 * densityMul), Math.floor(tiles.length / 78));
             for (let i = 0; i < maxCount; i++) {
                 const t = tiles[Math.floor(rand() * tiles.length)];
                 if (!t) continue;
@@ -567,9 +945,9 @@ export class MapGenerator {
         };
 
         const placeRailHubCars = () => {
-            const tiles = bySector.get('rail_hub') || [];
+            const tiles = bySector.get('train_graveyard') || [];
             if (!tiles.length) return;
-            const maxCount = Math.min(12, Math.max(6, Math.floor(tiles.length / 240)));
+            const maxCount = Math.min(Math.floor(12 * densityMul), Math.max(8, Math.floor(tiles.length / 170)));
             for (let i = 0; i < maxCount; i++) {
                 const t = tiles[Math.floor(rand() * tiles.length)];
                 if (!t) continue;
@@ -581,6 +959,19 @@ export class MapGenerator {
             }
         };
 
+        const placePineForest = () => {
+            const tiles = bySector.get('pine_forest') || [];
+            const maxCount = Math.min(Math.floor(42 * densityMul), Math.floor(tiles.length / 70));
+            for (let i = 0; i < maxCount; i++) {
+                const t = tiles[Math.floor(rand() * tiles.length)];
+                if (!t) continue;
+                if (this.isInSpawnCourtyardWorld(t.x, t.z, 14)) continue;
+                if (!canPlace(t.x, t.z, 8.5)) continue;
+                createBox(t.x, t.z, 2.6, 5.4 + rand() * 2.3, 2.6, stoneMat, false, 0.06);
+                mark(t.x, t.z);
+            }
+        };
+
         placeWhisperingForest();
         placeStoneLabyrinth();
         placeIndustrial();
@@ -588,6 +979,7 @@ export class MapGenerator {
         placeSkeletalCanyon();
         placeAgroComplex();
         placeRailHubCars();
+        placePineForest();
     }
 
     buildProps(trees, jungleTrees, rocks, cacti, iceSpikes, boulders) {
@@ -776,7 +1168,7 @@ export class MapGenerator {
         const rotation = new THREE.Quaternion();
         const scale = new THREE.Vector3(1, 1, 1);
         pads.forEach((p, i) => {
-            const floorTop = this.getHeightAt(p.x, p.z);
+            const floorTop = this.raycastGroundY(p.x, p.z, this.getHeightAt(p.x, p.z));
             const padCenterY = floorTop + 0.19;
             position.set(p.x, padCenterY, p.z);
             matrix.compose(position, rotation, scale);
@@ -2158,6 +2550,108 @@ export class MapGenerator {
         return null;
     }
 
+    buildStaticBiomeLayer() {
+        const gw = this.gridWidth | 0;
+        const gh = this.gridHeight | 0;
+        if (gw < 2 || gh < 2 || !this.grid?.length) return;
+
+        const maxTex = this.scene?.userData?.mobileMode ? 1024 : 2048;
+        const texW = Math.min(maxTex, Math.max(256, gw * 4));
+        const texH = Math.min(maxTex, Math.max(256, gh * 4));
+        const offscreenSupported = typeof OffscreenCanvas !== "undefined";
+        const canvas = offscreenSupported ? new OffscreenCanvas(texW, texH) : document.createElement("canvas");
+        canvas.width = texW;
+        canvas.height = texH;
+        const ctx = canvas.getContext("2d", { alpha: false, willReadFrequently: false });
+        if (!ctx) return;
+
+        const cellW = texW / gw;
+        const cellH = texH / gh;
+        const center = this.getSpawnWorld();
+        for (let y = 0; y < gh; y++) {
+            for (let x = 0; x < gw; x++) {
+                const tile = this.grid[y]?.[x];
+                const world = this.toWorld(x, y);
+                const zoneMix = this.getTerrainZoneMixByDistance(world.x - center.x, world.z - center.z);
+                const plaza = new THREE.Color(0xc7c9cc);
+                const corridors = new THREE.Color(0x2d2f34);
+                const badlands = new THREE.Color(0x9d5b40);
+                const color = new THREE.Color(0, 0, 0)
+                    .add(plaza.multiplyScalar(zoneMix.a))
+                    .add(corridors.multiplyScalar(zoneMix.b))
+                    .add(badlands.multiplyScalar(zoneMix.c));
+                ctx.fillStyle = `#${color.toString(16).padStart(6, "0")}`;
+                ctx.fillRect(Math.floor(x * cellW), Math.floor(y * cellH), Math.ceil(cellW + 0.5), Math.ceil(cellH + 0.5));
+            }
+        }
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.wrapS = THREE.ClampToEdgeWrapping;
+        texture.wrapT = THREE.ClampToEdgeWrapping;
+        texture.minFilter = THREE.LinearMipmapLinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        texture.generateMipmaps = true;
+        texture.needsUpdate = true;
+
+        const vx = gw;
+        const vz = gh;
+        const verts = new Float32Array(vx * vz * 3);
+        const uvs = new Float32Array(vx * vz * 2);
+        let vi = 0;
+        let ui = 0;
+        for (let z = 0; z < vz; z++) {
+            for (let x = 0; x < vx; x++) {
+                const world = this.toWorld(x, z);
+                const h = (this.heightMap?.[z]?.[x] ?? 0) + 0.405;
+                verts[vi++] = world.x;
+                verts[vi++] = h;
+                verts[vi++] = world.z;
+                uvs[ui++] = x / Math.max(1, vx - 1);
+                uvs[ui++] = 1 - z / Math.max(1, vz - 1);
+            }
+        }
+
+        const triCount = (vx - 1) * (vz - 1) * 6;
+        const indices = (vx * vz > 65535) ? new Uint32Array(triCount) : new Uint16Array(triCount);
+        let ii = 0;
+        for (let z = 0; z < vz - 1; z++) {
+            for (let x = 0; x < vx - 1; x++) {
+                const a = z * vx + x;
+                const b = a + 1;
+                const c = a + vx;
+                const d = c + 1;
+                indices[ii++] = a;
+                indices[ii++] = c;
+                indices[ii++] = b;
+                indices[ii++] = b;
+                indices[ii++] = c;
+                indices[ii++] = d;
+            }
+        }
+
+        const geom = new THREE.BufferGeometry();
+        geom.setAttribute("position", new THREE.BufferAttribute(verts, 3));
+        geom.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
+        geom.setIndex(new THREE.BufferAttribute(indices, 1));
+        geom.computeVertexNormals();
+
+        const mat = new THREE.MeshLambertMaterial({
+            map: texture,
+            color: 0xffffff,
+            transparent: false
+        });
+        mat.polygonOffset = true;
+        mat.polygonOffsetFactor = -2;
+        mat.polygonOffsetUnits = -3;
+        const mesh = new THREE.Mesh(geom, mat);
+        mesh.userData.mapGenerated = true;
+        mesh.frustumCulled = false;
+        this.scene.add(mesh);
+        this.biomeLayerMesh = mesh;
+        this.biomeLayerTexture = texture;
+    }
+
     clearSceneObjects() {
         const toRemove = [];
         this.scene.traverse(obj => {
@@ -2180,6 +2674,11 @@ export class MapGenerator {
         }
         this.cornucopiaGroup = null;
         this.cornucopiaDestroyed = false;
+        this.biomeLayerMesh = null;
+        if (this.biomeLayerTexture) {
+            this.biomeLayerTexture.dispose?.();
+            this.biomeLayerTexture = null;
+        }
 
     }
 
@@ -2272,8 +2771,9 @@ export class MapGenerator {
 
     buildHeightMap() {
         const map = Array.from({ length: this.gridHeight }, () => Array(this.gridWidth).fill(0));
-        const scaleA = 0.026;
-        const scaleB = 0.065;
+        const center = this.getSpawnWorld();
+        const scaleA = 0.022;
+        const scaleB = 0.058;
         for (let y = 0; y < this.gridHeight; y++) {
             for (let x = 0; x < this.gridWidth; x++) {
                 const tile = this.grid?.[y]?.[x];
@@ -2281,21 +2781,43 @@ export class MapGenerator {
                     map[y][x] = 0;
                     continue;
                 }
-                const biome = tile.biome || this.surfaceTheme;
+                const world = this.toWorld(x, y);
+                const dx = world.x - center.x;
+                const dz = world.z - center.z;
+                const dist = Math.hypot(dx, dz);
+                const zoneMix = this.getTerrainZoneMixByDistance(dx, dz);
                 const nA = this.perlin2D(x * scaleA, y * scaleA, 0x1771);
                 const nB = this.perlin2D(x * scaleB, y * scaleB, 0x3a91);
-                const n = Math.max(-1, Math.min(1, nA * 0.72 + nB * 0.28));
-                const biomeMul = biome === 'industrial' ? 0.35
-                    : biome === 'wasteland' ? 0.48
-                    : biome === 'rock' || biome === 'mesa' ? 0.82
-                    : biome === 'jungle' ? 0.66
-                    : biome === 'swamp' ? 0.42
-                    : 0.58;
-                const height = Math.max(0, n * biomeMul + biomeMul * 0.28);
+                const n = Math.max(-1, Math.min(1, nA * 0.68 + nB * 0.32));
+                const plazaHeight = 0.0;
+                const corridorHeight = Math.max(0, n * 0.42 + 0.12);
+                const badlandsHeight = Math.max(0, n * 1.18 + 0.62 + Math.max(0, (dist - 210) / 140) * 0.55);
+                const height =
+                    plazaHeight * zoneMix.a +
+                    corridorHeight * zoneMix.b +
+                    badlandsHeight * zoneMix.c;
                 map[y][x] = Math.round(height / 0.2) * 0.2;
             }
         }
         return map;
+    }
+
+    smoothstep(edge0, edge1, x) {
+        const t = Math.max(0, Math.min(1, (x - edge0) / Math.max(0.0001, edge1 - edge0)));
+        return t * t * (3 - 2 * t);
+    }
+
+    getTerrainZoneMixByDistance(dx, dz) {
+        const d = Math.hypot(dx, dz);
+        const plazaEnd = 60;
+        const corridorEnd = 180;
+        const blend = 22;
+        const aToB = this.smoothstep(plazaEnd - blend, plazaEnd + blend, d);
+        const bToC = this.smoothstep(corridorEnd - blend, corridorEnd + blend, d);
+        const a = 1 - aToB;
+        const b = aToB * (1 - bToC);
+        const c = bToC;
+        return { a, b, c };
     }
 
     getBiomeHeight(biome, n) {
@@ -2360,13 +2882,14 @@ export class MapGenerator {
 
     getBiomeVisualTheme(biome) {
         const b = (biome || "").toLowerCase();
-        if (b === "whispering_forest") return "jungle";
-        if (b === "stone_labyrinth") return "mesa";
-        if (b === "flooded_suburb") return "swamp";
-        if (b === "blockpost") return "ash";
-        if (b === "skeletal_canyon") return "mesa";
-        if (b === "agro_complex") return "grass";
-        if (b === "rail_hub") return "industrial";
+        if (b === "tropical_jungle") return "jungle";
+        if (b === "industrial_ruins") return "industrial";
+        if (b === "train_graveyard") return "industrial";
+        if (b === "toxic_swamp") return "swamp";
+        if (b === "frozen_tundra") return "snow";
+        if (b === "desert_canyon") return "sand";
+        if (b === "urban_decay") return "ash";
+        if (b === "pine_forest") return "grass";
         if (["jungle", "redwood"].includes(b)) return "jungle";
         if (["swamp", "mushroom"].includes(b)) return "swamp";
         if (["industrial", "wasteland"].includes(b)) return "industrial";
@@ -2395,6 +2918,28 @@ export class MapGenerator {
             if (box.max.y > top) top = box.max.y;
         }
         return top;
+    }
+
+    raycastGroundY(x, z, fallbackY = null) {
+        const fallback = (fallbackY ?? this.getSurfaceHeightAt(x, z)) + 0.01;
+        const rc = this._groundRaycaster;
+        if (!rc || !this.scene) return fallback;
+        rc.set(new THREE.Vector3(x, 1000, z), this._groundRayDir);
+        const targets = [];
+        for (const child of this.scene.children || []) {
+            if (!child?.visible) continue;
+            if (child.userData?.mapGenerated !== true) continue;
+            targets.push(child);
+        }
+        if (!targets.length) return fallback;
+        const hits = rc.intersectObjects(targets, true);
+        for (let i = 0; i < hits.length; i++) {
+            const hit = hits[i];
+            if (!hit?.point) continue;
+            if (hit.face?.normal && hit.face.normal.y < 0.2) continue;
+            return hit.point.y + 0.01;
+        }
+        return fallback;
     }
 
     getColliders() {

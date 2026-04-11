@@ -988,6 +988,15 @@ export class Bot {
             const direction = this._tmpDirection
                 .subVectors(target.position, this.position)
                 .normalize();
+            const aimErr = Math.max(0, this._dynamicAimError || 0);
+            if (aimErr > 0.0001) {
+                this._tmpErr.set(
+                    (Math.random() - 0.5) * aimErr * 2,
+                    (Math.random() - 0.5) * aimErr * 0.9,
+                    (Math.random() - 0.5) * aimErr * 2
+                );
+                direction.add(this._tmpErr).normalize();
+            }
             if (entityManager?.hasLineOfSight) {
                 this._tmpLosFrom.set(this.position.x, this.position.y + (this.physics?.height || 1.8) * 0.55, this.position.z);
                 this._tmpLosTo.set(target.position.x, target.position.y + (target.physics?.height || 1.8) * 0.55, target.position.z);
