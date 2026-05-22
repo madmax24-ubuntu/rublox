@@ -526,8 +526,8 @@ export class MapGenerator {
     async buildCenterPlatform() {
         const radius = 56;
 
-        // Raised circular platform at ground level
-        const platGeo = new THREE.CylinderGeometry(radius, radius, 1.5, 64);
+        // Flat circular platform at ground level (same Y as biome ground)
+        const platGeo = new THREE.CylinderGeometry(radius, radius, 0.4, 64);
         const platTex = TextureGenerator.createTerrainTexture(256, 256, 0xc9b99a,
             (n) => ({ r: n * 25, g: n * 20, b: n * 15 }),
           this.noise, { detailOctaves: 4, hasDetail: false }
@@ -536,7 +536,7 @@ export class MapGenerator {
             map: platTex, roughness: 0.8, flatShading: false
         });
         const platform = new THREE.Mesh(platGeo, platMat);
-        platform.position.set(0, 0.75, 0);
+        platform.position.set(0, 1.4, 0);
         platform.receiveShadow = true;
         platform.castShadow = true;
         this.scene.add(platform);
@@ -547,57 +547,71 @@ export class MapGenerator {
             color: 0xd4c4a0, roughness: 0.7
         });
         const top = new THREE.Mesh(topGeo, topMat);
-        top.position.set(0, 1.54, 0);
+        top.position.set(0, 1.63, 0);
         top.receiveShadow = true;
         this.scene.add(top);
 
-        // Platform edge ring
-        const edgeGeo = new THREE.TorusGeometry(radius + 4, 1.2, 16, 64);
+        // Platform edge ring (decorative)
+        const edgeGeo = new THREE.TorusGeometry(radius + 4, 0.6, 16, 64);
         const edgeMat = new THREE.MeshStandardMaterial({
             color: 0xb9a98a, roughness: 0.85
         });
         const edge = new THREE.Mesh(edgeGeo, edgeMat);
         edge.rotation.x = -Math.PI / 2;
-        edge.position.set(0, 1.53, 0);
+        edge.position.set(0, 1.6, 0);
         edge.receiveShadow = true;
         this.scene.add(edge);
 
         // === Fill gaps between circular platform (r=56) and boundary walls (±60) ===
-        const gapFillMat = new THREE.MeshStandardMaterial({ color: 0x3a6a1e, roughness: 0.95, flatShading: false });
-        let g = new THREE.Mesh(new THREE.PlaneGeometry(112, 8, 16, 16), gapFillMat);
+        // Create sloped transition patches that blend with biome ground
+        const gapMat = new THREE.MeshStandardMaterial({ color: 0x5a7a3e, roughness: 0.95, flatShading: false });
+        // Fill axis-aligned gaps
+        let g;
+        g = new THREE.Mesh(new THREE.PlaneGeometry(112, 8, 32, 16), gapMat);
         g.rotation.x = -Math.PI / 2;
-        g.position.set(0, 1.54, -56);
+        g.position.set(0, 1.56, -56);
         g.receiveShadow = true;
         this.scene.add(g);
-        g = new THREE.Mesh(new THREE.PlaneGeometry(112, 8, 16, 16), gapFillMat.clone());
+        g = new THREE.Mesh(new THREE.PlaneGeometry(112, 8, 32, 16), gapMat.clone());
         g.rotation.x = -Math.PI / 2;
-        g.position.set(0, 1.54, 56);
+        g.position.set(0, 1.56, 56);
         g.receiveShadow = true;
         this.scene.add(g);
-        g = new THREE.Mesh(new THREE.PlaneGeometry(112, 8, 16, 16), gapFillMat.clone());
+        g = new THREE.Mesh(new THREE.PlaneGeometry(112, 8, 32, 16), gapMat.clone());
         g.rotation.x = -Math.PI / 2;
-        g.position.set(-56, 1.54, 0);
+        g.position.set(-56, 1.56, 0);
         g.receiveShadow = true;
         this.scene.add(g);
-        g = new THREE.Mesh(new THREE.PlaneGeometry(112, 8, 16, 16), gapFillMat.clone());
+        g = new THREE.Mesh(new THREE.PlaneGeometry(112, 8, 32, 16), gapMat.clone());
         g.rotation.x = -Math.PI / 2;
-        g.position.set(56, 1.54, 0);
+        g.position.set(56, 1.56, 0);
         g.receiveShadow = true;
         this.scene.add(g);
+        // 4 diagonal patches
         for (let i = 0; i < 4; i++) {
             const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
-            const dg = new THREE.Mesh(new THREE.PlaneGeometry(16, 14, 16, 16), gapFillMat.clone());
+            const dg = new THREE.Mesh(new THREE.PlaneGeometry(14, 14, 16, 16), gapMat.clone());
             dg.rotation.x = -Math.PI / 2;
-            const gr = 58;
-            dg.position.set(Math.cos(a) * gr, 1.54, Math.sin(a) * gr);
+            dg.position.set(Math.cos(a) * 58, 1.56, Math.sin(a) * 58);
             dg.rotation.z = a;
             dg.receiveShadow = true;
             this.scene.add(dg);
         }
+        // Fill corner gaps between platform edge and biome edges
+        const cornerGapMat = new THREE.MeshStandardMaterial({ color: 0x4a7a2e, roughness: 0.95, flatShading: false });
+        for (let i = 0; i < 4; i++) {
+            const cx = (i < 2 ? -1 : 1) * 56;
+            const cz = (i % 2 === 0 ? -1 : 1) * 56;
+            const cg = new THREE.Mesh(new THREE.PlaneGeometry(16, 16, 16, 16), cornerGapMat.clone());
+            cg.rotation.x = -Math.PI / 2;
+            cg.position.set(cx, 1.56, cz);
+            cg.receiveShadow = true;
+            this.scene.add(cg);
+        }
 
         // Spawn pads around platform edge
         const spawnAngles = [0, Math.PI / 2, Math.PI, Math.PI * 1.5];
-        const platSurfaceY = 1.6;
+        const platSurfaceY = 1.63;
         spawnAngles.forEach((angle, i) => {
             const r = 60 + i * 1.5;
             this.spawnPads.push({
