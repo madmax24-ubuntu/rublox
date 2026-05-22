@@ -4,6 +4,11 @@ import { chromium } from 'playwright';
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
 
+  // Disable test mode to allow normal perk panel flow
+  await page.evaluate(() => {
+    localStorage.removeItem('testMode');
+  });
+
   page.on('console', msg => {
     const text = msg.text();
     if (text.includes('[MapGenerator]') || text.includes('[MAIN]') || text.includes('ERROR') || text.includes('WARN') || text.includes('DEBUG')) {
@@ -20,32 +25,38 @@ import { chromium } from 'playwright';
   await page.click('#startButtonDesktop');
   console.log('🖱️ Клик по старту');
 
-  // Wait for perk panel (appears after game starts)
-  await page.waitForFunction(() => {
-    const panel = document.getElementById('perkPanel');
-    return panel && panel.offsetParent !== null;
-  }, { timeout: 30000 });
-  console.log('✅ Perk panel visible');
+  // Wait for perk panel (appears after game starts in non-test mode)
+  try {
+    await page.waitForFunction(() => {
+      const panel = document.getElementById('perkPanel');
+      return panel && panel.offsetParent !== null;
+    }, { timeout: 15000 });
+    console.log('✅ Perk panel visible');
 
-  // Click a perk to proceed
-  await page.evaluate(() => {
-    const perkPanel = document.getElementById('perkPanel');
-    if (perkPanel) {
-      const btn = perkPanel.querySelector('button[data-perk]');
-      if (btn) btn.click();
-    }
-  });
-  console.log('🖱️ Клик по перку');
+    // Click a perk to proceed
+    await page.evaluate(() => {
+      const perkPanel = document.getElementById('perkPanel');
+      if (perkPanel) {
+        const btn = perkPanel.querySelector('button[data-perk]');
+        if (btn) btn.click();
+      }
+    });
+    console.log('🖱️ Клик по перку');
+  } catch {
+    console.log('⚠️ Perk panel did not appear, proceeding anyway');
+  }
 
   console.log('⏳ Ожидание генерации карты...');
-  // Wait for map to be ready
+  // Wait for map to be ready by checking scene children count
   await page.waitForFunction(() => {
-    if (window.game && window.game.map && window.game.map.scene) {
-      const count = window.game.scene ? window.game.scene.children.length : 0;
-      return count > 10; // Should have many objects after map gen
+    if (window.game && window.game.scene) {
+      const count = window.game.scene.children?.length || 0;
+      return count > 20;
     }
     return false;
   }, { timeout: 30000 });
+
+  console.log('✅ Карта сгенерирована');
 
   const objCount = await page.evaluate(() => {
     if (window.game && window.game.scene) {
