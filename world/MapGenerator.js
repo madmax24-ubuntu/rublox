@@ -1735,13 +1735,31 @@ const gapConfigs = [
             const len = Math.sqrt(dx * dx + dz * dz);
             const angle = Math.atan2(dz, dx);
 
-            const pathGeo = new THREE.PlaneGeometry(3, len);
+            const pathGeo = new THREE.PlaneGeometry(3, len, 16, 16);
             const path = new THREE.Mesh(pathGeo, pathMat);
             path.rotation.x = -Math.PI / 2;
             path.rotation.z = -angle;
             path.position.set((p1.x + p2.x) / 2, 1.57, (p1.z + p2.z) / 2);
             path.receiveShadow = true;
             this.scene.add(path);
+
+            const sinA = Math.sin(angle);
+            const cosA = Math.cos(angle);
+            const offset_x = (p1.x + p2.x) / 2;
+            const offset_y = 1.57;
+            const offset_z = (p1.z + p2.z) / 2;
+            const positions = pathGeo.attributes.position.array;
+            for (let j = 0; j < positions.length; j += 3) {
+                const vx = positions[j];
+                const vy = positions[j + 1];
+                const wx = vx * cosA + offset_x;
+                const wz = -vy + offset_z;
+                const h = this.getHeightAt(wx, wz);
+                if (Math.abs(cosA) > 0.001) {
+                    positions[j + 2] = (h - offset_y + vx * sinA) / cosA;
+                }
+            }
+            pathGeo.attributes.position.needsUpdate = true;
         }
 
         // Second branching path (stays inside forest biome)
