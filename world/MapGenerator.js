@@ -527,7 +527,7 @@ export class MapGenerator {
         const radius = 56;
 
         // Raised circular platform at ground level
-        const platGeo = new THREE.CylinderGeometry(radius, radius, 2, 64);
+        const platGeo = new THREE.CylinderGeometry(radius, radius, 1.5, 64);
         const platTex = TextureGenerator.createTerrainTexture(256, 256, 0xc9b99a,
             (n) => ({ r: n * 25, g: n * 20, b: n * 15 }),
           this.noise, { detailOctaves: 4, hasDetail: false }
@@ -536,7 +536,7 @@ export class MapGenerator {
             map: platTex, roughness: 0.8, flatShading: false
         });
         const platform = new THREE.Mesh(platGeo, platMat);
-        platform.position.set(0, 1.5, 0);
+        platform.position.set(0, 0.75, 0);
         platform.receiveShadow = true;
         platform.castShadow = true;
         this.scene.add(platform);
@@ -547,18 +547,18 @@ export class MapGenerator {
             color: 0xd4c4a0, roughness: 0.7
         });
         const top = new THREE.Mesh(topGeo, topMat);
-        top.position.set(0, 2.56, 0);
+        top.position.set(0, 1.54, 0);
         top.receiveShadow = true;
         this.scene.add(top);
 
         // Platform edge ring
-        const edgeGeo = new THREE.TorusGeometry(radius + 4, 1.5, 16, 64);
+        const edgeGeo = new THREE.TorusGeometry(radius + 4, 1.2, 16, 64);
         const edgeMat = new THREE.MeshStandardMaterial({
             color: 0xb9a98a, roughness: 0.85
         });
         const edge = new THREE.Mesh(edgeGeo, edgeMat);
         edge.rotation.x = -Math.PI / 2;
-        edge.position.set(0, 2.55, 0);
+        edge.position.set(0, 1.53, 0);
         edge.receiveShadow = true;
         this.scene.add(edge);
 
