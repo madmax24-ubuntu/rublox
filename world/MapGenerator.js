@@ -1708,6 +1708,24 @@ const gapConfigs = [
         }
     }
 
+    deformPathGeometry(geometry, angle, offset, segments = 16) {
+        const sinA = Math.sin(angle);
+        const cosA = Math.cos(angle);
+        const { x: offset_x, y: offset_y, z: offset_z } = offset;
+        const positions = geometry.attributes.position.array;
+        for (let j = 0; j < positions.length; j += 3) {
+            const vx = positions[j];
+            const vy = positions[j + 1];
+            const wx = vx * cosA + offset_x;
+            const wz = -vy + offset_z;
+            const h = this.getHeightAt(wx, wz);
+            if (Math.abs(cosA) > 0.001) {
+                positions[j + 2] = (h - offset_y + vx * sinA) / cosA;
+            }
+        }
+        geometry.attributes.position.needsUpdate = true;
+    }
+
     buildForestPaths() {
         const pathMat = new THREE.MeshStandardMaterial({
             color: 0x8b7355,
@@ -1743,23 +1761,11 @@ const gapConfigs = [
             path.receiveShadow = true;
             this.scene.add(path);
 
-            const sinA = Math.sin(angle);
-            const cosA = Math.cos(angle);
-            const offset_x = (p1.x + p2.x) / 2;
-            const offset_y = 1.57;
-            const offset_z = (p1.z + p2.z) / 2;
-            const positions = pathGeo.attributes.position.array;
-            for (let j = 0; j < positions.length; j += 3) {
-                const vx = positions[j];
-                const vy = positions[j + 1];
-                const wx = vx * cosA + offset_x;
-                const wz = -vy + offset_z;
-                const h = this.getHeightAt(wx, wz);
-                if (Math.abs(cosA) > 0.001) {
-                    positions[j + 2] = (h - offset_y + vx * sinA) / cosA;
-                }
-            }
-            pathGeo.attributes.position.needsUpdate = true;
+            this.deformPathGeometry(pathGeo, angle, {
+                x: (p1.x + p2.x) / 2,
+                y: 1.57,
+                z: (p1.z + p2.z) / 2
+            });
         }
 
         // Second branching path (stays inside forest biome)
@@ -1776,14 +1782,21 @@ const gapConfigs = [
             const dx = p2.x - p1.x;
             const dz = p2.z - p1.z;
             const len = Math.sqrt(dx * dx + dz * dz);
+            const angle = Math.atan2(dz, dx);
 
-            const pathGeo = new THREE.PlaneGeometry(2.5, len);
+            const pathGeo = new THREE.PlaneGeometry(2.5, len, 16, 16);
             const path = new THREE.Mesh(pathGeo, pathMat);
             path.rotation.x = -Math.PI / 2;
-            path.rotation.z = -Math.atan2(dz, dx);
+            path.rotation.z = -angle;
             path.position.set((p1.x + p2.x) / 2, 1.57, (p1.z + p2.z) / 2);
             path.receiveShadow = true;
             this.scene.add(path);
+
+            this.deformPathGeometry(pathGeo, angle, {
+                x: (p1.x + p2.x) / 2,
+                y: 1.57,
+                z: (p1.z + p2.z) / 2
+            });
         }
     }
 
