@@ -563,39 +563,33 @@ export class MapGenerator {
         this.scene.add(edge);
 
         // === Fill gaps between circular platform (r=56) and boundary walls (±60) ===
-        // Fill the 4 axis-aligned gaps (top, bottom, left, right)
         const gapFillMat = new THREE.MeshStandardMaterial({ color: 0x3a6a1e, roughness: 0.95, flatShading: false });
-        // Top (Z=-56 to Z=-60, X from -56 to 56)
         let g = new THREE.Mesh(new THREE.PlaneGeometry(112, 8, 16, 16), gapFillMat);
         g.rotation.x = -Math.PI / 2;
-        g.position.set(0, 2.54, -56);
+        g.position.set(0, 1.54, -56);
         g.receiveShadow = true;
         this.scene.add(g);
-        // Bottom (Z=56 to Z=60)
         g = new THREE.Mesh(new THREE.PlaneGeometry(112, 8, 16, 16), gapFillMat.clone());
         g.rotation.x = -Math.PI / 2;
-        g.position.set(0, 2.54, 56);
+        g.position.set(0, 1.54, 56);
         g.receiveShadow = true;
         this.scene.add(g);
-        // Left (X=-56 to X=-60)
         g = new THREE.Mesh(new THREE.PlaneGeometry(112, 8, 16, 16), gapFillMat.clone());
         g.rotation.x = -Math.PI / 2;
-        g.position.set(-56, 2.54, 0);
+        g.position.set(-56, 1.54, 0);
         g.receiveShadow = true;
         this.scene.add(g);
-        // Right (X=56 to X=60)
         g = new THREE.Mesh(new THREE.PlaneGeometry(112, 8, 16, 16), gapFillMat.clone());
         g.rotation.x = -Math.PI / 2;
-        g.position.set(56, 2.54, 0);
+        g.position.set(56, 1.54, 0);
         g.receiveShadow = true;
         this.scene.add(g);
-        // 4 diagonal gap patches
         for (let i = 0; i < 4; i++) {
             const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
             const dg = new THREE.Mesh(new THREE.PlaneGeometry(16, 14, 16, 16), gapFillMat.clone());
             dg.rotation.x = -Math.PI / 2;
             const gr = 58;
-            dg.position.set(Math.cos(a) * gr, 2.54, Math.sin(a) * gr);
+            dg.position.set(Math.cos(a) * gr, 1.54, Math.sin(a) * gr);
             dg.rotation.z = a;
             dg.receiveShadow = true;
             this.scene.add(dg);
