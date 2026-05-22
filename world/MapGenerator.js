@@ -7442,23 +7442,57 @@ const gapConfigs = [
         return 'mixed';
     }
 
+    generateHeightMap() {
+        const size = 512;
+        const res = 128; // Resolution of the heightmap
+        const step = size / res;
+        this.heightMap = Array.from({ length: res + 1 }, () => new Float32Array(res + 1));
+
+        const amplitude = 15;
+        const scale = 0.01;
+
+        for (let i = 0; i <= res; i++) {
+            for (let j = 0; j <= res; j++) {
+                const x = (i - res / 2) * step;
+                const z = (j - res / 2) * step;
+
+                // Use fbm for more natural terrain
+                const h = this.noise.fbm(x * scale, z * scale, 4, 2.0, 0.5);
+                this.heightMap[i][j] = h * amplitude;
+            }
+        }
+    }
+
     getHeightAt(x, z) {
-        return 2;
-    }
+        if (!this.heightMap) return 0;
 
-    getBiomeSectorsByMapSize(size) {
-        return [];
-    }
+        const size = 512;
+        const res = this.heightMap.length - 1;
+        const step = size / res;
 
-    generateBiomePalette() {
-        return {};
-    }
+        // Normalize coordinates to [0, res]
+        let i = (x + size / 2) / step;
+        let j = (z + size / 2) / step;
 
-    getStoryNotes() {
-        return [];
-    }
+        i = Math.max(0, Math.min(res, i));
+        j = Math.max(0, Math.min(res, j));
 
-    getCornucopiaGroup() {
-        return null;
+        const i0 = Math.floor(i);
+        const j0 = Math.floor(j);
+        const i1 = Math.min(res, i0 + 1);
+        const j1 = Math.min(res, j0 + 1);
+
+        const dx = i - i0;
+        const dz = j - j0;
+
+        // Bilinear interpolation
+        const h00 = this.heightMap[i0][j0];
+        const h10 = this.heightMap[i1][j0];
+        const h01 = this.heightMap[i0][j1];
+        const h11 = this.heightMap[i1][j1];
+
+        return (1 - dx) * (1 - dz) * h00 +
+               dx * (1 - dz) * h10 +
+               (1 - dx) * dz * h01 +
+               dx * dz * h11;
     }
-}
