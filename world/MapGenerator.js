@@ -1258,10 +1258,11 @@ const gapConfigs = [
             const positions = groundGeo.attributes.position.array;
             for (let i = 0; i < positions.length; i += 3) {
                 const vx = positions[i];
-                const vz = positions[i + 2];
+                const vy = positions[i + 1];
                 const worldX = cfg.cx + vx;
-                const worldZ = cfg.cz + vz;
-                positions[i + 1] = this.getHeightAt(worldX, worldZ) - cfg.y;
+                const worldZ = cfg.cz - vy;
+                const height = this.getHeightAt(worldX, worldZ);
+                positions[i + 2] = height - cfg.y;
             }
             groundGeo.attributes.position.needsUpdate = true;
 
