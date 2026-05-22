@@ -603,7 +603,7 @@ export class MapGenerator {
 
         // Spawn pads around platform edge
         const spawnAngles = [0, Math.PI / 2, Math.PI, Math.PI * 1.5];
-        const platSurfaceY = 3.1;
+        const platSurfaceY = 1.6;
         spawnAngles.forEach((angle, i) => {
             const r = 60 + i * 1.5;
             this.spawnPads.push({
