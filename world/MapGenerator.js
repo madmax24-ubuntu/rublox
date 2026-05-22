@@ -3973,7 +3973,7 @@ const gapConfigs = [
     // ========== MILITARY BIOME (southwest) ==========
     buildMilitaryBiome() {
         // Ground - textured earth/sand (SW quadrant, starts at -60 from center)
-        const groundGeo = new THREE.PlaneGeometry(196, 196);
+        const groundGeo = new THREE.PlaneGeometry(196, 196, 64, 64);
         const groundMat = new THREE.MeshStandardMaterial({
             map: this.textures.militaryGround,
             roughness: 0.95,
@@ -3984,6 +3984,17 @@ const gapConfigs = [
         ground.position.set(-158, 1.56, 158);
         ground.receiveShadow = true;
         this.scene.add(ground);
+
+        const positions = groundGeo.attributes.position.array;
+        for (let i = 0; i < positions.length; i += 3) {
+            const vx = positions[i];
+            const vy = positions[i + 1];
+            const worldX = -158 + vx;
+            const worldZ = 158 - vy;
+            const height = this.getHeightAt(worldX, worldZ);
+            positions[i + 2] = height - 1.56;
+        }
+        groundGeo.attributes.position.needsUpdate = true;
 
         // Sand patches - only inside military biome (X <= -60, Z >= 60)
         for (let i = 0; i < 8; i++) {
