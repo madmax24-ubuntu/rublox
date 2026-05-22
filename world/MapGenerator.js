@@ -1616,7 +1616,7 @@ const gapConfigs = [
     buildForestBiome() {
         // Ground - textured grass with noise variation (NW quadrant only)
         // Starts at X=-256, ends at X=-60 (biome boundary); Z=-256 to Z=-60
-        const groundGeo = new THREE.PlaneGeometry(196, 196);
+        const groundGeo = new THREE.PlaneGeometry(196, 196, 64, 64);
         const groundMat = new THREE.MeshStandardMaterial({
             map: this.textures.forestGround,
             roughness: 0.95,
@@ -1627,6 +1627,17 @@ const gapConfigs = [
         ground.position.set(-158, 1.56, -158);
         ground.receiveShadow = true;
         this.scene.add(ground);
+
+        const positions = groundGeo.attributes.position.array;
+        for (let i = 0; i < positions.length; i += 3) {
+            const vx = positions[i];
+            const vy = positions[i + 1];
+            const worldX = -158 + vx;
+            const worldZ = -158 - vy;
+            const height = this.getHeightAt(worldX, worldZ);
+            positions[i + 2] = height - 1.56;
+        }
+        groundGeo.attributes.position.needsUpdate = true;
 
         // === VERY DENSE FOREST - 2x taller, 3x more trees, more diverse ===
         // Forest biome spans X/Z: -256 to -60
