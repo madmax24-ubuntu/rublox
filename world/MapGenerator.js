@@ -1434,7 +1434,7 @@ const gapConfigs = [
 
     buildRoad(x1, z1, x2, z2, width) {
         const len = Math.sqrt((x2 - x1) ** 2 + (z2 - z1) ** 2);
-        const geo = new THREE.PlaneGeometry(width, len);
+        const geo = new THREE.PlaneGeometry(width, len, 32, 32);
         const tex = this.textures.road.clone();
         tex.wrapS = THREE.RepeatWrapping;
         tex.wrapT = THREE.RepeatWrapping;
@@ -1449,9 +1449,10 @@ const gapConfigs = [
         road.position.set((x1 + x2) / 2, 1.57, (z1 + z2) / 2);
         road.receiveShadow = true;
         this.scene.add(road);
+        this.deformPathGeometry(geo, 0, road.position);
 
         // Road markings (center line)
-        const markGeo = new THREE.PlaneGeometry(0.2, len);
+        const markGeo = new THREE.PlaneGeometry(0.2, len, 32, 32);
         const markMat = new THREE.MeshStandardMaterial({
             color: 0xffffff, roughness: 0.8, flatShading: false
         });
@@ -1460,6 +1461,7 @@ const gapConfigs = [
         mark.position.set((x1 + x2) / 2, 1.58, (z1 + z2) / 2);
         mark.receiveShadow = true;
         this.scene.add(mark);
+        this.deformPathGeometry(markGeo, 0, mark.position);
 
 // Road colliders (prevent walking through roads)
         this.colliders.push({
