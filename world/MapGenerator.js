@@ -563,54 +563,47 @@ export class MapGenerator {
         this.scene.add(edge);
 
         // === Fill gaps between circular platform (r=56) and boundary walls (±60) ===
-        // Use biome-specific ground textures for seamless blending
+        // Create a full annular transition from platform edge to biome grounds
         const biomeGroundMats = {
             forest: new THREE.MeshStandardMaterial({ map: this.textures.forestGround || new THREE.MeshStandardMaterial({ color: 0x4a7a2e }), roughness: 0.95, flatShading: false }),
             stone: new THREE.MeshStandardMaterial({ map: this.textures.stoneGround || new THREE.MeshStandardMaterial({ color: 0x8a8a7a }), roughness: 0.95, flatShading: false }),
             military: new THREE.MeshStandardMaterial({ map: this.textures.militaryGround || new THREE.MeshStandardMaterial({ color: 0x7a6a4e }), roughness: 0.95, flatShading: false }),
             snow: new THREE.MeshStandardMaterial({ map: this.textures.snowGround || new THREE.MeshStandardMaterial({ color: 0xe8e8f0 }), roughness: 0.95, flatShading: false })
         };
-        // 4 axis-aligned gaps between biome ground and platform
+        // 4 quadrant transition patches (one per biome quadrant)
         const nwMat = biomeGroundMats.forest;
         const neMat = biomeGroundMats.stone;
         const swMat = biomeGroundMats.military;
         const seMat = biomeGroundMats.snow;
-        // N gap (between NW and NE biomes)
-        let g = new THREE.Mesh(new THREE.PlaneGeometry(112, 12, 32, 16), neMat.clone());
-        g.rotation.x = -Math.PI / 2; g.position.set(0, 1.55, -54); g.receiveShadow = true; this.scene.add(g);
-        // S gap (between SW and SE biomes)
-        g = new THREE.Mesh(new THREE.PlaneGeometry(112, 12, 32, 16), seMat.clone());
-        g.rotation.x = -Math.PI / 2; g.position.set(0, 1.55, 54); g.receiveShadow = true; this.scene.add(g);
-        // W gap (between NW and SW biomes)
-        g = new THREE.Mesh(new THREE.PlaneGeometry(112, 12, 32, 16), nwMat.clone());
-        g.rotation.x = -Math.PI / 2; g.position.set(-54, 1.55, 0); g.receiveShadow = true; this.scene.add(g);
-        // E gap (between NE and SE biomes)
-        g = new THREE.Mesh(new THREE.PlaneGeometry(112, 12, 32, 16), neMat.clone());
-        g.rotation.x = -Math.PI / 2; g.position.set(54, 1.55, 0); g.receiveShadow = true; this.scene.add(g);
-        // Corner transition patches (4 corners)
-        const corners = [
-            { x: -56, z: -56, mat: nwMat.clone() },
-            { x: 56, z: -56, mat: neMat.clone() },
-            { x: -56, z: 56, mat: swMat.clone() },
-            { x: 56, z: 56, mat: seMat.clone() }
-        ];
-        for (const c of corners) {
-            const cg = new THREE.Mesh(new THREE.PlaneGeometry(18, 18, 16, 16), c.mat);
-            cg.rotation.x = -Math.PI / 2;
-            cg.position.set(c.x, 1.55, c.z);
-            cg.receiveShadow = true;
-            this.scene.add(cg);
-        }
-        // Diagonal patches between platform corners and biome edges
-        const diagMats = [nwMat.clone(), neMat.clone(), swMat.clone(), seMat.clone()];
-        for (let i = 0; i < 4; i++) {
-            const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
-            const dg = new THREE.Mesh(new THREE.PlaneGeometry(12, 12, 16, 16), diagMats[i]);
-            dg.rotation.x = -Math.PI / 2;
-            dg.position.set(Math.cos(a) * 60, 1.55, Math.sin(a) * 60);
-            dg.rotation.z = a;
-            dg.receiveShadow = true;
-            this.scene.add(dg);
+        // NW quadrant (between NW biome and center)
+        let g = new THREE.Mesh(new THREE.PlaneGeometry(64, 64, 32, 32), nwMat.clone());
+        g.rotation.x = -Math.PI / 2; g.position.set(-88, 1.55, -88); g.receiveShadow = true; this.scene.add(g);
+        // NE quadrant
+        g = new THREE.Mesh(new THREE.PlaneGeometry(64, 64, 32, 32), neMat.clone());
+        g.rotation.x = -Math.PI / 2; g.position.set(88, 1.55, -88); g.receiveShadow = true; this.scene.add(g);
+        // SW quadrant
+        g = new THREE.Mesh(new THREE.PlaneGeometry(64, 64, 32, 32), swMat.clone());
+        g.rotation.x = -Math.PI / 2; g.position.set(-88, 1.55, 88); g.receiveShadow = true; this.scene.add(g);
+        // SE quadrant
+        g = new THREE.Mesh(new THREE.PlaneGeometry(64, 64, 32, 32), seMat.clone());
+        g.rotation.x = -Math.PI / 2; g.position.set(88, 1.55, 88); g.receiveShadow = true; this.scene.add(g);
+        // Inner ring patches (r=56 to r=62) — fills the gap right next to platform
+        const ringSegments = 24;
+        for (let i = 0; i < ringSegments; i++) {
+            const a = (i / ringSegments) * Math.PI * 2;
+            const r = 59;
+            const rx = Math.cos(a) * r;
+            const rz = Math.sin(a) * r;
+            // Pick material based on quadrant angle
+            const seg = i % 4;
+            const mat = [nwMat.clone(), neMat.clone(), swMat.clone(), seMat.clone()][seg];
+            const segGeo = new THREE.PlaneGeometry(8, 2, 8, 2);
+            const sg = new THREE.Mesh(segGeo, mat);
+            sg.rotation.x = -Math.PI / 2;
+            sg.position.set(rx, 1.55, rz);
+            sg.rotation.z = a + Math.PI / 2;
+            sg.receiveShadow = true;
+            this.scene.add(sg);
         }
 
         // Spawn pads around platform edge
