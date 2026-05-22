@@ -1247,13 +1247,24 @@ const gapConfigs = [
         gapConfigs.forEach(cfg => {
             const tex = this.textures[cfg.matKey];
             if (!tex) return;
-            const groundGeo = new THREE.PlaneGeometry(cfg.w, cfg.h);
+            const groundGeo = new THREE.PlaneGeometry(cfg.w, cfg.h, 32, 32);
             const groundMat = new THREE.MeshStandardMaterial({
                 map: tex, roughness: 0.95, flatShading: false
             });
             const ground = new THREE.Mesh(groundGeo, groundMat);
             ground.rotation.x = -Math.PI / 2;
             ground.position.set(cfg.cx, cfg.y, cfg.cz);
+
+            const positions = groundGeo.attributes.position.array;
+            for (let i = 0; i < positions.length; i += 3) {
+                const vx = positions[i];
+                const vz = positions[i + 2];
+                const worldX = cfg.cx + vx;
+                const worldZ = cfg.cz + vz;
+                positions[i + 1] = this.getHeightAt(worldX, worldZ) - cfg.y;
+            }
+            groundGeo.attributes.position.needsUpdate = true;
+
             ground.receiveShadow = true;
             this.scene.add(ground);
         });
