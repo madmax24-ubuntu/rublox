@@ -1425,6 +1425,11 @@ const gapConfigs = [
             path.position.set((p1.x + p2.x) / 2, 1.57, (p1.z + p2.z) / 2);
             path.receiveShadow = true;
             this.scene.add(path);
+            this.deformPathGeometry(pathGeo, angle, {
+                x: (p1.x + p2.x) / 2,
+                y: 1.57,
+                z: (p1.z + p2.z) / 2
+            });
             this.colliders.push({
                 type: 'box',
                 position: new THREE.Vector3((p1.x + p2.x) / 2, 0, (p1.z + p2.z) / 2),
