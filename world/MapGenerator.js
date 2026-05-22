@@ -563,16 +563,9 @@ export class MapGenerator {
         this.scene.add(edge);
 
         // === Fill diagonal gaps between circular platform and square biome grounds ===
-        const gapFillMat = new THREE.MeshStandardMaterial({
-            map: this.textures.forestGround || new THREE.MeshStandardMaterial({ color: 0x4a7a2e }),
-            roughness: 0.95,
-            flatShading: false
-        });
-        // 4 diagonal gap patches
-        const gapSize = 16;
         for (let i = 0; i < 4; i++) {
             const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
-            const gapGeo = new THREE.PlaneGeometry(gapSize, gapSize * 0.8, 16, 16);
+            const gapGeo = new THREE.PlaneGeometry(16, 14, 16, 16);
             const gapMesh = new THREE.Mesh(gapGeo, new THREE.MeshStandardMaterial({
                 color: 0x3a6a1e, roughness: 0.95, flatShading: false
             }));
