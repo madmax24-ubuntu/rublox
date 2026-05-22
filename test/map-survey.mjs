@@ -4,10 +4,9 @@ import { chromium } from 'playwright';
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
 
-  // Disable test mode to allow normal perk panel flow
-  await page.evaluate(() => {
-    localStorage.removeItem('testMode');
-  });
+  // Clear test mode from a fresh context
+  const context = await browser.newContext({ storageState: { cookies: [], origins: [{ origin: 'http://localhost:3001', localStorage: [] }] }});
+  const freshPage = await context.newPage();
 
   page.on('console', msg => {
     const text = msg.text();
@@ -18,23 +17,29 @@ import { chromium } from 'playwright';
   page.on('pageerror', err => console.log(`ERROR: ${err.message}`));
 
   console.log('=== ОТКРЫВАЮ ИГРУ ===');
-  await page.goto('http://localhost:3001', { waitUntil: 'networkidle', timeout: 30000 });
+  await freshPage.goto('http://localhost:3001', { waitUntil: 'networkidle', timeout: 30000 });
   console.log('✅ Страница загружена');
 
-  await page.waitForSelector('#startButtonDesktop', { timeout: 10000 });
-  await page.click('#startButtonDesktop');
+  await freshPage.waitForSelector('#startButtonDesktop', { timeout: 10000 });
+  await freshPage.click('#startButtonDesktop');
   console.log('🖱️ Клик по старту');
 
-  // Wait for perk panel (appears after game starts in non-test mode)
+  // Wait for HUD to appear (indicates game has started)
   try {
-    await page.waitForFunction(() => {
-      const panel = document.getElementById('perkPanel');
-      return panel && panel.offsetParent !== null;
-    }, { timeout: 15000 });
-    console.log('✅ Perk panel visible');
+    await freshPage.waitForSelector('#hud', { timeout: 15000 });
+    console.log('✅ HUD visible');
+  } catch {
+    console.log('⚠️ HUD did not appear');
+  }
 
-    // Click a perk to proceed
-    await page.evaluate(() => {
+  // If perk panel is visible, click a perk
+  const panelVisible = await freshPage.evaluate(() => {
+    const panel = document.getElementById('perkPanel');
+    return panel && panel.offsetParent !== null;
+  }).catch(() => false);
+
+  if (panelVisible) {
+    await freshPage.evaluate(() => {
       const perkPanel = document.getElementById('perkPanel');
       if (perkPanel) {
         const btn = perkPanel.querySelector('button[data-perk]');
@@ -42,23 +47,21 @@ import { chromium } from 'playwright';
       }
     });
     console.log('🖱️ Клик по перку');
-  } catch {
-    console.log('⚠️ Perk panel did not appear, proceeding anyway');
   }
 
   console.log('⏳ Ожидание генерации карты...');
   // Wait for map to be ready by checking scene children count
-  await page.waitForFunction(() => {
+  await freshPage.waitForFunction(() => {
     if (window.game && window.game.scene) {
       const count = window.game.scene.children?.length || 0;
       return count > 20;
     }
     return false;
-  }, { timeout: 30000 });
+  }, { timeout: 60000 });
 
   console.log('✅ Карта сгенерирована');
 
-  const objCount = await page.evaluate(() => {
+  const objCount = await freshPage.evaluate(() => {
     if (window.game && window.game.scene) {
       let count = 0;
       function countChildren(obj) {
@@ -118,7 +121,7 @@ import { chromium } from 'playwright';
   ];
 
   for (const pos of cameraPositions) {
-    await page.evaluate((p) => {
+    await freshPage.evaluate((p) => {
       if (window.game) {
         window.game.camera.position.set(p.cam.x, p.cam.y, p.cam.z);
         window.game.camera.lookAt(p.lookAt.x, p.lookAt.y, p.lookAt.z);
@@ -126,8 +129,8 @@ import { chromium } from 'playwright';
         window.game.camera.updateProjectionMatrix();
       }
     }, pos);
-    await page.waitForTimeout(1500);
-    await page.screenshot({ path: `test/survey_${pos.name}.png`, type: 'png' });
+    await freshPage.waitForTimeout(1500);
+    await freshPage.screenshot({ path: `test/survey_${pos.name}.png`, type: 'png' });
     console.log(`📸 ${pos.name}: cam(${pos.cam.x},${pos.cam.y},${pos.cam.z}) look(${pos.lookAt.x},${pos.lookAt.y},${pos.lookAt.z}) fov=${pos.fov}`);
   }
 
