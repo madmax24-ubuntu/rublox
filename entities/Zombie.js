@@ -1,7 +1,14 @@
 import * as THREE from 'three';
 
 export class Zombie {
-    constructor(scene, id, spawnPosition) {
+    static pickWeightedType() {
+        const roll = Math.random();
+        if (roll < 0.33) return 'runner';
+        if (roll < 0.55) return 'tank';
+        return 'standard';
+    }
+
+    constructor(scene, id, spawnPosition, forcedType = null) {
         this.scene = scene;
         this.id = id;
         this.position = spawnPosition.clone();
@@ -14,8 +21,8 @@ export class Zombie {
             speed: 4.8
         };
 
-        this.health = 55;
-        this.maxHealth = 55;
+        this.health = 100;
+        this.maxHealth = 100;
         this.isAlive = true;
         this.attackCooldown = 0;
         this.patrolTarget = null;
@@ -23,23 +30,24 @@ export class Zombie {
         this.alertTimer = 0;
         this.alertTarget = null;
         this.alertPosition = null;
-        const roll = Math.random();
-        this.variant = roll < 0.5 ? 'runner' : (roll < 0.78 ? 'normal' : 'heavy');
+        this.variant = (forcedType || Zombie.pickWeightedType() || 'standard').toLowerCase();
         if (this.variant === 'runner') {
-            this.maxHealth = 42;
-            this.health = 42;
-            this.physics.speed = 7.6;
-            this.knockbackMultiplier = 1.2;
-        } else if (this.variant === 'heavy') {
-            this.maxHealth = 180;
-            this.health = 180;
-            this.physics.speed = 3.2;
+            this.maxHealth = 50;
+            this.health = 50;
+            this.physics.speed = 7.2;
+            this.knockbackMultiplier = 1.1;
+        } else if (this.variant === 'tank' || this.variant === 'heavy') {
+            this.variant = 'tank';
+            this.maxHealth = 200;
+            this.health = 200;
+            this.physics.speed = 3.36;
             this.physics.radius = 0.62;
             this.knockbackMultiplier = 0;
         } else {
-            this.maxHealth = 72;
-            this.health = 72;
-            this.physics.speed = 5.1;
+            this.variant = 'standard';
+            this.maxHealth = 100;
+            this.health = 100;
+            this.physics.speed = 4.8;
             this.knockbackMultiplier = 0.8;
         }
         this.stats = { damage: 0, kills: 0, loot: 0 };
@@ -49,16 +57,16 @@ export class Zombie {
         this.burnAttacker = null;
 
         this.mesh = this.createMesh();
-        const scale = this.variant === 'heavy' ? 1.56 : this.variant === 'runner' ? 1.2 : 1.35;
+        const scale = this.variant === 'tank' ? 1.3 : this.variant === 'runner' ? 0.9 : 1.0;
         this.mesh.scale.setScalar(scale);
-        this.physics.radius = this.variant === 'heavy' ? 0.6 : this.variant === 'runner' ? 0.48 : 0.54;
+        this.physics.radius = this.variant === 'tank' ? 0.62 : this.variant === 'runner' ? 0.48 : 0.54;
         this.scene.add(this.mesh);
     }
 
     createMesh() {
         const group = new THREE.Group();
-        const bodyColor = this.variant === 'heavy' ? 0x1b241f : this.variant === 'runner' ? 0x26352c : 0x1f2a23;
-        const headColor = this.variant === 'heavy' ? 0x222c26 : this.variant === 'runner' ? 0x2c3c31 : 0x263029;
+        const bodyColor = this.variant === 'tank' ? 0x4f4a4a : this.variant === 'runner' ? 0x3f6f4a : 0x7a3f3f;
+        const headColor = this.variant === 'tank' ? 0x6d6767 : this.variant === 'runner' ? 0xc6d8bc : 0xb76a6a;
         const bodyMat = new THREE.MeshStandardMaterial({
             color: bodyColor,
             roughness: 0.85,
@@ -163,8 +171,8 @@ export class Zombie {
         const rightArm = new THREE.Mesh(armGeo, bodyMat);
         leftArm.position.set(-0.52, 1.0, 0.12);
         rightArm.position.set(0.52, 1.0, 0.12);
-        leftArm.rotation.x = this.variant === 'heavy' ? -0.95 : -0.8;
-        rightArm.rotation.x = this.variant === 'heavy' ? -0.95 : -0.8;
+        leftArm.rotation.x = this.variant === 'tank' ? -0.95 : -0.8;
+        rightArm.rotation.x = this.variant === 'tank' ? -0.95 : -0.8;
         group.add(leftArm);
         group.add(rightArm);
 
@@ -192,7 +200,7 @@ export class Zombie {
         rightClaw.rotation.x = Math.PI / 2;
         group.add(rightClaw);
 
-        if (this.variant === 'heavy') {
+        if (this.variant === 'tank') {
             const backpack = new THREE.Mesh(
                 new THREE.BoxGeometry(0.55, 0.7, 0.25),
                 armorMat
@@ -217,7 +225,7 @@ export class Zombie {
             group.add(mask);
         }
 
-        if (this.variant === 'heavy') {
+        if (this.variant === 'tank') {
             const spikesGeo = new THREE.ConeGeometry(0.06, 0.18, 5);
             const spikesMat = new THREE.MeshStandardMaterial({ color: 0x263238, roughness: 0.5, flatShading: true });
             for (let i = 0; i < 5; i++) {
@@ -452,5 +460,9 @@ export class Zombie {
             child.material.emissive.setHex(0xff6d00);
             child.material.emissiveIntensity = intensity;
         });
+    }
+
+    setInvulnerable(v) {
+        this.isInvulnerable = v;
     }
 }

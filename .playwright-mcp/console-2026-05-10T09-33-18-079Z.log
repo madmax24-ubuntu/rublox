@@ -1,0 +1,42 @@
+[     267ms] [LOG] 🗺️ Debug Map Viewer activated @ http://localhost:3001/main.js:2401
+[     268ms] [LOG] 🚀 Starting game for debug mode... @ http://localhost:3001/main.js:2655
+[     270ms] [LOG] 🔧 Creating camera... @ http://localhost:3001/main.js:217
+[     270ms] [LOG] Camera options: {"fov":75,"aspect":1.5871559633027523,"near":0.1,"far":5000} @ http://localhost:3001/main.js:220
+[     270ms] [LOG] ✅ Camera created at position: 0 0 0 @ http://localhost:3001/main.js:223
+[     805ms] [LOG] 🗺️ Starting debug camera controls... @ http://localhost:3001/main.js:2625
+[     807ms] [LOG] 🗺️ Debug controls: WASD move | Q/E up-down | Scroll zoom | R reset view | T top-down @ http://localhost:3001/main.js:2665
+[    1062ms] [LOG] DEBUG: Checking game object properties... @ http://localhost:3001/main.js:2391
+[    1063ms] [LOG]   camera: true object @ http://localhost:3001/main.js:2392
+[    1063ms] [LOG]   scene: true object @ http://localhost:3001/main.js:2393
+[    1063ms] [LOG]   camera.position: 100 80 -100 @ http://localhost:3001/main.js:2395
+[    6791ms] [LOG] DEBUG: Total map objects in scene: 4318; renderables: 3852 @ http://localhost:3001/main.js:701
+[    6798ms] [LOG] [GameLoop] starting, isRunning=true @ http://localhost:3001/core/GameLoop.js:17
+[    6799ms] [LOG] [Game] FIRST render: renderer=WebGLRenderer renderMethod=function renderName= @ http://localhost:3001/main.js:2287
+[    6803ms] [LOG] [THREE.WebGLRenderer.render #1] @ http://localhost:3001/node_modules/three/build/three.module.js:29533
+[    9683ms] [LOG] [GameLoop] first frame: update=function render=function paused=false hidden=false @ http://localhost:3001/core/GameLoop.js:66
+[    9684ms] [LOG] [THREE.WebGLRenderer.render #2] @ http://localhost:3001/node_modules/three/build/three.module.js:29533
+[    9740ms] [LOG] ✅ Game started successfully @ http://localhost:3001/main.js:2657
+[    9975ms] [LOG] [THREE.WebGLRenderer.render #3] @ http://localhost:3001/node_modules/three/build/three.module.js:29533
+[   10081ms] [LOG] [THREE.WebGLRenderer.render #4] @ http://localhost:3001/node_modules/three/build/three.module.js:29533
+[   10177ms] [LOG] [THREE.WebGLRenderer.render #5] @ http://localhost:3001/node_modules/three/build/three.module.js:29533
+[   10260ms] [LOG] [THREE.WebGLRenderer.render #6] @ http://localhost:3001/node_modules/three/build/three.module.js:29533
+[   10319ms] [LOG] [THREE.WebGLRenderer.render #7] @ http://localhost:3001/node_modules/three/build/three.module.js:29533
+[   10366ms] [LOG] [THREE.WebGLRenderer.render #8] @ http://localhost:3001/node_modules/three/build/three.module.js:29533
+[   10420ms] [LOG] [THREE.WebGLRenderer.render #9] @ http://localhost:3001/node_modules/three/build/three.module.js:29533
+[   10463ms] [LOG] [THREE.WebGLRenderer.render #10] @ http://localhost:3001/node_modules/three/build/three.module.js:29533
+[   15352ms] [LOG] [THREE.WebGLRenderer.render #120] @ http://localhost:3001/node_modules/three/build/three.module.js:29533
+[   15441ms] [LOG] [GameLoop] frame#120 @ http://localhost:3001/core/GameLoop.js:69
+[   20475ms] [LOG] [THREE.WebGLRenderer.render #240] @ http://localhost:3001/node_modules/three/build/three.module.js:29533
+[   20554ms] [LOG] [GameLoop] frame#240 @ http://localhost:3001/core/GameLoop.js:69
+[   25818ms] [LOG] [THREE.WebGLRenderer.render #360] @ http://localhost:3001/node_modules/three/build/three.module.js:29533
+[   25904ms] [LOG] [GameLoop] frame#360 @ http://localhost:3001/core/GameLoop.js:69
+[   31132ms] [LOG] [THREE.WebGLRenderer.render #480] @ http://localhost:3001/node_modules/three/build/three.module.js:29533
+[   31212ms] [LOG] [GameLoop] frame#480 @ http://localhost:3001/core/GameLoop.js:69
+[   36440ms] [LOG] [THREE.WebGLRenderer.render #600] @ http://localhost:3001/node_modules/three/build/three.module.js:29533
+[   36529ms] [LOG] [GameLoop] frame#600 @ http://localhost:3001/core/GameLoop.js:69
+[   41874ms] [LOG] [THREE.WebGLRenderer.render #720] @ http://localhost:3001/node_modules/three/build/three.module.js:29533
+[   41954ms] [LOG] [GameLoop] frame#720 @ http://localhost:3001/core/GameLoop.js:69
+[   65766ms] [LOG] [THREE.WebGLRenderer.render #840] @ http://localhost:3001/node_modules/three/build/three.module.js:29533
+[   65852ms] [LOG] [GameLoop] frame#840 @ http://localhost:3001/core/GameLoop.js:69
+[  181720ms] [LOG] [THREE.WebGLRenderer.render #960] @ http://localhost:3001/node_modules/three/build/three.module.js:29533
+[  182824ms] [LOG] [GameLoop] frame#960 @ http://localhost:3001/core/GameLoop.js:69

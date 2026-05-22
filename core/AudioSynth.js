@@ -1,4 +1,4 @@
-﻿const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
 export class AudioSynth {
     constructor() {
@@ -31,6 +31,9 @@ export class AudioSynth {
         this.radiationRainNodes = null;
         this.weatherLoopNodes = null;
         this.currentWeatherState = 'clear';
+        this.currentBiomeState = 'stone';
+        this.currentNightState = false;
+        this.biomeLoopNodes = null;
         this.footstepWeatherFactor = 1;
         this.musicStarted = false;
         this.musicLoopTimer = null;
@@ -126,6 +129,34 @@ export class AudioSynth {
                 'assets/audio/rpg/cloth1.ogg',
                 'assets/audio/rpg/cloth2.ogg',
                 'assets/audio/rpg/clothBelt.ogg'
+            ],
+            biomePlaza: [
+                'assets/audio/rpg/cloth1.ogg'
+            ],
+            biomeUrban: [
+                'assets/audio/rpg/metalPot2.ogg',
+                'assets/audio/rpg/metalPot3.ogg'
+            ],
+            biomeWildDay: [
+                'assets/audio/rpg/cloth2.ogg'
+            ],
+            biomeWildNight: [
+                'assets/audio/rpg/clothBelt.ogg'
+            ],
+            footstepStone: [
+                'assets/audio/rpg/footstep07.ogg',
+                'assets/audio/rpg/footstep08.ogg',
+                'assets/audio/rpg/footstep09.ogg'
+            ],
+            footstepUrban: [
+                'assets/audio/rpg/footstep03.ogg',
+                'assets/audio/rpg/footstep04.ogg',
+                'assets/audio/rpg/footstep05.ogg'
+            ],
+            footstepWild: [
+                'assets/audio/rpg/footstep00.ogg',
+                'assets/audio/rpg/footstep01.ogg',
+                'assets/audio/rpg/footstep02.ogg'
             ]
         };
 
@@ -302,20 +333,30 @@ export class AudioSynth {
 
     updateListener(position, forward) {
         if (!this.audioContext) return;
+        const px = Number.isFinite(position?.x) ? position.x : 0;
+        const py = Number.isFinite(position?.y) ? position.y : 1.7;
+        const pz = Number.isFinite(position?.z) ? position.z : 0;
+        const fxRaw = Number.isFinite(forward?.x) ? forward.x : 0;
+        const fyRaw = Number.isFinite(forward?.y) ? forward.y : 0;
+        const fzRaw = Number.isFinite(forward?.z) ? forward.z : -1;
+        const fl = Math.hypot(fxRaw, fyRaw, fzRaw) || 1;
+        const fx = fxRaw / fl;
+        const fy = fyRaw / fl;
+        const fz = fzRaw / fl;
         const listener = this.audioContext.listener;
         if (listener.positionX) {
-            listener.positionX.value = position.x;
-            listener.positionY.value = position.y;
-            listener.positionZ.value = position.z;
-            listener.forwardX.value = forward.x;
-            listener.forwardY.value = forward.y;
-            listener.forwardZ.value = forward.z;
+            listener.positionX.value = px;
+            listener.positionY.value = py;
+            listener.positionZ.value = pz;
+            listener.forwardX.value = fx;
+            listener.forwardY.value = fy;
+            listener.forwardZ.value = fz;
             listener.upX.value = 0;
             listener.upY.value = 1;
             listener.upZ.value = 0;
         } else if (listener.setPosition) {
-            listener.setPosition(position.x, position.y, position.z);
-            listener.setOrientation(forward.x, forward.y, forward.z, 0, 1, 0);
+            listener.setPosition(px, py, pz);
+            listener.setOrientation(fx, fy, fz, 0, 1, 0);
         }
     }
 
@@ -580,6 +621,23 @@ export class AudioSynth {
         }
     }
 
+    playFootstepSurface(surface = 'stone', volume = 1) {
+        const gainScale = clamp(volume, 0.15, 1.2) * (this.footstepWeatherFactor || 1);
+        const list =
+            surface === 'urban' ? this.sampleCatalog.footstepUrban :
+            surface === 'wild' ? this.sampleCatalog.footstepWild :
+            this.sampleCatalog.footstepStone;
+        if (!this.playSample(list, {
+            volume: (this.isMobileDevice ? 0.12 : 0.17) * gainScale,
+            rateMin: 0.9,
+            rateMax: 1.06,
+            category: 'sfx',
+            maxDuration: 0.18
+        })) {
+            this.playFootstep(volume);
+        }
+    }
+
     playHit(position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`hit:${emitterKey}`, 0.055)) return;
         if (!this.playSample(this.sampleCatalog.hit, { volume: this.isMobileDevice ? 0.26 : 0.34, rateMin: 0.95, rateMax: 1.12, reverbSend: 0.06, position, category: 'weapon', maxDuration: 0.2 })) {
@@ -840,7 +898,7 @@ export class AudioSynth {
             this.startWeatherLoop({
                 intervalMs: this.isMobileDevice ? 2100 : 1500,
                 category: 'weather',
-                volume: this.isMobileDevice ? 0.028 : 0.045,
+                volume: 0.5,
                 rateMin: 0.82,
                 rateMax: 1.02,
                 fallback: () => this.playNoiseBurst({
@@ -897,6 +955,41 @@ export class AudioSynth {
         if (!this.weatherLoopNodes) return;
         if (this.weatherLoopNodes.timer) clearInterval(this.weatherLoopNodes.timer);
         this.weatherLoopNodes = null;
+    }
+
+    setBiomeAmbience(biome = 'stone', weather = 'clear', isNight = false) {
+        const b = String(biome || 'stone').toLowerCase();
+        const w = String(weather || 'clear').toLowerCase();
+        const n = !!isNight;
+        if (this.biomeLoopNodes?.timer) clearInterval(this.biomeLoopNodes.timer);
+        this.biomeLoopNodes = null;
+        this.currentBiomeState = b;
+        this.currentNightState = n;
+        let sampleList = this.sampleCatalog.biomePlaza;
+        let volume = this.isMobileDevice ? 0.02 : 0.035;
+        let interval = this.isMobileDevice ? 4600 : 3300;
+        if (b === 'urban') {
+            sampleList = this.sampleCatalog.biomeUrban;
+            volume = this.isMobileDevice ? 0.03 : 0.05;
+            interval = this.isMobileDevice ? 3200 : 2500;
+        } else if (b === 'wild') {
+            sampleList = n ? this.sampleCatalog.biomeWildNight : this.sampleCatalog.biomeWildDay;
+            volume = this.isMobileDevice ? 0.022 : 0.04;
+            interval = this.isMobileDevice ? 4200 : 3000;
+        }
+        if (w === 'rain') volume *= 0.75;
+        const tick = () => {
+            this.playSample(sampleList, {
+                volume,
+                rateMin: 0.86,
+                rateMax: 1.08,
+                reverbSend: 0.2,
+                category: 'ambient',
+                maxDuration: 1.3
+            });
+        };
+        tick();
+        this.biomeLoopNodes = { timer: setInterval(tick, interval) };
     }
 
     playChestOpen() {

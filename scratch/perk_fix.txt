@@ -1,0 +1,34 @@
+        if (this.perkMenuOpen) {
+            const wPressed = this.input.isKeyPressed('KeyW');
+            const sPressed = this.input.isKeyPressed('KeyS');
+            const ePressed = this.input.isKeyPressed('KeyE');
+
+            if (wPressed && !this.menuKeyLatch.w) {
+                this.perkMenuIndex -= 1;
+                this.hud.setPerkMenuSelection(this.perkMenuIndex);
+            }
+            if (sPressed && !this.menuKeyLatch.s) {
+                this.perkMenuIndex += 1;
+                this.hud.setPerkMenuSelection(this.perkMenuIndex);
+            }
+            if (ePressed && !this.menuKeyLatch.e) {
+                const perk = this.hud.getPerkMenuValue();
+                if (perk) {
+                    this.perkSelectionRequired = false;
+                    this.perkMenuOpen = false;
+                    this.perkLocked = true;
+                    this.applyPerk(perk);
+                    this.hud.setPerkPanelLock(false);
+                    this.hud.togglePerkPanel(false);
+                    this.updateDesktopCursorMode();
+                    this.tryEnterGameplayPointerLock();
+                }
+            }
+            this.menuKeyLatch.w = wPressed;
+            this.menuKeyLatch.s = sPressed;
+            this.menuKeyLatch.e = ePressed;
+        } else {
+            this.menuKeyLatch.w = false;
+            this.menuKeyLatch.s = false;
+            this.menuKeyLatch.e = false;
+        }

@@ -28,6 +28,10 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Поддержка подпапок single/ и multi/
+app.use('/single', express.static(path.join(__dirname, 'single')));
+app.use('/multi', express.static(path.join(__dirname, 'multi')));
+
 const wss = new WebSocketServer({ server, path: '/ws' });
 const rooms = new Map();
 

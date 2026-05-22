@@ -65,7 +65,13 @@ function configureMeshForGameplay(mesh) {
             child.castShadow = false;
             child.receiveShadow = false;
             child.frustumCulled = false;
-            child.renderOrder = 4;
+            child.renderOrder = 0;
+            if (child.material) {
+                child.material.depthTest = true;
+                child.material.depthWrite = true;
+                child.material.transparent = false;
+                child.material.opacity = 1;
+            }
             child.userData.ignoreDamageTint = true;
         }
     });

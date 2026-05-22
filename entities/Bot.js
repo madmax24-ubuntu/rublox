@@ -58,8 +58,6 @@ export class Bot {
         this.burnDamagePerSecond = 0;
         this.burnAttacker = null;
         this.lastFlashTime = 0;
-        this.preferTrainCombat = false;
-        this.ignoreTrainAvoidance = false;
         this.healthRegenDelay = 7;
         this.healthRegenDuration = 7;
         this.lastDamageAt = -Infinity;
@@ -74,7 +72,6 @@ export class Bot {
         this.visualSpeed = 0;
         this._tmpDirection = new THREE.Vector3();
         this._tmpAvoid = new THREE.Vector3();
-        this._tmpTrainAvoid = new THREE.Vector3();
         this._tmpProbe = new THREE.Vector3();
         this._tmpProbe2 = new THREE.Vector3();
         this._tmpProbe3 = new THREE.Vector3();
@@ -440,22 +437,20 @@ export class Bot {
 
     createHealthBar() {
         const group = new THREE.Group();
-        const bgMat = new THREE.MeshBasicMaterial({ color: 0x1a1a1a, transparent: true, opacity: 0.8, depthTest: false });
-        const fillMat = new THREE.MeshBasicMaterial({ color: 0x4caf50, transparent: true, opacity: 0.95, depthTest: false });
+        // depthTest: true — скрывается за стенами
+        const bgMat = new THREE.MeshBasicMaterial({ color: 0x1a1a1a, transparent: false, depthTest: true, depthWrite: true });
+        const fillMat = new THREE.MeshBasicMaterial({ color: 0x4caf50, transparent: false, depthTest: true, depthWrite: true });
         const bg = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.12), bgMat);
         const fill = new THREE.Mesh(new THREE.PlaneGeometry(0.86, 0.08), fillMat);
-        fill.position.set(-0.43, 0, 0.01);
+        fill.position.set(-0.43, 0, 0.001);
         fill.userData.isFill = true;
         group.add(bg);
         group.add(fill);
         group.position.set(0, 2.65, 0);
-        group.renderOrder = 900;
-        group.traverse(child => {
-            if (child.material) {
-                child.material.depthTest = false;
-                child.material.depthWrite = false;
-            }
-        });
+        // polygonOffset чтобы убрать z-fighting с фоном
+        bgMat.polygonOffset = true;
+        bgMat.polygonOffsetFactor = -2;
+        bgMat.polygonOffsetUnits = -2;
         return group;
     }
 
@@ -528,7 +523,6 @@ export class Bot {
         }
 
 
-        this.ignoreTrainAvoidance = false;
         brain.update(this, delta, entityManager, lootManager, audioSynth);
         if (this.escapeTimer > 0) {
             this.escapeTimer = Math.max(0, this.escapeTimer - delta);
@@ -803,7 +797,6 @@ export class Bot {
 
     updateHealthBar(delta = 0.016) {
         if (!this.healthBar) return;
-        const isMobile = !!this.scene?.userData?.mobileMode;
         const ratio = Math.max(0, Math.min(1, this.health / this.maxHealth));
         const fill = this.healthBar.children.find(child => child.userData?.isFill);
         if (fill) {
@@ -815,27 +808,13 @@ export class Bot {
         }
         const camera = this.scene.userData?.camera;
         if (camera) {
-            this.healthBarRefreshTimer = Math.max(0, this.healthBarRefreshTimer - delta);
-            this.healthBarLosTimer = Math.max(0, this.healthBarLosTimer - delta);
-            this.healthBarAimTimer = Math.max(0, this.healthBarAimTimer - delta);
-            if (this.healthBarRefreshTimer > 0) return;
-            this.healthBarRefreshTimer = isMobile ? 0.2 + Math.random() * 0.1 : 0.08 + Math.random() * 0.06;
             const dx = camera.position.x - this.position.x;
             const dz = camera.position.z - this.position.z;
             const distSq = dx * dx + dz * dz;
-            const entityManager = this.scene.userData?.entityManager;
-            let visible = distSq < (isMobile ? (13 * 13) : (19 * 19));
-            if (!isMobile && visible && entityManager?.hasLineOfSight && this.healthBarLosTimer <= 0) {
-                this._tmpLosFrom.copy(camera.position);
-                this._tmpLosTo.set(this.position.x, this.position.y + (this.physics?.height || 1.8) * 0.65, this.position.z);
-                this.healthBarVisibleCached = entityManager.hasLineOfSight(this._tmpLosFrom, this._tmpLosTo, true);
-                this.healthBarLosTimer = 0.22 + Math.random() * 0.12;
-            }
-            this.healthBar.visible = isMobile ? visible : (visible && this.healthBarVisibleCached);
-            if (this.healthBar.visible && this.healthBarAimTimer <= 0) {
-                this.healthBar.lookAt(camera.position);
-                this.healthBarAimTimer = isMobile ? 0.22 : 0.12;
-            }
+            // Только показывать в радиусе 25м (ближний бой/прицеливание)
+            const maxDist = 25;
+            this.healthBar.visible = distSq < maxDist * maxDist;
+            if (this.healthBar.visible) this.healthBar.lookAt(camera.position);
         }
     }
 
@@ -898,11 +877,6 @@ export class Bot {
             this.computeAvoidance(direction, this._tmpAvoid);
             if (this._tmpAvoid.lengthSq() > 0.0001) {
                 direction.addScaledVector(this._tmpAvoid, 1.2).normalize();
-            }
-
-            this.computeTrainAvoidance(direction, this._tmpTrainAvoid);
-            if (this._tmpTrainAvoid.lengthSq() > 0.0001) {
-                direction.addScaledVector(this._tmpTrainAvoid, 1.35).normalize();
             }
 
             const angles = [0, Math.PI / 10, -Math.PI / 10, Math.PI / 4, -Math.PI / 4];
@@ -1129,42 +1103,6 @@ export class Bot {
         return result;
     }
 
-    computeTrainAvoidance(forward, out = null) {
-        const result = out || this._tmpTrainAvoid;
-        result.set(0, 0, 0);
-        if (this.ignoreTrainAvoidance || this.state === 'trainCombat') return result;
-        const map = this.mapRef;
-        if (!map?.getTrainCarsSnapshot) return result;
-        const trains = map.getTrainCarsSnapshot();
-        if (!trains.length) return result;
-
-        for (const train of trains) {
-            const axisX = train.axis === 'x';
-            const alongDist = axisX
-                ? Math.abs(this.position.x - train.x)
-                : Math.abs(this.position.z - train.z);
-            const acrossDist = axisX
-                ? Math.abs(this.position.z - train.z)
-                : Math.abs(this.position.x - train.x);
-            const halfWidth = (train.width || 4.8) * 0.5 + 1.4;
-            if (acrossDist > halfWidth || alongDist > 13.5) continue;
-
-            const intensity = Math.max(0.1, 1 - alongDist / 13.5);
-            if (axisX) {
-                result.z += (this.position.z >= train.z ? 1 : -1) * intensity;
-            } else {
-                result.x += (this.position.x >= train.x ? 1 : -1) * intensity;
-            }
-        }
-
-        if (result.lengthSq() <= 0.0001) return result;
-        result.normalize();
-        if (result.dot(forward) < -0.2) {
-            result.multiplyScalar(0.45);
-        }
-        return result;
-    }
-
     dispose() {
         if (this.mesh) {
             this.scene.remove(this.mesh);
@@ -1208,6 +1146,9 @@ export class Bot {
         while (diff < -Math.PI) diff += Math.PI * 2;
         while (diff > Math.PI) diff -= Math.PI * 2;
         return a + diff * t;
+    }
+    setInvulnerable(v) {
+        this.isInvulnerable = v;
     }
 }
 

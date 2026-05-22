@@ -199,7 +199,7 @@ export class LootManager {
             bandGeom2.translate(0, 0.18, 0);
             const rimGeom = new THREE.BoxGeometry(1.32, 0.06, 1.02);
             rimGeom.translate(0, 0.76, 0);
-            const mergedBandGeom = BufferGeometryUtils.mergeBufferGeometries([bandGeom1, bandGeom2, rimGeom]);
+            const mergedBandGeom = BufferGeometryUtils.mergeGeometries([bandGeom1, bandGeom2, rimGeom]);
 
             const latchGeom = new THREE.BoxGeometry(0.18, 0.18, 0.06);
             latchGeom.translate(0, 0.46, 0.48);
@@ -217,7 +217,7 @@ export class LootManager {
                 g.translate(ox, oy, oz);
                 return g;
             });
-            const mergedMetalGeom = BufferGeometryUtils.mergeBufferGeometries([latchGeom, latchPlateGeom, ...cornerGeometries]);
+            const mergedMetalGeom = BufferGeometryUtils.mergeGeometries([latchGeom, latchPlateGeom, ...cornerGeometries]);
 
             // Создаем меши
             const bodyMesh = new THREE.Mesh(bodyGeom, bodyMat);
@@ -251,16 +251,8 @@ export class LootManager {
         chestModel.userData.grade = grade;
         chestModel.userData.claimedBy = null;
         chestModel.userData.claimExpireAt = 0;
-        const rareChest = grade === 'hangar' || grade === 'train';
+        const rareChest = grade === 'hangar';
         let generatedLoot = this.generateLoot(rareChest);
-        if (grade === 'train') {
-            const trainRoll = Math.random();
-            if (trainRoll < 0.42) generatedLoot = { type: 'weapon', weaponType: 'laser' };
-            else if (trainRoll < 0.72) generatedLoot = { type: 'weapon', weaponType: 'flamethrower' };
-            else if (trainRoll < 0.9) generatedLoot = { type: 'weapon', weaponType: 'machinegun' };
-            else if (trainRoll < 0.98) generatedLoot = { type: 'weapon', weaponType: 'rifle' };
-            else generatedLoot = { type: 'ammo', amount: 24 + Math.floor(Math.random() * 18) };
-        }
         chestModel.userData.loot = generatedLoot;
         chestModel.userData.glow = glow;
         chestModel.userData.lid = lidMesh; // Сохраняем ссылку на крышку

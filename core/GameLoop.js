@@ -8,12 +8,14 @@ export class GameLoop {
         this.lastFrameTime = 0;
         this.targetFPS = 60;
         this.frameTime = 1000 / this.targetFPS;
+        this._frameCount = 0;
     }
 
     start() {
         this.isRunning = true;
         this.clock.start();
         this.resetDelta();
+        console.log('[GameLoop] starting, isRunning=' + this.isRunning);
         this.animate();
     }
 
@@ -29,12 +31,21 @@ export class GameLoop {
     }
 
     animate() {
-        if (!this.isRunning) return;
+        if (!this.isRunning) {
+            console.log('[GameLoop] not running, stopping');
+            return;
+        }
 
         requestAnimationFrame(() => this.animate());
 
         // Do not advance simulation when the tab/app is hidden.
         if (typeof document !== 'undefined' && document.hidden) {
+            this.resetDelta();
+            return;
+        }
+
+        // Do not advance simulation when paused.
+        if (this.game.isPaused) {
             this.resetDelta();
             return;
         }
@@ -49,6 +60,14 @@ export class GameLoop {
 
         if (this.game.render) {
             this.game.render();
+        }
+
+        this._frameCount++;
+        if (this._frameCount === 1) {
+            console.log('[GameLoop] first frame: update=' + typeof this.game.update + ' render=' + typeof this.game.render + ' paused=' + this.game.isPaused + ' hidden=' + document.hidden);
+        }
+        if (this._frameCount % 120 === 0) {
+            console.log('[GameLoop] frame#' + this._frameCount);
         }
     }
 }

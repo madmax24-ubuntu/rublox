@@ -1,4 +1,4 @@
-﻿import * as THREE from 'three';
+import * as THREE from 'three';
 
 export class Environment {
     constructor(scene) {
@@ -16,6 +16,8 @@ export class Environment {
         this.overrideFogColor = null;
         this.ambient = null;
         this.hemi = null;
+        this.nightAmbientColor = new THREE.Color(0x0b132b);
+        this.targetExposure = 1;
         this.init();
     }
 
@@ -32,7 +34,10 @@ export class Environment {
         this.scene.add(this.sunLight);
 
         this.scene.fog = new THREE.FogExp2(0x8fd3ff, 0.0028);
+        this.scene.background = new THREE.Color(0x8fd3ff);
+        this.scene.userData.targetExposure = 1;
     }
+
 
     update(delta) {
         const forcedNight = this.forceNightTimer > 0;
@@ -77,21 +82,26 @@ export class Environment {
                 this.targetFog = 0.0048;
                 intensity *= 0.65;
                 skyColor.lerp(new THREE.Color(0x7a8a9a), 0.35);
+                this.targetExposure = 0.4;
             } else if (this.weatherType === 'snow') {
                 this.targetFog = 0.0059;
                 intensity *= 0.78;
                 skyColor.lerp(new THREE.Color(0xd7e4f5), 0.42);
+                this.targetExposure = 0.82;
             } else {
                 this.targetFog = 0.0036;
+                this.targetExposure = 1;
             }
         } else {
             this.targetFog = 0.0036;
+            this.targetExposure = 1;
         }
 
         if (forcedNight) {
-            skyColor.setHex(0x03030c);
-            intensity = 0.08;
+            skyColor.copy(this.nightAmbientColor);
+            intensity = 0.0;
             this.targetFog = Math.max(this.targetFog, 0.0058);
+            this.targetExposure = Math.min(this.targetExposure, 0.65);
         }
         if (this.overrideFog !== null) {
             this.targetFog = this.overrideFog;
@@ -106,15 +116,26 @@ export class Environment {
             }
             this.scene.fog.density = THREE.MathUtils.lerp(this.scene.fog.density, this.targetFog, delta * 0.6);
         }
-        this.sunLight.intensity = THREE.MathUtils.lerp(this.sunLight.intensity, intensity, delta);
+        this.sunLight.intensity = THREE.MathUtils.lerp(this.sunLight.intensity, intensity, delta * 1.8);
+        this.sunLight.visible = intensity > 0.03;
         if (this.ambient) {
-            const target = forcedNight ? 0.12 : 0.25 + intensity * 0.7;
+            const target = forcedNight ? 0.2 : 0.25 + intensity * 0.7;
             this.ambient.intensity = THREE.MathUtils.lerp(this.ambient.intensity, target, delta * 0.8);
+            if (forcedNight) this.ambient.color.lerp(this.nightAmbientColor, delta * 2.4);
+            else this.ambient.color.lerp(new THREE.Color(0xffffff), delta * 1.8);
         }
         if (this.hemi) {
-            const target = forcedNight ? 0.08 : 0.2 + intensity * 0.75;
+            const target = forcedNight ? 0.18 : 0.2 + intensity * 0.75;
             this.hemi.intensity = THREE.MathUtils.lerp(this.hemi.intensity, target, delta * 0.8);
+            if (forcedNight) {
+                this.hemi.color.lerp(this.nightAmbientColor, delta * 2.6);
+                this.hemi.groundColor.lerp(new THREE.Color(0x080b14), delta * 2.6);
+            } else {
+                this.hemi.color.lerp(new THREE.Color(0xbad5ff), delta * 1.8);
+                this.hemi.groundColor.lerp(new THREE.Color(0x4a3a28), delta * 1.8);
+            }
         }
+        this.scene.userData.targetExposure = this.targetExposure;
         this.currentWeather = this.weatherType;
     }
 

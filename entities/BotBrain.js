@@ -27,6 +27,7 @@ export class BotBrain {
     constructor() {
         if (!BotBrain._lootReservations) BotBrain._lootReservations = new Map();
         if (!BotBrain._combatReservations) BotBrain._combatReservations = new Map();
+        if (!BotBrain._spawnTime) BotBrain._spawnTime = performance.now();
         this.visionMultiplier = 1;
         this.decisionCooldown = 0;
         this.attackCooldown = 0;
@@ -39,12 +40,24 @@ export class BotBrain {
         this._tmpMoveRight = new THREE.Vector3();
         this._tmpMoveTarget = new THREE.Vector3();
         this._rngShift = Math.random() * 1000;
-        this.baseVisionRange = 68;
-        this.hearingRange = 34;
-        this.shotHearingRange = 76;
-        this.losMemorySeconds = 1.4;
-        this.reactionMin = 0.2;
-        this.reactionMax = 0.5;
+        this.baseVisionRange = 80;   // увеличен радиус зрения
+        this.hearingRange = 40;
+        this.shotHearingRange = 90;
+        this.losMemorySeconds = 2.0;
+        this.reactionMin = 0.15;
+        this.reactionMax = 0.35;
+        // Биомный целевой сектор для разбегания
+        this.homeBiome = ['forest','maze','war','ice','plaza'][Math.floor(Math.random() * 5)];
+    }
+
+    getMatchAge() {
+        return (performance.now() - (BotBrain._spawnTime || performance.now())) / 1000;
+    }
+
+    isLootPhase(bot) {
+        // Паза лута пока noCombatUntil не истёк
+        const now = performance.now();
+        return bot.noCombatUntil && now < bot.noCombatUntil;
     }
 
     update(bot, delta, entityManager, lootManager) {
@@ -222,57 +235,77 @@ export class BotBrain {
         if (bot.forceShelterActive) {
             return ctx.sheltered ? STATES.SHELTER : STATES.ZONE_RETREAT;
         }
-
         if (ctx.outsideZone || ctx.zoneDistance > 0.5) {
             return STATES.ZONE_RETREAT;
         }
 
-        if (ctx.inPreLootPhase) {
-            if (ctx.lootTarget) return STATES.LOOT;
-            return STATES.IDLE;
-        }
-
-        const undergeared = ctx.gear < 0.18;
-        if (undergeared && ctx.lootTarget && (!ctx.nearestEnemy || ctx.nearestEnemyDist > 7.5)) {
-            return STATES.LOOT;
-        }
-
-        const lowHp = ctx.hp < 0.35;
-        const veryLowHp = ctx.hp < 0.2;
-        const underPressure = ctx.nearestEnemy && ctx.nearestEnemyDist < ctx.closeCombatRadius;
+        const lootPhase = this.isLootPhase(bot);
+        const hp = ctx.hp;
         const armed = !!bot.currentWeapon && bot.currentWeapon.type !== 'fists';
         const hasMedkit = (bot.medkits || 0) > 0;
 
-        if ((veryLowHp && hasMedkit) || (lowHp && hasMedkit && underPressure)) {
-            return STATES.SURVIVAL;
+        // Паза лута: разбегаемся и лутаемся, атакуем ТОЛЬКО если стреляют в упор
+        if (lootPhase) {
+            if (ctx.lootTarget) return STATES.LOOT;
+            if (ctx.nearestEnemy && ctx.nearestEnemyDist < 8) return STATES.ENGAGE; // самооборона
+            return STATES.IDLE; // разбегаемся по карте
         }
 
-        if (veryLowHp && ctx.shelterTarget && (!ctx.nearestEnemy || ctx.nearestEnemyDist > 10)) return STATES.ZONE_RETREAT;
-        if (lowHp && !armed && ctx.lootTarget) return STATES.LOOT;
+        // Выживание: лечимся
+        const underPressure = ctx.nearestEnemy && ctx.nearestEnemyDist < 16;
+        if (hp < 0.2 && hasMedkit) return STATES.SURVIVAL;
+        if (hp < 0.35 && hasMedkit && underPressure) return STATES.SURVIVAL;
 
-        if (ctx.nearestZombie && ctx.nearestZombieDist < 8) {
-            return STATES.ENGAGE;
-        }
+        // Отступаем если очень мало HP без аптечки
+        if (hp < 0.15) return STATES.RETREAT;
 
+        // Боевая фаза: атакуем
         if (ctx.nearestEnemy) {
+            const isPlayer = ctx.nearestEnemy.constructor?.name === 'Player';
+            // Приоритет игроку-человеку
+            if (isPlayer && ctx.nearestEnemyDist < 80) return STATES.ENGAGE;
             if (ctx.nearestEnemyDist < 42) return STATES.ENGAGE;
             if (!armed && ctx.lootTarget) return STATES.LOOT;
-            if (underPressure || ctx.gear >= 0.32) return STATES.ENGAGE;
-            return STATES.IDLE;
+            if (ctx.gear >= 0.25) return STATES.ENGAGE;
         }
 
+        // Зомби вблизи
+        if (ctx.nearestZombie && ctx.nearestZombieDist < 8) return STATES.ENGAGE;
+
+        // Без цели: лутаемся
         if (ctx.lootTarget) return STATES.LOOT;
         return STATES.IDLE;
     }
 
     actIdle(bot, ctx) {
+        // В пазе лута — разбегаемся по уникальному направлению (биом)
+        if (this.isLootPhase(bot)) {
+            if (!bot.patrolTarget || bot.position.distanceTo(bot.patrolTarget) < 5 || bot.isStuck) {
+                bot.patrolTarget = this.pickBiomeTarget(bot);
+            }
+            if (bot.patrolTarget) this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 1.1);
+            return;
+        }
         if (!bot.patrolTarget || bot.position.distanceTo(bot.patrolTarget) < 2.2 || bot.isStuck || ctx.crowdNear >= 3) {
-            bot.patrolTarget = this.pickSpreadTarget(bot, 24, 72);
+            bot.patrolTarget = this.pickSpreadTarget(bot, 24, 120);
         }
         if (bot.patrolTarget) {
             this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 0.95);
         }
     }
+
+    // Селектор целевой точки по биому (для разбегания)
+    pickBiomeTarget(bot) {
+        const biomeTargets = {
+            forest: new THREE.Vector3(-200 + (Math.random()-0.5)*200, 0, 200 + (Math.random()-0.5)*200),
+            maze:   new THREE.Vector3(200 + (Math.random()-0.5)*200, 0, 200 + (Math.random()-0.5)*200),
+            war:    new THREE.Vector3(-200 + (Math.random()-0.5)*200, 0, -200 + (Math.random()-0.5)*200),
+            ice:    new THREE.Vector3(200 + (Math.random()-0.5)*200, 0, -200 + (Math.random()-0.5)*200),
+            plaza:  new THREE.Vector3((Math.random()-0.5)*100, 0, (Math.random()-0.5)*100)
+        };
+        return biomeTargets[this.homeBiome] || this.pickSpreadTarget(bot, 60, 300);
+    }
+
 
     actLoot(bot, ctx, lootManager) {
         const chest = ctx.lootTarget;
@@ -304,7 +337,13 @@ export class BotBrain {
     }
 
     actEngage(bot, ctx, entityManager) {
-        const target = this.pickCombatTarget(bot, ctx, entityManager);
+        // Приоритет игроку-человеку
+        let target = null;
+        if (ctx.nearestEnemy?.constructor?.name === 'Player') {
+            target = ctx.nearestEnemy;
+        } else {
+            target = this.pickCombatTarget(bot, ctx, entityManager);
+        }
         if (!target) {
             this.releaseCombatReservation(bot);
             bot.patrolTarget = this.pickSpreadTarget(bot, 16, 48);

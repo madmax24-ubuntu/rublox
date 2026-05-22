@@ -39,6 +39,12 @@ export class Physics {
         }
         for (const entity of this.entities) {
             if (!entity.physics) continue;
+            if (!entity.position || !Number.isFinite(entity.position.x) || !Number.isFinite(entity.position.y) || !Number.isFinite(entity.position.z)) {
+                entity.position?.set?.(0, (entity.physics.height || 1.7) + 0.2, 0);
+                entity.physics.velocity?.set?.(0, 0, 0);
+                entity.physics.onGround = true;
+                continue;
+            }
             const isFrozen = entity.isFrozen === true;
             if (entity.physics.wasOnGround === undefined) {
                 entity.physics.wasOnGround = entity.physics.onGround;
@@ -64,7 +70,8 @@ export class Physics {
             }
 
             // Проверка коллизии с землей
-            const groundHeight = this.mapGenerator.getHeightAt(entity.position.x, entity.position.z);
+            const groundHeightRaw = this.mapGenerator.getHeightAt(entity.position.x, entity.position.z);
+            const groundHeight = Number.isFinite(groundHeightRaw) ? groundHeightRaw : 0;
             const surfaceHeight = Math.max(
                 groundHeight,
                 this.getColliderSurfaceHeight(entity.position, entity.physics.height)
@@ -78,18 +85,12 @@ export class Physics {
                 entity.physics.onGround = false;
             }
 
-            const trainSupport = this.mapGenerator.getTrainSupportAt?.(entity.position, entity.physics.height);
-            if (trainSupport) {
-                entity.position.x += trainSupport.dx;
-                entity.position.z += trainSupport.dz;
-                entity.position.y = Math.max(entity.position.y, trainSupport.topY + entity.physics.height);
-                entity.physics.onGround = true;
-            }
-
             this.resolveCollisions(entity);
 
             const surfaceAfterCollisions = Math.max(
-                this.mapGenerator.getHeightAt(entity.position.x, entity.position.z),
+                Number.isFinite(this.mapGenerator.getHeightAt(entity.position.x, entity.position.z))
+                    ? this.mapGenerator.getHeightAt(entity.position.x, entity.position.z)
+                    : 0,
                 this.getColliderSurfaceHeight(entity.position, entity.physics.height)
             );
             if (entity.position.y < surfaceAfterCollisions + entity.physics.height) {
@@ -136,15 +137,21 @@ export class Physics {
                 }
             }
 
-            // Трение
             if (entity.physics.onGround) {
-                entity.physics.velocity.x *= 0.8;
-                entity.physics.velocity.z *= 0.8;
+                const groundDamping = Math.exp(-14 * delta);
+                entity.physics.velocity.x *= groundDamping;
+                entity.physics.velocity.z *= groundDamping;
+            } else {
+                const airDamping = Math.exp(-2.5 * delta);
+                entity.physics.velocity.x *= airDamping;
+                entity.physics.velocity.z *= airDamping;
             }
+            if (Math.abs(entity.physics.velocity.x) < 0.01) entity.physics.velocity.x = 0;
+            if (Math.abs(entity.physics.velocity.z) < 0.01) entity.physics.velocity.z = 0;
         }
     }
 
-    resolveCollisions(entity) {
+resolveCollisions(entity) {
         if (!this.colliders.length) return;
         const type = entity.constructor?.name;
         const bonusRadius = type === 'Zombie' ? 0.1 : type === 'Bot' ? 0.07 : 0;
@@ -157,11 +164,30 @@ export class Physics {
         for (let pass = 0; pass < 2; pass++) {
             for (const box of nearby) {
                 if (box.enabled === false) continue;
-                if (pos.y < box.min.y + 0.05) continue;
-                if (bottom > box.max.y - 0.05) continue;
+                
+                // Handle both old format (position + size) and new format (min/max)
+                let min, max;
+                if (box.min && box.max) {
+                    min = box.min;
+                    max = box.max;
+                } else {
+                    min = new THREE.Vector3(
+                        box.position.x - box.size.x / 2,
+                        box.position.y - box.size.y / 2,
+                        box.position.z - box.size.z / 2
+                    );
+                    max = new THREE.Vector3(
+                        box.position.x + box.size.x / 2,
+                        box.position.y + box.size.y / 2,
+                        box.position.z + box.size.z / 2
+                    );
+                }
+                
+                if (pos.y < min.y + 0.05) continue;
+                if (bottom > max.y - 0.05) continue;
 
-                const clampedX = Math.max(box.min.x, Math.min(box.max.x, pos.x));
-                const clampedZ = Math.max(box.min.z, Math.min(box.max.z, pos.z));
+                const clampedX = Math.max(min.x, Math.min(max.x, pos.x));
+                const clampedZ = Math.max(min.z, Math.min(max.z, pos.z));
                 const dx = pos.x - clampedX;
                 const dz = pos.z - clampedZ;
                 const distSq = dx * dx + dz * dz;
@@ -169,16 +195,16 @@ export class Physics {
                 if (distSq > radius * radius) continue;
 
                 if (distSq === 0) {
-                    const left = Math.abs(pos.x - box.min.x);
-                    const right = Math.abs(box.max.x - pos.x);
-                    const back = Math.abs(pos.z - box.min.z);
-                    const front = Math.abs(box.max.z - pos.z);
+                    const left = Math.abs(pos.x - min.x);
+                    const right = Math.abs(max.x - pos.x);
+                    const back = Math.abs(pos.z - min.z);
+                    const front = Math.abs(max.z - pos.z);
                     const minPen = Math.min(left, right, back, front);
 
-                    if (minPen === left) pos.x = box.min.x - radius;
-                    else if (minPen === right) pos.x = box.max.x + radius;
-                    else if (minPen === back) pos.z = box.min.z - radius;
-                    else pos.z = box.max.z + radius;
+                    if (minPen === left) pos.x = min.x - radius;
+                    else if (minPen === right) pos.x = max.x + radius;
+                    else if (minPen === back) pos.z = min.z - radius;
+                    else pos.z = max.z + radius;
                 } else {
                     const dist = Math.sqrt(distSq);
                     const push = (radius - dist) + 0.012;
@@ -198,7 +224,7 @@ export class Physics {
         }
     }
 
-    getColliderSurfaceHeight(position, height) {
+getColliderSurfaceHeight(position, height) {
         if (!this.colliders.length) return -Infinity;
         let maxY = -Infinity;
         const radius = 0.6;
@@ -207,24 +233,63 @@ export class Physics {
         for (const box of nearby) {
             if (box.enabled === false) continue;
             if (!box.walkable) continue;
-            if (position.x + radius < box.min.x || position.x - radius > box.max.x) continue;
-            if (position.z + radius < box.min.z || position.z - radius > box.max.z) continue;
-            if (position.y + height < box.min.y - 0.5) continue;
-            if (position.y > box.max.y + height) continue;
-            if (bottom < box.max.y - 0.2) continue;
-            if (box.max.y > maxY) maxY = box.max.y;
+            
+            // Handle both old format (position + size) and new format (min/max)
+            let min, max;
+            if (box.min && box.max) {
+                min = box.min;
+                max = box.max;
+            } else {
+                min = new THREE.Vector3(
+                    box.position.x - box.size.x / 2,
+                    box.position.y - box.size.y / 2,
+                    box.position.z - box.size.z / 2
+                );
+                max = new THREE.Vector3(
+                    box.position.x + box.size.x / 2,
+                    box.position.y + box.size.y / 2,
+                    box.position.z + box.size.z / 2
+                );
+            }
+            
+            if (position.x + radius < min.x || position.x - radius > max.x) continue;
+            if (position.z + radius < min.z || position.z - radius > max.z) continue;
+            if (position.y + height < min.y - 0.5) continue;
+            if (position.y > max.y + height) continue;
+            if (bottom < max.y - 0.2) continue;
+            if (max.y > maxY) maxY = max.y;
         }
         return maxY;
     }
 
-    rebuildColliderGrid() {
+rebuildColliderGrid() {
         this.colliderGrid.clear();
         const cellSize = this.colliderGridCellSize;
         for (const box of this.colliders) {
-            const minX = Math.floor(box.min.x / cellSize);
-            const maxX = Math.floor(box.max.x / cellSize);
-            const minZ = Math.floor(box.min.z / cellSize);
-            const maxZ = Math.floor(box.max.z / cellSize);
+            if (!box) continue; // Skip undefined/null colliders
+            // Handle both old format (position + size) and new format (min/max)
+            let min, max;
+            if (box.min && box.max) {
+                min = box.min;
+                max = box.max;
+            } else if (box.position && box.size) {
+                min = new THREE.Vector3(
+                    box.position.x - box.size.x / 2,
+                    box.position.y - box.size.y / 2,
+                    box.position.z - box.size.z / 2
+                );
+                max = new THREE.Vector3(
+                    box.position.x + box.size.x / 2,
+                    box.position.y + box.size.y / 2,
+                    box.position.z + box.size.z / 2
+                );
+            } else {
+                continue; // Skip colliders missing position/size
+            }
+            const minX = Math.floor(min.x / cellSize);
+            const maxX = Math.floor(max.x / cellSize);
+            const minZ = Math.floor(min.z / cellSize);
+            const maxZ = Math.floor(max.z / cellSize);
             for (let x = minX; x <= maxX; x++) {
                 for (let z = minZ; z <= maxZ; z++) {
                     const key = `${x},${z}`;
@@ -237,7 +302,7 @@ export class Physics {
         }
     }
 
-    getNearbyColliders(position, radius) {
+getNearbyColliders(position, radius) {
         if (!this.colliderGrid.size) return this.colliders;
         const results = this._nearbyResults;
         results.length = 0;
@@ -266,8 +331,27 @@ export class Physics {
         if (this.dynamicColliders.length) {
             for (const box of this.dynamicColliders) {
                 if (box._qStamp === stamp) continue;
-                if (position.x + radius < box.min.x || position.x - radius > box.max.x) continue;
-                if (position.z + radius < box.min.z || position.z - radius > box.max.z) continue;
+                
+                // Handle both old format (position + size) and new format (min/max)
+                let min, max;
+                if (box.min && box.max) {
+                    min = box.min;
+                    max = box.max;
+                } else {
+                    min = new THREE.Vector3(
+                        box.position.x - box.size.x / 2,
+                        box.position.y - box.size.y / 2,
+                        box.position.z - box.size.z / 2
+                    );
+                    max = new THREE.Vector3(
+                        box.position.x + box.size.x / 2,
+                        box.position.y + box.size.y / 2,
+                        box.position.z + box.size.z / 2
+                    );
+                }
+                
+                if (position.x + radius < min.x || position.x - radius > max.x) continue;
+                if (position.z + radius < min.z || position.z - radius > max.z) continue;
                 box._qStamp = stamp;
                 results.push(box);
             }

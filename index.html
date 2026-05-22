@@ -2,7 +2,10 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23ffb300' width='100' height='100' rx='20'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='white' font-family='Arial'>R</text></svg>">
     <title>Rubo Arena: Голодные игры</title>
     <style>
         :root {
@@ -28,7 +31,7 @@
         body {
             margin: 0;
             overflow: hidden;
-            background: #000;
+            background: #ff0000;
             touch-action: none;
             overscroll-behavior: none;
             cursor: none;
@@ -848,6 +851,25 @@
             document.addEventListener('touchmove', prevent, { capture: true, passive: false });
             document.addEventListener('wheel', prevent, { capture: true, passive: false });
         })();
+    </script>
+    <script>
+        let testModeEnabled = false;
+        window.setTestMode = function(enabled) {
+            if (enabled !== undefined) {
+                testModeEnabled = !!enabled;
+            }
+            return testModeEnabled;
+        };
+        
+        // Expose game instance for testing
+        window.getGameInstance = function() {
+            return typeof window.game !== 'undefined' ? window.game : null;
+        };
+        
+        // Check if test mode should be enabled (set before page load)
+        if (window.localStorage.getItem('testMode') === 'true') {
+            testModeEnabled = true;
+        }
     </script>
     <script type="module" src="./main.js"></script>
 </body>

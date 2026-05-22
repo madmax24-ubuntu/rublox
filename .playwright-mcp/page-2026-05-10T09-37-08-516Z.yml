@@ -1,0 +1,92 @@
+- generic [active]:
+  - generic [ref=e1]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]: Официальный релиз
+        - generic [ref=e7]: Выживание
+      - 'heading "Rubo Arena: Голодные игры" [level=1] [ref=e8]'
+      - paragraph [ref=e9]: Выживание до последнего игрока. Рандомная карта, лут из сундуков и перки прямо во время боя.
+      - button "Начать игру" [ref=e10]
+      - generic [ref=e11]: Быстрый матч · Рандомная карта · Перки в бою
+      - generic [ref=e12]:
+        - generic [ref=e13]:
+          - strong [ref=e14]: WASD
+          - text: "- движение"
+        - generic [ref=e15]:
+          - strong [ref=e16]: Мышь
+          - text: "- обзор"
+        - generic [ref=e17]:
+          - strong [ref=e18]: Пробел
+          - text: "- прыжок"
+        - generic [ref=e19]:
+          - strong [ref=e20]: ЛКМ
+          - text: "- атака"
+        - generic [ref=e21]:
+          - strong [ref=e22]: E
+          - text: "- взаимодействие"
+        - generic [ref=e23]:
+          - strong [ref=e24]: 1-0
+          - text: "- инвентарь"
+        - generic [ref=e25]:
+          - strong [ref=e26]: P
+          - text: "- меню перков"
+        - generic [ref=e27]:
+          - strong [ref=e28]: W/S
+          - text: "- выбор перка"
+        - generic [ref=e29]:
+          - strong [ref=e30]: E
+          - text: "- подтвердить перк"
+        - generic [ref=e31]:
+          - strong [ref=e32]: M
+          - text: "- пауза"
+        - generic [ref=e33]:
+          - strong [ref=e34]: Смартфон
+          - text: "- левый стик: движение, правая сторона: обзор"
+        - generic [ref=e35]:
+          - strong [ref=e36]: Смартфон
+          - text: "- кнопки: Прыжок / Атака / Действие"
+    - generic:
+      - generic:
+        - generic: "Игроков: 32"
+        - generic: "Зона: Безопасная"
+        - generic: "Режим: Classic"
+        - generic: "Перк: -"
+      - generic [ref=e41]:
+        - generic [ref=e42]:
+          - text: "1"
+          - generic [ref=e43]: "1"
+        - generic [ref=e44]:
+          - text: "2"
+          - generic [ref=e45]: "2"
+        - generic [ref=e46]:
+          - text: "3"
+          - generic [ref=e47]: "3"
+        - generic [ref=e48]:
+          - text: "4"
+          - generic [ref=e49]: "4"
+        - generic [ref=e50]:
+          - text: "5"
+          - generic [ref=e51]: "5"
+        - generic [ref=e52]:
+          - text: "6"
+          - generic [ref=e53]: "6"
+        - generic [ref=e54]:
+          - text: "7"
+          - generic [ref=e55]: "7"
+        - generic [ref=e56]:
+          - text: "8"
+          - generic [ref=e57]: "8"
+        - generic [ref=e58]:
+          - text: "9"
+          - generic [ref=e59]: "9"
+        - generic [ref=e60]:
+          - text: "0"
+          - generic [ref=e61]: "0"
+      - generic: M - ПАУЗА
+      - generic [ref=e62] [cursor=pointer]: ПЕРК ДО СТАРТА
+  - generic [ref=e63]:
+    - heading "🗺️ Debug Map Viewer" [level=3] [ref=e64]
+    - generic [ref=e65]: FPS:0
+    - generic [ref=e66]: Cam X,Y,Z:100.0, 80.0, -100.0
+    - generic [ref=e67]: FOV:75
+    - generic [ref=e68]: Mode:manual
