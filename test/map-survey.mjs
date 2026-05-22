@@ -20,12 +20,14 @@ import { chromium } from 'playwright';
   await page.click('#startButtonDesktop');
   console.log('🖱️ Клик по старту');
 
+  // Wait for perk panel (appears after game starts)
   await page.waitForFunction(() => {
     const panel = document.getElementById('perkPanel');
     return panel && panel.offsetParent !== null;
-  }, { timeout: 15000 });
+  }, { timeout: 30000 });
+  console.log('✅ Perk panel visible');
 
-  // Skip perk selection
+  // Click a perk to proceed
   await page.evaluate(() => {
     const perkPanel = document.getElementById('perkPanel');
     if (perkPanel) {
@@ -33,9 +35,17 @@ import { chromium } from 'playwright';
       if (btn) btn.click();
     }
   });
+  console.log('🖱️ Клик по перку');
 
   console.log('⏳ Ожидание генерации карты...');
-  await page.waitForTimeout(5000);
+  // Wait for map to be ready
+  await page.waitForFunction(() => {
+    if (window.game && window.game.map && window.game.map.scene) {
+      const count = window.game.scene ? window.game.scene.children.length : 0;
+      return count > 10; // Should have many objects after map gen
+    }
+    return false;
+  }, { timeout: 30000 });
 
   const objCount = await page.evaluate(() => {
     if (window.game && window.game.scene) {
@@ -111,7 +121,7 @@ import { chromium } from 'playwright';
   }
 
   await browser.close();
-  console.log('=== SURVIEW ГОТОВО ===');
+  console.log('=== SURVEY ГОТОВО ===');
   process.exit(0);
 })().catch(err => {
   console.error('❌ ОШИБКА:', err.message);
