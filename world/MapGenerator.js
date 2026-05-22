@@ -411,7 +411,8 @@ export class MapGenerator {
     }
 
     async generate() {
-       // Pre-generate all textures (reduced sizes for performance)
+        this.generateHeightMap();
+        // Pre-generate all textures (reduced sizes for performance)
        this.textures.forestGround = TextureGenerator.createTerrainTexture(
             512, 512, 0x3a7a2e,
             (n, n2, n3) => ({
