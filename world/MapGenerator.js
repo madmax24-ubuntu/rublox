@@ -7556,23 +7556,5 @@ const gapConfigs = [
                dx * (1 - dz) * h10 +
                (1 - dx) * dz * h01 +
                dx * dz * h11;
-
-    deformPathGeometry(geometry, angle, offset, segments = 16) {
-        const sinA = Math.sin(angle);
-        const cosA = Math.cos(angle);
-        const { x: offset_x, y: offset_y, z: offset_z } = offset;
-        const positions = geometry.attributes.position.array;
-        for (let j = 0; j < positions.length; j += 3) {
-            const vx = positions[j];
-            const vy = positions[j + 1];
-            const wx = vx * cosA + offset_x;
-            const wz = -vy + offset_z;
-            const h = this.getHeightAt(wx, wz);
-            if (Math.abs(cosA) > 0.001) {
-                positions[j + 2] = (h - offset_y + vx * sinA) / cosA;
-            }
-        }
-        geometry.attributes.position.needsUpdate = true;
     }
-
-    }
+}
