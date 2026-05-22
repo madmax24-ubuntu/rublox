@@ -705,7 +705,7 @@ export class MapGenerator {
     // ========== CENTER FOUNTAIN ==========
 buildFountain() {
         // === GOLDEN HORN (CORNUCOPIA) ===
-        // Main pool base (doubled size for 512 map)
+        // Main pool base - sits on platform surface (Y=1.63)
         const poolGeo = new THREE.CylinderGeometry(12, 14, 1, 32);
         const poolMat = new THREE.MeshStandardMaterial({
             color: 0xdaa520,
@@ -713,7 +713,7 @@ buildFountain() {
             roughness: 0.2
         });
         const pool = new THREE.Mesh(poolGeo, poolMat);
-        pool.position.set(0, 3.5, 0);
+        pool.position.set(0, 2.13, 0);
         pool.receiveShadow = true;
         this.scene.add(pool);
 
@@ -727,14 +727,14 @@ buildFountain() {
             metalness: 0.3
         });
         const water = new THREE.Mesh(waterGeo, waterMat);
-        water.position.set(0, 4.0, 0);
+        water.position.set(0, 2.18, 0);
         water.userData.type = 'fountainWater';
         this.scene.add(water);
 
         // Central pillar
         const pillarGeo = new THREE.CylinderGeometry(0.8, 1.0, 3, 12);
         const pillar = new THREE.Mesh(pillarGeo, poolMat);
-        pillar.position.set(0, 5.5, 0);
+        pillar.position.set(0, 4.13, 0);
         pillar.castShadow = true;
         this.scene.add(pillar);
 
@@ -746,7 +746,7 @@ buildFountain() {
             roughness: 0.2
         });
         const topSphere = new THREE.Mesh(topSphereGeo, topSphereMat);
-        topSphere.position.set(0, 7.5, 0);
+        topSphere.position.set(0, 6.13, 0);
         topSphere.castShadow = true;
         this.scene.add(topSphere);
 
@@ -763,12 +763,12 @@ buildFountain() {
             const particle = new THREE.Mesh(particleGeo, particleMat);
             particle.position.set(
                 Math.cos(angle) * 1.5,
-                8 + Math.random() * 2,
+                9.13 + Math.random() * 2,
                 Math.sin(angle) * 1.5
             );
             particle.userData.type = 'fountainParticle';
             particle.userData.angle = angle;
-            particle.userData.baseY = 8 + Math.random() * 2;
+            particle.userData.baseY = 9.13 + Math.random() * 2;
             this.scene.add(particle);
         }
 
