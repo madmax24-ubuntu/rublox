@@ -1348,7 +1348,7 @@ const gapConfigs = [
             const len = Math.sqrt(dx * dx + dz * dz);
             const angle = Math.atan2(dz, dx);
 
-            const pathGeo = new THREE.PlaneGeometry(6, len);
+            const pathGeo = new THREE.PlaneGeometry(6, len, 16, 16);
             const path = new THREE.Mesh(pathGeo, pathMat);
             path.rotation.x = -Math.PI / 2;
             path.rotation.z = -angle;
@@ -1359,6 +1359,11 @@ const gapConfigs = [
                 type: 'box',
                 position: new THREE.Vector3((p1.x + p2.x) / 2, 0, (p1.z + p2.z) / 2),
                 size: new THREE.Vector3(6, 0.1, len)
+            });
+            this.deformPathGeometry(pathGeo, angle, {
+                x: (p1.x + p2.x) / 2,
+                y: 1.57,
+                z: (p1.z + p2.z) / 2
             });
         }
 
