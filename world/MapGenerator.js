@@ -121,64 +121,7 @@ export class MapGenerator {
     async generate() {
         this.generateHeightMap();
 
-        // Pre-generate textures - chunked across frames
-        this.textures.forestGround = TextureGenerator.createTerrainTexture(
-            512, 512, 0x3a7a2e,
-            (n, n2, n3) => ({
-                r: n * 35 + n3 * 12,
-                g: n * 50 + n2 * 25 + 15,
-                b: n * 20 + n3 * 8
-            }),
-            this.noise,
-            { scale: 20, sharpenAmount: 0.3 }
-        );
-        await this.yieldFrame();
-
-        this.textures.stoneGround = TextureGenerator.createTerrainTexture(
-            512, 512, 0x7a7a7a,
-            (n, n2, n3) => ({
-                r: n * 40 + n3 * 15,
-                g: n * 40 + n3 * 15,
-                b: n * 45 + n3 * 10
-            }),
-            this.noise,
-            { scale: 22, sharpenAmount: 0.35 }
-        );
-        await this.yieldFrame();
-
-        this.textures.militaryGround = TextureGenerator.createTerrainTexture(
-            512, 512, 0x6b6b4a,
-            (n, n2, n3) => ({
-                r: n * 30 + n2 * 18 + n3 * 10,
-                g: n * 25 + n2 * 15 + n3 * 8,
-                b: n * 15 + n3 * 5
-            }),
-            this.noise,
-            { scale: 18, sharpenAmount: 0.3 }
-        );
-        await this.yieldFrame();
-
-        this.textures.snowGround = TextureGenerator.createTerrainTexture(
-            512, 512, 0xf0f0f0,
-            (n, n2, n3) => ({
-                r: n * 20 + n3 * 8,
-                g: n * 18 + n3 * 6,
-                b: n * 22 + n3 * 10
-            }),
-            this.noise,
-            { scale: 19, sharpenAmount: 0.25 }
-        );
-        await this.yieldFrame();
-
-        this.textures.wood = TextureGenerator.createWoodTexture();
-        this.textures.stone = TextureGenerator.createStoneTexture();
-        this.textures.snow = TextureGenerator.createSnowTexture();
-        this.textures.sand = TextureGenerator.createSandTexture();
-        this.textures.water = TextureGenerator.createWaterTexture();
-        this.textures.brick = TextureGenerator.createBrickTexture();
-        this.textures.concrete = TextureGenerator.createConcreteTexture();
-        this.textures.road = TextureGenerator.createRoadTexture();
-        await this.yieldFrame();
+        // Textures removed — using solid colors (COLOR constants)
 
         // 1. Center platform
         await this.buildCenterPlatform();
