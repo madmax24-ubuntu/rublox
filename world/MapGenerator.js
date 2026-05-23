@@ -1650,8 +1650,8 @@ fillBoundaryGaps() {
     async buildForestBiome() {
         // === DENSE FOREST - balanced for performance ===
         // Forest biome spans X/Z: -256 to -60
-        // Chunked into 6 batches of 20 trees for smooth rendering
-        for (let batch = 0; batch < 6; batch++) {
+        // Chunked into 12 batches of 20 trees for smooth rendering
+        for (let batch = 0; batch < 12; batch++) {
             for (let i = 0; i < 20; i++) {
                 const x = -256 + Math.random() * 196;
                 const z = -256 + Math.random() * 196;
