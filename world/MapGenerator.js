@@ -2853,6 +2853,80 @@ fillBoundaryGaps() {
         const platRadius = 40;
         const platH = 1.5;
 
+        // === FULL MAP BASE GROUND — covers entire -256..256 area ===
+        // Bottom layer, visible where no biome ground is placed on top
+        const baseGroundMat = new THREE.MeshStandardMaterial({
+            color: COLOR.forestGround,
+            roughness: 0.95, flatShading: false, side: THREE.DoubleSide
+        });
+        const baseGround = new THREE.Mesh(
+            new THREE.PlaneGeometry(512, 512, 16, 16),
+            baseGroundMat
+        );
+        baseGround.rotation.x = -Math.PI / 2;
+        baseGround.position.set(0, 1.54, 0);
+        baseGround.receiveShadow = true;
+        this.scene.add(baseGround);
+
+        // Debug: bright red checkered ground (visible from top)
+        const debugGroundMat = new THREE.MeshStandardMaterial({
+            color: 0xff0000, roughness: 0.9, side: THREE.DoubleSide
+        });
+        const debugGround = new THREE.Mesh(
+            new THREE.PlaneGeometry(30, 30, 1, 1),
+            debugGroundMat
+        );
+        debugGround.rotation.x = -Math.PI / 2;
+        debugGround.position.set(0, 1.535, 0);
+        debugGround.receiveShadow = true;
+        this.scene.add(debugGround);
+        console.log('DEBUG: Red debug ground plane added at (0, 1.535, 0) size 30x30');
+
+        // === GAP FILLS between biome quadrants — above biome ground ===
+        const centerGapMat = new THREE.MeshStandardMaterial({
+            color: COLOR.wood,
+            roughness: 0.95, flatShading: false, side: THREE.DoubleSide
+        });
+        // North gap (X: -60..60, Z: -256..-60)
+        let g = new THREE.Mesh(new THREE.PlaneGeometry(120, 196, 8, 8), centerGapMat);
+        g.rotation.x = -Math.PI / 2; g.position.set(0, 1.57, -158); g.receiveShadow = true; this.scene.add(g);
+        // South gap (X: -60..60, Z: 60..256)
+        g = new THREE.Mesh(new THREE.PlaneGeometry(120, 196, 8, 8), centerGapMat);
+        g.rotation.x = -Math.PI / 2; g.position.set(0, 1.57, 158); g.receiveShadow = true; this.scene.add(g);
+        // West gap (X: -256..-60, Z: -60..60)
+        g = new THREE.Mesh(new THREE.PlaneGeometry(196, 120, 8, 8), centerGapMat);
+        g.rotation.x = -Math.PI / 2; g.position.set(-158, 1.57, 0); g.receiveShadow = true; this.scene.add(g);
+        // East gap (X: 60..256, Z: -60..60)
+        g = new THREE.Mesh(new THREE.PlaneGeometry(196, 120, 8, 8), centerGapMat);
+        g.rotation.x = -Math.PI / 2; g.position.set(158, 1.57, 0); g.receiveShadow = true; this.scene.add(g);
+
+        // Spawn pads around platform edge
+        const spawnAngles = [0, Math.PI / 2, Math.PI, Math.PI * 1.5];
+        const platSurfaceY = 1.63;
+        spawnAngles.forEach((angle, i) => {
+            const r = 60 + i * 1.5;
+            this.spawnPads.push({
+                x: Math.cos(angle) * r,
+                y: platSurfaceY,
+                z: Math.sin(angle) * r,
+                radius: 3
+            });
+        });
+
+        // Floor tiles for center platform
+        for (let i = 0; i < 120; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const r = Math.random() * 50;
+            this.floorTiles.push({
+                x: Math.cos(angle) * r,
+                z: Math.sin(angle) * r,
+                size: this.tileSize
+            });
+        }
+
+        // === FILL DIAGONAL GAPS between circular platform and square biome grounds ===
+        this.fillDiagonalGround();
+
         // Main circular platform
         const platGeo = new THREE.CylinderGeometry(platRadius, platRadius, platH, 24);
         const platMat = new THREE.MeshStandardMaterial({ color: 0xd4c4a8, roughness: 0.8 });
