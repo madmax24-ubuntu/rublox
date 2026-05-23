@@ -2193,7 +2193,6 @@ const gapConfigs = [
             const roofGeo = new THREE.BoxGeometry(wallW * 0.8, 0.4, wallD * 0.8);
             const roof = new THREE.Mesh(roofGeo, roofMat);
             roof.position.set(0, wallH + 0.2, 0);
-            roof.castShadow = true;
             houseGroup.add(roof);
         } else {
             // Cone/pyramid roof for forest and snow
@@ -2201,7 +2200,6 @@ const gapConfigs = [
             const roof = new THREE.Mesh(roofGeo, roofMat);
             roof.position.set(0, wallH + roofH / 2, 0);
             roof.rotation.y = Math.PI / 4;
-            roof.castShadow = true;
             houseGroup.add(roof);
 
             // Snow cap on snow houses
