@@ -1361,7 +1361,7 @@ const gapConfigs = [
             const len = Math.sqrt(dx * dx + dz * dz);
             const angle = Math.atan2(dz, dx);
 
-            const pathGeo = new THREE.PlaneGeometry(6, len, 32, 32);
+            const pathGeo = new THREE.PlaneGeometry(6, len, 8, 8);
             const path = new THREE.Mesh(pathGeo, pathMat);
             path.rotation.x = -Math.PI / 2;
             path.rotation.z = -angle;
