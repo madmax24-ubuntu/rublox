@@ -90,9 +90,9 @@ export class Physics {
             this.resolveCollisions(entity);
 
             const surfaceAfterCollisions = Math.max(
-                Number.isFinite(this.mapGenerator.getHeightAt(entity.position.x, entity.position.z))
+                1.54 + Math.max(0, Number.isFinite(this.mapGenerator.getHeightAt(entity.position.x, entity.position.z))
                     ? this.mapGenerator.getHeightAt(entity.position.x, entity.position.z)
-                    : 0,
+                    : 0),
                 this.getColliderSurfaceHeight(entity.position, entity.physics.height)
             );
             if (entity.position.y < surfaceAfterCollisions + entity.physics.height) {
