@@ -2618,6 +2618,16 @@ fillBoundaryGaps() {
             platform.castShadow = true;
             towerGroup.add(platform);
 
+            // Roof (conical)
+            const mazeRoof = new THREE.Mesh(
+                new THREE.ConeGeometry(towerW / 2 + 0.5, 3, 4),
+                wallMat
+            );
+            mazeRoof.position.set(0, towerH + 1.8, 0);
+            mazeRoof.rotation.y = Math.PI / 4;
+            mazeRoof.castShadow = true;
+            towerGroup.add(mazeRoof);
+
             // Battlements
             for (let b = 0; b < 4; b++) {
                 const battlement = new THREE.Mesh(
