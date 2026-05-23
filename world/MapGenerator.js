@@ -3116,40 +3116,41 @@ fillBoundaryGaps() {
         // Beige ornamental patterns around center
         const beigeMat = new THREE.MeshStandardMaterial({ color: 0xd4b896, roughness: 0.6, metalness: 0.2 });
 
-        // Decorative ring
+        // Decorative ring — InstancedMesh (24 instances, 1 draw call)
+        const ornGeo = new THREE.BoxGeometry(0.3, 0.15, 0.3);
+        const ornMesh = new THREE.InstancedMesh(ornGeo, beigeMat, 24);
+        const dummy = new THREE.Matrix4();
+        const up = new THREE.Vector3(0, 1, 0);
+        const fwd = new THREE.Vector3(0, 0, 1);
         for (let i = 0; i < 24; i++) {
             const angle = (i / 24) * Math.PI * 2;
-            const ornament = new THREE.Mesh(
-                new THREE.BoxGeometry(0.3, 0.15, 0.3),
-                beigeMat
-            );
-            ornament.position.set(
-                Math.cos(angle) * 6,
-                platH + 0.1,
-                Math.sin(angle) * 6
-            );
-            ornament.rotation.y = angle;
-            ornament.castShadow = true;
-            this.scene.add(ornament);
+            const pos = new THREE.Vector3(Math.cos(angle) * 6, platH + 0.1, Math.sin(angle) * 6);
+            const quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, angle, 0));
+            dummy.makeRotationFromQuaternion(quat).premultiply(new THREE.Matrix4().makeTranslation(pos.x, pos.y, pos.z));
+            ornMesh.setMatrixAt(i, dummy);
         }
+        ornMesh.instanceMatrix.needsUpdate = true;
+        this.scene.add(ornMesh);
 
-        // Inner decorative circle
+        // Inner decorative circle — InstancedMesh (16 instances, 1 draw call)
+        const gemColors = [0xff4444, 0x44ff44, 0x4444ff, 0xffff44];
+        const gemGeo = new THREE.SphereGeometry(0.15, 4, 3);
         for (let i = 0; i < 16; i++) {
             const angle = (i / 16) * Math.PI * 2;
-            const gem = new THREE.Mesh(
-                new THREE.SphereGeometry(0.15, 4, 3),
-                new THREE.MeshStandardMaterial({
-                    color: [0xff4444, 0x44ff44, 0x4444ff, 0xffff44][i % 4],
-                    roughness: 0.2,
-                    metalness: 0.5
-                })
-            );
-            gem.position.set(
+            const gemMat = new THREE.MeshStandardMaterial({
+                color: gemColors[i % 4],
+                roughness: 0.2,
+                metalness: 0.5
+            });
+            const gemMesh = new THREE.InstancedMesh(gemGeo, gemMat, 1);
+            dummy.makeTranslation(
                 Math.cos(angle) * 3,
                 platH + 0.2,
                 Math.sin(angle) * 3
             );
-            this.scene.add(gem);
+            gemMesh.setMatrixAt(0, dummy);
+            gemMesh.instanceMatrix.needsUpdate = true;
+            this.scene.add(gemMesh);
         }
 
         // === FOUNTAIN ===
