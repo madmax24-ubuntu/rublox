@@ -1061,11 +1061,34 @@ fillBoundaryGaps() {
 
     buildRoad(x1, z1, x2, z2, width) {
         const len = Math.sqrt((x2 - x1) ** 2 + (z2 - z1) ** 2);
-        const geo = new THREE.PlaneGeometry(width, len, 8, 8);
+
+        // Stone brick/flagstone procedural texture
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#6a6560';
+        ctx.fillRect(0, 0, 256, 256);
+        const brickH = 32, brickW = 64;
+        for (let by = 0; by < 256; by += brickH) {
+            const offset = (by / brickH) % 2 === 0 ? 0 : brickW / 2;
+            for (let bx = -brickW; bx < 256 + brickW; bx += brickW) {
+                const shade = 0.35 + Math.random() * 0.15;
+                ctx.fillStyle = `rgb(${Math.floor(106*shade+90*shade)},${Math.floor(101*shade+85*shade)},${Math.floor(96*shade+80*shade)})`;
+                ctx.fillRect(bx + offset + 1, by + 1, brickW - 2, brickH - 2);
+            }
+        }
+        const roadTexture = new THREE.CanvasTexture(canvas);
+        roadTexture.wrapS = THREE.RepeatWrapping;
+        roadTexture.wrapT = THREE.RepeatWrapping;
+        roadTexture.repeat.set(Math.floor(len / 8), Math.floor(width / 4));
+        roadTexture.anchor = [0, 0];
+
         const mat = new THREE.MeshStandardMaterial({
+            map: roadTexture,
             color: COLOR.road,
             roughness: 0.9,
-            flatShading: false
+            flatShading: true
         });
         const road = new THREE.Mesh(geo, mat);
         road.rotation.x = -Math.PI / 2;
