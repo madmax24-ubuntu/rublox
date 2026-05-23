@@ -1680,7 +1680,7 @@ fillBoundaryGaps() {
             roofType = 'flat';
         } else { // forest default
             wallColor = [0x8b6917, 0xa0522d, 0xb8860b][variant % 3];
-            wallMatConfig = { color: COLOR.brick, color: wallColor, roughness: 0.9 };
+            wallMatConfig = { color: wallColor, roughness: 0.9 };
             roofH = 4 + Math.random() * 2;
             roofColor = [0x654321, 0x8b0000, 0x4a3728][variant % 3];
             roofType = 'cone';
