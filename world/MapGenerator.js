@@ -795,7 +795,7 @@ fillBoundaryGaps() {
 
     buildPlatformBenches() {
         const woodMat = new THREE.MeshStandardMaterial({
-            map: this.textures.wood,
+            color: COLOR.wood,
             color: 0x6b4a2a,
             roughness: 0.9
         });
@@ -847,7 +847,7 @@ fillBoundaryGaps() {
             flatShading: true
         });
         const woodMat = new THREE.MeshStandardMaterial({
-            map: this.textures.wood,
+            color: COLOR.wood,
             color: 0x5d4037,
             roughness: 0.9
         });
@@ -1569,7 +1569,7 @@ fillBoundaryGaps() {
 
         const trunkGeo = new THREE.CylinderGeometry(trunkR * 0.5, trunkR, trunkH, 3);
         const trunkMat = new THREE.MeshStandardMaterial({
-            map: this.textures.wood,
+            color: COLOR.wood,
             color: isForest ? 0x5d4037 : 0x4a3728,
             roughness: 0.9
         });
@@ -1703,7 +1703,7 @@ fillBoundaryGaps() {
         // Front wall - split into 3 parts (left pillar, right pillar, top beam) to create doorway opening
         const doorW = 2.0;
         const doorFrameMat = new THREE.MeshStandardMaterial({
-            map: this.textures.wood,
+            color: COLOR.wood,
             color: 0x3d2b1f,
             roughness: 0.9
         });
@@ -1810,7 +1810,7 @@ fillBoundaryGaps() {
 
         // Open hinged door (swung open to the side)
         const doorHingeMat = new THREE.MeshStandardMaterial({
-            map: this.textures.wood,
+            color: COLOR.wood,
             color: 0x5c4033,
             roughness: 0.85
         });
@@ -1829,7 +1829,7 @@ fillBoundaryGaps() {
         // Interior floor
         const floorGeo = new THREE.BoxGeometry(wallW - 0.8, 0.15, wallD - 0.8);
         const floorMat = new THREE.MeshStandardMaterial({
-            map: this.textures.wood,
+            color: COLOR.wood,
             color: 0x6b4c2d,
             roughness: 0.85
         });
@@ -1839,7 +1839,7 @@ fillBoundaryGaps() {
         houseGroup.add(interiorFloor);
 
         // Interior loot table
-        const tableMat = new THREE.MeshStandardMaterial({ map: this.textures.wood, color: 0x5c4033, roughness: 0.8 });
+        const tableMat = new THREE.MeshStandardMaterial({ color: COLOR.wood, color: 0x5c4033, roughness: 0.8 });
         const tableTopGeo = new THREE.BoxGeometry(2.5, 0.12, 1.5);
         const tableTop = new THREE.Mesh(tableTopGeo, tableMat);
         tableTop.position.set(0, 1.0, -wallD / 4);
@@ -1984,7 +1984,7 @@ fillBoundaryGaps() {
 
         // Porch with steps
         const porchMat = new THREE.MeshStandardMaterial({
-            map: this.textures.wood,
+            color: COLOR.wood,
             color: 0x6b4a2a,
             roughness: 0.85
         });
@@ -2241,7 +2241,7 @@ fillBoundaryGaps() {
         const trunkR = 0.2 + Math.random() * 0.15;
         const trunkGeo = new THREE.CylinderGeometry(trunkR * 0.5, trunkR, trunkH, 6);
         const trunkMat = new THREE.MeshStandardMaterial({
-            map: this.textures.wood,
+            color: COLOR.wood,
             color: 0x5d4037,
             roughness: 0.9
         });
@@ -2275,7 +2275,7 @@ fillBoundaryGaps() {
     addRiverBridge(x, z) {
         const bridgeGroup = new THREE.Group();
         const woodMat = new THREE.MeshStandardMaterial({
-            map: this.textures.wood,
+            color: COLOR.wood,
             color: 0x6b4c2d,
             roughness: 0.9
         });
@@ -2337,7 +2337,7 @@ fillBoundaryGaps() {
 
         // Fallen logs
         const logMat = new THREE.MeshStandardMaterial({
-            map: this.textures.wood,
+            color: COLOR.wood,
             color: 0x4a3728,
             roughness: 0.95
         });
@@ -2368,7 +2368,7 @@ fillBoundaryGaps() {
 
     addForestStumps(ox, oz) {
         const stumpMat = new THREE.MeshStandardMaterial({
-            map: this.textures.wood,
+            color: COLOR.wood,
             color: 0x5a4a3a,
             roughness: 0.95
         });
@@ -2504,7 +2504,7 @@ fillBoundaryGaps() {
 
     addFallenLogs(ox, oz) {
         const logMat = new THREE.MeshStandardMaterial({
-            map: this.textures.wood,
+            color: COLOR.wood,
             color: 0x5d4037,
             roughness: 0.95
         });
@@ -3972,7 +3972,7 @@ fillBoundaryGaps() {
     addFieldDesk(x, z) {
         const deskGroup = new THREE.Group();
         const woodMat = new THREE.MeshStandardMaterial({
-            map: this.textures.wood,
+            color: COLOR.wood,
             color: 0x5a4a3a,
             roughness: 0.9
         });
@@ -5495,7 +5495,7 @@ fillBoundaryGaps() {
         const trunkR = 0.25 + Math.random() * 0.2;
         const trunkGeo = new THREE.CylinderGeometry(trunkR * 0.5, trunkR, trunkH, 6);
         const trunkMat = new THREE.MeshStandardMaterial({
-            map: this.textures.wood,
+            color: COLOR.wood,
             color: treeKind < 0.3 ? 0x8b6917 : 0x4a3728,
             roughness: 0.9
         });
@@ -5669,7 +5669,7 @@ fillBoundaryGaps() {
         // Door
         const doorGeo = new THREE.BoxGeometry(1.5, 2, 0.3);
         const doorMat = new THREE.MeshStandardMaterial({
-            map: this.textures.wood,
+            color: COLOR.wood,
             color: 0x5d4037,
             roughness: 0.9
         });
@@ -5769,7 +5769,7 @@ fillBoundaryGaps() {
 
     addFences() {
         const fenceMat = new THREE.MeshStandardMaterial({
-            map: this.textures.wood,
+            color: COLOR.wood,
             color: 0x5d4037,
             roughness: 0.9
         });
