@@ -7547,7 +7547,7 @@ fillBoundaryGaps() {
             flatShading: true
         });
 
-        // Rune stones along roads
+        // Rune stones along roads — placed on shoulders (±7..12 from center, off road surface)
         for (let i = 0; i < 30; i++) {
             const side = Math.random() > 0.5 ? 1 : -1;
             const axis = Math.random() > 0.5 ? 'x' : 'z';
@@ -7575,9 +7575,9 @@ fillBoundaryGaps() {
             runeGroup.add(glow);
 
             if (axis === 'x') {
-                runeGroup.position.set(side * (8 + Math.random() * 3), 0, dist * (Math.random() > 0.5 ? 1 : -1));
+                runeGroup.position.set(side * (8 + Math.random() * 4), 0, dist);
             } else {
-                runeGroup.position.set(dist * (Math.random() > 0.5 ? 1 : -1), 0, side * (8 + Math.random() * 3));
+                runeGroup.position.set(dist, 0, side * (8 + Math.random() * 4));
             }
 
             runeGroup.rotation.y = Math.random() * Math.PI;
