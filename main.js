@@ -2308,6 +2308,7 @@ class Game {
         try {
             this.enterFullscreen().catch(() => { });
             this.hideStartScreen();
+            if (loadingOverlay) loadingOverlay.style.display = 'none';
             this.hud?.showPause?.(false);
             this.isPaused = false;
             this.partyMode = false;
