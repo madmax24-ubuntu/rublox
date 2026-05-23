@@ -964,7 +964,7 @@ buildFountain() {
         // Corner pillars
         for (const [px, pz] of [[-BOUNDARY, -BOUNDARY], [BOUNDARY, -BOUNDARY]]) {
             const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1, 12, 8), wallMat);
-            pillar.position.set(px, 6, pz); pillar.castShadow = true;
+            pillar.position.set(px, 6, pz);
             this.scene.add(pillar);
             this.colliders.push({ type: 'cylinder', position: new THREE.Vector3(px, 6, pz), radius: 1, height: 12 });
             const cap = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 0.8, 0.6, 8), wallMat);
@@ -988,7 +988,7 @@ buildFountain() {
         // Corner pillars
         for (const [px, pz] of [[-BOUNDARY, BOUNDARY], [BOUNDARY, BOUNDARY]]) {
             const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1, 12, 8), wallMat);
-            pillar.position.set(px, 6, pz); pillar.castShadow = true;
+            pillar.position.set(px, 6, pz);
             this.scene.add(pillar);
             this.colliders.push({ type: 'cylinder', position: new THREE.Vector3(px, 6, pz), radius: 1, height: 12 });
             const cap = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 0.8, 0.6, 8), wallMat);
@@ -1012,7 +1012,7 @@ buildFountain() {
         // Corner pillars
         for (const [px, pz] of [[-BOUNDARY, -BOUNDARY], [-BOUNDARY, BOUNDARY]]) {
             const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1, 12, 8), wallMat);
-            pillar.position.set(px, 6, pz); pillar.castShadow = true;
+            pillar.position.set(px, 6, pz);
             this.scene.add(pillar);
             this.colliders.push({ type: 'cylinder', position: new THREE.Vector3(px, 6, pz), radius: 1, height: 12 });
             const cap = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 0.8, 0.6, 8), wallMat);
@@ -1036,7 +1036,7 @@ buildFountain() {
         // Corner pillars
         for (const [px, pz] of [[BOUNDARY, -BOUNDARY], [BOUNDARY, BOUNDARY]]) {
             const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1, 12, 8), wallMat);
-            pillar.position.set(px, 6, pz); pillar.castShadow = true;
+            pillar.position.set(px, 6, pz);
             this.scene.add(pillar);
             this.colliders.push({ type: 'cylinder', position: new THREE.Vector3(px, 6, pz), radius: 1, height: 12 });
             const cap = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 0.8, 0.6, 8), wallMat);
