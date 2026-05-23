@@ -1296,8 +1296,6 @@ const gapConfigs = [
             ground.rotation.x = -Math.PI / 2;
             ground.position.set(cfg.cx, cfg.y, cfg.cz);
 
-            this.deformPathGeometry(groundGeo, 0, ground.position);
-
             ground.receiveShadow = true;
             this.scene.add(ground);
         });
