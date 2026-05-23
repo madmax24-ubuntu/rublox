@@ -1683,7 +1683,7 @@ const gapConfigs = [
     buildForestBiome() {
         // Ground - textured grass with noise variation (NW quadrant only)
         // Starts at X=-256, ends at X=-60 (biome boundary); Z=-256 to Z=-60
-        const groundGeo = new THREE.PlaneGeometry(196, 196, 64, 64);
+        const groundGeo = new THREE.PlaneGeometry(196, 196, 32, 32);
         const groundMat = new THREE.MeshStandardMaterial({
             map: this.textures.forestGround,
             roughness: 0.95,
@@ -3244,7 +3244,7 @@ const gapConfigs = [
     // ========== STONE MAZE BIOME (northeast) ==========
     buildStoneMazeBiome() {
         // Ground - stone with texture (NE quadrant, starts at +60 from center)
-        const groundGeo = new THREE.PlaneGeometry(196, 196, 64, 64);
+        const groundGeo = new THREE.PlaneGeometry(196, 196, 32, 32);
         const groundMat = new THREE.MeshStandardMaterial({
             map: this.textures.stoneGround,
             roughness: 0.95,
@@ -4051,7 +4051,7 @@ const gapConfigs = [
     // ========== MILITARY BIOME (southwest) ==========
     buildMilitaryBiome() {
         // Ground - textured earth/sand (SW quadrant, starts at -60 from center)
-        const groundGeo = new THREE.PlaneGeometry(196, 196, 64, 64);
+        const groundGeo = new THREE.PlaneGeometry(196, 196, 32, 32);
         const groundMat = new THREE.MeshStandardMaterial({
             map: this.textures.militaryGround,
             roughness: 0.95,
@@ -5330,7 +5330,7 @@ const gapConfigs = [
     // ========== SNOW BIOME (southeast) ==========
     buildSnowBiome() {
     // Ground - snow with texture (SE quadrant, starts at +60 from center)
-        const groundGeo = new THREE.PlaneGeometry(196, 196, 64, 64);
+        const groundGeo = new THREE.PlaneGeometry(196, 196, 32, 32);
         const groundMat = new THREE.MeshStandardMaterial({
             map: this.textures.snowGround,
             roughness: 0.8,
