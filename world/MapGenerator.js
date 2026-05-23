@@ -3070,48 +3070,40 @@ fillBoundaryGaps() {
             roughness: 0.9
         });
 
-        // Arrange in concentric circles
+        // Arrange in concentric circles — InstancedMesh (2 draw calls instead of 200)
+        const baseTileGeo = new THREE.BoxGeometry(1.2, 0.1, 1.2);
+        const fireTileGeo = new THREE.BoxGeometry(1, 0.05, 1);
+        const fireMesh = new THREE.InstancedMesh(fireTileGeo, tileMat, 100);
+        const dummy = new THREE.Matrix4();
+        const baseMesh = new THREE.InstancedMesh(baseTileGeo, tileMat, 100);
         let tileCount = 0;
         for (let ring = 0; ring < 4 && tileCount < 100; ring++) {
             const radius = 8 + ring * 8;
             const tilesInRing = Math.min(25, Math.floor(100 - tileCount));
             for (let t = 0; t < tilesInRing; t++) {
                 const angle = (t / tilesInRing) * Math.PI * 2;
-                const tileGroup = new THREE.Group();
-
-                // Tile base
-                const tile = new THREE.Mesh(
-                    new THREE.BoxGeometry(1.2, 0.1, 1.2),
-                    tileMat
-                );
-                tile.position.set(0, 0.05, 0);
-                tile.receiveShadow = true;
-                tileGroup.add(tile);
-
-                // Fire glow on tile
-                const fireTile = new THREE.Mesh(
-                    new THREE.BoxGeometry(1, 0.05, 1),
-                    new THREE.MeshStandardMaterial({
-                        color: fireColors[tileCount % fireColors.length],
-                        emissive: fireColors[tileCount % fireColors.length],
-                        emissiveIntensity: 0.3 + Math.random() * 0.4,
-                        transparent: true,
-                        opacity: 0.8
-                    })
-                );
-                fireTile.position.set(0, 0.12, 0);
-                tileGroup.add(fireTile);
-
-                tileGroup.position.set(
+                const pos = new THREE.Vector3(
                     Math.cos(angle) * radius,
                     platH + 0.05,
                     Math.sin(angle) * radius
                 );
-                tileGroup.rotation.y = -angle;
-                this.scene.add(tileGroup);
+                const quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -angle, 0));
+                const m = new THREE.Matrix4().makeRotationFromQuaternion(quat);
+                m.premultiply(new THREE.Matrix4().makeTranslation(pos.x, pos.y, pos.z));
+                baseMesh.setMatrixAt(tileCount, m);
+                // Fire glow position (slightly above)
+                const firePos = pos.clone().add(new THREE.Vector3(0, 0.07, 0));
+                const fm = new THREE.Matrix4().makeRotationFromQuaternion(quat);
+                fm.premultiply(new THREE.Matrix4().makeTranslation(firePos.x, firePos.y, firePos.z));
+                fireMesh.setMatrixAt(tileCount, fm);
+                fireMesh.setColorAt(tileCount, new THREE.Color(fireColors[tileCount % fireColors.length]));
                 tileCount++;
             }
         }
+        baseMesh.instanceMatrix.needsUpdate = true;
+        fireMesh.instanceMatrix.needsUpdate = true;
+        if (fireMesh.instanceColor) fireMesh.instanceColor.needsUpdate = true;
+        this.scene.add(baseMesh, fireMesh);
 
         // Beige ornamental patterns around center
         const beigeMat = new THREE.MeshStandardMaterial({ color: 0xd4b896, roughness: 0.6, metalness: 0.2 });
