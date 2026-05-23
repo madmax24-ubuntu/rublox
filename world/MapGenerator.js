@@ -562,60 +562,38 @@ export class MapGenerator {
         edge.receiveShadow = true;
         this.scene.add(edge);
 
-        // === FULL MAP GROUND — biomes cover their quadrants, rest covered by neutral ground ===
-        // Each biome quadrant from ±60 to ±256 covered by biome-specific ground
-        const biomeGroundMats = {
-            forest: new THREE.MeshStandardMaterial({ map: this.textures.forestGround || new THREE.MeshStandardMaterial({ color: 0x4a7a2e }), roughness: 0.95, flatShading: false }),
-            stone: new THREE.MeshStandardMaterial({ map: this.textures.stoneGround || new THREE.MeshStandardMaterial({ color: 0x8a8a7a }), roughness: 0.95, flatShading: false }),
-            military: new THREE.MeshStandardMaterial({ map: this.textures.militaryGround || new THREE.MeshStandardMaterial({ color: 0x7a6a4e }), roughness: 0.95, flatShading: false }),
-            snow: new THREE.MeshStandardMaterial({ map: this.textures.snowGround || new THREE.MeshStandardMaterial({ color: 0xe8e8f0 }), roughness: 0.95, flatShading: false })
-        };
-        // NW quadrant (forest): X/Z from -256 to -60
-        let g = new THREE.Mesh(new THREE.PlaneGeometry(196, 196, 32, 32), biomeGroundMats.forest);
-        g.rotation.x = -Math.PI / 2; g.position.set(-158, 1.56, -158); g.receiveShadow = true; this.scene.add(g);
-        // NE quadrant (stone): X/Z from 60 to 256 in X, -256 to -60 in Z
-        g = new THREE.Mesh(new THREE.PlaneGeometry(196, 196, 32, 32), biomeGroundMats.stone);
-        g.rotation.x = -Math.PI / 2; g.position.set(158, 1.56, -158); g.receiveShadow = true; this.scene.add(g);
-        // SW quadrant (military): X/Z from -256 to -60 in X, 60 to 256 in Z
-        g = new THREE.Mesh(new THREE.PlaneGeometry(196, 196, 32, 32), biomeGroundMats.military);
-        g.rotation.x = -Math.PI / 2; g.position.set(-158, 1.56, 158); g.receiveShadow = true; this.scene.add(g);
-        // SE quadrant (snow): X/Z from 60 to 256 in both
-        g = new THREE.Mesh(new THREE.PlaneGeometry(196, 196, 32, 32), biomeGroundMats.snow);
-        g.rotation.x = -Math.PI / 2; g.position.set(158, 1.56, 158); g.receiveShadow = true; this.scene.add(g);
+        // === FULL MAP BASE GROUND — covers entire -256..256 area ===
+        // Bottom layer, visible where no biome ground is placed on top
+        const baseGroundMat = new THREE.MeshStandardMaterial({
+            map: this.textures.forestGround || new THREE.MeshStandardMaterial({ color: 0x6a5a4a }),
+            roughness: 0.95, flatShading: false
+        });
+        const baseGround = new THREE.Mesh(
+            new THREE.PlaneGeometry(512, 512, 16, 16),
+            baseGroundMat
+        );
+        baseGround.rotation.x = -Math.PI / 2;
+        baseGround.position.set(0, 1.54, 0);
+        baseGround.receiveShadow = true;
+        this.scene.add(baseGround);
 
-        // === FILL THE GAPS between biome quadrants and map edges with neutral ground ===
-        // Center gap (between ±60 boundaries)
+        // === GAP FILLS between biome quadrants — above biome ground ===
         const centerGapMat = new THREE.MeshStandardMaterial({
             map: this.textures.wood || new THREE.MeshStandardMaterial({ color: 0x6a5a4a }),
             roughness: 0.95, flatShading: false
         });
-        // North gap (between NE+NW biomes, X: -60..60, Z: -256..-60)
+        // North gap (X: -60..60, Z: -256..-60)
+        let g = new THREE.Mesh(new THREE.PlaneGeometry(120, 196, 8, 8), centerGapMat);
+        g.rotation.x = -Math.PI / 2; g.position.set(0, 1.57, -158); g.receiveShadow = true; this.scene.add(g);
+        // South gap (X: -60..60, Z: 60..256)
         g = new THREE.Mesh(new THREE.PlaneGeometry(120, 196, 8, 8), centerGapMat);
-        g.rotation.x = -Math.PI / 2; g.position.set(0, 1.56, -158); g.receiveShadow = true; this.scene.add(g);
-        // South gap (between SE+SW biomes, X: -60..60, Z: 60..256)
-        g = new THREE.Mesh(new THREE.PlaneGeometry(120, 196, 8, 8), centerGapMat);
-        g.rotation.x = -Math.PI / 2; g.position.set(0, 1.56, 158); g.receiveShadow = true; this.scene.add(g);
-        // West gap (between NW+SW biomes, X: -256..-60, Z: -60..60)
+        g.rotation.x = -Math.PI / 2; g.position.set(0, 1.57, 158); g.receiveShadow = true; this.scene.add(g);
+        // West gap (X: -256..-60, Z: -60..60)
         g = new THREE.Mesh(new THREE.PlaneGeometry(196, 120, 8, 8), centerGapMat);
-        g.rotation.x = -Math.PI / 2; g.position.set(-158, 1.56, 0); g.receiveShadow = true; this.scene.add(g);
-        // East gap (between NE+SE biomes, X: 60..256, Z: -60..60)
+        g.rotation.x = -Math.PI / 2; g.position.set(-158, 1.57, 0); g.receiveShadow = true; this.scene.add(g);
+        // East gap (X: 60..256, Z: -60..60)
         g = new THREE.Mesh(new THREE.PlaneGeometry(196, 120, 8, 8), centerGapMat);
-        g.rotation.x = -Math.PI / 2; g.position.set(158, 1.56, 0); g.receiveShadow = true; this.scene.add(g);
-
-        // Corner patches (between biomes and map edges)
-        const cornerMat = new THREE.MeshStandardMaterial({
-            map: this.textures.wood || new THREE.MeshStandardMaterial({ color: 0x5a4a3a }),
-            roughness: 0.95, flatShading: false
-        });
-        // NW corner outside forest: X -256..-256 already covered, need fill beyond
-        // Actually corners between the biome edges and map edges
-        // NW top-left: X -256..-60, Z -256..-256 (already covered by forest)
-        // The map extends to ±256 but biomes only go to ±60, so we fill the outer ring
-        // NW outer: X -256..-256, Z -256..-60 — already covered
-        // NE outer: X 60..256, Z -256..-256 — already covered
-        // SW outer: X -256..-60, Z 60..256 — already covered
-        // SE outer: X 60..256, Z 60..256 — already covered
-        // So the map edges are covered by biome grounds. No outer ring needed.
+        g.rotation.x = -Math.PI / 2; g.position.set(158, 1.57, 0); g.receiveShadow = true; this.scene.add(g);
 
         // Spawn pads around platform edge
         const spawnAngles = [0, Math.PI / 2, Math.PI, Math.PI * 1.5];
