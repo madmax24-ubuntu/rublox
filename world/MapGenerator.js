@@ -1153,90 +1153,82 @@ fillBoundaryGaps() {
             roughness: 0.3
         });
 
-        // Collect positions for all 24 lamps
-        const positions = [];
-        // North/South (arms along X axis)
-        for (let z = -60; z > -216; z -= 60) {
-            for (let side = -1; side <= 1; side += 2) {
-                positions.push({ x: side * 8, y: 1.56, z, armX: true });
-            }
-        }
-        for (let z = 60; z < 216; z += 60) {
-            for (let side = -1; side <= 1; side += 2) {
-                positions.push({ x: side * 8, y: 1.56, z, armX: true });
-            }
-        }
-        // West/East (arms along Z axis)
-        for (let x = -60; x > -216; x -= 60) {
-            for (let side = -1; side <= 1; side += 2) {
-                positions.push({ x, y: 1.56, z: side * 8, armX: false });
-            }
-        }
-        for (let x = 60; x < 216; x += 60) {
-            for (let side = -1; side <= 1; side += 2) {
-                positions.push({ x, y: 1.56, z: side * 8, armX: false });
-            }
-        }
-
-        // Shared pole geometry + arm geometry (along X)
+        // Shared geometries
         const poleGeo = new THREE.CylinderGeometry(0.06, 0.08, 3, 4);
         const armGeoX = new THREE.CylinderGeometry(0.04, 0.04, 1, 4);
         const armGeoZ = new THREE.CylinderGeometry(0.04, 0.04, 1, 4);
         const bulbGeo = new THREE.SphereGeometry(0.15, 4, 4);
 
-        // Create InstancedMeshes: 3 per axis type × 2 axes = 6 draw calls (vs 72 before)
-        // North/South poles (12 lamps along Z, at x=±8)
-        const nsPoleMesh = new THREE.InstancedMesh(poleGeo, poleMat, positions.length);
-        // West/East poles (same count, but we'll use separate InstancedMesh for different orientations)
-        const wePoleMesh = new THREE.InstancedMesh(poleGeo, poleMat, positions.length);
-        // North/South arms (along X)
-        const nsArmMesh = new THREE.InstancedMesh(armGeoX, poleMat, positions.length);
-        // West/East arms (along Z, need rotation)
-        const weArmMesh = new THREE.InstancedMesh(armGeoZ, poleMat, positions.length);
-        // North/South bulbs
-        const nsBulbMesh = new THREE.InstancedMesh(bulbGeo, lightMat, positions.length);
-        // West/East bulbs
-        const weBulbMesh = new THREE.InstancedMesh(bulbGeo, lightMat, positions.length);
-
         const dummy = new THREE.Matrix4();
-        let idx = 0;
+        const dummy2 = new THREE.Matrix4();
 
-        for (const p of positions) {
-            const isNS = p.armX; // North/South lamps
-            if (isNS) {
-                // Pole
-                dummy.makeTranslation(p.x, p.y + 1.5, p.z);
-                nsPoleMesh.setMatrixAt(idx, dummy);
-                // Arm (along X)
-                dummy.makeTranslation(p.x + p.x * 0.5 / Math.max(Math.abs(p.x), 1), p.y + 3, p.z);
-                nsArmMesh.setMatrixAt(idx, dummy);
-                // Bulb
-                const bx = p.x > 0 ? 1 : -1;
-                dummy.makeTranslation(p.x + bx, p.y + 1.24, p.z);
-                nsBulbMesh.setMatrixAt(idx, dummy);
-            } else {
-                // Pole
-                dummy.makeTranslation(p.x, p.y + 1.5, p.z);
-                wePoleMesh.setMatrixAt(idx, dummy);
-                // Arm (along Z)
-                dummy.makeTranslation(p.x, p.y + 3, p.z);
-                weArmMesh.setMatrixAt(idx, dummy);
-                // Bulb
-                const bz = p.z > 0 ? 1 : -1;
-                dummy.makeTranslation(p.x, p.y + 1.24, p.z + bz);
-                weBulbMesh.setMatrixAt(idx, dummy);
-            }
-            idx++;
+        // === North/South lamps: 12 instances per axis type ===
+        // Collect NS positions (N: z=-60..-180, S: z=60..180)
+        const nsPositions = [];
+        for (let z = -60; z > -216; z -= 60) {
+            for (let side = -1; side <= 1; side += 2) nsPositions.push({ x: side * 8, z });
+        }
+        for (let z = 60; z < 216; z += 60) {
+            for (let side = -1; side <= 1; side += 2) nsPositions.push({ x: side * 8, z });
         }
 
-        nsPoleMesh.instanceMatrix.needsUpdate = true;
-        wePoleMesh.instanceMatrix.needsUpdate = true;
-        nsArmMesh.instanceMatrix.needsUpdate = true;
-        weArmMesh.instanceMatrix.needsUpdate = true;
-        nsBulbMesh.instanceMatrix.needsUpdate = true;
-        weBulbMesh.instanceMatrix.needsUpdate = true;
+        // Collect W/E positions
+        const wePositions = [];
+        for (let x = -60; x > -216; x -= 60) {
+            for (let side = -1; side <= 1; side += 2) wePositions.push({ x, z: side * 8 });
+        }
+        for (let x = 60; x < 216; x += 60) {
+            for (let side = -1; side <= 1; side += 2) wePositions.push({ x, z: side * 8 });
+        }
 
-        this.scene.add(nsPoleMesh, wePoleMesh, nsArmMesh, weArmMesh, nsBulbMesh, weBulbMesh);
+        const nsCount = nsPositions.length; // 12
+        const weCount = wePositions.length; // 12
+
+        // NS InstancedMeshes
+        const nsPole = new THREE.InstancedMesh(poleGeo, poleMat, nsCount);
+        const nsArm = new THREE.InstancedMesh(armGeoX, poleMat, nsCount);
+        const nsBulb = new THREE.InstancedMesh(bulbGeo, lightMat, nsCount);
+        // WE InstancedMeshes
+        const wePole = new THREE.InstancedMesh(poleGeo, poleMat, weCount);
+        const weArm = new THREE.InstancedMesh(armGeoZ, poleMat, weCount);
+        const weBulb = new THREE.InstancedMesh(bulbGeo, lightMat, weCount);
+
+        for (let i = 0; i < nsCount; i++) {
+            const p = nsPositions[i];
+            const side = p.x > 0 ? 1 : -1;
+            // Pole
+            dummy.makeTranslation(p.x, 1.56 + 1.5, p.z);
+            nsPole.setMatrixAt(i, dummy);
+            // Arm (along X, offset by side)
+            dummy.makeTranslation(p.x + side * 0.5, 3, p.z);
+            nsArm.setMatrixAt(i, dummy);
+            // Bulb (further along X)
+            dummy.makeTranslation(p.x + side * 1, 2.8, p.z);
+            nsBulb.setMatrixAt(i, dummy);
+        }
+
+        for (let i = 0; i < weCount; i++) {
+            const p = wePositions[i];
+            const side = p.z > 0 ? 1 : -1;
+            // Pole
+            dummy.makeTranslation(p.x, 1.56 + 1.5, p.z);
+            wePole.setMatrixAt(i, dummy);
+            // Arm (along Z, offset by side)
+            dummy.makeTranslation(p.x, 3, p.z + side * 0.5);
+            weArm.setMatrixAt(i, dummy);
+            // Bulb (further along Z)
+            dummy.makeTranslation(p.x, 2.8, p.z + side * 1);
+            weBulb.setMatrixAt(i, dummy);
+        }
+
+        nsPole.instanceMatrix.needsUpdate = true;
+        nsArm.instanceMatrix.needsUpdate = true;
+        nsBulb.instanceMatrix.needsUpdate = true;
+        wePole.instanceMatrix.needsUpdate = true;
+        weArm.instanceMatrix.needsUpdate = true;
+        weBulb.instanceMatrix.needsUpdate = true;
+
+        this.scene.add(nsPole, nsArm, nsBulb, wePole, weArm, weBulb);
     }
 
     // ========== BIOME BOUNDARY WALLS ==========
