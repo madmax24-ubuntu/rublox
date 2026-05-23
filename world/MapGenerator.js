@@ -535,7 +535,7 @@ export class MapGenerator {
         const platGeo = new THREE.CylinderGeometry(radius, radius, 0.4, 32);
         const platTex = TextureGenerator.createTerrainTexture(512, 512, 0xc9b99a,
             (n) => ({ r: n * 25, g: n * 20, b: n * 15 }),
-          this.noise, { detailOctaves: 6, detailScale: 48, sharpenAmount: 0.3 }
+          this.noise, { detailScale: 16, groundOctaves: 3, microOctaves: 2, sharpenAmount: 0.3 }
         );
         const platMat = new THREE.MeshStandardMaterial({
             map: platTex, roughness: 0.8, flatShading: false
