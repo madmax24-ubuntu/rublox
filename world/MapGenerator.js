@@ -691,7 +691,7 @@ export class MapGenerator {
 buildFountain() {
         // === GOLDEN HORN (CORNUCOPIA) ===
         // Main pool base - sits on platform surface (Y=1.63)
-        const poolGeo = new THREE.CylinderGeometry(12, 14, 1, 32);
+        const poolGeo = new THREE.CylinderGeometry(12, 14, 1, 16);
         const poolMat = new THREE.MeshStandardMaterial({
             color: 0xdaa520,
             metalness: 0.8,
