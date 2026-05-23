@@ -473,160 +473,110 @@ buildFountain() {
             roughness: 0.95
         });
 
-        // === BIOME BOUNDARY WALLS (just outside center platform, radius ~56) ===
-        // Walls at ±60 from center with gaps for path entrances
+        // === BIOME BOUNDARY WALLS (at ±60 from center) ===
         const BOUNDARY = 60;
         const WALL_H = 10;
-        const GAP = 12; // Path entrance gap width
 
         // === NORTH boundary (Z = -60) — separates Stone biome (NE) from center ===
-        // Left segment: X from -60 to -GAP
-        let wall = new THREE.Mesh(new THREE.BoxGeometry(BOUNDARY - GAP, WALL_H, 3), wallMat);
-        wall.position.set(-(BOUNDARY + GAP) / 2, WALL_H / 2, -BOUNDARY);
+        // Left segment: X from -60 to -2.5 (road edge)
+        let wall = new THREE.Mesh(new THREE.BoxGeometry(57.5, WALL_H, 3), wallMat);
+        wall.position.set(-31.25, WALL_H / 2, -BOUNDARY);
         wall.receiveShadow = true;
         this.scene.add(wall);
-        this.colliders.push({ type: 'box', position: new THREE.Vector3(-(BOUNDARY + GAP) / 2, WALL_H / 2, -BOUNDARY), size: new THREE.Vector3(BOUNDARY - GAP, WALL_H, 3) });
-        // Right segment: X from GAP to 60
-        wall = new THREE.Mesh(new THREE.BoxGeometry(BOUNDARY - GAP, WALL_H, 3), wallMat);
-        wall.position.set((GAP + BOUNDARY) / 2, WALL_H / 2, -BOUNDARY);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(-31.25, WALL_H / 2, -BOUNDARY), size: new THREE.Vector3(57.5, WALL_H, 3) });
+        // Right segment: X from 2.5 to 60
+        wall = new THREE.Mesh(new THREE.BoxGeometry(57.5, WALL_H, 3), wallMat);
+        wall.position.set(31.25, WALL_H / 2, -BOUNDARY);
         wall.receiveShadow = true;
         this.scene.add(wall);
-        this.colliders.push({ type: 'box', position: new THREE.Vector3((GAP + BOUNDARY) / 2, WALL_H / 2, -BOUNDARY), size: new THREE.Vector3(BOUNDARY - GAP, WALL_H, 3) });
-        // Corner pillars
-        for (const [px, pz] of [[-BOUNDARY, -BOUNDARY], [BOUNDARY, -BOUNDARY]]) {
-            const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1, 12, 8), wallMat);
-            pillar.position.set(px, 6, pz);
-            this.scene.add(pillar);
-            this.colliders.push({ type: 'cylinder', position: new THREE.Vector3(px, 6, pz), radius: 1, height: 12 });
-            const cap = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 0.8, 0.6, 8), wallMat);
-            cap.position.set(px, 12.3, pz);
-            this.scene.add(cap);
-        }
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(31.25, WALL_H / 2, -BOUNDARY), size: new THREE.Vector3(57.5, WALL_H, 3) });
 
-        // === ANGLED BARRIER WALLS at gap — block direct sight from road ===
-        // North boundary gap (centered at X=0)
-        const barrierH = 3.5;
-        const barrierLen = 4;
-        const barrierMat = new THREE.MeshStandardMaterial({ color: 0x6b5a4a, roughness: 0.95 });
-        // North: V-shaped barrier pointing toward road
-        let barrier = new THREE.Mesh(new THREE.BoxGeometry(barrierLen, barrierH, 0.8), barrierMat);
-        barrier.position.set(-3, barrierH / 2, -BOUNDARY);
-        barrier.rotation.y = Math.PI * 0.25;
-        barrier.castShadow = true;
-        this.scene.add(barrier);
-        this.colliders.push({ type: 'box', position: new THREE.Vector3(-3, barrierH / 2, -BOUNDARY), size: new THREE.Vector3(barrierLen, barrierH, 0.8) });
-        barrier = new THREE.Mesh(new THREE.BoxGeometry(barrierLen, barrierH, 0.8), barrierMat);
-        barrier.position.set(3, barrierH / 2, -BOUNDARY);
-        barrier.rotation.y = -Math.PI * 0.25;
-        barrier.castShadow = true;
-        this.scene.add(barrier);
-        this.colliders.push({ type: 'box', position: new THREE.Vector3(3, barrierH / 2, -BOUNDARY), size: new THREE.Vector3(barrierLen, barrierH, 0.8) });
+        // Arch over north road entrance (center, X=-2.5 to 2.5)
+        this.buildArch(-BOUNDARY, 0, 0, WALL_H, wallMat);
 
-        // South: mirrored V
-        barrier = new THREE.Mesh(new THREE.BoxGeometry(barrierLen, barrierH, 0.8), barrierMat);
-        barrier.position.set(-3, barrierH / 2, BOUNDARY);
-        barrier.rotation.y = Math.PI * 0.75;
-        barrier.castShadow = true;
-        this.scene.add(barrier);
-        this.colliders.push({ type: 'box', position: new THREE.Vector3(-3, barrierH / 2, BOUNDARY), size: new THREE.Vector3(barrierLen, barrierH, 0.8) });
-        barrier = new THREE.Mesh(new THREE.BoxGeometry(barrierLen, barrierH, 0.8), barrierMat);
-        barrier.position.set(3, barrierH / 2, BOUNDARY);
-        barrier.rotation.y = -Math.PI * 0.75;
-        barrier.castShadow = true;
-        this.scene.add(barrier);
-        this.colliders.push({ type: 'box', position: new THREE.Vector3(3, barrierH / 2, BOUNDARY), size: new THREE.Vector3(barrierLen, barrierH, 0.8) });
-
-        // West: angled barriers
-        barrier = new THREE.Mesh(new THREE.BoxGeometry(0.8, barrierH, barrierLen), barrierMat);
-        barrier.position.set(-BOUNDARY, barrierH / 2, -3);
-        barrier.rotation.y = Math.PI * 0.25;
-        barrier.castShadow = true;
-        this.scene.add(barrier);
-        this.colliders.push({ type: 'box', position: new THREE.Vector3(-BOUNDARY, barrierH / 2, -3), size: new THREE.Vector3(0.8, barrierH, barrierLen) });
-        barrier = new THREE.Mesh(new THREE.BoxGeometry(0.8, barrierH, barrierLen), barrierMat);
-        barrier.position.set(-BOUNDARY, barrierH / 2, 3);
-        barrier.rotation.y = -Math.PI * 0.25;
-        barrier.castShadow = true;
-        this.scene.add(barrier);
-        this.colliders.push({ type: 'box', position: new THREE.Vector3(-BOUNDARY, barrierH / 2, 3), size: new THREE.Vector3(0.8, barrierH, barrierLen) });
-
-        // East: mirrored angled barriers
-        barrier = new THREE.Mesh(new THREE.BoxGeometry(0.8, barrierH, barrierLen), barrierMat);
-        barrier.position.set(BOUNDARY, barrierH / 2, -3);
-        barrier.rotation.y = Math.PI * 0.75;
-        barrier.castShadow = true;
-        this.scene.add(barrier);
-        this.colliders.push({ type: 'box', position: new THREE.Vector3(BOUNDARY, barrierH / 2, -3), size: new THREE.Vector3(0.8, barrierH, barrierLen) });
-        barrier = new THREE.Mesh(new THREE.BoxGeometry(0.8, barrierH, barrierLen), barrierMat);
-        barrier.position.set(BOUNDARY, barrierH / 2, 3);
-        barrier.rotation.y = -Math.PI * 0.25;
-        barrier.castShadow = true;
-        this.scene.add(barrier);
-        this.colliders.push({ type: 'box', position: new THREE.Vector3(BOUNDARY, barrierH / 2, 3), size: new THREE.Vector3(0.8, barrierH, barrierLen) });
+        // Sight-blocking wall: perpendicular to road, along biome edge (X from -60 to -2.5, Z=-60)
+        // This blocks view from the road into the biome interior
+        const sightWallH = WALL_H;
+        const sightWall = new THREE.Mesh(new THREE.BoxGeometry(3, sightWallH, 56), wallMat);
+        sightWall.position.set(-31.25, sightWallH / 2, -BOUNDARY + 31);
+        sightWall.receiveShadow = true;
+        this.scene.add(sightWall);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(-31.25, sightWallH / 2, -BOUNDARY + 31), size: new THREE.Vector3(3, sightWallH, 56) });
 
         // === SOUTH boundary (Z = 60) — separates Military biome (SW) from center ===
-        // Left segment: X from -60 to -GAP
-        wall = new THREE.Mesh(new THREE.BoxGeometry(BOUNDARY - GAP, WALL_H, 3), wallMat);
-        wall.position.set(-(BOUNDARY + GAP) / 2, WALL_H / 2, BOUNDARY);
+        // Left segment: X from -60 to -2.5
+        wall = new THREE.Mesh(new THREE.BoxGeometry(57.5, WALL_H, 3), wallMat);
+        wall.position.set(-31.25, WALL_H / 2, BOUNDARY);
         wall.receiveShadow = true;
         this.scene.add(wall);
-        this.colliders.push({ type: 'box', position: new THREE.Vector3(-(BOUNDARY + GAP) / 2, WALL_H / 2, BOUNDARY), size: new THREE.Vector3(BOUNDARY - GAP, WALL_H, 3) });
-        // Right segment: X from GAP to 60
-        wall = new THREE.Mesh(new THREE.BoxGeometry(BOUNDARY - GAP, WALL_H, 3), wallMat);
-        wall.position.set((GAP + BOUNDARY) / 2, WALL_H / 2, BOUNDARY);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(-31.25, WALL_H / 2, BOUNDARY), size: new THREE.Vector3(57.5, WALL_H, 3) });
+        // Right segment: X from 2.5 to 60
+        wall = new THREE.Mesh(new THREE.BoxGeometry(57.5, WALL_H, 3), wallMat);
+        wall.position.set(31.25, WALL_H / 2, BOUNDARY);
         wall.receiveShadow = true;
         this.scene.add(wall);
-        this.colliders.push({ type: 'box', position: new THREE.Vector3((GAP + BOUNDARY) / 2, WALL_H / 2, BOUNDARY), size: new THREE.Vector3(BOUNDARY - GAP, WALL_H, 3) });
-        // Corner pillars
-        for (const [px, pz] of [[-BOUNDARY, BOUNDARY], [BOUNDARY, BOUNDARY]]) {
-            const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1, 12, 8), wallMat);
-            pillar.position.set(px, 6, pz);
-            this.scene.add(pillar);
-            this.colliders.push({ type: 'cylinder', position: new THREE.Vector3(px, 6, pz), radius: 1, height: 12 });
-            const cap = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 0.8, 0.6, 8), wallMat);
-            cap.position.set(px, 12.3, pz);
-            this.scene.add(cap);
-        }
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(31.25, WALL_H / 2, BOUNDARY), size: new THREE.Vector3(57.5, WALL_H, 3) });
+
+        // Arch over south road entrance
+        this.buildArch(BOUNDARY, 0, 0, WALL_H, wallMat);
+
+        // Sight-blocking wall
+        const sightWall2 = new THREE.Mesh(new THREE.BoxGeometry(3, sightWallH, 56), wallMat);
+        sightWall2.position.set(-31.25, sightWallH / 2, BOUNDARY - 31);
+        sightWall2.receiveShadow = true;
+        this.scene.add(sightWall2);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(-31.25, sightWallH / 2, BOUNDARY - 31), size: new THREE.Vector3(3, sightWallH, 56) });
 
         // === WEST boundary (X = -60) — separates Forest biome (NW) from center ===
-        // Top segment: Z from -60 to -GAP
-        wall = new THREE.Mesh(new THREE.BoxGeometry(3, WALL_H, BOUNDARY - GAP), wallMat);
-        wall.position.set(-BOUNDARY, WALL_H / 2, -(BOUNDARY + GAP) / 2);
+        // Top segment: Z from -60 to -2.5
+        wall = new THREE.Mesh(new THREE.BoxGeometry(3, WALL_H, 57.5), wallMat);
+        wall.position.set(-BOUNDARY, WALL_H / 2, -31.25);
         wall.receiveShadow = true;
         this.scene.add(wall);
-        this.colliders.push({ type: 'box', position: new THREE.Vector3(-BOUNDARY, WALL_H / 2, -(BOUNDARY + GAP) / 2), size: new THREE.Vector3(3, WALL_H, BOUNDARY - GAP) });
-        // Bottom segment: Z from GAP to 60
-        wall = new THREE.Mesh(new THREE.BoxGeometry(3, WALL_H, BOUNDARY - GAP), wallMat);
-        wall.position.set(-BOUNDARY, WALL_H / 2, (GAP + BOUNDARY) / 2);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(-BOUNDARY, WALL_H / 2, -31.25), size: new THREE.Vector3(3, WALL_H, 57.5) });
+        // Bottom segment: Z from 2.5 to 60
+        wall = new THREE.Mesh(new THREE.BoxGeometry(3, WALL_H, 57.5), wallMat);
+        wall.position.set(-BOUNDARY, WALL_H / 2, 31.25);
         wall.receiveShadow = true;
         this.scene.add(wall);
-        this.colliders.push({ type: 'box', position: new THREE.Vector3(-BOUNDARY, WALL_H / 2, (GAP + BOUNDARY) / 2), size: new THREE.Vector3(3, WALL_H, BOUNDARY - GAP) });
-        // Corner pillars
-        for (const [px, pz] of [[-BOUNDARY, -BOUNDARY], [-BOUNDARY, BOUNDARY]]) {
-            const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1, 12, 8), wallMat);
-            pillar.position.set(px, 6, pz);
-            this.scene.add(pillar);
-            this.colliders.push({ type: 'cylinder', position: new THREE.Vector3(px, 6, pz), radius: 1, height: 12 });
-            const cap = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 0.8, 0.6, 8), wallMat);
-            cap.position.set(px, 12.3, pz);
-            this.scene.add(cap);
-        }
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(-BOUNDARY, WALL_H / 2, 31.25), size: new THREE.Vector3(3, WALL_H, 57.5) });
+
+        // Arch over west road entrance
+        this.buildArch(-BOUNDARY, 0, 0, WALL_H, wallMat, true);
+
+        // Sight-blocking wall
+        const sightWall3 = new THREE.Mesh(new THREE.BoxGeometry(56, sightWallH, 3), wallMat);
+        sightWall3.position.set(-BOUNDARY + 31, sightWallH / 2, -31.25);
+        sightWall3.receiveShadow = true;
+        this.scene.add(sightWall3);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(-BOUNDARY + 31, sightWallH / 2, -31.25), size: new THREE.Vector3(56, sightWallH, 3) });
 
         // === EAST boundary (X = 60) — separates Snow biome (SE) from center ===
-        // Top segment: Z from -60 to -GAP
-        wall = new THREE.Mesh(new THREE.BoxGeometry(3, WALL_H, BOUNDARY - GAP), wallMat);
-        wall.position.set(BOUNDARY, WALL_H / 2, -(BOUNDARY + GAP) / 2);
+        // Top segment: Z from -60 to -2.5
+        wall = new THREE.Mesh(new THREE.BoxGeometry(3, WALL_H, 57.5), wallMat);
+        wall.position.set(BOUNDARY, WALL_H / 2, -31.25);
         wall.receiveShadow = true;
         this.scene.add(wall);
-        this.colliders.push({ type: 'box', position: new THREE.Vector3(BOUNDARY, WALL_H / 2, -(BOUNDARY + GAP) / 2), size: new THREE.Vector3(3, WALL_H, BOUNDARY - GAP) });
-        // Bottom segment: Z from GAP to 60
-        wall = new THREE.Mesh(new THREE.BoxGeometry(3, WALL_H, BOUNDARY - GAP), wallMat);
-        wall.position.set(BOUNDARY, WALL_H / 2, (GAP + BOUNDARY) / 2);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(BOUNDARY, WALL_H / 2, -31.25), size: new THREE.Vector3(3, WALL_H, 57.5) });
+        // Bottom segment: Z from 2.5 to 60
+        wall = new THREE.Mesh(new THREE.BoxGeometry(3, WALL_H, 57.5), wallMat);
+        wall.position.set(BOUNDARY, WALL_H / 2, 31.25);
         wall.receiveShadow = true;
         this.scene.add(wall);
-        this.colliders.push({ type: 'box', position: new THREE.Vector3(BOUNDARY, WALL_H / 2, (GAP + BOUNDARY) / 2), size: new THREE.Vector3(3, WALL_H, BOUNDARY - GAP) });
-        // Corner pillars
-        for (const [px, pz] of [[BOUNDARY, -BOUNDARY], [BOUNDARY, BOUNDARY]]) {
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(BOUNDARY, WALL_H / 2, 31.25), size: new THREE.Vector3(3, WALL_H, 57.5) });
+
+        // Arch over east road entrance
+        this.buildArch(BOUNDARY, 0, 0, WALL_H, wallMat, true);
+
+        // Sight-blocking wall
+        const sightWall4 = new THREE.Mesh(new THREE.BoxGeometry(56, sightWallH, 3), wallMat);
+        sightWall4.position.set(BOUNDARY - 31, sightWallH / 2, -31.25);
+        sightWall4.receiveShadow = true;
+        this.scene.add(sightWall4);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(BOUNDARY - 31, sightWallH / 2, -31.25), size: new THREE.Vector3(56, sightWallH, 3) });
+
+        // === CORNER PILLARS (4 corners) ===
+        for (const [px, pz] of [[-BOUNDARY, -BOUNDARY], [BOUNDARY, -BOUNDARY], [-BOUNDARY, BOUNDARY], [BOUNDARY, BOUNDARY]]) {
             const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1, 12, 8), wallMat);
             pillar.position.set(px, 6, pz);
             this.scene.add(pillar);
@@ -659,6 +609,40 @@ buildFountain() {
         wall.position.set(-OP, OUT_H / 2, 0); wall.castShadow = true; wall.receiveShadow = true;
         this.scene.add(wall);
         this.colliders.push({ type: 'box', position: new THREE.Vector3(-OP, OUT_H / 2, 0), size: new THREE.Vector3(3, OUT_H, 512) });
+    }
+
+    buildArch(zOrX, roadOffsetX, roadOffsetZ, wallH, wallMat, isXAxis) {
+        // Two pillars + top beam forming an arch over the road entrance
+        const pillarW = 1.2;
+        const pillarD = 3;
+        const beamW = isXAxis ? 5 : 5;
+        const beamD = isXAxis ? 3 : 3;
+        const beamH = 1.5;
+        const archWidth = 5; // road width + clearance
+
+        const pillarMat = wallMat;
+        // Left pillar
+        const p1x = roadOffsetX - archWidth / 2;
+        const p1z = roadOffsetZ - archWidth / 2;
+        const p1 = new THREE.Mesh(new THREE.BoxGeometry(pillarW, wallH, pillarD), pillarMat);
+        p1.position.set(p1x, wallH / 2, p1z);
+        p1.castShadow = true;
+        this.scene.add(p1);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(p1x, wallH / 2, p1z), size: new THREE.Vector3(pillarW, wallH, pillarD) });
+
+        // Right pillar (opposite side)
+        const p2 = new THREE.Mesh(new THREE.BoxGeometry(pillarW, wallH, pillarD), pillarMat);
+        p2.position.set(roadOffsetX + archWidth / 2, wallH / 2, roadOffsetZ + archWidth / 2);
+        p2.castShadow = true;
+        this.scene.add(p2);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(roadOffsetX + archWidth / 2, wallH / 2, roadOffsetZ + archWidth / 2), size: new THREE.Vector3(pillarW, wallH, pillarD) });
+
+        // Top beam
+        const beam = new THREE.Mesh(new THREE.BoxGeometry(beamW, beamH, beamD), pillarMat);
+        beam.position.set(roadOffsetX, wallH + beamH / 2, roadOffsetZ);
+        beam.castShadow = true;
+        this.scene.add(beam);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(roadOffsetX, wallH + beamH / 2, roadOffsetZ), size: new THREE.Vector3(beamW, beamH, beamD) });
     }
 
 fillBoundaryGaps() {
