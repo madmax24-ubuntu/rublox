@@ -1750,25 +1750,19 @@ fillBoundaryGaps() {
         // Roof based on biome type
         let roofMat;
         if (roofType === 'snow') {
-            const snowRoofTex = TextureGenerator.createSnowTexture();
             roofMat = new THREE.MeshStandardMaterial({
-                map: snowRoofTex,
                 color: 0xf0f8ff,
                 roughness: 0.7,
                 flatShading: false
             });
         } else if (roofType === 'flat') {
-            const stoneRoofTex = TextureGenerator.createStoneTexture();
             roofMat = new THREE.MeshStandardMaterial({
-                map: stoneRoofTex,
                 color: roofColor,
                 roughness: 0.95,
                 flatShading: true
             });
         } else {
-            const roofTex = TextureGenerator.createRoofTexture(roofColor);
             roofMat = new THREE.MeshStandardMaterial({
-                map: roofTex,
                 color: roofColor,
                 roughness: 0.95,
                 flatShading: false
