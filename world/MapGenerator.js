@@ -724,7 +724,7 @@ buildFountain() {
         this.scene.add(pillar);
 
         // Top sphere
-        const topSphereGeo = new THREE.SphereGeometry(1.2, 16, 16);
+        const topSphereGeo = new THREE.SphereGeometry(1.2, 8, 8);
         const topSphereMat = new THREE.MeshStandardMaterial({
             color: 0xdaa520,
             metalness: 0.8,
