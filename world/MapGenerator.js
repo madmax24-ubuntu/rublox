@@ -3698,27 +3698,24 @@ fillBoundaryGaps() {
             if (Math.abs(x) < 20) continue;
             if (z > -50) continue;
 
-        // Grass blades — batched into InstancedMesh
-        const bladeCount = 3 + Math.floor(Math.random() * 4);
-        const baseBladeGeo = new THREE.PlaneGeometry(0.08, 0.5); // max height, scaled per blade
-        const totalBladesPerTuft = bladeCount;
-        for (let j = 0; j < bladeCount; j++) {
-            const bh = 0.3 + Math.random() * 0.4;
-            const by = 0.15 + Math.random() * 0.15;
-            const bScaleY = bh / 0.5;
-            dummy.makeTranslation(
-                x + (Math.random() - 0.5) * 0.3,
-                2.06 + by,
-                z + (Math.random() - 0.5) * 0.3
-            );
-            const bladeQuat = new THREE.Quaternion().setFromEuler(
-                new THREE.Euler((Math.random() - 0.5) * 0.3, Math.random() * Math.PI, 0)
-            );
-            dummy.multiply(bladeQuat).multiply(
-                new THREE.Matrix4().makeScale(1, bScaleY, 1)
-            );
-            // We'll add to a shared instanced mesh below
-        }
+            const tuftGroup = new THREE.Group();
+            const bladeCount = 3 + Math.floor(Math.random() * 4);
+
+            for (let j = 0; j < bladeCount; j++) {
+                const bladeGeo = new THREE.PlaneGeometry(0.08, 0.3 + Math.random() * 0.4);
+                const blade = new THREE.Mesh(bladeGeo, grassMat);
+                blade.position.set(
+                    (Math.random() - 0.5) * 0.3,
+                    0.15 + Math.random() * 0.15,
+                    (Math.random() - 0.5) * 0.3
+                );
+                blade.rotation.y = Math.random() * Math.PI;
+                blade.rotation.z = (Math.random() - 0.5) * 0.3;
+                tuftGroup.add(blade);
+            }
+
+            tuftGroup.position.set(x, 2.06, z);
+            this.scene.add(tuftGroup);
         }
     }
 
