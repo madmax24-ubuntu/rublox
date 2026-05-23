@@ -430,7 +430,7 @@ buildFountain() {
     buildMapBoundaries() {
         // === HIGH BRICK FENCE around entire map boundary ===
         const fenceMat = new THREE.MeshStandardMaterial({
-            map: this.textures.brick,
+            color: COLOR.brick,
             color: 0x8b4513,
             roughness: 0.95
         });
@@ -466,7 +466,7 @@ buildFountain() {
 
         // Fence top crenellation (brick ledge on top)
         const ledgeMat = new THREE.MeshStandardMaterial({
-            map: this.textures.brick,
+            color: COLOR.brick,
             color: 0x6b3410,
             roughness: 0.9
         });
@@ -496,7 +496,7 @@ buildFountain() {
         const towerGeo = new THREE.CylinderGeometry(3, 3.5, fenceHeight + 4, 8);
         const towerTopGeo = new THREE.ConeGeometry(3.5, 4, 8);
         const towerMat = new THREE.MeshStandardMaterial({
-            map: this.textures.brick,
+            color: COLOR.brick,
             color: 0x6b3410,
             roughness: 0.95
         });
@@ -539,7 +539,7 @@ buildFountain() {
             // Left pillar
             const pillarGeo = new THREE.CylinderGeometry(0.8, 1, fenceHeight, 8);
             const pillarMat = new THREE.MeshStandardMaterial({
-                map: this.textures.brick,
+                color: COLOR.brick,
                 color: 0x8b4513,
                 roughness: 0.95
             });
@@ -578,7 +578,7 @@ buildFountain() {
     // ========== BIOME BOUNDARIES (clear separation walls) ==========
     buildBiomeBoundaries() {
         const wallMat = new THREE.MeshStandardMaterial({
-            map: this.textures.brick,
+            color: COLOR.brick,
             color: 0x6b5a4a,
             roughness: 0.95
         });
@@ -1687,7 +1687,7 @@ fillBoundaryGaps() {
             roofType = 'flat';
         } else { // forest default
             wallColor = [0x8b6917, 0xa0522d, 0xb8860b][variant % 3];
-            wallMatConfig = { map: this.textures.brick, color: wallColor, roughness: 0.9 };
+            wallMatConfig = { color: COLOR.brick, color: wallColor, roughness: 0.9 };
             roofH = 4 + Math.random() * 2;
             roofColor = [0x654321, 0x8b0000, 0x4a3728][variant % 3];
             roofType = 'cone';
@@ -1934,7 +1934,7 @@ fillBoundaryGaps() {
         if (Math.random() > 0.3) {
             const chimGeo = new THREE.BoxGeometry(1, 3, 1);
             const chimMat = new THREE.MeshStandardMaterial({
-                map: this.textures.brick,
+                color: COLOR.brick,
                 color: 0x6b6b6b,
                 roughness: 0.95
             });
