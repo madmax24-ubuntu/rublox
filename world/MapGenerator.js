@@ -3183,7 +3183,7 @@ fillBoundaryGaps() {
     }
 
     // ========== STONE MAZE BIOME (northeast) ==========
-    buildStoneMazeBiome() {
+    async buildStoneMazeBiome() {
         // Stone ground patches - only inside stone biome (X >= 60, Z <= -60)
         for (let i = 0; i < 8; i++) {
             const x = 60 + Math.random() * 196;
@@ -3205,6 +3205,7 @@ fillBoundaryGaps() {
 
         // Fortress walls with gates
         this.buildFortressWalls();
+        await this.yieldFrame();
 
         // Maze walls with sine-wave pattern
         this.buildStoneMaze();
@@ -3212,6 +3213,8 @@ fillBoundaryGaps() {
         // Fortress with spiral staircase
         this.buildFortress(150, -150);
         this.buildFortress(194, -116);
+        await this.yieldFrame();
+
         this.buildFortress(116, -194);
         this.buildFortress(168, -168);
 
@@ -3222,15 +3225,15 @@ fillBoundaryGaps() {
             if (x > 20) this.addStoneHouse(x, z, i);
         }
 
-       // Stone props
+        // Stone props
         this.addStoneProps(150, -150);
 
-        // Stone well
+        // Stone well + pillars
         this.addStoneWell(168, -150);
-
-       // Stone pillars
         this.addStonePillar(132, -142);
         this.addStonePillar(184, -132);
+        await this.yieldFrame();
+
         this.addStonePillar(142, -184);
         this.addStonePillar(194, -174);
 
@@ -3245,6 +3248,7 @@ fillBoundaryGaps() {
 
         // Stone bushes and scrub
         this.addStoneBushes(150, -150);
+        await this.yieldFrame();
 
         // Runestones - standing stones with carved patterns
         this.addRunestones(150, -150);
@@ -3252,7 +3256,7 @@ fillBoundaryGaps() {
         // Stone circle (megalithic)
         this.addStoneCircle(184, -184);
 
-       // Small altar
+        // Small altar
         this.addStoneAltar(132, -132);
 
         // Windmill
