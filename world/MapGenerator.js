@@ -3100,6 +3100,9 @@ fillBoundaryGaps() {
             );
             this.scene.add(gem);
         }
+
+        // === FOUNTAIN ===
+        this.buildFountain();
     }
 
     // === BOUNDARY WALLS ===
