@@ -1648,13 +1648,11 @@ fillBoundaryGaps() {
     // ========== BIOME BOUNDARY WALLS ==========
     // ========== FOREST BIOME (northwest) ==========
     async buildForestBiome() {
-        // === VERY DENSE FOREST - 2x taller, 3x more trees, more diverse ===
+        // === DENSE FOREST - balanced for performance ===
         // Forest biome spans X/Z: -256 to -60
-        // Tall pine trees (2x height) - chunked into 3 batches of 80
-        for (let batch = 0; batch < 3; batch++) {
-            const start = batch * 80;
-            const end = start + 80;
-            for (let i = start; i < end; i++) {
+        // Chunked into 6 batches of 20 trees for smooth rendering
+        for (let batch = 0; batch < 6; batch++) {
+            for (let i = 0; i < 20; i++) {
                 const x = -256 + Math.random() * 196;
                 const z = -256 + Math.random() * 196;
 
@@ -1673,7 +1671,7 @@ fillBoundaryGaps() {
                     this.addOakTree(x, z);
                 }
             }
-            if (batch < 2) await this.yieldFrame();
+            await this.yieldFrame();
         }
 
         // Detailed houses (3)
