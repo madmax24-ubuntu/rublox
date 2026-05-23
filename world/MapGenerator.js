@@ -4605,7 +4605,17 @@ fillBoundaryGaps() {
         platform.castShadow = true;
         towerGroup.add(platform);
 
-        // Battlements
+        // Roof (conical, sits on platform)
+        const roof = new THREE.Mesh(
+            new THREE.ConeGeometry(towerW / 2 + 0.5, 3, 4),
+            wallMat
+        );
+        roof.position.set(0, towerH + 1.8, 0);
+        roof.rotation.y = Math.PI / 4;
+        roof.castShadow = true;
+        towerGroup.add(roof);
+
+        // Battlements (on top of roof)
         for (let b = 0; b < 4; b++) {
             const battlement = new THREE.Mesh(
                 new THREE.BoxGeometry(0.7, 1.5, 0.5),
