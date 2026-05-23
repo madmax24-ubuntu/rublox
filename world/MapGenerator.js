@@ -1512,7 +1512,7 @@ const gapConfigs = [
         this.deformPathGeometry(geo, 0, road.position);
 
         // Road markings (center line)
-        const markGeo = new THREE.PlaneGeometry(0.2, len, 32, 32);
+        const markGeo = new THREE.PlaneGeometry(0.2, len, 2, 4);
         const markMat = new THREE.MeshStandardMaterial({
             color: 0xffffff, roughness: 0.8, flatShading: false
         });
