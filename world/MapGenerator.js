@@ -4580,6 +4580,79 @@ fillBoundaryGaps() {
         }
     }
 
+    addIsolatedTower(x, z) {
+        const towerGroup = new THREE.Group();
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x6b6b6b, roughness: 0.95 });
+        const towerH = 25;
+        const towerW = 3.5;
+
+        // Tower body
+        const body = new THREE.Mesh(
+            new THREE.BoxGeometry(towerW, towerH, towerW),
+            wallMat
+        );
+        body.position.set(0, towerH / 2, 0);
+        body.castShadow = true;
+        body.receiveShadow = true;
+        towerGroup.add(body);
+
+        // Top platform
+        const platform = new THREE.Mesh(
+            new THREE.BoxGeometry(towerW + 1, 0.3, towerW + 1),
+            wallMat
+        );
+        platform.position.set(0, towerH + 0.15, 0);
+        platform.castShadow = true;
+        towerGroup.add(platform);
+
+        // Battlements
+        for (let b = 0; b < 4; b++) {
+            const battlement = new THREE.Mesh(
+                new THREE.BoxGeometry(0.7, 1.5, 0.5),
+                wallMat
+            );
+            const angle = (b / 4) * Math.PI * 2;
+            battlement.position.set(
+                Math.cos(angle) * (towerW / 2 + 0.3),
+                towerH + 1.05,
+                Math.sin(angle) * (towerW / 2 + 0.3)
+            );
+            battlement.castShadow = true;
+            towerGroup.add(battlement);
+        }
+
+        // Spiral staircase inside
+        const spiralMat = new THREE.MeshStandardMaterial({ color: 0x5a5a4a, roughness: 0.9 });
+        const stepsPerFloor = 14;
+        const totalFloors = Math.floor(towerH / 3);
+        for (let f = 0; f < totalFloors; f++) {
+            for (let s = 0; s < stepsPerFloor; s++) {
+                const angle = (s / stepsPerFloor) * Math.PI * 2;
+                const stepGeo = new THREE.BoxGeometry(0.5, 0.15, 0.3);
+                const step = new THREE.Mesh(stepGeo, spiralMat);
+                step.position.set(
+                    Math.cos(angle) * 1.0,
+                    0.5 + f * 3 + (s / stepsPerFloor) * 3,
+                    Math.sin(angle) * 1.0
+                );
+                step.rotation.y = -angle;
+                step.castShadow = true;
+                towerGroup.add(step);
+            }
+        }
+
+        // Center pole
+        const pole = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.1, 0.1, towerH, 6),
+            spiralMat
+        );
+        pole.position.set(0, towerH / 2, 0);
+        towerGroup.add(pole);
+
+        towerGroup.position.set(x, 2, z);
+        this.scene.add(towerGroup);
+    }
+
     // ========== MILITARY BIOME (southwest) ==========
     async buildMilitaryBiome() {
         // Sand patches - only inside military biome (X <= -60, Z >= 60)
