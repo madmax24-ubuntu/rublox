@@ -1616,7 +1616,7 @@ fillBoundaryGaps() {
         cone.castShadow = true;
         group.add(cone);
 
-        ggroup.position.set(x, 2, z);
+        group.position.set(x, 2, z);
         this.scene.add(group);
         this.leafMeshes.push(group);
     }
@@ -1645,7 +1645,7 @@ fillBoundaryGaps() {
         canopy.castShadow = true;
         group.add(canopy);
 
-        ggroup.position.set(x, 2, z);
+        group.position.set(x, 2, z);
         this.scene.add(group);
         this.leafMeshes.push(group);
     }
