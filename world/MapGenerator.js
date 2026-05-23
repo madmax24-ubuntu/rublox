@@ -620,8 +620,7 @@ export class MapGenerator {
         }
 
         // === FILL DIAGONAL GAPS between circular platform and square biome grounds ===
-        // DISABLED - causes z-fighting with biome-specific grounds (different Y positions)
-        // this.fillDiagonalGround();
+        this.fillDiagonalGround();
 
         // === DECORATIVE LANTERNS around the platform ===
         // this.buildPlatformLanterns(); // DISABLED - too many objects
