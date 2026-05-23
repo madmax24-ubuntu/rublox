@@ -69,11 +69,13 @@ export class Physics {
                 entity.position.z += entity.physics.velocity.z * delta;
             }
 
-            // Проверка коллизии с землей
+            // Проверка коллизии с землёй
             const groundHeightRaw = this.mapGenerator.getHeightAt(entity.position.x, entity.position.z);
             const groundHeight = Number.isFinite(groundHeightRaw) ? groundHeightRaw : 0;
+            // Base ground plane is at y=1.54, heightmap noise is added on top
+            const baseGroundY = 1.54;
             const surfaceHeight = Math.max(
-                groundHeight,
+                baseGroundY + Math.max(0, groundHeight),
                 this.getColliderSurfaceHeight(entity.position, entity.physics.height)
             );
             
