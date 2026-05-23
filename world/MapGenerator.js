@@ -239,7 +239,7 @@ export class MapGenerator {
         // === GAP FILLS between biome quadrants — above biome ground ===
         const centerGapMat = new THREE.MeshStandardMaterial({
             color: COLOR.wood,
-            roughness: 0.95, flatShading: false
+            roughness: 0.95, flatShading: false, side: THREE.DoubleSide
         });
         // North gap (X: -60..60, Z: -256..-60)
         let g = new THREE.Mesh(new THREE.PlaneGeometry(120, 196, 8, 8), centerGapMat);
