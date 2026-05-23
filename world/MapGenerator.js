@@ -470,20 +470,16 @@ export class MapGenerator {
      await this.yieldFrame();
 
         // 3. Forest biome (northwest)
-        this.buildForestBiome();
-      await this.yieldFrame();
+        await this.buildForestBiome();
 
         // 4. Stone biome (northeast)
-        this.buildStoneMazeBiome();
-       await this.yieldFrame();
+        await this.buildStoneMazeBiome();
 
         // 5. Military biome (southwest)
-        this.buildMilitaryBiome();
-        await this.yieldFrame();
+        await this.buildMilitaryBiome();
 
         // 6. Snow biome (southeast)
-        this.buildSnowBiome();
-        await this.yieldFrame();
+        await this.buildSnowBiome();
 
         // 7. Props across all biomes
         this.buildProps();
