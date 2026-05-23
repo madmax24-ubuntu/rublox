@@ -5574,12 +5574,9 @@ fillBoundaryGaps() {
     }
 
     addFrozenPond(ox, oz) {
-        const waterTex = this.textures.water;
-
         // Pond base
         const pondGeo = new THREE.CircleGeometry(25, 32);
         const pondMat = new THREE.MeshStandardMaterial({
-            map: waterTex,
             color: 0xaaddff,
             transparent: true,
             opacity: 0.6,
