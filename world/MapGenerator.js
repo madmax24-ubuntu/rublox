@@ -211,7 +211,7 @@ export class MapGenerator {
         // Bottom layer, visible where no biome ground is placed on top
         const baseGroundMat = new THREE.MeshStandardMaterial({
             color: COLOR.forestGround,
-            roughness: 0.95, flatShading: false
+            roughness: 0.95, flatShading: false, side: THREE.DoubleSide
         });
         const baseGround = new THREE.Mesh(
             new THREE.PlaneGeometry(512, 512, 16, 16),
