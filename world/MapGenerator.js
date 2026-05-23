@@ -5027,32 +5027,25 @@ const gapConfigs = [
         const cannon = new THREE.Mesh(cannonGeo, steelMat);
         cannon.rotation.x = Math.PI / 2;
         cannon.position.set(0, 3.2, 6);
-        cannon.castShadow = true;
+        cannon.castShadow = false;
         tankGroup.add(cannon);
 
         // Cannon muzzle brake
-        const muzzleGeo = new THREE.CylinderGeometry(0.4, 0.25, 1, 8);
+        const muzzleGeo = new THREE.CylinderGeometry(0.4, 0.25, 1, 6);
         const muzzle = new THREE.Mesh(muzzleGeo, steelMat);
         muzzle.rotation.x = Math.PI / 2;
         muzzle.position.set(0, 3.2, 10);
         tankGroup.add(muzzle);
 
         // Coaxial machine gun
-        const mgGeo = new THREE.CylinderGeometry(0.08, 0.08, 5, 6);
+        const mgGeo = new THREE.CylinderGeometry(0.08, 0.08, 5, 4);
         const mg = new THREE.Mesh(mgGeo, steelMat);
         mg.rotation.x = Math.PI / 2;
         mg.position.set(0.5, 3.4, 5.5);
         tankGroup.add(mg);
 
-        // Hatches on turret
-        for (let i = 0; i < 3; i++) {
-            const hatchGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.1, 8);
-            const hatch = new THREE.Mesh(hatchGeo, darkMat);
-            const hatchAngle = (i - 1) * 0.5;
-            hatch.position.set(Math.sin(hatchAngle) * 1.2, 3.35, 0.5 + Math.cos(hatchAngle) * 0.5);
-            hatch.rotation.y = hatchAngle;
-            tankGroup.add(hatch);
-        }
+        // Hatches on turret — disabled for performance
+        // for (let i = 0; i < 3; i++) { ... }
 
         // Tracks with detailed design
         const trackMat = new THREE.MeshStandardMaterial({
