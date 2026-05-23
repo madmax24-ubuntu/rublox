@@ -503,6 +503,67 @@ buildFountain() {
             this.scene.add(cap);
         }
 
+        // === ANGLED BARRIER WALLS at gap — block direct sight from road ===
+        // North boundary gap (centered at X=0)
+        const barrierH = 3.5;
+        const barrierLen = 4;
+        const barrierMat = new THREE.MeshStandardMaterial({ color: 0x6b5a4a, roughness: 0.95 });
+        // North: V-shaped barrier pointing toward road
+        let barrier = new THREE.Mesh(new THREE.BoxGeometry(barrierLen, barrierH, 0.8), barrierMat);
+        barrier.position.set(-3, barrierH / 2, -BOUNDARY);
+        barrier.rotation.y = Math.PI * 0.25;
+        barrier.castShadow = true;
+        this.scene.add(barrier);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(-3, barrierH / 2, -BOUNDARY), size: new THREE.Vector3(barrierLen, barrierH, 0.8) });
+        barrier = new THREE.Mesh(new THREE.BoxGeometry(barrierLen, barrierH, 0.8), barrierMat);
+        barrier.position.set(3, barrierH / 2, -BOUNDARY);
+        barrier.rotation.y = -Math.PI * 0.25;
+        barrier.castShadow = true;
+        this.scene.add(barrier);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(3, barrierH / 2, -BOUNDARY), size: new THREE.Vector3(barrierLen, barrierH, 0.8) });
+
+        // South: mirrored V
+        barrier = new THREE.Mesh(new THREE.BoxGeometry(barrierLen, barrierH, 0.8), barrierMat);
+        barrier.position.set(-3, barrierH / 2, BOUNDARY);
+        barrier.rotation.y = Math.PI * 0.75;
+        barrier.castShadow = true;
+        this.scene.add(barrier);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(-3, barrierH / 2, BOUNDARY), size: new THREE.Vector3(barrierLen, barrierH, 0.8) });
+        barrier = new THREE.Mesh(new THREE.BoxGeometry(barrierLen, barrierH, 0.8), barrierMat);
+        barrier.position.set(3, barrierH / 2, BOUNDARY);
+        barrier.rotation.y = -Math.PI * 0.75;
+        barrier.castShadow = true;
+        this.scene.add(barrier);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(3, barrierH / 2, BOUNDARY), size: new THREE.Vector3(barrierLen, barrierH, 0.8) });
+
+        // West: angled barriers
+        barrier = new THREE.Mesh(new THREE.BoxGeometry(0.8, barrierH, barrierLen), barrierMat);
+        barrier.position.set(-BOUNDARY, barrierH / 2, -3);
+        barrier.rotation.y = Math.PI * 0.25;
+        barrier.castShadow = true;
+        this.scene.add(barrier);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(-BOUNDARY, barrierH / 2, -3), size: new THREE.Vector3(0.8, barrierH, barrierLen) });
+        barrier = new THREE.Mesh(new THREE.BoxGeometry(0.8, barrierH, barrierLen), barrierMat);
+        barrier.position.set(-BOUNDARY, barrierH / 2, 3);
+        barrier.rotation.y = -Math.PI * 0.25;
+        barrier.castShadow = true;
+        this.scene.add(barrier);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(-BOUNDARY, barrierH / 2, 3), size: new THREE.Vector3(0.8, barrierH, barrierLen) });
+
+        // East: mirrored angled barriers
+        barrier = new THREE.Mesh(new THREE.BoxGeometry(0.8, barrierH, barrierLen), barrierMat);
+        barrier.position.set(BOUNDARY, barrierH / 2, -3);
+        barrier.rotation.y = Math.PI * 0.75;
+        barrier.castShadow = true;
+        this.scene.add(barrier);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(BOUNDARY, barrierH / 2, -3), size: new THREE.Vector3(0.8, barrierH, barrierLen) });
+        barrier = new THREE.Mesh(new THREE.BoxGeometry(0.8, barrierH, barrierLen), barrierMat);
+        barrier.position.set(BOUNDARY, barrierH / 2, 3);
+        barrier.rotation.y = -Math.PI * 0.25;
+        barrier.castShadow = true;
+        this.scene.add(barrier);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(BOUNDARY, barrierH / 2, 3), size: new THREE.Vector3(0.8, barrierH, barrierLen) });
+
         // === SOUTH boundary (Z = 60) — separates Military biome (SW) from center ===
         // Left segment: X from -60 to -GAP
         wall = new THREE.Mesh(new THREE.BoxGeometry(BOUNDARY - GAP, WALL_H, 3), wallMat);
