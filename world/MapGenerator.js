@@ -738,7 +738,7 @@ buildFountain() {
         // Water particles (small spheres spraying up)
         for (let i = 0; i < 24; i++) {
             const angle = (i / 24) * Math.PI * 2;
-            const particleGeo = new THREE.SphereGeometry(0.15, 6, 6);
+            const particleGeo = new THREE.SphereGeometry(0.15, 4, 4);
             const particleMat = new THREE.MeshStandardMaterial({
                 color: 0x87ceeb,
                 transparent: true,
