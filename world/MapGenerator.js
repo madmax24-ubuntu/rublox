@@ -952,13 +952,13 @@ buildFountain() {
         // Left segment: X from -60 to -GAP
         let wall = new THREE.Mesh(new THREE.BoxGeometry(BOUNDARY - GAP, WALL_H, 3), wallMat);
         wall.position.set(-(BOUNDARY + GAP) / 2, WALL_H / 2, -BOUNDARY);
-        wall.castShadow = true; wall.receiveShadow = true;
+        wall.receiveShadow = true;
         this.scene.add(wall);
         this.colliders.push({ type: 'box', position: new THREE.Vector3(-(BOUNDARY + GAP) / 2, WALL_H / 2, -BOUNDARY), size: new THREE.Vector3(BOUNDARY - GAP, WALL_H, 3) });
         // Right segment: X from GAP to 60
         wall = new THREE.Mesh(new THREE.BoxGeometry(BOUNDARY - GAP, WALL_H, 3), wallMat);
         wall.position.set((GAP + BOUNDARY) / 2, WALL_H / 2, -BOUNDARY);
-        wall.castShadow = true; wall.receiveShadow = true;
+        wall.receiveShadow = true;
         this.scene.add(wall);
         this.colliders.push({ type: 'box', position: new THREE.Vector3((GAP + BOUNDARY) / 2, WALL_H / 2, -BOUNDARY), size: new THREE.Vector3(BOUNDARY - GAP, WALL_H, 3) });
         // Corner pillars
@@ -976,13 +976,13 @@ buildFountain() {
         // Left segment: X from -60 to -GAP
         wall = new THREE.Mesh(new THREE.BoxGeometry(BOUNDARY - GAP, WALL_H, 3), wallMat);
         wall.position.set(-(BOUNDARY + GAP) / 2, WALL_H / 2, BOUNDARY);
-        wall.castShadow = true; wall.receiveShadow = true;
+        wall.receiveShadow = true;
         this.scene.add(wall);
         this.colliders.push({ type: 'box', position: new THREE.Vector3(-(BOUNDARY + GAP) / 2, WALL_H / 2, BOUNDARY), size: new THREE.Vector3(BOUNDARY - GAP, WALL_H, 3) });
         // Right segment: X from GAP to 60
         wall = new THREE.Mesh(new THREE.BoxGeometry(BOUNDARY - GAP, WALL_H, 3), wallMat);
         wall.position.set((GAP + BOUNDARY) / 2, WALL_H / 2, BOUNDARY);
-        wall.castShadow = true; wall.receiveShadow = true;
+        wall.receiveShadow = true;
         this.scene.add(wall);
         this.colliders.push({ type: 'box', position: new THREE.Vector3((GAP + BOUNDARY) / 2, WALL_H / 2, BOUNDARY), size: new THREE.Vector3(BOUNDARY - GAP, WALL_H, 3) });
         // Corner pillars
@@ -1000,13 +1000,13 @@ buildFountain() {
         // Top segment: Z from -60 to -GAP
         wall = new THREE.Mesh(new THREE.BoxGeometry(3, WALL_H, BOUNDARY - GAP), wallMat);
         wall.position.set(-BOUNDARY, WALL_H / 2, -(BOUNDARY + GAP) / 2);
-        wall.castShadow = true; wall.receiveShadow = true;
+        wall.receiveShadow = true;
         this.scene.add(wall);
         this.colliders.push({ type: 'box', position: new THREE.Vector3(-BOUNDARY, WALL_H / 2, -(BOUNDARY + GAP) / 2), size: new THREE.Vector3(3, WALL_H, BOUNDARY - GAP) });
         // Bottom segment: Z from GAP to 60
         wall = new THREE.Mesh(new THREE.BoxGeometry(3, WALL_H, BOUNDARY - GAP), wallMat);
         wall.position.set(-BOUNDARY, WALL_H / 2, (GAP + BOUNDARY) / 2);
-        wall.castShadow = true; wall.receiveShadow = true;
+        wall.receiveShadow = true;
         this.scene.add(wall);
         this.colliders.push({ type: 'box', position: new THREE.Vector3(-BOUNDARY, WALL_H / 2, (GAP + BOUNDARY) / 2), size: new THREE.Vector3(3, WALL_H, BOUNDARY - GAP) });
         // Corner pillars
@@ -1024,13 +1024,13 @@ buildFountain() {
         // Top segment: Z from -60 to -GAP
         wall = new THREE.Mesh(new THREE.BoxGeometry(3, WALL_H, BOUNDARY - GAP), wallMat);
         wall.position.set(BOUNDARY, WALL_H / 2, -(BOUNDARY + GAP) / 2);
-        wall.castShadow = true; wall.receiveShadow = true;
+        wall.receiveShadow = true;
         this.scene.add(wall);
         this.colliders.push({ type: 'box', position: new THREE.Vector3(BOUNDARY, WALL_H / 2, -(BOUNDARY + GAP) / 2), size: new THREE.Vector3(3, WALL_H, BOUNDARY - GAP) });
         // Bottom segment: Z from GAP to 60
         wall = new THREE.Mesh(new THREE.BoxGeometry(3, WALL_H, BOUNDARY - GAP), wallMat);
         wall.position.set(BOUNDARY, WALL_H / 2, (GAP + BOUNDARY) / 2);
-        wall.castShadow = true; wall.receiveShadow = true;
+        wall.receiveShadow = true;
         this.scene.add(wall);
         this.colliders.push({ type: 'box', position: new THREE.Vector3(BOUNDARY, WALL_H / 2, (GAP + BOUNDARY) / 2), size: new THREE.Vector3(3, WALL_H, BOUNDARY - GAP) });
         // Corner pillars
