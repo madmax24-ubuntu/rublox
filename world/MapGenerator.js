@@ -1992,19 +1992,19 @@ const gapConfigs = [
         const trunkH = 14 + Math.random() * 6;
         const trunkR = 0.4 + Math.random() * 0.3;
 
-        const trunkGeo = new THREE.CylinderGeometry(trunkR * 0.4, trunkR, trunkH, 6);
+        const trunkGeo = new THREE.CylinderGeometry(trunkR * 0.4, trunkR, trunkH, 4);
         const trunkMat = new THREE.MeshStandardMaterial({ color: 0x4a3728, roughness: 0.9 });
         const trunk = new THREE.Mesh(trunkGeo, trunkMat);
         trunk.position.y = trunkH / 2;
         trunk.castShadow = true;
         group.add(trunk);
 
-        // Multi-layer cone foliage (3 tiers for variety)
+        // Multi-layer cone foliage
         const tiers = 2 + Math.floor(Math.random() * 2);
         for (let i = 0; i < tiers; i++) {
             const coneR = 3.5 - i * 0.8 + Math.random() * 0.5;
             const coneH = 5 + Math.random() * 3;
-            const coneGeo = new THREE.ConeGeometry(coneR, coneH, 7);
+            const coneGeo = new THREE.ConeGeometry(coneR, coneH, 5);
             const hue = 0.28 + Math.random() * 0.12;
             const coneMat = new THREE.MeshStandardMaterial({
                 color: new THREE.Color().setHSL(hue, 0.7, 0.18 + Math.random() * 0.1),
