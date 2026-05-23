@@ -6142,6 +6142,42 @@ fillBoundaryGaps() {
         houseGroup.position.set(x, 2, z);
         this.scene.add(houseGroup);
         this.houseSpots.push({ x, z, width: wallW, depth: wallD, height: wallH });
+
+        // Colliders for 3-story house floors
+        for (let f = 0; f < 3; f++) {
+            this.colliders.push({
+                type: 'box',
+                position: new THREE.Vector3(x, (2 + f * 3) + 2, z),
+                size: new THREE.Vector3(wallW, 0.25, wallD)
+            });
+        }
+        // Colliders for house walls
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(x, 5 + 2, z + wallD / 2),
+            size: new THREE.Vector3(wallW, 3, 0.25)
+        });
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(x, 5 + 2, z - wallD / 2),
+            size: new THREE.Vector3(wallW, 3, 0.25)
+        });
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(x - wallW / 2, 5 + 2, z),
+            size: new THREE.Vector3(0.25, 3, wallD)
+        });
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(x + wallW / 2, 5 + 2, z),
+            size: new THREE.Vector3(0.25, 3, wallD)
+        });
+        // Roof
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(x, 11 + 2, z),
+            size: new THREE.Vector3(7, 2, 7)
+        });
     }
 
     // ========== SNOW BIOME (southeast) ==========
