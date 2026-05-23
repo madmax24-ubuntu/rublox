@@ -2116,13 +2116,11 @@ const gapConfigs = [
         // Left pillar
         const fwLeftGeo = new THREE.BoxGeometry(pillarW, wallH, 0.4);
         const fwLeft = new THREE.Mesh(fwLeftGeo, wallMat);
-        fwLeft.position.set(-(doorW / 2 + pillarW / 2), wallH / 2, wallD / 2);
-        fwLeft.castShadow = true;
+ fwLeft.position.set(-(doorW / 2 + pillarW / 2), wallH / 2, wallD / 2);
         houseGroup.add(fwLeft);
         // Right pillar
         const fwRight = new THREE.Mesh(fwLeftGeo, wallMat);
         fwRight.position.set((doorW / 2 + pillarW / 2), wallH / 2, wallD / 2);
-        fwRight.castShadow = true;
         houseGroup.add(fwRight);
         // Top beam above door
         const topBeamH = wallH - 3.0;
@@ -2130,7 +2128,6 @@ const gapConfigs = [
             const topGeo = new THREE.BoxGeometry(doorW, topBeamH, 0.4);
             const topBeam = new THREE.Mesh(topGeo, wallMat);
             topBeam.position.set(0, 3.0 + topBeamH / 2, wallD / 2);
-            topBeam.castShadow = true;
             houseGroup.add(topBeam);
         }
         // Door frame
