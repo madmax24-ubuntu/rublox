@@ -1586,7 +1586,7 @@ fillBoundaryGaps() {
         foliage.castShadow = true;
         treeGroup.add(foliage);
 
-        treeGgroup.position.set(x, 2, z);
+        treeGroup.position.set(x, 2, z);
         this.scene.add(treeGroup);
         this.leafMeshes.push(treeGroup);
     }
@@ -6623,7 +6623,7 @@ fillBoundaryGaps() {
             treeGroup.add(branch);
         }
 
-        treeGgroup.position.set(x, 2, z);
+        treeGroup.position.set(x, 2, z);
         this.scene.add(treeGroup);
     }
 
@@ -6975,7 +6975,7 @@ fillBoundaryGaps() {
             }
         }
 
-        treeGgroup.position.set(x, 2, z);
+        treeGroup.position.set(x, 2, z);
         this.scene.add(treeGroup);
         this.leafMeshes.push(treeGroup);
     }
