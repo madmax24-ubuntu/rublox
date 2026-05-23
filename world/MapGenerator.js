@@ -4995,7 +4995,6 @@ const gapConfigs = [
         const upperGeo = new THREE.BoxGeometry(5, 1.2, 7);
         const upper = new THREE.Mesh(upperGeo, tankMat);
         upper.position.set(0, 2.4, -0.5);
-        upper.castShadow = true;
         tankGroup.add(upper);
 
         // Sloped front armor
@@ -5003,28 +5002,24 @@ const gapConfigs = [
         const armor = new THREE.Mesh(armorGeo, tankMat);
         armor.position.set(0, 2.2, 3.8);
         armor.rotation.x = -0.3;
-        armor.castShadow = true;
         tankGroup.add(armor);
 
         // Engine deck on top rear
         const engineGeo = new THREE.BoxGeometry(4, 0.5, 3);
         const engine = new THREE.Mesh(engineGeo, darkMat);
         engine.position.set(0, 3.3, -2.5);
-        engine.castShadow = true;
         tankGroup.add(engine);
 
         // Turret base
-        const turretBaseGeo = new THREE.CylinderGeometry(2, 2.2, 0.6, 12);
+        const turretBaseGeo = new THREE.CylinderGeometry(2, 2.2, 0.6, 6);
         const turretBase = new THREE.Mesh(turretBaseGeo, tankMat);
         turretBase.position.set(0, 3.0, 0.5);
-        turretBase.castShadow = true;
         tankGroup.add(turretBase);
 
         // Turret dome
-        const turretGeo = new THREE.SphereGeometry(1.8, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.5);
+        const turretGeo = new THREE.SphereGeometry(1.8, 6, 4, 0, Math.PI * 2, 0, Math.PI * 0.5);
         const turret = new THREE.Mesh(turretGeo, tankMat);
         turret.position.set(0, 3.0, 0.5);
-        turret.castShadow = true;
         tankGroup.add(turret);
 
         // Main cannon
