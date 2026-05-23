@@ -1602,7 +1602,7 @@ const gapConfigs = [
                 arm.position.set(side * 0.5, 3, 0);
                 arm.rotation.z = Math.PI / 2;
                 lampGroup.add(arm);
-                const bulbGeo = new THREE.SphereGeometry(0.15, 6, 6);
+                const bulbGeo = new THREE.SphereGeometry(0.15, 4, 4);
                 const bulb = new THREE.Mesh(bulbGeo, lightMat);
                 bulb.position.set(side * 1, 2.8, 0);
                 lampGroup.add(bulb);
@@ -1624,7 +1624,7 @@ const gapConfigs = [
                 arm.position.set(side * 0.5, 3, 0);
                 arm.rotation.z = Math.PI / 2;
                 lampGroup.add(arm);
-                const bulbGeo = new THREE.SphereGeometry(0.15, 6, 6);
+                const bulbGeo = new THREE.SphereGeometry(0.15, 4, 4);
                 const bulb = new THREE.Mesh(bulbGeo, lightMat);
                 bulb.position.set(side * 1, 2.8, 0);
                 lampGroup.add(bulb);
@@ -1646,7 +1646,7 @@ const gapConfigs = [
                 arm.position.set(0, 3, side * 0.5);
                 arm.rotation.x = Math.PI / 2;
                 lampGroup.add(arm);
-                const bulbGeo = new THREE.SphereGeometry(0.15, 6, 6);
+                const bulbGeo = new THREE.SphereGeometry(0.15, 4, 4);
                 const bulb = new THREE.Mesh(bulbGeo, lightMat);
                 bulb.position.set(0, 2.8, side * 1);
                 lampGroup.add(bulb);
@@ -1668,7 +1668,7 @@ const gapConfigs = [
                 arm.position.set(0, 3, side * 0.5);
                 arm.rotation.x = Math.PI / 2;
                 lampGroup.add(arm);
-                const bulbGeo = new THREE.SphereGeometry(0.15, 6, 6);
+                const bulbGeo = new THREE.SphereGeometry(0.15, 4, 4);
                 const bulb = new THREE.Mesh(bulbGeo, lightMat);
                 bulb.position.set(0, 2.8, side * 1);
                 lampGroup.add(bulb);
