@@ -3815,7 +3815,7 @@ const gapConfigs = [
             const wall = new THREE.Mesh(wallGeo, wallMat);
             wall.position.set(wp.x, wp.h / 2 + 2, wp.z);
             wall.rotation.y = wp.ry;
-            wall.castShadow = true;
+            wall.receiveShadow = true;
             this.scene.add(wall);
 
             // Battlements on top
@@ -3829,7 +3829,6 @@ const gapConfigs = [
                 } else {
                     batt.position.set(wp.x, wp.h + 3, wp.z + offset);
                 }
-                batt.castShadow = true;
                 this.scene.add(batt);
             }
         });
