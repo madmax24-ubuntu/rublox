@@ -1907,15 +1907,15 @@ fillBoundaryGaps() {
         }
     }
 
-    addDetailedTree(x, z, type) {
+ addDetailedTree(x, z, type) {
         const treeGroup = new THREE.Group();
         const isForest = type === 'forest';
 
-        // Simplified tree: trunk + 1 foliage sphere (2 meshes instead of 8-12)
+        // Ultra-simplified: trunk + 1 foliage (1 mesh)
         const trunkH = isForest ? 7 + Math.random() * 3 : 5 + Math.random() * 2;
         const trunkR = 0.35 + Math.random() * 0.2;
 
-        const trunkGeo = new THREE.CylinderGeometry(trunkR * 0.5, trunkR, trunkH, 4);
+        const trunkGeo = new THREE.CylinderGeometry(trunkR * 0.5, trunkR, trunkH, 3);
         const trunkMat = new THREE.MeshStandardMaterial({
             map: this.textures.wood,
             color: isForest ? 0x5d4037 : 0x4a3728,
@@ -1926,11 +1926,11 @@ fillBoundaryGaps() {
         trunk.castShadow = true;
         treeGroup.add(trunk);
 
-        // Single foliage sphere
+        // Single foliage sphere - 3 segments
         const foliageR = isForest ? 2.5 + Math.random() * 1 : 1.5 + Math.random() * 0.8;
         const baseHue = isForest ? 0.3 + Math.random() * 0.1 : 0.35;
         const foliageColor = new THREE.Color().setHSL(baseHue, isForest ? 0.6 : 0.3, isForest ? 0.25 : 0.7);
-        const foliageGeo = new THREE.SphereGeometry(foliageR, 4, 4);
+        const foliageGeo = new THREE.SphereGeometry(foliageR, 3, 3);
         const foliageMat = new THREE.MeshStandardMaterial({
             color: foliageColor, roughness: 0.95, flatShading: true
         });
@@ -1949,29 +1949,25 @@ fillBoundaryGaps() {
         const trunkH = 14 + Math.random() * 6;
         const trunkR = 0.4 + Math.random() * 0.3;
 
-        const trunkGeo = new THREE.CylinderGeometry(trunkR * 0.4, trunkR, trunkH, 4);
+        const trunkGeo = new THREE.CylinderGeometry(trunkR * 0.4, trunkR, trunkH, 3);
         const trunkMat = new THREE.MeshStandardMaterial({ color: 0x4a3728, roughness: 0.9 });
         const trunk = new THREE.Mesh(trunkGeo, trunkMat);
         trunk.position.y = trunkH / 2;
         trunk.castShadow = true;
         group.add(trunk);
 
-        // Multi-layer cone foliage
-        const tiers = 2 + Math.floor(Math.random() * 2);
-        for (let i = 0; i < tiers; i++) {
-            const coneR = 3.5 - i * 0.8 + Math.random() * 0.5;
-            const coneH = 5 + Math.random() * 3;
-            const coneGeo = new THREE.ConeGeometry(coneR, coneH, 5);
-            const hue = 0.28 + Math.random() * 0.12;
-            const coneMat = new THREE.MeshStandardMaterial({
-                color: new THREE.Color().setHSL(hue, 0.7, 0.18 + Math.random() * 0.1),
-                roughness: 0.95, flatShading: true
-            });
-            const cone = new THREE.Mesh(coneGeo, coneMat);
-            cone.position.y = trunkH * 0.5 + i * coneH * 0.5;
-            cone.castShadow = true;
-            group.add(cone);
-        }
+        // Single cone foliage instead of multi-layer
+        const coneR = 3 + Math.random();
+        const coneH = 6 + Math.random() * 3;
+        const hue = 0.28 + Math.random() * 0.12;
+        const coneMat = new THREE.MeshStandardMaterial({
+            color: new THREE.Color().setHSL(hue, 0.7, 0.18 + Math.random() * 0.1),
+            roughness: 0.95, flatShading: true
+        });
+        const cone = new THREE.Mesh(new THREE.ConeGeometry(coneR, coneH, 4), coneMat);
+        cone.position.y = trunkH * 0.6;
+        cone.castShadow = true;
+        group.add(cone);
 
         group.position.set(x, 2, z);
         this.scene.add(group);
@@ -1983,34 +1979,24 @@ fillBoundaryGaps() {
         const trunkH = 10 + Math.random() * 4;
         const trunkR = 0.5 + Math.random() * 0.3;
 
-        const trunkGeo = new THREE.CylinderGeometry(trunkR * 0.5, trunkR, trunkH, 4);
+        const trunkGeo = new THREE.CylinderGeometry(trunkR * 0.5, trunkR, trunkH, 3);
         const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.9 });
         const trunk = new THREE.Mesh(trunkGeo, trunkMat);
         trunk.position.y = trunkH / 2;
         trunk.castShadow = true;
         group.add(trunk);
 
-        // Large spherical canopy with multiple clusters
-        const clusters = 3 + Math.floor(Math.random() * 3);
-        for (let i = 0; i < clusters; i++) {
-            const clusterR = 2.5 + Math.random() * 2;
-            const clusterGeo = new THREE.SphereGeometry(clusterR, 4, 4);
-            const hue = 0.25 + Math.random() * 0.15;
-            const clusterMat = new THREE.MeshStandardMaterial({
-                color: new THREE.Color().setHSL(hue, 0.65, 0.2 + Math.random() * 0.15),
-                roughness: 0.9, flatShading: true
-            });
-            const cluster = new THREE.Mesh(clusterGeo, clusterMat);
-            const angle = (i / clusters) * Math.PI * 2;
-            const dist = clusterR * 0.5;
-            cluster.position.set(
-                Math.cos(angle) * dist,
-                trunkH * 0.6 + Math.random() * 2,
-                Math.sin(angle) * dist
-            );
-            cluster.castShadow = true;
-            group.add(cluster);
-        }
+        // Single large sphere canopy instead of multiple clusters
+        const canopyR = 3 + Math.random() * 1.5;
+        const hue = 0.25 + Math.random() * 0.15;
+        const canopyMat = new THREE.MeshStandardMaterial({
+            color: new THREE.Color().setHSL(hue, 0.65, 0.2 + Math.random() * 0.15),
+            roughness: 0.9, flatShading: true
+        });
+        const canopy = new THREE.Mesh(new THREE.SphereGeometry(canopyR, 4, 3), canopyMat);
+        canopy.position.y = trunkH * 0.6;
+        canopy.castShadow = true;
+        group.add(canopy);
 
         group.position.set(x, 2, z);
         this.scene.add(group);
