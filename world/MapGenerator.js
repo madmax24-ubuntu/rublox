@@ -3607,7 +3607,7 @@ fillBoundaryGaps() {
 
             const sandGeo = new THREE.PlaneGeometry(4 + Math.random() * 6, 4 + Math.random() * 6);
             const sandMat = new THREE.MeshStandardMaterial({
-                map: this.textures.sand,
+                color: COLOR.sand,
                 color: new THREE.Color().setHSL(0.12, 0.3, 0.45 + Math.random() * 0.1),
                 roughness: 0.95
             });
