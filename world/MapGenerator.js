@@ -3132,26 +3132,24 @@ fillBoundaryGaps() {
         ornMesh.instanceMatrix.needsUpdate = true;
         this.scene.add(ornMesh);
 
-        // Inner decorative circle — InstancedMesh (16 instances, 1 draw call)
-        const gemColors = [0xff4444, 0x44ff44, 0x4444ff, 0xffff44];
+       // Inner decorative circle — single InstancedMesh with instance colors (1 draw call)
         const gemGeo = new THREE.SphereGeometry(0.15, 4, 3);
+        const gemMat = new THREE.MeshStandardMaterial({ roughness: 0.2, metalness: 0.5 });
+        const gemMesh = new THREE.InstancedMesh(gemGeo, gemMat, 16);
+        const gemColors = [0xff4444, 0x44ff44, 0x4444ff, 0xffff44];
         for (let i = 0; i < 16; i++) {
             const angle = (i / 16) * Math.PI * 2;
-            const gemMat = new THREE.MeshStandardMaterial({
-                color: gemColors[i % 4],
-                roughness: 0.2,
-                metalness: 0.5
-            });
-            const gemMesh = new THREE.InstancedMesh(gemGeo, gemMat, 1);
             dummy.makeTranslation(
                 Math.cos(angle) * 3,
                 platH + 0.2,
                 Math.sin(angle) * 3
             );
-            gemMesh.setMatrixAt(0, dummy);
-            gemMesh.instanceMatrix.needsUpdate = true;
-            this.scene.add(gemMesh);
+            gemMesh.setMatrixAt(i, dummy);
+            gemMesh.setColorAt(i, new THREE.Color(gemColors[i % 4]));
         }
+        gemMesh.instanceMatrix.needsUpdate = true;
+        if (gemMesh.instanceColor) gemMesh.instanceColor.needsUpdate = true;
+        this.scene.add(gemMesh);
 
         // === FOUNTAIN ===
         this.buildFountain();
