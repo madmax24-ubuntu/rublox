@@ -1694,7 +1694,6 @@ const gapConfigs = [
         ground.position.set(-158, 1.56, -158);
         ground.receiveShadow = true;
         this.scene.add(ground);
-        this.deformPathGeometry(groundGeo, 0, ground.position);
 
         // === VERY DENSE FOREST - 2x taller, 3x more trees, more diverse ===
         // Forest biome spans X/Z: -256 to -60
