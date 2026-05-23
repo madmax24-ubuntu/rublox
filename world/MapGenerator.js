@@ -1658,20 +1658,6 @@ const gapConfigs = [
     // ========== BIOME BOUNDARY WALLS ==========
     // ========== FOREST BIOME (northwest) ==========
     buildForestBiome() {
-        // Ground - textured grass with noise variation (NW quadrant only)
-        // Starts at X=-256, ends at X=-60 (biome boundary); Z=-256 to Z=-60
-        const groundGeo = new THREE.PlaneGeometry(196, 196, 32, 32);
-        const groundMat = new THREE.MeshStandardMaterial({
-            map: this.textures.forestGround,
-            roughness: 0.95,
-            flatShading: false
-        });
-        const ground = new THREE.Mesh(groundGeo, groundMat);
-        ground.rotation.x = -Math.PI / 2;
-        ground.position.set(-158, 1.56, -158);
-        ground.receiveShadow = true;
-        this.scene.add(ground);
-
         // === VERY DENSE FOREST - 2x taller, 3x more trees, more diverse ===
         // Forest biome spans X/Z: -256 to -60
         // Tall pine trees (2x height)
