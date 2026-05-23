@@ -968,7 +968,7 @@ buildFountain() {
             this.scene.add(pillar);
             this.colliders.push({ type: 'cylinder', position: new THREE.Vector3(px, 6, pz), radius: 1, height: 12 });
             const cap = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 0.8, 0.6, 8), wallMat);
-            cap.position.set(px, 12.3, pz); cap.castShadow = true;
+            cap.position.set(px, 12.3, pz);
             this.scene.add(cap);
         }
 
@@ -992,7 +992,7 @@ buildFountain() {
             this.scene.add(pillar);
             this.colliders.push({ type: 'cylinder', position: new THREE.Vector3(px, 6, pz), radius: 1, height: 12 });
             const cap = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 0.8, 0.6, 8), wallMat);
-            cap.position.set(px, 12.3, pz); cap.castShadow = true;
+            cap.position.set(px, 12.3, pz);
             this.scene.add(cap);
         }
 
@@ -1016,7 +1016,7 @@ buildFountain() {
             this.scene.add(pillar);
             this.colliders.push({ type: 'cylinder', position: new THREE.Vector3(px, 6, pz), radius: 1, height: 12 });
             const cap = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 0.8, 0.6, 8), wallMat);
-            cap.position.set(px, 12.3, pz); cap.castShadow = true;
+            cap.position.set(px, 12.3, pz);
             this.scene.add(cap);
         }
 
@@ -1040,7 +1040,7 @@ buildFountain() {
             this.scene.add(pillar);
             this.colliders.push({ type: 'cylinder', position: new THREE.Vector3(px, 6, pz), radius: 1, height: 12 });
             const cap = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 0.8, 0.6, 8), wallMat);
-            cap.position.set(px, 12.3, pz); cap.castShadow = true;
+            cap.position.set(px, 12.3, pz);
             this.scene.add(cap);
         }
 
