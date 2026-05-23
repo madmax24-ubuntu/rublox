@@ -1513,7 +1513,7 @@ fillBoundaryGaps() {
                 mushroomGroup.add(dot);
             }
 
-            mushroomGgroup.position.set(x, 2, z);
+            mushroomGroup.position.set(x, 2, z);
             this.scene.add(mushroomGroup);
         }
     }
@@ -2076,7 +2076,7 @@ fillBoundaryGaps() {
         flag.position.set(0.4, wallH + roofH + 1.2, 0);
         houseGroup.add(flag);
 
-        houseGgroup.position.set(x, 2, z);
+        houseGroup.position.set(x, 2, z);
         this.scene.add(houseGroup);
 
         this.houseSpots.push({ x, z, width: wallW, depth: wallD, height: wallH });
@@ -4031,7 +4031,7 @@ fillBoundaryGaps() {
         beam.castShadow = true;
         wellGroup.add(beam);
 
-        wellGgroup.position.set(x, 2, z);
+        wellGroup.position.set(x, 2, z);
         this.scene.add(wellGroup);
     }
 
@@ -4063,7 +4063,7 @@ fillBoundaryGaps() {
         top.castShadow = true;
         pillarGroup.add(top);
 
-        pillarGgroup.position.set(x, 2, z);
+        pillarGroup.position.set(x, 2, z);
         this.scene.add(pillarGroup);
     }
 
@@ -4156,7 +4156,7 @@ fillBoundaryGaps() {
                     ruinGroup.add(stone);
                 }
             }
-            ruinGgroup.position.set(x, 2, z);
+            ruinGroup.position.set(x, 2, z);
             this.scene.add(ruinGroup);
         }
     }
@@ -4252,7 +4252,7 @@ fillBoundaryGaps() {
             rune.material.opacity = 0.4 + Math.random() * 0.4;
             runeGroup.add(rune);
 
-            runeGgroup.position.set(x, 2, z);
+            runeGroup.position.set(x, 2, z);
             this.scene.add(runeGroup);
         }
     }
@@ -4551,7 +4551,7 @@ fillBoundaryGaps() {
         gate.position.y = 3;
         towerGroup.add(gate);
 
-        towerGgroup.position.set(x, 2, z);
+        towerGroup.position.set(x, 2, z);
         this.scene.add(towerGroup);
 
         // Colliders for gate tower
@@ -4686,7 +4686,7 @@ fillBoundaryGaps() {
             this.scene.add(batt);
         }
 
-        fortGgroup.position.set(x, 2, z);
+        fortGroup.position.set(x, 2, z);
         this.scene.add(fortGroup);
         this.houseSpots.push({ x, z, width: 40, depth: 40, height: 16 });
     }
@@ -4795,7 +4795,7 @@ fillBoundaryGaps() {
         pole.position.set(0, towerH / 2, 0);
         towerGroup.add(pole);
 
-        towerGgroup.position.set(x, 2, z);
+        towerGroup.position.set(x, 2, z);
         this.scene.add(towerGroup);
 
         // Collider for tower body
@@ -5162,7 +5162,7 @@ fillBoundaryGaps() {
         pole.position.y = 1.25;
         tentGroup.add(pole);
 
-        tentGgroup.position.set(x, 2, z);
+        tentGroup.position.set(x, 2, z);
         this.scene.add(tentGroup);
     }
 
@@ -5260,7 +5260,7 @@ fillBoundaryGaps() {
         compass.position.set(0.6, 1.28, 0.2);
         deskGroup.add(compass);
 
-        deskGgroup.position.set(x, 2, z);
+        deskGroup.position.set(x, 2, z);
         this.scene.add(deskGroup);
     }
 
@@ -5316,7 +5316,7 @@ fillBoundaryGaps() {
         glass.rotation.x = -0.3;
         wreckGroup.add(glass);
 
-        wreckGgroup.position.set(x, 2, z);
+        wreckGroup.position.set(x, 2, z);
         wreckGroup.rotation.y = Math.random() * Math.PI * 2;
         this.scene.add(wreckGroup);
     }
@@ -5344,7 +5344,7 @@ fillBoundaryGaps() {
                 ammo.castShadow = true;
                 pileGroup.add(ammo);
             }
-            pileGgroup.position.set(x, 2, z);
+            pileGroup.position.set(x, 2, z);
             this.scene.add(pileGroup);
         }
     }
@@ -5428,7 +5428,7 @@ fillBoundaryGaps() {
         door.position.set(0, 1.25, 2.1);
         shelterGroup.add(door);
 
-        shelterGgroup.position.set(x, 2, z);
+        shelterGroup.position.set(x, 2, z);
         this.scene.add(shelterGroup);
         this.houseSpots.push({ x, z, width: 6, depth: 4, height: 3 });
     }
@@ -5469,7 +5469,7 @@ fillBoundaryGaps() {
         band2.position.y = 0.7;
         crateGroup.add(band2);
 
-        crateGgroup.position.set(x, 2, z);
+        crateGroup.position.set(x, 2, z);
         crateGroup.rotation.y = Math.random() * Math.PI;
         this.scene.add(crateGroup);
     }
@@ -5507,7 +5507,7 @@ fillBoundaryGaps() {
         stripe.position.set(0, 2.8, 0);
         signGroup.add(stripe);
 
-        signGgroup.position.set(x, 2, z);
+        signGroup.position.set(x, 2, z);
         signGroup.rotation.y = Math.random() * Math.PI;
         this.scene.add(signGroup);
     }
@@ -5625,7 +5625,7 @@ fillBoundaryGaps() {
         barrel.castShadow = true;
         gunGroup.add(barrel);
 
-        gunGgroup.position.set(x, 2, z);
+        gunGroup.position.set(x, 2, z);
         this.scene.add(gunGroup);
     }
 
@@ -5678,7 +5678,7 @@ fillBoundaryGaps() {
         light.position.y = 15.5;
         towerGroup.add(light);
 
-        towerGgroup.position.set(x, 2, z);
+        towerGroup.position.set(x, 2, z);
         this.scene.add(towerGroup);
         this.animatedObjects.push({ type: 'radioLight', obj: light });
     }
@@ -5769,7 +5769,7 @@ fillBoundaryGaps() {
             houseGroup.add(debris);
         }
 
-        houseGgroup.position.set(x, 2, z);
+        houseGroup.position.set(x, 2, z);
         this.scene.add(houseGroup);
         this.houseSpots.push({ x, z, width: 12, depth: 12, height: 8 });
 
@@ -5888,7 +5888,7 @@ fillBoundaryGaps() {
 
         // Random rotation for variety
         tankGroup.rotation.y = Math.random() * Math.PI * 2;
-        tankGgroup.position.set(x, 2, z);
+        tankGroup.position.set(x, 2, z);
         this.scene.add(tankGroup);
     }
 
@@ -5968,7 +5968,7 @@ fillBoundaryGaps() {
             jeepGroup.add(wheel);
         });
 
-        jeepGgroup.position.set(x, 2, z);
+        jeepGroup.position.set(x, 2, z);
         this.scene.add(jeepGroup);
     }
 
@@ -6002,7 +6002,7 @@ fillBoundaryGaps() {
         slit.position.set(4.1, 2, 0);
         bunkerGroup.add(slit);
 
-        bunkerGgroup.position.set(x, 2, z);
+        bunkerGroup.position.set(x, 2, z);
         this.scene.add(bunkerGroup);
     }
 
@@ -6116,7 +6116,7 @@ fillBoundaryGaps() {
         door.position.set(0, 1.5, 5.1);
         houseGroup.add(door);
 
-        houseGgroup.position.set(x, 2, z);
+        houseGroup.position.set(x, 2, z);
         this.scene.add(houseGroup);
         this.houseSpots.push({ x, z, width: 12, depth: 10, height: 6 });
     }
@@ -6206,7 +6206,7 @@ fillBoundaryGaps() {
         roof.castShadow = true;
         houseGroup.add(roof);
 
-        houseGgroup.position.set(x, 2, z);
+        houseGroup.position.set(x, 2, z);
         this.scene.add(houseGroup);
         this.houseSpots.push({ x, z, width: wallW, depth: wallD, height: wallH });
 
@@ -6689,7 +6689,7 @@ fillBoundaryGaps() {
             handle.rotation.z = 0.3;
             sledGroup.add(handle);
 
-            sledGgroup.position.set(x, 2, z);
+            sledGroup.position.set(x, 2, z);
             sledGroup.rotation.y = Math.random() * Math.PI * 2;
             this.scene.add(sledGroup);
         }
@@ -6762,7 +6762,7 @@ fillBoundaryGaps() {
         arm2.rotation.z = -0.8;
         smGroup.add(arm2);
 
-        smGgroup.position.set(x, 2, z);
+        smGroup.position.set(x, 2, z);
         this.scene.add(smGroup);
     }
 
@@ -7082,7 +7082,7 @@ fillBoundaryGaps() {
         fire.position.set(0, 0.6, 2);
         iguGroup.add(fire);
 
-        iguGgroup.position.set(x, 2, z);
+        iguGroup.position.set(x, 2, z);
         this.scene.add(iguGroup);
         this.houseSpots.push({ x, z, width: 8, depth: 8, height: 4 });
     }
@@ -7221,7 +7221,7 @@ fillBoundaryGaps() {
             light.position.y = 6.2;
             lampGroup.add(light);
 
-            lampGgroup.position.set(x, 2, z);
+            lampGroup.position.set(x, 2, z);
             this.scene.add(lampGroup);
         }
     }
