@@ -645,8 +645,8 @@ export class HUD {
             display: none;
             align-items: center;
             justify-content: center;
-            background: rgba(6, 12, 18, 0.68);
-            backdrop-filter: blur(2px);
+            background: rgba(6, 12, 18, 0.95);
+            backdrop-filter: blur(4px);
             z-index: 1480;
             pointer-events: auto;
         `;
