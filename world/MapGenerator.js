@@ -3953,9 +3953,9 @@ const gapConfigs = [
             roughness: 0.9,
             flatShading: true
         });
-        const base = new THREE.Mesh(baseGeo, baseMat);
+       const base = new THREE.Mesh(baseGeo, baseMat);
         base.position.y = 8;
-        base.castShadow = true;
+        base.receiveShadow = true;
         fortGroup.add(base);
 
        // Tower
