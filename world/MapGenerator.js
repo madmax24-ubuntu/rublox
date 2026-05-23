@@ -3956,7 +3956,7 @@ fillBoundaryGaps() {
     }
 
     // ========== MILITARY BIOME (southwest) ==========
-    buildMilitaryBiome() {
+    async buildMilitaryBiome() {
         // Sand patches - only inside military biome (X <= -60, Z >= 60)
         for (let i = 0; i < 8; i++) {
             const x = -256 + Math.random() * 196;
@@ -3977,8 +3977,9 @@ fillBoundaryGaps() {
 
         // Crater marks on ground
         this.addCraters(-75, 75);
+        await this.yieldFrame();
 
-    // Broken 2-story houses (reduced)
+        // Broken 2-story houses (reduced)
         const housePositions = [
             { x: -224, z: 168 },
             { x: -168, z: 194 },
@@ -4004,12 +4005,11 @@ fillBoundaryGaps() {
             const z = 60 + Math.random() * 196;
             this.addJeep(x, z);
         }
+        await this.yieldFrame();
 
         // Bunkers
         this.addBunker(-194, 142);
         this.addBunker(-142, 194);
-        this.addBunker(-204, 184);
-        this.addBunker(-132, 152);
 
         // Sandbag fortifications
         this.addSandbags(-75, 75);
@@ -4026,6 +4026,7 @@ fillBoundaryGaps() {
             const z = 116 + Math.random() * 76;
             if (Math.abs(x) > 20) this.addMilitaryHouse(x, z);
         }
+        await this.yieldFrame();
 
         // Anti-aircraft guns
         this.addAntiAircraftGun(-144, 92);
@@ -4064,12 +4065,13 @@ fillBoundaryGaps() {
         // Wire fence panels
         this.addWireFence(-168, 132);
         this.addWireFence(-132, 194);
+        await this.yieldFrame();
 
         // Camo netting over positions
         this.addCamoNetting(-75, 75);
 
         // Field desk with map
-    this.addFieldDesk(-174, 174);
+        this.addFieldDesk(-174, 174);
 
         // Wrecked military vehicle
         this.addWreckedVehicle(-194, 152);
