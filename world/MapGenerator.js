@@ -82,66 +82,43 @@ class TextureGenerator {
         const g0 = (baseColor >> 8) & 0xff;
         const b0 = baseColor & 0xff;
         const detailOctaves = opts.detailOctaves || 6;
-        const detailScale = opts.detailScale || 48; // 2x higher frequency for sharper patterns
-        const hasDetail = opts.hasDetail || false;
-        const speckleStrength = opts.speckleStrength || 24;
+        const detailScale = opts.detailScale || 48;
 
-        // Multi-pass noise for rich, sharp detail (same algorithm as original)
+        // Optimized: fewer octaves for ground textures (they're viewed from distance)
+        const groundOctaves = opts.groundOctaves || 3;
+        const microOctaves = opts.microOctaves || 2;
+
         for (let y = 0; y < height; y++) {
             const wy = y / height * detailScale;
             for (let x = 0; x < width; x++) {
                 const wx = x / width * detailScale;
-                const n = noise.fbm(wx, wy, detailOctaves, 2.0, 0.5);
-                const n2 = noise.fbm(wx * 0.5 + 100, wy * 0.5 + 100, 3, 2.0, 0.5);
-                const n3 = noise.fbm(wx * 2 + 200, wy * 2 + 200, 3, 2.0, 0.5);
+                // Main pattern - fewer octaves for speed
+                const n = noise.fbm(wx, wy, groundOctaves, 2.0, 0.5);
+                // Subtle secondary detail
+                const n2 = noise.fbm(wx * 0.5 + 100, wy * 0.5 + 100, microOctaves, 2.0, 0.5);
+                // Sharp micro-detail
+                const n3 = noise.fbm(wx * 2 + 200, wy * 2 + 200, microOctaves, 2.0, 0.5);
                 const v = variationFn(n, n2, n3, x / width, y / height);
 
                 const idx = (y * width + x) * 4;
-                imgData.data[idx]     = Math.max(0, Math.min(255, r0 + v.r));
-                imgData.data[idx + 1] = Math.max(0, Math.min(255, g0 + v.g));
-                imgData.data[idx + 2] = Math.max(0, Math.min(255, b0 + v.b));
+                // Fast contrast boost instead of convolution sharpen
+                let r = r0 + v.r;
+                let g = g0 + v.g;
+                let b = b0 + v.b;
+                const sharpenAmt = opts.sharpenAmount || 0.3;
+                if (sharpenAmt > 0) {
+                    r = r < 128 ? r * (1 - sharpenAmt) + r0 * sharpenAmt : r + (255 - r) * sharpenAmt * 0.5;
+                    g = g < 128 ? g * (1 - sharpenAmt) + g0 * sharpenAmt : g + (255 - g) * sharpenAmt * 0.5;
+                    b = b < 128 ? b * (1 - sharpenAmt) + b0 * sharpenAmt : b + (255 - b) * sharpenAmt * 0.5;
+                }
+
+                imgData.data[idx]     = Math.max(0, Math.min(255, r | 0));
+                imgData.data[idx + 1] = Math.max(0, Math.min(255, g | 0));
+                imgData.data[idx + 2] = Math.max(0, Math.min(255, b | 0));
                 imgData.data[idx + 3] = 255;
             }
         }
         ctx.putImageData(imgData, 0, 0);
-
-        // 3x3 convolution sharpen filter for crisp edges
-        const src = new Uint8ClampedArray(imgData.data);
-        const sharpenKernel = [-1, -1, -1, -1, 9, -1, -1, -1, -1];
-        for (let y = 1; y < height - 1; y++) {
-            for (let x = 1; x < width - 1; x++) {
-                for (let c = 0; c < 3; c++) {
-                    let sum = 0;
-                    let ki = 0;
-                    for (let dy = -1; dy <= 1; dy++) {
-                        for (let dx = -1; dx <= 1; dx++) {
-                            const idx = ((y + dy) * width + (x + dx)) * 4 + c;
-                            sum += src[idx] * sharpenKernel[ki];
-                            ki++;
-                        }
-                    }
-                    const center = src[(y * width + x) * 4 + c];
-                    const avg = center * 8;
-                    const sharpened = center + (center - avg) * (opts.sharpenAmount || 0.3);
-                    imgData.data[(y * width + x) * 4 + c] = Math.max(0, Math.min(255, sharpened | 0));
-                }
-            }
-        }
-
-        // Sparse grain for realistic texture
-        for (let y = 0; y < height; y += 2) {
-            for (let x = 0; x < width; x += 2) {
-                const brightness = (Math.random() - 0.5) * speckleStrength;
-                for (let dy = 0; dy < 2; dy++) {
-                    for (let dx = 0; dx < 2; dx++) {
-                        const idx = ((y + dy) * width + (x + dx)) * 4;
-                        imgData.data[idx]     = Math.max(0, Math.min(255, imgData.data[idx] + brightness));
-                        imgData.data[idx + 1] = Math.max(0, Math.min(255, imgData.data[idx + 1] + brightness));
-                        imgData.data[idx + 2] = Math.max(0, Math.min(255, imgData.data[idx + 2] + brightness));
-                    }
-                }
-            }
-        }
 
         const tex = new THREE.CanvasTexture(canvas);
         tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
