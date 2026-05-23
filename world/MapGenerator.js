@@ -2248,7 +2248,6 @@ const gapConfigs = [
         const tableTopGeo = new THREE.BoxGeometry(2.5, 0.12, 1.5);
         const tableTop = new THREE.Mesh(tableTopGeo, tableMat);
         tableTop.position.set(0, 1.0, -wallD / 4);
-        tableTop.castShadow = true;
         houseGroup.add(tableTop);
         // Table legs
         const legGeo = new THREE.CylinderGeometry(0.06, 0.06, 1.0, 5);
