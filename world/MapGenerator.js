@@ -439,47 +439,47 @@ export class MapGenerator {
         this.generateHeightMap();
         // Pre-generate all textures (reduced sizes for performance)
        this.textures.forestGround = TextureGenerator.createTerrainTexture(
-            512, 512, 0x3a7a2e,
-            (n, n2, n3) => ({
-                r: n * 35 + n3 * 12,
-                g: n * 50 + n2 * 25 + 15,
-                b: n * 20 + n3 * 8
+            256, 256, 0x3a7a2e,
+            (n, micro) => ({
+                r: n * 40,
+                g: n * 60 + 10,
+                b: n * 25
             }),
             this.noise,
-            { detailOctaves: 6, hasDetail: false, speckleStrength: 8 }
+            { detailOctaves: 4, detailScale: 24, speckleStrength: 28, speckleSize: 3, sharpen: true }
         );
          await this.yieldFrame();
         this.textures.stoneGround = TextureGenerator.createTerrainTexture(
-            512, 512, 0x7a7a7a,
-            (n, n2, n3) => ({
-                r: n * 40 + n3 * 15,
-                g: n * 40 + n3 * 15,
-                b: n * 45 + n3 * 10
+            256, 256, 0x7a7a7a,
+            (n, micro) => ({
+                r: n * 50,
+                g: n * 50,
+                b: n * 55 + 5
             }),
             this.noise,
-            { detailOctaves: 6, hasDetail: false, speckleStrength: 8 }
+            { detailOctaves: 4, detailScale: 28, speckleStrength: 32, speckleSize: 2, sharpen: true }
         );
         await this.yieldFrame();
         this.textures.militaryGround = TextureGenerator.createTerrainTexture(
-            512, 512, 0x6b6b4a,
-            (n, n2, n3) => ({
-                r: n * 30 + n2 * 18 + n3 * 10,
-                g: n * 25 + n2 * 15 + n3 * 8,
-                b: n * 15 + n3 * 5
+            256, 256, 0x6b6b4a,
+            (n, micro) => ({
+                r: n * 35,
+                g: n * 30,
+                b: n * 20
             }),
             this.noise,
-            { detailOctaves: 6, hasDetail: false, speckleStrength: 6 }
+            { detailOctaves: 4, detailScale: 20, speckleStrength: 26, speckleSize: 3, sharpen: true }
         );
        await this.yieldFrame();
         this.textures.snowGround = TextureGenerator.createTerrainTexture(
-            512, 512, 0xf0f0f0,
-            (n, n2, n3) => ({
-                r: n * 20 + n3 * 8,
-                g: n * 18 + n3 * 6,
-                b: n * 22 + n3 * 10
+            256, 256, 0xf0f0f0,
+            (n, micro) => ({
+                r: n * 25,
+                g: n * 22,
+                b: n * 28
             }),
             this.noise,
-            { detailOctaves: 6, hasDetail: false, speckleStrength: 5 }
+            { detailOctaves: 4, detailScale: 22, speckleStrength: 18, speckleSize: 4, sharpen: true }
         );
      await this.yieldFrame();
         this.textures.wood = TextureGenerator.createWoodTexture();
