@@ -4671,6 +4671,25 @@ fillBoundaryGaps() {
 
         towerGroup.position.set(x, 2, z);
         this.scene.add(towerGroup);
+
+        // Collider for tower body
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(x, towerH / 2 + 2, z),
+            size: new THREE.Vector3(towerW, towerH, towerW)
+        });
+        // Collider for platform
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(x, towerH + 0.15 + 2, z),
+            size: new THREE.Vector3(towerW + 1, 0.3, towerW + 1)
+        });
+        // Collider for roof
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(x, towerH + 1.8 + 2, z),
+            size: new THREE.Vector3(towerW + 1, 3, towerW + 1)
+        });
     }
 
     // ========== MILITARY BIOME (southwest) ==========
