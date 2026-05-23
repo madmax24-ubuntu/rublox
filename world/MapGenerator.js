@@ -98,7 +98,6 @@ export class MapGenerator {
         this.spawnPads = [];
         this.chestSpots = [];
         this.houseSpots = [];
-        this.textures = {};
         this.playerSpawn = { x: 0, z: 0 };
         this.storyPOIs = [];
         this.propMeshes = [];
