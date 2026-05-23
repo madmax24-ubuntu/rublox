@@ -2241,8 +2241,35 @@ fillBoundaryGaps() {
         fireBlock.position.set(0, 0.25, -d / 2 + 0.3);
         group.add(fireBlock);
 
-        group.position.set(x, 2, z);
+        roup.position.set(x, 2, z);
         this.scene.add(group);
+
+        // Colliders for hut
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(x, 0.1 + 2, z),
+            size: new THREE.Vector3(w, 0.2, d)
+        });
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(x, wallH / 2 + 2, z),
+            size: new THREE.Vector3(w, wallH, wallThickness)
+        });
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(x, wallH / 2 + 2, z),
+            size: new THREE.Vector3(wallThickness, wallH, d)
+        });
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(x, floorH + 2, z),
+            size: new THREE.Vector3(w - 0.4, 0.15, d - 0.4)
+        });
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(x, floorH + secondWallH + 1.25 + 2, z),
+            size: new THREE.Vector3(3.5, 2.5, 3.5)
+        });
     }
 
     addForestPlants(cx, cz) {
