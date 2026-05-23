@@ -1640,28 +1640,33 @@ fillBoundaryGaps() {
 
     // ========== BIOME BOUNDARY WALLS ==========
     // ========== FOREST BIOME (northwest) ==========
-    buildForestBiome() {
+    async buildForestBiome() {
         // === VERY DENSE FOREST - 2x taller, 3x more trees, more diverse ===
         // Forest biome spans X/Z: -256 to -60
-        // Tall pine trees (2x height)
-        for (let i = 0; i < 240; i++) {
-            const x = -256 + Math.random() * 196;
-            const z = -256 + Math.random() * 196;
+        // Tall pine trees (2x height) - chunked into 3 batches of 80
+        for (let batch = 0; batch < 3; batch++) {
+            const start = batch * 80;
+            const end = start + 80;
+            for (let i = start; i < end; i++) {
+                const x = -256 + Math.random() * 196;
+                const z = -256 + Math.random() * 196;
 
-            if (Math.abs(x) < 28) continue;
-            if (z > -62) continue;
+                if (Math.abs(x) < 28) continue;
+                if (z > -62) continue;
 
-            const riverX = -158 + Math.sin((z + 158) * 0.05) * 26;
-            if (Math.abs(x - riverX) < 12) continue;
+                const riverX = -158 + Math.sin((z + 158) * 0.05) * 26;
+                if (Math.abs(x - riverX) < 12) continue;
 
-            const variant = Math.random();
-            if (variant < 0.5) {
-                this.addDetailedTree(x, z, 'forest');
-            } else if (variant < 0.8) {
-                this.addPineTree(x, z);
-            } else {
-                this.addOakTree(x, z);
+                const variant = Math.random();
+                if (variant < 0.5) {
+                    this.addDetailedTree(x, z, 'forest');
+                } else if (variant < 0.8) {
+                    this.addPineTree(x, z);
+                } else {
+                    this.addOakTree(x, z);
+                }
             }
+            if (batch < 2) await this.yieldFrame();
         }
 
         // Detailed houses (3)
@@ -1677,9 +1682,11 @@ fillBoundaryGaps() {
 
         // River flowing through forest
         this.buildForestRiver();
+        await this.yieldFrame();
 
         // Winding forest paths
         this.buildForestPaths();
+        await this.yieldFrame();
 
         // Mushrooms scattered in forest — DISABLED (visual clutter)
         // this.buildForestMushrooms();
