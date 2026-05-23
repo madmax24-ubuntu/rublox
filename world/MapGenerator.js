@@ -2672,7 +2672,39 @@ fillBoundaryGaps() {
 
             towerGroup.position.set(pos.x, 2, pos.z);
             this.scene.add(towerGroup);
+
+            // Colliders for maze tower
+            this.colliders.push({
+                type: 'box',
+                position: new THREE.Vector3(pos.x, towerH / 2 + 2, pos.z),
+                size: new THREE.Vector3(towerW, towerH, towerW)
+            });
+            this.colliders.push({
+                type: 'box',
+                position: new THREE.Vector3(pos.x, towerH + 0.15 + 2, pos.z),
+                size: new THREE.Vector3(towerW + 1, 0.3, towerW + 1)
+            });
+            this.colliders.push({
+                type: 'box',
+                position: new THREE.Vector3(pos.x, towerH + 1.8 + 2, pos.z),
+                size: new THREE.Vector3(towerW + 1, 3, towerW + 1)
+            });
         });
+
+        // Colliders for maze walls
+        for (let y = 0; y < mazeSize; y++) {
+            for (let x = 0; x < mazeSize; x++) {
+                if (maze[y][x] === 1) {
+                    const wx = mazeX + (x - mazeSize / 2) * cellSize;
+                    const wz = mazeZ + (y - mazeSize / 2) * cellSize;
+                    this.colliders.push({
+                        type: 'box',
+                        position: new THREE.Vector3(wx, wallH / 2, wz),
+                        size: new THREE.Vector3(cellSize, wallH, cellSize)
+                    });
+                }
+            }
+        }
     }
 
     // === SNOW BIOME ELEMENTS ===
