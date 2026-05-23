@@ -5211,7 +5211,7 @@ fillBoundaryGaps() {
     }
 
     // ========== SNOW BIOME (southeast) ==========
-    buildSnowBiome() {
+    async buildSnowBiome() {
         // Snow ground variation - only inside snow biome (X >= 60, Z >= 60)
         for (let i = 0; i < 8; i++) {
             const x = 60 + Math.random() * 196;
@@ -5230,14 +5230,15 @@ fillBoundaryGaps() {
             this.scene.add(snow);
         }
 
-        // Snow fir trees (reduced)
-        for (let i = 0; i < 10; i++) {
-            const x = 96 + Math.random() * 180;
-            const z = 96 + Math.random() * 180;
-
-            if (x < 20) continue;
-
-            this.addSnowTree(x, z);
+        // Snow fir trees (reduced) - chunked
+        for (let batch = 0; batch < 2; batch++) {
+            for (let i = 0; i < 5; i++) {
+                const x = 96 + Math.random() * 180;
+                const z = 96 + Math.random() * 180;
+                if (x < 20) continue;
+                this.addSnowTree(x, z);
+            }
+            if (batch < 1) await this.yieldFrame();
         }
 
         // Frozen pond
@@ -5245,31 +5246,32 @@ fillBoundaryGaps() {
 
         // Second frozen pond
         this.addFrozenPond(184, 132);
+        await this.yieldFrame();
 
         // Igloos (reduced)
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < 2; i++) {
             const x = 96 + Math.random() * 180;
             const z = 96 + Math.random() * 180;
-
             if (x > 20) this.addIgu(x, z);
         }
 
         // Snow biome houses (wooden cabins with snow-covered roofs)
-        for (let i = 0; i < 6; i++) {
+        for (let i = 0; i < 3; i++) {
             const hx = 80 + Math.random() * 160;
             const hz = 80 + Math.random() * 160;
             if (hx < 20) continue;
             this.addSnowHouse(hx, hz, i);
         }
+        await this.yieldFrame();
 
         // Ice spikes
         this.addIceSpikes(150, 150);
 
-       // Snow mounds / drifts
+        // Snow mounds / drifts
         this.addSnowDrifts(150, 150);
 
         // Dead trees in snow (reduced)
-        for (let i = 0; i < 8; i++) {
+        for (let i = 0; i < 4; i++) {
             const x = 96 + Math.random() * 180;
             const z = 96 + Math.random() * 180;
             if (x < 20) continue;
@@ -5277,12 +5279,13 @@ fillBoundaryGaps() {
         }
 
         // Snow rocks (reduced)
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 5; i++) {
             const x = 96 + Math.random() * 180;
             const z = 96 + Math.random() * 180;
             if (x < 20) continue;
             this.addSnowRock(x, z);
         }
+        await this.yieldFrame();
 
         // Snow sleds
         this.addSnowSleds(150, 150);
@@ -5290,7 +5293,7 @@ fillBoundaryGaps() {
         // Snowman
         this.addSnowman(184, 184);
 
-       // Snow-covered igloo variant
+        // Snow-covered igloo variant
         this.addSnowIglooCluster(142, 194);
 
         // Snow ice patches on ground
@@ -5304,24 +5307,6 @@ fillBoundaryGaps() {
 
         // Snow sculpture (animal shape)
         this.addSnowSculpture(168, 204);
-
-        // Snow drifts around trees - DISABLED
-        // this.addSnowDriftDetails(55, 55);
-
-        // Falling snow particles - DISABLED
-        // this.addSnowParticles();
-
-        // Frozen pond ripples - DISABLED
-        // this.addFrozenPondRipples(55, 55);
-
-        // Ice crystal clusters - DISABLED
-        // this.addIceCrystals();
-
-        // Snow tracks / paths - DISABLED
-        // this.addSnowTracks(128, 128);
-
-        // Snow mounds - DISABLED
-        // this.addSnowMounds();
     }
 
     addSnowMounds() {
