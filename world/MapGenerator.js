@@ -3846,22 +3846,20 @@ const gapConfigs = [
             roughness: 0.95
         });
 
-        // Tower base
-        const baseGeo = new THREE.CylinderGeometry(5, 6, 16, 8);
+       // Tower base
+        const baseGeo = new THREE.CylinderGeometry(5, 6, 16, 6);
         const base = new THREE.Mesh(baseGeo, stoneMat);
         base.position.y = 8;
-        base.castShadow = true;
         towerGroup.add(base);
 
         // Tower top
-        const topGeo = new THREE.ConeGeometry(6, 6, 8);
+        const topGeo = new THREE.ConeGeometry(6, 6, 6);
         const topMat = new THREE.MeshStandardMaterial({
             color: 0x5a5a4a,
             roughness: 0.95
         });
         const top = new THREE.Mesh(topGeo, topMat);
         top.position.y = 22;
-        top.castShadow = true;
         towerGroup.add(top);
 
         // Gate opening
