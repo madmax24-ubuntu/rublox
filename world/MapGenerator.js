@@ -1825,7 +1825,7 @@ fillBoundaryGaps() {
         houseGroup.add(interiorFloor);
 
         // Interior loot table
-        const tableMat = new THREE.MeshStandardMaterial({ color: COLOR.wood, color: 0x5c4033, roughness: 0.8 });
+        const tableMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.8 });
         const tableTopGeo = new THREE.BoxGeometry(2.5, 0.12, 1.5);
         const tableTop = new THREE.Mesh(tableTopGeo, tableMat);
         tableTop.position.set(0, 1.0, -wallD / 4);
