@@ -222,6 +222,20 @@ export class MapGenerator {
         baseGround.receiveShadow = true;
         this.scene.add(baseGround);
 
+        // Debug: bright red checkered ground (visible from top)
+        const debugGroundMat = new THREE.MeshStandardMaterial({
+            color: 0xff0000, roughness: 0.9, side: THREE.DoubleSide
+        });
+        const debugGround = new THREE.Mesh(
+            new THREE.PlaneGeometry(30, 30, 1, 1),
+            debugGroundMat
+        );
+        debugGround.rotation.x = -Math.PI / 2;
+        debugGround.position.set(0, 1.535, 0);
+        debugGround.receiveShadow = true;
+        this.scene.add(debugGround);
+        console.log('DEBUG: Red debug ground plane added at (0, 1.535, 0) size 30x30');
+
         // === GAP FILLS between biome quadrants — above biome ground ===
         const centerGapMat = new THREE.MeshStandardMaterial({
             color: COLOR.wood,
