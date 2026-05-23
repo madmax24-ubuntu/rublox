@@ -717,7 +717,7 @@ buildFountain() {
         this.scene.add(water);
 
         // Central pillar
-        const pillarGeo = new THREE.CylinderGeometry(0.8, 1.0, 3, 12);
+        const pillarGeo = new THREE.CylinderGeometry(0.8, 1.0, 3, 8);
         const pillar = new THREE.Mesh(pillarGeo, poolMat);
         pillar.position.set(0, 4.13, 0);
         pillar.castShadow = true;
