@@ -2026,7 +2026,7 @@ const gapConfigs = [
         const trunkH = 10 + Math.random() * 4;
         const trunkR = 0.5 + Math.random() * 0.3;
 
-        const trunkGeo = new THREE.CylinderGeometry(trunkR * 0.5, trunkR, trunkH, 6);
+        const trunkGeo = new THREE.CylinderGeometry(trunkR * 0.5, trunkR, trunkH, 4);
         const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.9 });
         const trunk = new THREE.Mesh(trunkGeo, trunkMat);
         trunk.position.y = trunkH / 2;
@@ -2037,7 +2037,7 @@ const gapConfigs = [
         const clusters = 3 + Math.floor(Math.random() * 3);
         for (let i = 0; i < clusters; i++) {
             const clusterR = 2.5 + Math.random() * 2;
-            const clusterGeo = new THREE.SphereGeometry(clusterR, 6, 5);
+            const clusterGeo = new THREE.SphereGeometry(clusterR, 4, 4);
             const hue = 0.25 + Math.random() * 0.15;
             const clusterMat = new THREE.MeshStandardMaterial({
                 color: new THREE.Color().setHSL(hue, 0.65, 0.2 + Math.random() * 0.15),
