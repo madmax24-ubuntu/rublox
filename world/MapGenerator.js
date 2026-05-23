@@ -6856,7 +6856,6 @@ fillBoundaryGaps() {
             flatShading: true
         });
       // 50 snow-covered bushes — InstancedMesh (2 draw calls instead of 100)
-        const usedIndices = new Set();
         const bushGeo = new THREE.SphereGeometry(1, 5, 5);
         const bushInstanced = new THREE.InstancedMesh(bushGeo, snowBushMat, 50);
         const snowCapGeo = new THREE.SphereGeometry(1, 5, 5, 0, Math.PI * 2, 0, Math.PI * 0.5);
@@ -6869,11 +6868,12 @@ fillBoundaryGaps() {
             const z = oz + (Math.random() - 0.5) * 180;
             if (x < 20) continue;
             const size = 0.4 + Math.random() * 0.7;
-            // Bush base: scaled sphere
-            dummy.makeTRS(x, 2.3 + size * 0.6, z, new THREE.Quaternion(), new THREE.Vector3(1, 0.6, 1).multiplyScalar(size));
+            dummy.makeTranslation(x, 2.3 + size * 0.6, z);
+            const s = new THREE.Matrix4().makeScale(size, size * 0.6, size);
+            dummy.multiply(s);
             bushInstanced.setMatrixAt(count, dummy);
-            // Snow cap: half sphere on top
-            dummy.makeTRS(x, 2.3 + size * 0.9, z, new THREE.Quaternion(), new THREE.Vector3(size * 0.9));
+            dummy.makeTranslation(x, 2.3 + size * 0.9, z);
+            dummy.multiply(new THREE.Matrix4().makeScale(size * 0.9, size * 0.9, size * 0.9));
             snowCapInstanced.setMatrixAt(count, dummy);
             count++;
         }
