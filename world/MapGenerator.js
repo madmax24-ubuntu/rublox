@@ -1593,7 +1593,7 @@ const gapConfigs = [
         for (let z = -60; z > -216; z -= 60) {
             for (let side = -1; side <= 1; side += 2) {
                 const lampGroup = new THREE.Group();
-                const poleGeo = new THREE.CylinderGeometry(0.06, 0.08, 3, 6);
+                const poleGeo = new THREE.CylinderGeometry(0.06, 0.08, 3, 4);
                 const pole = new THREE.Mesh(poleGeo, poleMat);
                 pole.position.y = 1.5;
                 lampGroup.add(pole);
@@ -1615,7 +1615,7 @@ const gapConfigs = [
         for (let z = 60; z < 216; z += 60) {
             for (let side = -1; side <= 1; side += 2) {
                 const lampGroup = new THREE.Group();
-                const poleGeo = new THREE.CylinderGeometry(0.06, 0.08, 3, 6);
+                const poleGeo = new THREE.CylinderGeometry(0.06, 0.08, 3, 4);
                 const pole = new THREE.Mesh(poleGeo, poleMat);
                 pole.position.y = 1.5;
                 lampGroup.add(pole);
@@ -1637,7 +1637,7 @@ const gapConfigs = [
         for (let x = -60; x > -216; x -= 60) {
             for (let side = -1; side <= 1; side += 2) {
                 const lampGroup = new THREE.Group();
-                const poleGeo = new THREE.CylinderGeometry(0.06, 0.08, 3, 6);
+                const poleGeo = new THREE.CylinderGeometry(0.06, 0.08, 3, 4);
                 const pole = new THREE.Mesh(poleGeo, poleMat);
                 pole.position.y = 1.5;
                 lampGroup.add(pole);
@@ -1659,7 +1659,7 @@ const gapConfigs = [
         for (let x = 60; x < 216; x += 60) {
             for (let side = -1; side <= 1; side += 2) {
                 const lampGroup = new THREE.Group();
-                const poleGeo = new THREE.CylinderGeometry(0.06, 0.08, 3, 6);
+                const poleGeo = new THREE.CylinderGeometry(0.06, 0.08, 3, 4);
                 const pole = new THREE.Mesh(poleGeo, poleMat);
                 pole.position.y = 1.5;
                 lampGroup.add(pole);
