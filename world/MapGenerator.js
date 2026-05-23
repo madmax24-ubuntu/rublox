@@ -7594,16 +7594,16 @@ fillBoundaryGaps() {
             metalness: 0.3
         });
 
-        // Puddles along roads
+        // Puddles along roads — placed on shoulders (±7..12 from center, off road surface)
         for (let i = 0; i < 40; i++) {
             const isNorthRoad = Math.random() > 0.5;
             let px, pz;
 
             if (isNorthRoad) {
-                px = (Math.random() > 0.5 ? 1 : -1) * (5 + Math.random() * 15);
+                px = (Math.random() > 0.5 ? 1 : -1) * (7 + Math.random() * 5);
                 pz = -55 + Math.random() * 110;
             } else {
-                pz = (Math.random() > 0.5 ? 1 : -1) * (5 + Math.random() * 15);
+                pz = (Math.random() > 0.5 ? 1 : -1) * (7 + Math.random() * 5);
                 px = -55 + Math.random() * 110;
             }
 
