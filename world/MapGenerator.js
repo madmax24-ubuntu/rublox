@@ -3532,7 +3532,7 @@ fillBoundaryGaps() {
        // Tower
         const towerGeo = new THREE.CylinderGeometry(5, 7, 12, 6);
         const towerMat = new THREE.MeshStandardMaterial({
-            map: this.textures.concrete,
+            color: COLOR.concrete,
             color: 0x5a5a5a,
             roughness: 0.95
         });
@@ -4447,7 +4447,7 @@ fillBoundaryGaps() {
 
         // Damaged walls with concrete texture
         const wallMat = new THREE.MeshStandardMaterial({
-            map: this.textures.concrete,
+            color: COLOR.concrete,
             color: 0x6b6b6b,
             roughness: 0.95,
             flatShading: true
@@ -4710,7 +4710,7 @@ fillBoundaryGaps() {
         // Main bunker body with concrete texture
         const bodyGeo = new THREE.BoxGeometry(8, 3, 6);
         const bodyMat = new THREE.MeshStandardMaterial({
-            map: this.textures.concrete,
+            color: COLOR.concrete,
             color: 0x5a5a4a,
             roughness: 0.95,
             flatShading: true
@@ -4817,7 +4817,7 @@ fillBoundaryGaps() {
         // Simple military building with concrete texture
         const wallGeo = new THREE.BoxGeometry(12, 6, 10);
         const wallMat = new THREE.MeshStandardMaterial({
-            map: this.textures.concrete,
+            color: COLOR.concrete,
             color: 0x5a5a4a,
             roughness: 0.95,
             flatShading: true
