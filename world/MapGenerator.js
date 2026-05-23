@@ -2131,7 +2131,6 @@ fillBoundaryGaps() {
             if (i % 8 === 0) {
                 const rapidGeo = new THREE.PlaneGeometry(width * 1.2, 3);
                 const rapidMat = new THREE.MeshStandardMaterial({
-                    map: waterTex,
                     color: 0x88ddff,
                     transparent: true,
                     opacity: 0.5,
