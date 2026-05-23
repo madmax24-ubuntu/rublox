@@ -703,7 +703,7 @@ buildFountain() {
         this.scene.add(pool);
 
         // Water in pool
-        const waterGeo = new THREE.CylinderGeometry(5.5, 6.5, 0.3, 32);
+        const waterGeo = new THREE.CylinderGeometry(5.5, 6.5, 0.3, 16);
         const waterMat = new THREE.MeshStandardMaterial({
             color: 0x4fc3ff,
             transparent: true,
