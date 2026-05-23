@@ -1675,7 +1675,7 @@ fillBoundaryGaps() {
 
         if (biome === 'snow') {
             wallColor = 0xd4c4a8;
-            wallMatConfig = { map: this.textures.snow, color: 0xe8dcc8, roughness: 0.85 };
+            wallMatConfig = { color: COLOR.snow, color: 0xe8dcc8, roughness: 0.85 };
             roofH = 3 + Math.random() * 1.5;
             roofColor = 0x87ceeb; // Snow blue
             roofType = 'snow';
@@ -4862,7 +4862,7 @@ fillBoundaryGaps() {
 
             const snowGeo = new THREE.PlaneGeometry(3 + Math.random() * 5, 3 + Math.random() * 5);
             const snowMat = new THREE.MeshStandardMaterial({
-                map: this.textures.snow,
+                color: COLOR.snow,
                 color: new THREE.Color().setHSL(0, 0, 0.9 + Math.random() * 0.1),
                 roughness: 0.8
             });
@@ -5371,7 +5371,7 @@ fillBoundaryGaps() {
 
     addSnowIglooCluster(ox, oz) {
         const iglooMat = new THREE.MeshStandardMaterial({
-            map: this.textures.snow,
+            color: COLOR.snow,
             color: 0xf0f0f0,
             roughness: 0.8
         });
@@ -5466,7 +5466,7 @@ fillBoundaryGaps() {
 
     addSnowDrifts(ox, oz) {
         const driftMat = new THREE.MeshStandardMaterial({
-            map: this.textures.snow,
+            color: COLOR.snow,
             color: 0xf8f8f5,
             roughness: 0.8
         });
@@ -5643,7 +5643,7 @@ fillBoundaryGaps() {
       // Igloo dome with snow texture
         const iguGeo = new THREE.SphereGeometry(4, 6, 4, 0, Math.PI * 2, 0, Math.PI / 2);
         const iguMat = new THREE.MeshStandardMaterial({
-            map: this.textures.snow,
+            color: COLOR.snow,
             color: 0xf5f5f0,
             roughness: 0.8
         });
