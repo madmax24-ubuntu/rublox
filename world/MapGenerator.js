@@ -1284,13 +1284,15 @@ fillBoundaryGaps() {
     }
 
     // ========== ROADS ==========
-    buildRoads() {
+    async buildRoads() {
         const roadWidth = 10;
 
         // North road - from center to north gate (doubled for 512 map)
         this.buildRoad(0, -62, 0, -220, roadWidth);
         // South road - from center to south gate
         this.buildRoad(0, 62, 0, 220, roadWidth);
+        await this.yieldFrame();
+
         // West road - from center to west gate
         this.buildRoad(-62, 0, -220, 0, roadWidth);
         // East road - from center to east gate
@@ -1298,6 +1300,7 @@ fillBoundaryGaps() {
 
         // Street lamps along roads
         this.buildRoadLamps();
+        await this.yieldFrame();
 
         // === INDIVIDUAL PATHS TO EACH BIOME ===
         this.buildBiomePaths();
