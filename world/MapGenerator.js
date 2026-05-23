@@ -1674,7 +1674,7 @@ fillBoundaryGaps() {
             roofType = 'snow';
         } else if (biome === 'stone') {
             wallColor = 0x6b6b5a;
-            wallMatConfig = { color: COLOR.stone, color: 0x7a7a6a, roughness: 0.95 };
+            wallMatConfig = { color: 0x7a7a6a, roughness: 0.95 };
             roofH = 4 + Math.random() * 2;
             roofColor = 0x3d3d3d;
             roofType = 'flat';
