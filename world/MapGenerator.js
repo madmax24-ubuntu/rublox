@@ -4506,6 +4506,19 @@ fillBoundaryGaps() {
 
         towerGroup.position.set(x, 2, z);
         this.scene.add(towerGroup);
+
+        // Colliders for gate tower
+        this.colliders.push({
+            type: 'cylinder',
+            position: new THREE.Vector3(x, 8 + 2, z),
+            radius: 6,
+            height: 16
+        });
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(x, 22 + 2, z),
+            size: new THREE.Vector3(6, 6, 6)
+        });
     }
 
     buildStoneMaze() {
