@@ -2082,7 +2082,998 @@ fillBoundaryGaps() {
         this.houseSpots.push({ x, z, width: wallW, depth: wallD, height: wallH });
     }
 
- 
+    // === FOREST BIOME ELEMENTS ===
+
+    addTwoStoryHut(x, z, variant) {
+        const group = new THREE.Group();
+        const wallH = 3.5;
+        const floorH = 1.5; // height of floor separator
+        const w = 5;
+        const d = 5;
+
+        // Foundation / ground floor
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.9 });
+        const groundFloor = new THREE.Mesh(new THREE.BoxGeometry(w, 0.2, d), floorMat);
+        groundFloor.position.set(0, 0.1, 0);
+        groundFloor.receiveShadow = true;
+        group.add(groundFloor);
+
+        // Interior floor (second level)
+        const secondFloor = new THREE.Mesh(new THREE.BoxGeometry(w - 0.4, 0.15, d - 0.4), floorMat);
+        secondFloor.position.set(0, floorH, 0);
+        secondFloor.receiveShadow = true;
+        group.add(secondFloor);
+
+        // Walls (4 walls with door openings)
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x4a3728, roughness: 0.9 });
+        const wallThickness = 0.2;
+
+        // Front wall (with door gap)
+        for (let side = 0; side < 2; side++) {
+            const segW = (w / 2) - 0.8;
+            const segX = side === 0 ? -w / 2 : w / 2 - segW;
+            const wallGeo = new THREE.BoxGeometry(segW, wallH, wallThickness);
+            const wall = new THREE.Mesh(wallGeo, wallMat);
+            wall.position.set(segX + (side === 0 ? segW / 2 : -segW / 2), wallH / 2, d / 2);
+            wall.castShadow = true;
+            wall.receiveShadow = true;
+            group.add(wall);
+
+            const wall2 = new THREE.Mesh(wallGeo, wallMat);
+            wall2.position.set(segX + (side === 0 ? segW / 2 : -segW / 2), wallH / 2, -d / 2);
+            wall2.castShadow = true;
+            wall2.receiveShadow = true;
+            group.add(wall2);
+        }
+
+        // Side walls (full)
+        const sideWallGeo = new THREE.BoxGeometry(wallThickness, wallH, d);
+        const leftWall = new THREE.Mesh(sideWallGeo, wallMat);
+        leftWall.position.set(-w / 2, wallH / 2, 0);
+        leftWall.castShadow = true;
+        group.add(leftWall);
+        const rightWall = new THREE.Mesh(sideWallGeo, wallMat);
+        rightWall.position.set(w / 2, wallH / 2, 0);
+        rightWall.castShadow = true;
+        group.add(rightWall);
+
+        // Back wall (with small window)
+        const backWall = new THREE.Mesh(new THREE.BoxGeometry(w, wallH, wallThickness), wallMat);
+        backWall.position.set(0, wallH / 2, -d / 2);
+        backWall.castShadow = true;
+        backWall.receiveShadow = true;
+        group.add(backWall);
+
+        // Interior partition wall
+        const partitionGeo = new THREE.BoxGeometry(wallThickness, wallH, d / 2);
+        const partition = new THREE.Mesh(partitionGeo, wallMat);
+        partition.position.set(0, wallH / 2, -d / 4);
+        partition.castShadow = true;
+        group.add(partition);
+
+        // Second floor walls (smaller room on top)
+        const innerW = 3.5;
+        const innerD = 3.5;
+        const secondWallH = 3;
+        const swallMat = new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.85 });
+
+        const sfGeo = new THREE.BoxGeometry(innerW, secondWallH, wallThickness);
+        const sf1 = new THREE.Mesh(sfGeo, swallMat);
+        sf1.position.set(0, floorH + secondWallH / 2, innerD / 2);
+        sf1.castShadow = true;
+        group.add(sf1);
+        const sf2 = new THREE.Mesh(sfGeo, swallMat);
+        sf2.position.set(0, floorH + secondWallH / 2, -innerD / 2);
+        sf2.castShadow = true;
+        group.add(sf2);
+
+        const sf2Geo = new THREE.BoxGeometry(wallThickness, secondWallH, innerD);
+        const sf3 = new THREE.Mesh(sf2Geo, swallMat);
+        sf3.position.set(-innerW / 2, floorH + secondWallH / 2, 0);
+        sf3.castShadow = true;
+        group.add(sf3);
+        const sf4 = new THREE.Mesh(sf2Geo, swallMat);
+        sf4.position.set(innerW / 2, floorH + secondWallH / 2, 0);
+        sf4.castShadow = true;
+        group.add(sf4);
+
+        // Roof (cone style)
+        const roofGeo = new THREE.ConeGeometry(3.5, 2.5, 4);
+        const roofColors = [0x654321, 0x8b4513, 0xa0522d];
+        const roofMat = new THREE.MeshStandardMaterial({
+            color: roofColors[variant % roofColors.length],
+            roughness: 0.85
+        });
+        const roof = new THREE.Mesh(roofGeo, roofMat);
+        roof.position.set(0, floorH + secondWallH + 1.25, 0);
+        roof.rotation.y = Math.PI / 4;
+        roof.castShadow = true;
+        group.add(roof);
+
+        // Stairs (wooden ladder-style)
+        const stairMat = new THREE.MeshStandardMaterial({ color: 0x6b4423, roughness: 0.9 });
+        for (let s = 0; s < 8; s++) {
+            const stepGeo = new THREE.BoxGeometry(1.2, 0.08, 0.5);
+            const step = new THREE.Mesh(stepGeo, stairMat);
+            step.position.set(-w / 2 + 0.8, 0.3 + s * (floorH / 8), d / 2 + 0.3 - s * 0.4);
+            step.castShadow = true;
+            group.add(step);
+        }
+
+        // Interior furniture
+        // Table
+        const tableMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.85 });
+        const tableTop = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.08, 0.8), tableMat);
+        tableTop.position.set(1, 0.8, 1);
+        tableTop.castShadow = true;
+        group.add(tableTop);
+        for (let c = 0; c < 4; c++) {
+            const legGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.72, 4);
+            const leg = new THREE.Mesh(legGeo, tableMat);
+            leg.position.set(1 + (c < 2 ? -0.5 : 0.5), 0.36, 1 + (c % 2 === 0 ? -0.3 : 0.3));
+            group.add(leg);
+        }
+
+        // Chest
+        const chestGeo = new THREE.BoxGeometry(0.6, 0.5, 0.4);
+        const chest = new THREE.Mesh(chestGeo, new THREE.MeshStandardMaterial({ color: 0x8b6917, roughness: 0.9 }));
+        chest.position.set(-1, 0.25, -1);
+        chest.castShadow = true;
+        group.add(chest);
+
+        // Fireplace in ground floor
+        const fireplaceMat = new THREE.MeshStandardMaterial({ color: 0x4a4a4a, roughness: 0.95 });
+        const fpGeo = new THREE.BoxGeometry(0.8, 1.5, 0.4);
+        const fireplace = new THREE.Mesh(fpGeo, fireplaceMat);
+        fireplace.position.set(0, 0.75, -d / 2 + 0.3);
+        fireplace.castShadow = true;
+        group.add(fireplace);
+
+        // Fire particles (simple glowing block)
+        const fireMat = new THREE.MeshStandardMaterial({
+            color: 0xff6600,
+            emissive: 0xff4400,
+            emissiveIntensity: 0.5,
+            transparent: true,
+            opacity: 0.8
+        });
+        const fireBlock = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.3, 0.3), fireMat);
+        fireBlock.position.set(0, 0.25, -d / 2 + 0.3);
+        group.add(fireBlock);
+
+        group.position.set(x, 2, z);
+        this.scene.add(group);
+    }
+
+    addForestPlants(cx, cz) {
+        const plantMat = new THREE.MeshStandardMaterial({ color: 0x2d5a1e, roughness: 0.8 });
+        const bushMat = new THREE.MeshStandardMaterial({ color: 0x3a7a2e, roughness: 0.8 });
+        const flowerColors = [0xff4466, 0xffaa22, 0x44aaff, 0xff66cc, 0xffff44];
+
+        // Scatter plants in forest area
+        for (let i = 0; i < 60; i++) {
+            const px = cx + (Math.random() - 0.5) * 200;
+            const pz = cz + (Math.random() - 0.5) * 200;
+
+            const type = Math.floor(Math.random() * 3);
+
+            if (type === 0) {
+                // Fern (cone shape)
+                const fernGeo = new THREE.ConeGeometry(0.3 + Math.random() * 0.3, 0.8 + Math.random() * 0.5, 5);
+                const fern = new THREE.Mesh(fernGeo, plantMat);
+                fern.position.set(px, 0.4, pz);
+                fern.castShadow = true;
+                this.scene.add(fern);
+            } else if (type === 1) {
+                // Bush (sphere cluster)
+                const bushGroup = new THREE.Group();
+                const r = 0.3 + Math.random() * 0.4;
+                const bush = new THREE.Mesh(new THREE.SphereGeometry(r, 5, 4), bushMat);
+                bush.position.set(0, r, 0);
+                bushGroup.add(bush);
+                // Extra blob
+                const b2 = new THREE.Mesh(new THREE.SphereGeometry(r * 0.7, 5, 4), bushMat);
+                b2.position.set(r * 0.5, r * 0.8, r * 0.3);
+                bushGroup.add(b2);
+                bushGroup.position.set(px, 0, pz);
+                bushGroup.castShadow = true;
+                this.scene.add(bushGroup);
+            } else {
+                // Flowers
+                const stemGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.4, 3);
+                const stem = new THREE.Mesh(stemGeo, plantMat);
+                stem.position.set(px, 0.2, pz);
+                this.scene.add(stem);
+                const flowerHead = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.1, 4, 3),
+                    new THREE.MeshStandardMaterial({
+                        color: flowerColors[Math.floor(Math.random() * flowerColors.length)],
+                        roughness: 0.5
+                    })
+                );
+                flowerHead.position.set(px, 0.45, pz);
+                this.scene.add(flowerHead);
+            }
+        }
+    }
+
+    // === MILITARY BIOME ELEMENTS ===
+
+    addMilitaryElements(cx, cz) {
+        // Three-story damaged houses (2)
+        const housePositions = [
+            { x: cx - 60, z: cz - 60 },
+            { x: cx + 70, z: cz + 50 }
+        ];
+
+        housePositions.forEach((pos, idx) => {
+            const houseGroup = new THREE.Group();
+            const wallH = [5, 7, 9][idx]; // different heights
+            const wallW = 8;
+            const wallD = 8;
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0x6b6b5a, roughness: 0.95 });
+
+            // Floors (walkable)
+            for (let f = 0; f < 3; f++) {
+                const floorGeo = new THREE.BoxGeometry(wallW, 0.2, wallD);
+                const floorMat = new THREE.MeshStandardMaterial({ color: 0x5c5c4a, roughness: 0.9 });
+                const floor = new THREE.Mesh(floorGeo, floorMat);
+                floor.position.set(0, 1 + f * 3, 0);
+                floor.receiveShadow = true;
+                floor.castShadow = true;
+                houseGroup.add(floor);
+            }
+
+            // Damaged walls (some missing)
+            const floorCount = 3;
+            for (let f = 0; f < floorCount; f++) {
+                const baseY = 1 + f * 3;
+                const wallTopY = baseY + 3;
+
+                // Front wall (damaged - gap)
+                for (let wx = -3; wx <= 3; wx++) {
+                    if (wx === 0 && idx === 0) continue; // gap for door
+                    const height = (wx === 3 && idx === 0) ? 1.5 : 3; // damaged top-right
+                    const wGeo = new THREE.BoxGeometry(1, height, 0.2);
+                    const wall = new THREE.Mesh(wGeo, wallMat);
+                    wall.position.set(wx * 1.1, baseY + height / 2, wallD / 2);
+                    wall.castShadow = true;
+                    houseGroup.add(wall);
+                }
+
+                // Back wall (full)
+                const backWall = new THREE.Mesh(new THREE.BoxGeometry(wallW, 3, 0.2), wallMat);
+                backWall.position.set(0, baseY + 1.5, -wallD / 2);
+                backWall.castShadow = true;
+                houseGroup.add(backWall);
+
+                // Side walls
+                const sideWall = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, wallD), wallMat);
+                sideWall.position.set(-wallW / 2, baseY + 1.5, 0);
+                sideWall.castShadow = true;
+                houseGroup.add(sideWall);
+                const sideWall2 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 3, wallD), wallMat);
+                sideWall2.position.set(wallW / 2, baseY + 1.5, 0);
+                sideWall2.castShadow = true;
+                houseGroup.add(sideWall2);
+            }
+
+            // Stairs (exposed, zig-zag)
+            const stairMat = new THREE.MeshStandardMaterial({ color: 0x4a4a3a, roughness: 0.9 });
+            for (let floor = 0; floor < 2; floor++) {
+                for (let s = 0; s < 10; s++) {
+                    const stepGeo = new THREE.BoxGeometry(2, 0.15, 0.5);
+                    const step = new THREE.Mesh(stepGeo, stairMat);
+                    const angle = s % 5 < 3 ? 0 : Math.PI / 2;
+                    step.position.set(
+                        -wallW / 2 + 1 + (angle === 0 ? s * 0.15 : 0),
+                        1 + (floor + 1) * 3 + (s % 5) * 0.3,
+                        wallD / 2 - 1 + (angle === Math.PI / 2 ? s * 0.15 : 0)
+                    );
+                    step.rotation.y = angle;
+                    step.castShadow = true;
+                    houseGroup.add(step);
+                }
+            }
+
+            // Roof (partially destroyed)
+            const roofMat = new THREE.MeshStandardMaterial({ color: 0x3d3d3d, roughness: 0.95 });
+            const roofGeo = new THREE.ConeGeometry(6, 2, 4);
+            const roof = new THREE.Mesh(roofGeo, roofMat);
+            roof.position.set(0, 10, 0);
+            roof.rotation.y = Math.PI / 4;
+            roof.castShadow = true;
+            houseGroup.add(roof);
+
+            houseGroup.position.set(pos.x, 2, pos.z);
+            this.scene.add(houseGroup);
+        });
+
+        // Tanks (2)
+        for (let t = 0; t < 2; t++) {
+            const tankGroup = new THREE.Group();
+            const tankMat = new THREE.MeshStandardMaterial({ color: 0x4a5a3a, roughness: 0.85 });
+
+            // Body
+            const body = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.8, 3.5), tankMat);
+            body.position.set(0, 0.8, 0);
+            body.castShadow = true;
+            tankGroup.add(body);
+
+            // Turret
+            const turret = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.6, 2), tankMat);
+            turret.position.set(0, 1.5, 0);
+            turret.castShadow = true;
+            tankGroup.add(turret);
+
+            // Cannon
+            const cannonGeo = new THREE.CylinderGeometry(0.12, 0.15, 3, 6);
+            const cannon = new THREE.Mesh(cannonGeo, new THREE.MeshStandardMaterial({ color: 0x3a4a2a, metalness: 0.5 }));
+            cannon.rotation.x = Math.PI / 2;
+            cannon.position.set(0, 1.5, 2.5);
+            tankGroup.add(cannon);
+
+            // Tracks
+            for (let side = -1; side <= 1; side += 2) {
+                const track = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.4, 0.6, 3.5),
+                    new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.9 })
+                );
+                track.position.set(side * 1.4, 0.5, 0);
+                track.castShadow = true;
+                tankGroup.add(track);
+            }
+
+            // Barrel/debris
+            for (let d = 0; d < 3; d++) {
+                const barrel = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.3, 0.3, 0.8, 6),
+                    new THREE.MeshStandardMaterial({ color: 0x3a4a3a, roughness: 0.8 })
+                );
+                barrel.position.set(3 + d * 0.8, 0.4, (Math.random() - 0.5) * 2);
+                barrel.rotation.z = Math.PI / 2;
+                barrel.castShadow = true;
+                tankGroup.add(barrel);
+            }
+
+            const tx = cx + (t === 0 ? -30 : 40);
+            const tz = cz + (t === 0 ? 30 : -40);
+            tankGroup.position.set(tx, 2, tz);
+            tankGroup.rotation.y = Math.random() * Math.PI * 2;
+            this.scene.add(tankGroup);
+        }
+
+        // Barbed wire fences
+        const wireMat = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.5 });
+        for (let f = 0; f < 5; f++) {
+            const fenceGroup = new THREE.Group();
+            const fenceLen = 6 + Math.floor(Math.random() * 6);
+            const startX = cx - 80 + f * 35;
+            const startZ = cz + (Math.random() - 0.5) * 100;
+
+            // Posts
+            for (let p = 0; p <= fenceLen; p += 2) {
+                const post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.5, 3), wireMat);
+                post.position.set(startX + p * 0.5, 0.75, startZ);
+                post.castShadow = true;
+                fenceGroup.add(post);
+            }
+
+            // Barbed wire strands
+            for (let w = 0; w < 3; w++) {
+                const wirePoints = [];
+                for (let i = 0; i <= fenceLen * 2; i++) {
+                    wirePoints.push(new THREE.Vector3(
+                        startX + i * 0.5,
+                        1.3 + w * 0.15 + Math.sin(i * 0.5) * 0.1,
+                        startZ
+                    ));
+                }
+                const wireGeo = new THREE.TubeGeometry(
+                    new THREE.CatmullRomCurve3(wirePoints), 20, 0.02, 3, false
+                );
+                const wire = new THREE.Mesh(wireGeo, wireMat);
+                fenceGroup.add(wire);
+            }
+
+            this.scene.add(fenceGroup);
+        }
+
+        // Debris / rubble scattered around
+        const debrisMat = new THREE.MeshStandardMaterial({ color: 0x5a5a4a, roughness: 0.95 });
+        for (let d = 0; d < 40; d++) {
+            const size = 0.2 + Math.random() * 0.8;
+            const debrisGeo = new THREE.BoxGeometry(size, size * 0.5, size * (0.5 + Math.random()));
+            const debris = new THREE.Mesh(debrisGeo, debrisMat);
+            debris.position.set(
+                cx + (Math.random() - 0.5) * 160,
+                size * 0.25,
+                cz + (Math.random() - 0.5) * 160
+            );
+            debris.rotation.set(Math.random(), Math.random(), Math.random());
+            debris.castShadow = true;
+            debris.receiveShadow = true;
+            this.scene.add(debris);
+        }
+
+        // Projectile shells scattered
+        const shellMat = new THREE.MeshStandardMaterial({ color: 0x4a5a3a, metalness: 0.6 });
+        for (let s = 0; s < 15; s++) {
+            const shellGroup = new THREE.Group();
+            // Shell body
+            const shellBody = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.08, 0.08, 0.5, 6),
+                shellMat
+            );
+            shellBody.rotation.x = Math.PI / 2;
+            shellGroup.add(shellBody);
+            // Tip
+            const tip = new THREE.Mesh(
+                new THREE.ConeGeometry(0.08, 0.15, 6),
+                shellMat
+            );
+            tip.rotation.x = -Math.PI / 2;
+            tip.position.z = -0.3;
+            shellGroup.add(tip);
+
+            shellGroup.position.set(
+                cx + (Math.random() - 0.5) * 120,
+                0.1,
+                cz + (Math.random() - 0.5) * 120
+            );
+            shellGroup.rotation.set(Math.random(), Math.random(), Math.random());
+            this.scene.add(shellGroup);
+        }
+    }
+
+    // === STONE/INDUSTRIAL BIOME: MAZE + TOWERS ===
+
+    addMazeAndTowers(mazeX, mazeZ) {
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x6b6b6b, roughness: 0.95 });
+        const wallH = 5;
+        const wallThick = 0.8;
+
+        // Maze walls (simple grid-based)
+        const mazeSize = 12; // 12x12 grid
+        const cellSize = 3;
+        const maze = [];
+
+        // Generate maze pattern
+        for (let y = 0; y < mazeSize; y++) {
+            maze[y] = [];
+            for (let x = 0; x < mazeSize; x++) {
+                maze[y][x] = (Math.random() < 0.3 && !(x === 0 && y === 0)) ? 1 : 0;
+            }
+        }
+
+        // Ensure border walls
+        for (let i = 0; i < mazeSize; i++) {
+            maze[0][i] = 1;
+            maze[mazeSize - 1][i] = 1;
+            maze[i][0] = 1;
+            maze[i][mazeSize - 1] = 1;
+        }
+
+        // Place maze walls
+        const wallGroup = new THREE.Group();
+        for (let y = 0; y < mazeSize; y++) {
+            for (let x = 0; x < mazeSize; x++) {
+                if (maze[y][x] === 1) {
+                    const wallGeo = new THREE.BoxGeometry(cellSize, wallH, cellSize);
+                    const wall = new THREE.Mesh(wallGeo, wallMat);
+                    wall.position.set(
+                        mazeX + (x - mazeSize / 2) * cellSize,
+                        wallH / 2,
+                        mazeZ + (y - mazeSize / 2) * cellSize
+                    );
+                    wall.castShadow = true;
+                    wall.receiveShadow = true;
+                    wallGroup.add(wall);
+                }
+            }
+        }
+        this.scene.add(wallGroup);
+
+        // Maze entrance path (cleared area)
+        const pathMat = new THREE.MeshStandardMaterial({ color: 0x7a7a6a, roughness: 0.95 });
+        for (let p = 0; p < mazeSize; p++) {
+            if (maze[p] && maze[p][0] === 0) {
+                const pathGeo = new THREE.BoxGeometry(cellSize, 0.05, cellSize * 3);
+                const path = new THREE.Mesh(pathGeo, pathMat);
+                path.position.set(
+                    mazeX + (p - mazeSize / 2) * cellSize,
+                    0.03,
+                    mazeZ + (mazeSize / 2 - 1) * cellSize
+                );
+                path.receiveShadow = true;
+                this.scene.add(path);
+            }
+        }
+
+        // 2 Towers (20+ units tall)
+        const towerPositions = [
+            { x: mazeX - 15, z: mazeZ - 15 },
+            { x: mazeX + 15, z: mazeZ + 15 }
+        ];
+
+        towerPositions.forEach((pos, idx) => {
+            const towerGroup = new THREE.Group();
+            const towerH = 22 + idx * 3;
+            const towerW = 4;
+
+            // Tower body
+            const towerBody = new THREE.Mesh(
+                new THREE.BoxGeometry(towerW, towerH, towerW),
+                wallMat
+            );
+            towerBody.position.set(0, towerH / 2, 0);
+            towerBody.castShadow = true;
+            towerBody.receiveShadow = true;
+            towerGroup.add(towerBody);
+
+            // Top platform
+            const platformGeo = new THREE.BoxGeometry(towerW + 1, 0.3, towerW + 1);
+            const platform = new THREE.Mesh(platformGeo, wallMat);
+            platform.position.set(0, towerH + 0.15, 0);
+            platform.castShadow = true;
+            towerGroup.add(platform);
+
+            // Battlements
+            for (let b = 0; b < 4; b++) {
+                const battlement = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.8, 1.2, 0.5),
+                    wallMat
+                );
+                const angle = (b / 4) * Math.PI * 2;
+                battlement.position.set(
+                    Math.cos(angle) * (towerW / 2 + 0.3),
+                    towerH + 0.9,
+                    Math.sin(angle) * (towerW / 2 + 0.3)
+                );
+                battlement.castShadow = true;
+                towerGroup.add(battlement);
+            }
+
+            // Spiral staircase inside (visible from outside)
+            const spiralMat = new THREE.MeshStandardMaterial({ color: 0x5a5a4a, roughness: 0.9 });
+            const stepsPerFloor = 16;
+            const totalFloors = Math.floor(towerH / 3);
+            for (let f = 0; f < totalFloors; f++) {
+                for (let s = 0; s < stepsPerFloor; s++) {
+                    const angle = (s / stepsPerFloor) * Math.PI * 2;
+                    const stepGeo = new THREE.BoxGeometry(0.6, 0.15, 0.35);
+                    const step = new THREE.Mesh(stepGeo, spiralMat);
+                    step.position.set(
+                        Math.cos(angle) * 1.2,
+                        0.5 + f * 3 + (s / stepsPerFloor) * 3,
+                        Math.sin(angle) * 1.2
+                    );
+                    step.rotation.y = -angle;
+                    step.castShadow = true;
+                    towerGroup.add(step);
+                }
+            }
+
+            // Center pole for spiral
+            const poleGeo = new THREE.CylinderGeometry(0.1, 0.1, towerH, 6);
+            const pole = new THREE.Mesh(poleGeo, spiralMat);
+            pole.position.set(0, towerH / 2, 0);
+            towerGroup.add(pole);
+
+            towerGroup.position.set(pos.x, 2, pos.z);
+            this.scene.add(towerGroup);
+        });
+    }
+
+    // === SNOW BIOME ELEMENTS ===
+
+    addSnowElements(cx, cz) {
+        // Winter huts with fireplaces (3)
+        const hutPositions = [
+            { x: cx - 40, z: cz - 40 },
+            { x: cx + 30, z: cz + 50 },
+            { x: cx - 20, z: cz + 60 }
+        ];
+
+        hutPositions.forEach((pos, idx) => {
+            const hutGroup = new THREE.Group();
+            const hutW = 4;
+            const hutD = 4;
+            const hutH = 3.5;
+
+            // Floor (snow wood)
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0xc2b280, roughness: 0.9 });
+            const floor = new THREE.Mesh(new THREE.BoxGeometry(hutW, 0.2, hutD), floorMat);
+            floor.position.set(0, 0.1, 0);
+            floor.receiveShadow = true;
+            hutGroup.add(floor);
+
+            // Walls
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0x8b7355, roughness: 0.9 });
+            const wallThick = 0.2;
+
+            // Front wall (with door)
+            for (let side = 0; side < 2; side++) {
+                const segW = (hutW / 2) - 0.6;
+                const wallGeo = new THREE.BoxGeometry(segW, hutH, wallThick);
+                const wall = new THREE.Mesh(wallGeo, wallMat);
+                const xPos = side === 0 ? -hutW / 2 + segW / 2 : hutW / 2 - segW / 2;
+                wall.position.set(xPos, hutH / 2, hutD / 2);
+                wall.castShadow = true;
+                hutGroup.add(wall);
+            }
+
+            // Side walls
+            const sideWallGeo = new THREE.BoxGeometry(wallThick, hutH, hutD);
+            const leftWall = new THREE.Mesh(sideWallGeo, wallMat);
+            leftWall.position.set(-hutW / 2, hutH / 2, 0);
+            leftWall.castShadow = true;
+            hutGroup.add(leftWall);
+            const rightWall = new THREE.Mesh(sideWallGeo, wallMat);
+            rightWall.position.set(hutW / 2, hutH / 2, 0);
+            rightWall.castShadow = true;
+            hutGroup.add(rightWall);
+
+            // Back wall
+            const backWall = new THREE.Mesh(new THREE.BoxGeometry(hutW, hutH, wallThick), wallMat);
+            backWall.position.set(0, hutH / 2, -hutD / 2);
+            backWall.castShadow = true;
+            hutGroup.add(backWall);
+
+            // Snow roof
+            const roofMat = new THREE.MeshStandardMaterial({ color: 0xe8e8e8, roughness: 0.8 });
+            const roofGeo = new THREE.ConeGeometry(3.5, 2.5, 4);
+            const roof = new THREE.Mesh(roofGeo, roofMat);
+            roof.position.set(0, hutH + 1.25, 0);
+            roof.rotation.y = Math.PI / 4;
+            roof.castShadow = true;
+            hutGroup.add(roof);
+
+            // Fireplace (exterior wall attached)
+            const fpMat = new THREE.MeshStandardMaterial({ color: 0x4a4a4a, roughness: 0.95 });
+            const fpBody = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2, 0.5), fpMat);
+            fpBody.position.set(0, 1, hutD / 2 + 0.25);
+            fpBody.castShadow = true;
+            hutGroup.add(fpBody);
+
+            // Chimney
+            const chimney = new THREE.Mesh(
+                new THREE.BoxGeometry(0.5, 2, 0.5),
+                fpMat
+            );
+            chimney.position.set(0.3, 3.5, hutD / 2 + 0.25);
+            chimney.castShadow = true;
+            hutGroup.add(chimney);
+
+            // Fire (glowing)
+            const fireMat = new THREE.MeshStandardMaterial({
+                color: 0xff6600,
+                emissive: 0xff4400,
+                emissiveIntensity: 0.8,
+                transparent: true,
+                opacity: 0.85
+            });
+            const fire = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.4, 0.3), fireMat);
+            fire.position.set(0, 0.35, hutD / 2 + 0.25);
+            hutGroup.add(fire);
+
+            // Fire light (point light)
+            const fireLight = new THREE.PointLight(0xff6600, 3, 10);
+            fireLight.position.set(0, 1, hutD / 2 + 0.5);
+            hutGroup.add(fireLight);
+
+            hutGroup.position.set(pos.x, 2, pos.z);
+            this.scene.add(hutGroup);
+        });
+
+        // Snow trees (20+)
+        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.9 });
+        const snowLeafMat = new THREE.MeshStandardMaterial({ color: 0xe8e8e8, roughness: 0.7 });
+
+        for (let t = 0; t < 25; t++) {
+            const treeGroup = new THREE.Group();
+            const treeH = 3 + Math.random() * 3;
+
+            // Trunk
+            const trunk = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.15, 0.25, treeH * 0.4, 5),
+                trunkMat
+            );
+            trunk.position.set(0, treeH * 0.2, 0);
+            trunk.castShadow = true;
+            treeGroup.add(trunk);
+
+            // Snow layers (cone shapes)
+            for (let l = 0; l < 3; l++) {
+                const layerGeo = new THREE.ConeGeometry(1.2 - l * 0.3, 1.5, 6);
+                const layer = new THREE.Mesh(layerGeo, snowLeafMat);
+                layer.position.set(0, treeH * 0.4 + l * 1.2, 0);
+                layer.castShadow = true;
+                treeGroup.add(layer);
+            }
+
+            const tx = cx + (Math.random() - 0.5) * 160;
+            const tz = cz + (Math.random() - 0.5) * 160;
+            treeGroup.position.set(tx, 2, tz);
+            this.scene.add(treeGroup);
+        }
+
+        // Large pond
+        const pondGroup = new THREE.Group();
+        const pondMat = new THREE.MeshStandardMaterial({
+            color: 0x1e78b4,
+            transparent: true,
+            opacity: 0.7,
+            roughness: 0.05,
+            metalness: 0.2
+        });
+
+        // Pond base (ice layer)
+        const pondBase = new THREE.Mesh(
+            new THREE.CircleGeometry(12, 12),
+            new THREE.MeshStandardMaterial({ color: 0x87ceeb, roughness: 0.3, metalness: 0.1 })
+        );
+        pondBase.rotation.x = -Math.PI / 2;
+        pondBase.position.set(0, 0.05, 0);
+        pondBase.receiveShadow = true;
+        pondGroup.add(pondBase);
+
+        // Water surface
+        const water = new THREE.Mesh(
+            new THREE.CircleGeometry(10, 12),
+            pondMat
+        );
+        water.rotation.x = -Math.PI / 2;
+        water.position.set(0, 0.15, 0);
+        pondGroup.add(water);
+
+        // Pond edge rocks
+        const rockMat = new THREE.MeshStandardMaterial({ color: 0x7a7a7a, roughness: 0.9 });
+        for (let r = 0; r < 20; r++) {
+            const angle = (r / 20) * Math.PI * 2;
+            const rock = new THREE.Mesh(
+                new THREE.SphereGeometry(0.3 + Math.random() * 0.4, 4, 3),
+                rockMat
+            );
+            rock.position.set(
+                Math.cos(angle) * (11 + Math.random() * 2),
+                0.2,
+                Math.sin(angle) * (11 + Math.random() * 2)
+            );
+            rock.scale.y = 0.5;
+            rock.castShadow = true;
+            pondGroup.add(rock);
+        }
+
+        pondGroup.position.set(cx + 40, 2, cz - 30);
+        this.scene.add(pondGroup);
+
+        // Icicles hanging from structures
+        const icicleMat = new THREE.MeshStandardMaterial({
+            color: 0xaaddff,
+            transparent: true,
+            opacity: 0.7,
+            roughness: 0.1,
+            metalness: 0.1
+        });
+
+        for (let i = 0; i < 30; i++) {
+            const icicleGeo = new THREE.ConeGeometry(0.08, 0.5 + Math.random() * 0.8, 5);
+            const icicle = new THREE.Mesh(icicleGeo, icicleMat);
+            icicle.position.set(
+                cx + (Math.random() - 0.5) * 140,
+                1 + Math.random() * 3,
+                cz + (Math.random() - 0.5) * 140
+            );
+            icicle.rotation.z = (Math.random() - 0.5) * 0.2;
+            this.scene.add(icicle);
+        }
+    }
+
+    // === CENTER PLATFORM + FOUNTAIN + FIRE TILES ===
+
+    buildCenterPlatform() {
+        const platRadius = 40;
+        const platH = 1.5;
+
+        // Main circular platform
+        const platGeo = new THREE.CylinderGeometry(platRadius, platRadius, platH, 24);
+        const platMat = new THREE.MeshStandardMaterial({ color: 0xd4c4a8, roughness: 0.8 });
+        const platform = new THREE.Mesh(platGeo, platMat);
+        platform.position.set(0, platH / 2, 0);
+        platform.receiveShadow = true;
+        platform.castShadow = true;
+        this.scene.add(platform);
+
+        // Fountain (stone)
+        const fountainGroup = new THREE.Group();
+        const stoneMat = new THREE.MeshStandardMaterial({ color: 0x8c8c8c, roughness: 0.7, metalness: 0.1 });
+
+        // Fountain base
+        const base = new THREE.Mesh(
+            new THREE.CylinderGeometry(4, 5, 1, 12),
+            stoneMat
+        );
+        base.position.set(0, 0.5, 0);
+        base.castShadow = true;
+        fountainGroup.add(base);
+
+        // Fountain basin
+        const basin = new THREE.Mesh(
+            new THREE.TorusGeometry(3, 0.8, 8, 16),
+            stoneMat
+        );
+        basin.position.set(0, 1.5, 0);
+        basin.rotation.x = Math.PI / 2;
+        basin.castShadow = true;
+        fountainGroup.add(basin);
+
+        // Fountain center pillar
+        const pillar = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.5, 0.7, 3, 8),
+            stoneMat
+        );
+        pillar.position.set(0, 2.5, 0);
+        pillar.castShadow = true;
+        fountainGroup.add(pillar);
+
+        // Top ornament
+        const topOrnament = new THREE.Mesh(
+            new THREE.SphereGeometry(0.6, 8, 6),
+            new THREE.MeshStandardMaterial({ color: 0xc2b280, roughness: 0.3, metalness: 0.4 })
+        );
+        topOrnament.position.set(0, 4.2, 0);
+        topOrnament.castShadow = true;
+        fountainGroup.add(topOrnament);
+
+        // Water in fountain
+        const waterMat = new THREE.MeshStandardMaterial({
+            color: 0x4fc3ff,
+            transparent: true,
+            opacity: 0.6,
+            roughness: 0.05,
+            metalness: 0.15
+        });
+        const waterSurface = new THREE.Mesh(
+            new THREE.CylinderGeometry(2.8, 2.8, 0.1, 12),
+            waterMat
+        );
+        waterSurface.position.set(0, 1.6, 0);
+        fountainGroup.add(waterSurface);
+
+        this.scene.add(fountainGroup);
+
+        // 100 fire-colored tiles arranged in pattern
+        const fireColors = [0xff4400, 0xff6600, 0xff8800, 0xffaa00, 0xffcc00, 0xff2200];
+        const tileMat = new THREE.MeshStandardMaterial({
+            color: 0x3a3a3a,
+            roughness: 0.9
+        });
+
+        // Arrange in concentric circles
+        let tileCount = 0;
+        for (let ring = 0; ring < 4 && tileCount < 100; ring++) {
+            const radius = 8 + ring * 8;
+            const tilesInRing = Math.min(25, Math.floor(100 - tileCount));
+            for (let t = 0; t < tilesInRing; t++) {
+                const angle = (t / tilesInRing) * Math.PI * 2;
+                const tileGroup = new THREE.Group();
+
+                // Tile base
+                const tile = new THREE.Mesh(
+                    new THREE.BoxGeometry(1.2, 0.1, 1.2),
+                    tileMat
+                );
+                tile.position.set(0, 0.05, 0);
+                tile.receiveShadow = true;
+                tileGroup.add(tile);
+
+                // Fire glow on tile
+                const fireTile = new THREE.Mesh(
+                    new THREE.BoxGeometry(1, 0.05, 1),
+                    new THREE.MeshStandardMaterial({
+                        color: fireColors[tileCount % fireColors.length],
+                        emissive: fireColors[tileCount % fireColors.length],
+                        emissiveIntensity: 0.3 + Math.random() * 0.4,
+                        transparent: true,
+                        opacity: 0.8
+                    })
+                );
+                fireTile.position.set(0, 0.12, 0);
+                tileGroup.add(fireTile);
+
+                tileGroup.position.set(
+                    Math.cos(angle) * radius,
+                    platH + 0.05,
+                    Math.sin(angle) * radius
+                );
+                tileGroup.rotation.y = -angle;
+                this.scene.add(tileGroup);
+                tileCount++;
+            }
+        }
+
+        // Beige ornamental patterns around center
+        const beigeMat = new THREE.MeshStandardMaterial({ color: 0xd4b896, roughness: 0.6, metalness: 0.2 });
+
+        // Decorative ring
+        for (let i = 0; i < 24; i++) {
+            const angle = (i / 24) * Math.PI * 2;
+            const ornament = new THREE.Mesh(
+                new THREE.BoxGeometry(0.3, 0.15, 0.3),
+                beigeMat
+            );
+            ornament.position.set(
+                Math.cos(angle) * 6,
+                platH + 0.1,
+                Math.sin(angle) * 6
+            );
+            ornament.rotation.y = angle;
+            ornament.castShadow = true;
+            this.scene.add(ornament);
+        }
+
+        // Inner decorative circle
+        for (let i = 0; i < 16; i++) {
+            const angle = (i / 16) * Math.PI * 2;
+            const gem = new THREE.Mesh(
+                new THREE.SphereGeometry(0.15, 4, 3),
+                new THREE.MeshStandardMaterial({
+                    color: [0xff4444, 0x44ff44, 0x4444ff, 0xffff44][i % 4],
+                    roughness: 0.2,
+                    metalness: 0.5
+                })
+            );
+            gem.position.set(
+                Math.cos(angle) * 3,
+                platH + 0.2,
+                Math.sin(angle) * 3
+            );
+            this.scene.add(gem);
+        }
+    }
+
+    // === BOUNDARY WALLS ===
+
+    addBoundaryWalls() {
+        const wallH = 6;
+        const wallThick = 1;
+        const halfMap = 256;
+        const boundaryMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.95 });
+
+        // 4 walls forming a square
+        const wallConfigs = [
+            { w: halfMap * 2 + wallThick, d: wallThick, x: 0, z: -halfMap },
+            { w: halfMap * 2 + wallThick, d: wallThick, x: 0, z: halfMap },
+            { w: wallThick, d: halfMap * 2, x: -halfMap, z: 0 },
+            { w: wallThick, d: halfMap * 2, x: halfMap, z: 0 }
+        ];
+
+        wallConfigs.forEach(config => {
+            const wallGeo = new THREE.BoxGeometry(config.w, wallH, config.d);
+            const wall = new THREE.Mesh(wallGeo, boundaryMat);
+            wall.position.set(config.x, wallH / 2, config.z);
+            wall.castShadow = true;
+            wall.receiveShadow = true;
+            this.scene.add(wall);
+        });
+
+        // Wall cap / top edge highlight
+        const capMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.9, metalness: 0.1 });
+
+        wallConfigs.forEach(config => {
+            const capGeo = new THREE.BoxGeometry(
+                config.w + 0.2,
+                0.3,
+                config.d + 0.2
+            );
+            const cap = new THREE.Mesh(capGeo, capMat);
+            cap.position.set(config.x, wallH + 0.15, config.z);
+            cap.castShadow = true;
+            this.scene.add(cap);
+        });
+    }
+
     buildForestRiver() {
         const segments = 20;
 
