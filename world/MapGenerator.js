@@ -4443,6 +4443,13 @@ fillBoundaryGaps() {
             wall.receiveShadow = true;
             this.scene.add(wall);
 
+            // Collider for wall
+            this.colliders.push({
+                type: 'box',
+                position: new THREE.Vector3(wp.x, wp.h / 2 + 2, wp.z),
+                size: new THREE.Vector3(wp.w, wp.h, wp.d)
+            });
+
             // Battlements on top
             const count = Math.floor(wp.w / 4);
             for (let i = 0; i < count; i++) {
