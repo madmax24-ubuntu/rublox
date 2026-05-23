@@ -4697,6 +4697,27 @@ fillBoundaryGaps() {
 
         // Watchtower
         this.addWatchtower(-184, 174);
+
+        // Three-story damaged houses with walkable floors
+        this.addThreeStoryDamagedHouse(-224, 168);
+        this.addThreeStoryDamagedHouse(-142, 194);
+
+        // Extra debris and rubble
+        const debrisMat = new THREE.MeshStandardMaterial({ color: 0x5a5a4a, roughness: 0.95 });
+        for (let d = 0; d < 30; d++) {
+            const size = 0.2 + Math.random() * 0.8;
+            const debrisGeo = new THREE.BoxGeometry(size, size * 0.5, size * (0.5 + Math.random()));
+            const debris = new THREE.Mesh(debrisGeo, debrisMat);
+            debris.position.set(
+                -75 + (Math.random() - 0.5) * 140,
+                size * 0.25,
+                75 + (Math.random() - 0.5) * 140
+            );
+            debris.rotation.set(Math.random(), Math.random(), Math.random());
+            debris.castShadow = true;
+            debris.receiveShadow = true;
+            this.scene.add(debris);
+        }
     }
 
     addSandbagWalls(ox, oz) {
