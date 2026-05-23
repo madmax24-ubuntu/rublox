@@ -1268,25 +1268,23 @@ fillBoundaryGaps() {
     }
 
    fillDiagonalGround() {
-        // Fill 4 diagonal corners: NE, NW, SE, SW
-const gapConfigs = [
-            { cx: -110, cz: -110, w: 100, h: 100, matKey: 'forestGround', y: 1.56 },     // NW
-            { cx: 110, cz: -110, w: 100, h: 100, matKey: 'stoneGround', y: 1.56 },     // NE
-            { cx: -110, cz: 110, w: 100, h: 100, matKey: 'militaryGround', y: 1.56 },     // SW
-            { cx: 110, cz: 110, w: 100, h: 100, matKey: 'snowGround', y: 1.56 },     // SE
+        // Fill 4 diagonal corners with biome-specific ground
+        const gapConfigs = [
+            { cx: -110, cz: -110, w: 100, h: 100, matKey: 'forestGround', color: 0x4a7a2e },
+            { cx: 110, cz: -110, w: 100, h: 100, matKey: 'stoneGround', color: 0x8a8a7a },
+            { cx: -110, cz: 110, w: 100, h: 100, matKey: 'militaryGround', color: 0x7a6a4e },
+            { cx: 110, cz: 110, w: 100, h: 100, matKey: 'snowGround', color: 0xe8e8f0 },
         ];
 
         gapConfigs.forEach(cfg => {
             const tex = this.textures[cfg.matKey];
-            if (!tex) return;
             const groundGeo = new THREE.PlaneGeometry(cfg.w, cfg.h, 32, 32);
-            const groundMat = new THREE.MeshStandardMaterial({
-                map: tex, roughness: 0.95, flatShading: false
-            });
+            const groundMat = tex
+                ? new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95, flatShading: false })
+                : new THREE.MeshStandardMaterial({ color: cfg.color, roughness: 0.95, flatShading: false });
             const ground = new THREE.Mesh(groundGeo, groundMat);
             ground.rotation.x = -Math.PI / 2;
-            ground.position.set(cfg.cx, cfg.y, cfg.cz);
-
+            ground.position.set(cfg.cx, 1.55, cfg.cz);
             ground.receiveShadow = true;
             this.scene.add(ground);
         });
