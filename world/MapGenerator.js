@@ -3384,7 +3384,7 @@ fillBoundaryGaps() {
             bridgeGroup.add(rail);
         }
 
-        bridgeGgroup.position.set(x, 2, z);
+        bridgeGroup.position.set(x, 2, z);
         this.scene.add(bridgeGroup);
     }
 
