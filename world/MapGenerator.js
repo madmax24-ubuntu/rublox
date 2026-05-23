@@ -2089,11 +2089,8 @@ fillBoundaryGaps() {
  
     buildForestRiver() {
         const segments = 20;
-        const waterTex = this.textures.water;
-        waterTex.repeat.set(4, 1);
 
         const waterMat = new THREE.MeshStandardMaterial({
-            map: waterTex,
             color: 0x4fc3ff,
             transparent: true,
             opacity: 0.7,
