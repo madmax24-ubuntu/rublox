@@ -523,14 +523,10 @@ export class MapGenerator {
     async buildCenterPlatform() {
         const radius = 56;
 
-        // Flat circular platform at ground level (same Y as biome ground)
+        // Flat circular platform at ground level — solid color (no texture needed at this scale)
         const platGeo = new THREE.CylinderGeometry(radius, radius, 0.4, 32);
-        const platTex = TextureGenerator.createTerrainTexture(512, 512, 0xc9b99a,
-            (n) => ({ r: n * 25, g: n * 20, b: n * 15 }),
-          this.noise, { scale: 20, sharpenAmount: 0.3 }
-        );
         const platMat = new THREE.MeshStandardMaterial({
-            map: platTex, roughness: 0.8, flatShading: false
+            color: 0xc9b99a, roughness: 0.8
         });
         const platform = new THREE.Mesh(platGeo, platMat);
         platform.position.set(0, 1.4, 0);
