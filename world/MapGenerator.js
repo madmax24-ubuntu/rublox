@@ -587,16 +587,16 @@ export class MapGenerator {
         const swMat = biomeGroundMats.military;
         const seMat = biomeGroundMats.snow;
         // NW quadrant (between NW biome and center)
-        let g = new THREE.Mesh(new THREE.PlaneGeometry(64, 64, 32, 32), nwMat.clone());
+        let g = new THREE.Mesh(new THREE.PlaneGeometry(64, 64, 16, 16), nwMat.clone());
         g.rotation.x = -Math.PI / 2; g.position.set(-88, 1.55, -88); g.receiveShadow = true; this.scene.add(g);
         // NE quadrant
-        g = new THREE.Mesh(new THREE.PlaneGeometry(64, 64, 32, 32), neMat.clone());
+        g = new THREE.Mesh(new THREE.PlaneGeometry(64, 64, 16, 16), neMat.clone());
         g.rotation.x = -Math.PI / 2; g.position.set(88, 1.55, -88); g.receiveShadow = true; this.scene.add(g);
         // SW quadrant
-        g = new THREE.Mesh(new THREE.PlaneGeometry(64, 64, 32, 32), swMat.clone());
+        g = new THREE.Mesh(new THREE.PlaneGeometry(64, 64, 16, 16), swMat.clone());
         g.rotation.x = -Math.PI / 2; g.position.set(-88, 1.55, 88); g.receiveShadow = true; this.scene.add(g);
         // SE quadrant
-        g = new THREE.Mesh(new THREE.PlaneGeometry(64, 64, 32, 32), seMat.clone());
+        g = new THREE.Mesh(new THREE.PlaneGeometry(64, 64, 16, 16), seMat.clone());
         g.rotation.x = -Math.PI / 2; g.position.set(88, 1.55, 88); g.receiveShadow = true; this.scene.add(g);
         // Inner ring patches (r=56 to r=62) — fills the gap right next to platform
         const ringSegments = 16;
