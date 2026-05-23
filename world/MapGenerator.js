@@ -4025,7 +4025,6 @@ const gapConfigs = [
         ground.position.set(-158, 1.56, 158);
         ground.receiveShadow = true;
         this.scene.add(ground);
-        this.deformPathGeometry(groundGeo, 0, ground.position);
 
         // Sand patches - only inside military biome (X <= -60, Z >= 60)
         for (let i = 0; i < 8; i++) {
