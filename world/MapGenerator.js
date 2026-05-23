@@ -7111,19 +7111,32 @@ fillBoundaryGaps() {
             metalness: 0.1
         });
 
+        // InstancedMesh: base cone (r=0.5, h=1), scaled per instance
+        const baseGeo = new THREE.ConeGeometry(0.5, 1, 6);
+        const instanced = new THREE.InstancedMesh(baseGeo, spikeMat, 60);
+        const dummy = new THREE.Matrix4();
+        let idx = 0;
         for (let i = 0; i < 60; i++) {
             const x = ox + (Math.random() - 0.5) * 180;
             const z = oz + (Math.random() - 0.5) * 180;
-
             if (x < 20) continue;
-
             const h = 2 + Math.random() * 4;
-            const spikeGeo = new THREE.ConeGeometry(0.3 + Math.random() * 0.3, h, 6);
-            const spike = new THREE.Mesh(spikeGeo, spikeMat);
-            spike.position.set(x, h / 2, z);
-            spike.rotation.z = (Math.random() - 0.5) * 0.3;
-            this.scene.add(spike);
+            const r = 0.3 + Math.random() * 0.3;
+            const y = h / 2;
+            const rotZ = (Math.random() - 0.5) * 0.3;
+            const quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, rotZ));
+            dummy.makeRotationFromQuaternion(quat).premultiply(
+                new THREE.Matrix4().makeTranslation(x, y, z)
+            );
+            // Scale: radius × r/0.5, height × h
+            const scaleMat = new THREE.Matrix4().makeScale(r / 0.5, h, r / 0.5);
+            dummy.multiply(scaleMat);
+            instanced.setMatrixAt(idx, dummy);
+            idx++;
         }
+        instanced.count = idx;
+        instanced.instanceMatrix.needsUpdate = true;
+        this.scene.add(instanced);
     }
 
     // ========== PROPS SYSTEM ==========
