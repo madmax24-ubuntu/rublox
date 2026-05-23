@@ -1111,12 +1111,8 @@ fillBoundaryGaps() {
     buildRoad(x1, z1, x2, z2, width) {
         const len = Math.sqrt((x2 - x1) ** 2 + (z2 - z1) ** 2);
         const geo = new THREE.PlaneGeometry(width, len, 8, 8);
-        const tex = this.textures.road.clone();
-        tex.wrapS = THREE.RepeatWrapping;
-        tex.wrapT = THREE.RepeatWrapping;
-        tex.repeat.set(0.5, len / width);
         const mat = new THREE.MeshStandardMaterial({
-            map: tex,
+            color: COLOR.road,
             roughness: 0.9,
             flatShading: false
         });
