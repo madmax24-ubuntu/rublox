@@ -110,66 +110,14 @@ export class LootManager {
         this.rebuildChestIndex();
     }
 
-    // Асинхронная версия generateChests для устранения фризов при старте
+    // Сундуки отключены
     async generateChestsAsync() {
-        const floorTiles = this.mapGenerator.getFloorTiles?.() || [];
-        const targetByMapSize = Math.floor(Math.max(140, floorTiles.length * (this.isMobile ? 0.08 : 0.12)));
-        const chestCount = Math.max(this.isMobile ? 150 : 220, Math.floor(targetByMapSize * this.lootDensity));
-        const spots = this.mapGenerator.getChestSpots?.() || [];
+        // Chest spawning disabled
+    }
 
-        if (spots.length > 0) {
-            const shuffled = [...spots].sort(() => Math.random() - 0.5);
-            const limit = Math.min(chestCount, shuffled.length);
-
-            for (let i = 0; i < limit; i++) {
-                const spot = shuffled[i];
-                const y = this.getChestPlacementY(spot.x, spot.z);
-                if (y < this.mapGenerator.waterLevel + 1) continue;
-                
-                const chest = this.createChest(spot.x, y, spot.z, spot.grade || 'house');
-                this.chests.push(chest);
-
-                // Даем браузеру "продохнуть" каждые 25 сундуков
-                if (i > 0 && i % 25 === 0) {
-                    await new Promise(resolve => requestAnimationFrame(resolve));
-                }
-            }
-            if (this.chests.length > 0) return;
-        }
-
-        if (floorTiles.length) {
-            const shuffled = [...floorTiles].sort(() => Math.random() - 0.5);
-            const limit = Math.min(chestCount, shuffled.length);
-            for (let i = 0; i < limit; i++) {
-                const tile = shuffled[i];
-                const y = this.getChestPlacementY(tile.x, tile.z);
-                const chest = this.createChest(tile.x, y, tile.z);
-                this.chests.push(chest);
-                if (i > 0 && i % 25 === 0) {
-                    await new Promise(resolve => requestAnimationFrame(resolve));
-                }
-            }
-            return;
-        }
-
-        for (let i = 0; i < chestCount; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const distance = 40 + Math.random() * 150;
-            const x = Math.cos(angle) * distance;
-            const z = Math.sin(angle) * distance;
-            const y = this.getChestPlacementY(x, z);
-
-            if (y < this.mapGenerator.waterLevel + 1) {
-                i--;
-                continue;
-            }
-
-            const chest = this.createChest(x, y, z);
-            this.chests.push(chest);
-            if (i > 0 && i % 25 === 0) {
-                await new Promise(resolve => requestAnimationFrame(resolve));
-            }
-        }
+    // Сундуки отключены
+    generateChests() {
+        // Chest spawning disabled
     }
 
     createChest(x, y, z, grade = 'house') {
