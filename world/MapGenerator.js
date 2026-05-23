@@ -3900,19 +3900,30 @@ fillBoundaryGaps() {
             roughness: 0.9,
             flatShading: true
         });
+        // InstancedMesh: base DodecahedronGeometry(1, 0), scaled per instance
+        const baseGeo = new THREE.DodecahedronGeometry(1, 0);
+        const instanced = new THREE.InstancedMesh(baseGeo, rockMat, 15);
+        const dummy = new THREE.Matrix4();
+        let idx = 0;
         for (let i = 0; i < 15; i++) {
             const x = ox + (Math.random() - 0.5) * 100;
             const z = oz + (Math.random() - 0.5) * 100;
             if (Math.abs(x) < 20) continue;
             const size = 0.3 + Math.random() * 0.8;
-            const rockGeo = new THREE.DodecahedronGeometry(size, 0);
-            const rock = new THREE.Mesh(rockGeo, rockMat);
-            rock.position.set(x, size * 0.4, z);
-            rock.scale.set(1, 0.6, 0.8);
-            rock.rotation.set(Math.random(), Math.random(), Math.random());
-            rock.castShadow = true;
-            this.scene.add(rock);
+            const quat = new THREE.Quaternion().setFromEuler(
+                new THREE.Euler(Math.random(), Math.random(), Math.random())
+            );
+            dummy.makeRotationFromQuaternion(quat).premultiply(
+                new THREE.Matrix4().makeTranslation(x, size * 0.4, z)
+            );
+            const scaleMat = new THREE.Matrix4().makeScale(size, size * 0.6, size * 0.8);
+            dummy.multiply(scaleMat);
+            instanced.setMatrixAt(idx, dummy);
+            idx++;
         }
+        instanced.count = idx;
+        instanced.instanceMatrix.needsUpdate = true;
+        this.scene.add(instanced);
     }
 
     // ========== STONE MAZE BIOME (northeast) ==========
