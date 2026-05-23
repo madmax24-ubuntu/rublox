@@ -5858,8 +5858,8 @@ const gapConfigs = [
         positions.forEach((pos, i) => {
             const igGroup = new THREE.Group();
             const r = 2 + Math.random() * 1.5;
-            // Igloo dome
-            const domeGeo = new THREE.SphereGeometry(r, 8, 8, 0, Math.PI * 2, 0, Math.PI * 0.55);
+          // Igloo dome
+            const domeGeo = new THREE.SphereGeometry(r, 6, 4, 0, Math.PI * 2, 0, Math.PI * 0.55);
             const dome = new THREE.Mesh(domeGeo, iglooMat);
             dome.position.y = 0;
             igGroup.add(dome);
@@ -5870,7 +5870,7 @@ const gapConfigs = [
             door.position.set(0, 0.75, r - 0.1);
             igGroup.add(door);
             // Snow cap on top
-            const capGeo = new THREE.SphereGeometry(r * 0.8, 8, 4, 0, Math.PI * 2, 0, Math.PI * 0.4);
+            const capGeo = new THREE.SphereGeometry(r * 0.8, 6, 4, 0, Math.PI * 2, 0, Math.PI * 0.4);
             const cap = new THREE.Mesh(capGeo, snowCapMat);
             cap.position.y = 0.1;
             igGroup.add(cap);
