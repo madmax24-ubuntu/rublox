@@ -5216,20 +5216,6 @@ const gapConfigs = [
 
     // ========== SNOW BIOME (southeast) ==========
     buildSnowBiome() {
-    // Ground - snow with texture (SE quadrant, starts at +60 from center)
-        const groundGeo = new THREE.PlaneGeometry(196, 196, 32, 32);
-        const groundMat = new THREE.MeshStandardMaterial({
-            map: this.textures.snowGround,
-            roughness: 0.8,
-            flatShading: false
-        });
-          const ground = new THREE.Mesh(groundGeo, groundMat);
-          ground.rotation.x = -Math.PI / 2;
-          ground.position.set(158, 1.56, 158);
-          ground.receiveShadow = true;
-
-      this.scene.add(ground);
-
         // Snow ground variation - only inside snow biome (X >= 60, Z >= 60)
         for (let i = 0; i < 8; i++) {
             const x = 60 + Math.random() * 196;
