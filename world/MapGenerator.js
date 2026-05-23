@@ -3900,7 +3900,7 @@ const gapConfigs = [
                     const wallGeo = new THREE.BoxGeometry(3, wallH, 18);
                     const wall = new THREE.Mesh(wallGeo, wallMat);
                     wall.position.set(wallX, wallH / 2 + 2, wallZ);
-                    wall.castShadow = true;
+                    wall.receiveShadow = true;
                     this.scene.add(wall);
 
                     // Wall top detail
@@ -3908,7 +3908,6 @@ const gapConfigs = [
                         const topGeo = new THREE.BoxGeometry(3.5, 1, 2);
                         const top = new THREE.Mesh(topGeo, wallMat);
                         top.position.set(wallX, wallH + 2.5, wallZ);
-                        top.castShadow = true;
                         this.scene.add(top);
                     }
                 }
