@@ -882,7 +882,7 @@ fillBoundaryGaps() {
 
     // ========== ROADS ==========
     async buildRoads() {
-        const roadWidth = 10;
+        const roadWidth = 5;
 
         // North road - from center to north gate (doubled for 512 map)
         this.buildRoad(0, -62, 0, -220, roadWidth);
