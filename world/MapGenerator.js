@@ -6109,8 +6109,8 @@ const gapConfigs = [
     addIgu(x, z) {
         const iguGroup = new THREE.Group();
 
-        // Igloo dome with snow texture
-        const iguGeo = new THREE.SphereGeometry(4, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+      // Igloo dome with snow texture
+        const iguGeo = new THREE.SphereGeometry(4, 6, 4, 0, Math.PI * 2, 0, Math.PI / 2);
         const iguMat = new THREE.MeshStandardMaterial({
             map: this.textures.snow,
             color: 0xf5f5f0,
@@ -6123,7 +6123,7 @@ const gapConfigs = [
 
         // Snow texture bumps
         for (let i = 0; i < 15; i++) {
-            const bumpGeo = new THREE.SphereGeometry(0.3 + Math.random() * 0.3, 5, 5);
+            const bumpGeo = new THREE.SphereGeometry(0.3 + Math.random() * 0.3, 4, 4);
             const bump = new THREE.Mesh(bumpGeo, iguMat);
             const angle = Math.random() * Math.PI * 2;
             const h = Math.random() * Math.PI * 0.4;
