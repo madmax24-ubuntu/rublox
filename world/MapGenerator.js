@@ -1140,6 +1140,7 @@ fillBoundaryGaps() {
     }
 
     buildRoadLamps() {
+        // === OPTIMIZED: InstancedMesh instead of 24 Group instances ===
         const poleMat = new THREE.MeshStandardMaterial({
             color: 0x3a3a3a,
             roughness: 0.6,
@@ -1152,93 +1153,90 @@ fillBoundaryGaps() {
             roughness: 0.3
         });
 
-        // North road lamps
+        // Collect positions for all 24 lamps
+        const positions = [];
+        // North/South (arms along X axis)
         for (let z = -60; z > -216; z -= 60) {
             for (let side = -1; side <= 1; side += 2) {
-                const lampGroup = new THREE.Group();
-                const poleGeo = new THREE.CylinderGeometry(0.06, 0.08, 3, 4);
-                const pole = new THREE.Mesh(poleGeo, poleMat);
-                pole.position.y = 1.5;
-                lampGroup.add(pole);
-                const armGeo = new THREE.CylinderGeometry(0.04, 0.04, 1, 4);
-                const arm = new THREE.Mesh(armGeo, poleMat);
-                arm.position.set(side * 0.5, 3, 0);
-                arm.rotation.z = Math.PI / 2;
-                lampGroup.add(arm);
-                const bulbGeo = new THREE.SphereGeometry(0.15, 4, 4);
-                const bulb = new THREE.Mesh(bulbGeo, lightMat);
-                bulb.position.set(side * 1, 2.8, 0);
-                lampGroup.add(bulb);
-                lampGroup.position.set(side * 8, 1.56, z);
-                this.scene.add(lampGroup);
+                positions.push({ x: side * 8, y: 1.56, z, armX: true });
             }
         }
-
-        // South road lamps
         for (let z = 60; z < 216; z += 60) {
             for (let side = -1; side <= 1; side += 2) {
-                const lampGroup = new THREE.Group();
-                const poleGeo = new THREE.CylinderGeometry(0.06, 0.08, 3, 4);
-                const pole = new THREE.Mesh(poleGeo, poleMat);
-                pole.position.y = 1.5;
-                lampGroup.add(pole);
-                const armGeo = new THREE.CylinderGeometry(0.04, 0.04, 1, 4);
-                const arm = new THREE.Mesh(armGeo, poleMat);
-                arm.position.set(side * 0.5, 3, 0);
-                arm.rotation.z = Math.PI / 2;
-                lampGroup.add(arm);
-                const bulbGeo = new THREE.SphereGeometry(0.15, 4, 4);
-                const bulb = new THREE.Mesh(bulbGeo, lightMat);
-                bulb.position.set(side * 1, 2.8, 0);
-                lampGroup.add(bulb);
-                lampGroup.position.set(side * 8, 1.56, z);
-                this.scene.add(lampGroup);
+                positions.push({ x: side * 8, y: 1.56, z, armX: true });
             }
         }
-
-        // West road lamps
+        // West/East (arms along Z axis)
         for (let x = -60; x > -216; x -= 60) {
             for (let side = -1; side <= 1; side += 2) {
-                const lampGroup = new THREE.Group();
-                const poleGeo = new THREE.CylinderGeometry(0.06, 0.08, 3, 4);
-                const pole = new THREE.Mesh(poleGeo, poleMat);
-                pole.position.y = 1.5;
-                lampGroup.add(pole);
-                const armGeo = new THREE.CylinderGeometry(0.04, 0.04, 1, 4);
-                const arm = new THREE.Mesh(armGeo, poleMat);
-                arm.position.set(0, 3, side * 0.5);
-                arm.rotation.x = Math.PI / 2;
-                lampGroup.add(arm);
-                const bulbGeo = new THREE.SphereGeometry(0.15, 4, 4);
-                const bulb = new THREE.Mesh(bulbGeo, lightMat);
-                bulb.position.set(0, 2.8, side * 1);
-                lampGroup.add(bulb);
-                lampGroup.position.set(x, 1.56, side * 8);
-                this.scene.add(lampGroup);
+                positions.push({ x, y: 1.56, z: side * 8, armX: false });
+            }
+        }
+        for (let x = 60; x < 216; x += 60) {
+            for (let side = -1; side <= 1; side += 2) {
+                positions.push({ x, y: 1.56, z: side * 8, armX: false });
             }
         }
 
-      // East road lamps
-        for (let x = 60; x < 216; x += 60) {
-            for (let side = -1; side <= 1; side += 2) {
-                const lampGroup = new THREE.Group();
-                const poleGeo = new THREE.CylinderGeometry(0.06, 0.08, 3, 4);
-                const pole = new THREE.Mesh(poleGeo, poleMat);
-                pole.position.y = 1.5;
-                lampGroup.add(pole);
-                const armGeo = new THREE.CylinderGeometry(0.04, 0.04, 1, 4);
-                const arm = new THREE.Mesh(armGeo, poleMat);
-                arm.position.set(0, 3, side * 0.5);
-                arm.rotation.x = Math.PI / 2;
-                lampGroup.add(arm);
-                const bulbGeo = new THREE.SphereGeometry(0.15, 4, 4);
-                const bulb = new THREE.Mesh(bulbGeo, lightMat);
-                bulb.position.set(0, 2.8, side * 1);
-                lampGroup.add(bulb);
-                lampGroup.position.set(x, 1.56, side * 8);
-                this.scene.add(lampGroup);
+        // Shared pole geometry + arm geometry (along X)
+        const poleGeo = new THREE.CylinderGeometry(0.06, 0.08, 3, 4);
+        const armGeoX = new THREE.CylinderGeometry(0.04, 0.04, 1, 4);
+        const armGeoZ = new THREE.CylinderGeometry(0.04, 0.04, 1, 4);
+        const bulbGeo = new THREE.SphereGeometry(0.15, 4, 4);
+
+        // Create InstancedMeshes: 3 per axis type × 2 axes = 6 draw calls (vs 72 before)
+        // North/South poles (12 lamps along Z, at x=±8)
+        const nsPoleMesh = new THREE.InstancedMesh(poleGeo, poleMat, positions.length);
+        // West/East poles (same count, but we'll use separate InstancedMesh for different orientations)
+        const wePoleMesh = new THREE.InstancedMesh(poleGeo, poleMat, positions.length);
+        // North/South arms (along X)
+        const nsArmMesh = new THREE.InstancedMesh(armGeoX, poleMat, positions.length);
+        // West/East arms (along Z, need rotation)
+        const weArmMesh = new THREE.InstancedMesh(armGeoZ, poleMat, positions.length);
+        // North/South bulbs
+        const nsBulbMesh = new THREE.InstancedMesh(bulbGeo, lightMat, positions.length);
+        // West/East bulbs
+        const weBulbMesh = new THREE.InstancedMesh(bulbGeo, lightMat, positions.length);
+
+        const dummy = new THREE.Matrix4();
+        let idx = 0;
+
+        for (const p of positions) {
+            const isNS = p.armX; // North/South lamps
+            if (isNS) {
+                // Pole
+                dummy.makeTranslation(p.x, p.y + 1.5, p.z);
+                nsPoleMesh.setMatrixAt(idx, dummy);
+                // Arm (along X)
+                dummy.makeTranslation(p.x + p.x * 0.5 / Math.max(Math.abs(p.x), 1), p.y + 3, p.z);
+                nsArmMesh.setMatrixAt(idx, dummy);
+                // Bulb
+                const bx = p.x > 0 ? 1 : -1;
+                dummy.makeTranslation(p.x + bx, p.y + 1.24, p.z);
+                nsBulbMesh.setMatrixAt(idx, dummy);
+            } else {
+                // Pole
+                dummy.makeTranslation(p.x, p.y + 1.5, p.z);
+                wePoleMesh.setMatrixAt(idx, dummy);
+                // Arm (along Z)
+                dummy.makeTranslation(p.x, p.y + 3, p.z);
+                weArmMesh.setMatrixAt(idx, dummy);
+                // Bulb
+                const bz = p.z > 0 ? 1 : -1;
+                dummy.makeTranslation(p.x, p.y + 1.24, p.z + bz);
+                weBulbMesh.setMatrixAt(idx, dummy);
             }
+            idx++;
         }
+
+        nsPoleMesh.instanceMatrix.needsUpdate = true;
+        wePoleMesh.instanceMatrix.needsUpdate = true;
+        nsArmMesh.instanceMatrix.needsUpdate = true;
+        weArmMesh.instanceMatrix.needsUpdate = true;
+        nsBulbMesh.instanceMatrix.needsUpdate = true;
+        weBulbMesh.instanceMatrix.needsUpdate = true;
+
+        this.scene.add(nsPoleMesh, wePoleMesh, nsArmMesh, weArmMesh, nsBulbMesh, weBulbMesh);
     }
 
     // ========== BIOME BOUNDARY WALLS ==========
