@@ -1958,7 +1958,7 @@ const gapConfigs = [
         const trunkH = isForest ? 7 + Math.random() * 3 : 5 + Math.random() * 2;
         const trunkR = 0.35 + Math.random() * 0.2;
 
-        const trunkGeo = new THREE.CylinderGeometry(trunkR * 0.5, trunkR, trunkH, 6);
+        const trunkGeo = new THREE.CylinderGeometry(trunkR * 0.5, trunkR, trunkH, 4);
         const trunkMat = new THREE.MeshStandardMaterial({
             map: this.textures.wood,
             color: isForest ? 0x5d4037 : 0x4a3728,
@@ -1969,11 +1969,11 @@ const gapConfigs = [
         trunk.castShadow = true;
         treeGroup.add(trunk);
 
-        // Single foliage sphere (was 3-5 spheres)
+        // Single foliage sphere
         const foliageR = isForest ? 2.5 + Math.random() * 1 : 1.5 + Math.random() * 0.8;
         const baseHue = isForest ? 0.3 + Math.random() * 0.1 : 0.35;
         const foliageColor = new THREE.Color().setHSL(baseHue, isForest ? 0.6 : 0.3, isForest ? 0.25 : 0.7);
-        const foliageGeo = new THREE.SphereGeometry(foliageR, 6, 5);
+        const foliageGeo = new THREE.SphereGeometry(foliageR, 4, 4);
         const foliageMat = new THREE.MeshStandardMaterial({
             color: foliageColor, roughness: 0.95, flatShading: true
         });
