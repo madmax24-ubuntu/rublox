@@ -1318,16 +1318,19 @@ fillBoundaryGaps() {
             await this.yieldFrame();
         }
 
-        // Detailed houses (3)
-        const housePositions = [
+        // Two-story huts with interiors (3)
+        const hutPositions = [
             { x: -168, z: -168 },
             { x: -214, z: -132 },
             { x: -132, z: -194 }
         ];
 
-        housePositions.forEach((pos, i) => {
-            this.addDetailedHouse(pos.x, pos.z, i);
+        hutPositions.forEach((pos, i) => {
+            this.addTwoStoryHut(pos.x, pos.z, i);
         });
+
+        // 3 types of plants: ferns, bushes, flowers
+        this.addForestPlants(-168, -168);
 
         // River flowing through forest
         this.buildForestRiver();
