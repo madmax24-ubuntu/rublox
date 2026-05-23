@@ -841,7 +841,7 @@ fillBoundaryGaps() {
 
     buildPlatformWell() {
         const stoneMat = new THREE.MeshStandardMaterial({
-            map: this.textures.stone,
+            color: COLOR.stone,
             color: 0x8a8a7a,
             roughness: 0.95,
             flatShading: true
@@ -1681,7 +1681,7 @@ fillBoundaryGaps() {
             roofType = 'snow';
         } else if (biome === 'stone') {
             wallColor = 0x6b6b5a;
-            wallMatConfig = { map: this.textures.stone, color: 0x7a7a6a, roughness: 0.95 };
+            wallMatConfig = { color: COLOR.stone, color: 0x7a7a6a, roughness: 0.95 };
             roofH = 4 + Math.random() * 2;
             roofColor = 0x3d3d3d;
             roofType = 'flat';
@@ -1973,7 +1973,7 @@ fillBoundaryGaps() {
         // Foundation stone band
         const foundGeo = new THREE.BoxGeometry(wallW + 0.4, 0.5, wallD + 0.4);
         const foundMat = new THREE.MeshStandardMaterial({
-            map: this.textures.stone,
+            color: COLOR.stone,
             color: 0x8a8a7a,
             roughness: 0.95
         });
@@ -2129,7 +2129,7 @@ fillBoundaryGaps() {
                         0.2 + Math.random() * 0.3, 4, 4
                     );
                     const stoneMat = new THREE.MeshStandardMaterial({
-                        map: this.textures.stone,
+                        color: COLOR.stone,
                         color: new THREE.Color().setHSL(0, 0, 0.35 + Math.random() * 0.2),
                         roughness: 0.9
                     });
@@ -2311,7 +2311,7 @@ fillBoundaryGaps() {
     addForestProps(ox, oz) {
         // Rocks with stone texture
         const rockMat = new THREE.MeshStandardMaterial({
-            map: this.textures.stone,
+            color: COLOR.stone,
             color: 0x6b6b6b,
             roughness: 0.9,
             flatShading: true
@@ -2805,7 +2805,7 @@ fillBoundaryGaps() {
 
     addForestRocks(ox, oz) {
         const rockMat = new THREE.MeshStandardMaterial({
-            map: this.textures.stone,
+            color: COLOR.stone,
             color: 0x7a7a6a,
             roughness: 0.9,
             flatShading: true
@@ -2834,7 +2834,7 @@ fillBoundaryGaps() {
 
             const stoneGeo = new THREE.PlaneGeometry(3 + Math.random() * 5, 3 + Math.random() * 5);
             const stoneMat = new THREE.MeshStandardMaterial({
-                map: this.textures.stone,
+                color: COLOR.stone,
                 color: new THREE.Color().setHSL(0, 0, 0.35 + Math.random() * 0.15),
                 roughness: 0.95,
                 flatShading: true
@@ -2909,7 +2909,7 @@ fillBoundaryGaps() {
     addStoneWell(x, z) {
         const wellGroup = new THREE.Group();
         const stoneMat = new THREE.MeshStandardMaterial({
-            map: this.textures.stone,
+            color: COLOR.stone,
             color: 0x7a7a6a,
             roughness: 0.95
         });
@@ -2952,7 +2952,7 @@ fillBoundaryGaps() {
     addStonePillar(x, z) {
         const pillarGroup = new THREE.Group();
         const stoneMat = new THREE.MeshStandardMaterial({
-            map: this.textures.stone,
+            color: COLOR.stone,
             color: 0x6a6a5a,
             roughness: 0.95
         });
@@ -3026,7 +3026,7 @@ fillBoundaryGaps() {
 
     addStoneRuins(ox, oz) {
         const ruinMat = new THREE.MeshStandardMaterial({
-            map: this.textures.stone,
+            color: COLOR.stone,
             color: 0x7a7a6a,
             roughness: 0.95,
             flatShading: true
@@ -3128,7 +3128,7 @@ fillBoundaryGaps() {
 
     addRunestones(ox, oz) {
         const stoneMat = new THREE.MeshStandardMaterial({
-            map: this.textures.stone,
+            color: COLOR.stone,
             color: 0x6a6a5a,
             roughness: 0.9,
             flatShading: true
@@ -3173,7 +3173,7 @@ fillBoundaryGaps() {
 
     addStoneCircle(ox, oz) {
         const stoneMat = new THREE.MeshStandardMaterial({
-            map: this.textures.stone,
+            color: COLOR.stone,
             color: 0x7a7a6a,
             roughness: 0.9,
             flatShading: true
@@ -3230,7 +3230,7 @@ fillBoundaryGaps() {
 
     addStoneAltar(ox, oz) {
         const stoneMat = new THREE.MeshStandardMaterial({
-            map: this.textures.stone,
+            color: COLOR.stone,
             color: 0x8a8a7a,
             roughness: 0.85,
             flatShading: true
@@ -3279,7 +3279,7 @@ fillBoundaryGaps() {
             flatShading: true
         });
         const stoneMat = new THREE.MeshStandardMaterial({
-            map: this.textures.stone,
+            color: COLOR.stone,
             color: 0x8a8a7a,
             roughness: 0.85,
             flatShading: true
@@ -3364,7 +3364,7 @@ fillBoundaryGaps() {
 
     buildFortressWalls() {
         const wallMat = new THREE.MeshStandardMaterial({
-            map: this.textures.stone,
+            color: COLOR.stone,
             color: 0x7a7a6a,
             roughness: 0.95,
             flatShading: true
@@ -3415,7 +3415,7 @@ fillBoundaryGaps() {
     buildGateTower(x, z) {
         const towerGroup = new THREE.Group();
         const stoneMat = new THREE.MeshStandardMaterial({
-            map: this.textures.stone,
+            color: COLOR.stone,
             color: 0x6a6a5a,
             roughness: 0.95
         });
@@ -3452,7 +3452,7 @@ fillBoundaryGaps() {
 
     buildStoneMaze() {
         const wallMat = new THREE.MeshStandardMaterial({
-            map: this.textures.stone,
+            color: COLOR.stone,
             color: 0x5a5a5a,
             roughness: 0.95,
             flatShading: true
@@ -3519,7 +3519,7 @@ fillBoundaryGaps() {
         // Main base with stone texture
         const baseGeo = new THREE.BoxGeometry(20, 16, 20);
         const baseMat = new THREE.MeshStandardMaterial({
-            map: this.textures.stone,
+            color: COLOR.stone,
             color: 0x6b6b6b,
             roughness: 0.9,
             flatShading: true
@@ -3577,7 +3577,7 @@ fillBoundaryGaps() {
     addStoneProps(ox, oz) {
         // Large boulders with stone texture (inside stone biome)
         const boulderMat = new THREE.MeshStandardMaterial({
-            map: this.textures.stone,
+            color: COLOR.stone,
             color: 0x6b6b6b,
             roughness: 0.95,
             flatShading: true
@@ -5232,7 +5232,7 @@ fillBoundaryGaps() {
 
     addSnowRock(x, z) {
         const rockMat = new THREE.MeshStandardMaterial({
-            map: this.textures.stone,
+            color: COLOR.stone,
             color: 0x7a7a7a,
             roughness: 0.9
         });
@@ -6071,7 +6071,7 @@ fillBoundaryGaps() {
 
     addStoneBridges() {
         const bridgeMat = new THREE.MeshStandardMaterial({
-            map: this.textures.stone,
+            color: COLOR.stone,
             color: 0x9a9a8a,
             roughness: 0.85
         });
@@ -6201,7 +6201,7 @@ fillBoundaryGaps() {
     addStoneGroundDetails() {
         // Small stones and debris across stone biome
         const stoneDetailMat = new THREE.MeshStandardMaterial({
-            map: this.textures.stone,
+            color: COLOR.stone,
             color: 0x8a8a7a,
             roughness: 0.95,
             flatShading: true
