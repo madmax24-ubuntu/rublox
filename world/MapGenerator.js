@@ -3880,6 +3880,12 @@ fillBoundaryGaps() {
 
         // Windmill
         this.addWindmill(194, -142);
+
+        // Maze and towers
+        this.addMazeAndTowers(150, -150);
+
+        // 2nd tower near fortress
+        this.addIsolatedTower(194, -184);
     }
 
     addStoneWell(x, z) {
