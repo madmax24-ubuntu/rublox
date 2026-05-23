@@ -6847,28 +6847,33 @@ fillBoundaryGaps() {
             roughness: 0.85,
             flatShading: true
         });
-        // 50 snow-covered bushes
-        for (let i = 0; i < 50; i++) {
+      // 50 snow-covered bushes — InstancedMesh (2 draw calls instead of 100)
+        const usedIndices = new Set();
+        const bushGeo = new THREE.SphereGeometry(1, 5, 5);
+        const bushInstanced = new THREE.InstancedMesh(bushGeo, snowBushMat, 50);
+        const snowCapGeo = new THREE.SphereGeometry(1, 5, 5, 0, Math.PI * 2, 0, Math.PI * 0.5);
+        const snowCapMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7 });
+        const snowCapInstanced = new THREE.InstancedMesh(snowCapGeo, snowCapMat, 50);
+        const dummy = new THREE.Matrix4();
+        let count = 0;
+        for (let i = 0; i < 50 && count < 50; i++) {
             const x = ox + (Math.random() - 0.5) * 180;
             const z = oz + (Math.random() - 0.5) * 180;
             if (x < 20) continue;
             const size = 0.4 + Math.random() * 0.7;
-            const bushGroup = new THREE.Group();
-            // Bush base
-            const bGeo = new THREE.SphereGeometry(size, 5, 5);
-            const bush = new THREE.Mesh(bGeo, snowBushMat);
-            bush.scale.set(1, 0.6, 1);
-            bush.castShadow = true;
-            bushGroup.add(bush);
-            // Snow on top
-            const snowGeo = new THREE.SphereGeometry(size * 0.9, 5, 5, 0, Math.PI * 2, 0, Math.PI * 0.5);
-            const snowCapMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7 });
-            const snowCap = new THREE.Mesh(snowGeo, snowCapMat);
-            snowCap.position.y = size * 0.3;
-            bushGroup.add(snowCap);
- bushGroup.position.set(x, 2.3, z);
-            this.scene.add(bushGroup);
+            // Bush base: scaled sphere
+            dummy.makeTRS(x, 2.3 + size * 0.6, z, new THREE.Quaternion(), new THREE.Vector3(1, 0.6, 1).multiplyScalar(size));
+            bushInstanced.setMatrixAt(count, dummy);
+            // Snow cap: half sphere on top
+            dummy.makeTRS(x, 2.3 + size * 0.9, z, new THREE.Quaternion(), new THREE.Vector3(size * 0.9));
+            snowCapInstanced.setMatrixAt(count, dummy);
+            count++;
         }
+        bushInstanced.instanceMatrix.needsUpdate = true;
+        snowCapInstanced.instanceMatrix.needsUpdate = true;
+        bushInstanced.count = count;
+        snowCapInstanced.count = count;
+        this.scene.add(bushInstanced, snowCapInstanced);
     }
 
     addSnowDrifts(ox, oz) {
