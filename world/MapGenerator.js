@@ -5293,8 +5293,6 @@ const gapConfigs = [
 
       this.scene.add(ground);
 
-            this.deformPathGeometry(groundGeo, 0, ground.position);
-
         // Snow ground variation - only inside snow biome (X >= 60, Z >= 60)
         for (let i = 0; i < 8; i++) {
             const x = 60 + Math.random() * 196;
