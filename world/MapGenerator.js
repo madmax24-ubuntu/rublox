@@ -426,7 +426,7 @@ export class MapGenerator {
                 b: n * 20 + n3 * 8
             }),
             this.noise,
-            { detailOctaves: 6, detailScale: 48, sharpenAmount: 0.35 }
+            { detailScale: 16, groundOctaves: 3, microOctaves: 2, sharpenAmount: 0.3 }
         );
          await this.yieldFrame();
         this.textures.stoneGround = TextureGenerator.createTerrainTexture(
@@ -437,7 +437,7 @@ export class MapGenerator {
                 b: n * 45 + n3 * 10
             }),
             this.noise,
-            { detailOctaves: 6, detailScale: 52, sharpenAmount: 0.4 }
+            { detailScale: 18, groundOctaves: 3, microOctaves: 2, sharpenAmount: 0.35 }
         );
         await this.yieldFrame();
         this.textures.militaryGround = TextureGenerator.createTerrainTexture(
@@ -448,7 +448,7 @@ export class MapGenerator {
                 b: n * 15 + n3 * 5
             }),
             this.noise,
-            { detailOctaves: 6, detailScale: 44, sharpenAmount: 0.35 }
+            { detailScale: 14, groundOctaves: 3, microOctaves: 2, sharpenAmount: 0.3 }
         );
        await this.yieldFrame();
         this.textures.snowGround = TextureGenerator.createTerrainTexture(
@@ -459,7 +459,7 @@ export class MapGenerator {
                 b: n * 22 + n3 * 10
             }),
             this.noise,
-            { detailOctaves: 6, detailScale: 46, sharpenAmount: 0.25 }
+            { detailScale: 15, groundOctaves: 3, microOctaves: 2, sharpenAmount: 0.25 }
         );
      await this.yieldFrame();
         this.textures.wood = TextureGenerator.createWoodTexture();
