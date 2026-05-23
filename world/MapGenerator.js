@@ -3194,19 +3194,6 @@ const gapConfigs = [
 
     // ========== STONE MAZE BIOME (northeast) ==========
     buildStoneMazeBiome() {
-        // Ground - stone with texture (NE quadrant, starts at +60 from center)
-        const groundGeo = new THREE.PlaneGeometry(196, 196, 32, 32);
-        const groundMat = new THREE.MeshStandardMaterial({
-            map: this.textures.stoneGround,
-            roughness: 0.95,
-            flatShading: false
-        });
-        const ground = new THREE.Mesh(groundGeo, groundMat);
-        ground.rotation.x = -Math.PI / 2;
-        ground.position.set(158, 1.56, -158);
-        ground.receiveShadow = true;
-        this.scene.add(ground);
-
         // Stone ground patches - only inside stone biome (X >= 60, Z <= -60)
         for (let i = 0; i < 8; i++) {
             const x = 60 + Math.random() * 196;
