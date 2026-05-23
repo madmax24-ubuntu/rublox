@@ -81,35 +81,28 @@ class TextureGenerator {
         const r0 = (baseColor >> 16) & 0xff;
         const g0 = (baseColor >> 8) & 0xff;
         const b0 = baseColor & 0xff;
-        const detailOctaves = opts.detailOctaves || 6;
-        const detailScale = opts.detailScale || 48;
+        const scale = opts.scale || 20;
 
-        // Optimized: fewer octaves for ground textures (they're viewed from distance)
-        const groundOctaves = opts.groundOctaves || 3;
-        const microOctaves = opts.microOctaves || 2;
-
+        // Single fbm pass - fast but with good visual variety
         for (let y = 0; y < height; y++) {
-            const wy = y / height * detailScale;
+            const wy = y / height * scale;
             for (let x = 0; x < width; x++) {
-                const wx = x / width * detailScale;
-                // Main pattern - fewer octaves for speed
-                const n = noise.fbm(wx, wy, groundOctaves, 2.0, 0.5);
-                // Subtle secondary detail
-                const n2 = noise.fbm(wx * 0.5 + 100, wy * 0.5 + 100, microOctaves, 2.0, 0.5);
-                // Sharp micro-detail
-                const n3 = noise.fbm(wx * 2 + 200, wy * 2 + 200, microOctaves, 2.0, 0.5);
+                const wx = x / width * scale;
+                const n = noise.fbm(wx, wy, 3, 2.0, 0.5);
+                const n2 = noise.fbm(wx * 0.5 + 100, wy * 0.5 + 100, 2, 2.0, 0.5);
+                const n3 = noise.fbm(wx * 2 + 200, wy * 2 + 200, 2, 2.0, 0.5);
                 const v = variationFn(n, n2, n3, x / width, y / height);
 
                 const idx = (y * width + x) * 4;
-                // Fast contrast boost instead of convolution sharpen
                 let r = r0 + v.r;
                 let g = g0 + v.g;
                 let b = b0 + v.b;
-                const sharpenAmt = opts.sharpenAmount || 0.3;
-                if (sharpenAmt > 0) {
-                    r = r < 128 ? r * (1 - sharpenAmt) + r0 * sharpenAmt : r + (255 - r) * sharpenAmt * 0.5;
-                    g = g < 128 ? g * (1 - sharpenAmt) + g0 * sharpenAmt : g + (255 - g) * sharpenAmt * 0.5;
-                    b = b < 128 ? b * (1 - sharpenAmt) + b0 * sharpenAmt : b + (255 - b) * sharpenAmt * 0.5;
+                // Contrast boost
+                const s = opts.sharpenAmount || 0.3;
+                if (s > 0) {
+                    r = r < 128 ? r * (1 - s) + r0 * s : r + (255 - r) * s * 0.5;
+                    g = g < 128 ? g * (1 - s) + g0 * s : g + (255 - g) * s * 0.5;
+                    b = b < 128 ? b * (1 - s) + b0 * s : b + (255 - b) * s * 0.5;
                 }
 
                 imgData.data[idx]     = Math.max(0, Math.min(255, r | 0));
