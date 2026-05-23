@@ -3111,10 +3111,7 @@ fillBoundaryGaps() {
         // Decorative ring — InstancedMesh (24 instances, 1 draw call)
         const ornGeo = new THREE.BoxGeometry(0.3, 0.15, 0.3);
         const ornMesh = new THREE.InstancedMesh(ornGeo, beigeMat, 24);
-        const dummy = new THREE.Matrix4();
-        const up = new THREE.Vector3(0, 1, 0);
-        const fwd = new THREE.Vector3(0, 0, 1);
-        for (let i = 0; i < 24; i++) {
+            for (let i = 0; i < 24; i++) {
             const angle = (i / 24) * Math.PI * 2;
             const pos = new THREE.Vector3(Math.cos(angle) * 6, platH + 0.1, Math.sin(angle) * 6);
             const quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, angle, 0));
