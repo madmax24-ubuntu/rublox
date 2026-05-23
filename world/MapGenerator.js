@@ -3029,6 +3029,24 @@ fillBoundaryGaps() {
 
         this.scene.add(fountainGroup);
 
+        // Colliders for fountain
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(0, 0.5, 0),
+            size: new THREE.Vector3(5, 1, 5)
+        });
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(0, 1.5, 0),
+            size: new THREE.Vector3(3, 0.8, 3)
+        });
+        this.colliders.push({
+            type: 'cylinder',
+            position: new THREE.Vector3(0, 2.5, 0),
+            radius: 0.7,
+            height: 3
+        });
+
         // 100 fire-colored tiles arranged in pattern
         const fireColors = [0xff4400, 0xff6600, 0xff8800, 0xffaa00, 0xffcc00, 0xff2200];
         const tileMat = new THREE.MeshStandardMaterial({
