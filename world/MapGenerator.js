@@ -2148,19 +2148,16 @@ const gapConfigs = [
         const bwGeo = new THREE.BoxGeometry(wallW, wallH, 0.4);
         const bw = new THREE.Mesh(bwGeo, wallMat);
         bw.position.set(0, wallH / 2, -wallD / 2);
-        bw.castShadow = true;
         houseGroup.add(bw);
 
         // Side walls
         const swGeo = new THREE.BoxGeometry(0.4, wallH, wallD);
         const sw1 = new THREE.Mesh(swGeo, wallMat);
         sw1.position.set(-wallW / 2, wallH / 2, 0);
-        sw1.castShadow = true;
         houseGroup.add(sw1);
 
         const sw2 = new THREE.Mesh(swGeo, wallMat);
         sw2.position.set(wallW / 2, wallH / 2, 0);
-        sw2.castShadow = true;
         houseGroup.add(sw2);
 
         // Roof based on biome type
