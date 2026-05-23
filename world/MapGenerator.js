@@ -410,8 +410,9 @@ export class MapGenerator {
 
     async generate() {
         this.generateHeightMap();
-        // Pre-generate all textures (reduced sizes for performance)
-       this.textures.forestGround = TextureGenerator.createTerrainTexture(
+
+        // Pre-generate textures - chunked across frames
+        this.textures.forestGround = TextureGenerator.createTerrainTexture(
             512, 512, 0x3a7a2e,
             (n, n2, n3) => ({
                 r: n * 35 + n3 * 12,
@@ -421,6 +422,8 @@ export class MapGenerator {
             this.noise,
             { scale: 20, sharpenAmount: 0.3 }
         );
+        await this.yieldFrame();
+
         this.textures.stoneGround = TextureGenerator.createTerrainTexture(
             512, 512, 0x7a7a7a,
             (n, n2, n3) => ({
@@ -431,6 +434,8 @@ export class MapGenerator {
             this.noise,
             { scale: 22, sharpenAmount: 0.35 }
         );
+        await this.yieldFrame();
+
         this.textures.militaryGround = TextureGenerator.createTerrainTexture(
             512, 512, 0x6b6b4a,
             (n, n2, n3) => ({
@@ -441,6 +446,8 @@ export class MapGenerator {
             this.noise,
             { scale: 18, sharpenAmount: 0.3 }
         );
+        await this.yieldFrame();
+
         this.textures.snowGround = TextureGenerator.createTerrainTexture(
             512, 512, 0xf0f0f0,
             (n, n2, n3) => ({
@@ -451,6 +458,8 @@ export class MapGenerator {
             this.noise,
             { scale: 19, sharpenAmount: 0.25 }
         );
+        await this.yieldFrame();
+
         this.textures.wood = TextureGenerator.createWoodTexture();
         this.textures.stone = TextureGenerator.createStoneTexture();
         this.textures.snow = TextureGenerator.createSnowTexture();
@@ -459,15 +468,13 @@ export class MapGenerator {
         this.textures.brick = TextureGenerator.createBrickTexture();
         this.textures.concrete = TextureGenerator.createConcreteTexture();
         this.textures.road = TextureGenerator.createRoadTexture();
-       await this.yieldFrame();
+        await this.yieldFrame();
 
-      // 1. Center platform
-        this.buildCenterPlatform();
-     await this.yieldFrame();
+        // 1. Center platform
+        await this.buildCenterPlatform();
 
-     // 2. Roads from center to each biome
-        this.buildRoads();
-     await this.yieldFrame();
+        // 2. Roads from center to each biome
+        await this.buildRoads();
 
         // 3. Forest biome (northwest)
         await this.buildForestBiome();
