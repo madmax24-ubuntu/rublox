@@ -5850,6 +5850,96 @@ fillBoundaryGaps() {
         this.houseSpots.push({ x, z, width: 12, depth: 10, height: 6 });
     }
 
+    addThreeStoryDamagedHouse(x, z) {
+        const houseGroup = new THREE.Group();
+        const wallH = 9;
+        const wallW = 10;
+        const wallD = 10;
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x6b6b5a, roughness: 0.95 });
+
+        // 3 walkable floors
+        for (let f = 0; f < 3; f++) {
+            const floorGeo = new THREE.BoxGeometry(wallW, 0.25, wallD);
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x5c5c4a, roughness: 0.9 });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.position.set(0, 2 + f * 3, 0);
+            floor.receiveShadow = true;
+            floor.castShadow = true;
+            houseGroup.add(floor);
+        }
+
+        // Walls (damaged - some missing)
+        const floorCount = 3;
+        for (let f = 0; f < floorCount; f++) {
+            const baseY = 2 + f * 3;
+
+            // Front wall (with door gap)
+            for (let side = 0; side < 2; side++) {
+                const segW = (wallW / 2) - 1;
+                const wallGeo = new THREE.BoxGeometry(segW, 2.8, 0.25);
+                const wall = new THREE.Mesh(wallGeo, wallMat);
+                wall.position.set(
+                    side === 0 ? -wallW / 4 - segW / 4 : wallW / 4 + segW / 4,
+                    baseY + 1.4,
+                    wallD / 2
+                );
+                wall.castShadow = true;
+                houseGroup.add(wall);
+            }
+
+            // Back wall (full)
+            const backWall = new THREE.Mesh(new THREE.BoxGeometry(wallW, 3, 0.25), wallMat);
+            backWall.position.set(0, baseY + 1.5, -wallD / 2);
+            backWall.castShadow = true;
+            houseGroup.add(backWall);
+
+            // Left wall (damaged - partial)
+            const leftH = f === 2 ? 2 : 3; // upper floor has damaged wall
+            const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.25, leftH, wallD), wallMat);
+            leftWall.position.set(-wallW / 2, baseY + leftH / 2, 0);
+            leftWall.castShadow = true;
+            houseGroup.add(leftWall);
+
+            // Right wall (damaged - partial)
+            const rightH = f === 1 ? 1.5 : 3; // middle section missing
+            const rightWall = new THREE.Mesh(new THREE.BoxGeometry(0.25, rightH, wallD), wallMat);
+            rightWall.position.set(wallW / 2, baseY + rightH / 2, 0);
+            rightWall.castShadow = true;
+            houseGroup.add(rightWall);
+        }
+
+        // Exposed stairs (zig-zag between floors)
+        const stairMat = new THREE.MeshStandardMaterial({ color: 0x4a4a3a, roughness: 0.9 });
+        for (let floor = 0; floor < 2; floor++) {
+            for (let s = 0; s < 10; s++) {
+                const stepGeo = new THREE.BoxGeometry(2, 0.15, 0.5);
+                const step = new THREE.Mesh(stepGeo, stairMat);
+                const goingUp = s % 5 < 3;
+                step.position.set(
+                    -wallW / 2 + 1.5 + (goingUp ? s * 0.15 : 0),
+                    2 + (floor + 1) * 3 + (s % 5) * 0.3,
+                    wallD / 2 - 1 + (goingUp ? 0 : s * 0.15)
+                );
+                step.rotation.y = goingUp ? 0 : Math.PI / 2;
+                step.castShadow = true;
+                houseGroup.add(step);
+            }
+        }
+
+        // Partial roof (damaged)
+        const roofMat = new THREE.MeshStandardMaterial({ color: 0x3d3d3d, roughness: 0.95 });
+        const roofGeo = new THREE.ConeGeometry(7, 2, 4);
+        const roof = new THREE.Mesh(roofGeo, roofMat);
+        roof.position.set(0, 11, 0);
+        roof.rotation.y = Math.PI / 4;
+        roof.castShadow = true;
+        houseGroup.add(roof);
+
+        houseGroup.position.set(x, 2, z);
+        this.scene.add(houseGroup);
+        this.houseSpots.push({ x, z, width: wallW, depth: wallD, height: wallH });
+    }
+
     // ========== SNOW BIOME (southeast) ==========
     async buildSnowBiome() {
         // Snow ground variation - only inside snow biome (X >= 60, Z >= 60)
