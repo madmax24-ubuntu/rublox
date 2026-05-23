@@ -2833,6 +2833,23 @@ fillBoundaryGaps() {
 
             hutGroup.position.set(pos.x, 2, pos.z);
             this.scene.add(hutGroup);
+
+            // Colliders for snow hut
+            this.colliders.push({
+                type: 'box',
+                position: new THREE.Vector3(pos.x, 0.1 + 2, pos.z),
+                size: new THREE.Vector3(hutW, 0.2, hutD)
+            });
+            this.colliders.push({
+                type: 'box',
+                position: new THREE.Vector3(pos.x, hutH / 2 + 2, pos.z),
+                size: new THREE.Vector3(hutW, hutH, wallThick)
+            });
+            this.colliders.push({
+                type: 'box',
+                position: new THREE.Vector3(pos.x, hutH / 2 + 2, pos.z),
+                size: new THREE.Vector3(wallThick, hutH, hutD)
+            });
         });
 
         // Snow trees (20+)
