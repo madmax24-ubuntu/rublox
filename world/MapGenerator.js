@@ -2541,7 +2541,7 @@ const gapConfigs = [
             for (let s = -1; s <= 1; s += 2) {
                 for (let j = 0; j < 2; j++) {
                     const stoneGeo = new THREE.SphereGeometry(
-                        0.2 + Math.random() * 0.3, 5, 5
+                        0.2 + Math.random() * 0.3, 4, 4
                     );
                     const stoneMat = new THREE.MeshStandardMaterial({
                         map: this.textures.stone,
@@ -2555,7 +2555,6 @@ const gapConfigs = [
                         z + 4.5 + (Math.random() - 0.5) * 5
                     );
                     stone.scale.y = 0.4;
-                    stone.castShadow = true;
                     this.scene.add(stone);
                 }
             }
