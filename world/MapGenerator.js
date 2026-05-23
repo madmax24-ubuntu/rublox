@@ -6043,6 +6043,9 @@ fillBoundaryGaps() {
 
         // Snow sculpture (animal shape)
         this.addSnowSculpture(168, 204);
+
+        // Extra snow biome elements (winter huts with fireplaces, large pond, icicles)
+        this.addSnowElements(150, 150);
     }
 
     addSnowMounds() {
