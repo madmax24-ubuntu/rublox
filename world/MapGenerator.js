@@ -4411,6 +4411,18 @@ fillBoundaryGaps() {
 
         windmillGroup.position.set(ox, 2, oz);
         this.scene.add(windmillGroup);
+
+        // Colliders for windmill
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(ox, 5 + 2, oz),
+            size: new THREE.Vector3(3, 10, 3)
+        });
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(ox, 11.5 + 2, oz),
+            size: new THREE.Vector3(3, 3, 3)
+        });
     }
 
     buildFortressWalls() {
