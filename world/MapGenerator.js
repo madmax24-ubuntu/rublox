@@ -542,7 +542,7 @@ export class MapGenerator {
         this.scene.add(platform);
 
         // Platform top surface
-        const topGeo = new THREE.CylinderGeometry(radius - 2, radius - 2, 0.05, 64);
+        const topGeo = new THREE.CylinderGeometry(radius - 2, radius - 2, 0.05, 32);
         const topMat = new THREE.MeshStandardMaterial({
             color: 0xd4c4a0, roughness: 0.7
         });
@@ -551,8 +551,19 @@ export class MapGenerator {
         top.receiveShadow = true;
         this.scene.add(top);
 
+        // === FILL gap between platform top (r=54) and biome grounds (r=60) ===
+        const gapMat = new THREE.MeshStandardMaterial({
+            map: this.textures.wood || new THREE.MeshStandardMaterial({ color: 0xc9b99a }),
+            roughness: 0.8, flatShading: false
+        });
+        const gapGeo = new THREE.CylinderGeometry(58, 58, 0.05, 32);
+        const gap = new THREE.Mesh(gapGeo, gapMat);
+        gap.position.set(0, 1.64, 0);
+        gap.receiveShadow = true;
+        this.scene.add(gap);
+
         // Platform edge ring (decorative)
-        const edgeGeo = new THREE.TorusGeometry(radius + 4, 0.6, 16, 64);
+        const edgeGeo = new THREE.TorusGeometry(radius + 4, 0.6, 12, 32);
         const edgeMat = new THREE.MeshStandardMaterial({
             color: 0xb9a98a, roughness: 0.85
         });
