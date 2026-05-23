@@ -551,17 +551,6 @@ export class MapGenerator {
         top.receiveShadow = true;
         this.scene.add(top);
 
-        // === FILL gap between platform top (r=54) and biome grounds (r=60) ===
-        const gapMat = new THREE.MeshStandardMaterial({
-            map: this.textures.wood || new THREE.MeshStandardMaterial({ color: 0xc9b99a }),
-            roughness: 0.8, flatShading: false
-        });
-        const gapGeo = new THREE.CylinderGeometry(58, 58, 0.05, 32);
-        const gap = new THREE.Mesh(gapGeo, gapMat);
-        gap.position.set(0, 1.64, 0);
-        gap.receiveShadow = true;
-        this.scene.add(gap);
-
         // Platform edge ring (decorative)
         const edgeGeo = new THREE.TorusGeometry(radius + 4, 0.6, 12, 32);
         const edgeMat = new THREE.MeshStandardMaterial({
@@ -573,15 +562,30 @@ export class MapGenerator {
         edge.receiveShadow = true;
         this.scene.add(edge);
 
-        // === Fill gaps between circular platform (r=56) and boundary walls (±60) ===
-        // Create a full annular transition from platform edge to biome grounds
+        // === FULL BASE FLOOR — covers entire map (r=60 to r=256) ===
+        // Uses a single PlaneGeometry(512, 512) with procedural terrain material.
+        // Placed at Y=1.54, just below biome grounds (Y=1.56), so biome grounds sit on top.
+        const fullFloorGeo = new THREE.PlaneGeometry(512, 512, 16, 16);
+        const fullFloorMat = new THREE.MeshStandardMaterial({
+            map: TextureGenerator.createTerrainTexture(256, 256, 0x8a7a5a,
+                (n) => ({ r: n * 30, g: n * 25, b: n * 20 }),
+                this.noise, { detailOctaves: 3, hasDetail: false }
+            ),
+            roughness: 0.95, flatShading: false
+        });
+        const fullFloor = new THREE.Mesh(fullFloorGeo, fullFloorMat);
+        fullFloor.rotation.x = -Math.PI / 2;
+        fullFloor.position.set(0, 1.54, 0);
+        fullFloor.receiveShadow = true;
+        this.scene.add(fullFloor);
+
+        // 4 quadrant transition patches (one per biome quadrant)
         const biomeGroundMats = {
             forest: new THREE.MeshStandardMaterial({ map: this.textures.forestGround || new THREE.MeshStandardMaterial({ color: 0x4a7a2e }), roughness: 0.95, flatShading: false }),
             stone: new THREE.MeshStandardMaterial({ map: this.textures.stoneGround || new THREE.MeshStandardMaterial({ color: 0x8a8a7a }), roughness: 0.95, flatShading: false }),
             military: new THREE.MeshStandardMaterial({ map: this.textures.militaryGround || new THREE.MeshStandardMaterial({ color: 0x7a6a4e }), roughness: 0.95, flatShading: false }),
             snow: new THREE.MeshStandardMaterial({ map: this.textures.snowGround || new THREE.MeshStandardMaterial({ color: 0xe8e8f0 }), roughness: 0.95, flatShading: false })
         };
-        // 4 quadrant transition patches (one per biome quadrant)
         const nwMat = biomeGroundMats.forest;
         const neMat = biomeGroundMats.stone;
         const swMat = biomeGroundMats.military;
@@ -598,23 +602,6 @@ export class MapGenerator {
         // SE quadrant
         g = new THREE.Mesh(new THREE.PlaneGeometry(64, 64, 16, 16), seMat.clone());
         g.rotation.x = -Math.PI / 2; g.position.set(88, 1.55, 88); g.receiveShadow = true; this.scene.add(g);
-        // Inner ring patches (r=56 to r=62) — fills the gap right next to platform
-        const ringSegments = 16;
-        for (let i = 0; i < ringSegments; i++) {
-            const a = (i / ringSegments) * Math.PI * 2;
-            const r = 59;
-            const rx = Math.cos(a) * r;
-            const rz = Math.sin(a) * r;
-            const seg = i % 4;
-            const mat = [nwMat.clone(), neMat.clone(), swMat.clone(), seMat.clone()][seg];
-            const segGeo = new THREE.PlaneGeometry(10, 2, 4, 1);
-            const sg = new THREE.Mesh(segGeo, mat);
-            sg.rotation.x = -Math.PI / 2;
-            sg.position.set(rx, 1.55, rz);
-            sg.rotation.z = a + Math.PI / 2;
-            sg.receiveShadow = true;
-            this.scene.add(sg);
-        }
 
         // Spawn pads around platform edge
         const spawnAngles = [0, Math.PI / 2, Math.PI, Math.PI * 1.5];
