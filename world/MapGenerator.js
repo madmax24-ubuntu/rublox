@@ -3958,8 +3958,8 @@ const gapConfigs = [
         base.castShadow = true;
         fortGroup.add(base);
 
-        // Tower
-        const towerGeo = new THREE.CylinderGeometry(5, 7, 12, 8);
+       // Tower
+        const towerGeo = new THREE.CylinderGeometry(5, 7, 12, 6);
         const towerMat = new THREE.MeshStandardMaterial({
             map: this.textures.concrete,
             color: 0x5a5a5a,
@@ -3971,7 +3971,7 @@ const gapConfigs = [
         fortGroup.add(tower);
 
         // Tower top
-        const topGeo = new THREE.ConeGeometry(6, 5, 8);
+        const topGeo = new THREE.ConeGeometry(6, 5, 6);
         const topMat = new THREE.MeshStandardMaterial({
             color: 0x4a4a4a,
             roughness: 0.95,
@@ -3979,28 +3979,10 @@ const gapConfigs = [
         });
         const top = new THREE.Mesh(topGeo, topMat);
         top.position.y = 31;
-        top.castShadow = true;
-        fortGroup.add(top);
+        this.scene.add(top);
 
-        // Spiral staircase (inside tower)
-        for (let i = 0; i < 24; i++) {
-            const angle = (i / 24) * Math.PI * 2;
-            const stepGeo = new THREE.BoxGeometry(2.5, 0.3, 1.2);
-            const stepMat = new THREE.MeshStandardMaterial({
-                map: this.textures.stone,
-                color: 0x5a5a5a,
-                roughness: 0.95
-            });
-            const step = new THREE.Mesh(stepGeo, stepMat);
-            step.position.set(
-                Math.cos(angle) * 3,
-                2 + i * 0.7,
-                Math.sin(angle) * 3
-            );
-            step.rotation.y = -angle;
-            step.castShadow = true;
-            fortGroup.add(step);
-        }
+        // Spiral staircase (inside tower) — disabled for performance
+        // for (let i = 0; i < 24; i++) { ... }
 
         // Battlements on top
         for (let i = 0; i < 8; i++) {
@@ -4012,8 +3994,7 @@ const gapConfigs = [
                 28,
                 Math.sin(angle) * 5.5
             );
-            batt.castShadow = true;
-            fortGroup.add(batt);
+            this.scene.add(batt);
         }
 
         fortGroup.position.set(x, 2, z);
