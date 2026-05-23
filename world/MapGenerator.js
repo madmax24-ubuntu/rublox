@@ -556,9 +556,9 @@ export class MapGenerator {
 
         // Flat circular platform at ground level (same Y as biome ground)
         const platGeo = new THREE.CylinderGeometry(radius, radius, 0.4, 32);
-        const platTex = TextureGenerator.createTerrainTexture(256, 256, 0xc9b99a,
-            (n) => ({ r: n * 30, g: n * 25, b: n * 18 }),
-          this.noise, { detailOctaves: 4, detailScale: 20, speckleStrength: 20, speckleSize: 4, sharpen: true }
+        const platTex = TextureGenerator.createTerrainTexture(512, 512, 0xc9b99a,
+            (n) => ({ r: n * 25, g: n * 20, b: n * 15 }),
+          this.noise, { detailOctaves: 6, detailScale: 48, sharpenAmount: 0.3 }
         );
         const platMat = new THREE.MeshStandardMaterial({
             map: platTex, roughness: 0.8, flatShading: false
