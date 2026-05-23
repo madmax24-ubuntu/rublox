@@ -5705,6 +5705,33 @@ fillBoundaryGaps() {
         houseGroup.position.set(x, 2, z);
         this.scene.add(houseGroup);
         this.houseSpots.push({ x, z, width: 12, depth: 12, height: 8 });
+
+        // Colliders for broken house
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(x, fh / 2 + 2, z + 6),
+            size: new THREE.Vector3(12, fh, 0.5)
+        });
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(x, bh / 2 + 2, z - 6),
+            size: new THREE.Vector3(12, bh, 0.5)
+        });
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(x - 6, 4 + 2, z),
+            size: new THREE.Vector3(0.5, 8, 12)
+        });
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(x + 6, sw2H / 2 + 2, z),
+            size: new THREE.Vector3(0.5, sw2H, 12)
+        });
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(x, 4 + 2, z),
+            size: new THREE.Vector3(12, 0.4, 12)
+        });
     }
 
     addTank(x, z) {
