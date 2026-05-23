@@ -796,14 +796,12 @@ buildFountain() {
         const northGeo = new THREE.BoxGeometry(wallSize * 2, fenceHeight, 1.5);
         const north = new THREE.Mesh(northGeo, fenceMat);
         north.position.set(0, fenceHeight / 2, -wallSize);
-        north.castShadow = true;
         north.receiveShadow = true;
         this.scene.add(north);
 
         // South wall
         const south = new THREE.Mesh(northGeo, fenceMat);
         south.position.set(0, fenceHeight / 2, wallSize);
-        south.castShadow = true;
         south.receiveShadow = true;
         this.scene.add(south);
 
@@ -811,14 +809,12 @@ buildFountain() {
         const sideGeo = new THREE.BoxGeometry(1.5, fenceHeight, wallSize * 2);
         const east = new THREE.Mesh(sideGeo, fenceMat);
         east.position.set(wallSize, fenceHeight / 2, 0);
-        east.castShadow = true;
         east.receiveShadow = true;
         this.scene.add(east);
 
         // West wall
         const west = new THREE.Mesh(sideGeo, fenceMat);
         west.position.set(-wallSize, fenceHeight / 2, 0);
-        west.castShadow = true;
         west.receiveShadow = true;
         this.scene.add(west);
 
