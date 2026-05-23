@@ -2223,7 +2223,6 @@ const gapConfigs = [
         const hingeDoor = new THREE.Mesh(hingeDoorGeo, doorHingeMat);
         hingeDoor.position.set(doorW / 2, 1.4, wallD / 2 + 0.6);
         hingeDoor.rotation.y = Math.PI / 2.5;
-        hingeDoor.castShadow = true;
         houseGroup.add(hingeDoor);
         // Door handle
         const handleGeo = new THREE.SphereGeometry(0.08, 5, 5);
