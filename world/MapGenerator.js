@@ -599,16 +599,15 @@ export class MapGenerator {
         g = new THREE.Mesh(new THREE.PlaneGeometry(64, 64, 32, 32), seMat.clone());
         g.rotation.x = -Math.PI / 2; g.position.set(88, 1.55, 88); g.receiveShadow = true; this.scene.add(g);
         // Inner ring patches (r=56 to r=62) — fills the gap right next to platform
-        const ringSegments = 24;
+        const ringSegments = 16;
         for (let i = 0; i < ringSegments; i++) {
             const a = (i / ringSegments) * Math.PI * 2;
             const r = 59;
             const rx = Math.cos(a) * r;
             const rz = Math.sin(a) * r;
-            // Pick material based on quadrant angle
             const seg = i % 4;
             const mat = [nwMat.clone(), neMat.clone(), swMat.clone(), seMat.clone()][seg];
-            const segGeo = new THREE.PlaneGeometry(8, 2, 8, 2);
+            const segGeo = new THREE.PlaneGeometry(10, 2, 4, 1);
             const sg = new THREE.Mesh(segGeo, mat);
             sg.rotation.x = -Math.PI / 2;
             sg.position.set(rx, 1.55, rz);
