@@ -81,37 +81,62 @@ class TextureGenerator {
         const r0 = (baseColor >> 16) & 0xff;
         const g0 = (baseColor >> 8) & 0xff;
         const b0 = baseColor & 0xff;
-        const detailOctaves = opts.detailOctaves || 6;
-        const detailScale = opts.detailScale || 8;
-        const hasDetail = opts.hasDetail || false; // secondary detail pass
+        const detailOctaves = opts.detailOctaves || 4;
+        const detailScale = opts.detailScale || 24;
+        const speckleStrength = opts.speckleStrength || 24;
+        const sharpen = opts.sharpen !== false;
+        const speckleSize = opts.speckleSize || 3; // pixel step for speckle (lower = more frequent)
 
+        // Single pass with high-frequency noise for sharp patterns
+        const half = detailScale * 0.5;
         for (let y = 0; y < height; y++) {
+            const wy = y / height * detailScale;
             for (let x = 0; x < width; x++) {
-                const nx = x / width * detailScale;
-                const ny = y / height * detailScale;
-                const n = noise.fbm(nx, ny, detailOctaves, 2.0, 0.5);
-                const n2 = noise.fbm(nx * 0.5 + 100, ny * 0.5 + 100, 3, 2.0, 0.5);
-                const n3 = hasDetail ? noise.fbm(nx * 2 + 200, ny * 2 + 200, 3, 2.0, 0.5) : 0;
-                const v = variationFn(n, n2, n3, x / width, y / height);
+                const wx = x / width * detailScale;
+                const n = noise.fbm(wx, wy, detailOctaves, 2.0, 0.5);
+
+                // High-frequency micro-detail for sharpness
+                const microX = x / speckleSize;
+                const microY = y / speckleSize;
+                const micro = noise.fbm(microX + 500, microY + 500, 3, 2.0, 0.5) * 0.3;
+
+                const px = x / width;
+                const py = y / height;
+                const v = variationFn(n, micro, 0, px, py);
 
                 const idx = (y * width + x) * 4;
-                imgData.data[idx]     = Math.max(0, Math.min(255, r0 + v.r));
-                imgData.data[idx + 1] = Math.max(0, Math.min(255, g0 + v.g));
-                imgData.data[idx + 2] = Math.max(0, Math.min(255, b0 + v.b));
+                let r = r0 + v.r;
+                let g = g0 + v.g;
+                let b = b0 + v.b;
+
+                // Sharpen: amplify contrast toward extremes
+                if (sharpen) {
+                    r = r < 128 ? (r / 128) * r * 0.75 : 128 + ((r - 128) / 127) * 127 * 1.2;
+                    g = g < 128 ? (g / 128) * g * 0.75 : 128 + ((g - 128) / 127) * 127 * 1.2;
+                    b = b < 128 ? (b / 128) * b * 0.75 : 128 + ((b - 128) / 127) * 127 * 1.2;
+                }
+
+                imgData.data[idx]     = r | 0;
+                imgData.data[idx + 1] = g | 0;
+                imgData.data[idx + 2] = b | 0;
                 imgData.data[idx + 3] = 255;
             }
         }
         ctx.putImageData(imgData, 0, 0);
 
-        // Add fine grain speckle for extra detail
-        const speckleStrength = opts.speckleStrength || 8;
-        for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
-                const idx = (y * width + x) * 4;
-                const speckle = (Math.random() - 0.5) * speckleStrength;
-                imgData.data[idx]     = Math.max(0, Math.min(255, imgData.data[idx] + speckle));
-                imgData.data[idx + 1] = Math.max(0, Math.min(255, imgData.data[idx + 1] + speckle));
-                imgData.data[idx + 2] = Math.max(0, Math.min(255, imgData.data[idx + 2] + speckle));
+        // Sparse high-contrast speckle for grain/texture
+        for (let y = 0; y < height; y += speckleSize) {
+            for (let x = 0; x < width; x += speckleSize) {
+                const brightness = (Math.random() - 0.5) * speckleStrength;
+                const spread = speckleSize;
+                for (let dy = 0; dy < spread && y + dy < height; dy++) {
+                    for (let dx = 0; dx < spread && x + dx < width; dx++) {
+                        const idx = ((y + dy) * width + (x + dx)) * 4;
+                        imgData.data[idx]     = Math.max(0, Math.min(255, imgData.data[idx] + brightness));
+                        imgData.data[idx + 1] = Math.max(0, Math.min(255, imgData.data[idx + 1] + brightness));
+                        imgData.data[idx + 2] = Math.max(0, Math.min(255, imgData.data[idx + 2] + brightness));
+                    }
+                }
             }
         }
 
