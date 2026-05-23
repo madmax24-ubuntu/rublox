@@ -919,11 +919,8 @@ fillBoundaryGaps() {
         ];
 
         gapConfigs.forEach(cfg => {
-            const tex = this.textures[cfg.matKey];
             const groundGeo = new THREE.PlaneGeometry(cfg.w, cfg.h, 32, 32);
-            const groundMat = tex
-                ? new THREE.MeshStandardMaterial({ map: tex, roughness: 0.95, flatShading: false })
-                : new THREE.MeshStandardMaterial({ color: cfg.color, roughness: 0.95, flatShading: false });
+            const groundMat = new THREE.MeshStandardMaterial({ color: cfg.color, roughness: 0.95, flatShading: false });
             const ground = new THREE.Mesh(groundGeo, groundMat);
             ground.rotation.x = -Math.PI / 2;
             ground.position.set(cfg.cx, 1.55, cfg.cz);
