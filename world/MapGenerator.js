@@ -883,6 +883,16 @@ export class MapGenerator {
         }
     }
 
+    buildMapBoundaries() {
+        // Arena edge wall (behind forcefield)
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0x4a5a3a, roughness: 0.9 });
+        const wallGeo = new THREE.CylinderGeometry(this.arenaRadius + 1, this.arenaRadius + 1, 14, 64, 1, true);
+        const wall = new THREE.Mesh(wallGeo, wallMat);
+        wall.position.y = 7;
+        wall.frustumCulled = false;
+        this.scene.add(wall);
+    }
+
     // ========== GETTERS ==========
     getFloorTiles() {
         return this.floorTiles;
