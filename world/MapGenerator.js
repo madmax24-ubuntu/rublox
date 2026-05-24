@@ -1079,17 +1079,23 @@ buildFountain() {
     // ========== ROADS ==========
     async buildRoads() {
         const roadWidth = 1.67;
+        const GATE_Z = 256; // Gates at ±256
 
-        // North road - from center to north gate (doubled for 512 map)
-        this.buildRoad(0, -62, 0, -220, roadWidth);
+        // North road - from center to north gate
+        this.buildRoad(0, -62, 0, -GATE_Z, roadWidth);
         // South road - from center to south gate
-        this.buildRoad(0, 62, 0, 220, roadWidth);
+        this.buildRoad(0, 62, 0, GATE_Z, roadWidth);
         await this.yieldFrame();
 
         // West road - from center to west gate
-        this.buildRoad(-62, 0, -220, 0, roadWidth);
+        this.buildRoad(-62, 0, -GATE_Z, 0, roadWidth);
         // East road - from center to east gate
-        this.buildRoad(62, 0, 220, 0, roadWidth);
+        this.buildRoad(62, 0, GATE_Z, 0, roadWidth);
+        await this.yieldFrame();
+
+        // === LOW BORDERS along roads ===
+        this.buildRoadBorders();
+        await this.yieldFrame();
 
         // Street lamps along roads
         this.buildRoadLamps();
@@ -1097,6 +1103,63 @@ buildFountain() {
 
         // === INDIVIDUAL PATHS TO EACH BIOME ===
         this.buildBiomePaths();
+    }
+
+    buildRoadBorders() {
+        const borderMat = new THREE.MeshStandardMaterial({
+            color: 0x5a5a4a,
+            roughness: 0.95,
+            flatShading: false
+        });
+        const borderH = 0.8;
+        const borderThick = 0.3;
+        const roadOffset = (1.67 / 2) + borderThick / 2; // half road + half border
+
+        // North road: x=0, z from -62 to -256
+        // Left border (z side)
+        let b = new THREE.Mesh(new THREE.BoxGeometry(borderThick, borderH, 62 + 256), borderMat);
+        b.position.set(-roadOffset, borderH / 2, -(62 + 256) / 2);
+        b.castShadow = true; b.receiveShadow = true; this.scene.add(b);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(-roadOffset, borderH / 2, -(62 + 256) / 2), size: new THREE.Vector3(borderThick, borderH, 62 + 256) });
+
+        // Right border (z side)
+        b = new THREE.Mesh(new THREE.BoxGeometry(borderThick, borderH, 62 + 256), borderMat);
+        b.position.set(roadOffset, borderH / 2, -(62 + 256) / 2);
+        b.castShadow = true; b.receiveShadow = true; this.scene.add(b);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(roadOffset, borderH / 2, -(62 + 256) / 2), size: new THREE.Vector3(borderThick, borderH, 62 + 256) });
+
+        // South road: x=0, z from 62 to 256
+        b = new THREE.Mesh(new THREE.BoxGeometry(borderThick, borderH, 256 - 62), borderMat);
+        b.position.set(-roadOffset, borderH / 2, (62 + 256) / 2);
+        b.castShadow = true; b.receiveShadow = true; this.scene.add(b);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(-roadOffset, borderH / 2, (62 + 256) / 2), size: new THREE.Vector3(borderThick, borderH, 256 - 62) });
+
+        b = new THREE.Mesh(new THREE.BoxGeometry(borderThick, borderH, 256 - 62), borderMat);
+        b.position.set(roadOffset, borderH / 2, (62 + 256) / 2);
+        b.castShadow = true; b.receiveShadow = true; this.scene.add(b);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(roadOffset, borderH / 2, (62 + 256) / 2), size: new THREE.Vector3(borderThick, borderH, 256 - 62) });
+
+        // West road: z=0, x from -62 to -256
+        b = new THREE.Mesh(new THREE.BoxGeometry(62 + 256, borderH, borderThick), borderMat);
+        b.position.set(-(62 + 256) / 2, borderH / 2, -roadOffset);
+        b.castShadow = true; b.receiveShadow = true; this.scene.add(b);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(-(62 + 256) / 2, borderH / 2, -roadOffset), size: new THREE.Vector3(62 + 256, borderH, borderThick) });
+
+        b = new THREE.Mesh(new THREE.BoxGeometry(62 + 256, borderH, borderThick), borderMat);
+        b.position.set(-(62 + 256) / 2, borderH / 2, roadOffset);
+        b.castShadow = true; b.receiveShadow = true; this.scene.add(b);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(-(62 + 256) / 2, borderH / 2, roadOffset), size: new THREE.Vector3(62 + 256, borderH, borderThick) });
+
+        // East road: z=0, x from 62 to 256
+        b = new THREE.Mesh(new THREE.BoxGeometry(256 - 62, borderH, borderThick), borderMat);
+        b.position.set((62 + 256) / 2, borderH / 2, -roadOffset);
+        b.castShadow = true; b.receiveShadow = true; this.scene.add(b);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3((62 + 256) / 2, borderH / 2, -roadOffset), size: new THREE.Vector3(256 - 62, borderH, borderThick) });
+
+        b = new THREE.Mesh(new THREE.BoxGeometry(256 - 62, borderH, borderThick), borderMat);
+        b.position.set((62 + 256) / 2, borderH / 2, roadOffset);
+        b.castShadow = true; b.receiveShadow = true; this.scene.add(b);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3((62 + 256) / 2, borderH / 2, roadOffset), size: new THREE.Vector3(256 - 62, borderH, borderThick) });
     }
 
     buildBiomePaths() {
