@@ -3221,7 +3221,7 @@ export class MapGenerator {
         for (let i = 0; i < 16; i++) {
             const angle = (i / 16) * Math.PI * 2;
             const drop = new THREE.Mesh(dropGeo, dropMat);
-            drop.position.set(Math.cos(angle) * 2.5, 5.2, Math.sin(angle) * 2.5);
+            drop.position.set(Math.cos(angle) * 2.5, 5.9, Math.sin(angle) * 2.5);
             this.scene.add(drop);
             this.animatedObjects.push({
                 type: 'fDrop', angle: angle, drop: drop
