@@ -1076,6 +1076,7 @@ buildFountain() {
             ground.receiveShadow = true;
             this.scene.add(ground);
         });
+        await this.yieldFrame();
     }
 
     // ========== ROADS ==========
