@@ -3144,7 +3144,7 @@ buildFountain() {
         const spawnAngles = [0, Math.PI / 2, Math.PI, Math.PI * 1.5];
         const platSurfaceY = 1.63;
         spawnAngles.forEach((angle, i) => {
-            const r = 60 + i * 1.5;
+            const r = 75 + i * 1.5;
             this.spawnPads.push({
                 x: Math.cos(angle) * r,
                 y: platSurfaceY,
