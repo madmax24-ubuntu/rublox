@@ -2594,43 +2594,7 @@ buildFountain() {
             this.scene.add(tankGroup);
         }
 
-        // Barbed wire fences
-        const wireMat = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.5 });
-        for (let f = 0; f < 5; f++) {
-            const fenceGroup = new THREE.Group();
-            const fenceLen = 6 + Math.floor(Math.random() * 6);
-            const startX = cx - 80 + f * 35;
-            const startZ = cz + (Math.random() - 0.5) * 100;
-
-            // Posts
-            for (let p = 0; p <= fenceLen; p += 2) {
-                const post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.5, 3), wireMat);
-                post.position.set(startX + p * 0.5, 0.75, startZ);
-                post.castShadow = true;
-                fenceGroup.add(post);
-            }
-
-            // Barbed wire strands
-            for (let w = 0; w < 3; w++) {
-                const wirePoints = [];
-                for (let i = 0; i <= fenceLen * 2; i++) {
-                    wirePoints.push(new THREE.Vector3(
-                        startX + i * 0.5,
-                        1.3 + w * 0.15 + Math.sin(i * 0.5) * 0.1,
-                        startZ
-                    ));
-                }
-                const wireGeo = new THREE.TubeGeometry(
-                    new THREE.CatmullRomCurve3(wirePoints), 20, 0.02, 3, false
-                );
-                const wire = new THREE.Mesh(wireGeo, wireMat);
-                fenceGroup.add(wire);
-            }
-
-            this.scene.add(fenceGroup);
         }
-
-      }
 
     // === STONE/INDUSTRIAL BIOME: MAZE + TOWERS ===
 
