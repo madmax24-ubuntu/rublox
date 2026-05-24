@@ -3350,8 +3350,17 @@ buildFountain() {
         tileMesh.receiveShadow = true;
         this.scene.add(tileMesh);
 
-        // === FOUNTAIN ===
-        this.buildFountain();
+        // === SPAWN ===
+        // Spawn pads around center (large spawn area)
+        const spawnAngles = [0, Math.PI / 2, Math.PI, Math.PI * 1.5];
+        spawnAngles.forEach((angle, i) => {
+            this.spawnPads.push({
+                x: Math.cos(angle) * 65,
+                y: platH + 0.2,
+                z: Math.sin(angle) * 65,
+                radius: 6
+            });
+        });
     }
 
     // === BOUNDARY WALLS ===
