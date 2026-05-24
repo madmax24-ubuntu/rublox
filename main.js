@@ -2334,6 +2334,8 @@ class Game {
             if (this.map?.ready?.then) {
                 await this.map.ready;
             }
+            setLoadingProgress(0.75);
+            await new Promise(r => requestAnimationFrame(r));
             this.ensureSceneRenderable();
 
             if (this.isMobile()) {
