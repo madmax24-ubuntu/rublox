@@ -3123,14 +3123,26 @@ export class MapGenerator {
         // === FILL DIAGONAL GAPS between circular platform and square biome grounds ===
         this.fillDiagonalGround();
 
-        // Main circular platform
-        const platGeo = new THREE.CylinderGeometry(platRadius, platRadius, platH, 48);
+        // === STEPPED PLATFORM (2 tiers) ===
         const platMat = new THREE.MeshStandardMaterial({ color: 0xd4c4a8, roughness: 0.8 });
-        const platform = new THREE.Mesh(platGeo, platMat);
-        platform.position.set(0, platH / 2, 0);
-        platform.receiveShadow = true;
-        platform.castShadow = true;
-        this.scene.add(platform);
+
+        // Lower tier: R=70, H=1.0
+        const lowerTier = new THREE.Mesh(new THREE.CylinderGeometry(platRadius, platRadius, 1.0, 48), platMat);
+        lowerTier.position.set(0, 0.5, 0);
+        lowerTier.receiveShadow = true;
+        lowerTier.castShadow = true;
+        this.scene.add(lowerTier);
+
+        // Upper tier: R=50, H=1.2
+        const upperH = 1.2;
+        const upperRadius = 50;
+        const upperTier = new THREE.Mesh(new THREE.CylinderGeometry(upperRadius, upperRadius, upperH, 48), platMat);
+        upperTier.position.set(0, 1.0 + upperH / 2, 0);
+        upperTier.receiveShadow = true;
+        upperTier.castShadow = true;
+        this.scene.add(upperTier);
+
+        const platH = 1.0 + upperH; // total platform height
 
         // Platform floor (textured, on top of platform)
         const platFloorGeo = new THREE.CircleGeometry(platRadius, 48);
