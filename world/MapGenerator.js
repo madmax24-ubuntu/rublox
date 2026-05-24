@@ -3086,6 +3086,7 @@ buildFountain() {
         biomeGroundPlane.call(this, 196, 196, -158, 158, militaryTex, 16, 16);
         // Snow biome ground (southeast: X 60..256, Z 60..256)
         biomeGroundPlane.call(this, 196, 196, 158, 158, snowTex, 16, 16);
+        await this.yieldFrame();
 
         // === GAP FILLS between biome quadrants ===
         const centerGapMat = new THREE.MeshStandardMaterial({
