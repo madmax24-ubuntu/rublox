@@ -1068,6 +1068,7 @@ fillBoundaryGaps() {
         roadTexture.repeat.set(Math.floor(len / 8), Math.floor(width / 4));
         roadTexture.anchor = [0, 0];
 
+        const geo = new THREE.PlaneGeometry(width, len, 8, 8);
         const mat = new THREE.MeshStandardMaterial({
             map: roadTexture,
             color: COLOR.road,
