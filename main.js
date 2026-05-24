@@ -2323,18 +2323,22 @@ class Game {
         this.startAttemptAt = performance.now();
         try {
             this.enterFullscreen().catch(() => { });
+
+            // Hide loading overlay and start screen BEFORE map generation completes
             this.hideStartScreen();
             setLoadingProgress(0.85);
+
             await new Promise(r => requestAnimationFrame(r));
 
+            if (this.map?.ready?.then) {
+                await this.map.ready;
+            }
+
+            // Show HUD after map generation is complete
             this.hud?.showPause?.(false);
             this.isPaused = false;
             this.partyMode = false;
             this.applyRoundMode('hybrid');
-            await new Promise(resolve => requestAnimationFrame(() => resolve()));
-            if (this.map?.ready?.then) {
-                await this.map.ready;
-            }
             this.ensureSceneRenderable();
 
             if (this.isMobile()) {
