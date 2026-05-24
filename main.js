@@ -2324,8 +2324,6 @@ class Game {
         this.startingGame = true;
         this.startAttemptAt = performance.now();
         try {
-            this.enterFullscreen().catch(() => { });
-
             // Hide start screen (but keep loading overlay visible)
             this.hideStartScreen();
             setLoadingProgress(0.85);
@@ -2336,21 +2334,14 @@ class Game {
 
             await new Promise(r => requestAnimationFrame(r));
 
+            // Wait for full map generation BEFORE entering fullscreen
             if (this.map?.ready?.then) {
                 await this.map.ready;
             }
 
-            // Show HUD after map generation is complete
-            if (hudEl) hudEl.style.display = '';
-            this.hud?.showPause?.(false);
-            this.isPaused = false;
-            this.partyMode = false;
-            this.applyRoundMode('hybrid');
-            this.ensureSceneRenderable();
-
+            // NOW enter fullscreen — map is fully loaded
+            this.enterFullscreen().catch(() => { });
             if (this.isMobile()) {
-                // Important: do not block game start on fullscreen promises (some mobile browsers keep them pending).
-                this.enterFullscreen().catch(() => { });
                 this.lockOrientation().catch(() => { });
                 this.updateOrientationUI();
                 this.applyRendererSizing();
@@ -2370,6 +2361,14 @@ class Game {
                 };
                 window.addEventListener('touchend', retry, { passive: false });
             }
+
+            // Show HUD after map generation is complete
+            if (hudEl) hudEl.style.display = '';
+            this.hud?.showPause?.(false);
+            this.isPaused = false;
+            this.partyMode = false;
+            this.applyRoundMode('hybrid');
+            this.ensureSceneRenderable();
 
             this.audioSynth?.unlock?.().catch(() => { });
             this.audioSynth?.playMusic?.();
