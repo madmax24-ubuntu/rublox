@@ -998,14 +998,7 @@ buildFountain() {
         beam.position.set(0, 7, 0);
         wellGroup.add(beam);
 
-        // Rope (thin cylinder)
-        const ropeGeo = new THREE.CylinderGeometry(0.02, 0.02, 3, 4);
-        const ropeMat = new THREE.MeshStandardMaterial({ color: 0x8a7a5a, roughness: 0.9 });
-        const rope = new THREE.Mesh(ropeGeo, ropeMat);
-        rope.position.set(0, 5.5, 0);
-        wellGroup.add(rope);
-
-        // Bucket
+           // Bucket
         const bucketGeo = new THREE.CylinderGeometry(0.25, 0.2, 0.4, 8);
         const bucketMat = new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.8 });
         const bucket = new THREE.Mesh(bucketGeo, bucketMat);
