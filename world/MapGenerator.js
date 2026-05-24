@@ -269,17 +269,58 @@ function createSnowTexture(canvas, seed) {
     }
 }
 
-// ============ COLOR CONSTANTS (replacing CanvasTexture) ============
+// ============ COLOR CONSTANTS ============
 const COLOR = {
-    forestGround: 0x3a7a2e,
-    stoneGround: 0x7a7a7a,
-    militaryGround: 0x6b6b4a,
-    snowGround: 0xf0f0f0,
-    wood: 0x5d4037,
-    stone: 0x6b6b6b,
-    snow: 0xe8e8e8,
-    sand: 0xc2b280,
+    // Arena ground
+    arenaGround: 0x3a5a2a,
+    arenaPath: 0x8b7355,
+    // Cornucopia
+    metalDark: 0x3a3a3a,
+    metalLight: 0x6a6a6a,
+    metalGold: 0xc8a830,
+    metalSilver: 0x9a9a9a,
+    // Cornucopia ramp
+    rampMetal: 0x4a4a4a,
+    // Chest
+    chestWood: 0x6b4226,
+    chestGold: 0xdaa520,
+    chestLock: 0xffd700,
+    // Forcefield
+    forcefield: 0x4488ff,
+    // Biome: Ruined Citadel (NW) - stone ruins
+    ruinStone: 0x8a8580,
+    ruinDarkStone: 0x6a6560,
+    ruinFloor: 0x7a7570,
+    ruinMoss: 0x4a6a3a,
+    // Biome: Crystal Grotto (NE) - crystal cavern
+    crystalBlue: 0x4488cc,
+    crystalPurple: 0x8844aa,
+    crystalFloor: 0x2a2a3a,
+    crystalReflect: 0x6688aa,
+    crystalGlow: 0x88ccff,
+    // Biome: Burning Wastes (SW) - volcanic
+    lava: 0xff4400,
+    lavaGlow: 0xff6600,
+    obsidian: 0x1a1a2a,
+    wasteGround: 0x2a1a0a,
+    scorchedRock: 0x2a2a2a,
+    smoke: 0x1a1a1a,
+    // Biome: Luminous Forest (SE) - glowing forest
+    luminousBark: 0x2a1a0a,
+    luminousLeaf: 0x22aa44,
+    luminousGlow: 0x44ff88,
+    luminousMushroom: 0x8844ff,
+    luminousFloor: 0x1a2a1a,
+    luminousPond: 0x226644,
+    // Misc
+    bridgeWood: 0x5a4a3a,
+    fenceWood: 0x4a3a2a,
+    fire: 0xff6600,
     water: 0x1e78b4,
+    fog: 0x888888,
+    chest: 0xdaa520,
+    gold: 0xffd700,
+    stone: 0x8c8c8c,
     brick: 0xa04020,
     concrete: 0x8c8c8c,
     road: 0x7a7a7a,
