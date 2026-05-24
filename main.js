@@ -2746,6 +2746,10 @@ window.addEventListener('DOMContentLoaded', () => {
         const handleStart = async (e) => {
             if (e?.cancelable) e.preventDefault();
             if (game.startingGame || game.isStarted) return;
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'flex';
+                setLoadingProgress(0.05);
+            }
             try {
                 game.audioSynth?.unlock?.().catch(() => { });
                 if (game.isMobile()) game.lockOrientation().catch(() => { });
