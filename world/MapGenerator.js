@@ -3279,15 +3279,24 @@ buildFountain() {
         base.castShadow = true;
         fountainGroup.add(base);
 
-        // Fountain basin
-        const basin = new THREE.Mesh(
-            new THREE.TorusGeometry(3, 0.8, 8, 16),
-            stoneMat
+        // Fountain basin (proper bowl shape)
+        const basinMat = new THREE.MeshStandardMaterial({ color: 0x9a9a8a, roughness: 0.7, metalness: 0.1 });
+        // Outer ring of basin
+        const basinOuter = new THREE.Mesh(
+            new THREE.CylinderGeometry(4.2, 4.5, 1.2, 24),
+            basinMat
         );
-        basin.position.set(0, 1.5, 0);
-        basin.rotation.x = Math.PI / 2;
-        basin.castShadow = true;
-        fountainGroup.add(basin);
+        basinOuter.position.set(0, 0.9, 0);
+        basinOuter.castShadow = true;
+        fountainGroup.add(basinOuter);
+        // Inner basin surface (water level)
+        const basinInner = new THREE.Mesh(
+            new THREE.CylinderGeometry(3.8, 4.0, 0.1, 24),
+            basinMat
+        );
+        basinInner.position.set(0, 1.4, 0);
+        basinInner.castShadow = true;
+        fountainGroup.add(basinInner);
 
         // Fountain center pillar
         const pillar = new THREE.Mesh(
