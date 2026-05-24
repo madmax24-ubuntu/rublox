@@ -1048,10 +1048,10 @@ buildFountain() {
    fillDiagonalGround() {
         // Fill diagonal gaps with biome-specific textured ground (smaller patches)
         const canvas = document.createElement('canvas');
-        const forestTex = createBiomeTexture(canvas, (c) => createForestTexture(c, 42));
-        const stoneTex = createBiomeTexture(canvas, (c) => createStoneTexture(c, 73));
-        const militaryTex = createBiomeTexture(canvas, (c) => createMilitaryTexture(c, 99));
-        const snowTex = createBiomeTexture(canvas, (c) => createSnowTexture(c, 127));
+        const forestTex = createBiomeTexture((c) => createForestTexture(c, 42));
+        const stoneTex = createBiomeTexture((c) => createStoneTexture(c, 73));
+        const militaryTex = createBiomeTexture((c) => createMilitaryTexture(c, 99));
+        const snowTex = createBiomeTexture((c) => createSnowTexture(c, 127));
 
         const gapConfigs = [
             { cx: -110, cz: -110, w: 100, h: 100, tex: forestTex },
