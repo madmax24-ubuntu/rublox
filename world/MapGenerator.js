@@ -3205,7 +3205,7 @@ export class MapGenerator {
 
         // --- Water surfaces ---
         const water1 = new THREE.Mesh(new THREE.CylinderGeometry(9.5, 9.5, 0.08, 32), waterMat);
-        water1.position.y = 2.2;
+        water1.position.y = 2.9;
         this.scene.add(water1);
 
         const water2 = new THREE.Mesh(new THREE.CylinderGeometry(4, 4, 0.08, 32), waterMat);
