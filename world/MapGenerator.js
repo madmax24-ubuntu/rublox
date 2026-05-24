@@ -5839,23 +5839,6 @@ buildFountain() {
             houseGroup.add(beam);
         }
 
-        // Debris
-        for (let i = 0; i < 12; i++) {
-            const debrisGeo = new THREE.BoxGeometry(
-                0.5 + Math.random(), 0.3 + Math.random() * 0.5,
-                0.5 + Math.random()
-            );
-            const debris = new THREE.Mesh(debrisGeo, wallMat);
-            debris.position.set(
-                (Math.random() - 0.5) * 16,
-                0.3 + Math.random() * 0.5,
-                6 + Math.random() * 4
-            );
-            debris.rotation.y = Math.random() * Math.PI;
-            debris.rotation.z = (Math.random() - 0.5) * 0.3;
-            houseGroup.add(debris);
-        }
-
         houseGroup.position.set(x, 2, z);
         this.scene.add(houseGroup);
         this.houseSpots.push({ x, z, width: 12, depth: 12, height: 8 });
