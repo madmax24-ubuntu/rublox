@@ -441,6 +441,7 @@ export class MapGenerator {
         const terrainMat = new THREE.MeshStandardMaterial({ color: 0x2d4a1d, roughness: 1.0 });
         const noise = this.noise;
         for (let i = 0; i < 200; i++) {
+            if (i % 40 === 0) await this.yieldFrame();
             const angle = Math.random() * Math.PI * 2;
             const r = 20 + Math.random() * (this.arenaRadius - 40);
             const x = Math.cos(angle) * r, z = Math.sin(angle) * r;
