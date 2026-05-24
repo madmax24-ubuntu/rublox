@@ -3180,7 +3180,7 @@ export class MapGenerator {
 
         // --- Column (R=1.8, H=2) ---
         const column = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 2, 2, 16), stoneMat);
-        column.position.y = 2.5;
+        column.position.y = 3.2;
         column.castShadow = true;
         this.scene.add(column);
 
