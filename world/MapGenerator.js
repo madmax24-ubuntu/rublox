@@ -3193,7 +3193,7 @@ export class MapGenerator {
 
         // --- Center spout (R=1, rises through top bowl) ---
         const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.8, 1.5, 12), stoneMat);
-        spout.position.y = 5.0;
+        spout.position.y = 5.7;
         spout.castShadow = true;
         this.scene.add(spout);
 
