@@ -794,24 +794,24 @@ buildFountain() {
         const OUT_H = 10;
         const OP = 256;
         // North edge
-        const wall = new THREE.Mesh(new THREE.BoxGeometry(512, OUT_H, 3), wallMat);
-        wall.position.set(0, OUT_H / 2, -OP); wall.castShadow = true; wall.receiveShadow = true;
-        this.scene.add(wall);
+        const w1 = new THREE.Mesh(new THREE.BoxGeometry(512, OUT_H, 3), wallMat);
+        w1.position.set(0, OUT_H / 2, -OP); w1.castShadow = true; w1.receiveShadow = true;
+        this.scene.add(w1);
         this.colliders.push({ type: 'box', position: new THREE.Vector3(0, OUT_H / 2, -OP), size: new THREE.Vector3(512, OUT_H, 3) });
         // South edge
-        const wall = new THREE.Mesh(new THREE.BoxGeometry(512, OUT_H, 3), wallMat);
-        wall.position.set(0, OUT_H / 2, OP); wall.castShadow = true; wall.receiveShadow = true;
-        this.scene.add(wall);
+        const w2 = new THREE.Mesh(new THREE.BoxGeometry(512, OUT_H, 3), wallMat);
+        w2.position.set(0, OUT_H / 2, OP); w2.castShadow = true; w2.receiveShadow = true;
+        this.scene.add(w2);
         this.colliders.push({ type: 'box', position: new THREE.Vector3(0, OUT_H / 2, OP), size: new THREE.Vector3(512, OUT_H, 3) });
         // East edge
-        const wall = new THREE.Mesh(new THREE.BoxGeometry(3, OUT_H, 512), wallMat);
-        wall.position.set(OP, OUT_H / 2, 0); wall.castShadow = true; wall.receiveShadow = true;
-        this.scene.add(wall);
+        const w3 = new THREE.Mesh(new THREE.BoxGeometry(3, OUT_H, 512), wallMat);
+        w3.position.set(OP, OUT_H / 2, 0); w3.castShadow = true; w3.receiveShadow = true;
+        this.scene.add(w3);
         this.colliders.push({ type: 'box', position: new THREE.Vector3(OP, OUT_H / 2, 0), size: new THREE.Vector3(3, OUT_H, 512) });
         // West edge
-        const wall = new THREE.Mesh(new THREE.BoxGeometry(3, OUT_H, 512), wallMat);
-        wall.position.set(-OP, OUT_H / 2, 0); wall.castShadow = true; wall.receiveShadow = true;
-        this.scene.add(wall);
+        const w4 = new THREE.Mesh(new THREE.BoxGeometry(3, OUT_H, 512), wallMat);
+        w4.position.set(-OP, OUT_H / 2, 0); w4.castShadow = true; w4.receiveShadow = true;
+        this.scene.add(w4);
         this.colliders.push({ type: 'box', position: new THREE.Vector3(-OP, OUT_H / 2, 0), size: new THREE.Vector3(3, OUT_H, 512) });
     }
 
