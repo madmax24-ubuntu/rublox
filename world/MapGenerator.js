@@ -70,6 +70,207 @@ class SimplexNoise {
     }
 }
 
+// ============ PROCEDURAL TEXTURE GENERATORS ============
+function createBiomeTexture(canvas, drawFn) {
+    const ctx = canvas.getContext('2d');
+    const size = 256;
+    canvas.width = size;
+    canvas.height = size;
+
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, size, size);
+
+    drawFn(ctx, size);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(32, 32);
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    return texture;
+}
+
+function seededRandom(seed) {
+    let s = seed;
+    return function () {
+        s = (s * 16807) % 2147483647;
+        return (s - 1) / 2147483646;
+    };
+}
+
+function createForestTexture(canvas, seed) {
+    const rng = seededRandom(seed || 42);
+    const ctx = canvas.getContext('2d');
+    const size = 256;
+
+    // Base dark green
+    ctx.fillStyle = '#2d5a1e';
+    ctx.fillRect(0, 0, size, size);
+
+    // Noise layer
+    for (let i = 0; i < 3000; i++) {
+        const x = rng() * size;
+        const y = rng() * size;
+        const r = rng() * 3 + 1;
+        const g = rng() * 60 + 30;
+        const b = rng() * 20 + 10;
+        ctx.fillStyle = `rgb(${g},${g + 40},${b})`;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // Dirt patches
+    for (let i = 0; i < 20; i++) {
+        const px = rng() * size;
+        const py = rng() * size;
+        const pr = rng() * 12 + 4;
+        ctx.fillStyle = `rgba(${60 + rng() * 30},${40 + rng() * 20},${20 + rng() * 10},0.3)`;
+        ctx.beginPath();
+        ctx.arc(px, py, pr, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // Small stones
+    for (let i = 0; i < 200; i++) {
+        const x = rng() * size;
+        const y = rng() * size;
+        ctx.fillStyle = `rgba(${80 + rng() * 40},${80 + rng() * 40},${70 + rng() * 40},0.4)`;
+        ctx.fillRect(x, y, 2, 1);
+    }
+}
+
+function createStoneTexture(canvas, seed) {
+    const rng = seededRandom(seed || 73);
+    const ctx = canvas.getContext('2d');
+    const size = 256;
+
+    // Base grey
+    ctx.fillStyle = '#6a6a6a';
+    ctx.fillRect(0, 0, size, size);
+
+    // Stone variation
+    for (let i = 0; i < 2000; i++) {
+        const x = rng() * size;
+        const y = rng() * size;
+        const r = rng() * 3 + 1;
+        const v = rng() * 40 + 90;
+        ctx.fillStyle = `rgb(${v},${v},${v + 5})`;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // Cracks
+    for (let i = 0; i < 40; i++) {
+        const x = rng() * size;
+        const y = rng() * size;
+        ctx.strokeStyle = `rgba(40,40,40,${rng() * 0.3 + 0.1})`;
+        ctx.lineWidth = rng() + 0.5;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + (rng() - 0.5) * 20, y + (rng() - 0.5) * 20);
+        ctx.stroke();
+    }
+
+    // Pebbles
+    for (let i = 0; i < 300; i++) {
+        const x = rng() * size;
+        const y = rng() * size;
+        const v = rng() * 30 + 100;
+        ctx.fillStyle = `rgb(${v},${v},${v})`;
+        ctx.beginPath();
+        ctx.arc(x, y, rng() * 2 + 0.5, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+function createMilitaryTexture(canvas, seed) {
+    const rng = seededRandom(seed || 99);
+    const ctx = canvas.getContext('2d');
+    const size = 256;
+
+    // Base sand
+    ctx.fillStyle = '#8a7a5a';
+    ctx.fillRect(0, 0, size, size);
+
+    // Sand grains
+    for (let i = 0; i < 4000; i++) {
+        const x = rng() * size;
+        const y = rng() * size;
+        const v = rng() * 30 + 110;
+        ctx.fillStyle = `rgb(${v + 20},${v + 15},${v - 10})`;
+        ctx.fillRect(x, y, rng() * 2 + 0.5, rng() * 2 + 0.5);
+    }
+
+    // Tire tracks / footprints
+    for (let i = 0; i < 8; i++) {
+        const x = rng() * size;
+        const y = rng() * size;
+        ctx.strokeStyle = `rgba(60,50,30,${rng() * 0.15 + 0.05})`;
+        ctx.lineWidth = rng() * 3 + 2;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + (rng() - 0.5) * 60, y + (rng() - 0.5) * 60);
+        ctx.stroke();
+    }
+
+    // Dust patches
+    for (let i = 0; i < 30; i++) {
+        const px = rng() * size;
+        const py = rng() * size;
+        ctx.fillStyle = `rgba(${160 + rng() * 40},${140 + rng() * 30},${100 + rng() * 30},0.2)`;
+        ctx.beginPath();
+        ctx.arc(px, py, rng() * 8 + 3, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+function createSnowTexture(canvas, seed) {
+    const rng = seededRandom(seed || 127);
+    const ctx = canvas.getContext('2d');
+    const size = 256;
+
+    // Base white-blue
+    ctx.fillStyle = '#d8e8f0';
+    ctx.fillRect(0, 0, size, size);
+
+    // Snow crystals
+    for (let i = 0; i < 2500; i++) {
+        const x = rng() * size;
+        const y = rng() * size;
+        const r = rng() * 2 + 0.5;
+        const v = rng() * 20 + 210;
+        ctx.fillStyle = `rgba(${v},${v + 5},${v + 15},${rng() * 0.5 + 0.3})`;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // Ice patches
+    for (let i = 0; i < 15; i++) {
+        const px = rng() * size;
+        const py = rng() * size;
+        ctx.fillStyle = `rgba(180,200,220,${rng() * 0.2 + 0.05})`;
+        ctx.beginPath();
+        ctx.arc(px, py, rng() * 10 + 4, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // Subtle cracks
+    for (let i = 0; i < 20; i++) {
+        const x = rng() * size;
+        const y = rng() * size;
+        ctx.strokeStyle = `rgba(150,160,170,${rng() * 0.2})`;
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + (rng() - 0.5) * 15, y + (rng() - 0.5) * 15);
+        ctx.stroke();
+    }
+}
+
 // ============ COLOR CONSTANTS (replacing CanvasTexture) ============
 const COLOR = {
     forestGround: 0x3a7a2e,
