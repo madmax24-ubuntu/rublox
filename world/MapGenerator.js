@@ -804,12 +804,12 @@ buildFountain() {
         this.scene.add(wall);
         this.colliders.push({ type: 'box', position: new THREE.Vector3(0, OUT_H / 2, OP), size: new THREE.Vector3(512, OUT_H, 3) });
         // East edge
-        wall = new THREE.Mesh(new THREE.BoxGeometry(3, OUT_H, 512), wallMat);
+        const wall = new THREE.Mesh(new THREE.BoxGeometry(3, OUT_H, 512), wallMat);
         wall.position.set(OP, OUT_H / 2, 0); wall.castShadow = true; wall.receiveShadow = true;
         this.scene.add(wall);
         this.colliders.push({ type: 'box', position: new THREE.Vector3(OP, OUT_H / 2, 0), size: new THREE.Vector3(3, OUT_H, 512) });
         // West edge
-        wall = new THREE.Mesh(new THREE.BoxGeometry(3, OUT_H, 512), wallMat);
+        const wall = new THREE.Mesh(new THREE.BoxGeometry(3, OUT_H, 512), wallMat);
         wall.position.set(-OP, OUT_H / 2, 0); wall.castShadow = true; wall.receiveShadow = true;
         this.scene.add(wall);
         this.colliders.push({ type: 'box', position: new THREE.Vector3(-OP, OUT_H / 2, 0), size: new THREE.Vector3(3, OUT_H, 512) });
