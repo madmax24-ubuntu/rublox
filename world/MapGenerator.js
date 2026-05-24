@@ -362,40 +362,55 @@ export class MapGenerator {
     async generate() {
         this.generateHeightMap();
 
-        // Textures removed — using solid colors (COLOR constants)
+        // === 1. Circular arena floor ===
+        await this.buildArenaFloor();
 
-        // 1. Center platform
-        await this.buildCenterPlatform();
+        // === 2. Forcefield boundary wall ===
+        await this.buildForcefield();
+        await this.yieldFrame();
 
-        // 2. Roads from center to each biome
-        await this.buildRoads();
+        // === 3. Cornucopia (center structure) ===
+        await this.buildCornucopia();
+        await this.yieldFrame();
 
-        // 3. Forest biome (northwest)
-        await this.buildForestBiome();
+        // === 4. Biome paths from Cornucopia ===
+        await this.buildBiomePaths();
+        await this.yieldFrame();
 
-        // 4. Stone biome (northeast)
-        await this.buildStoneMazeBiome();
+        // === 5. NW: Ruined Citadel ===
+        await this.buildRuinedCitadel();
+        await this.yieldFrame();
 
-        // 5. Military biome (southwest)
-        await this.buildMilitaryBiome();
+        // === 6. NE: Crystal Grotto ===
+        await this.buildCrystalGrotto();
+        await this.yieldFrame();
 
-        // 6. Snow biome (southeast)
-        await this.buildSnowBiome();
+        // === 7. SW: Burning Wastes ===
+        await this.buildBurningWastes();
+        await this.yieldFrame();
 
-        // 7. Props across all biomes
-        this.buildProps();
-     await this.yieldFrame();
+        // === 8. SE: Luminous Forest ===
+        await this.buildLuminousForest();
+        await this.yieldFrame();
 
-        // 7.5. Biome boundaries (clear separation walls)
+        // === 9. Bridges between zones ===
+        this.buildBridges();
+        await this.yieldFrame();
+
+        // === 10. Hazard zones ===
+        this.buildHazardZones();
+
+        // === 11. Props & details ===
+        this.buildArenaProps();
+        await this.yieldFrame();
+
+        // === 12. Biome subtle boundaries ===
         this.buildBiomeBoundaries();
 
-        // 7.6. Fill gaps between biome grounds and boundary walls
-        this.fillBoundaryGaps();
-
-        // 8. Animate water/fire
+        // === 13. Animations ===
         this.setupAnimations();
 
-       // Disable frustum culling on all map objects
+        // Disable frustum culling
         this.scene.traverse(obj => {
             if (obj.isMesh || obj.isGroup || obj.isInstancedMesh) {
                 obj.userData.mapGenerated = true;
@@ -403,7 +418,7 @@ export class MapGenerator {
             }
         });
 
-        // Build boundary walls at map edge
+        // Arena edge walls
         this.buildMapBoundaries();
 
         this._resolveReady();
