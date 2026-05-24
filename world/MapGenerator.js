@@ -3176,6 +3176,36 @@ buildFountain() {
         platform.castShadow = true;
         this.scene.add(platform);
 
+        // Platform floor (textured, on top of platform)
+        const platFloorGeo = new THREE.CircleGeometry(platRadius, 48);
+        const platFloorMat = new THREE.MeshStandardMaterial({
+            map: createBiomeTexture((c) => {
+                const ctx = c.getContext('2d');
+                ctx.fillStyle = '#b8a88a';
+                ctx.fillRect(0, 0, 128, 128);
+                for (let i = 0; i < 400; i++) {
+                    ctx.fillStyle = `rgb(${160+Math.random()*40},${140+Math.random()*40},${110+Math.random()*30})`;
+                    ctx.fillRect(Math.random()*128, Math.random()*128, 3+Math.random()*5, 2+Math.random()*4);
+                }
+                // Grid lines for tile effect
+                ctx.strokeStyle = 'rgba(120,100,70,0.3)';
+                ctx.lineWidth = 1;
+                for (let i = 0; i <= 128; i += 32) {
+                    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 128); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(128, i); ctx.stroke();
+                }
+            }),
+            roughness: 0.85,
+            color: 0xffffff,
+            side: THREE.DoubleSide
+        });
+        platFloorMat.map.repeat.set(4, 4);
+        const platFloor = new THREE.Mesh(platFloorGeo, platFloorMat);
+        platFloor.rotation.x = -Math.PI / 2;
+        platFloor.position.y = 1.57;
+        platFloor.receiveShadow = true;
+        this.scene.add(platFloor);
+
         // Fountain (stone)
         const fountainGroup = new THREE.Group();
         const stoneMat = new THREE.MeshStandardMaterial({ color: 0x8c8c8c, roughness: 0.7, metalness: 0.1 });
