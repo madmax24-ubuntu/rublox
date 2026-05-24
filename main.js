@@ -2770,7 +2770,6 @@ window.addEventListener('DOMContentLoaded', () => {
             }
             try {
                 game.audioSynth?.unlock?.().catch(() => { });
-                if (game.isMobile()) game.lockOrientation().catch(() => { });
                 await game.startGame();
             } catch (err) {
                 console.error('Start failed:', err);
