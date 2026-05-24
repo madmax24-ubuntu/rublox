@@ -3109,16 +3109,35 @@ export class MapGenerator {
         ring2.receiveShadow = true;
         this.scene.add(ring2);
 
-        // Floor tiles for center platform (random scattered)
-        for (let i = 0; i < 60; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = 12 + Math.random() * 55; // outside fountain area
-            this.floorTiles.push({
-                x: Math.cos(angle) * r,
-                z: Math.sin(angle) * r,
-                size: this.tileSize
-            });
+        // 50 spawn tiles arranged in rings around fountain (radial layout)
+        const spawnTileCount = 50;
+        const spawnTileGeo = new THREE.BoxGeometry(3, 0.2, 3);
+        const spawnTileMat = new THREE.MeshStandardMaterial({ color: 0xc8b898, roughness: 0.8 });
+        const spawnTileMesh = new THREE.InstancedMesh(spawnTileGeo, spawnTileMat, spawnTileCount);
+        let stIdx = 0;
+
+        // Place tiles in concentric rings
+        const rings = [
+            { minR: 12, maxR: 18, count: 12 },
+            { minR: 20, maxR: 30, count: 20 },
+            { minR: 32, maxR: 45, count: 18 }
+        ];
+
+        for (const ring of rings) {
+            for (let i = 0; i < ring.count && stIdx < spawnTileCount; i++) {
+                const angle = (i / ring.count) * Math.PI * 2 + (ring.minR * 0.05);
+                const r = ring.minR + Math.random() * (ring.maxR - ring.minR);
+                const x = Math.cos(angle) * r;
+                const z = Math.sin(angle) * r;
+                const m = new THREE.Matrix4().makeTranslation(x, platH + 0.1, z);
+                spawnTileMesh.setMatrixAt(stIdx, m);
+                stIdx++;
+            }
         }
+        spawnTileMesh.instanceMatrix.needsUpdate = true;
+        spawnTileMesh.castShadow = true;
+        spawnTileMesh.receiveShadow = true;
+        this.scene.add(spawnTileMesh);
 
         // === FILL DIAGONAL GAPS between circular platform and square biome grounds ===
         this.fillDiagonalGround();
