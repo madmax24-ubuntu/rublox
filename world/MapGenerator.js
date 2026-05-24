@@ -3262,50 +3262,21 @@ export class MapGenerator {
         this.colliders.push({ type: 'cylinder', position: new THREE.Vector3(0, 0.9, 0), radius: 12, height: 1.8 });
         this.colliders.push({ type: 'cylinder', position: new THREE.Vector3(0, 1.8 + 1, 0), radius: 2.2, height: 2 });
 
-        // 100 floor tiles around center platform
-        const tileMat = new THREE.MeshStandardMaterial({
-            color: 0xb8a88a,
-            roughness: 0.85,
-            flatShading: false
+        // === SPAWN PADS (large, on upper tier) ===
+        // Big spawn area spread across the upper platform
+        this.spawnPads.push({
+            x: 0, y: platH + 0.2, z: 0, radius: 10
         });
-
-        // Arrange in grid pattern — InstancedMesh (100 instances, 1 draw call)
-        const tileGeo = new THREE.BoxGeometry(2.5, 0.15, 2.5);
-        const tileMesh = new THREE.InstancedMesh(tileGeo, tileMat, 100);
-        const dummy = new THREE.Matrix4();
-        let tileCount = 0;
-
-        // Place tiles in 12x12 grid, skip fountain center
-        const gridSize = 12;
-        const tileSize = 4;
-        const gridStart = -(gridSize * tileSize) / 2;
-        for (let row = 0; row < gridSize && tileCount < 100; row++) {
-            for (let col = 0; col < gridSize && tileCount < 100; col++) {
-                const x = gridStart + col * tileSize;
-                const z = gridStart + row * tileSize;
-                if (Math.sqrt(x * x + z * z) < 11) continue;
-
-                const m = new THREE.Matrix4().makeTranslation(x, platH + 0.075, z);
-                tileMesh.setMatrixAt(tileCount, m);
-                tileCount++;
-            }
-        }
-        tileMesh.instanceMatrix.needsUpdate = true;
-        tileMesh.castShadow = true;
-        tileMesh.receiveShadow = true;
-        this.scene.add(tileMesh);
-
-        // === SPAWN ===
-        // Spawn pads around center (large spawn area)
-        const spawnAngles = [0, Math.PI / 2, Math.PI, Math.PI * 1.5];
-        spawnAngles.forEach((angle, i) => {
+        // Outer spawn ring on lower tier (R=55)
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
             this.spawnPads.push({
-                x: Math.cos(angle) * 65,
-                y: platH + 0.2,
-                z: Math.sin(angle) * 65,
-                radius: 6
+                x: Math.cos(angle) * 55,
+                y: 1.0 + 0.2,
+                z: Math.sin(angle) * 55,
+                radius: 5
             });
-        });
+        }
     }
 
     // === BOUNDARY WALLS ===
