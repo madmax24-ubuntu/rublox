@@ -21,9 +21,14 @@ const setLoadingProgress = (ratio) => {
 
 let gameHasStarted = false;
 
+function hideLoadingOverlay() {
+    if (loadingOverlay) {
+        loadingOverlay.style.display = 'none';
+    }
+}
+
 THREE.DefaultLoadingManager.onStart = function () {
     if (gameHasStarted || document.body?.classList?.contains('game-started')) {
-        if (loadingOverlay) loadingOverlay.style.display = 'none';
         return;
     }
     if (loadingOverlay) loadingOverlay.style.display = 'flex';
@@ -39,17 +44,11 @@ THREE.DefaultLoadingManager.onProgress = function (url, loaded, total) {
     }
 };
 
+// Loading overlay stays visible until explicitly hidden by startGame()
 THREE.DefaultLoadingManager.onLoad = function () {
-    if (gameHasStarted || document.body?.classList?.contains('game-started')) {
-        if (loadingOverlay) loadingOverlay.style.display = 'none';
-        return;
-    }
+    if (gameHasStarted || document.body?.classList?.contains('game-started')) return;
     setLoadingProgress(1);
-    if (loadingOverlay) {
-        setTimeout(() => {
-            loadingOverlay.style.display = 'none';
-        }, 300);
-    }
+    // Don't auto-hide — startGame() hides it after perk panel
 };
 
 import { MapGenerator } from './world/MapGenerator.js';
