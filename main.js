@@ -2332,7 +2332,8 @@ class Game {
             setLoadingProgress(0.85);
 
             // Hide HUD during map generation
-            if (this.hud) this.hud.style.display = 'none';
+            const hudEl = document.getElementById('hud');
+            if (hudEl) hudEl.style.display = 'none';
 
             await new Promise(r => requestAnimationFrame(r));
 
@@ -2341,7 +2342,7 @@ class Game {
             }
 
             // Show HUD after map generation is complete
-            if (this.hud) this.hud.style.display = '';
+            if (hudEl) hudEl.style.display = '';
             this.hud?.showPause?.(false);
             this.isPaused = false;
             this.partyMode = false;
