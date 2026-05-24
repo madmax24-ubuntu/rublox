@@ -1080,8 +1080,10 @@ fillBoundaryGaps() {
         const roadTexture = new THREE.CanvasTexture(canvas);
         roadTexture.wrapS = THREE.RepeatWrapping;
         roadTexture.wrapT = THREE.RepeatWrapping;
-        // ~3 stones across width, ~15 along length
-        roadTexture.repeat.set(Math.max(1, Math.floor(len / 30)), Math.max(1, Math.floor(width / 10)));
+        roadTexture.colorSpace = THREE.SRGBColorSpace;
+        // Stones across width (width ~5, stone ~16px = 3 stones), along length (~158, stone ~24px = 6 repeat)
+        roadTexture.repeat.set(1, Math.max(1, Math.floor(width / 16)));
+        roadTexture.repeat.set(1, Math.max(1, Math.floor(len / 24)));
         roadTexture.anchor = [0, 0];
 
         const geo = new THREE.PlaneGeometry(width, len, 8, 8);
