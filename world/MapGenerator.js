@@ -3228,7 +3228,7 @@ export class MapGenerator {
             });
         }
 
-      // Colliders
+     // Colliders
         this.colliders.push({ type: 'cylinder', position: new THREE.Vector3(0, 2.3, 0), radius: 12, height: 1.8 });
         this.colliders.push({ type: 'cylinder', position: new THREE.Vector3(0, 3.2 + 1, 0), radius: 2.2, height: 2 });
 
