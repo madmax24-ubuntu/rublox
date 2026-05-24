@@ -817,41 +817,7 @@ buildFountain() {
         this.colliders.push({ type: 'box', position: new THREE.Vector3(-OP, OUT_H / 2, 0), size: new THREE.Vector3(3, OUT_H, 512) });
     }
 
-    buildArch(zOrX, roadOffsetX, roadOffsetZ, wallH, wallMat, isXAxis) {
-        // Two pillars + top beam forming an arch over the road entrance
-        const pillarW = 0.7;
-        const pillarD = 2;
-        const beamW = isXAxis ? 4 : 4;
-        const beamD = isXAxis ? 2.5 : 2.5;
-        const beamH = 1.2;
-        const archWidth = 5; // road width + clearance
-
-        const pillarMat = wallMat;
-        // Left pillar
-        const p1x = roadOffsetX - archWidth / 2;
-        const p1z = roadOffsetZ - archWidth / 2;
-        const p1 = new THREE.Mesh(new THREE.BoxGeometry(pillarW, wallH, pillarD), pillarMat);
-        p1.position.set(p1x, wallH / 2, p1z);
-        p1.castShadow = true;
-        this.scene.add(p1);
-        this.colliders.push({ type: 'box', position: new THREE.Vector3(p1x, wallH / 2, p1z), size: new THREE.Vector3(pillarW, wallH, pillarD) });
-
-        // Right pillar (opposite side)
-        const p2 = new THREE.Mesh(new THREE.BoxGeometry(pillarW, wallH, pillarD), pillarMat);
-        p2.position.set(roadOffsetX + archWidth / 2, wallH / 2, roadOffsetZ + archWidth / 2);
-        p2.castShadow = true;
-        this.scene.add(p2);
-        this.colliders.push({ type: 'box', position: new THREE.Vector3(roadOffsetX + archWidth / 2, wallH / 2, roadOffsetZ + archWidth / 2), size: new THREE.Vector3(pillarW, wallH, pillarD) });
-
-        // Top beam
-        const beam = new THREE.Mesh(new THREE.BoxGeometry(beamW, beamH, beamD), pillarMat);
-        beam.position.set(roadOffsetX, wallH + beamH / 2, roadOffsetZ);
-        beam.castShadow = true;
-        this.scene.add(beam);
-        this.colliders.push({ type: 'box', position: new THREE.Vector3(roadOffsetX, wallH + beamH / 2, roadOffsetZ), size: new THREE.Vector3(beamW, beamH, beamD) });
-    }
-
-fillBoundaryGaps() {
+ fillBoundaryGaps() {
          // DISABLED - biome grounds now fill from ±60 to ±256 with no gaps.
          // No corner patches needed - they cause visual artifacts.
          return;
