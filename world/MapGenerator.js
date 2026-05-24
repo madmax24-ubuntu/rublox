@@ -78,10 +78,7 @@ function createBiomeTexture(drawFn) {
     canvas.width = size;
     canvas.height = size;
 
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, size, size);
-
-    drawFn(ctx, size);
+    drawFn(canvas, ctx, size);
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.wrapS = THREE.RepeatWrapping;
