@@ -3116,25 +3116,44 @@ fillBoundaryGaps() {
         const platRadius = 40;
         const platH = 1.5;
 
-        // === FULL MAP BASE GROUND — covers entire -256..256 area ===
-        // Bottom layer, visible where no biome ground is placed on top
-        const baseGroundMat = new THREE.MeshStandardMaterial({
-            color: 0x8a8478,
-            roughness: 0.95, flatShading: false, side: THREE.DoubleSide
-        });
-        const baseGround = new THREE.Mesh(
-            new THREE.PlaneGeometry(512, 512, 16, 16),
-            baseGroundMat
-        );
-        baseGround.rotation.x = -Math.PI / 2;
-        baseGround.position.set(0, 1.54, 0);
-        baseGround.receiveShadow = true;
-        this.scene.add(baseGround);
+        // === BIOME-SPECIFIC TEXTURED GROUND ===
+        const canvas = document.createElement('canvas');
+        const forestTex = createBiomeTexture(canvas, (c) => createForestTexture(c, 42));
+        const stoneTex = createBiomeTexture(canvas, (c) => createStoneTexture(c, 73));
+        const militaryTex = createBiomeTexture(canvas, (c) => createMilitaryTexture(c, 99));
+        const snowTex = createBiomeTexture(canvas, (c) => createSnowTexture(c, 127));
 
- 
-        // === GAP FILLS between biome quadrants — above biome ground ===
+        // Helper to create textured ground plane
+        function biomeGroundPlane(w, h, x, z, texture, repeatX, repeatZ, color) {
+            const mat = new THREE.MeshStandardMaterial({
+                map: texture,
+                color: color || 0xffffff,
+                roughness: 0.9,
+                flatShading: false,
+                side: THREE.DoubleSide
+            });
+            if (repeatX) { texture.repeat.set(repeatX, repeatZ); }
+            const geo = new THREE.PlaneGeometry(w, h, 32, 32);
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.rotation.x = -Math.PI / 2;
+            mesh.position.set(x, 1.55, z);
+            mesh.receiveShadow = true;
+            this.scene.add(mesh);
+            return mesh;
+        }
+
+        // Forest biome ground (northwest: X -256..-60, Z -256..-60)
+        biomeGroundPlane.call(this, 196, 196, -158, -158, forestTex, 16, 16);
+        // Stone biome ground (northeast: X 60..256, Z -256..-60)
+        biomeGroundPlane.call(this, 196, 196, 158, -158, stoneTex, 16, 16);
+        // Military biome ground (southwest: X -256..-60, Z 60..256)
+        biomeGroundPlane.call(this, 196, 196, -158, 158, militaryTex, 16, 16);
+        // Snow biome ground (southeast: X 60..256, Z 60..256)
+        biomeGroundPlane.call(this, 196, 196, 158, 158, snowTex, 16, 16);
+
+        // === GAP FILLS between biome quadrants ===
         const centerGapMat = new THREE.MeshStandardMaterial({
-            color: COLOR.wood,
+            color: 0x6a6a6a,
             roughness: 0.95, flatShading: false, side: THREE.DoubleSide
         });
         // North gap (X: -60..60, Z: -256..-60)
