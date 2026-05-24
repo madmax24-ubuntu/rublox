@@ -3132,7 +3132,7 @@ buildFountain() {
             geo.computeVertexNormals();
             return geo;
         }
-        const ringGeo = createRingGeometry(60, 80, 48);
+        const ringGeo = createRingGeometry(60, 70, 48);
         const ringMat = new THREE.MeshStandardMaterial({ color: 0xd4c4a8, roughness: 0.85, side: THREE.DoubleSide });
         const ring = new THREE.Mesh(ringGeo, ringMat);
         ring.rotation.x = -Math.PI / 2;
