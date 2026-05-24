@@ -3209,7 +3209,7 @@ export class MapGenerator {
         this.scene.add(water1);
 
         const water2 = new THREE.Mesh(new THREE.CylinderGeometry(4, 4, 0.08, 32), waterMat);
-        water2.position.y = 3.85;
+        water2.position.y = 4.55;
         this.scene.add(water2);
 
         // --- Falling water drops (16 particles circling the spout) ---
