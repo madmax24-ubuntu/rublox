@@ -2378,11 +2378,13 @@ class Game {
                 this.hud?.showGameMessage?.('Выберите перк перед стартом матча');
             }
             this.hud?.showCountdown?.(this.countdownTime);
+            setLoadingProgress(0.9);
 
             this.gameLoop.start();
             this.applyRendererSizing();
             this.syncCameraToPlayer();
             this.render();
+            setLoadingProgress(1);
             document.activeElement?.blur?.();
             this.tryEnterGameplayPointerLock();
             if (loadingOverlay && loadingOverlay.style.display !== 'none') {
