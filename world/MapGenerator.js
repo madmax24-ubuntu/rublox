@@ -5031,14 +5031,7 @@ buildFountain() {
         // Command post / field shelter
         this.addFieldShelter(-174, 158);
 
-        // Ammo crates scattered around
-        for (let i = 0; i < 10; i++) {
-            const x = -150 + Math.random() * 180;
-            const z = 150 + Math.random() * 180;
-            if (Math.abs(x) > 40) this.addAmmoCrate(x, z);
-        }
-
-        // Military signs / warning signs
+          // Military signs / warning signs
         this.addMilitarySign(-168, 132);
         this.addMilitarySign(-132, 168);
         this.addMilitarySign(-194, 184);
