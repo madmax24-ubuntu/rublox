@@ -2379,16 +2379,8 @@ class Game {
             this.perkMenuOpen = !this.perkLocked;
             this.perkSelectionRequired = !this.perkLocked;
             this.hud?.setPerkPanelLock?.(this.perkSelectionRequired);
-            this.hud?.togglePerkPanel?.(this.perkMenuOpen);
+
             this.updateDesktopCursorMode();
-            if (this.perkMenuOpen) {
-                document.exitPointerLock?.();
-            }
-            if (this.perkMenuOpen) {
-                this.hud?.showGameMessage?.('Выберите перк перед стартом матча');
-            }
-            this.hud?.showCountdown?.(this.countdownTime);
-            setLoadingProgress(0.9);
 
             this.gameLoop.start();
             this.applyRendererSizing();
@@ -2397,14 +2389,21 @@ class Game {
             setLoadingProgress(1);
             document.activeElement?.blur?.();
             this.tryEnterGameplayPointerLock();
+
+            // Show perk panel AFTER first render so loading overlay stays visible until then
+            if (this.perkMenuOpen) {
+                this.hud?.togglePerkPanel?.(true);
+                document.exitPointerLock?.();
+                this.hud?.showGameMessage?.('Выберите перк перед стартом матча');
+            }
+            if (this.perkMenuOpen) {
+                this.hud?.showCountdown?.(this.countdownTime);
+            }
+            setLoadingProgress(0.9);
+
             if (loadingOverlay && loadingOverlay.style.display !== 'none') {
                 loadingOverlay.style.display = 'none';
             }
-            setTimeout(() => {
-                if (this.isStarted && loadingOverlay && loadingOverlay.style.display !== 'none') {
-                    loadingOverlay.style.display = 'none';
-                }
-            }, 1200);
             this.pauseInputLockUntil = performance.now() + 1200;
             this.startingGame = false;
         } catch (err) {
