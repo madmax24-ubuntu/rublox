@@ -3051,7 +3051,7 @@ buildFountain() {
     // === CENTER PLATFORM + FOUNTAIN + FIRE TILES ===
 
     async buildCenterPlatform() {
-        const platRadius = 40;
+        const platRadius = 80;
         const platH = 1.5;
 
         // === BIOME-SPECIFIC TEXTURED GROUND ===
