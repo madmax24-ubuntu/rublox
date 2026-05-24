@@ -3110,35 +3110,14 @@ buildFountain() {
         g = new THREE.Mesh(new THREE.PlaneGeometry(196, 160, 8, 8), centerGapMat);
         g.rotation.x = -Math.PI / 2; g.position.set(158, 1.555, 0); g.receiveShadow = true; this.scene.add(g);
 
-        // === RING: fill between biome planes (R60) and platform edge (R80) ===
-        function createRingGeometry(innerR, outerR, segments) {
-            const pos = [], uv = [], idx = [];
-            for (let i = 0; i <= segments; i++) {
-                const a = (i / segments) * Math.PI * 2;
-                const nx = Math.cos(a), nz = Math.sin(a);
-                pos.push(nx * outerR, 0, nz * outerR);
-                pos.push(nx * innerR, 0, nz * innerR);
-                uv.push(0, i / segments);
-                uv.push(1, i / segments);
-                if (i < segments) {
-                    const b = i * 2, t = b + 2;
-                    idx.push(b, t, b + 1, b + 1, t, t + 1);
-                }
-            }
-            const geo = new THREE.BufferGeometry();
-            geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-            geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-            geo.setIndex(idx);
-            geo.computeVertexNormals();
-            return geo;
-        }
-        const ringGeo = createRingGeometry(60, 70, 48);
-        const ringMat = new THREE.MeshStandardMaterial({ color: 0xd4c4a8, roughness: 0.85, side: THREE.DoubleSide });
-        const ring = new THREE.Mesh(ringGeo, ringMat);
-        ring.rotation.x = -Math.PI / 2;
-        ring.position.y = 1.56;
-        ring.receiveShadow = true;
-        this.scene.add(ring);
+        // === RING: fill between biome planes (R60) and platform edge (R70) ===
+        const ringGeo2 = new THREE.RingGeometry(60, 70, 48);
+        const ringMat2 = new THREE.MeshStandardMaterial({ color: 0xc8b898, roughness: 0.85, side: THREE.DoubleSide });
+        const ring2 = new THREE.Mesh(ringGeo2, ringMat2);
+        ring2.rotation.x = -Math.PI / 2;
+        ring2.position.y = 1.555;
+        ring2.receiveShadow = true;
+        this.scene.add(ring2);
 
         // Spawn pads around platform edge
         const spawnAngles = [0, Math.PI / 2, Math.PI, Math.PI * 1.5];
