@@ -2906,7 +2906,7 @@ fillBoundaryGaps() {
         // === FULL MAP BASE GROUND — covers entire -256..256 area ===
         // Bottom layer, visible where no biome ground is placed on top
         const baseGroundMat = new THREE.MeshStandardMaterial({
-            color: COLOR.forestGround,
+            color: 0x8a8478,
             roughness: 0.95, flatShading: false, side: THREE.DoubleSide
         });
         const baseGround = new THREE.Mesh(
