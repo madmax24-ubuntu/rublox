@@ -3266,57 +3266,9 @@ buildFountain() {
         platFloor.receiveShadow = true;
         this.scene.add(platFloor);
 
-        // Fountain (stone)
-        const fountainGroup = new THREE.Group();
+        // === FOUNTAIN (proper bowl shape) ===
         const stoneMat = new THREE.MeshStandardMaterial({ color: 0x8c8c8c, roughness: 0.7, metalness: 0.1 });
-
-        // Fountain base
-        const base = new THREE.Mesh(
-            new THREE.CylinderGeometry(4, 5, 1, 12),
-            stoneMat
-        );
-        base.position.set(0, 0.5, 0);
-        base.castShadow = true;
-        fountainGroup.add(base);
-
-        // Fountain basin (proper bowl shape)
         const basinMat = new THREE.MeshStandardMaterial({ color: 0x9a9a8a, roughness: 0.7, metalness: 0.1 });
-        // Outer ring of basin
-        const basinOuter = new THREE.Mesh(
-            new THREE.CylinderGeometry(4.2, 4.5, 1.2, 24),
-            basinMat
-        );
-        basinOuter.position.set(0, 0.9, 0);
-        basinOuter.castShadow = true;
-        fountainGroup.add(basinOuter);
-        // Inner basin surface (water level)
-        const basinInner = new THREE.Mesh(
-            new THREE.CylinderGeometry(3.8, 4.0, 0.1, 24),
-            basinMat
-        );
-        basinInner.position.set(0, 1.4, 0);
-        basinInner.castShadow = true;
-        fountainGroup.add(basinInner);
-
-        // Fountain center pillar
-        const pillar = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.5, 0.7, 3, 8),
-            stoneMat
-        );
-        pillar.position.set(0, 2.5, 0);
-        pillar.castShadow = true;
-        fountainGroup.add(pillar);
-
-        // Top ornament
-        const topOrnament = new THREE.Mesh(
-            new THREE.SphereGeometry(0.6, 8, 6),
-            new THREE.MeshStandardMaterial({ color: 0xc2b280, roughness: 0.3, metalness: 0.4 })
-        );
-        topOrnament.position.set(0, 4.2, 0);
-        topOrnament.castShadow = true;
-        fountainGroup.add(topOrnament);
-
-        // Water in fountain
         const waterMat = new THREE.MeshStandardMaterial({
             color: 0x4fc3ff,
             transparent: true,
@@ -3324,32 +3276,46 @@ buildFountain() {
             roughness: 0.05,
             metalness: 0.15
         });
+
+        // Large basin outer ring (R=10, sits on platform at Y=1.5)
+        const basinOuter = new THREE.Mesh(
+            new THREE.CylinderGeometry(10, 11, 1.5, 32),
+            basinMat
+        );
+        basinOuter.position.set(0, 0.75, 0);
+        basinOuter.castShadow = true;
+        basinOuter.receiveShadow = true;
+        this.scene.add(basinOuter);
+
+        // Water surface inside basin
         const waterSurface = new THREE.Mesh(
-            new THREE.CylinderGeometry(2.8, 2.8, 0.1, 12),
+            new THREE.CylinderGeometry(9, 9, 0.1, 32),
             waterMat
         );
-        waterSurface.position.set(0, 1.6, 0);
-        fountainGroup.add(waterSurface);
+        waterSurface.position.set(0, 1.4, 0);
+        this.scene.add(waterSurface);
 
-        this.scene.add(fountainGroup);
+        // Center pillar
+        const pillar = new THREE.Mesh(
+            new THREE.CylinderGeometry(1.2, 1.5, 4, 16),
+            stoneMat
+        );
+        pillar.position.set(0, 3.5, 0);
+        pillar.castShadow = true;
+        this.scene.add(pillar);
 
-        // Colliders for fountain
-        this.colliders.push({
-            type: 'box',
-            position: new THREE.Vector3(0, 0.5, 0),
-            size: new THREE.Vector3(5, 1, 5)
-        });
-        this.colliders.push({
-            type: 'box',
-            position: new THREE.Vector3(0, 1.5, 0),
-            size: new THREE.Vector3(3, 0.8, 3)
-        });
-        this.colliders.push({
-            type: 'cylinder',
-            position: new THREE.Vector3(0, 2.5, 0),
-            radius: 0.7,
-            height: 3
-        });
+        // Stone sphere on top
+        const topOrnament = new THREE.Mesh(
+            new THREE.SphereGeometry(1.2, 16, 12),
+            stoneMat
+        );
+        topOrnament.position.set(0, 5.5, 0);
+        topOrnament.castShadow = true;
+        this.scene.add(topOrnament);
+
+        // Colliders
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(0, 0.75, 0), size: new THREE.Vector3(11, 1.5, 11) });
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(0, 3.5, 0), size: new THREE.Vector3(1.5, 4, 1.5) });
 
         // 100 fire-colored tiles arranged in pattern
         const fireColors = [0xff4400, 0xff6600, 0xff8800, 0xffaa00, 0xffcc00, 0xff2200];
