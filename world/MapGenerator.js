@@ -8277,6 +8277,19 @@ export class MapGenerator {
                 obj.obj.material.opacity = 0.3 + Math.abs(Math.sin(dropPhase)) * 0.4;
             }
 
+            if (obj.type === 'fDrop') {
+                // Two-tier fountain falling water
+                const t = ((time * 1.2 + obj.angle) % (Math.PI * 2)) / (Math.PI * 2);
+                obj.drop.position.y = 4.5 - t * 4.5;
+                obj.drop.material.opacity = (1 - t) * 0.6;
+                obj.drop.position.x = Math.cos(obj.angle + time * 0.5) * (2.5 + t * 1.5);
+                obj.drop.position.z = Math.sin(obj.angle + time * 0.5) * (2.5 + t * 1.5);
+                if (obj.drop.position.y < 0.3) {
+                    obj.drop.position.y = 4.5;
+                    obj.drop.material.opacity = 0.6;
+                }
+            }
+
             if (obj.type === 'firePit') {
                 // Fire pit flicker
                 obj.obj.scale.y = 1 + Math.sin(time * 10 + obj.base.x) * 0.2;
