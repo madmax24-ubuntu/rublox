@@ -3330,17 +3330,15 @@ buildFountain() {
         const dummy = new THREE.Matrix4();
         let tileCount = 0;
 
-        // Place 100 tiles in 10x10 grid around center
-        const gridSize = 10;
-        const tileSize = 4; // spacing
+        // Place tiles in 12x12 grid, skip fountain center
+        const gridSize = 12;
+        const tileSize = 4;
         const gridStart = -(gridSize * tileSize) / 2;
         for (let row = 0; row < gridSize && tileCount < 100; row++) {
             for (let col = 0; col < gridSize && tileCount < 100; col++) {
-                // Skip tiles inside fountain (R < 11)
                 const x = gridStart + col * tileSize;
                 const z = gridStart + row * tileSize;
-                const dist = Math.sqrt(x * x + z * z);
-                if (dist < 11) continue;
+                if (Math.sqrt(x * x + z * z) < 11) continue;
 
                 const m = new THREE.Matrix4().makeTranslation(x, platH + 0.075, z);
                 tileMesh.setMatrixAt(tileCount, m);
