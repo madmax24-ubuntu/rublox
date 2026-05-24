@@ -3199,7 +3199,7 @@ export class MapGenerator {
 
         // --- Top ornament sphere (R=1) ---
         const topOrnament = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), stoneMat);
-        topOrnament.position.y = 6.2;
+        topOrnament.position.y = 6.9;
         topOrnament.castShadow = true;
         this.scene.add(topOrnament);
 
