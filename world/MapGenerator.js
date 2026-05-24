@@ -3144,8 +3144,8 @@ export class MapGenerator {
 
         const platH = 1.0 + upperH; // total platform height
 
-        // Platform floor (textured, on top of platform)
-        const platFloorGeo = new THREE.CircleGeometry(platRadius, 48);
+        // Platform floor (textured, on top of upper tier R=50)
+        const platFloorGeo = new THREE.CircleGeometry(upperRadius, 48);
         const platFloorMat = new THREE.MeshStandardMaterial({
             map: createBiomeTexture((c) => {
                 const ctx = c.getContext('2d');
@@ -3167,10 +3167,10 @@ export class MapGenerator {
             color: 0xffffff,
             side: THREE.DoubleSide
         });
-        platFloorMat.map.repeat.set(4, 4);
+        platFloorMat.map.repeat.set(3, 3);
         const platFloor = new THREE.Mesh(platFloorGeo, platFloorMat);
         platFloor.rotation.x = -Math.PI / 2;
-        platFloor.position.y = 1.57;
+        platFloor.position.y = 1.0 + upperH + 0.01;
         platFloor.receiveShadow = true;
         this.scene.add(platFloor);
 
