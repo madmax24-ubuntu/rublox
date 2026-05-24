@@ -71,7 +71,8 @@ class SimplexNoise {
 }
 
 // ============ PROCEDURAL TEXTURE GENERATORS ============
-function createBiomeTexture(canvas, drawFn) {
+function createBiomeTexture(drawFn) {
+    const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     const size = 256;
     canvas.width = size;
