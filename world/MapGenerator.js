@@ -918,7 +918,8 @@ buildFountain() {
             metalness: 0.4
         });
 
-        const angle = (i / 8) * Math.PI * 2 + Math.PI / 16;
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2 + Math.PI / 16;
             const r = 30;
             const bx = Math.cos(angle) * r;
             const bz = Math.sin(angle) * r;
