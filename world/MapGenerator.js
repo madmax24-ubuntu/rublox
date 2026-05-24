@@ -794,12 +794,12 @@ buildFountain() {
         const OUT_H = 10;
         const OP = 256;
         // North edge
-        wall = new THREE.Mesh(new THREE.BoxGeometry(512, OUT_H, 3), wallMat);
+        const wall = new THREE.Mesh(new THREE.BoxGeometry(512, OUT_H, 3), wallMat);
         wall.position.set(0, OUT_H / 2, -OP); wall.castShadow = true; wall.receiveShadow = true;
         this.scene.add(wall);
         this.colliders.push({ type: 'box', position: new THREE.Vector3(0, OUT_H / 2, -OP), size: new THREE.Vector3(512, OUT_H, 3) });
         // South edge
-        wall = new THREE.Mesh(new THREE.BoxGeometry(512, OUT_H, 3), wallMat);
+        const wall = new THREE.Mesh(new THREE.BoxGeometry(512, OUT_H, 3), wallMat);
         wall.position.set(0, OUT_H / 2, OP); wall.castShadow = true; wall.receiveShadow = true;
         this.scene.add(wall);
         this.colliders.push({ type: 'box', position: new THREE.Vector3(0, OUT_H / 2, OP), size: new THREE.Vector3(512, OUT_H, 3) });
