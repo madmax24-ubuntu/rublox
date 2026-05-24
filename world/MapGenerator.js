@@ -3186,7 +3186,7 @@ export class MapGenerator {
 
         // --- Small top bowl (outer R=5.5, inner R=4.5) ---
         const topBowl = new THREE.Mesh(new THREE.CylinderGeometry(4.5, 5.8, 1.2, 32), bowlMat);
-        topBowl.position.y = 4.1;
+        topBowl.position.y = 4.8;
         topBowl.castShadow = true;
         topBowl.receiveShadow = true;
         this.scene.add(topBowl);
