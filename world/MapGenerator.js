@@ -3162,56 +3162,74 @@ export class MapGenerator {
         platFloor.receiveShadow = true;
         this.scene.add(platFloor);
 
-        // === FOUNTAIN (proper bowl shape) ===
-        const stoneMat = new THREE.MeshStandardMaterial({ color: 0x8c8c8c, roughness: 0.7, metalness: 0.1 });
-        const basinMat = new THREE.MeshStandardMaterial({ color: 0x9a9a8a, roughness: 0.7, metalness: 0.1 });
+        // === TWO-TIER BOWL FOUNTAIN ===
+        const stoneMat = new THREE.MeshStandardMaterial({ color: 0x8c8c8c, roughness: 0.75, metalness: 0.05 });
+        const bowlMat = new THREE.MeshStandardMaterial({ color: 0x9e9e8e, roughness: 0.7, metalness: 0.08 });
         const waterMat = new THREE.MeshStandardMaterial({
-            color: 0x4fc3ff,
-            transparent: true,
-            opacity: 0.6,
-            roughness: 0.05,
-            metalness: 0.15
+            color: 0x4fc3ff, transparent: true, opacity: 0.55,
+            roughness: 0.05, metalness: 0.2
         });
 
-        // Large basin outer ring (R=10, sits on platform at Y=1.5)
-        const basinOuter = new THREE.Mesh(
-            new THREE.CylinderGeometry(10, 11, 1.5, 32),
-            basinMat
-        );
-        basinOuter.position.set(0, 0.75, 0);
-        basinOuter.castShadow = true;
-        basinOuter.receiveShadow = true;
-        this.scene.add(basinOuter);
+        // --- Large bottom bowl (outer R=11, inner R=10, flared base R=11.5) ---
+        const bottomBowl = new THREE.Mesh(new THREE.CylinderGeometry(10, 11.5, 1.8, 32), bowlMat);
+        bottomBowl.position.y = 0.9;
+        bottomBowl.castShadow = true;
+        bottomBowl.receiveShadow = true;
+        this.scene.add(bottomBowl);
 
-        // Water surface inside basin
-        const waterSurface = new THREE.Mesh(
-            new THREE.CylinderGeometry(9, 9, 0.1, 32),
-            waterMat
-        );
-        waterSurface.position.set(0, 1.4, 0);
-        this.scene.add(waterSurface);
+        // --- Column (R=1.8, H=2) ---
+        const column = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 2, 2, 16), stoneMat);
+        column.position.y = 1.8;
+        column.castShadow = true;
+        this.scene.add(column);
 
-        // Center pillar
-        const pillar = new THREE.Mesh(
-            new THREE.CylinderGeometry(1.2, 1.5, 4, 16),
-            stoneMat
-        );
-        pillar.position.set(0, 3.5, 0);
-        pillar.castShadow = true;
-        this.scene.add(pillar);
+        // --- Small top bowl (outer R=5.5, inner R=4.5) ---
+        const topBowl = new THREE.Mesh(new THREE.CylinderGeometry(4.5, 5.8, 1.2, 32), bowlMat);
+        topBowl.position.y = 3.4;
+        topBowl.castShadow = true;
+        topBowl.receiveShadow = true;
+        this.scene.add(topBowl);
 
-        // Stone sphere on top
-        const topOrnament = new THREE.Mesh(
-            new THREE.SphereGeometry(1.2, 16, 12),
-            stoneMat
-        );
-        topOrnament.position.set(0, 5.5, 0);
+        // --- Center spout (R=1, rises through top bowl) ---
+        const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.8, 1.5, 12), stoneMat);
+        spout.position.y = 4.3;
+        spout.castShadow = true;
+        this.scene.add(spout);
+
+        // --- Top ornament sphere (R=1) ---
+        const topOrnament = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), stoneMat);
+        topOrnament.position.y = 5.5;
         topOrnament.castShadow = true;
         this.scene.add(topOrnament);
 
+        // --- Water surfaces ---
+        const water1 = new THREE.Mesh(new THREE.CylinderGeometry(9.5, 9.5, 0.08, 32), waterMat);
+        water1.position.y = 1.5;
+        this.scene.add(water1);
+
+        const water2 = new THREE.Mesh(new THREE.CylinderGeometry(4, 4, 0.08, 32), waterMat);
+        water2.position.y = 3.15;
+        this.scene.add(water2);
+
+        // --- Falling water drops (16 particles circling the spout) ---
+        const dropGeo = new THREE.SphereGeometry(0.2, 6, 4);
+        const dropMat = new THREE.MeshStandardMaterial({
+            color: 0x80d8ff, transparent: true, opacity: 0.6,
+            roughness: 0.0, metalness: 0.3
+        });
+        for (let i = 0; i < 16; i++) {
+            const angle = (i / 16) * Math.PI * 2;
+            const drop = new THREE.Mesh(dropGeo, dropMat);
+            drop.position.set(Math.cos(angle) * 2.5, 4.5, Math.sin(angle) * 2.5);
+            this.scene.add(drop);
+            this.animatedObjects.push({
+                type: 'fDrop', angle: angle, drop: drop
+            });
+        }
+
         // Colliders
-        this.colliders.push({ type: 'box', position: new THREE.Vector3(0, 0.75, 0), size: new THREE.Vector3(11, 1.5, 11) });
-        this.colliders.push({ type: 'box', position: new THREE.Vector3(0, 3.5, 0), size: new THREE.Vector3(1.5, 4, 1.5) });
+        this.colliders.push({ type: 'cylinder', position: new THREE.Vector3(0, 0.9, 0), radius: 12, height: 1.8 });
+        this.colliders.push({ type: 'cylinder', position: new THREE.Vector3(0, 1.8 + 1, 0), radius: 2.2, height: 2 });
 
         // 100 floor tiles around center platform
         const tileMat = new THREE.MeshStandardMaterial({
