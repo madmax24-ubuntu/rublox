@@ -3046,14 +3046,17 @@ buildFountain() {
 
     // === CENTER PLATFORM + FOUNTAIN + FIRE TILES ===
 
-    buildCenterPlatform() {
+    async buildCenterPlatform() {
         const platRadius = 40;
         const platH = 1.5;
 
         // === BIOME-SPECIFIC TEXTURED GROUND ===
         const forestTex = createBiomeTexture((c) => createForestTexture(c, 42));
+        await this.yieldFrame();
         const stoneTex = createBiomeTexture((c) => createStoneTexture(c, 73));
+        await this.yieldFrame();
         const militaryTex = createBiomeTexture((c) => createMilitaryTexture(c, 99));
+        await this.yieldFrame();
         const snowTex = createBiomeTexture((c) => createSnowTexture(c, 127));
 
         // Helper to create textured ground plane
