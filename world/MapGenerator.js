@@ -4085,14 +4085,8 @@ buildFountain() {
         this.addStonePillar(142, -184);
         this.addStonePillar(194, -174);
 
-        // Stone biome torches
-        this.addStoneTorches(150, -150);
-
         // Stone ruins / broken columns
         this.addStoneRuins(150, -150);
-
-        // Chains on stone pillars
-        this.addStoneChains(150, -150);
 
         // Stone bushes and scrub
         this.addStoneBushes(150, -150);
