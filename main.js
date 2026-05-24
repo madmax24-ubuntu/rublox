@@ -2325,9 +2325,7 @@ class Game {
             this.enterFullscreen().catch(() => { });
             this.hideStartScreen();
             setLoadingProgress(0.35);
-            await new Promise(r => requestAnimationFrame(r));
 
-            if (loadingOverlay) loadingOverlay.style.display = 'none';
             this.hud?.showPause?.(false);
             this.isPaused = false;
             this.partyMode = false;
