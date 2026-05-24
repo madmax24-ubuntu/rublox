@@ -3201,45 +3201,45 @@ export class MapGenerator {
             roughness: 0.05, metalness: 0.2
         });
 
-        // --- Large bottom bowl (outer R=11, inner R=10, flared base R=11.5) ---
+       // --- Large bottom bowl (outer R=11, inner R=10, flared base R=11.5) ---
         const bottomBowl = new THREE.Mesh(new THREE.CylinderGeometry(10, 11.5, 1.8, 32), bowlMat);
-        bottomBowl.position.y = 0.9;
+        bottomBowl.position.y = 1.6;
         bottomBowl.castShadow = true;
         bottomBowl.receiveShadow = true;
         this.scene.add(bottomBowl);
 
         // --- Column (R=1.8, H=2) ---
         const column = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 2, 2, 16), stoneMat);
-        column.position.y = 1.8;
+        column.position.y = 2.5;
         column.castShadow = true;
         this.scene.add(column);
 
         // --- Small top bowl (outer R=5.5, inner R=4.5) ---
         const topBowl = new THREE.Mesh(new THREE.CylinderGeometry(4.5, 5.8, 1.2, 32), bowlMat);
-        topBowl.position.y = 3.4;
+        topBowl.position.y = 4.1;
         topBowl.castShadow = true;
         topBowl.receiveShadow = true;
         this.scene.add(topBowl);
 
         // --- Center spout (R=1, rises through top bowl) ---
         const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.8, 1.5, 12), stoneMat);
-        spout.position.y = 4.3;
+        spout.position.y = 5.0;
         spout.castShadow = true;
         this.scene.add(spout);
 
         // --- Top ornament sphere (R=1) ---
         const topOrnament = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), stoneMat);
-        topOrnament.position.y = 5.5;
+        topOrnament.position.y = 6.2;
         topOrnament.castShadow = true;
         this.scene.add(topOrnament);
 
         // --- Water surfaces ---
         const water1 = new THREE.Mesh(new THREE.CylinderGeometry(9.5, 9.5, 0.08, 32), waterMat);
-        water1.position.y = 1.5;
+        water1.position.y = 2.2;
         this.scene.add(water1);
 
         const water2 = new THREE.Mesh(new THREE.CylinderGeometry(4, 4, 0.08, 32), waterMat);
-        water2.position.y = 3.15;
+        water2.position.y = 3.85;
         this.scene.add(water2);
 
         // --- Falling water drops (16 particles circling the spout) ---
@@ -3251,7 +3251,7 @@ export class MapGenerator {
         for (let i = 0; i < 16; i++) {
             const angle = (i / 16) * Math.PI * 2;
             const drop = new THREE.Mesh(dropGeo, dropMat);
-            drop.position.set(Math.cos(angle) * 2.5, 4.5, Math.sin(angle) * 2.5);
+            drop.position.set(Math.cos(angle) * 2.5, 5.2, Math.sin(angle) * 2.5);
             this.scene.add(drop);
             this.animatedObjects.push({
                 type: 'fDrop', angle: angle, drop: drop
@@ -3259,8 +3259,8 @@ export class MapGenerator {
         }
 
         // Colliders
-        this.colliders.push({ type: 'cylinder', position: new THREE.Vector3(0, 0.9, 0), radius: 12, height: 1.8 });
-        this.colliders.push({ type: 'cylinder', position: new THREE.Vector3(0, 1.8 + 1, 0), radius: 2.2, height: 2 });
+        this.colliders.push({ type: 'cylinder', position: new THREE.Vector3(0, 1.6, 0), radius: 12, height: 1.8 });
+        this.colliders.push({ type: 'cylinder', position: new THREE.Vector3(0, 2.5 + 1, 0), radius: 2.2, height: 2 });
 
         // === SPAWN PADS (large, on upper tier) ===
         // Big spawn area spread across the upper platform
