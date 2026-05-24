@@ -3393,41 +3393,6 @@ buildFountain() {
         if (fireMesh.instanceColor) fireMesh.instanceColor.needsUpdate = true;
         this.scene.add(baseMesh, fireMesh);
 
-        // Beige ornamental patterns around center
-        const beigeMat = new THREE.MeshStandardMaterial({ color: 0xd4b896, roughness: 0.6, metalness: 0.2 });
-
-        // Decorative ring — InstancedMesh (24 instances, 1 draw call)
-        const ornGeo = new THREE.BoxGeometry(0.3, 0.15, 0.3);
-        const ornMesh = new THREE.InstancedMesh(ornGeo, beigeMat, 24);
-        for (let i = 0; i < 24; i++) {
-            const angle = (i / 24) * Math.PI * 2;
-            const pos = new THREE.Vector3(Math.cos(angle) * 6, platH + 0.1, Math.sin(angle) * 6);
-            const quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, angle, 0));
-            dummy.makeRotationFromQuaternion(quat).premultiply(new THREE.Matrix4().makeTranslation(pos.x, pos.y, pos.z));
-            ornMesh.setMatrixAt(i, dummy);
-        }
-        ornMesh.instanceMatrix.needsUpdate = true;
-        this.scene.add(ornMesh);
-
-       // Inner decorative circle — single InstancedMesh with instance colors (1 draw call)
-        const gemGeo = new THREE.SphereGeometry(0.15, 4, 3);
-        const gemMat = new THREE.MeshStandardMaterial({ roughness: 0.2, metalness: 0.5 });
-        const gemMesh = new THREE.InstancedMesh(gemGeo, gemMat, 16);
-        const gemColors = [0xff4444, 0x44ff44, 0x4444ff, 0xffff44];
-        for (let i = 0; i < 16; i++) {
-            const angle = (i / 16) * Math.PI * 2;
-            dummy.makeTranslation(
-                Math.cos(angle) * 3,
-                platH + 0.2,
-                Math.sin(angle) * 3
-            );
-            gemMesh.setMatrixAt(i, dummy);
-            gemMesh.setColorAt(i, new THREE.Color(gemColors[i % 4]));
-        }
-        gemMesh.instanceMatrix.needsUpdate = true;
-        if (gemMesh.instanceColor) gemMesh.instanceColor.needsUpdate = true;
-        this.scene.add(gemMesh);
-
         // === FOUNTAIN ===
         this.buildFountain();
     }
