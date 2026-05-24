@@ -1046,49 +1046,45 @@ fillBoundaryGaps() {
     buildRoad(x1, z1, x2, z2, width) {
         const len = Math.sqrt((x2 - x1) ** 2 + (z2 - z1) ** 2);
 
-        // Stone flagstone procedural texture
+        // Stone paving texture — optimized for narrow road (5 units)
         const canvas = document.createElement('canvas');
-        canvas.width = 512;
-        canvas.height = 512;
+        canvas.width = 128;
+        canvas.height = 128;
         const ctx = canvas.getContext('2d');
-        // Mortar base
-        ctx.fillStyle = '#4a4840';
-        ctx.fillRect(0, 0, 512, 512);
-        // Stone palette: varied grays, tans, browns
-        const stoneColors = ['#9a9488', '#8a8478', '#a8a090', '#7a7468', '#b0a898', '#888078', '#9a9088', '#8a8880'];
-        // Draw flagstones in a staggered pattern
-        const rowH = 64;
-        for (let y = 0; y < 512; y += rowH) {
-            const offset = (y / rowH) % 2 === 0 ? 0 : 64;
-            const xStart = offset - 64;
-            for (let x = xStart; x < 512 + 64; x += 64) {
-                const w = 64 + (Math.random() > 0.5 ? 32 : -32);
-                const h = rowH - 2 + Math.floor(Math.random() * 4 - 2);
-                const colorIdx = Math.floor(Math.random() * stoneColors.length);
-                ctx.fillStyle = stoneColors[colorIdx];
-                ctx.fillRect(x + 1, y + 1, Math.max(w, 16), Math.max(h, 16));
-                // Subtle edge darkening for depth
-                ctx.strokeStyle = `rgba(60,58,50,${0.3 + Math.random() * 0.2})`;
-                ctx.lineWidth = 1;
-                ctx.strokeRect(x + 1, y + 1, Math.max(w, 16), Math.max(h, 16));
-                // Inner variation
-                const innerShade = Math.random() * 0.08;
-                ctx.fillStyle = `rgba(${innerShade > 0.04 ? '0,0,0' : '255,255,255'},${innerShade})`;
-                ctx.fillRect(x + 3, y + 3, Math.max(w - 6, 10), Math.max(h - 6, 10));
-            }
+        // Base grey
+        ctx.fillStyle = '#7a7468';
+        ctx.fillRect(0, 0, 128, 128);
+        // Fine stone noise (2-6px spots)
+        for (let i = 0; i < 600; i++) {
+            const x = Math.random() * 128;
+            const y = Math.random() * 128;
+            const s = 2 + Math.random() * 4;
+            const colors = ['#8a8478', '#9a9488', '#6a6458', '#a8a090', '#7a7060', '#888880'];
+            ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+            ctx.fillRect(x, y, s, s);
+        }
+        // Subtle crack lines
+        ctx.strokeStyle = 'rgba(40,38,30,0.3)';
+        ctx.lineWidth = 0.5;
+        for (let i = 0; i < 12; i++) {
+            ctx.beginPath();
+            const sx = Math.random() * 128;
+            const sy = Math.random() * 128;
+            ctx.moveTo(sx, sy);
+            ctx.lineTo(sx + (Math.random() - 0.5) * 40, sy + (Math.random() - 0.5) * 40);
+            ctx.stroke();
         }
         const roadTexture = new THREE.CanvasTexture(canvas);
         roadTexture.wrapS = THREE.RepeatWrapping;
         roadTexture.wrapT = THREE.RepeatWrapping;
         roadTexture.colorSpace = THREE.SRGBColorSpace;
-        roadTexture.repeat.set(1, Math.max(1, Math.floor(len / 24)));
-        roadTexture.anchor = [0, 0];
+        roadTexture.repeat.set(4, Math.max(1, Math.floor(len / 10)));
 
         const geo = new THREE.PlaneGeometry(width, len, 8, 8);
         const mat = new THREE.MeshStandardMaterial({
             map: roadTexture,
             color: COLOR.road,
-            roughness: 0.9,
+            roughness: 0.85,
             flatShading: true
         });
         const road = new THREE.Mesh(geo, mat);
