@@ -2659,25 +2659,38 @@ buildFountain() {
             maze[i][mazeSize - 1] = 1;
         }
 
-        // Place maze walls
+        // Place maze walls — InstancedMesh (count all walls first)
         const wallGroup = new THREE.Group();
+        let wallCount = 0;
+        for (let y = 0; y < mazeSize; y++) {
+            for (let x = 0; x < mazeSize; x++) {
+                if (maze[y][x] === 1) wallCount++;
+            }
+        }
+        const mGeo = new THREE.BoxGeometry(cellSize, wallH, cellSize);
+        const mIM = new THREE.InstancedMesh(mGeo, wallMat, wallCount);
+        const _m = new THREE.Matrix4();
+        const _p = new THREE.Vector3();
+        const _q = new THREE.Quaternion();
+        const _s = new THREE.Vector3(1, 1, 1);
+        let wi = 0;
         for (let y = 0; y < mazeSize; y++) {
             for (let x = 0; x < mazeSize; x++) {
                 if (maze[y][x] === 1) {
-                    const wallGeo = new THREE.BoxGeometry(cellSize, wallH, cellSize);
-                    const wall = new THREE.Mesh(wallGeo, wallMat);
-                    wall.position.set(
+                    _p.set(
                         mazeX + (x - mazeSize / 2) * cellSize,
                         wallH / 2,
                         mazeZ + (y - mazeSize / 2) * cellSize
                     );
-                    wall.castShadow = true;
-                    wall.receiveShadow = true;
-                    wallGroup.add(wall);
+                    _m.compose(_p, _q, _s);
+                    mIM.setMatrixAt(wi++, _m);
                 }
             }
         }
-        this.scene.add(wallGroup);
+        mIM.instanceMatrix.needsUpdate = true;
+        mIM.castShadow = true;
+        mIM.receiveShadow = true;
+        wallGroup.add(mIM);
 
         // Maze entrance path (cleared area)
         const pathMat = new THREE.MeshStandardMaterial({ color: 0x7a7a6a, roughness: 0.95 });
