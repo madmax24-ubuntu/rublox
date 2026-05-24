@@ -2630,23 +2630,6 @@ buildFountain() {
             this.scene.add(fenceGroup);
         }
 
-        // Debris / rubble scattered around
-        const debrisMat = new THREE.MeshStandardMaterial({ color: 0x5a5a4a, roughness: 0.95 });
-        for (let d = 0; d < 40; d++) {
-            const size = 0.2 + Math.random() * 0.8;
-            const debrisGeo = new THREE.BoxGeometry(size, size * 0.5, size * (0.5 + Math.random()));
-            const debris = new THREE.Mesh(debrisGeo, debrisMat);
-            debris.position.set(
-                cx + (Math.random() - 0.5) * 160,
-                size * 0.25,
-                cz + (Math.random() - 0.5) * 160
-            );
-            debris.rotation.set(Math.random(), Math.random(), Math.random());
-            debris.castShadow = true;
-            debris.receiveShadow = true;
-            this.scene.add(debris);
-        }
-
         // Projectile shells scattered
         const shellMat = new THREE.MeshStandardMaterial({ color: 0x4a5a3a, metalness: 0.6 });
         for (let s = 0; s < 15; s++) {
