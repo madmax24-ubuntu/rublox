@@ -3024,8 +3024,7 @@ export class MapGenerator {
 
     async buildCenterPlatform() {
         const platRadius = 70;
-        const platH = 1.5;
-
+ 
         // === BIOME-SPECIFIC TEXTURED GROUND ===
         const forestTex = createBiomeTexture((c) => createForestTexture(c, 42));
         await this.yieldFrame();
