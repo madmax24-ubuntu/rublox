@@ -4957,9 +4957,7 @@ buildFountain() {
             this.scene.add(sand);
         }
 
-        // Crater marks on ground
-        this.addCraters(-75, 75);
-        await this.yieldFrame();
+          await this.yieldFrame();
 
         // Broken 2-story houses (reduced)
         const housePositions = [
