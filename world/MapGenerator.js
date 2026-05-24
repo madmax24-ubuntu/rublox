@@ -3168,7 +3168,7 @@ buildFountain() {
         this.fillDiagonalGround();
 
         // Main circular platform
-        const platGeo = new THREE.CylinderGeometry(platRadius, platRadius, platH, 24);
+        const platGeo = new THREE.CylinderGeometry(platRadius, platRadius, platH, 48);
         const platMat = new THREE.MeshStandardMaterial({ color: 0xd4c4a8, roughness: 0.8 });
         const platform = new THREE.Mesh(platGeo, platMat);
         platform.position.set(0, platH / 2, 0);
