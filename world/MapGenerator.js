@@ -567,7 +567,7 @@ export class MapGenerator {
         await this.yieldFrame();
     }
 
-    buildBiomePaths() {
+    async buildBiomePaths() {
         const pathMat = new THREE.MeshStandardMaterial({ color: COLOR.arenaPath, roughness: 1.0 });
         const angles = [-Math.PI * 0.75, -Math.PI * 0.25, Math.PI * 0.75, Math.PI * 0.25];
         for (const a of angles) {
@@ -578,6 +578,7 @@ export class MapGenerator {
                 tile.position.set(x, 0.02, z); tile.rotation.y = -a + Math.PI / 2;
                 tile.receiveShadow = true; this.scene.add(tile);
             }
+            await this.yieldFrame();
         }
     }
 
