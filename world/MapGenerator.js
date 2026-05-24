@@ -613,11 +613,11 @@ buildFountain() {
 
     buildArch(zOrX, roadOffsetX, roadOffsetZ, wallH, wallMat, isXAxis) {
         // Two pillars + top beam forming an arch over the road entrance
-        const pillarW = 1.2;
-        const pillarD = 3;
-        const beamW = isXAxis ? 5 : 5;
-        const beamD = isXAxis ? 3 : 3;
-        const beamH = 1.5;
+        const pillarW = 0.7;
+        const pillarD = 2;
+        const beamW = isXAxis ? 4 : 4;
+        const beamD = isXAxis ? 2.5 : 2.5;
+        const beamH = 1.2;
         const archWidth = 5; // road width + clearance
 
         const pillarMat = wallMat;
