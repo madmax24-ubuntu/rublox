@@ -1046,17 +1046,28 @@ fillBoundaryGaps() {
     }
 
    fillDiagonalGround() {
-        // Fill 4 diagonal corners with biome-specific ground
+        // Fill diagonal gaps with biome-specific textured ground (smaller patches)
+        const canvas = document.createElement('canvas');
+        const forestTex = createBiomeTexture(canvas, (c) => createForestTexture(c, 42));
+        const stoneTex = createBiomeTexture(canvas, (c) => createStoneTexture(c, 73));
+        const militaryTex = createBiomeTexture(canvas, (c) => createMilitaryTexture(c, 99));
+        const snowTex = createBiomeTexture(canvas, (c) => createSnowTexture(c, 127));
+
         const gapConfigs = [
-            { cx: -110, cz: -110, w: 100, h: 100, matKey: 'forestGround', color: 0x5a9a3e },
-            { cx: 110, cz: -110, w: 100, h: 100, matKey: 'stoneGround', color: 0xb0a898 },
-            { cx: -110, cz: 110, w: 100, h: 100, matKey: 'militaryGround', color: 0x9a8a6e },
-            { cx: 110, cz: 110, w: 100, h: 100, matKey: 'snowGround', color: 0xf5f5f0 },
+            { cx: -110, cz: -110, w: 100, h: 100, tex: forestTex },
+            { cx: 110, cz: -110, w: 100, h: 100, tex: stoneTex },
+            { cx: -110, cz: 110, w: 100, h: 100, tex: militaryTex },
+            { cx: 110, cz: 110, w: 100, h: 100, tex: snowTex },
         ];
 
         gapConfigs.forEach(cfg => {
-            const groundGeo = new THREE.PlaneGeometry(cfg.w, cfg.h, 32, 32);
-            const groundMat = new THREE.MeshStandardMaterial({ color: cfg.color, roughness: 0.95, flatShading: false, side: THREE.DoubleSide });
+            cfg.tex.repeat.set(8, 8);
+            const groundMat = new THREE.MeshStandardMaterial({
+                map: cfg.tex,
+                roughness: 0.9,
+                side: THREE.DoubleSide
+            });
+            const groundGeo = new THREE.PlaneGeometry(cfg.w, cfg.h, 16, 16);
             const ground = new THREE.Mesh(groundGeo, groundMat);
             ground.rotation.x = -Math.PI / 2;
             ground.position.set(cfg.cx, 1.55, cfg.cz);
