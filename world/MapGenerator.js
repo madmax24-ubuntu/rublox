@@ -3317,47 +3317,40 @@ buildFountain() {
         this.colliders.push({ type: 'box', position: new THREE.Vector3(0, 0.75, 0), size: new THREE.Vector3(11, 1.5, 11) });
         this.colliders.push({ type: 'box', position: new THREE.Vector3(0, 3.5, 0), size: new THREE.Vector3(1.5, 4, 1.5) });
 
-        // 100 fire-colored tiles arranged in pattern
-        const fireColors = [0xff4400, 0xff6600, 0xff8800, 0xffaa00, 0xffcc00, 0xff2200];
+        // 100 floor tiles around center platform
         const tileMat = new THREE.MeshStandardMaterial({
-            color: 0x3a3a3a,
-            roughness: 0.9
+            color: 0xb8a88a,
+            roughness: 0.85,
+            flatShading: false
         });
 
-        // Arrange in concentric circles — InstancedMesh (2 draw calls instead of 200)
-        const baseTileGeo = new THREE.BoxGeometry(1.2, 0.1, 1.2);
-        const fireTileGeo = new THREE.BoxGeometry(1, 0.05, 1);
-        const fireMesh = new THREE.InstancedMesh(fireTileGeo, tileMat, 100);
+        // Arrange in grid pattern — InstancedMesh (100 instances, 1 draw call)
+        const tileGeo = new THREE.BoxGeometry(2.5, 0.15, 2.5);
+        const tileMesh = new THREE.InstancedMesh(tileGeo, tileMat, 100);
         const dummy = new THREE.Matrix4();
-        const baseMesh = new THREE.InstancedMesh(baseTileGeo, tileMat, 100);
         let tileCount = 0;
-        for (let ring = 0; ring < 4 && tileCount < 100; ring++) {
-            const radius = 8 + ring * 8;
-            const tilesInRing = Math.min(25, Math.floor(100 - tileCount));
-            for (let t = 0; t < tilesInRing; t++) {
-                const angle = (t / tilesInRing) * Math.PI * 2;
-                const pos = new THREE.Vector3(
-                    Math.cos(angle) * radius,
-                    platH + 0.05,
-                    Math.sin(angle) * radius
-                );
-                const quat = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -angle, 0));
-                const m = new THREE.Matrix4().makeRotationFromQuaternion(quat);
-                m.premultiply(new THREE.Matrix4().makeTranslation(pos.x, pos.y, pos.z));
-                baseMesh.setMatrixAt(tileCount, m);
-                // Fire glow position (slightly above)
-                const firePos = pos.clone().add(new THREE.Vector3(0, 0.07, 0));
-                const fm = new THREE.Matrix4().makeRotationFromQuaternion(quat);
-                fm.premultiply(new THREE.Matrix4().makeTranslation(firePos.x, firePos.y, firePos.z));
-                fireMesh.setMatrixAt(tileCount, fm);
-                fireMesh.setColorAt(tileCount, new THREE.Color(fireColors[tileCount % fireColors.length]));
+
+        // Place 100 tiles in 10x10 grid around center
+        const gridSize = 10;
+        const tileSize = 4; // spacing
+        const gridStart = -(gridSize * tileSize) / 2;
+        for (let row = 0; row < gridSize && tileCount < 100; row++) {
+            for (let col = 0; col < gridSize && tileCount < 100; col++) {
+                // Skip tiles inside fountain (R < 11)
+                const x = gridStart + col * tileSize;
+                const z = gridStart + row * tileSize;
+                const dist = Math.sqrt(x * x + z * z);
+                if (dist < 11) continue;
+
+                const m = new THREE.Matrix4().makeTranslation(x, platH + 0.075, z);
+                tileMesh.setMatrixAt(tileCount, m);
                 tileCount++;
             }
         }
-        baseMesh.instanceMatrix.needsUpdate = true;
-        fireMesh.instanceMatrix.needsUpdate = true;
-        if (fireMesh.instanceColor) fireMesh.instanceColor.needsUpdate = true;
-        this.scene.add(baseMesh, fireMesh);
+        tileMesh.instanceMatrix.needsUpdate = true;
+        tileMesh.castShadow = true;
+        tileMesh.receiveShadow = true;
+        this.scene.add(tileMesh);
 
         // === FOUNTAIN ===
         this.buildFountain();
