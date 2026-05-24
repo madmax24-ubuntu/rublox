@@ -3156,7 +3156,7 @@ buildFountain() {
         // Floor tiles for center platform
         for (let i = 0; i < 120; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const r = Math.random() * 75;
+            const r = Math.random() * 65;
             this.floorTiles.push({
                 x: Math.cos(angle) * r,
                 z: Math.sin(angle) * r,
