@@ -427,6 +427,462 @@ export class MapGenerator {
     yieldFrame() {
         return new Promise(resolve => requestAnimationFrame(resolve));
     }
+
+    async buildArenaFloor() {
+        const groundMat = new THREE.MeshStandardMaterial({
+            color: COLOR.arenaGround, roughness: 0.95, metalness: 0.05
+        });
+        const floorGeo = new THREE.CylinderGeometry(this.arenaRadius, this.arenaRadius, 0.5, 64);
+        const floor = new THREE.Mesh(floorGeo, groundMat);
+        floor.position.y = -0.25;
+        floor.receiveShadow = true;
+        this.scene.add(floor);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(0, -0.5, 0), size: new THREE.Vector3(this.arenaRadius * 2, 1, this.arenaRadius * 2) });
+        const terrainMat = new THREE.MeshStandardMaterial({ color: 0x2d4a1d, roughness: 1.0 });
+        const noise = this.noise;
+        for (let i = 0; i < 200; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const r = 20 + Math.random() * (this.arenaRadius - 40);
+            const x = Math.cos(angle) * r, z = Math.sin(angle) * r;
+            const h = noise.noise2D(x * 0.02, z * 0.02) * 1.5;
+            if (Math.abs(h) < 0.3) continue;
+            const size = 3 + Math.random() * 8;
+            const hill = new THREE.Mesh(new THREE.BoxGeometry(size, Math.abs(h), size * 0.7), terrainMat);
+            hill.position.set(x, h * 0.3, z); hill.rotation.y = Math.random() * Math.PI;
+            hill.receiveShadow = true; hill.castShadow = h > 0;
+            this.scene.add(hill);
+        }
+        this.buildBiomePaths();
+        await this.yieldFrame();
+    }
+
+    async buildForcefield() {
+        const ffMat = new THREE.MeshStandardMaterial({
+            color: COLOR.forcefield, emissive: COLOR.forcefield, emissiveIntensity: 0.5,
+            transparent: true, opacity: 0.3, roughness: 0.1, metalness: 0.5, side: THREE.DoubleSide
+        });
+        const ffGeo = new THREE.CylinderGeometry(this.arenaRadius, this.arenaRadius, 12, 64, 1, true);
+        const forcefield = new THREE.Mesh(ffGeo, ffMat);
+        forcefield.position.y = 6;
+        this.scene.add(forcefield);
+        const ringMat = new THREE.MeshStandardMaterial({ color: 0x88bbff, emissive: 0x4488ff, emissiveIntensity: 2, transparent: true, opacity: 0.8 });
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(this.arenaRadius + 0.5, 0.3, 8, 64), ringMat);
+        ring.position.y = 0.3; ring.rotation.x = Math.PI / 2;
+        this.scene.add(ring);
+        const topRing = ring.clone(); topRing.position.y = 12;
+        this.scene.add(topRing);
+        const lineMat = new THREE.LineBasicMaterial({ color: 0x6699ff, transparent: true, opacity: 0.4 });
+        for (let i = 0; i < 32; i++) {
+            const a = (i / 32) * Math.PI * 2;
+            const pts = [
+                new THREE.Vector3(Math.cos(a) * this.arenaRadius, 0, Math.sin(a) * this.arenaRadius),
+                new THREE.Vector3(Math.cos(a) * this.arenaRadius, 12, Math.sin(a) * this.arenaRadius)
+            ];
+            this.scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lineMat));
+        }
+        this.animatedObjects.push({ type: 'forcefield', mesh: forcefield, material: ffMat, baseOpacity: 0.3, baseEmissive: 0.5 });
+        await this.yieldFrame();
+    }
+
+    async buildCornucopia() {
+        const baseMat = new THREE.MeshStandardMaterial({ color: COLOR.metalDark, roughness: 0.6, metalness: 0.8 });
+        const base = new THREE.Mesh(new THREE.CylinderGeometry(18, 20, 3, 8), baseMat);
+        base.position.y = 1.5; base.castShadow = true; base.receiveShadow = true;
+        this.scene.add(base);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: COLOR.metalLight, roughness: 0.4, metalness: 0.9 });
+        const hull = new THREE.Mesh(new THREE.BoxGeometry(12, 12, 12), bodyMat);
+        hull.position.set(0, 9, 0); hull.rotation.y = Math.PI / 4; hull.scale.set(1, 1, 0.6);
+        hull.castShadow = true; hull.receiveShadow = true;
+        this.scene.add(hull);
+        const hornMat = new THREE.MeshStandardMaterial({ color: COLOR.metalGold, roughness: 0.3, metalness: 0.95 });
+        const hornLeftGroup = new THREE.Group();
+        for (let i = 0; i < 8; i++) {
+            const t = i / 8, radius = 3 * (1 - t * 0.7);
+            const seg = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, 1.2, 8), hornMat);
+            const angle = t * Math.PI * 0.6, h = 6 + t * 12, xOff = -t * 8;
+            seg.position.set(xOff, h, 0); seg.rotation.z = angle * 0.5; seg.castShadow = true;
+            hornLeftGroup.add(seg);
+        }
+        this.scene.add(hornLeftGroup);
+        const hornRightGroup = hornLeftGroup.clone();
+        hornRightGroup.children.forEach(s => { s.position.x = -s.position.x; s.rotation.z = -s.rotation.z; });
+        this.scene.add(hornRightGroup);
+        const spire = new THREE.Mesh(new THREE.CylinderGeometry(2, 4, 8, 8), baseMat);
+        spire.position.set(0, 14, -5); spire.castShadow = true;
+        this.scene.add(spire);
+        const dome = new THREE.Mesh(new THREE.SphereGeometry(2, 8, 8, 0, Math.PI * 2, 0, Math.PI / 2), bodyMat);
+        dome.position.set(0, 18, -5); dome.castShadow = true;
+        this.scene.add(dome);
+        const chestMat = new THREE.MeshStandardMaterial({ color: COLOR.chestWood, roughness: 0.7 });
+        const chestTrimMat = new THREE.MeshStandardMaterial({ color: COLOR.chestGold, roughness: 0.3, metalness: 0.8 });
+        const chestBody = new THREE.Mesh(new THREE.BoxGeometry(3, 2, 2.5), chestMat);
+        chestBody.position.set(0, 5.5, 0); chestBody.castShadow = true;
+        this.scene.add(chestBody);
+        const chestLid = new THREE.Mesh(new THREE.SphereGeometry(1.5, 8, 8, 0, Math.PI * 2, 0, Math.PI / 2), chestMat);
+        chestLid.position.set(0, 6.5, 0); chestLid.scale.set(1, 0.4, 0.83); chestLid.castShadow = true;
+        this.scene.add(chestLid);
+        const bandGeo = new THREE.BoxGeometry(3.1, 0.2, 2.6);
+        for (let by of [5.5, 6.5]) { const b = new THREE.Mesh(bandGeo, chestTrimMat); b.position.set(0, by, 0); this.scene.add(b); }
+        const lock = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.3), chestTrimMat);
+        lock.position.set(0, 5.5, 1.3); this.scene.add(lock);
+        const obsPlatform = new THREE.Mesh(new THREE.CylinderGeometry(5, 5, 0.3, 8), baseMat);
+        obsPlatform.position.set(0, 15.2, 0); obsPlatform.receiveShadow = true;
+        this.scene.add(obsPlatform);
+        const railMat = new THREE.MeshStandardMaterial({ color: COLOR.metalDark, roughness: 0.5, metalness: 0.9 });
+        for (let i = 0; i < 8; i++) {
+            const a = (i / 8) * Math.PI * 2;
+            const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.5, 6), railMat);
+            post.position.set(Math.cos(a) * 4.8, 16, Math.sin(a) * 4.8); post.castShadow = true;
+            this.scene.add(post);
+        }
+        const ramp = new THREE.Mesh(new THREE.BoxGeometry(4, 0.3, 10), bodyMat);
+        ramp.position.set(0, 4.5, 5); ramp.rotation.x = 0.2;
+        ramp.castShadow = true; ramp.receiveShadow = true;
+        this.scene.add(ramp);
+        const crateMat = new THREE.MeshStandardMaterial({ color: COLOR.metalDark, roughness: 0.7, metalness: 0.6 });
+        for (const pos of [{ x: -6, z: 8 }, { x: -3, z: 10 }, { x: 0, z: 11 }, { x: 3, z: 10 }, { x: 6, z: 8 },
+            { x: -9, z: 4 }, { x: -6, z: 5 }, { x: 0, z: 6 }, { x: 6, z: 5 }, { x: 9, z: 4 },
+            { x: -12, z: -2 }, { x: -8, z: 0 }, { x: 0, z: 1 }, { x: 8, z: 0 }, { x: 12, z: -2 },
+            { x: -10, z: -6 }, { x: -5, z: -8 }, { x: 0, z: -9 }, { x: 5, z: -8 }, { x: 10, z: -6 }]) {
+            const crate = new THREE.Mesh(new THREE.BoxGeometry(2.5, 3, 2.5), crateMat);
+            crate.position.set(pos.x, 1.5, pos.z); crate.rotation.y = Math.random() * 0.3;
+            crate.castShadow = true; crate.receiveShadow = true;
+            this.scene.add(crate);
+        }
+        const glowMat = new THREE.MeshStandardMaterial({ color: 0xffaa00, emissive: 0xff8800, emissiveIntensity: 2, transparent: true, opacity: 0.8 });
+        const glowCore = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 8), glowMat);
+        glowCore.position.set(0, 5.5, 0); this.scene.add(glowCore);
+        const glowLight = new THREE.PointLight(0xff8800, 3, 30);
+        glowLight.position.set(0, 6, 0); this.scene.add(glowLight);
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(0, 1.5, 0), size: new THREE.Vector3(40, 3, 40) });
+        this.colliders.push({ type: 'box', position: new THREE.Vector3(0, 9, 0), size: new THREE.Vector3(14, 14, 14) });
+        this.spawnPads.push({ x: 0, y: 5.5, z: 0, radius: 4 });
+        for (let i = 0; i < 5; i++) this.spawnPads.push({ x: -8 + i * 4, y: 3, z: 14, radius: 2.5 });
+        this.spawnPads.push({ x: -16, y: 3, z: 0, radius: 2.5 });
+        this.spawnPads.push({ x: 16, y: 3, z: 0, radius: 2.5 });
+        this.spawnPads.push({ x: -8, y: 3, z: -12, radius: 2.5 });
+        this.spawnPads.push({ x: 0, y: 3, z: -14, radius: 2.5 });
+        this.spawnPads.push({ x: 8, y: 3, z: -12, radius: 2.5 });
+        this.animatedObjects.push({ type: 'cornucopiaGlow', mesh: glowCore, light: glowLight });
+        await this.yieldFrame();
+    }
+
+    buildBiomePaths() {
+        const pathMat = new THREE.MeshStandardMaterial({ color: COLOR.arenaPath, roughness: 1.0 });
+        const angles = [-Math.PI * 0.75, -Math.PI * 0.25, Math.PI * 0.75, Math.PI * 0.25];
+        for (const a of angles) {
+            for (let i = 0; i < 30; i++) {
+                const t = i / 30, r = 22 + t * (this.arenaRadius - 50), w = 5 * (1 - t * 0.3);
+                const x = Math.cos(a) * r, z = Math.sin(a) * r;
+                const tile = new THREE.Mesh(new THREE.BoxGeometry(w * 1.5, 0.05, w), pathMat);
+                tile.position.set(x, 0.02, z); tile.rotation.y = -a + Math.PI / 2;
+                tile.receiveShadow = true; this.scene.add(tile);
+            }
+        }
+    }
+
+    async buildRuinedCitadel() {
+        const angle = -Math.PI * 0.75, cr = 130;
+        const cx = Math.cos(angle) * cr, cz = Math.sin(angle) * cr;
+        const floor = new THREE.Mesh(new THREE.CircleGeometry(30, 8), new THREE.MeshStandardMaterial({ color: COLOR.ruinFloor, roughness: 1.0 }));
+        floor.rotation.x = -Math.PI / 2; floor.position.set(cx, 0.05, cz); floor.receiveShadow = true;
+        this.scene.add(floor);
+
+        const towerMat = new THREE.MeshStandardMaterial({ color: COLOR.ruinStone, roughness: 0.9, metalness: 0.1 });
+        const towerDarkMat = new THREE.MeshStandardMaterial({ color: COLOR.ruinDarkStone, roughness: 0.95 });
+        for (const tp of [{ x: -10, z: -10, h: 14, r: 3 }, { x: 12, z: -8, h: 10, r: 2.5 },
+            { x: -8, z: 12, h: 18, r: 3.5 }, { x: 10, z: 10, h: 8, r: 2 }, { x: 0, z: -15, h: 12, r: 2.8 }]) {
+            const mat = Math.random() > 0.5 ? towerMat : towerDarkMat;
+            const tower = new THREE.Mesh(new THREE.CylinderGeometry(tp.r * 0.8, tp.r, tp.h, 8), mat);
+            tower.position.set(cx + tp.x, tp.h / 2, cz + tp.z);
+            tower.rotation.z = (Math.random() - 0.5) * 0.1;
+            tower.castShadow = true; tower.receiveShadow = true;
+            this.scene.add(tower);
+            if (Math.random() > 0.4) {
+                const debris = new THREE.Mesh(new THREE.CylinderGeometry(tp.r * 0.5, tp.r * 0.3, 2, 6), mat);
+                debris.position.set(cx + tp.x + (Math.random() - 0.5) * 3, tp.h + 1, cz + tp.z + (Math.random() - 0.5) * 3);
+                debris.rotation.z = (Math.random() - 0.5) * 0.8; debris.castShadow = true;
+                this.scene.add(debris);
+            }
+            const opening = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.5, 1), new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 1 }));
+            opening.position.set(cx + tp.x, tp.h * 0.4, cz + tp.z + tp.r * 0.5);
+            this.scene.add(opening);
+            this.colliders.push({ type: 'cylinder', position: new THREE.Vector3(cx + tp.x, tp.h / 2, cz + tp.z), radius: tp.r, height: tp.h });
+        }
+
+        const archMat = new THREE.MeshStandardMaterial({ color: COLOR.ruinStone, roughness: 0.85, metalness: 0.1 });
+        for (const [px, py, pz, sx, sy, sz] of [[-3, 4, 5, 2, 8, 2], [3, 4, 5, 2, 8, 2], [0, 9, 5, 8, 2, 3]]) {
+            const p = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), archMat);
+            p.position.set(cx + px, py, cz + pz); p.castShadow = true;
+            this.scene.add(p);
+        }
+
+        const mossMat = new THREE.MeshStandardMaterial({ color: COLOR.ruinMoss, roughness: 1.0 });
+        for (let i = 0; i < 15; i++) {
+            const a = Math.random() * Math.PI * 2, r = 5 + Math.random() * 20;
+            const moss = new THREE.Mesh(new THREE.CylinderGeometry(1 + Math.random(), 1.5, 0.2, 6), mossMat);
+            moss.position.set(cx + Math.cos(a) * r, 0.1, cz + Math.sin(a) * r); moss.receiveShadow = true;
+            this.scene.add(moss);
+        }
+        for (let i = 0; i < 10; i++) {
+            const a = Math.random() * Math.PI * 2, r = 5 + Math.random() * 22, h = 2 + Math.random() * 4;
+            const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, h, 8), towerMat);
+            pillar.position.set(cx + Math.cos(a) * r, h / 2, cz + Math.sin(a) * r);
+            pillar.rotation.z = (Math.random() - 0.5) * 0.5; pillar.castShadow = true;
+            this.scene.add(pillar);
+        }
+        this.scene.add(Object.assign(new THREE.PointLight(0xffddaa, 1, 25), { position: new THREE.Vector3(cx, 6, cz) }));
+        await this.yieldFrame();
+    }
+
+    async buildCrystalGrotto() {
+        const angle = -Math.PI * 0.25, cr = 130;
+        const cx = Math.cos(angle) * cr, cz = Math.sin(angle) * cr;
+        const floor = new THREE.Mesh(new THREE.CircleGeometry(28, 8), new THREE.MeshStandardMaterial({ color: COLOR.crystalFloor, roughness: 0.8, metalness: 0.2 }));
+        floor.rotation.x = -Math.PI / 2; floor.position.set(cx, 0.05, cz); floor.receiveShadow = true;
+        this.scene.add(floor);
+
+        const crystalMats = [
+            new THREE.MeshStandardMaterial({ color: COLOR.crystalBlue, roughness: 0.2, metalness: 0.6, transparent: true, opacity: 0.85 }),
+            new THREE.MeshStandardMaterial({ color: COLOR.crystalPurple, roughness: 0.2, metalness: 0.6, transparent: true, opacity: 0.85 }),
+            new THREE.MeshStandardMaterial({ color: COLOR.crystalGlow, roughness: 0.1, metalness: 0.7, emissive: COLOR.crystalGlow, emissiveIntensity: 0.3, transparent: true, opacity: 0.8 })
+        ];
+        for (let i = 0; i < 40; i++) {
+            const a = Math.random() * Math.PI * 2, r = 3 + Math.random() * 23;
+            const x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r;
+            const h = 2 + Math.random() * 10, baseR = 0.5 + Math.random() * 1.5;
+            const crystal = new THREE.Mesh(new THREE.ConeGeometry(baseR, h, 6), crystalMats[Math.floor(Math.random() * crystalMats.length)]);
+            crystal.position.set(x, h / 2, z); crystal.rotation.y = Math.random() * Math.PI;
+            crystal.rotation.x = (Math.random() - 0.5) * 0.2; crystal.castShadow = true;
+            this.scene.add(crystal);
+            if (Math.random() > 0.5) {
+                for (let j = 0; j < 3; j++) {
+                    const sc = new THREE.Mesh(new THREE.ConeGeometry(0.3 + Math.random() * 0.5, 1 + Math.random() * 2, 5), crystalMats[Math.floor(Math.random() * crystalMats.length)]);
+                    sc.position.set(x + (Math.random() - 0.5) * 2, 0.5, z + (Math.random() - 0.5) * 2);
+                    sc.rotation.z = (Math.random() - 0.5) * 0.5; this.scene.add(sc);
+                }
+            }
+        }
+
+        const poolMat = new THREE.MeshStandardMaterial({ color: COLOR.crystalReflect, roughness: 0.05, metalness: 0.8, transparent: true, opacity: 0.7 });
+        const pool = new THREE.Mesh(new THREE.CylinderGeometry(6, 6, 0.1, 16), poolMat);
+        pool.position.set(cx, 0.1, cz); this.scene.add(pool);
+        const poolLight = new THREE.PointLight(0x4488cc, 2, 20); poolLight.position.set(cx, 2, cz); this.scene.add(poolLight);
+
+        const caveMat = new THREE.MeshStandardMaterial({ color: 0x1a1a2a, roughness: 1.0 });
+        for (const side of [-1, 1]) {
+            const cw = new THREE.Mesh(new THREE.SphereGeometry(5, 8, 8, 0, Math.PI, 0, Math.PI / 2), caveMat);
+            cw.position.set(cx + side * 5, 0, cz + 10); cw.scale.set(1, 1, 0.5);
+            this.scene.add(cw);
+        }
+        this.animatedObjects.push({ type: 'crystalGlow', mesh: poolLight, baseIntensity: 2, color: COLOR.crystalGlow });
+        await this.yieldFrame();
+    }
+
+    async buildBurningWastes() {
+        const angle = Math.PI * 0.75, cr = 130;
+        const cx = Math.cos(angle) * cr, cz = Math.sin(angle) * cr;
+        const floor = new THREE.Mesh(new THREE.CircleGeometry(30, 8), new THREE.MeshStandardMaterial({ color: COLOR.wasteGround, roughness: 1.0 }));
+        floor.rotation.x = -Math.PI / 2; floor.position.set(cx, 0.05, cz); floor.receiveShadow = true;
+        this.scene.add(floor);
+
+        const lavaMat = new THREE.MeshStandardMaterial({ color: COLOR.lava, emissive: COLOR.lava, emissiveIntensity: 1.5, roughness: 0.3, transparent: true, opacity: 0.85 });
+        const lavaGlowMat = new THREE.MeshStandardMaterial({ color: COLOR.lavaGlow, emissive: COLOR.lavaGlow, emissiveIntensity: 2, transparent: true, opacity: 0.6 });
+        for (let i = 0; i < 15; i++) {
+            const t = i / 15, x = cx - 15 + t * 30, z = cz + Math.sin(t * Math.PI * 2) * 8, w = 2 + Math.sin(t * Math.PI) * 3;
+            const lava = new THREE.Mesh(new THREE.BoxGeometry(w, 0.15, 2.5), lavaMat);
+            lava.position.set(x, 0.12, z); this.scene.add(lava);
+            const glow = new THREE.Mesh(new THREE.BoxGeometry(w * 0.6, 0.1, 2), lavaGlowMat);
+            glow.position.set(x, 0.15, z); this.scene.add(glow);
+        }
+
+        const obsMat = new THREE.MeshStandardMaterial({ color: COLOR.obsidian, roughness: 0.3, metalness: 0.5 });
+        for (let i = 0; i < 12; i++) {
+            const a = Math.random() * Math.PI * 2, r = 5 + Math.random() * 22, h = 3 + Math.random() * 12;
+            const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.5 + Math.random(), h, 0.5 + Math.random(), 6), obsMat);
+            pillar.position.set(cx + Math.cos(a) * r, h / 2, cz + Math.sin(a) * r);
+            pillar.rotation.z = (Math.random() - 0.5) * 0.3; pillar.castShadow = true; pillar.receiveShadow = true;
+            this.scene.add(pillar);
+        }
+
+        const rockMat = new THREE.MeshStandardMaterial({ color: COLOR.scorchedRock, roughness: 0.9 });
+        for (let i = 0; i < 25; i++) {
+            const a = Math.random() * Math.PI * 2, r = 3 + Math.random() * 25;
+            const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(1 + Math.random() * 2, 0), rockMat);
+            rock.position.set(cx + Math.cos(a) * r, 0.5, cz + Math.sin(a) * r);
+            rock.rotation.set(Math.random(), Math.random(), Math.random());
+            rock.castShadow = true; rock.receiveShadow = true;
+            this.scene.add(rock);
+        }
+
+        const smokeMat = new THREE.MeshStandardMaterial({ color: COLOR.smoke, transparent: true, opacity: 0.15, roughness: 1 });
+        for (let i = 0; i < 8; i++) {
+            const a = Math.random() * Math.PI * 2, r = 5 + Math.random() * 20;
+            const smoke = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 3, 8, 8), smokeMat);
+            smoke.position.set(cx + Math.cos(a) * r, 4, cz + Math.sin(a) * r);
+            this.scene.add(smoke);
+        }
+        const lavaLight = new THREE.PointLight(0xff4400, 3, 30); lavaLight.position.set(cx, 3, cz);
+        this.scene.add(lavaLight);
+        this.animatedObjects.push({ type: 'lavaGlow', light: lavaLight, baseIntensity: 3 });
+        await this.yieldFrame();
+    }
+
+    async buildLuminousForest() {
+        const angle = Math.PI * 0.25, cr = 130;
+        const cx = Math.cos(angle) * cr, cz = Math.sin(angle) * cr;
+        const floor = new THREE.Mesh(new THREE.CircleGeometry(32, 8), new THREE.MeshStandardMaterial({ color: COLOR.luminousFloor, roughness: 1.0 }));
+        floor.rotation.x = -Math.PI / 2; floor.position.set(cx, 0.05, cz); floor.receiveShadow = true;
+        this.scene.add(floor);
+
+        const barkMat = new THREE.MeshStandardMaterial({ color: COLOR.luminousBark, roughness: 0.9 });
+        const glowColors = [COLOR.luminousGlow, 0x44aaff, COLOR.luminousMushroom, 0xffaa44];
+        for (let i = 0; i < 35; i++) {
+            const a = Math.random() * Math.PI * 2, r = 4 + Math.random() * 26;
+            const x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r;
+            const treeH = 6 + Math.random() * 10, trunkR = 0.3 + Math.random() * 0.4;
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(trunkR * 0.6, trunkR, treeH, 6), barkMat);
+            trunk.position.set(x, treeH / 2, z); trunk.castShadow = true;
+            this.scene.add(trunk);
+
+            const canopyColor = glowColors[Math.floor(Math.random() * glowColors.length)];
+            const canopyMat = new THREE.MeshStandardMaterial({ color: canopyColor, emissive: canopyColor, emissiveIntensity: 0.5 + Math.random() * 0.5, roughness: 0.7, transparent: true, opacity: 0.7 });
+            const canopySize = 2 + Math.random() * 3;
+            const canopy = new THREE.Mesh(new THREE.SphereGeometry(canopySize, 8, 6), canopyMat);
+            canopy.position.set(x, treeH + canopySize * 0.3, z); canopy.castShadow = true;
+            this.scene.add(canopy);
+
+            if (Math.random() > 0.4) {
+                const treeLight = new THREE.PointLight(canopyColor, 1, 12);
+                treeLight.position.set(x, treeH, z); this.scene.add(treeLight);
+                this.animatedObjects.push({ type: 'treeGlow', light: treeLight, baseIntensity: 1, color: canopyColor });
+            }
+        }
+
+        const mushMat = new THREE.MeshStandardMaterial({ color: COLOR.luminousMushroom, emissive: COLOR.luminousMushroom, emissiveIntensity: 0.8, roughness: 0.6 });
+        for (let i = 0; i < 30; i++) {
+            const a = Math.random() * Math.PI * 2, r = 2 + Math.random() * 28;
+            const x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r;
+            const mushH = 0.3 + Math.random() * 0.5;
+            const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.1, mushH, 6), new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.8 }));
+            stem.position.set(x, mushH / 2, z); this.scene.add(stem);
+            const cap = new THREE.Mesh(new THREE.SphereGeometry(0.3 + Math.random() * 0.3, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), mushMat);
+            cap.position.set(x, mushH, z); this.scene.add(cap);
+        }
+
+        const pondMat = new THREE.MeshStandardMaterial({ color: COLOR.luminousPond, emissive: COLOR.luminousGlow, emissiveIntensity: 0.3, roughness: 0.1, transparent: true, opacity: 0.7 });
+        const pond = new THREE.Mesh(new THREE.CylinderGeometry(4, 4, 0.1, 12), pondMat);
+        pond.position.set(cx + 8, 0.1, cz - 5); this.scene.add(pond);
+        const pondLight = new THREE.PointLight(COLOR.luminousGlow, 2, 15); pondLight.position.set(cx + 8, 2, cz - 5);
+        this.scene.add(pondLight);
+        this.animatedObjects.push({ type: 'pondGlow', light: pondLight, baseIntensity: 2, color: COLOR.luminousGlow });
+        await this.yieldFrame();
+    }
+
+    buildBridges() {
+        const bridgeMat = new THREE.MeshStandardMaterial({ color: 0x5a4a3a, roughness: 0.9, metalness: 0.1 });
+        const bridgeRailMat = new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.7, metalness: 0.5 });
+        const bridgeAngles = [-Math.PI * 0.75, -Math.PI * 0.25, Math.PI * 0.75, Math.PI * 0.25];
+        for (const angle of bridgeAngles) {
+            for (let i = 0; i < 10; i++) {
+                const t = i / 10, r = 25 + t * 75;
+                const x = Math.cos(angle) * r, z = Math.sin(angle) * r;
+                const deck = new THREE.Mesh(new THREE.BoxGeometry(3, 0.2, 4), bridgeMat);
+                deck.position.set(x, 0.2, z); deck.rotation.y = -angle + Math.PI / 2;
+                deck.receiveShadow = true; deck.castShadow = true;
+                this.scene.add(deck);
+                if (i === 9) {
+                    for (const side of [-1, 1]) {
+                        const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.5, 4), bridgeRailMat);
+                        rail.position.set(x + Math.cos(angle + Math.PI / 2) * side * 1.5, 1, z + Math.sin(angle + Math.PI / 2) * side * 1.5);
+                        this.scene.add(rail);
+                    }
+                }
+            }
+        }
+    }
+
+    buildHazardZones() {
+        const lavaPatchMat = new THREE.MeshStandardMaterial({ color: 0xff2200, emissive: 0xff4400, emissiveIntensity: 1, transparent: true, opacity: 0.7 });
+        for (let i = 0; i < 5; i++) {
+            const a = Math.PI * 0.5 + Math.random() * Math.PI * 0.5, r = 100 + Math.random() * 60;
+            const patch = new THREE.Mesh(new THREE.CylinderGeometry(3 + Math.random() * 4, 4, 0.1, 8), lavaPatchMat);
+            patch.position.set(Math.cos(a) * r, 0.1, Math.sin(a) * r); this.scene.add(patch);
+            this.hazards.push({ type: 'lava', position: new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r), radius: 4 + Math.random() * 3, damage: 0.5 });
+        }
+        const shockMat = new THREE.MeshStandardMaterial({ color: 0x8844ff, emissive: 0x8844ff, emissiveIntensity: 0.5, transparent: true, opacity: 0.3 });
+        for (let i = 0; i < 3; i++) {
+            const a = -Math.PI * 0.4 + Math.random() * 0.3, r = 100 + Math.random() * 60;
+            const shock = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 6, 8), shockMat);
+            shock.position.set(Math.cos(a) * r, 3, Math.sin(a) * r); this.scene.add(shock);
+            this.hazards.push({ type: 'shock', position: new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r), radius: 3, damage: 0.3 });
+        }
+    }
+
+    buildArenaProps() {
+        const supplyMat = new THREE.MeshStandardMaterial({ color: 0x4a5a3a, roughness: 0.8, metalness: 0.2 });
+        const supplyTrimMat = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.5, metalness: 0.7 });
+        for (let i = 0; i < 20; i++) {
+            const a = Math.random() * Math.PI * 2, r = 30 + Math.random() * (this.arenaRadius - 50);
+            const x = Math.cos(a) * r, z = Math.sin(a) * r;
+            const crate = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 1.5), supplyMat);
+            crate.position.set(x, 0.75, z); crate.rotation.y = Math.random() * Math.PI;
+            crate.castShadow = true; crate.receiveShadow = true;
+            this.scene.add(crate);
+            for (const by of [0.75, 1.5]) {
+                const band = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.1, 1.55), supplyTrimMat);
+                band.position.set(x, by, z); this.scene.add(band);
+            }
+        }
+        const markerMat = new THREE.MeshStandardMaterial({ color: 0xff4400, emissive: 0xff2200, emissiveIntensity: 0.5 });
+        for (const hz of this.hazards) {
+            const marker = new THREE.Mesh(new THREE.ConeGeometry(0.3, 1, 4), markerMat);
+            marker.position.set(hz.position.x + 1.5, 0.5, hz.position.z);
+            this.scene.add(marker);
+        }
+    }
+
+    buildBiomeBoundaries() {
+        // Subtle ring markers at biome zone edges
+        const boundaryMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x444444, emissiveIntensity: 0.2, transparent: true, opacity: 0.08 });
+        const boundaryAngles = [-Math.PI * 0.75, -Math.PI * 0.25, Math.PI * 0.25, Math.PI * 0.75];
+        for (const a of boundaryAngles) {
+            const r = 85;
+            for (let i = 0; i < 20; i++) {
+                const t = i / 20;
+                const angle = a + (t - 0.5) * 0.15;
+                const x = Math.cos(angle) * r, z = Math.sin(angle) * r;
+                const marker = new THREE.Mesh(new THREE.SphereGeometry(0.3, 4, 4), boundaryMat);
+                marker.position.set(x, 0.2, z);
+                this.scene.add(marker);
+            }
+        }
+    }
+
+    setupAnimations() {
+        for (const obj of this.animatedObjects) {
+            switch (obj.type) {
+                case 'forcefield':
+                    obj.update = () => { const t = Date.now() * 0.001; obj.material.opacity = obj.baseOpacity + Math.sin(t * 2) * 0.1; obj.material.emissiveIntensity = obj.baseEmissive + Math.sin(t * 3) * 0.3; };
+                    break;
+                case 'cornucopiaGlow':
+                    obj.update = () => { const t = Date.now() * 0.002; obj.mesh.material.emissiveIntensity = 1.5 + Math.sin(t); obj.light.intensity = 2 + Math.sin(t) * 1.5; obj.mesh.scale.setScalar(1 + Math.sin(t * 2) * 0.1); };
+                    break;
+                case 'crystalGlow': case 'pondGlow':
+                    obj.update = () => { const t = Date.now() * 0.001; obj.light.intensity = obj.baseIntensity + Math.sin(t * 0.5) * 0.5; };
+                    break;
+                case 'treeGlow':
+                    obj.update = () => { const t = Date.now() * 0.003; obj.light.intensity = obj.baseIntensity * (0.7 + Math.sin(t) * 0.3); };
+                    break;
+                case 'lavaGlow':
+                    obj.update = () => { const t = Date.now() * 0.004; obj.light.intensity = obj.baseIntensity + Math.sin(t) * 0.8 + Math.sin(t * 1.7) * 0.3; };
+                    break;
+                default:
+                    obj.update = () => {};
+            }
+        }
+    }
+
     // ========== GETTERS ==========
     getFloorTiles() {
         return this.floorTiles;
