@@ -312,7 +312,7 @@ buildFountain() {
                 x: Math.cos(angle) * r,
                 y: 3.5,
                 z: Math.sin(angle) * r,
-                radius: 3
+                radius: 5
             });
         });
     }
