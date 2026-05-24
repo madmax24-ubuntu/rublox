@@ -3155,23 +3155,41 @@ buildFountain() {
         biomeGroundPlane.call(this, 196, 196, 158, 158, snowTex, 16, 16);
         await this.yieldFrame();
 
-        // === GAP FILLS between biome quadrants ===
-        const centerGapMat = new THREE.MeshStandardMaterial({
-            color: 0x6a6a6a,
+        // === GAP FILLS between biome quadrants (narrow, along road borders) ===
+        const gapMat = new THREE.MeshStandardMaterial({
+            color: 0x8a8a7a,
             roughness: 0.95, flatShading: false, side: THREE.DoubleSide
         });
-        // North gap (X: -80..80, Z: -256..-60)
-        let g = new THREE.Mesh(new THREE.PlaneGeometry(160, 196, 8, 8), centerGapMat);
-        g.rotation.x = -Math.PI / 2; g.position.set(0, 1.555, -158); g.receiveShadow = true; this.scene.add(g);
-        // South gap (X: -80..80, Z: 60..256)
-        g = new THREE.Mesh(new THREE.PlaneGeometry(160, 196, 8, 8), centerGapMat);
-        g.rotation.x = -Math.PI / 2; g.position.set(0, 1.555, 158); g.receiveShadow = true; this.scene.add(g);
-        // West gap (X: -256..-60, Z: -80..80)
-        g = new THREE.Mesh(new THREE.PlaneGeometry(196, 160, 8, 8), centerGapMat);
-        g.rotation.x = -Math.PI / 2; g.position.set(-158, 1.555, 0); g.receiveShadow = true; this.scene.add(g);
-        // East gap (X: 60..256, Z: -80..80)
-        g = new THREE.Mesh(new THREE.PlaneGeometry(196, 160, 8, 8), centerGapMat);
-        g.rotation.x = -Math.PI / 2; g.position.set(158, 1.555, 0); g.receiveShadow = true; this.scene.add(g);
+        const roadHalfW = 1.67 / 2; // half road width
+        const gapInner = roadHalfW; // start at road edge
+        const gapOuter = 80; // end at biome edge
+        const gapLen = 196; // from biome edge to map edge
+
+        // North/South: fills between biome quadrants (not on road)
+        // North-left (NW corner section)
+        let gf = new THREE.Mesh(new THREE.PlaneGeometry(gapOuter - gapInner, gapLen, 4, 4), gapMat);
+        gf.rotation.x = -Math.PI / 2; gf.position.set(-(gapOuter + gapInner) / 2, 1.555, -158); gf.receiveShadow = true; this.scene.add(gf);
+        // North-right (NE corner section)
+        gf = new THREE.Mesh(new THREE.PlaneGeometry(gapOuter - gapInner, gapLen, 4, 4), gapMat);
+        gf.rotation.x = -Math.PI / 2; gf.position.set((gapOuter + gapInner) / 2, 1.555, -158); gf.receiveShadow = true; this.scene.add(gf);
+        // South-left (SW corner section)
+        gf = new THREE.Mesh(new THREE.PlaneGeometry(gapOuter - gapInner, gapLen, 4, 4), gapMat);
+        gf.rotation.x = -Math.PI / 2; gf.position.set(-(gapOuter + gapInner) / 2, 1.555, 158); gf.receiveShadow = true; this.scene.add(gf);
+        // South-right (SE corner section)
+        gf = new THREE.Mesh(new THREE.PlaneGeometry(gapOuter - gapInner, gapLen, 4, 4), gapMat);
+        gf.rotation.x = -Math.PI / 2; gf.position.set((gapOuter + gapInner) / 2, 1.555, 158); gf.receiveShadow = true; this.scene.add(gf);
+        // West-left (NW corner section)
+        gf = new THREE.Mesh(new THREE.PlaneGeometry(gapOuter - gapInner, gapLen, 4, 4), gapMat);
+        gf.rotation.x = -Math.PI / 2; gf.position.set(-158, 1.555, -(gapOuter + gapInner) / 2); gf.receiveShadow = true; this.scene.add(gf);
+        // West-right (SW corner section)
+        gf = new THREE.Mesh(new THREE.PlaneGeometry(gapOuter - gapInner, gapLen, 4, 4), gapMat);
+        gf.rotation.x = -Math.PI / 2; gf.position.set(-158, 1.555, (gapOuter + gapInner) / 2); gf.receiveShadow = true; this.scene.add(gf);
+        // East-left (NE corner section)
+        gf = new THREE.Mesh(new THREE.PlaneGeometry(gapOuter - gapInner, gapLen, 4, 4), gapMat);
+        gf.rotation.x = -Math.PI / 2; gf.position.set(158, 1.555, -(gapOuter + gapInner) / 2); gf.receiveShadow = true; this.scene.add(gf);
+        // East-right (SE corner section)
+        gf = new THREE.Mesh(new THREE.PlaneGeometry(gapOuter - gapInner, gapLen, 4, 4), gapMat);
+        gf.rotation.x = -Math.PI / 2; gf.position.set(158, 1.555, (gapOuter + gapInner) / 2); gf.receiveShadow = true; this.scene.add(gf);
 
         // === RING: fill between biome planes (R60) and platform edge (R70) ===
         const ringGeo2 = new THREE.RingGeometry(60, 70, 48);
