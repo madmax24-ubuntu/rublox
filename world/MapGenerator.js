@@ -453,7 +453,6 @@ export class MapGenerator {
             hill.receiveShadow = true; hill.castShadow = h > 0;
             this.scene.add(hill);
         }
-        this.buildBiomePaths();
         await this.yieldFrame();
     }
 
