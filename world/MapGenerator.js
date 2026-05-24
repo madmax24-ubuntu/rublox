@@ -333,6 +333,7 @@ export class MapGenerator {
         this.tileSize = 4;
         this.mapSize = 512;
         this.halfSize = 256;
+        this.arenaRadius = 220;
         this.colliders = [];
         this.floorTiles = [];
         this.spawnPads = [];
@@ -349,6 +350,7 @@ export class MapGenerator {
         this.animatedObjects = [];
         this.waterMeshes = [];
         this.fireMeshes = [];
+        this.hazards = [];
         this.noise = new SimplexNoise(42);
         this.ready = new Promise(resolve => { this._resolveReady = resolve; });
     }
