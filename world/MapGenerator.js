@@ -3200,23 +3200,10 @@ buildFountain() {
         ring2.receiveShadow = true;
         this.scene.add(ring2);
 
-        // Spawn pads around platform edge
-        const spawnAngles = [0, Math.PI / 2, Math.PI, Math.PI * 1.5];
-        const platSurfaceY = 1.63;
-        spawnAngles.forEach((angle, i) => {
-            const r = 65 + i * 1.5;
-            this.spawnPads.push({
-                x: Math.cos(angle) * r,
-                y: platSurfaceY,
-                z: Math.sin(angle) * r,
-                radius: 5
-            });
-        });
-
-        // Floor tiles for center platform
-        for (let i = 0; i < 120; i++) {
+        // Floor tiles for center platform (random scattered)
+        for (let i = 0; i < 60; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const r = Math.random() * 65;
+            const r = 12 + Math.random() * 55; // outside fountain area
             this.floorTiles.push({
                 x: Math.cos(angle) * r,
                 z: Math.sin(angle) * r,
