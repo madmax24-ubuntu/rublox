@@ -2390,7 +2390,12 @@ class Game {
             document.activeElement?.blur?.();
             this.tryEnterGameplayPointerLock();
 
-            // Show perk panel AFTER first render so loading overlay stays visible until then
+            // Hide loading overlay BEFORE perk panel — loading is complete
+            if (loadingOverlay && loadingOverlay.style.display !== 'none') {
+                loadingOverlay.style.display = 'none';
+            }
+
+            // Show perk panel AFTER loading is fully complete
             if (this.perkMenuOpen) {
                 this.hud?.togglePerkPanel?.(true);
                 document.exitPointerLock?.();
@@ -2400,10 +2405,6 @@ class Game {
                 this.hud?.showCountdown?.(this.countdownTime);
             }
             setLoadingProgress(0.9);
-
-            if (loadingOverlay && loadingOverlay.style.display !== 'none') {
-                loadingOverlay.style.display = 'none';
-            }
             this.pauseInputLockUntil = performance.now() + 1200;
             this.startingGame = false;
         } catch (err) {
