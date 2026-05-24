@@ -1046,26 +1046,42 @@ fillBoundaryGaps() {
     buildRoad(x1, z1, x2, z2, width) {
         const len = Math.sqrt((x2 - x1) ** 2 + (z2 - z1) ** 2);
 
-        // Stone brick/flagstone procedural texture
+        // Stone flagstone procedural texture
         const canvas = document.createElement('canvas');
-        canvas.width = 256;
-        canvas.height = 256;
+        canvas.width = 512;
+        canvas.height = 512;
         const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#6a6560';
-        ctx.fillRect(0, 0, 256, 256);
-        const brickH = 32, brickW = 64;
-        for (let by = 0; by < 256; by += brickH) {
-            const offset = (by / brickH) % 2 === 0 ? 0 : brickW / 2;
-            for (let bx = -brickW; bx < 256 + brickW; bx += brickW) {
-                const shade = 0.35 + Math.random() * 0.15;
-                ctx.fillStyle = `rgb(${Math.floor(106*shade+90*shade)},${Math.floor(101*shade+85*shade)},${Math.floor(96*shade+80*shade)})`;
-                ctx.fillRect(bx + offset + 1, by + 1, brickW - 2, brickH - 2);
+        // Mortar base
+        ctx.fillStyle = '#4a4840';
+        ctx.fillRect(0, 0, 512, 512);
+        // Stone palette: varied grays, tans, browns
+        const stoneColors = ['#9a9488', '#8a8478', '#a8a090', '#7a7468', '#b0a898', '#888078', '#9a9088', '#8a8880'];
+        // Draw flagstones in a staggered pattern
+        const rowH = 64;
+        for (let y = 0; y < 512; y += rowH) {
+            const offset = (y / rowH) % 2 === 0 ? 0 : 64;
+            const xStart = offset - 64;
+            for (let x = xStart; x < 512 + 64; x += 64) {
+                const w = 64 + (Math.random() > 0.5 ? 32 : -32);
+                const h = rowH - 2 + Math.floor(Math.random() * 4 - 2);
+                const colorIdx = Math.floor(Math.random() * stoneColors.length);
+                ctx.fillStyle = stoneColors[colorIdx];
+                ctx.fillRect(x + 1, y + 1, Math.max(w, 16), Math.max(h, 16));
+                // Subtle edge darkening for depth
+                ctx.strokeStyle = `rgba(60,58,50,${0.3 + Math.random() * 0.2})`;
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x + 1, y + 1, Math.max(w, 16), Math.max(h, 16));
+                // Inner variation
+                const innerShade = Math.random() * 0.08;
+                ctx.fillStyle = `rgba(${innerShade > 0.04 ? '0,0,0' : '255,255,255'},${innerShade})`;
+                ctx.fillRect(x + 3, y + 3, Math.max(w - 6, 10), Math.max(h - 6, 10));
             }
         }
         const roadTexture = new THREE.CanvasTexture(canvas);
         roadTexture.wrapS = THREE.RepeatWrapping;
         roadTexture.wrapT = THREE.RepeatWrapping;
-        roadTexture.repeat.set(Math.floor(len / 8), Math.floor(width / 4));
+        // ~3 stones across width, ~15 along length
+        roadTexture.repeat.set(Math.max(1, Math.floor(len / 30)), Math.max(1, Math.floor(width / 10)));
         roadTexture.anchor = [0, 0];
 
         const geo = new THREE.PlaneGeometry(width, len, 8, 8);
