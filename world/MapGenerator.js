@@ -2537,23 +2537,30 @@ buildFountain() {
                 houseGroup.add(sideWall2);
             }
 
-            // Stairs (exposed, zig-zag)
+            // Stairs (exposed, zig-zag) — InstancedMesh
             const stairMat = new THREE.MeshStandardMaterial({ color: 0x4a4a3a, roughness: 0.9 });
+            const stepGeo = new THREE.BoxGeometry(2, 0.15, 0.5);
+            const stepIM = new THREE.InstancedMesh(stepGeo, stairMat, 20);
+            const _m4 = new THREE.Matrix4();
+            const _pos = new THREE.Vector3();
+            const _quat = new THREE.Quaternion();
+            const _scale = new THREE.Vector3(1, 1, 1);
+            let si = 0;
             for (let floor = 0; floor < 2; floor++) {
                 for (let s = 0; s < 10; s++) {
-                    const stepGeo = new THREE.BoxGeometry(2, 0.15, 0.5);
-                    const step = new THREE.Mesh(stepGeo, stairMat);
                     const angle = s % 5 < 3 ? 0 : Math.PI / 2;
-                    step.position.set(
+                    _pos.set(
                         -wallW / 2 + 1 + (angle === 0 ? s * 0.15 : 0),
                         1 + (floor + 1) * 3 + (s % 5) * 0.3,
                         wallD / 2 - 1 + (angle === Math.PI / 2 ? s * 0.15 : 0)
                     );
-                    step.rotation.y = angle;
-                    step.castShadow = true;
-                    houseGroup.add(step);
+                    _quat.setFromEuler(new THREE.Euler(0, angle, 0));
+                    _m4.compose(_pos, _quat, _scale);
+                    stepIM.setMatrixAt(si++, _m4);
                 }
             }
+            stepIM.instanceMatrix.needsUpdate = true;
+            houseGroup.add(stepIM);
 
             // Roof (partially destroyed)
             const roofMat = new THREE.MeshStandardMaterial({ color: 0x3d3d3d, roughness: 0.95 });
