@@ -2630,35 +2630,7 @@ buildFountain() {
             this.scene.add(fenceGroup);
         }
 
-        // Projectile shells scattered
-        const shellMat = new THREE.MeshStandardMaterial({ color: 0x4a5a3a, metalness: 0.6 });
-        for (let s = 0; s < 15; s++) {
-            const shellGroup = new THREE.Group();
-            // Shell body
-            const shellBody = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.08, 0.08, 0.5, 6),
-                shellMat
-            );
-            shellBody.rotation.x = Math.PI / 2;
-            shellGroup.add(shellBody);
-            // Tip
-            const tip = new THREE.Mesh(
-                new THREE.ConeGeometry(0.08, 0.15, 6),
-                shellMat
-            );
-            tip.rotation.x = -Math.PI / 2;
-            tip.position.z = -0.3;
-            shellGroup.add(tip);
-
-            shellGroup.position.set(
-                cx + (Math.random() - 0.5) * 120,
-                0.1,
-                cz + (Math.random() - 0.5) * 120
-            );
-            shellGroup.rotation.set(Math.random(), Math.random(), Math.random());
-            this.scene.add(shellGroup);
-        }
-    }
+      }
 
     // === STONE/INDUSTRIAL BIOME: MAZE + TOWERS ===
 
