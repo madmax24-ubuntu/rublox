@@ -1042,9 +1042,15 @@ buildFountain() {
         this.scene.add(wellGroup);
     }
 
-   fillDiagonalGround() {
+   async fillDiagonalGround() {
         // Fill diagonal gaps with biome-specific textured ground (smaller patches)
         const forestTex = createBiomeTexture((c) => createForestTexture(c, 42));
+        await this.yieldFrame();
+        const stoneTex = createBiomeTexture((c) => createStoneTexture(c, 73));
+        await this.yieldFrame();
+        const militaryTex = createBiomeTexture((c) => createMilitaryTexture(c, 99));
+        await this.yieldFrame();
+        const snowTex = createBiomeTexture((c) => createSnowTexture(c, 127));
         const stoneTex = createBiomeTexture((c) => createStoneTexture(c, 73));
         const militaryTex = createBiomeTexture((c) => createMilitaryTexture(c, 99));
         const snowTex = createBiomeTexture((c) => createSnowTexture(c, 127));
