@@ -850,21 +850,51 @@ buildFountain() {
         ];
 
         pitPositions.forEach(pos => {
-            const pitGroup = new THREE.Group();
-
-            // Stone ring
+            // Stone ring — InstancedMesh
+            const stoneGeo = new THREE.SphereGeometry(0.4, 5, 4);
+            const stoneIM = new THREE.InstancedMesh(stoneGeo, pitMat, 8);
+            const m4 = new THREE.Matrix4();
             for (let i = 0; i < 8; i++) {
                 const angle = (i / 8) * Math.PI * 2;
-                const stoneGeo = new THREE.SphereGeometry(0.4, 5, 4);
-                const stone = new THREE.Mesh(stoneGeo, pitMat);
-                stone.position.set(
+                m4.makeTranslation(
+                    pos.x + Math.cos(angle) * 2.5,
+                    3.3,
+                    pos.z + Math.sin(angle) * 2.5
+                );
+                const s = new THREE.Vector3(1, 0.6, 1);
+                const posV = new THREE.Vector3();
+                const quat = new THREE.Quaternion();
+                const scaleV = new THREE.Vector3(1, 0.6, 1);
+                m4.setPosition(posV);
+                // Need to apply scale separately — InstancedMesh doesn't support scale matrices directly
+                // Use individual matrices with scale baked in
+                const scaleMat = new THREE.Matrix4().setScale(new THREE.Vector3(1, 0.6, 1));
+                const transMat = new THREE.Matrix4().makeTranslation(
+                    Math.cos(angle) * 2.5,
+                    0,
+                    Math.sin(angle) * 2.5
+                );
+                m4.copy(transMat).preMultiply(scaleMat);
+                m4.setPosition(new THREE.Vector3(
+                    pos.x + Math.cos(angle) * 2.5,
+                    3.3,
+                    pos.z + Math.sin(angle) * 2.5
+                ));
+                // Simpler approach: use setMatrixAt with full transform
+                const fullMat = new THREE.Matrix4();
+                const _scale = new THREE.Vector3(1, 0.6, 1);
+                const _pos = new THREE.Vector3(
                     Math.cos(angle) * 2.5,
                     3.3,
                     Math.sin(angle) * 2.5
                 );
-                stone.scale.set(1, 0.6, 1);
-                pitGroup.add(stone);
+                const _quat = new THREE.Quaternion();
+                fullMat.compose(_pos, _quat, _scale);
+                stoneIM.setMatrixAt(i, fullMat);
             }
+            stoneIM.instanceMatrix.needsUpdate = true;
+            this.scene.add(stoneIM);
+            const pitGroup = new THREE.Group();
 
             // Fire glow (inner)
             const fireGeo = new THREE.ConeGeometry(1.2, 2.5, 8);
