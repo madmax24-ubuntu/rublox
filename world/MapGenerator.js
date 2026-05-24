@@ -2946,7 +2946,7 @@ fillBoundaryGaps() {
                 x: Math.cos(angle) * r,
                 y: platSurfaceY,
                 z: Math.sin(angle) * r,
-                radius: 3
+                radius: 5
             });
         });
 
