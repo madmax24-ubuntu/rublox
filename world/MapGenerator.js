@@ -3228,9 +3228,38 @@ export class MapGenerator {
             });
         }
 
-        // Colliders
+       // Colliders
         this.colliders.push({ type: 'cylinder', position: new THREE.Vector3(0, 1.6, 0), radius: 12, height: 1.8 });
         this.colliders.push({ type: 'cylinder', position: new THREE.Vector3(0, 2.5 + 1, 0), radius: 2.2, height: 2 });
+
+        // === 50 SPAWN TILES (radial rings on upper tier) ===
+        const tileCount = 50;
+        const tileGeo = new THREE.BoxGeometry(3, 0.2, 3);
+        const tileMat = new THREE.MeshStandardMaterial({ color: 0xc8b898, roughness: 0.8 });
+        const tileMesh = new THREE.InstancedMesh(tileGeo, tileMat, tileCount);
+        let ti = 0;
+
+        const rings = [
+            { minR: 12, maxR: 18, count: 12 },
+            { minR: 20, maxR: 30, count: 20 },
+            { minR: 32, maxR: 45, count: 18 }
+        ];
+
+        for (const ring of rings) {
+            for (let i = 0; i < ring.count && ti < tileCount; i++) {
+                const angle = (i / ring.count) * Math.PI * 2 + (ring.minR * 0.05);
+                const r = ring.minR + Math.random() * (ring.maxR - ring.minR);
+                const x = Math.cos(angle) * r;
+                const z = Math.sin(angle) * r;
+                const m = new THREE.Matrix4().makeTranslation(x, platH + 0.1, z);
+                tileMesh.setMatrixAt(ti, m);
+                ti++;
+            }
+        }
+        tileMesh.instanceMatrix.needsUpdate = true;
+        tileMesh.castShadow = true;
+        tileMesh.receiveShadow = true;
+        this.scene.add(tileMesh);
 
         // === SPAWN PADS (large, on upper tier) ===
         // Big spawn area spread across the upper platform
