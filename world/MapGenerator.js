@@ -632,7 +632,9 @@ export class MapGenerator {
             pillar.rotation.z = (Math.random() - 0.5) * 0.5; pillar.castShadow = true;
             this.scene.add(pillar);
         }
-        this.scene.add(Object.assign(new THREE.PointLight(0xffddaa, 1, 25), { position: new THREE.Vector3(cx, 6, cz) }));
+        const citadelLight = new THREE.PointLight(0xffddaa, 1, 25);
+        citadelLight.position.set(cx, 6, cz);
+        this.scene.add(citadelLight);
         await this.yieldFrame();
     }
 
