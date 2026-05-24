@@ -1306,19 +1306,7 @@ fillBoundaryGaps() {
         this.scene.add(road);
         this.deformPathGeometry(geo, 0, road.position);
 
-        // Road markings (center line)
-        const markGeo = new THREE.PlaneGeometry(0.2, len, 2, 4);
-        const markMat = new THREE.MeshStandardMaterial({
-            color: 0xffffff, roughness: 0.8, flatShading: false
-        });
-        const mark = new THREE.Mesh(markGeo, markMat);
-        mark.rotation.x = -Math.PI / 2;
-        mark.position.set((x1 + x2) / 2, 1.58, (z1 + z2) / 2);
-        mark.receiveShadow = true;
-        this.scene.add(mark);
-        this.deformPathGeometry(markGeo, 0, mark.position);
-
-// Road colliders (prevent walking through roads)
+        // Road colliders (prevent walking through roads)
         this.colliders.push({
             type: 'box',
             position: new THREE.Vector3((x1 + x2) / 2, 0, (z1 + z2) / 2),
