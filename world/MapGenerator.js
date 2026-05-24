@@ -3055,11 +3055,10 @@ buildFountain() {
         const platH = 1.5;
 
         // === BIOME-SPECIFIC TEXTURED GROUND ===
-        const canvas = document.createElement('canvas');
-        const forestTex = createBiomeTexture(canvas, (c) => createForestTexture(c, 42));
-        const stoneTex = createBiomeTexture(canvas, (c) => createStoneTexture(c, 73));
-        const militaryTex = createBiomeTexture(canvas, (c) => createMilitaryTexture(c, 99));
-        const snowTex = createBiomeTexture(canvas, (c) => createSnowTexture(c, 127));
+        const forestTex = createBiomeTexture((c) => createForestTexture(c, 42));
+        const stoneTex = createBiomeTexture((c) => createStoneTexture(c, 73));
+        const militaryTex = createBiomeTexture((c) => createMilitaryTexture(c, 99));
+        const snowTex = createBiomeTexture((c) => createSnowTexture(c, 127));
 
         // Helper to create textured ground plane
         function biomeGroundPlane(w, h, x, z, texture, repeatX, repeatZ, color) {
