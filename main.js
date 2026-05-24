@@ -2311,20 +2311,21 @@ class Game {
 
     async startGame() {
         if (!this.initialized) {
+            if (loadingOverlay) loadingOverlay.style.display = 'flex';
+            setLoadingProgress(0.15);
             await this.initAsync();
+            setLoadingProgress(0.75);
+            await new Promise(r => requestAnimationFrame(r));
         }
         if (this.isStarted) return;
         this.isStarted = true;
         this.startingGame = true;
         this.startAttemptAt = performance.now();
         try {
-            if (loadingOverlay) loadingOverlay.style.display = 'flex';
-            setLoadingProgress(0.15);
-            await new Promise(r => requestAnimationFrame(r));
-
             this.enterFullscreen().catch(() => { });
             this.hideStartScreen();
-            setLoadingProgress(0.35);
+            setLoadingProgress(0.85);
+            await new Promise(r => requestAnimationFrame(r));
 
             this.hud?.showPause?.(false);
             this.isPaused = false;
@@ -2334,8 +2335,6 @@ class Game {
             if (this.map?.ready?.then) {
                 await this.map.ready;
             }
-            setLoadingProgress(0.75);
-            await new Promise(r => requestAnimationFrame(r));
             this.ensureSceneRenderable();
 
             if (this.isMobile()) {
