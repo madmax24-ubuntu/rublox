@@ -847,10 +847,10 @@ fillBoundaryGaps() {
    fillDiagonalGround() {
         // Fill 4 diagonal corners with biome-specific ground
         const gapConfigs = [
-            { cx: -110, cz: -110, w: 100, h: 100, matKey: 'forestGround', color: 0x4a7a2e },
-            { cx: 110, cz: -110, w: 100, h: 100, matKey: 'stoneGround', color: 0x8a8a7a },
-            { cx: -110, cz: 110, w: 100, h: 100, matKey: 'militaryGround', color: 0x7a6a4e },
-            { cx: 110, cz: 110, w: 100, h: 100, matKey: 'snowGround', color: 0xe8e8f0 },
+            { cx: -110, cz: -110, w: 100, h: 100, matKey: 'forestGround', color: 0x5a9a3e },
+            { cx: 110, cz: -110, w: 100, h: 100, matKey: 'stoneGround', color: 0xb0a898 },
+            { cx: -110, cz: 110, w: 100, h: 100, matKey: 'militaryGround', color: 0x9a8a6e },
+            { cx: 110, cz: 110, w: 100, h: 100, matKey: 'snowGround', color: 0xf5f5f0 },
         ];
 
         gapConfigs.forEach(cfg => {
