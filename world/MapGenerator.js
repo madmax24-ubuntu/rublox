@@ -926,25 +926,65 @@ buildFountain() {
 
             const benchGroup = new THREE.Group();
 
-            // Seat
+            // Seat — InstancedMesh (8 benches)
             const seatGeo = new THREE.BoxGeometry(2, 0.15, 0.8);
-            const seat = new THREE.Mesh(seatGeo, woodMat);
-            seat.position.y = 1;
-            benchGroup.add(seat);
-
-            // Back
-            const backGeo = new THREE.BoxGeometry(2, 0.8, 0.1);
-            const back = new THREE.Mesh(backGeo, woodMat);
-            back.position.set(0, 1.4, -0.35);
-            benchGroup.add(back);
-
-            // Legs
-            for (let l = -1; l <= 1; l += 2) {
-                const legGeo = new THREE.CylinderGeometry(0.06, 0.06, 1, 4);
-                const leg = new THREE.Mesh(legGeo, legMat);
-                leg.position.set(l * 0.8, 0.5, 0);
-                benchGroup.add(leg);
+            const seatIM = new THREE.InstancedMesh(seatGeo, woodMat, 8);
+            const _m4 = new THREE.Matrix4();
+            const _pos = new THREE.Vector3(0, 1, 0);
+            const _quat = new THREE.Quaternion();
+            const _scale = new THREE.Vector3(1, 1, 1);
+            for (let i2 = 0; i2 < 8; i2++) {
+                const a = (i2 / 8) * Math.PI * 2 + Math.PI / 16;
+                const x = Math.cos(a) * r;
+                const z = Math.sin(a) * r;
+                _pos.set(x, 3, z);
+                const up = new THREE.Vector3(0, 1, 0);
+                const dir = new THREE.Vector3().normalize().sub(_pos).cross(up).normalize();
+                _quat.setFromUnitVectors(up, dir);
+                _m4.compose(_pos, _quat, _scale);
+                seatIM.setMatrixAt(i2, _m4);
             }
+            seatIM.instanceMatrix.needsUpdate = true;
+            benchGroup.add(seatIM);
+
+            // Back — InstancedMesh (8 benches)
+            const backGeo = new THREE.BoxGeometry(2, 0.8, 0.1);
+            const backIM = new THREE.InstancedMesh(backGeo, woodMat, 8);
+            const _pos2 = new THREE.Vector3(0, 1.4, -0.35);
+            for (let i2 = 0; i2 < 8; i2++) {
+                const a = (i2 / 8) * Math.PI * 2 + Math.PI / 16;
+                const x = Math.cos(a) * r;
+                const z = Math.sin(a) * r;
+                _pos2.set(x, 3, z);
+                const up = new THREE.Vector3(0, 1, 0);
+                const dir = new THREE.Vector3().normalize().sub(_pos2).cross(up).normalize();
+                _quat.setFromUnitVectors(up, dir);
+                _m4.compose(_pos2, _quat, _scale);
+                backIM.setMatrixAt(i2, _m4);
+            }
+            backIM.instanceMatrix.needsUpdate = true;
+            benchGroup.add(backIM);
+
+            // Legs — InstancedMesh (8 benches × 2 legs = 16)
+            const legGeo = new THREE.CylinderGeometry(0.06, 0.06, 1, 4);
+            const legIM = new THREE.InstancedMesh(legGeo, legMat, 16);
+            const _pos3 = new THREE.Vector3();
+            for (let i2 = 0; i2 < 8; i2++) {
+                const a = (i2 / 8) * Math.PI * 2 + Math.PI / 16;
+                const x = Math.cos(a) * r;
+                const z = Math.sin(a) * r;
+                const up = new THREE.Vector3(0, 1, 0);
+                const dir = new THREE.Vector3().normalize().sub(new THREE.Vector3(x, 3, z)).cross(up).normalize();
+                _quat.setFromUnitVectors(up, dir);
+                for (let l = -1; l <= 1; l += 2) {
+                    const idx = i2 * 2 + (l === 1 ? 1 : 0);
+                    _pos3.set(l * 0.8, 0.5, 0);
+                    _m4.compose(_pos3, _quat, _scale);
+                    legIM.setMatrixAt(idx, _m4);
+                }
+            }
+            legIM.instanceMatrix.needsUpdate = true;
+            benchGroup.add(legIM);
 
             benchGroup.position.set(bx, 3, bz);
             benchGroup.lookAt(0, 3, 0);
