@@ -19,8 +19,10 @@ const setLoadingProgress = (ratio) => {
     loadingText.textContent = `${pct}%`;
 };
 
+let gameHasStarted = false;
+
 THREE.DefaultLoadingManager.onStart = function () {
-    if (document.body?.classList?.contains('game-started')) {
+    if (gameHasStarted || document.body?.classList?.contains('game-started')) {
         if (loadingOverlay) loadingOverlay.style.display = 'none';
         return;
     }
@@ -29,7 +31,7 @@ THREE.DefaultLoadingManager.onStart = function () {
 };
 
 THREE.DefaultLoadingManager.onProgress = function (url, loaded, total) {
-    if (document.body?.classList?.contains('game-started')) return;
+    if (gameHasStarted || document.body?.classList?.contains('game-started')) return;
     if (total > 0) {
         setLoadingProgress(loaded / total);
     } else {
@@ -38,7 +40,7 @@ THREE.DefaultLoadingManager.onProgress = function (url, loaded, total) {
 };
 
 THREE.DefaultLoadingManager.onLoad = function () {
-    if (document.body?.classList?.contains('game-started')) {
+    if (gameHasStarted || document.body?.classList?.contains('game-started')) {
         if (loadingOverlay) loadingOverlay.style.display = 'none';
         return;
     }
