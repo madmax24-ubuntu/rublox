@@ -241,9 +241,10 @@ export class MapGenerator {
             color: 0x88bbff, emissive: 0x4488ff, emissiveIntensity: 2, transparent: true, opacity: 0.8
         });
         const ring = new THREE.Mesh(new THREE.TorusGeometry(this.arenaRadius + 0.5, 0.3, 8, 64), ringMat);
-        ring.position.y = 0.3; ring.rotation.x = Math.PI / 2;
+        ring.position.y = 0.3; ring.rotation.x = Math.PI / 2; ring.userData.isArena = true; ring.userData.isForcefield = true; ring.userData.isRing = true; ring.userData.isMapObject = true;
         this.scene.add(ring);
         const topRing = ring.clone(); topRing.position.y = 12;
+        topRing.userData.isArena = true; topRing.userData.isForcefield = true; topRing.userData.isRing = true; topRing.userData.isMapObject = true;
         this.scene.add(topRing);
 
         // 48 forcefield lines
