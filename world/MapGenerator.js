@@ -2237,4 +2237,89 @@ export class MapGenerator {
                 this.heightMap[i][j] = this.noise.fbm(x * 0.01, z * 0.01, 4, 2.0, 0.5) * 15;
             }
     }
+
+    // ===================== CHEST SPAWNING HELPERS =====================
+
+    // Get floor tile positions for chest placement
+    getFloorTiles() {
+        if (this._floorTiles) return this._floorTiles;
+        const tiles = [];
+        const step = 3; // spacing between potential chest positions
+        const minR = this.spawnCourtyardRadius + 8; // don't place in spawn courtyard
+        for (let x = -this.arenaRadius + 3; x < this.arenaRadius; x += step) {
+            for (let z = -this.arenaRadius + 3; z < this.arenaRadius; z += step) {
+                const dist = Math.sqrt(x * x + z * z);
+                if (dist < minR || dist > this.arenaRadius - 3) continue;
+                tiles.push({ x, z });
+            }
+        }
+        this._floorTiles = tiles;
+        return tiles;
+    }
+
+    // Get pre-defined chest spots from loot data and structure positions
+    getChestSpots() {
+        if (this._chestSpots) return this._chestSpots;
+        const spots = [];
+
+        // Add spots from loot data
+        for (const loot of this.lootData) {
+            if (loot.type === 'chest' || loot.type === 'outpost' || loot.type === 'biome' || loot.type === 'cluster') {
+                // Place multiple chests per cluster
+                const count = loot.tier >= 4 ? 3 : loot.tier >= 2 ? 2 : 1;
+                for (let i = 0; i < count; i++) {
+                    const a = (i / count) * Math.PI * 2 + Math.random() * 0.5;
+                    const r = Math.random() * Math.min(3, loot.radius * 0.5);
+                    spots.push({
+                        x: loot.position.x + Math.cos(a) * r,
+                        z: loot.position.z + Math.sin(a) * r,
+                        grade: loot.tier >= 4 ? 'military' : loot.tier >= 2 ? 'rare' : 'house'
+                    });
+                }
+            }
+        }
+
+        // Add additional spots along biome paths (R=50-120)
+        for (let i = 0; i < 20; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const r = 50 + Math.random() * 70;
+            spots.push({
+                x: Math.cos(a) * r,
+                z: Math.sin(a) * r,
+                grade: Math.random() > 0.7 ? 'rare' : 'house'
+            });
+        }
+
+        this._chestSpots = spots;
+        return spots;
+    }
+
+    // Get terrain height at world position
+    getHeightAt(x, z) {
+        const noise = this.noise;
+        const base = noise.fbm(x * 0.005, z * 0.005, 4, 2.0, 0.5) * 3;
+        return Math.max(0.2, base + 0.3);
+    }
+
+    // Get surface height for chest placement
+    getSurfaceHeightAt(x, z) {
+        return this.getHeightAt(x, z);
+    }
+
+    // Find which structure (if any) a point is inside
+    getStructureAtPoint(x, z, maxDist) {
+        if (!this._allStructures) {
+            this._allStructures = [];
+            for (const [key, structs] of Object.entries(this.structures || {})) {
+                for (const s of structs) {
+                    this._allStructures.push({ type: key, ...s });
+                }
+            }
+        }
+        for (const s of this._allStructures) {
+            const d = Math.sqrt((x - s.position.x) ** 2 + (z - s.position.z) ** 2);
+            if (d <= (s.radius || 10) + (maxDist || 0)) return s;
+        }
+        return null;
+    }
 }
