@@ -328,15 +328,11 @@ class Game {
         await new Promise(r => requestAnimationFrame(r));
 
         // Этап 4: Генерация карты (самый долгий этап)
-                console.log('[Main] Creating MapGenerator...');
                 this.map = new MapGenerator(this.scene);
-                console.log('[Main] Starting generation...');
-                await this.map.startGeneration();
-                console.log('[Main] startGeneration done, waiting for ready...');
+        await this.map.startGeneration();
 
         // Ждём завершения генерации карты
         await this.map.ready;
-        console.log('[Main] ready resolved!');
         
         // Камера для тестирования карты (вид сверху)
         if (this.camera) {
