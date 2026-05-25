@@ -411,7 +411,7 @@ class Game {
         this.zombieSpawnCursor = 0;
         this.poiSpawnCandidates = [];
         this.poiSpawnCursor = 0;
-        // this.spawnBots(); // ОТКЛЮЧЕНО ДЛЯ ТЕСТА КАРТЫ
+        this.spawnBots();
         this.rebuildSpawnCaches();
         // this.spawnEnvironmentEntities(); // ОТКЛЮЧЕНО ДЛЯ ТЕСТА КАРТЫ
         this.gateClosed = false;
