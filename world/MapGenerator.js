@@ -355,6 +355,7 @@ export class MapGenerator {
             const a = (i / 12) * Math.PI * 2;
             const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.2, 6), railMat);
             post.position.set(Math.cos(a) * 4.3, 15, Math.sin(a) * 4.3);
+            post.userData.isCornucopia = true; post.userData.isObservationPlatform = true; post.userData.isRail = true; post.userData.isMapObject = true;
             this.scene.add(post);
         }
 
