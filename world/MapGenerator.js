@@ -709,8 +709,8 @@ export class MapGenerator {
         }
 
         const rockMat = new THREE.MeshStandardMaterial({ color: COLOR.scorchedRock, roughness: 0.9 });
-        for (let i = 0; i < 25; i++) {
-            const a = Math.random() * Math.PI * 2, r = 3 + Math.random() * 25;
+        for (let i = 0; i < 40; i++) {
+            const a = Math.random() * Math.PI * 2, r = 3 + Math.random() * 58;
             const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(1 + Math.random() * 2, 0), rockMat);
             rock.position.set(cx + Math.cos(a) * r, 0.5, cz + Math.sin(a) * r);
             rock.rotation.set(Math.random(), Math.random(), Math.random());
