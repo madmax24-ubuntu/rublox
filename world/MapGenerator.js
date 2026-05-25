@@ -611,8 +611,8 @@ export class MapGenerator {
             moss.position.set(cx + Math.cos(a) * r, 0.05, cz + Math.sin(a) * r); moss.receiveShadow = true;
             this.scene.add(moss);
         }
-        for (let i = 0; i < 15; i++) {
-            const a = Math.random() * Math.PI * 2, r = 5 + Math.random() * 62, h = 2 + Math.random() * 4;
+        for (let i = 0; i < 10; i++) {
+            const a = Math.random() * Math.PI * 2, r = 8 + Math.random() * 58, h = 2 + Math.random() * 5;
             const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, h, 8), towerMat);
             pillar.position.set(cx + Math.cos(a) * r, h / 2, cz + Math.sin(a) * r);
             pillar.rotation.z = (Math.random() - 0.5) * 0.5; pillar.castShadow = true;
