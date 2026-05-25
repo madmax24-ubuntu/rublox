@@ -1282,11 +1282,13 @@ export class MapGenerator {
                     wall.position.set(x, h / 2, z + (w2 < 2 ? (w2 === 0 ? -d / 2 : d / 2) : (w2 - 1) * w / 2));
                     if (w2 >= 2) wall.rotation.y = Math.PI / 2;
                     wall.castShadow = true; wall.receiveShadow = true;
-                    this.scene.add(wall);
+                wall.userData.isOuterPost = true; wall.userData.isShelter = true; wall.userData.isWall = true; wall.userData.isCover = true; wall.userData.isMapObject = true;
+                this.scene.add(wall);
                 }
                 // Roof
                 const roof = new THREE.Mesh(new THREE.BoxGeometry(w + 0.5, 0.2, d + 0.5), mat);
                 roof.position.set(x, h, z); roof.castShadow = true;
+                roof.userData.isOuterPost = true; roof.userData.isShelter = true; roof.userData.isRoof = true; roof.userData.isMapObject = true;
                 this.scene.add(roof);
             } else {
                 // Wooden watch post (elevated platform)
