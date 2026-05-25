@@ -1738,9 +1738,9 @@ export class MapGenerator {
     }
 
     // ===================== RADIATION ZONES =====================
-    // Radiation in Burning Wastes and outer areas
+    // Radiation at biome edges and hazardous areas
     buildRadiationZones() {
-        // Main radiation zone in Burning Wastes
+        // High radiation: Burning Wastes center
         const wasteAngle = Math.PI * 0.75, wasteR = 130;
         const wx = Math.cos(wasteAngle) * wasteR, wz = Math.sin(wasteAngle) * wasteR;
 
@@ -1749,60 +1749,100 @@ export class MapGenerator {
             position: new THREE.Vector3(wx, 0, wz),
             radius: 50,
             damage: 0.3,
-            duration: 1000, // damage tick every 1 second
+            duration: 1000,
             intensity: 'high',
             visual: 'waste',
-            description: 'Burning Wastes - High Radiation'
+            description: 'Burning Wastes - High Radiation',
+            mesh: null,
+            light: null
         });
 
-        // Secondary radiation zone in outer ring
-        const r2 = 100 + Math.random() * 60;
-        const a2 = Math.random() * Math.PI * 2;
+        // Medium radiation: NW edge (near ruined citadel)
+        const nwAngle = Math.PI * 0.65, nwR = 100;
+        const nx = Math.cos(nwAngle) * nwR, nz = Math.sin(nwAngle) * nwR;
         this.radiationZones.push({
             type: 'radiation',
-            position: new THREE.Vector3(Math.cos(a2) * r2, 0, Math.sin(a2) * r2),
-            radius: 30,
+            position: new THREE.Vector3(nx, 0, nz),
+            radius: 35,
             damage: 0.15,
             duration: 1000,
             intensity: 'medium',
             visual: 'gas',
-            description: 'Radioactive gas cloud'
+            description: 'Radioactive gas cloud - NW',
+            mesh: null,
+            light: null
         });
 
-        // Third radiation zone
-        const r3 = 80 + Math.random() * 40;
-        const a3 = Math.random() * Math.PI * 2;
+        // Low radiation: SE edge
+        const seAngle = Math.PI * 0.35, seR = 90;
+        const sx = Math.cos(seAngle) * seR, sz = Math.sin(seAngle) * seR;
         this.radiationZones.push({
             type: 'radiation',
-            position: new THREE.Vector3(Math.cos(a3) * r3, 0, Math.sin(a3) * r3),
-            radius: 25,
+            position: new THREE.Vector3(sx, 0, sz),
+            radius: 30,
             damage: 0.1,
             duration: 1000,
             intensity: 'low',
             visual: 'gas',
-            description: 'Mild radiation leak'
+            description: 'Mild radiation leak - SE',
+            mesh: null,
+            light: null
         });
 
-        // Visual gas clouds for radiation
-        const gasMat = new THREE.MeshStandardMaterial({
-            color: 0x44aa44,
-            emissive: 0x228822,
-            emissiveIntensity: 0.2,
-            transparent: true,
-            opacity: 0.12,
-            roughness: 1
-        });
+        // Visual gas clouds and lights for each radiation zone
+        const intensityConfig = {
+            high: { color: 0x44ff44, emissive: 0x22aa22, opacity: 0.15, lightIntensity: 3, radius: 50 },
+            medium: { color: 0x66cc66, emissive: 0x33aa33, opacity: 0.12, lightIntensity: 2, radius: 35 },
+            low: { color: 0x88ee88, emissive: 0x44bb44, opacity: 0.08, lightIntensity: 1.5, radius: 30 }
+        };
 
-        for (const rz of this.radiationZones) {
-            // Gas cloud (large sphere, low opacity)
-            const cloud = new THREE.Mesh(
-                new THREE.SphereGeometry(rz.radius * 0.6, 8, 6),
-                gasMat.clone()
-            );
-            cloud.position.copy(rz.position);
-            cloud.position.y = 3 + Math.random() * 3;
-            cloud.scale.set(1, 0.3, 1);
+        for (const zone of this.radiationZones) {
+            const cfg = intensityConfig[zone.intensity];
+
+            // Gas cloud (large sphere, low opacity, green)
+            const gasMat = new THREE.MeshStandardMaterial({
+                color: cfg.color,
+                emissive: cfg.emissive,
+                emissiveIntensity: 0.3,
+                transparent: true,
+                opacity: cfg.opacity,
+                roughness: 1,
+                depthWrite: false,
+                side: THREE.DoubleSide
+            });
+
+            const cloud = new THREE.Mesh(new THREE.SphereGeometry(cfg.radius, 32, 16), gasMat);
+            cloud.position.set(zone.position.x, 4, zone.position.z);
+            cloud.scale.y = 0.35;
+            cloud.userData.isRadiation = true;
+            cloud.userData.radiationIntensity = zone.intensity;
             this.scene.add(cloud);
+            zone.mesh = cloud;
+            zone._gasMat = gasMat;
+
+            // Green ground glow
+            const glowMat = new THREE.MeshStandardMaterial({
+                color: cfg.emissive,
+                emissive: cfg.emissive,
+                emissiveIntensity: 0.5,
+                transparent: true,
+                opacity: 0.2,
+                depthWrite: false
+            });
+            const glow = new THREE.Mesh(new THREE.CircleGeometry(cfg.radius, 32), glowMat);
+            glow.rotation.x = -Math.PI / 2;
+            glow.position.set(zone.position.x, 0.06, zone.position.z);
+            glow.userData.isRadiation = true;
+            glow.userData.radiationIntensity = zone.intensity;
+            this.scene.add(glow);
+            zone._groundGlow = glow;
+
+            // Pulsing green light at center
+            const rLight = new THREE.PointLight(cfg.color, cfg.lightIntensity, cfg.radius * 1.2);
+            rLight.position.set(zone.position.x, 5, zone.position.z);
+            this.scene.add(rLight);
+            zone.light = rLight;
+            this.animatedObjects.push({ type: 'radiationGlow', light: rLight, baseIntensity: cfg.lightIntensity, radiationZone: zone });
         }
     }
 
