@@ -1784,6 +1784,7 @@ class Game {
 
         this.resetInvalidPlayerState();
         this.player.update(delta, this.audioSynth, this.lootManager, this.entityManager);
+        this.map?.activateTrapsNearEntity?.(this.player);
         this.syncCameraToPlayer();
         this.map.update?.(delta, this.player.position);
         this.updateRadiationRainEffect(delta);
