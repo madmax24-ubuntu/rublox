@@ -284,6 +284,7 @@ export class MapGenerator {
     // ===================== ZONE 0: CORNICOPIA =====================
     // Role: Maximum reward, maximum risk. High-tier loot, 4-way sightlines, first-fight zone
     async buildCornucopia() {
+        console.log('[buildCornucopia] START');
         const baseMat = new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.6, metalness: 0.8 });
         const bodyMat = new THREE.MeshStandardMaterial({ color: 0x6a6a6a, roughness: 0.4, metalness: 0.9 });
         const hornMat = new THREE.MeshStandardMaterial({ color: COLOR.metalGold, roughness: 0.3, metalness: 0.95 });
