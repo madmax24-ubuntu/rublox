@@ -172,6 +172,10 @@ export class MapGenerator {
         this.buildOuterOutposts();
         this.buildHazardZones();
         this.buildLootClusters();
+        this.buildTraps();
+        this.buildFogZones();
+        this.buildRadiationZones();
+        this.buildLootData();
         await this.yieldFrame();
 
         this.setupAnimations();
