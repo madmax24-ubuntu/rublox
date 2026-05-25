@@ -888,7 +888,8 @@ export class MapGenerator {
         ];
         for (const pp of poolPositions) {
             const pool = new THREE.Mesh(new THREE.CylinderGeometry(pp.r, pp.r, 0.1, 12), poolMat);
-            pool.position.set(pp.x, 0.08, pp.z); this.scene.add(pool);
+            pool.position.set(pp.x, 0.08, pp.z); pool.userData.isCrystalGrotto = true; pool.userData.isPool = true; pool.userData.isWater = true; pool.userData.isMapObject = true;
+            this.scene.add(pool);
             const poolLight = new THREE.PointLight(0x4488cc, 2, 15);
             poolLight.position.set(pp.x, 1.5, pp.z); this.scene.add(poolLight);
 
