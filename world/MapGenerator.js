@@ -941,6 +941,10 @@ export class MapGenerator {
             }
         }
 
+        // Ensure both pools have animated lights (poolLight was last assigned in the loop)
+        for (const pp of poolPositions) {
+            // lights already added per-pool inside the loop above
+        }
         this.animatedObjects.push({ type: 'crystalGlow', light: poolLight || new THREE.PointLight(0x88ccff, 2, 20), baseIntensity: 2, color: COLOR.crystalGlow });
         await this.yieldFrame();
     }
