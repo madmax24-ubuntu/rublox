@@ -575,7 +575,7 @@ export class MapGenerator {
                 const t = i / 30, r = 22 + t * (this.arenaRadius - 50), w = 5 * (1 - t * 0.3);
                 const x = Math.cos(a) * r, z = Math.sin(a) * r;
                 const tile = new THREE.Mesh(new THREE.BoxGeometry(w * 1.5, 0.05, w), pathMat);
-                tile.position.set(x, 0.02, z); tile.rotation.y = -a + Math.PI / 2;
+                tile.position.set(x, -0.01, z); tile.rotation.y = -a + Math.PI / 2;
                 tile.receiveShadow = true; this.scene.add(tile);
             }
             await this.yieldFrame();
