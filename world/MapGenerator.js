@@ -708,6 +708,7 @@ export class MapGenerator {
             wall.position.set(cx + (wp.x1 + wp.x2) / 2, wp.h / 2, cz + (wp.z1 + wp.z2) / 2);
             wall.rotation.y = angle;
             wall.castShadow = true; wall.receiveShadow = true;
+            wall.userData.isCitadel = true; wall.userData.isWall = true; wall.userData.isMapObject = true;
             this.scene.add(wall);
         }
 
