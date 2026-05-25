@@ -1251,6 +1251,7 @@ export class MapGenerator {
                 const topRail = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 3.5, 4), bridgeRailMat);
                 topRail.position.set(x, 1.35, z);
                 topRail.rotation.y = -angle + Math.PI / 2;
+                topRail.userData.isBridge = true; topRail.userData.isRail = true; topRail.userData.isMapObject = true;
                 this.scene.add(topRail);
             }
         }
