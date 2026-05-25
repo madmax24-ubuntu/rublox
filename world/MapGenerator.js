@@ -178,6 +178,7 @@ export class MapGenerator {
         this.buildOuterOutposts();
         this.buildHazardZones();
         this.buildLootClusters();
+        this.buildFirePits();
         this.buildTraps();
         this.buildFogZones();
         this.buildRadiationZones();
