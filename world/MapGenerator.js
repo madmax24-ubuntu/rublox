@@ -1125,6 +1125,7 @@ export class MapGenerator {
                         z + Math.sin(va) * canopySize * 0.4
                     );
                     vine.rotation.z = (Math.random() - 0.5) * 0.5;
+                    vine.userData.isLuminousForest = true; vine.userData.isVine = true; vine.userData.isDecor = true; vine.userData.isMapObject = true;
                     this.scene.add(vine);
                 }
             }
