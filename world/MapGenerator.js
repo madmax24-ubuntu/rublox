@@ -513,6 +513,7 @@ export class MapGenerator {
             // Scouting platform on top
             const plat = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 0.2, 8), stoneMat);
             plat.position.set(x, 3.1, z); plat.receiveShadow = true;
+            plat.userData.isInnerRing = true; plat.userData.isScoutingMound = true; plat.userData.isPlatform = true; plat.userData.isElevated = true; plat.userData.isMapObject = true;
             this.scene.add(plat);
             // Rail
             const railMat2 = new THREE.MeshStandardMaterial({ color: COLOR.metalDark, roughness: 0.6, metalness: 0.8 });
