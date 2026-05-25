@@ -748,6 +748,7 @@ export class MapGenerator {
             wall.position.set(cx + Math.cos(a) * r, 0.75, cz + Math.sin(a) * r);
             wall.rotation.y = Math.random() * Math.PI;
             wall.castShadow = true; wall.receiveShadow = true;
+            wall.userData.isCitadel = true; wall.userData.isCover = true; wall.userData.isMapObject = true;
             this.scene.add(wall);
         }
 
