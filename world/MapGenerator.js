@@ -271,10 +271,10 @@ export class MapGenerator {
         const bodyMat = new THREE.MeshStandardMaterial({ color: 0x6a6a6a, roughness: 0.4, metalness: 0.9 });
         const hornMat = new THREE.MeshStandardMaterial({ color: COLOR.metalGold, roughness: 0.3, metalness: 0.95 });
 
-        // Base platform (R=16)
+        // Base platform (R=16, sits on ground y=0)
         const base = new THREE.Mesh(new THREE.CylinderGeometry(16, 18, 3, 8), baseMat);
         base.position.y = 1.5; base.castShadow = true; base.receiveShadow = true;
-        base.userData.isCornucopia = true; base.userData.isPlatform = true;
+        base.userData.isCornucopia = true; base.userData.isPlatform = true; base.userData.isMapObject = true;
         this.scene.add(base);
 
         // Outer wall ring with gates (4 openings at cardinal directions)
