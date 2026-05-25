@@ -975,6 +975,7 @@ export class MapGenerator {
                 pillar.position.set(cx + Math.cos(a) * r, h / 2, cz + Math.sin(a) * r);
                 pillar.rotation.z = (Math.random() - 0.5) * 0.2;
                 pillar.castShadow = true;
+                pillar.userData.isBurningWastes = true; pillar.userData.isObsidian = true; pillar.userData.isBarrier = true; pillar.userData.isCover = true; pillar.userData.isMapObject = true;
                 this.scene.add(pillar);
             }
         }
