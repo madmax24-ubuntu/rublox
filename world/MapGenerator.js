@@ -2124,6 +2124,17 @@ export class MapGenerator {
             }
         }
 
+        // Animate active danger ring
+        if (this.activeFogRing && this.activeFogRing.visible) {
+            const pulse = 0.35 + Math.sin(t * 2) * 0.15;
+            this.activeFogRing.material.opacity = pulse;
+            this.activeFogRing.material.emissiveIntensity = 0.4 + Math.sin(t * 1.5) * 0.2;
+        }
+        if (this._activeWall && this._activeWall.visible) {
+            const pulse = 0.25 + Math.sin(t * 1.8) * 0.1;
+            this._activeWallMat.opacity = pulse;
+        }
+
         // Animate radiation clouds (float and pulse)
         for (const rz of this.radiationZones) {
             if (!rz.mesh) continue;
