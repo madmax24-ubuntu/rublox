@@ -734,8 +734,8 @@ export class MapGenerator {
     async buildLuminousForest() {
         const angle = Math.PI * 0.25, cr = 130;
         const cx = Math.cos(angle) * cr, cz = Math.sin(angle) * cr;
-        const floor = new THREE.Mesh(new THREE.CircleGeometry(32, 8), new THREE.MeshStandardMaterial({ color: COLOR.luminousFloor, roughness: 1.0 }));
-        floor.rotation.x = -Math.PI / 2; floor.position.set(cx, 0.05, cz); floor.receiveShadow = true;
+        const floor = new THREE.Mesh(new THREE.CircleGeometry(70, 8), new THREE.MeshStandardMaterial({ color: COLOR.luminousFloor, roughness: 1.0 }));
+        floor.rotation.x = -Math.PI / 2; floor.position.set(cx, 0.03, cz); floor.receiveShadow = true;
         this.scene.add(floor);
 
         const barkMat = new THREE.MeshStandardMaterial({ color: COLOR.luminousBark, roughness: 0.9 });
