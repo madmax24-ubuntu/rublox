@@ -199,6 +199,7 @@ export class MapGenerator {
         const floor = new THREE.Mesh(floorGeo, groundMat);
         floor.position.y = -0.25;
         floor.receiveShadow = true;
+        floor.userData.isArena = true; floor.userData.isFloor = true; floor.userData.isGround = true; floor.userData.isMapObject = true;
         this.scene.add(floor);
         this.colliders.push({ type: 'box', position: new THREE.Vector3(0, -0.5, 0), size: new THREE.Vector3(this.arenaRadius * 2, 1, this.arenaRadius * 2) });
 
