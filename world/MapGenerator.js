@@ -1414,7 +1414,7 @@ export class MapGenerator {
                 transparent: true, opacity: 0.5
             });
             const marker = new THREE.Mesh(new THREE.OctahedronGeometry(0.3, 0), markerMat);
-            marker.position.set(x, 1.5, z);
+            marker.position.set(x, 1.5, z); marker.userData.isLootCluster = true; marker.userData.isLootMarker = true; marker.userData.isGlow = true; marker.userData.isMapObject = true;
             this.scene.add(marker);
             const light = new THREE.PointLight(0xffaa22, 1, 8);
             light.position.set(x, 1.5, z);
