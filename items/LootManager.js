@@ -173,9 +173,6 @@ export class LootManager {
     }
 
     createChest(x, y, z, grade = 'house') {
-    }
-
-    createChest(x, y, z, grade = 'house') {
         const group = new THREE.Group();
         const { bodyMat, lidMat, bandMat, metalMat } = this.chestMaterials;
 
