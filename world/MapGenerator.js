@@ -802,6 +802,7 @@ export class MapGenerator {
                     );
                     sc.position.set(x + (Math.random() - 0.5) * 3, 0.5, z + (Math.random() - 0.5) * 3);
                     sc.rotation.z = (Math.random() - 0.5) * 0.4;
+                    sc.userData.isCrystalGrotto = true; sc.userData.isCrystal = true; sc.userData.isSmallCrystal = true; sc.userData.isCover = true; sc.userData.isMapObject = true;
                     this.scene.add(sc);
                 }
             }
