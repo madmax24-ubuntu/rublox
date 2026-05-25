@@ -139,10 +139,7 @@ export class MapGenerator {
     yieldFrame() { return new Promise(resolve => setTimeout(resolve, 0)); }
 
     async generate() {
-        console.log('[MapGenerator] generate() START');
-        try {
-            this.generateHeightMap();
-            console.log('[MapGenerator] HeightMap done');
+        this.generateHeightMap();
 
             await this.buildArenaFloor();
             console.log('[MapGenerator] ArenaFloor done');
