@@ -1000,6 +1000,7 @@ export class MapGenerator {
             );
             smoke.position.set(cx + Math.cos(a) * r, 4 + Math.random() * 5, cz + Math.sin(a) * r);
             smoke.scale.set(1, 0.4, 1);
+            smoke.userData.isBurningWastes = true; smoke.userData.isSmoke = true; smoke.userData.isHazard = true; smoke.userData.isMapObject = true;
             this.scene.add(smoke);
         }
 
