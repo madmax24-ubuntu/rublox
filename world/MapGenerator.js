@@ -141,53 +141,53 @@ export class MapGenerator {
     async generate() {
         this.generateHeightMap();
 
-            await this.buildArenaFloor();
-            await this.yieldFrame();
+        await this.buildArenaFloor();
+        await this.yieldFrame();
 
-            await this.buildForcefield();
-            await this.yieldFrame();
+        await this.buildForcefield();
+        await this.yieldFrame();
 
-            await this.buildCornucopia();
-            await this.yieldFrame();
+        await this.buildCornucopia();
+        await this.yieldFrame();
 
-            await this.buildInnerRing();
-            await this.yieldFrame();
+        await this.buildInnerRing();
+        await this.yieldFrame();
 
-            await this.buildBiomePaths();
-            await this.yieldFrame();
+        await this.buildBiomePaths();
+        await this.yieldFrame();
 
-            await this.buildRuinedCitadel();
-            await this.yieldFrame();
+        await this.buildRuinedCitadel();
+        await this.yieldFrame();
 
-            await this.buildCrystalGrotto();
-            await this.yieldFrame();
+        await this.buildCrystalGrotto();
+        await this.yieldFrame();
 
-            await this.buildBurningWastes();
-            await this.yieldFrame();
+        await this.buildBurningWastes();
+        await this.yieldFrame();
 
-            await this.buildLuminousForest();
-            await this.yieldFrame();
+        await this.buildLuminousForest();
+        await this.yieldFrame();
 
-            this.buildBridges();
-            this.buildOuterOutposts();
-            this.buildHazardZones();
-            this.buildLootClusters();
-            this.buildTraps();
-            this.buildFogZones();
-            this.buildRadiationZones();
-            this.buildLootData();
-            await this.yieldFrame();
+        this.buildBridges();
+        this.buildOuterOutposts();
+        this.buildHazardZones();
+        this.buildLootClusters();
+        this.buildTraps();
+        this.buildFogZones();
+        this.buildRadiationZones();
+        this.buildLootData();
+        await this.yieldFrame();
 
-            this.setupAnimations();
+        this.setupAnimations();
 
-           this.scene.traverse(obj => {
-                if (obj.isMesh || obj.isGroup || obj.isInstancedMesh) {
-                    obj.userData.mapGenerated = true;
-                    obj.frustumCulled = false;
-                }
-            });
+        this.scene.traverse(obj => {
+            if (obj.isMesh || obj.isGroup || obj.isInstancedMesh) {
+                obj.userData.mapGenerated = true;
+                obj.frustumCulled = false;
+            }
+        });
 
-            this._resolveReady();
+        this._resolveReady();
     }
 
     // ===================== ZONE 0: ARENA FLOOR =====================
