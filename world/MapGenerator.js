@@ -832,6 +832,7 @@ export class MapGenerator {
             const entrance = new THREE.Mesh(new THREE.SphereGeometry(3, 6, 5), caveMat);
             entrance.position.set(baseX, 2, baseZ);
             entrance.scale.set(1, 0.6, 1.5);
+            entrance.userData.isCrystalGrotto = true; entrance.userData.isCave = true; entrance.userData.isEntrance = true; entrance.userData.isShelter = true; entrance.userData.isMapObject = true;
             this.scene.add(entrance);
 
             // Cave interior glow
