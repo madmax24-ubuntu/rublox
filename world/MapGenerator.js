@@ -1358,6 +1358,7 @@ export class MapGenerator {
                 lavaPatchMat
             );
             patch.position.set(Math.cos(a) * r, 0.1, Math.sin(a) * r);
+            patch.userData.isHazard = true; patch.userData.isLava = true; patch.userData.isMapObject = true;
             this.scene.add(patch);
             this.hazards.push({
                 type: 'lava',
