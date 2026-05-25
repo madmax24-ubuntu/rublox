@@ -440,16 +440,17 @@ export class MapGenerator {
         this.colliders.push({ type: 'box', position: new THREE.Vector3(0, -0.5, 0), size: new THREE.Vector3(this.arenaRadius * 2, 1, this.arenaRadius * 2) });
         const terrainMat = new THREE.MeshStandardMaterial({ color: 0x2d4a1d, roughness: 1.0 });
         const noise = this.noise;
-        for (let i = 0; i < 200; i++) {
-            if (i % 40 === 0) await this.yieldFrame();
+        for (let i = 0; i < 80; i++) {
+            if (i % 30 === 0) await this.yieldFrame();
             const angle = Math.random() * Math.PI * 2;
-            const r = 20 + Math.random() * (this.arenaRadius - 40);
+            const r = 30 + Math.random() * (this.arenaRadius - 50);
             const x = Math.cos(angle) * r, z = Math.sin(angle) * r;
-            const h = noise.noise2D(x * 0.02, z * 0.02) * 1.5;
-            if (Math.abs(h) < 0.3) continue;
-            const size = 3 + Math.random() * 8;
-            const hill = new THREE.Mesh(new THREE.BoxGeometry(size, Math.abs(h), size * 0.7), terrainMat);
-            hill.position.set(x, h * 0.3, z); hill.rotation.y = Math.random() * Math.PI;
+            const h = noise.fbm(x * 0.008, z * 0.008, 3) * 4;
+            if (Math.abs(h) < 0.5) continue;
+            const size = 5 + Math.abs(h) * 3;
+            const hillH = Math.abs(h) * 1.5;
+            const hill = new THREE.Mesh(new THREE.BoxGeometry(size, hillH, size * 0.8), terrainMat);
+            hill.position.set(x, hillH * 0.3, z); hill.rotation.y = Math.random() * Math.PI;
             hill.receiveShadow = true; hill.castShadow = h > 0;
             this.scene.add(hill);
         }
