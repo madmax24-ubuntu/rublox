@@ -129,6 +129,12 @@ export class MapGenerator {
         this.ready = new Promise(resolve => { this._resolveReady = resolve; });
     }
 
+    // Helper: tag a mesh with gameplay identifiers
+    tagMesh(mesh, ...tags) {
+        mesh.userData.isMapObject = true;
+        for (const t of tags) mesh.userData[t] = true;
+    }
+
     async startGeneration() { await this.generate(); }
     yieldFrame() { return new Promise(resolve => requestAnimationFrame(resolve)); }
 
