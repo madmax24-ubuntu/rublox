@@ -1622,6 +1622,7 @@ export class MapGenerator {
 
     // ===================== FOG ZONES =====================
     // Fog zones that close in from the edges, forcing players together
+    // 4 phases, each with visual mesh + damage + trigger support
     buildFogZones() {
         // Phase 1: Outer ring fog (R=180-220)
         this.fogZones.push({
@@ -1632,7 +1633,9 @@ export class MapGenerator {
             active: true,
             phase: 0,
             shrinkSpeed: 0,
-            description: 'Outer fog zone'
+            description: 'Outer fog zone',
+            mesh: null,
+            light: null
         });
 
         // Phase 2: Mid ring fog (R=130-180)
@@ -1644,7 +1647,9 @@ export class MapGenerator {
             active: true,
             phase: 1,
             shrinkSpeed: 0,
-            description: 'Mid fog zone'
+            description: 'Mid fog zone',
+            mesh: null,
+            light: null
         });
 
         // Phase 3: Inner ring fog (R=80-130)
@@ -1656,7 +1661,9 @@ export class MapGenerator {
             active: false,
             phase: 2,
             shrinkSpeed: 0,
-            description: 'Inner fog zone'
+            description: 'Inner fog zone',
+            mesh: null,
+            light: null
         });
 
         // Phase 4: Center fog (R=40-80) - final phase
@@ -1668,24 +1675,66 @@ export class MapGenerator {
             active: false,
             phase: 3,
             shrinkSpeed: 0,
-            description: 'Final fog zone'
+            description: 'Final fog zone',
+            mesh: null,
+            light: null
         });
 
-        // Visual fog ring at outer edge
-        const fogRingMat = new THREE.MeshStandardMaterial({
-            color: 0x668866,
-            emissive: 0x334433,
-            emissiveIntensity: 0.3,
-            transparent: true,
-            opacity: 0.15,
-            side: THREE.DoubleSide
-        });
+        // Visual fog walls for each phase boundary
+        const fogColors = [0x556655, 0x445544, 0x334433, 0x223322];
+        const fogOpacities = [0.12, 0.18, 0.25, 0.35];
+        const fogEmissive = [0x223322, 0x334433, 0x445544, 0x556655];
 
-        // Outer fog wall
-        const fogWallGeo = new THREE.CylinderGeometry(this.arenaRadius, this.arenaRadius, 10, 64, 1, true);
-        const fogWall = new THREE.Mesh(fogWallGeo, fogRingMat);
-        fogWall.position.y = 5;
-        this.scene.add(fogWall);
+        for (let p = 0; p < 4; p++) {
+            const zone = this.fogZones[p];
+            const fogMat = new THREE.MeshStandardMaterial({
+                color: fogColors[p],
+                emissive: fogEmissive[p],
+                emissiveIntensity: 0.3 + p * 0.15,
+                transparent: true,
+                opacity: fogOpacities[p],
+                side: THREE.DoubleSide,
+                depthWrite: false
+            });
+
+            // Fog ring (annulus mesh) — only visible where zone is active
+            const ringGeo = new THREE.RingGeometry(zone.innerRadius, zone.outerRadius, 64);
+            const ringMesh = new THREE.Mesh(ringGeo, fogMat);
+            ringMesh.rotation.x = -Math.PI / 2;
+            ringMesh.position.y = 0.15;
+            ringMesh.visible = zone.active;
+            ringMesh.userData.isFogZone = true; ringMesh.userData.fogPhase = p;
+            this.scene.add(ringMesh);
+            zone.mesh = ringMesh;
+
+            // Vertical fog wall at inner boundary
+            const wallGeo = new THREE.CylinderGeometry(zone.innerRadius, zone.innerRadius, 12, 64, 1, true);
+            const wallMat = new THREE.MeshStandardMaterial({
+                color: fogColors[p],
+                emissive: fogEmissive[p],
+                emissiveIntensity: 0.2 + p * 0.1,
+                transparent: true,
+                opacity: fogOpacities[p] * 0.6,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            });
+            const wall = new THREE.Mesh(wallGeo, wallMat);
+            wall.position.y = 6;
+            wall.visible = zone.active;
+            wall.userData.isFogZone = true; wall.userData.fogPhase = p; wall.userData.isFogWall = true;
+            this.scene.add(wall);
+            zone._wall = wall;
+            zone._wallMat = wallMat;
+            zone._ringMat = fogMat;
+
+            // Fog light (purple-green tinted)
+            const light = new THREE.PointLight(0x446644, 0.5 + p * 0.3, zone.outerRadius - zone.innerRadius + 10);
+            light.position.set(0, 3, 0);
+            light.visible = zone.active;
+            this.scene.add(light);
+            zone.light = light;
+            this.animatedObjects.push({ type: 'fogGlow', light: light, baseIntensity: 0.5 + p * 0.3, fogPhase: p });
+        }
     }
 
     // ===================== RADIATION ZONES =====================
