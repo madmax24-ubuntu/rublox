@@ -787,19 +787,18 @@ export class MapGenerator {
         const bridgeRailMat = new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.7, metalness: 0.5 });
         const bridgeAngles = [-Math.PI * 0.75, -Math.PI * 0.25, Math.PI * 0.75, Math.PI * 0.25];
         for (const angle of bridgeAngles) {
-            for (let i = 0; i < 10; i++) {
-                const t = i / 10, r = 25 + t * 75;
+            const r1 = 30, r2 = this.arenaRadius - 55;
+            for (let i = 0; i < 2; i++) {
+                const r = i === 0 ? r1 : r2;
                 const x = Math.cos(angle) * r, z = Math.sin(angle) * r;
-                const deck = new THREE.Mesh(new THREE.BoxGeometry(3, 0.2, 4), bridgeMat);
-                deck.position.set(x, 0.2, z); deck.rotation.y = -angle + Math.PI / 2;
+                const deck = new THREE.Mesh(new THREE.BoxGeometry(4, 0.3, 6), bridgeMat);
+                deck.position.set(x, 0.15, z); deck.rotation.y = -angle + Math.PI / 2;
                 deck.receiveShadow = true; deck.castShadow = true;
                 this.scene.add(deck);
-                if (i === 9) {
-                    for (const side of [-1, 1]) {
-                        const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.5, 4), bridgeRailMat);
-                        rail.position.set(x + Math.cos(angle + Math.PI / 2) * side * 1.5, 1, z + Math.sin(angle + Math.PI / 2) * side * 1.5);
-                        this.scene.add(rail);
-                    }
+                for (const side of [-1, 1]) {
+                    const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.5, 4), bridgeRailMat);
+                    rail.position.set(x + Math.cos(angle + Math.PI / 2) * side * 2, 0.9, z + Math.sin(angle + Math.PI / 2) * side * 2);
+                    this.scene.add(rail);
                 }
             }
         }
