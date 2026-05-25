@@ -599,7 +599,7 @@ export class MapGenerator {
                     head.userData.isPath = true; head.userData.isLanternPost = true; head.userData.isLanternHead = true; head.userData.isMapObject = true;
                     this.scene.add(head);
                     const glow = new THREE.Mesh(new THREE.SphereGeometry(0.2, 6, 6), lanternGlowMat);
-                    glow.position.set(px, 3.6, pz);
+  glow.position.set(px, 3.6, pz); glow.userData.isPath = true; glow.userData.isLanternGlow = true; glow.userData.isMarker = true; glow.userData.isMapObject = true;
                     this.scene.add(glow);
                     if (side === -1) {
                         const light = new THREE.PointLight(0xffaa22, 1.5, 12);
