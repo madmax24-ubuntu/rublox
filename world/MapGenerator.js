@@ -377,7 +377,8 @@ export class MapGenerator {
         for (const cp of cratePositions) {
             const crate = new THREE.Mesh(new THREE.BoxGeometry(2, 2.5, 2), crateMat);
             crate.position.set(cp.x, 1.25, cp.z);
-            crate.castShadow = true; crate.receiveShadow = true;
+ crate.castShadow = true; crate.receiveShadow = true;
+            crate.userData.isCornucopia = true; crate.userData.isSupplyCrate = true; crate.userData.isLootContainer = true; crate.userData.isMapObject = true;
             this.scene.add(crate);
         }
 
