@@ -255,7 +255,9 @@ export class MapGenerator {
                 new THREE.Vector3(Math.cos(a) * this.arenaRadius, 0, Math.sin(a) * this.arenaRadius),
                 new THREE.Vector3(Math.cos(a) * this.arenaRadius, 12, Math.sin(a) * this.arenaRadius)
             ];
-            this.scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lineMat));
+ const ffLine = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), lineMat);
+            ffLine.userData.isArena = true; ffLine.userData.isForcefield = true; ffLine.userData.isLine = true; ffLine.userData.isMapObject = true;
+            this.scene.add(ffLine);
         }
 
         this.animatedObjects.push({ type: 'forcefield', mesh: forcefield, material: ffMat, baseOpacity: 0.3, baseEmissive: 0.5 });
