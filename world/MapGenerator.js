@@ -963,11 +963,12 @@ export class MapGenerator {
             const a = Math.random() * Math.PI * 2, r = 10 + Math.random() * 50;
             const h = 2 + Math.random() * 5;
             const isWall = Math.random() > 0.5;
-            if (isWall) {
+           if (isWall) {
                 const wall = new THREE.Mesh(new THREE.BoxGeometry(3 + Math.random() * 4, h, 1.2), obsMat);
                 wall.position.set(cx + Math.cos(a) * r, h / 2, cz + Math.sin(a) * r);
                 wall.rotation.y = Math.random() * Math.PI;
                 wall.castShadow = true; wall.receiveShadow = true;
+                wall.userData.isBurningWastes = true; wall.userData.isObsidian = true; wall.userData.isBarrier = true; wall.userData.isCover = true; wall.userData.isMapObject = true;
                 this.scene.add(wall);
             } else {
                 const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.5 + Math.random() * 0.5, h, 0.5 + Math.random() * 0.5, 6), obsMat);
