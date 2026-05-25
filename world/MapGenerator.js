@@ -1390,7 +1390,422 @@ export class MapGenerator {
     getSpawnPads() { return this.spawnPads; }
     getColliders() { return this.colliders; }
     getHazards() { return this.hazards; }
+    getTraps() { return this.traps; }
+    getFogZones() { return this.fogZones; }
+    getRadiationZones() { return this.radiationZones; }
+    getLootData() { return this.lootData; }
     getAnimatedObjects() { return this.animatedObjects; }
+
+    // ===================== TRAPS =====================
+    // Hunger Games traps: spike traps, bear traps, tripwires
+    buildTraps() {
+        // Spike traps (placed near paths and biomes)
+        const spikeMat = new THREE.MeshStandardMaterial({ color: 0x6a6a6a, roughness: 0.5, metalness: 0.8 });
+        for (let i = 0; i < 20; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const r = 30 + Math.random() * 150;
+            const x = Math.cos(a) * r, z = Math.sin(a) * r;
+
+            // Spike cluster (3-5 spikes)
+            const spikeCount = 3 + Math.floor(Math.random() * 3);
+            for (let s = 0; s < spikeCount; s++) {
+                const sa = (s / spikeCount) * Math.PI * 2;
+                const spike = new THREE.Mesh(new THREE.ConeGeometry(0.15, 1.2, 4), spikeMat);
+                spike.position.set(x + Math.cos(sa) * 0.8, 0.6, z + Math.sin(sa) * 0.8);
+                spike.rotation.x = Math.PI / 2;
+                this.scene.add(spike);
+            }
+
+            // Visual trigger plate
+            const plate = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.05, 8), spikeMat);
+            plate.position.set(x, 0.03, z);
+            this.scene.add(plate);
+
+            this.traps.push({
+                type: 'spike',
+                position: new THREE.Vector3(x, 0, z),
+                radius: 1.5,
+                damage: 15,
+                cooldown: 5000,
+                triggered: false,
+                triggerTime: 0
+            });
+        }
+
+        // Bear traps (stronger, fewer)
+        const bearMat = new THREE.MeshStandardMaterial({ color: 0x4a4a4a, roughness: 0.6, metalness: 0.7 });
+        for (let i = 0; i < 10; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const r = 40 + Math.random() * 140;
+            const x = Math.cos(a) * r, z = Math.sin(a) * r;
+
+            // Bear trap jaws
+            for (const jaw of [-1, 1]) {
+                const jawMesh = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.15, 0.3), bearMat);
+                jawMesh.position.set(x, 0.15, z);
+                jawMesh.rotation.y = (Math.random() - 0.5) * 0.5;
+                jawMesh.rotation.z = jaw * 0.3;
+                this.scene.add(jawMesh);
+            }
+
+            this.traps.push({
+                type: 'bear',
+                position: new THREE.Vector3(x, 0, z),
+                radius: 1.2,
+                damage: 25,
+                cooldown: 8000,
+                triggered: false,
+                triggerTime: 0,
+                snare: true // slows movement
+            });
+        }
+
+        // Tripwires (at biome entrances, stealth zones)
+        for (let i = 0; i < 8; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const r = 50 + Math.random() * 120;
+            const x = Math.cos(a) * r, z = Math.sin(a) * r;
+
+            // Tripwire visual (thin line at ankle height)
+            const wireMat = new THREE.MeshStandardMaterial({ color: 0x888888, transparent: true, opacity: 0.3 });
+            const wire = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 4, 4), wireMat);
+            wire.position.set(x, 0.8, z);
+            wire.rotation.z = Math.PI / 2;
+            this.scene.add(wire);
+
+            this.traps.push({
+                type: 'tripwire',
+                position: new THREE.Vector3(x, 0, z),
+                radius: 2.5,
+                damage: 8,
+                cooldown: 3000,
+                triggered: false,
+                triggerTime: 0,
+                alertRadius: 20 // alerts nearby enemies
+            });
+        }
+
+        // Flash traps (near Cornucopia, explosive)
+        for (let i = 0; i < 5; i++) {
+            const a = (i / 5) * Math.PI * 2;
+            const r = 65 + Math.random() * 15;
+            const x = Math.cos(a) * r, z = Math.sin(a) * r;
+
+            // Flash charge visual
+            const charge = new THREE.Mesh(
+                new THREE.SphereGeometry(0.4, 6, 6),
+                new THREE.MeshStandardMaterial({ color: 0xffaa00, emissive: 0xff6600, emissiveIntensity: 1, transparent: true, opacity: 0.7 })
+            );
+            charge.position.set(x, 0.4, z);
+            this.scene.add(charge);
+
+            this.traps.push({
+                type: 'flash',
+                position: new THREE.Vector3(x, 0, z),
+                radius: 8,
+                damage: 20,
+                cooldown: 15000,
+                triggered: false,
+                triggerTime: 0,
+                knockback: true,
+                blindDuration: 3000
+            });
+        }
+    }
+
+    // ===================== FOG ZONES =====================
+    // Fog zones that close in from the edges, forcing players together
+    buildFogZones() {
+        // Phase 1: Outer ring fog (R=180-220)
+        this.fogZones.push({
+            name: 'outer_fog',
+            outerRadius: 220,
+            innerRadius: 180,
+            damage: 0.2,
+            active: true,
+            phase: 0,
+            shrinkSpeed: 0,
+            description: 'Outer fog zone'
+        });
+
+        // Phase 2: Mid ring fog (R=130-180)
+        this.fogZones.push({
+            name: 'mid_fog',
+            outerRadius: 180,
+            innerRadius: 130,
+            damage: 0.5,
+            active: true,
+            phase: 1,
+            shrinkSpeed: 0,
+            description: 'Mid fog zone'
+        });
+
+        // Phase 3: Inner ring fog (R=80-130)
+        this.fogZones.push({
+            name: 'inner_fog',
+            outerRadius: 130,
+            innerRadius: 80,
+            damage: 1.0,
+            active: false,
+            phase: 2,
+            shrinkSpeed: 0,
+            description: 'Inner fog zone'
+        });
+
+        // Phase 4: Center fog (R=40-80) - final phase
+        this.fogZones.push({
+            name: 'center_fog',
+            outerRadius: 80,
+            innerRadius: 40,
+            damage: 2.0,
+            active: false,
+            phase: 3,
+            shrinkSpeed: 0,
+            description: 'Final fog zone'
+        });
+
+        // Visual fog ring at outer edge
+        const fogRingMat = new THREE.MeshStandardMaterial({
+            color: 0x668866,
+            emissive: 0x334433,
+            emissiveIntensity: 0.3,
+            transparent: true,
+            opacity: 0.15,
+            side: THREE.DoubleSide
+        });
+
+        // Outer fog wall
+        const fogWallGeo = new THREE.CylinderGeometry(this.arenaRadius, this.arenaRadius, 10, 64, 1, true);
+        const fogWall = new THREE.Mesh(fogWallGeo, fogRingMat);
+        fogWall.position.y = 5;
+        this.scene.add(fogWall);
+    }
+
+    // ===================== RADIATION ZONES =====================
+    // Radiation in Burning Wastes and outer areas
+    buildRadiationZones() {
+        // Main radiation zone in Burning Wastes
+        const wasteAngle = Math.PI * 0.75, wasteR = 130;
+        const wx = Math.cos(wasteAngle) * wasteR, wz = Math.sin(wasteAngle) * wasteR;
+
+        this.radiationZones.push({
+            type: 'radiation',
+            position: new THREE.Vector3(wx, 0, wz),
+            radius: 50,
+            damage: 0.3,
+            duration: 1000, // damage tick every 1 second
+            intensity: 'high',
+            visual: 'waste',
+            description: 'Burning Wastes - High Radiation'
+        });
+
+        // Secondary radiation zone in outer ring
+        const r2 = 100 + Math.random() * 60;
+        const a2 = Math.random() * Math.PI * 2;
+        this.radiationZones.push({
+            type: 'radiation',
+            position: new THREE.Vector3(Math.cos(a2) * r2, 0, Math.sin(a2) * r2),
+            radius: 30,
+            damage: 0.15,
+            duration: 1000,
+            intensity: 'medium',
+            visual: 'gas',
+            description: 'Radioactive gas cloud'
+        });
+
+        // Third radiation zone
+        const r3 = 80 + Math.random() * 40;
+        const a3 = Math.random() * Math.PI * 2;
+        this.radiationZones.push({
+            type: 'radiation',
+            position: new THREE.Vector3(Math.cos(a3) * r3, 0, Math.sin(a3) * r3),
+            radius: 25,
+            damage: 0.1,
+            duration: 1000,
+            intensity: 'low',
+            visual: 'gas',
+            description: 'Mild radiation leak'
+        });
+
+        // Visual gas clouds for radiation
+        const gasMat = new THREE.MeshStandardMaterial({
+            color: 0x44aa44,
+            emissive: 0x228822,
+            emissiveIntensity: 0.2,
+            transparent: true,
+            opacity: 0.12,
+            roughness: 1
+        });
+
+        for (const rz of this.radiationZones) {
+            // Gas cloud (large sphere, low opacity)
+            const cloud = new THREE.Mesh(
+                new THREE.SphereGeometry(rz.radius * 0.6, 8, 6),
+                gasMat.clone()
+            );
+            cloud.position.copy(rz.position);
+            cloud.position.y = 3 + Math.random() * 3;
+            cloud.scale.set(1, 0.3, 1);
+            this.scene.add(cloud);
+        }
+    }
+
+    // ===================== LOOT DATA =====================
+    // Loot data tied to structures - what items are where
+    buildLootData() {
+        // Cornucopia chest - high tier loot
+        this.lootData.push({
+            type: 'chest',
+            position: new THREE.Vector3(0, 5, 0),
+            radius: 3,
+            tier: 5,
+            items: [
+                { name: 'assault_rifle', type: 'weapon', rarity: 'epic' },
+                { name: 'armor_vest', type: 'armor', rarity: 'rare', value: 100 },
+                { name: 'medkit', type: 'health', rarity: 'rare', value: 75 },
+                { name: 'ammo_556', type: 'ammo', rarity: 'common', value: 120 }
+            ]
+        });
+
+        // Inner ring outposts - tier 3-4 loot
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const r = 40 + Math.random() * 15;
+            this.lootData.push({
+                type: 'outpost',
+                position: new THREE.Vector3(Math.cos(angle) * r, 0, Math.sin(angle) * r),
+                radius: 4,
+                tier: 3 + Math.floor(Math.random() * 2),
+                items: this.generateLootForTier(3 + Math.floor(Math.random() * 2))
+            });
+        }
+
+        // Biome-specific loot
+        // Citadel loot (weapons, armor)
+        const citAngle = -Math.PI * 0.75, citR = 130;
+        this.lootData.push({
+            type: 'biome',
+            position: new THREE.Vector3(Math.cos(citAngle) * citR, 0, Math.sin(citAngle) * citR),
+            radius: 50,
+            tier: 3,
+            items: [
+                { name: 'dmr', type: 'weapon', rarity: 'epic' },
+                { name: 'scoped_rifle', type: 'weapon', rarity: 'rare' },
+                { name: 'armor_iii', type: 'armor', rarity: 'rare', value: 80 }
+            ]
+        });
+
+        // Crystal Grotto loot (stealth items, SMGs)
+        const crAngle = -Math.PI * 0.25, crR = 130;
+        this.lootData.push({
+            type: 'biome',
+            position: new THREE.Vector3(Math.cos(crAngle) * crR, 0, Math.sin(crAngle) * crR),
+            radius: 50,
+            tier: 2,
+            items: [
+                { name: 'smg', type: 'weapon', rarity: 'rare' },
+                { name: 'silencer', type: 'attachment', rarity: 'uncommon' },
+                { name: 'flash_hide', type: 'consumable', rarity: 'rare' }
+            ]
+        });
+
+        // Burning Wastes loot (snipers, high tier)
+        const wasteAngle = Math.PI * 0.75, wasteR = 130;
+        this.lootData.push({
+            type: 'biome',
+            position: new THREE.Vector3(Math.cos(wasteAngle) * wasteR, 0, Math.sin(wasteAngle) * wasteR),
+            radius: 50,
+            tier: 4,
+            items: [
+                { name: 'sniper_rifle', type: 'weapon', rarity: 'epic' },
+                { name: '8x_scope', type: 'attachment', rarity: 'epic' },
+                { name: 'armor_iii', type: 'armor', rarity: 'rare', value: 80 },
+                { name: 'ammo_338', type: 'ammo', rarity: 'uncommon', value: 40 }
+            ]
+        });
+
+        // Luminous Forest loot (survival items)
+        const forestAngle = Math.PI * 0.25, forestR = 130;
+        this.lootData.push({
+            type: 'biome',
+            position: new THREE.Vector3(Math.cos(forestAngle) * forestR, 0, Math.sin(forestAngle) * forestR),
+            radius: 50,
+            tier: 2,
+            items: [
+                { name: 'shotgun', type: 'weapon', rarity: 'rare' },
+                { name: 'bandages', type: 'health', rarity: 'common', value: 25 },
+                { name: 'energy_drink', type: 'health', rarity: 'common', value: 40 },
+                { name: 'adrenaline', type: 'consumable', rarity: 'uncommon' }
+            ]
+        });
+
+        // Loot cluster data (R=65-130)
+        for (let i = 0; i < 12; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const r = 65 + Math.random() * 60;
+            this.lootData.push({
+                type: 'cluster',
+                position: new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r),
+                radius: 5,
+                tier: 1 + Math.floor(Math.random() * 3),
+                items: this.generateLootForTier(1 + Math.floor(Math.random() * 3))
+            });
+        }
+    }
+
+    // Generate loot items based on tier (1-5)
+    generateLootForTier(tier) {
+        const tierItems = {
+            1: [
+                { name: 'bandages', type: 'health', rarity: 'common', value: 25 },
+                { name: 'energy_drink', type: 'health', rarity: 'common', value: 40 },
+                { name: 'pistol', type: 'weapon', rarity: 'common' },
+                { name: 'ammo_9mm', type: 'ammo', rarity: 'common', value: 60 }
+            ],
+            2: [
+                { name: 'smg', type: 'weapon', rarity: 'uncommon' },
+                { name: 'medkit', type: 'health', rarity: 'uncommon', value: 50 },
+                { name: 'armor_ii', type: 'armor', rarity: 'uncommon', value: 50 },
+                { name: 'flashbang', type: 'consumable', rarity: 'uncommon' }
+            ],
+            3: [
+                { name: 'assault_rifle', type: 'weapon', rarity: 'rare' },
+                { name: 'scoped_rifle', type: 'weapon', rarity: 'rare' },
+                { name: 'armor_ii', type: 'armor', rarity: 'rare', value: 75 },
+                { name: 'gunshot_sense', type: 'consumable', rarity: 'uncommon' }
+            ],
+            4: [
+                { name: 'dmr', type: 'weapon', rarity: 'epic' },
+                { name: 'sniper_rifle', type: 'weapon', rarity: 'rare' },
+                { name: 'armor_iii', type: 'armor', rarity: 'rare', value: 80 },
+                { name: '4x_scope', type: 'attachment', rarity: 'rare' }
+            ],
+            5: [
+                { name: 'assault_rifle', type: 'weapon', rarity: 'epic' },
+                { name: 'armor_iv', type: 'armor', rarity: 'epic', value: 100 },
+                { name: 'medkit', type: 'health', rarity: 'epic', value: 75 },
+                { name: 'ammo_556', type: 'ammo', rarity: 'uncommon', value: 120 }
+            ]
+        };
+        const items = tierItems[tier] || tierItems[1];
+        const count = 2 + Math.floor(Math.random() * 3);
+        const selected = [];
+        for (let i = 0; i < count && i < items.length; i++) {
+            selected.push({ ...items[i] });
+        }
+        return selected;
+    }
+
+    // ===================== HEIGHT MAP =====================
+    generateHeightMap() {
+        const size = 512, res = 128, step = size / res;
+        this.heightMap = Array.from({ length: res + 1 }, () => new Float32Array(res + 1));
+        for (let i = 0; i <= res; i++)
+            for (let j = 0; j <= res; j++) {
+                const x = (i - res / 2) * step, z = (j - res / 2) * step;
+                this.heightMap[i][j] = this.noise.fbm(x * 0.01, z * 0.01, 4, 2.0, 0.5) * 15;
+            }
+    }
     generateHeightMap() {
         const size = 512, res = 128, step = size / res;
         this.heightMap = Array.from({ length: res + 1 }, () => new Float32Array(res + 1));
