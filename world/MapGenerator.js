@@ -2311,6 +2311,7 @@ export class MapGenerator {
                     continue;
                 }
             }
+            if (trap.triggered) continue;
 
             const dx = pos.x - trap.position.x;
             const dz = pos.z - trap.position.z;
