@@ -611,6 +611,7 @@ export class MapGenerator {
             const tower = new THREE.Mesh(new THREE.CylinderGeometry(tp.r * 0.7, tp.r, tp.h, 8), mat);
             tower.position.set(cx + tp.x, tp.h / 2, cz + tp.z);
             tower.castShadow = true; tower.receiveShadow = true;
+            tower.userData.isCitadel = true; tower.userData.isTower = true; tower.userData.isMainTower = true; tower.userData.isMapObject = true;
             this.scene.add(tower);
             // Battlements
             for (let b = 0; b < 8; b++) {
@@ -618,6 +619,7 @@ export class MapGenerator {
                 const batt = new THREE.Mesh(new THREE.BoxGeometry(1, 1.5, 1), mat);
                 batt.position.set(cx + tp.x + Math.cos(ba) * tp.r * 0.8, tp.h + 0.75, cz + tp.z + Math.sin(ba) * tp.r * 0.8);
                 batt.castShadow = true;
+                batt.userData.isCitadel = true; batt.userData.isBattlement = true; batt.userData.isMapObject = true;
                 this.scene.add(batt);
             }
             // Door
@@ -626,6 +628,7 @@ export class MapGenerator {
                 new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 1 })
             );
             door.position.set(cx + tp.x, 1.2, cz + tp.z + tp.r * 0.5);
+            door.userData.isCitadel = true; door.userData.isDoor = true; door.userData.isMapObject = true;
             this.scene.add(door);
             // Window
             const win = new THREE.Mesh(
@@ -633,6 +636,7 @@ export class MapGenerator {
                 new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 1 })
             );
             win.position.set(cx + tp.x, tp.h * 0.6, cz + tp.z + tp.r * 0.5);
+            win.userData.isCitadel = true; win.userData.isWindow = true; win.userData.isMapObject = true;
             this.scene.add(win);
 
             this.colliders.push({ type: 'cylinder', position: new THREE.Vector3(cx + tp.x, tp.h / 2, cz + tp.z), radius: tp.r, height: tp.h });
