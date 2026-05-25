@@ -2479,41 +2479,8 @@ export class MapGenerator {
                 meshes.push(obj);
             }
         });
-        if (meshes.length < 3) return;
-
-        // Build merged geometry using BufferGeometryUtils-style approach
-        const allPositions = [];
-        const allNormals = [];
-        const allIndices = [];
-        let indexOffset = 0;
-
-        for (const mesh of meshes) {
-            const geo = mesh.geometry;
-            const posArr = geo.getAttribute('position').array;
-            const normArr = geo.getAttribute('normal')?.array || new Float32Array(posArr.length);
-
-            const matrix = new THREE.Matrix4().copy(matrixWorldPlaceholder);
-            // Transform each vertex by mesh world matrix
-            const worldMat = mesh.matrixWorld || new THREE.Matrix4();
-            for (let i = 0; i < posArr.length; i += 3) {
-                allPositions.push(posArr[i], posArr[i + 1], posArr[i + 2]);
-                allNormals.push(normArr[i], normArr[i + 1], normArr[i + 2]);
-            }
-
-            const idx = geo.index;
-            if (idx) {
-                for (let i = 0; i < idx.count; i++) {
-                    allIndices.push(idx.array[i] + indexOffset);
-                }
-            } else {
-                for (let i = 0; i < posArr.length / 3; i++) {
-                    allIndices.push(i + indexOffset);
-                }
-            }
-            indexOffset += posArr.length / 3;
-        }
-
-        // Skip complex transforms — just keep meshes but set them to batch rendering
+        // TODO: Implement proper geometry merging with BufferGeometryUtils
+        // For now, just ensure frustum culling is enabled
         for (const m of meshes) {
             m.frustumCulled = true;
         }
