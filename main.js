@@ -375,6 +375,7 @@ class Game {
         this.entityManager.physicsRef = this.physics;
         this.scene.userData.entityManager = this.entityManager;
         this.lootManager = new LootManager(this.scene, this.map);
+        this.lootManager.generateChests?.();
 
         const spawnPads = this.map.getSpawnPads?.() || [];
         this.player = new Player(this.scene, this.camera, this.input);
