@@ -1899,7 +1899,7 @@ class Game {
                 continue;
             }
             bot.update(delta, this.botBrains[botIndex], this.entityManager, this.lootManager, this.audioSynth, this.physics, this.zone);
-                this.map?.activateTrapsNearEntity?.(bot);
+            this.map?.activateTrapsNearEntity?.(bot);
         }
         if (this.gameState === 'playing') {
             if (this.activeEvent?.type === 'radiationRain') {
