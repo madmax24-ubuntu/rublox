@@ -846,20 +846,7 @@ export class MapGenerator {
     }
 
     buildBiomeBoundaries() {
-        // Subtle ring markers at biome zone edges
-        const boundaryMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x444444, emissiveIntensity: 0.2, transparent: true, opacity: 0.08 });
-        const boundaryAngles = [-Math.PI * 0.75, -Math.PI * 0.25, Math.PI * 0.25, Math.PI * 0.75];
-        for (const a of boundaryAngles) {
-            const r = 85;
-            for (let i = 0; i < 20; i++) {
-                const t = i / 20;
-                const angle = a + (t - 0.5) * 0.15;
-                const x = Math.cos(angle) * r, z = Math.sin(angle) * r;
-                const marker = new THREE.Mesh(new THREE.SphereGeometry(0.3, 4, 4), boundaryMat);
-                marker.position.set(x, 0.2, z);
-                this.scene.add(marker);
-            }
-        }
+        // Removed: small sphere markers were visual junk
     }
 
     setupAnimations() {
