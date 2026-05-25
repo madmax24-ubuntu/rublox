@@ -436,7 +436,8 @@ export class MapGenerator {
                     wall.position.set(x + nx * 3, wallH / 2, z + nz * 3);
                     wall.rotation.y = wa + Math.PI / 2;
                     wall.castShadow = true; wall.receiveShadow = true;
-                    this.scene.add(wall);
+                wall.userData.isInnerRing = true; wall.userData.isOutpost = true; wall.userData.isStone = true; wall.userData.isCover = true; wall.userData.isMapObject = true;
+                this.scene.add(wall);
                 }
                 // Corner posts
                 for (let c = 0; c < 4; c++) {
