@@ -1949,6 +1949,144 @@ export class MapGenerator {
         }
     }
 
+   // ===================== ZONE TRIGGER SYSTEM =====================
+    // Called by main.js game loop to activate fog/radiation phases
+
+    // Activate fog phase by index (0-3). Returns the active safe radius.
+    activateFogPhase(phaseIndex) {
+        if (phaseIndex < 0 || phaseIndex >= this.fogZones.length) return this.getActiveSafeRadius();
+
+        // Deactivate all higher phases
+        for (let i = phaseIndex + 1; i < this.fogZones.length; i++) {
+            const z = this.fogZones[i];
+            z.active = false;
+            z._mesh && (z._mesh.visible = false);
+            z._wall && (z._wall.visible = false);
+            z.light && (z.light.visible = false);
+            z._ringMat && (z._ringMat.opacity = 0);
+            z._wallMat && (z._wallMat.opacity = 0);
+        }
+
+        // Activate up to current phase
+        for (let i = 0; i <= phaseIndex; i++) {
+            const z = this.fogZones[i];
+            z.active = true;
+            z._mesh && (z._mesh.visible = true);
+            z._wall && (z._wall.visible = true);
+            z.light && (z.light.visible = true);
+        }
+
+        this.currentFogPhase = phaseIndex;
+        return this.getActiveSafeRadius();
+    }
+
+    // Get the current safe radius (inner radius of the most restrictive active fog zone)
+    getActiveSafeRadius() {
+        let safeR = this.arenaRadius;
+        for (const z of this.fogZones) {
+            if (z.active) {
+                if (z.innerRadius < safeR) safeR = z.innerRadius;
+            }
+        }
+        return safeR;
+    }
+
+    // Check if a position (x, z) is inside the safe zone
+    isPositionSafe(x, z) {
+        const dist = Math.sqrt(x * x + z * z);
+        const safeR = this.getActiveSafeRadius();
+        return dist <= safeR;
+    }
+
+    // Get damage per tick for a position (from fog zones)
+    getFogDamageAt(x, z) {
+        const dist = Math.sqrt(x * x + z * z);
+        const safeR = this.getActiveSafeRadius();
+        if (dist <= safeR) return 0;
+
+        for (const z2 of this.fogZones) {
+            if (!z2.active) continue;
+            if (dist >= z2.innerRadius && dist <= z2.outerRadius) {
+                return z2.damage;
+            }
+        }
+        return 0;
+    }
+
+    // Get radiation damage for a position
+    getRadiationDamageAt(x, z) {
+        let totalDmg = 0;
+        for (const rz of this.radiationZones) {
+            const dx = x - rz.position.x;
+            const dz = z - rz.position.z;
+            const dist = Math.sqrt(dx * dx + dz * dz);
+            if (dist <= rz.radius) {
+                totalDmg += rz.damage;
+            }
+        }
+        return totalDmg;
+    }
+
+    // Get closest radiation zone info for a position
+    getClosestRadiationZone(x, z) {
+        let closest = null;
+        let minDist = Infinity;
+        for (const rz of this.radiationZones) {
+            const dx = x - rz.position.x;
+            const dz = z - rz.position.z;
+            const dist = Math.sqrt(dx * dx + dz * dz);
+            if (dist < minDist) {
+                minDist = dist;
+                closest = rz;
+            }
+        }
+        if (closest && minDist <= closest.radius) {
+            return { zone: closest, distance: minDist };
+        }
+        return null;
+    }
+
+    // Calculate time until next fog phase
+    getTimeUntilNextPhase(currentPhase) {
+        // Phase 0→1: 60s, 1→2: 120s, 2→3: 180s
+        const intervals = [60, 120, 180, Infinity];
+        return currentPhase < 3 ? intervals[currentPhase] : Infinity;
+    }
+
+    // Update animated fog/radiation visuals (call from game loop)
+    updateZoneAnimations(deltaTime) {
+        const t = performance.now() * 0.001;
+
+        // Animate fog walls (pulse opacity)
+        for (const z of this.fogZones) {
+            if (!z.active || !z._wallMat) continue;
+            const pulse = 0.5 + Math.sin(t * 0.8 + z.phase) * 0.15;
+            z._wallMat.opacity = (0.12 + z.phase * 0.06) * pulse;
+            z._ringMat.opacity = (0.12 + z.phase * 0.05) * pulse;
+            if (z.light) {
+                z.light.intensity = (0.5 + z.phase * 0.3) * pulse;
+            }
+        }
+
+        // Animate radiation clouds (float and pulse)
+        for (const rz of this.radiationZones) {
+            if (!rz.mesh) continue;
+            const float = Math.sin(t * 0.5 + rz.position.x) * 0.5;
+            rz.mesh.position.y = 4 + float;
+            if (rz._gasMat) {
+                const pulse = 0.8 + Math.sin(t * 1.2 + rz.position.z) * 0.2;
+                rz._gasMat.opacity = (rz.intensity === 'high' ? 0.15 : rz.intensity === 'medium' ? 0.12 : 0.08) * pulse;
+            }
+            if (rz._groundGlow) {
+                const pulse = 0.6 + Math.sin(t * 0.7 + rz.position.x * 0.5) * 0.4;
+                rz._groundGlow.material.opacity = (rz.intensity === 'high' ? 0.25 : 0.15) * pulse;
+            }
+            if (rz.light) {
+                rz.light.intensity = (rz.intensity === 'high' ? 3 : rz.intensity === 'medium' ? 2 : 1.5) * (0.7 + Math.sin(t * 1.5) * 0.3);
+            }
+        }
+    }
+
     // Generate loot items based on tier (1-5)
     generateLootForTier(tier) {
         const tierItems = {
