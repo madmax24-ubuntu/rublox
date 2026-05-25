@@ -585,7 +585,7 @@ export class MapGenerator {
             tower.rotation.z = (Math.random() - 0.5) * 0.1;
             tower.castShadow = true; tower.receiveShadow = true;
             this.scene.add(tower);
-            if (Math.random() > 0.4) {
+            if (Math.random() > 0.6) {
                 const debris = new THREE.Mesh(new THREE.CylinderGeometry(tp.r * 0.5, tp.r * 0.3, 2, 6), mat);
                 debris.position.set(cx + tp.x + (Math.random() - 0.5) * 3, tp.h + 1, cz + tp.z + (Math.random() - 0.5) * 3);
                 debris.rotation.z = (Math.random() - 0.5) * 0.8; debris.castShadow = true;
