@@ -258,6 +258,7 @@ export class MapGenerator {
         // Base platform (R=16)
         const base = new THREE.Mesh(new THREE.CylinderGeometry(16, 18, 3, 8), baseMat);
         base.position.y = 1.5; base.castShadow = true; base.receiveShadow = true;
+        base.userData.isCornucopia = true; base.userData.isPlatform = true;
         this.scene.add(base);
 
         // Outer wall ring with gates (4 openings at cardinal directions)
