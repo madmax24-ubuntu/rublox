@@ -1088,6 +1088,7 @@ export class MapGenerator {
             const treeH = 8 + Math.random() * 10, trunkR = 0.3 + Math.random() * 0.4;
             const trunk = new THREE.Mesh(new THREE.CylinderGeometry(trunkR * 0.5, trunkR, treeH, 6), barkMat);
             trunk.position.set(x, treeH / 2, z); trunk.castShadow = true;
+            trunk.userData.isLuminousForest = true; trunk.userData.isTree = true; trunk.userData.isTrunk = true; trunk.userData.isCover = true; trunk.userData.isMapObject = true;
             this.scene.add(trunk);
 
             const canopyColor = glowColors[Math.floor(Math.random() * glowColors.length)];
