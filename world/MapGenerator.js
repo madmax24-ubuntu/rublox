@@ -934,13 +934,14 @@ export class MapGenerator {
             { x: cx, z: cz, r: 6 },
             { x: cx + 20, z: cz - 18, r: 4 },
         ];
-        let poolLight = null;
+        const poolLights = [];
         for (const pp of poolPositions) {
             const pool = new THREE.Mesh(new THREE.CylinderGeometry(pp.r, pp.r, 0.1, 12), poolMat);
             pool.position.set(pp.x, 0.08, pp.z); pool.userData.isCrystalGrotto = true; pool.userData.isPool = true; pool.userData.isWater = true; pool.userData.isMapObject = true;
             this.scene.add(pool);
-            poolLight = new THREE.PointLight(0x4488cc, 2, 15);
+            const poolLight = new THREE.PointLight(0x4488cc, 2, 15);
             poolLight.position.set(pp.x, 1.5, pp.z); this.scene.add(poolLight);
+            poolLights.push(poolLight);
 
             // Edge crystals
             for (let i = 0; i < 5; i++) {
@@ -951,12 +952,10 @@ export class MapGenerator {
                 this.scene.add(ec);
             }
         }
-
-        // Ensure both pools have animated lights (poolLight was last assigned in the loop)
-        for (const pp of poolPositions) {
-            // lights already added per-pool inside the loop above
+        // Register all pool lights for animation
+        for (const pl of poolLights) {
+            this.animatedObjects.push({ type: 'crystalGlow', light: pl, baseIntensity: 2, color: COLOR.crystalGlow });
         }
-        this.animatedObjects.push({ type: 'crystalGlow', light: poolLight || new THREE.PointLight(0x88ccff, 2, 20), baseIntensity: 2, color: COLOR.crystalGlow });
         await this.yieldFrame();
     }
 
