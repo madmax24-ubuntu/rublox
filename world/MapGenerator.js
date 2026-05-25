@@ -340,7 +340,8 @@ export class MapGenerator {
         // Chest glow
         const glowMat = new THREE.MeshStandardMaterial({ color: 0xffaa00, emissive: 0xff8800, emissiveIntensity: 2, transparent: true, opacity: 0.8 });
         const glowCore = new THREE.Mesh(new THREE.SphereGeometry(0.5, 8, 8), glowMat);
-        glowCore.position.set(0, 5, 0); this.scene.add(glowCore);
+        glowCore.position.set(0, 5, 0); glowCore.userData.isCornucopia = true; glowCore.userData.isLootGlow = true; glowCore.userData.isMarker = true; glowCore.userData.isMapObject = true;
+        this.scene.add(glowCore);
         const glowLight = new THREE.PointLight(0xff8800, 4, 35);
         glowLight.position.set(0, 5.5, 0); this.scene.add(glowLight);
 
