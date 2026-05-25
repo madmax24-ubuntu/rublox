@@ -1786,8 +1786,8 @@ class Game {
         this.player.update(delta, this.audioSynth, this.lootManager, this.entityManager);
         this.syncCameraToPlayer();
         this.map.update?.(delta, this.player.position);
-        // this.updateRadiationRainEffect(delta); // ОТКЛЮЧЕНО ДЛЯ ТЕСТА
-        // this.updateWeatherRainEffect(delta); // ОТКЛЮЧЕНО ДЛЯ ТЕСТА
+        this.updateRadiationRainEffect(delta);
+        this.updateWeatherRainEffect(delta);
         this.propVisibilityTimer -= delta;
         if (this.propVisibilityTimer <= 0) {
             const movedSq = this.lastPropVisibilityPos.distanceToSquared(this.player.position);
