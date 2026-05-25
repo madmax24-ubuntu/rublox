@@ -740,8 +740,8 @@ export class MapGenerator {
 
         const barkMat = new THREE.MeshStandardMaterial({ color: COLOR.luminousBark, roughness: 0.9 });
         const glowColors = [COLOR.luminousGlow, 0x44aaff, COLOR.luminousMushroom, 0xffaa44];
-        for (let i = 0; i < 35; i++) {
-            const a = Math.random() * Math.PI * 2, r = 4 + Math.random() * 26;
+        for (let i = 0; i < 45; i++) {
+            const a = Math.random() * Math.PI * 2, r = 4 + Math.random() * 62;
             const x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r;
             const treeH = 6 + Math.random() * 10, trunkR = 0.3 + Math.random() * 0.4;
             const trunk = new THREE.Mesh(new THREE.CylinderGeometry(trunkR * 0.6, trunkR, treeH, 6), barkMat);
