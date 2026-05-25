@@ -934,6 +934,7 @@ export class MapGenerator {
             const lava = new THREE.Mesh(new THREE.BoxGeometry(w, 0.12, d), lavaMat);
             lava.position.set(cx + Math.cos(a) * r, 0.1, cz + Math.sin(a) * r);
             lava.rotation.y = Math.random() * Math.PI;
+            lava.userData.isBurningWastes = true; lava.userData.isLavaPool = true; lava.userData.isHazard = true; lava.userData.isMapObject = true;
             this.scene.add(lava);
         }
 
