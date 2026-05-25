@@ -136,7 +136,7 @@ export class MapGenerator {
     }
 
     async startGeneration() { await this.generate(); }
-    yieldFrame() { return new Promise(resolve => requestAnimationFrame(resolve)); }
+    yieldFrame() { return new Promise(resolve => setTimeout(resolve, 0)); }
 
     async generate() {
         console.log('[MapGenerator] generate() START');
