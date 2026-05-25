@@ -719,8 +719,8 @@ export class MapGenerator {
         }
 
         const smokeMat = new THREE.MeshStandardMaterial({ color: COLOR.smoke, transparent: true, opacity: 0.15, roughness: 1 });
-        for (let i = 0; i < 8; i++) {
-            const a = Math.random() * Math.PI * 2, r = 5 + Math.random() * 20;
+        for (let i = 0; i < 12; i++) {
+            const a = Math.random() * Math.PI * 2, r = 5 + Math.random() * 55;
             const smoke = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 3, 8, 8), smokeMat);
             smoke.position.set(cx + Math.cos(a) * r, 4, cz + Math.sin(a) * r);
             this.scene.add(smoke);
