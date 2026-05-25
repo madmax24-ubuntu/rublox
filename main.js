@@ -368,8 +368,8 @@ class Game {
         this.radiationRainActive = false;
         this.weatherRainEffect = null;
         this.weatherRainActive = false;
-        // this.initRadiationRainEffect(); // ОТКЛЮЧЕНО ДЛЯ ТЕСТА
-        // this.initWeatherRainEffect(); // ОТКЛЮЧЕНО ДЛЯ ТЕСТА
+        this.initRadiationRainEffect();
+        this.initWeatherRainEffect();
 
         this.entityManager = new EntityManager(this.scene);
         this.entityManager.physicsRef = this.physics;
