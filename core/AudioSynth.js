@@ -1089,6 +1089,96 @@ export class AudioSynth {
 
         playTheme(this.musicThemeIndex);
     }
+
+    // Zone phase transition alert (fog closing in)
+    playZonePhaseTransition(phase) {
+        if (!this.audioContext) return;
+        const ctx = this.audioContext;
+        const now = ctx.currentTime;
+
+        // Alert beep pattern (3 quick beeps for warning)
+        for (let i = 0; i < 3; i++) {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(phase === 3 ? 880 : 660, now + i * 0.2);
+            osc.frequency.exponentialRampToValueAtTime(phase === 3 ? 1100 : 880, now + i * 0.2 + 0.08);
+            gain.gain.setValueAtTime(this.sfxVolume * 0.25, now + i * 0.2);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.2 + 0.15);
+            osc.connect(gain);
+            gain.connect(this.sfxGain);
+            osc.start(now + i * 0.2);
+            osc.stop(now + i * 0.2 + 0.16);
+        }
+
+        // Long warning drone
+        const drone = ctx.createOscillator();
+        const droneGain = ctx.createGain();
+        drone.type = 'sawtooth';
+        drone.frequency.value = 120 + phase * 40;
+        droneGain.gain.setValueAtTime(this.sfxVolume * 0.06, now + 0.6);
+        droneGain.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
+        const droneFilter = ctx.createBiquadFilter();
+        droneFilter.type = 'lowpass';
+        droneFilter.frequency.value = 400 + phase * 100;
+        drone.connect(droneFilter);
+        droneFilter.connect(droneGain);
+        droneGain.connect(this.sfxGain);
+        drone.start(now + 0.6);
+        drone.stop(now + 2.6);
+    }
+
+    // Radiation warning (low pulsing hum)
+    playRadiationWarning(level = 'low') {
+        if (!this.audioContext) return;
+        const ctx = this.audioContext;
+        const now = ctx.currentTime;
+
+        const levels = { high: 3, medium: 2, low: 1 };
+        const count = levels[level] || 1;
+
+        for (let i = 0; i < count; i++) {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            const baseFreq = level === 'high' ? 200 : level === 'medium' ? 170 : 140;
+            osc.frequency.value = baseFreq;
+            gain.gain.setValueAtTime(this.sfxVolume * 0.04, now + i * 0.4);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.4 + 0.35);
+            osc.connect(gain);
+            gain.connect(this.sfxGain);
+            osc.start(now + i * 0.4);
+            osc.stop(now + i * 0.4 + 0.36);
+        }
+    }
+
+    // Radiation zone damage tick (short sharp hit)
+    playRadiationTick() {
+        if (!this.audioContext) return;
+        const ctx = this.audioContext;
+        const now = ctx.currentTime;
+
+        // Noise burst
+        const bufferSize = ctx.sampleRate * 0.1;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * 0.3;
+        }
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(this.sfxVolume * 0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = 300;
+        filter.Q.value = 2;
+        source.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.sfxGain);
+        source.start(now);
+    }
 }
 
 
