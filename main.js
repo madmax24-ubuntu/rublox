@@ -333,6 +333,10 @@ class Game {
 
         // Ждём завершения генерации карты
         await this.map.ready;
+
+        // Performance: setup LOD and frustum culling
+        this.map.setupLOD?.(this.isMobile());
+        this.map.enableOptimizedCulling?.();
         
         // Камера для тестирования карты (вид сверху)
         if (this.camera) {
