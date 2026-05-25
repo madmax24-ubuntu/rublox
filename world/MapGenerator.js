@@ -657,9 +657,12 @@ export class MapGenerator {
         const poolLight = new THREE.PointLight(0x4488cc, 2, 20); poolLight.position.set(cx, 2, cz); this.scene.add(poolLight);
 
         const caveMat = new THREE.MeshStandardMaterial({ color: 0x1a1a2a, roughness: 1.0 });
+        // Small cave-like formations
         for (const side of [-1, 1]) {
-            const cw = new THREE.Mesh(new THREE.SphereGeometry(5, 8, 8, 0, Math.PI, 0, Math.PI / 2), caveMat);
-            cw.position.set(cx + side * 5, 0, cz + 10); cw.scale.set(1, 1, 0.5);
+            const caveR = 3 + Math.random() * 2;
+            const cw = new THREE.Mesh(new THREE.SphereGeometry(caveR, 6, 6), caveMat);
+            cw.position.set(cx + side * (8 + Math.random() * 5), caveR * 0.3, cz + (Math.random() - 0.5) * 10);
+            cw.scale.set(1.5, 0.6, 1);
             this.scene.add(cw);
         }
         this.animatedObjects.push({ type: 'crystalGlow', mesh: poolLight, baseIntensity: 2, color: COLOR.crystalGlow });
