@@ -731,10 +731,11 @@ export class MapGenerator {
             const a = Math.random() * Math.PI * 2, r = 8 + Math.random() * 55;
             const h = 2 + Math.random() * 5;
             const isFallen = Math.random() > 0.6;
-            const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, h, 8), towerMat);
+   const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, h, 8), towerMat);
             pillar.position.set(cx + Math.cos(a) * r, isFallen ? 0.3 : h / 2, cz + Math.sin(a) * r);
             pillar.rotation.z = isFallen ? Math.PI / 2 : (Math.random() - 0.5) * 0.3;
             pillar.castShadow = true;
+            pillar.userData.isCitadel = true; pillar.userData.isPillar = true; pillar.userData.isFallen = isFallen; pillar.userData.isMapObject = true;
             this.scene.add(pillar);
         }
 
