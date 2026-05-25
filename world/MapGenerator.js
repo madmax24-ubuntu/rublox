@@ -591,7 +591,8 @@ export class MapGenerator {
                 for (const side of [-1, 1]) {
                     const px = x + nx * (w * 1.1 + 0.5), pz = z + nz * (w * 1.1 + 0.5);
                     const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 3.5, 6), lanternMat);
-                    post.position.set(px, 1.75, pz); post.castShadow = true;
+ post.position.set(px, 1.75, pz); post.castShadow = true;
+                    post.userData.isPath = true; post.userData.isLanternPost = true; post.userData.isSupport = true; post.userData.isMapObject = true;
                     this.scene.add(post);
                     const head = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.5, 0.4), lanternMat);
                     head.position.set(px, 3.6, pz); head.castShadow = true;
