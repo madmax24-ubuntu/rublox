@@ -467,6 +467,12 @@ class Game {
         this.zonePhaseTarget = this.zone.getCurrentRadius();
         this.chestRespawnTimer = 55;
 
+        // Fog zone phase tracking
+        this.fogPhaseTimer = 0;
+        this.fogPhaseEnabled = false;
+        this.lastRadiationLevel = null;
+        this.zoneDamageTickTimer = 0;
+
         this.gameLoop = new GameLoop(this);
         this.applyRoundMode('hybrid');
         this.applyUserSettings(this.loadUserSettings());
