@@ -1024,6 +1024,7 @@ export class MapGenerator {
                 wall.position.set(bx + nx * (bw / 2), bh / 2, bz + nz * (bd / 2));
                 wall.rotation.y = wa;
                 wall.castShadow = true; wall.receiveShadow = true;
+                wall.userData.isBurningWastes = true; wall.userData.isBunker = true; wall.userData.isCover = true; wall.userData.isShelter = true; wall.userData.isMapObject = true;
                 this.scene.add(wall);
             }
             // Door frame
@@ -1031,12 +1032,14 @@ export class MapGenerator {
                 const doorPost = new THREE.Mesh(new THREE.BoxGeometry(0.5, bh, 0.8), bunkerMat);
                 doorPost.position.set(bx + side * 1.75, bh / 2, bz + bd / 2);
                 doorPost.castShadow = true;
+                doorPost.userData.isBurningWastes = true; doorPost.userData.isBunker = true; doorPost.userData.isMapObject = true;
                 this.scene.add(doorPost);
             }
             // Roof edge
             const roofEdge = new THREE.Mesh(new THREE.BoxGeometry(bw + 0.5, 0.2, bd + 0.5), bunkerMat);
             roofEdge.position.set(bx, bh, bz);
             roofEdge.castShadow = true;
+            roofEdge.userData.isBurningWastes = true; roofEdge.userData.isBunker = true; roofEdge.userData.isRoof = true; roofEdge.userData.isCover = true; roofEdge.userData.isMapObject = true;
             this.scene.add(roofEdge);
 
             this.colliders.push({ type: 'box', position: new THREE.Vector3(bx, bh / 2, bz), size: new THREE.Vector3(bw, bh, bd) });
