@@ -445,11 +445,13 @@ export class MapGenerator {
                     const post = new THREE.Mesh(new THREE.BoxGeometry(1, wallH + 1, 1), stoneMat);
                     post.position.set(x + Math.cos(ca) * 3.5, (wallH + 1) / 2, z + Math.sin(ca) * 3.5);
                     post.castShadow = true;
+                    post.userData.isInnerRing = true; post.userData.isOutpost = true; post.userData.isCornerPost = true; post.userData.isMapObject = true;
                     this.scene.add(post);
                 }
                 // Roof ring
                 const roof = new THREE.Mesh(new THREE.TorusGeometry(3.5, 0.3, 4, 8), stoneMat);
                 roof.position.set(x, wallH + 0.5, z); roof.rotation.x = Math.PI / 2;
+                roof.userData.isInnerRing = true; roof.userData.isOutpost = true; roof.userData.isRoof = true; roof.userData.isMapObject = true;
                 this.scene.add(roof);
 
                 this.colliders.push({ type: 'box', position: new THREE.Vector3(x, wallH / 2, z), size: new THREE.Vector3(8, wallH, 8) });
