@@ -605,10 +605,10 @@ export class MapGenerator {
         }
 
         const mossMat = new THREE.MeshStandardMaterial({ color: COLOR.ruinMoss, roughness: 1.0 });
-  for (let i = 0; i < 15; i++) {
+  for (let i = 0; i < 10; i++) {
             const a = Math.random() * Math.PI * 2, r = 5 + Math.random() * 60;
-            const moss = new THREE.Mesh(new THREE.SphereGeometry(1.5 + Math.random() * 2, 6, 4, 0, Math.PI * 2, 0, Math.PI / 2), mossMat);
-            moss.position.set(cx + Math.cos(a) * r, 0, cz + Math.sin(a) * r); moss.receiveShadow = true;
+            const moss = new THREE.Mesh(new THREE.SphereGeometry(2 + Math.random() * 2, 6, 4, 0, Math.PI * 2, 0, Math.PI / 2), mossMat);
+            moss.position.set(cx + Math.cos(a) * r, 0.05, cz + Math.sin(a) * r); moss.receiveShadow = true;
             this.scene.add(moss);
         }
         for (let i = 0; i < 15; i++) {
