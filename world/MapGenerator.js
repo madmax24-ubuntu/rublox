@@ -2302,16 +2302,9 @@ export class MapGenerator {
         const now = performance.now();
 
         for (const trap of this.traps) {
-            if (trap.triggered) {
-                const elapsed = now - trap.triggerTime;
-                if (elapsed > trap.cooldown) {
-                    trap.triggered = false;
-                    trap.triggerTime = 0;
-                } else {
-                    continue;
-                }
+            if (trap.triggered && (now - trap.triggerTime) < trap.cooldown) {
+                continue;
             }
-            if (trap.triggered) continue;
 
             const dx = pos.x - trap.position.x;
             const dz = pos.z - trap.position.z;
