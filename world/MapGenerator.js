@@ -390,10 +390,12 @@ export class MapGenerator {
             for (const side of [-1, 1]) {
                 const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 2.5, 6), rackMat);
                 post.position.set(rx + side * 1.2, 1.25, rz); post.castShadow = true;
+                post.userData.isCornucopia = true; post.userData.isWeaponsRack = true; post.userData.isSupport = true; post.userData.isMapObject = true;
                 this.scene.add(post);
             }
             const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.6, 6), rackMat);
             bar.position.set(rx, 2.5, rz); bar.rotation.z = Math.PI / 2;
+            bar.userData.isCornucopia = true; bar.userData.isWeaponsRack = true; bar.userData.isWeaponHolder = true; bar.userData.isMapObject = true;
             this.scene.add(bar);
         }
 
