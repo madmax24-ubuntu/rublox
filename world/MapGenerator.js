@@ -1375,6 +1375,7 @@ export class MapGenerator {
             const a = Math.random() * Math.PI * 2, r = 100 + Math.random() * 80;
             const shock = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 5, 8), shockMat);
             shock.position.set(Math.cos(a) * r, 2.5, Math.sin(a) * r);
+            shock.userData.isHazard = true; shock.userData.isShock = true; shock.userData.isMapObject = true;
             this.scene.add(shock);
             this.hazards.push({
                 type: 'shock',
