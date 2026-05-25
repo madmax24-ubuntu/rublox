@@ -1773,6 +1773,10 @@ export class MapGenerator {
         this.scene.add(activeWall);
         this._activeWall = activeWall;
         this._activeWallMat = activeWallMat;
+
+        // Initially hide the active danger ring (will be set on first phase activate)
+        this.activeFogRing.visible = false;
+        this._activeWall.visible = false;
     }
 
     // ===================== RADIATION ZONES =====================
