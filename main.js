@@ -1275,17 +1275,26 @@ class Game {
     }
 
     startZoneCycle() {
-        this.zonePhase = 'disabled';
-        this.zonePhaseTimer = 999999;
+        this.zonePhase = 'waiting';
+        this.zonePhaseTimer = GAME_CONFIG.zone.waitStartSeconds;
         this.zonePhaseIndex = 0;
         this.zonePhaseTarget = this.zone.getCurrentRadius();
         this.chestRespawnTimer = 55;
         const fullRadius = Math.min(this.map?.halfSize || this.zone.getCurrentRadius(), 300);
         this.zone.setCurrentRadius(fullRadius);
         this.zone.shrink(fullRadius);
-        this.zone.shrinkSpeed = 0;
-        if (this.zone.zoneMesh) this.zone.zoneMesh.visible = false;
-        if (this.zone.ringMesh) this.zone.ringMesh.visible = false;
+        this.zone.shrinkSpeed = GAME_CONFIG.zone.shrinkPhaseSeconds > 0 ? fullRadius / GAME_CONFIG.zone.shrinkPhaseSeconds : 0;
+        if (this.zone.zoneMesh) this.zone.zoneMesh.visible = true;
+        if (this.zone.ringMesh) this.zone.ringMesh.visible = true;
+
+        // Enable fog zones
+        this.fogPhaseEnabled = true;
+        this.fogPhaseTimer = 0;
+        this.lastRadiationLevel = null;
+        this.zoneDamageTickTimer = 0;
+        if (this.map?.activateFogPhase) {
+            this.map.activateFogPhase(0);
+        }
     }
 
     updateZoneCycle(delta) {
