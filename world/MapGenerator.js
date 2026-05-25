@@ -508,6 +508,7 @@ export class MapGenerator {
             const mound = new THREE.Mesh(new THREE.ConeGeometry(4, 3, 8), moundMat);
             mound.position.set(x, 1.5, z);
             mound.castShadow = true; mound.receiveShadow = true;
+            mound.userData.isInnerRing = true; mound.userData.isScoutingMound = true; mound.userData.isElevated = true; mound.userData.isMapObject = true;
             this.scene.add(mound);
             // Scouting platform on top
             const plat = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 0.2, 8), stoneMat);
