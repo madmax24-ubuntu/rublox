@@ -18,6 +18,17 @@ export const GAME_CONFIG = {
         waitBetweenSeconds: 22,
         shrinkPhaseSeconds: 10
     },
+    fogZones: {
+        enabled: true,
+        phaseIntervals: [60, 120, 180, Infinity],
+        phaseNames: ['Внешняя', 'Средняя', 'Внутренняя', 'Центральная'],
+        damageMultipliers: [0.2, 0.5, 1.0, 2.0],
+        radiationZones: {
+            high: { radius: 50, damage: 0.3 },
+            medium: { radius: 35, damage: 0.15 },
+            low: { radius: 30, damage: 0.1 }
+        }
+    },
     events: {
         randomTimerMin: 35,
         randomTimerVariance: 25,
