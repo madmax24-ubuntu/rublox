@@ -1494,6 +1494,21 @@ export class MapGenerator {
                         obj.light.intensity = obj.baseIntensity + Math.sin(t * 2) * 0.4;
                     };
                     break;
+                case 'fireFlicker': {
+                    const base = obj.baseIntensity;
+                    obj.update = () => {
+                        const t = Date.now() * 0.01;
+                        // Rapid flicker using multiple sine waves
+                        const flicker = base + Math.sin(t * 3.7) * 0.6 + Math.sin(t * 7.3) * 0.3 + Math.sin(t * 13.1) * 0.15;
+                        obj.light.intensity = Math.max(0.3, flicker);
+                        if (obj.flame) {
+                            obj.flame.scale.y = 0.8 + Math.sin(t * 5) * 0.3;
+                            obj.flame.scale.x = 0.9 + Math.sin(t * 4.3) * 0.15;
+                            obj.flame.material.opacity = 0.6 + Math.sin(t * 6) * 0.25;
+                        }
+                    };
+                    break;
+                }
                 default:
                     obj.update = () => {};
             }
