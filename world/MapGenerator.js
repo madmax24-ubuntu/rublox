@@ -1156,7 +1156,8 @@ export class MapGenerator {
                 new THREE.SphereGeometry(0.25 + Math.random() * 0.35, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2),
                 mushMat
             );
-            cap.position.set(x, mushH, z); this.scene.add(cap);
+            cap.position.set(x, mushH, z); cap.userData.isLuminousForest = true; cap.userData.isMushroom = true; cap.userData.isCap = true; cap.userData.isGlow = true; cap.userData.isMapObject = true;
+            this.scene.add(cap);
         }
 
         // === 2 PONDS (tactical water features) ===
