@@ -841,6 +841,7 @@ export class MapGenerator {
                 new THREE.MeshStandardMaterial({ color: COLOR.crystalGlow, emissive: COLOR.crystalGlow, emissiveIntensity: 1, transparent: true, opacity: 0.6 })
             );
             caveGlow.position.set(baseX, 2, baseZ + 2);
+            caveGlow.userData.isCrystalGrotto = true; caveGlow.userData.isCaveGlow = true; caveGlow.userData.isMapObject = true;
             this.scene.add(caveGlow);
 
             // Crystal stalactites inside
