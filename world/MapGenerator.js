@@ -2015,7 +2015,21 @@ export class MapGenerator {
         }
 
         this.currentFogPhase = phaseIndex;
-        return this.getActiveSafeRadius();
+        const safeR = this.getActiveSafeRadius();
+
+        // Update the active danger ring to show the safe boundary
+        if (this.activeFogRing) {
+            // Recreate geometry at the correct radius
+            this.activeFogRing.geometry.dispose();
+            this.activeFogRing.geometry = new THREE.RingGeometry(safeR - 2, safeR + 2, 64);
+            this.activeFogRing.scale.set(1, 1, 1);
+        }
+        if (this._activeWall) {
+            this._activeWall.geometry.dispose();
+            this._activeWall.geometry = new THREE.CylinderGeometry(safeR, safeR, 14, 64, 1, true);
+        }
+
+        return safeR;
     }
 
     // Get the current safe radius (inner radius of the most restrictive active fog zone)
