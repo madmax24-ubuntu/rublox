@@ -575,7 +575,8 @@ export class MapGenerator {
                 const x = Math.cos(a) * r, z = Math.sin(a) * r;
                 const tile = new THREE.Mesh(new THREE.BoxGeometry(w * 1.6, 0.05, w * 1.1), pathMat);
                 tile.position.set(x, -0.01, z); tile.rotation.y = -a + Math.PI / 2;
-                tile.receiveShadow = true; this.scene.add(tile);
+                tile.receiveShadow = true; tile.userData.isPath = true; tile.userData.isFloor = true; tile.userData.isMapObject = true;
+                this.scene.add(tile);
             }
 
             // Lantern posts every 12 tiles
