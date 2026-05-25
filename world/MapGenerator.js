@@ -296,10 +296,10 @@ export class MapGenerator {
         }
 
         // Main body
-        const hull = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 10), bodyMat);
+         const hull = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 10), bodyMat);
         hull.position.set(0, 8, 0); hull.rotation.y = Math.PI / 4; hull.scale.set(1, 1, 0.6);
         hull.castShadow = true; hull.receiveShadow = true;
-        hull.userData.isCornucopia = true; hull.userData.isBody = true;
+        hull.userData.isCornucopia = true; hull.userData.isBody = true; hull.userData.isMapObject = true;
         this.scene.add(hull);
 
         // Left horn
