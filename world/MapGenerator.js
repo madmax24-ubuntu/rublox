@@ -2226,6 +2226,13 @@ export class MapGenerator {
                 rz.light.intensity = (rz.intensity === 'high' ? 3 : rz.intensity === 'medium' ? 2 : 1.5) * (0.7 + Math.sin(t * 1.5) * 0.3);
             }
         }
+
+        // Animate fire pits and other dynamic objects
+        for (const obj of this.animatedObjects) {
+            if (obj.update) {
+                obj.update();
+            }
+        }
     }
 
     // Generate loot items based on tier (1-5)
