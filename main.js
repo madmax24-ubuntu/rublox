@@ -327,12 +327,9 @@ class Game {
         // Yield чтобы браузер успел обработать события
         await new Promise(r => requestAnimationFrame(r));
 
-        console.log('[Game] Creating MapGenerator');
         // Этап 4: Генерация карты (самый долгий этап)
                 this.map = new MapGenerator(this.scene);
-        console.log('[Game] MapGenerator created');
         await this.map.startGeneration();
-        console.log('[Game] startGeneration done');
         
         // Ждём завершения генерации карты
         await this.map.ready;
