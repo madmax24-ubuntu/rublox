@@ -139,34 +139,46 @@ export class MapGenerator {
     yieldFrame() { return new Promise(resolve => requestAnimationFrame(resolve)); }
 
     async generate() {
-        this.generateHeightMap();
+        console.log('[MapGenerator] generate() START');
+        try {
+            this.generateHeightMap();
+            console.log('[MapGenerator] HeightMap done');
 
-        await this.buildArenaFloor();
-        await this.yieldFrame();
+            await this.buildArenaFloor();
+            console.log('[MapGenerator] ArenaFloor done');
+            await this.yieldFrame();
 
-        await this.buildForcefield();
-        await this.yieldFrame();
+            await this.buildForcefield();
+            console.log('[MapGenerator] Forcefield done');
+            await this.yieldFrame();
 
-        await this.buildCornucopia();
-        await this.yieldFrame();
+            await this.buildCornucopia();
+            console.log('[MapGenerator] Cornucopia done');
+            await this.yieldFrame();
 
-        await this.buildInnerRing();
-        await this.yieldFrame();
+            await this.buildInnerRing();
+            console.log('[MapGenerator] InnerRing done');
+            await this.yieldFrame();
 
-        await this.buildBiomePaths();
-        await this.yieldFrame();
+            await this.buildBiomePaths();
+            console.log('[MapGenerator] BiomePaths done');
+            await this.yieldFrame();
 
-        await this.buildRuinedCitadel();
-        await this.yieldFrame();
+            await this.buildRuinedCitadel();
+            console.log('[MapGenerator] RuinedCitadel done');
+            await this.yieldFrame();
 
-        await this.buildCrystalGrotto();
-        await this.yieldFrame();
+            await this.buildCrystalGrotto();
+            console.log('[MapGenerator] CrystalGrotto done');
+            await this.yieldFrame();
 
-        await this.buildBurningWastes();
-        await this.yieldFrame();
+            await this.buildBurningWastes();
+            console.log('[MapGenerator] BurningWastes done');
+            await this.yieldFrame();
 
-        await this.buildLuminousForest();
-        await this.yieldFrame();
+            await this.buildLuminousForest();
+            console.log('[MapGenerator] LuminousForest done');
+            await this.yieldFrame();
 
         this.buildBridges();
         this.buildOuterOutposts();
