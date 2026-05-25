@@ -180,19 +180,14 @@ export class MapGenerator {
 
             this.setupAnimations();
 
-            this.scene.traverse(obj => {
+           this.scene.traverse(obj => {
                 if (obj.isMesh || obj.isGroup || obj.isInstancedMesh) {
                     obj.userData.mapGenerated = true;
                     obj.frustumCulled = false;
                 }
             });
 
-            console.log('[MapGenerator] Generation COMPLETE');
             this._resolveReady();
-        } catch (e) {
-            console.error('[MapGenerator] ERROR:', e.message, e.stack);
-            this._resolveReady();
-        }
     }
 
     // ===================== ZONE 0: ARENA FLOOR =====================
