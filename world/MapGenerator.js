@@ -1905,6 +1905,33 @@ export class MapGenerator {
     }
 
     // ===================== HEIGHT MAP =====================
+    worldToGrid(x, z) {
+        return {
+            x: Math.round(x / this.tileSize + this.gridWidth / 2),
+            y: Math.round(z / this.tileSize + this.gridHeight / 2)
+        };
+    }
+
+    getHeightAt(x, z) {
+        if (!this.heightMap) return 0.4;
+        const grid = this.worldToGrid(x, z);
+        const gx = Math.max(0, Math.min(this.gridWidth - 1, grid.x));
+        const gy = Math.max(0, Math.min(this.gridHeight - 1, grid.y));
+        const base = this.heightMap?.[gy]?.[gx] ?? 0;
+        return base + 0.4;
+    }
+
+    getSurfaceHeightAt(x, z) {
+        let top = this.getHeightAt(x, z);
+        for (const box of this.colliders || []) {
+            if (!box?.min || !box?.max) continue;
+            if (x < box.min.x || x > box.max.x) continue;
+            if (z < box.min.z || z > box.max.z) continue;
+            if (box.max.y > top) top = box.max.y;
+        }
+        return top;
+    }
+
     generateHeightMap() {
         const size = 512, res = 128, step = size / res;
         this.heightMap = Array.from({ length: res + 1 }, () => new Float32Array(res + 1));
