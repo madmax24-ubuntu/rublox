@@ -817,6 +817,7 @@ export class MapGenerator {
             );
             col.position.set(cx + Math.cos(a) * r, 3, cz + Math.sin(a) * r);
             col.castShadow = true;
+            col.userData.isCrystalGrotto = true; col.userData.isCrystal = true; col.userData.isColumn = true; col.userData.isCover = true; col.userData.isMapObject = true;
             this.scene.add(col);
         }
 
