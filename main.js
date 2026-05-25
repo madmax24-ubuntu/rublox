@@ -413,7 +413,7 @@ class Game {
         this.poiSpawnCursor = 0;
         this.spawnBots();
         this.rebuildSpawnCaches();
-        // this.spawnEnvironmentEntities(); // ОТКЛЮЧЕНО ДЛЯ ТЕСТА КАРТЫ
+        this.spawnEnvironmentEntities();
         this.gateClosed = false;
         this.nightNotified = false;
         this.nightWaveTimer = 0;
