@@ -1879,26 +1879,26 @@ class Game {
 
         this.botFrameCounter = (this.botFrameCounter + 1) % 8;
         const farBotCullDistSq = this.isMobile() ? (95 * 95) : (135 * 135);
-        // for (let botIndex = 0; botIndex < this.bots.length; botIndex++) { // ОТКЛЮЧЕНО ДЛЯ ТЕСТА
-        //     const bot = this.bots[botIndex];
-        //     if (!bot.isAlive) continue;
-        //     const distSq = bot.position.distanceToSquared(this.player.position);
-        //     const isFarIdleBot = distSq > farBotCullDistSq
-        //         && !bot.target
-        //         && !bot.assistTarget
-        //         && bot.state !== 'combat'
-        //         && bot.state !== 'chase'
-        //         && bot.state !== 'engage';
-        //     if (isFarIdleBot && ((this.botFrameCounter + botIndex) % 2) !== 0) {
-        //         if (bot.mesh) {
-        //             bot.mesh.position.copy(bot.position);
-        //             bot.mesh.position.y = bot.position.y - (bot.physics.height - 0.2);
-        //             if (bot.healthBar) bot.updateHealthBar(0.05);
-        //         }
-        //         continue;
-        //     }
-        //     bot.update(delta, this.botBrains[botIndex], this.entityManager, this.lootManager, this.audioSynth, this.physics, this.zone);
-        // }
+        for (let botIndex = 0; botIndex < this.bots.length; botIndex++) {
+            const bot = this.bots[botIndex];
+            if (!bot.isAlive) continue;
+            const distSq = bot.position.distanceToSquared(this.player.position);
+            const isFarIdleBot = distSq > farBotCullDistSq
+                && !bot.target
+                && !bot.assistTarget
+                && bot.state !== 'combat'
+                && bot.state !== 'chase'
+                && bot.state !== 'engage';
+            if (isFarIdleBot && ((this.botFrameCounter + botIndex) % 2) !== 0) {
+                if (bot.mesh) {
+                    bot.mesh.position.copy(bot.position);
+                    bot.mesh.position.y = bot.position.y - (bot.physics.height - 0.2);
+                    if (bot.healthBar) bot.updateHealthBar(0.05);
+                }
+                continue;
+            }
+            bot.update(delta, this.botBrains[botIndex], this.entityManager, this.lootManager, this.audioSynth, this.physics, this.zone);
+        }
         if (this.gameState === 'playing') {
             if (this.activeEvent?.type === 'radiationRain') {
                 for (const bot of this.bots) {
