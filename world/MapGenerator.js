@@ -720,6 +720,7 @@ export class MapGenerator {
                 new THREE.SphereGeometry(1.5 + Math.random() * 2.5, 6, 4, 0, Math.PI * 2, 0, Math.PI / 2),
                 mossMat
             );
+          moss.userData.isCitadel = true; moss.userData.isMoss = true; moss.userData.isMapObject = true;
             moss.position.set(cx + Math.cos(a) * r, 0.05, cz + Math.sin(a) * r);
             moss.receiveShadow = true;
             this.scene.add(moss);
