@@ -1403,7 +1403,8 @@ export class MapGenerator {
                 const ra = (j / 3) * Math.PI * 2;
                 rock.position.set(x + Math.cos(ra) * 2, 0.4, z + Math.sin(ra) * 2);
                 rock.rotation.set(Math.random(), Math.random(), Math.random());
-                rock.castShadow = true;
+              rock.castShadow = true;
+                rock.userData.isLootCluster = true; rock.userData.isRock = true; rock.userData.isCover = true; rock.userData.isMapObject = true;
                 this.scene.add(rock);
             }
 
