@@ -521,6 +521,7 @@ export class MapGenerator {
                 const ra = (r2 / 8) * Math.PI * 2;
                 const post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1, 4), railMat2);
                 post.position.set(x + Math.cos(ra) * 1.9, 3.7, z + Math.sin(ra) * 1.9);
+                post.userData.isInnerRing = true; post.userData.isScoutingMound = true; post.userData.isRail = true; post.userData.isMapObject = true;
                 this.scene.add(post);
             }
         }
