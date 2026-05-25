@@ -596,6 +596,7 @@ export class MapGenerator {
                     this.scene.add(post);
                     const head = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.5, 0.4), lanternMat);
                     head.position.set(px, 3.6, pz); head.castShadow = true;
+                    head.userData.isPath = true; head.userData.isLanternPost = true; head.userData.isLanternHead = true; head.userData.isMapObject = true;
                     this.scene.add(head);
                     const glow = new THREE.Mesh(new THREE.SphereGeometry(0.2, 6, 6), lanternGlowMat);
                     glow.position.set(px, 3.6, pz);
