@@ -416,17 +416,28 @@ export class MapGenerator {
         this.colliders.push({ type: 'box', position: new THREE.Vector3(0, 8, 0), size: new THREE.Vector3(14, 12, 14) });
         this.colliders.push({ type: 'cylinder', position: new THREE.Vector3(0, 4, 0), radius: 18, height: 8 });
 
-        // Spawn pads (11 total)
+        // Spawn pads (11 total) — visual markers + data
         // Center pad
-        this.spawnPads.push({ x: 0, y: 5, z: 0, radius: 3.5 });
+        const centerPad = new THREE.Mesh(new THREE.CylinderGeometry(3.5, 3.5, 0.1, 16),
+            new THREE.MeshStandardMaterial({ color: 0x88ccff, emissive: 0x4488ff, emissiveIntensity: 0.5, transparent: true, opacity: 0.6 }));
+        centerPad.position.set(0, 3.05, 0); centerPad.userData.isCornucopia = true; centerPad.userData.isSpawnPad = true;
+        this.scene.add(centerPad); this.spawnPads.push({ x: 0, y: 5, z: 0, radius: 3.5 });
         // Inner ring (5)
         for (let i = 0; i < 5; i++) {
             const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
+            const pad = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 0.1, 12),
+                new THREE.MeshStandardMaterial({ color: 0x88ccff, emissive: 0x4488ff, emissiveIntensity: 0.5, transparent: true, opacity: 0.5 }));
+            pad.position.set(Math.cos(a) * 8, 3.05, Math.sin(a) * 8); pad.userData.isCornucopia = true; pad.userData.isSpawnPad = true;
+            this.scene.add(pad);
             this.spawnPads.push({ x: Math.cos(a) * 8, y: 3, z: Math.sin(a) * 8, radius: 2 });
         }
         // Outer positions (5)
         for (let i = 0; i < 5; i++) {
             const a = (i / 5) * Math.PI * 2 - Math.PI / 2 + Math.PI / 5;
+            const pad = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.8, 0.1, 12),
+                new THREE.MeshStandardMaterial({ color: 0x88ccff, emissive: 0x4488ff, emissiveIntensity: 0.5, transparent: true, opacity: 0.5 }));
+            pad.position.set(Math.cos(a) * 16, 3.05, Math.sin(a) * 16); pad.userData.isCornucopia = true; pad.userData.isSpawnPad = true;
+            this.scene.add(pad);
             this.spawnPads.push({ x: Math.cos(a) * 16, y: 3, z: Math.sin(a) * 16, radius: 1.8 });
         }
 
