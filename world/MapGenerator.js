@@ -1903,13 +1903,4 @@ export class MapGenerator {
                 this.heightMap[i][j] = this.noise.fbm(x * 0.01, z * 0.01, 4, 2.0, 0.5) * 15;
             }
     }
-    generateHeightMap() {
-        const size = 512, res = 128, step = size / res;
-        this.heightMap = Array.from({ length: res + 1 }, () => new Float32Array(res + 1));
-        for (let i = 0; i <= res; i++)
-            for (let j = 0; j <= res; j++) {
-                const x = (i - res / 2) * step, z = (j - res / 2) * step;
-                this.heightMap[i][j] = this.noise.fbm(x * 0.01, z * 0.01, 4, 2.0, 0.5) * 15;
-            }
-    }
 }
