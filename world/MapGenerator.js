@@ -1190,7 +1190,7 @@ export class MapGenerator {
             const mushH = 0.3 + Math.random() * 0.6;
             const stem = new THREE.Mesh(
                 new THREE.CylinderGeometry(0.04, 0.08, mushH, 6),
-                new THREE.MeshStandardMaterial({ color: 0x777777, roughness: 0.8 })
+                new THREE.MeshStandardMaterial({ color: COLOR.luminousBark, roughness: 0.8 })
             );
             stem.position.set(x, mushH / 2, z); stem.userData.isLuminousForest = true; stem.userData.isMushroom = true; stem.userData.isStem = true; stem.userData.isMapObject = true;
             this.scene.add(stem);
