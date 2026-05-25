@@ -1510,6 +1510,61 @@ export class MapGenerator {
     getLootData() { return this.lootData; }
     getAnimatedObjects() { return this.animatedObjects; }
 
+    // ===================== FIRE PITS =====================
+    // Atmospheric fire pits with flickering point lights
+    buildFirePits() {
+        const fireMat = new THREE.MeshStandardMaterial({
+            color: 0x2a2a2a, roughness: 0.9, metalness: 0.3
+        });
+        const flameMat = new THREE.MeshBasicMaterial({
+            color: 0xff6600, transparent: true, opacity: 0.8, depthWrite: false
+        });
+
+        const pitLocations = [
+            // Around Cornucopia
+            { x: 18, z: 18 }, { x: -18, z: 18 }, { x: 18, z: -18 }, { x: -18, z: -18 },
+            // Shelter areas
+            { x: 80, z: 80 }, { x: -80, z: 80 }, { x: 80, z: -80 }, { x: -80, z: -80 },
+            // Biome transitions
+            { x: 130, z: 0 }, { x: -130, z: 0 }, { x: 0, z: 130 }, { x: 0, z: -130 },
+            // Inner ring
+            { x: 50, z: 50 }, { x: -50, z: 50 }, { x: 50, z: -50 }, { x: -50, z: -50 },
+        ];
+
+        for (const loc of pitLocations) {
+            // Stone ring base
+            for (let i = 0; i < 6; i++) {
+                const angle = (i / 6) * Math.PI * 2;
+                const stone = new THREE.Mesh(new THREE.DodecahedronGeometry(0.4, 0), fireMat);
+                stone.position.set(loc.x + Math.cos(angle) * 0.8, 0.25, loc.z + Math.sin(angle) * 0.8);
+                stone.rotation.set(Math.random(), Math.random(), Math.random());
+                stone.userData.isFirePit = true;
+                this.scene.add(stone);
+            }
+
+            // Flame (animated)
+            const flame = new THREE.Mesh(new THREE.ConeGeometry(0.25, 1.2, 5), flameMat.clone());
+            flame.position.set(loc.x, 0.8, loc.z);
+            flame.userData.isFirePit = true;
+            flame.userData.isFlame = true;
+            this.scene.add(flame);
+
+            // Flickering light
+            const light = new THREE.PointLight(0xff6622, 2, 18);
+            light.position.set(loc.x, 1.5, loc.z);
+            light.userData.isFirePit = true;
+            this.scene.add(light);
+
+            // Add to animated objects for flicker
+            this.animatedObjects.push({
+                type: 'fireFlicker',
+                light: light,
+                baseIntensity: 2,
+                flame: flame
+            });
+        }
+    }
+
     // ===================== TRAPS =====================
     // Hunger Games traps: spike traps, bear traps, tripwires
     buildTraps() {
