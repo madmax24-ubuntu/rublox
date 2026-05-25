@@ -371,9 +371,9 @@ export class MapGenerator {
             this.scene.add(post);
         }
 
-        // Ramp (one side, main entrance)
-        const ramp = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.3, 8), bodyMat);
-        ramp.position.set(0, 3.5, 5); ramp.rotation.x = 0.18;
+        // Ramp (one side, main entrance) — connects ground to Cornucopia platform edge
+        const ramp = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.3, 10), bodyMat);
+        ramp.position.set(0, 1.5, 9); ramp.rotation.x = -0.12;
         ramp.castShadow = true; ramp.receiveShadow = true;
         ramp.userData.isCornucopia = true; ramp.userData.isRamp = true; ramp.userData.isEntrance = true; ramp.userData.isMapObject = true;
         this.scene.add(ramp);
