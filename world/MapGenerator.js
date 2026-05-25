@@ -330,6 +330,7 @@ export class MapGenerator {
         this.scene.add(chestBody);
         const chestLid = new THREE.Mesh(new THREE.SphereGeometry(1.3, 8, 8, 0, Math.PI * 2, 0, Math.PI / 2), chestMat);
         chestLid.position.set(0, 5.9, 0); chestLid.scale.set(1, 0.4, 0.83); chestLid.castShadow = true;
+        chestLid.userData.isCornucopia = true; chestLid.userData.isChest = true; chestLid.userData.isLootContainer = true; chestLid.userData.isMapObject = true;
         this.scene.add(chestLid);
         for (let by of [5, 5.9]) { const b = new THREE.Mesh(new THREE.BoxGeometry(2.9, 0.15, 2.3), chestTrimMat); b.position.set(0, by, 0); this.scene.add(b); }
         const lock = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.25), chestTrimMat);
