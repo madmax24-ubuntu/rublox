@@ -1298,12 +1298,84 @@ class Game {
     }
 
     updateZoneCycle(delta) {
-        if (this.zone.zoneMesh) this.zone.zoneMesh.visible = false;
-        if (this.zone.ringMesh) this.zone.ringMesh.visible = false;
-        this.zone.shrinkSpeed = 0;
-        this.zonePhase = 'disabled';
-        this.zonePhaseTimer = 999999;
-        this.zonePhaseTarget = this.zone.getCurrentRadius();
+        if (this.zonePhase === 'waiting') {
+            this.zonePhaseTimer -= delta;
+            if (this.zonePhaseTimer <= 0) {
+                // Start first fog phase
+                this.zonePhase = 'active';
+                this.zonePhaseIndex = 0;
+                this.fogPhaseTimer = 0;
+                this.zonePhaseTarget = this.map?.getActiveSafeRadius?.() || this.zone.getCurrentRadius();
+                if (this.zonePhaseTarget < this.zone.getCurrentRadius()) {
+                    this.zone.shrink(this.zonePhaseTarget);
+                }
+            }
+            return;
+        }
+
+        if (this.zonePhase !== 'active') return;
+
+        // Track fog phase timer
+        if (this.fogPhaseEnabled && this.map?.activateFogPhase) {
+            this.fogPhaseTimer += delta;
+            const intervals = GAME_CONFIG.fogZones?.phaseIntervals || [60, 120, 180, Infinity];
+            const nextInterval = intervals[this.zonePhaseIndex] || Infinity;
+
+            if (this.fogPhaseTimer >= nextInterval && this.zonePhaseIndex < 3) {
+                this.zonePhaseIndex++;
+                this.fogPhaseTimer = 0;
+                const safeRadius = this.map.activateFogPhase(this.zonePhaseIndex);
+                this.zonePhaseTarget = safeRadius || this.zonePhaseTarget;
+                if (this.zonePhaseTarget < this.zone.getCurrentRadius()) {
+                    this.zone.shrink(this.zonePhaseTarget);
+                }
+
+                // Sound + HUD warning
+                this.audioSynth?.playZonePhaseTransition?.(this.zonePhaseIndex);
+                const arenaRadius = this.map?.halfSize || this.zone.getCurrentRadius();
+                this.hud?.updateFogPhase?.(this.zonePhaseIndex, safeRadius, arenaRadius);
+                const phaseName = (GAME_CONFIG.fogZones?.phaseNames || [])[this.zonePhaseIndex] || 'Финальная';
+                this.hud?.showZoneWarning?.(`\u0422\u0443\u043c\u0430\u043d: ${phaseName}!`, 4000);
+            }
+        }
+
+        // Zone damage tick (every 1s)
+        this.zoneDamageTickTimer += delta;
+        if (this.zoneDamageTickTimer >= 1) {
+            this.zoneDamageTickTimer = 0;
+            const entities = [this.player, ...this.bots];
+            for (const entity of entities) {
+                if (!entity || entity.health <= 0) continue;
+                const pos = entity.position;
+                const fogDmg = this.map?.getFogDamageAt?.(pos.x, pos.z) || 0;
+                const radDmg = this.map?.getRadiationDamageAt?.(pos.x, pos.z) || 0;
+                if (fogDmg > 0) {
+                    entity.takeDamage(fogDmg, false, null, 0, 'storm');
+                    this.audioSynth?.playRadiationTick?.();
+                }
+                if (radDmg > 0) {
+                    entity.takeDamage(radDmg, false, null, 0, 'radiation');
+                }
+            }
+        }
+
+        // Radiation warnings (check player only)
+        if (this.map?.getClosestRadiationZone) {
+            const radInfo = this.map.getClosestRadiationZone(this.player.position.x, this.player.position.z);
+            if (radInfo) {
+                const intensity = radInfo.zone.intensity || 'low';
+                if (intensity !== this.lastRadiationLevel) {
+                    this.lastRadiationLevel = intensity;
+                    this.audioSynth?.playRadiationWarning?.(intensity);
+                }
+                this.hud?.showRadiationWarning?.(intensity, Math.round(radInfo.distance));
+            } else {
+                if (this.lastRadiationLevel !== null) {
+                    this.lastRadiationLevel = null;
+                    this.hud?.clearRadiationWarning?.();
+                }
+            }
+        }
     }
 
     updateRandomEvents(delta) {
