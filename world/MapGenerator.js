@@ -363,6 +363,7 @@ export class MapGenerator {
         const ramp = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.3, 8), bodyMat);
         ramp.position.set(0, 3.5, 5); ramp.rotation.x = 0.18;
         ramp.castShadow = true; ramp.receiveShadow = true;
+        ramp.userData.isCornucopia = true; ramp.userData.isRamp = true; ramp.userData.isEntrance = true; ramp.userData.isMapObject = true;
         this.scene.add(ramp);
 
         // Supply crates (arranged around Cornucopia for additional loot)
