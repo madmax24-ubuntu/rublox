@@ -705,11 +705,11 @@ export class MapGenerator {
             this.scene.add(rock);
         }
 
-        const smokeMat = new THREE.MeshStandardMaterial({ color: COLOR.smoke, transparent: true, opacity: 0.15, roughness: 1 });
-        for (let i = 0; i < 12; i++) {
-            const a = Math.random() * Math.PI * 2, r = 5 + Math.random() * 55;
-            const smoke = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 3, 8, 8), smokeMat);
-            smoke.position.set(cx + Math.cos(a) * r, 4, cz + Math.sin(a) * r);
+        const smokeMat = new THREE.MeshStandardMaterial({ color: COLOR.smoke, transparent: true, opacity: 0.12, roughness: 1 });
+        for (let i = 0; i < 6; i++) {
+            const a = Math.random() * Math.PI * 2, r = 10 + Math.random() * 50;
+            const smoke = new THREE.Mesh(new THREE.CylinderGeometry(1, 4, 10, 6), smokeMat);
+            smoke.position.set(cx + Math.cos(a) * r, 5, cz + Math.sin(a) * r);
             this.scene.add(smoke);
         }
         const lavaLight = new THREE.PointLight(0xff4400, 3, 30); lavaLight.position.set(cx, 3, cz);
