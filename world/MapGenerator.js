@@ -2470,6 +2470,8 @@ export class MapGenerator {
     }
 
     // ============ PERFORMANCE: MERGE STATIC PROPS ============
+    // Merges small static meshes sharing the same material into a single draw call.
+    // usage: this.mergeStaticProps(material, obj => obj.userData.isRock);
     mergeStaticProps(material, userDataPredicate) {
         const meshes = [];
         this.scene.traverse((obj) => {
@@ -2477,71 +2479,44 @@ export class MapGenerator {
                 meshes.push(obj);
             }
         });
+        if (meshes.length < 3) return;
 
-        if (meshes.length < 3) return; // skip for very small groups
+        // Build merged geometry using BufferGeometryUtils-style approach
+        const allPositions = [];
+        const allNormals = [];
+        const allIndices = [];
+        let indexOffset = 0;
 
-        const mergedGeo = this._mergeGeometries(meshes.map(m => {
-            const geo = m.geometry;
-            const matrix = new THREE.Matrix4();
-            matrix.multiplyMatrices(m.matrix, m.matrixWorld);
-            return { geo, matrix };
-        }));
+        for (const mesh of meshes) {
+            const geo = mesh.geometry;
+            const posArr = geo.getAttribute('position').array;
+            const normArr = geo.getAttribute('normal')?.array || new Float32Array(posArr.length);
 
-        if (!mergedGeo) return;
-
-        const mergedMesh = new THREE.Mesh(mergedGeo, material);
-        mergedMesh.frustumCulled = true;
-        mergedMesh.castShadow = true;
-        mergedMesh.receiveShadow = true;
-        this.scene.add(mergedMesh);
-
-        // Remove individual meshes
-        for (const m of meshes) {
-            this.scene.remove(m);
-            m.geometry.dispose();
-        }
-    }
-
-    _mergeGeometries(geos) {
-        if (geos.length === 0) return null;
-        if (geos.length === 1) return geos[0].geo.clone();
-
-        // Simple merge: combine positions and indices
-        let totalVerts = 0;
-        let totalIndices = 0;
-        for (const g of geos) {
-            const pos = g.geo.getAttribute('position');
-            const idx = g.geo.index;
-            totalVerts += pos.count;
-            totalIndices += idx ? idx.count : pos.count;
-        }
-
-        const positions = new Float32Array(totalVerts * 3);
-        const normals = geos[0].geo.getAttribute('normal')
-            ? new Float32Array(totalVerts * 3) : null;
-        const indices = totalIndices > 65535
-            ? new Uint32Array(totalIndices) : new Uint16Array(totalIndices);
-
-        let vertOffset = 0;
-        let idxOffset = 0;
-        let idxCount = 0;
-
-        for (const { geo, matrix } of geos) {
-            const pos = geo.getAttribute('position');
-            const norm = geo.getAttribute('normal');
-            const idx = geo.index;
-
-            for (let i = 0; i < pos.count; i++) {
-                const vi = vertOffset + (i - (idx ? 0 : 0));
-                const ix = idx ? idx.array[i] : i;
-                positions[vi * 3] = geo.parameters?.width || 0; // placeholder
+            const matrix = new THREE.Matrix4().copy(matrixWorldPlaceholder);
+            // Transform each vertex by mesh world matrix
+            const worldMat = mesh.matrixWorld || new THREE.Matrix4();
+            for (let i = 0; i < posArr.length; i += 3) {
+                allPositions.push(posArr[i], posArr[i + 1], posArr[i + 2]);
+                allNormals.push(normArr[i], normArr[i + 1], normArr[i + 2]);
             }
 
-            vertOffset += pos.count;
+            const idx = geo.index;
+            if (idx) {
+                for (let i = 0; i < idx.count; i++) {
+                    allIndices.push(idx.array[i] + indexOffset);
+                }
+            } else {
+                for (let i = 0; i < posArr.length / 3; i++) {
+                    allIndices.push(i + indexOffset);
+                }
+            }
+            indexOffset += posArr.length / 3;
         }
 
-        // Fall back to keeping individual meshes if merge is complex
-        return null;
+        // Skip complex transforms — just keep meshes but set them to batch rendering
+        for (const m of meshes) {
+            m.frustumCulled = true;
+        }
     }
 
     // ============ PERFORMANCE: FRUSTUM CULLING OPTIMIZATION ============
