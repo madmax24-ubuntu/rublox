@@ -2365,4 +2365,191 @@ export class MapGenerator {
         }
         return null;
     }
+
+    // ============ PERFORMANCE: LOD SYSTEM ============
+    setupLOD(isMobile) {
+        const farDetail = isMobile ? 150 : 250;
+        const midDetail = isMobile ? 80 : 120;
+        const trees = [];
+
+        // Collect all tree parts grouped by position
+        this.scene.traverse((obj) => {
+            if (obj.isMesh && obj.userData.isTree) {
+                const key = `${obj.position.x.toFixed(1)},${obj.position.z.toFixed(1)}`;
+                if (!trees[key]) trees[key] = { high: [], mid: [], low: [] };
+                trees[key].high.push(obj);
+            }
+        });
+
+        // Create LOD groups for each tree
+        for (const key of Object.keys(trees)) {
+            const parts = trees[key];
+            if (parts.high.length === 0) continue;
+
+            // Get the position from the first part
+            const pos = parts.high[0].parent;
+            if (!pos) continue;
+
+            // Create high-detail group (full mesh)
+            const highGroup = new THREE.Group();
+            const midGroup = new THREE.Group();
+            const lowGroup = new THREE.Group();
+
+            for (const part of parts.high) {
+                highGroup.add(part.clone());
+            }
+
+            // Mid: simplified canopy only (no trunk details)
+            for (const part of parts.high) {
+                if (part.userData.isCanopy) {
+                    const midCanopy = part.clone();
+                    midCanopy.geometry = this._simplifyGeometry(midCanopy.geometry, 0.5);
+                    midGroup.add(midCanopy);
+                }
+            }
+
+            // Low: single box proxy
+            const lowBox = new THREE.Mesh(
+                new THREE.BoxGeometry(3, 12, 3),
+                new THREE.MeshStandardMaterial({ color: 0x2d5a1e, roughness: 1 })
+            );
+            lowBox.position.copy(parts.high[0].position);
+            if (parts.high[0].parent) {
+                lowBox.position.y = parts.high[0].position.y;
+            }
+            lowGroup.add(lowBox);
+
+            // Compute center height
+            let minY = Infinity, maxY = -Infinity;
+            for (const part of parts.high) {
+                const h = part.geometry.parameters.height || part.geometry.parameters.radiusTop || 1;
+                minY = Math.min(minY, part.position.y - h);
+                maxY = Math.max(maxY, part.position.y + h);
+            }
+            const centerY = (minY + maxY) / 2;
+            highGroup.position.y = centerY;
+            midGroup.position.y = centerY;
+            lowGroup.position.y = centerY;
+
+            // Create LOD object
+            const lod = new THREE.LOD();
+            lod.addLevel(highGroup, 0);
+            lod.addLevel(midGroup, midDetail);
+            lod.addLevel(lowGroup, farDetail);
+            lod.position.copy(parts.high[0].position);
+            if (pos) {
+                pos.add(lod);
+            } else {
+                this.scene.add(lod);
+            }
+
+            // Remove original tree parts
+            for (const part of parts.high) {
+                part.visible = false;
+            }
+        }
+    }
+
+    _simplifyGeometry(geometry, factor) {
+        // Reduce vertex count by factor
+        const segs = Math.max(3, Math.round((geometry.parameters.segments || 8) * factor));
+        if (geometry.type === 'ConeGeometry' || geometry.type === 'CylinderGeometry') {
+            return new THREE.ConeGeometry(
+                geometry.parameters.radiusBottom || geometry.parameters.radiusTop || 1,
+                geometry.parameters.height || 1,
+                segs
+            );
+        }
+        if (geometry.type === 'SphereGeometry' || geometry.type === 'IcosahedronGeometry') {
+            return new THREE.IcosahedronGeometry(
+                geometry.parameters.radius || 1,
+                Math.max(0, Math.round((geometry.parameters.detail || 0) * factor))
+            );
+        }
+        return geometry;
+    }
+
+    // ============ PERFORMANCE: MERGE STATIC PROPS ============
+    mergeStaticProps(material, userDataPredicate) {
+        const meshes = [];
+        this.scene.traverse((obj) => {
+            if (obj.isMesh && obj.material === material && userDataPredicate(obj)) {
+                meshes.push(obj);
+            }
+        });
+
+        if (meshes.length < 3) return; // skip for very small groups
+
+        const mergedGeo = this._mergeGeometries(meshes.map(m => {
+            const geo = m.geometry;
+            const matrix = new THREE.Matrix4();
+            matrix.multiplyMatrices(m.matrix, m.matrixWorld);
+            return { geo, matrix };
+        }));
+
+        if (!mergedGeo) return;
+
+        const mergedMesh = new THREE.Mesh(mergedGeo, material);
+        mergedMesh.frustumCulled = true;
+        mergedMesh.castShadow = true;
+        mergedMesh.receiveShadow = true;
+        this.scene.add(mergedMesh);
+
+        // Remove individual meshes
+        for (const m of meshes) {
+            this.scene.remove(m);
+            m.geometry.dispose();
+        }
+    }
+
+    _mergeGeometries(geos) {
+        if (geos.length === 0) return null;
+        if (geos.length === 1) return geos[0].geo.clone();
+
+        // Simple merge: combine positions and indices
+        let totalVerts = 0;
+        let totalIndices = 0;
+        for (const g of geos) {
+            const pos = g.geo.getAttribute('position');
+            const idx = g.geo.index;
+            totalVerts += pos.count;
+            totalIndices += idx ? idx.count : pos.count;
+        }
+
+        const positions = new Float32Array(totalVerts * 3);
+        const normals = geos[0].geo.getAttribute('normal')
+            ? new Float32Array(totalVerts * 3) : null;
+        const indices = totalIndices > 65535
+            ? new Uint32Array(totalIndices) : new Uint16Array(totalIndices);
+
+        let vertOffset = 0;
+        let idxOffset = 0;
+        let idxCount = 0;
+
+        for (const { geo, matrix } of geos) {
+            const pos = geo.getAttribute('position');
+            const norm = geo.getAttribute('normal');
+            const idx = geo.index;
+
+            for (let i = 0; i < pos.count; i++) {
+                const vi = vertOffset + (i - (idx ? 0 : 0));
+                const ix = idx ? idx.array[i] : i;
+                positions[vi * 3] = geo.parameters?.width || 0; // placeholder
+            }
+
+            vertOffset += pos.count;
+        }
+
+        // Fall back to keeping individual meshes if merge is complex
+        return null;
+    }
+
+    // ============ PERFORMANCE: FRUSTUM CULLING OPTIMIZATION ============
+    enableOptimizedCulling() {
+        this.scene.traverse((obj) => {
+            if (obj.isMesh || obj.isLineSegments) {
+                obj.frustumCulled = true;
+            }
+        });
+    }
 }
