@@ -286,11 +286,11 @@ export class MapGenerator {
             const segments = Math.floor((endA - startA) / (Math.PI / 16)) * 2;
             for (let s = 0; s < segments; s++) {
                 const a = startA + (s / segments) * (endA - startA);
-                const seg = new THREE.Mesh(new THREE.BoxGeometry(2.5, 4, 1.5), wallMat);
+               const seg = new THREE.Mesh(new THREE.BoxGeometry(2.5, 4, 1.5), wallMat);
                 seg.position.set(Math.cos(a) * 18, 2, Math.sin(a) * 18);
                 seg.rotation.y = -a + Math.PI / 2;
                 seg.castShadow = true;
-                seg.userData.isCornucopia = true; seg.userData.isWall = true;
+                seg.userData.isCornucopia = true; seg.userData.isWall = true; seg.userData.isMapObject = true;
                 this.scene.add(seg);
             }
         }
