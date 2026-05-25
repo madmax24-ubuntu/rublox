@@ -904,7 +904,7 @@ export class MapGenerator {
                     baseZ + (Math.random() - 0.5) * 3
                 );
                 stal.rotation.x = Math.PI; // point down
-                stal.userData.isCrystalGrotto = true; stal.userData.isStalactite = true; stal.userData.isCrystal = true; stal.userData.isMapObject = true;
+                stal.userData.isCrystalGrotto = true; stal.userData.isStalactite = true; stal.userData.isCrystal = true; stal.userData.isCover = true; stal.userData.isMapObject = true;
                 this.scene.add(stal);
             }
 
