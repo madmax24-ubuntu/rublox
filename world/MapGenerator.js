@@ -163,11 +163,9 @@ export class MapGenerator {
             await this.yieldFrame();
 
             await this.buildBurningWastes();
-            console.log('[MapGenerator] BurningWastes done');
             await this.yieldFrame();
 
             await this.buildLuminousForest();
-            console.log('[MapGenerator] LuminousForest done');
             await this.yieldFrame();
 
             this.buildBridges();
