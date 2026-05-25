@@ -681,8 +681,8 @@ export class MapGenerator {
         }
 
         const obsMat = new THREE.MeshStandardMaterial({ color: COLOR.obsidian, roughness: 0.3, metalness: 0.5 });
-        for (let i = 0; i < 20; i++) {
-            const a = Math.random() * Math.PI * 2, r = 5 + Math.random() * 58, h = 3 + Math.random() * 12;
+        for (let i = 0; i < 12; i++) {
+            const a = Math.random() * Math.PI * 2, r = 8 + Math.random() * 55, h = 3 + Math.random() * 12;
             const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.5 + Math.random(), h, 0.5 + Math.random(), 6), obsMat);
             pillar.position.set(cx + Math.cos(a) * r, h / 2, cz + Math.sin(a) * r);
             pillar.rotation.z = (Math.random() - 0.5) * 0.3; pillar.castShadow = true; pillar.receiveShadow = true;
