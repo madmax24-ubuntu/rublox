@@ -119,6 +119,10 @@ export class MapGenerator {
         this.colliders = [];
         this.spawnPads = [];
         this.hazards = [];
+        this.traps = [];
+        this.fogZones = [];
+        this.radiationZones = [];
+        this.lootData = [];
         this.animatedObjects = [];
         this.noise = new SimplexNoise(42);
         this.heightMap = null;
