@@ -917,6 +917,7 @@ export class MapGenerator {
         const floor = new THREE.Mesh(new THREE.CircleGeometry(65, 8),
             new THREE.MeshStandardMaterial({ color: COLOR.wasteGround, roughness: 1.0 }));
         floor.rotation.x = -Math.PI / 2; floor.position.set(cx, 0.03, cz); floor.receiveShadow = true;
+        floor.userData.isBurningWastes = true; floor.userData.isFloor = true; floor.userData.isMapObject = true;
         this.scene.add(floor);
 
         const lavaMat = new THREE.MeshStandardMaterial({
