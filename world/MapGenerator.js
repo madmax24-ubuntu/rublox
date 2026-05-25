@@ -539,6 +539,7 @@ export class MapGenerator {
             rock.position.set(x, s * 0.3, z);
             rock.rotation.set(Math.random(), Math.random(), Math.random());
             rock.castShadow = true; rock.receiveShadow = true;
+            rock.userData.isInnerRing = true; rock.userData.isRock = true; rock.userData.isCover = true; rock.userData.isMapObject = true;
             this.scene.add(rock);
         }
         await this.yieldFrame();
