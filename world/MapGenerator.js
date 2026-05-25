@@ -1232,6 +1232,7 @@ export class MapGenerator {
                 deck.position.set(x, 0.15, z);
                 deck.rotation.y = -angle + Math.PI / 2;
                 deck.receiveShadow = true; deck.castShadow = true;
+                deck.userData.isBridge = true; deck.userData.isDeck = true; deck.userData.isMapObject = true;
                 this.scene.add(deck);
 
                 // Rails
