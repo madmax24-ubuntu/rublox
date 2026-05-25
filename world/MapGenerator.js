@@ -2023,12 +2023,12 @@ export class MapGenerator {
 
         // Update the active danger ring to show the safe boundary
         if (this.activeFogRing) {
-            // Recreate geometry at the correct radius
+            this.activeFogRing.visible = true;
             this.activeFogRing.geometry.dispose();
             this.activeFogRing.geometry = new THREE.RingGeometry(safeR - 2, safeR + 2, 64);
-            this.activeFogRing.scale.set(1, 1, 1);
         }
         if (this._activeWall) {
+            this._activeWall.visible = true;
             this._activeWall.geometry.dispose();
             this._activeWall.geometry = new THREE.CylinderGeometry(safeR, safeR, 14, 64, 1, true);
         }
