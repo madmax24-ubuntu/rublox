@@ -234,6 +234,7 @@ export class MapGenerator {
         const ffGeo = new THREE.CylinderGeometry(this.arenaRadius, this.arenaRadius, 12, 64, 1, true);
         const forcefield = new THREE.Mesh(ffGeo, ffMat);
         forcefield.position.y = 6;
+        forcefield.userData.isArena = true; forcefield.userData.isForcefield = true; forcefield.userData.isHazard = true; forcefield.userData.isMapObject = true;
         this.scene.add(forcefield);
 
         const ringMat = new THREE.MeshStandardMaterial({
