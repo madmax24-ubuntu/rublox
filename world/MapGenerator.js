@@ -151,6 +151,7 @@ export class MapGenerator {
             await this.buildForcefield();
             console.log('[MapGenerator] Forcefield done');
             await this.yieldFrame();
+            console.log('[MapGenerator] About to start buildCornucopia...');
 
             await this.buildCornucopia();
             console.log('[MapGenerator] Cornucopia done');
