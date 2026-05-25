@@ -404,8 +404,7 @@ class Game {
         this.botUpdateIndex = 0;
         this.botFrameCounter = 0;
         this.botHazardCursor = 0;
-        this.trapBotCursor = 0;
-        this.pendingZombieBursts = [];
+         this.pendingZombieBursts = [];
         this.pendingPoiBursts = [];
         this.spawnBurstCooldown = 0;
         this.zombieSpawnCandidates = [];
