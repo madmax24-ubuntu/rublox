@@ -360,6 +360,7 @@ export class MapGenerator {
     }
 
     async generate() {
+        console.log('[MapGenerator] generate START');
         this.generateHeightMap();
 
         // === 1. Circular arena floor ===
