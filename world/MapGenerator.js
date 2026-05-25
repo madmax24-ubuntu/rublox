@@ -675,11 +675,13 @@ export class MapGenerator {
             tower.position.set(cx + tp.x, tp.h / 2, cz + tp.z);
             tower.rotation.z = (Math.random() - 0.5) * 0.15;
             tower.castShadow = true; tower.receiveShadow = true;
+            tower.userData.isCitadel = true; tower.userData.isTower = true; tower.userData.isOutpost = true; tower.userData.isMapObject = true;
             this.scene.add(tower);
             // Broken top
             const broken = new THREE.Mesh(new THREE.CylinderGeometry(tp.r * 0.4, tp.r * 0.3, 2, 5), towerMat);
             broken.position.set(cx + tp.x + 1, tp.h + 1, cz + tp.z);
             broken.rotation.z = 0.4; broken.castShadow = true;
+            broken.userData.isCitadel = true; broken.userData.isBroken = true; broken.userData.isMapObject = true;
             this.scene.add(broken);
         }
 
