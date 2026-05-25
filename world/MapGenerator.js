@@ -789,7 +789,8 @@ export class MapGenerator {
             crystal.position.set(x, h / 2, z);
             crystal.rotation.y = Math.random() * Math.PI;
             crystal.rotation.x = (Math.random() - 0.5) * 0.15;
-            crystal.castShadow = true;
+        crystal.castShadow = true;
+            crystal.userData.isCrystalGrotto = true; crystal.userData.isCrystal = true; crystal.userData.isLargeCrystal = true; crystal.userData.isCover = true; crystal.userData.isMapObject = true;
             this.scene.add(crystal);
 
             // Companion crystals
