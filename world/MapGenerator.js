@@ -768,6 +768,7 @@ export class MapGenerator {
         const floor = new THREE.Mesh(new THREE.CircleGeometry(65, 8),
             new THREE.MeshStandardMaterial({ color: COLOR.crystalFloor, roughness: 0.8, metalness: 0.2 }));
         floor.rotation.x = -Math.PI / 2; floor.position.set(cx, 0.03, cz); floor.receiveShadow = true;
+        floor.userData.isCrystalGrotto = true; floor.userData.isFloor = true; floor.userData.isMapObject = true;
         this.scene.add(floor);
 
         const crystalMats = [
