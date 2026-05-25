@@ -274,6 +274,7 @@ export class MapGenerator {
                 seg.position.set(Math.cos(a) * 18, 2, Math.sin(a) * 18);
                 seg.rotation.y = -a + Math.PI / 2;
                 seg.castShadow = true;
+                seg.userData.isCornucopia = true; seg.userData.isWall = true;
                 this.scene.add(seg);
             }
         }
