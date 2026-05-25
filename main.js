@@ -321,7 +321,7 @@ class Game {
 
         // Этап 3: Environment
                 this.env = new Environment(this.scene);
-        this.env.enableWeather = false; // ОТКЛЮЧЕНО ДЛЯ ТЕСТА КАРТЫ
+        this.env.enableWeather = true;
         this.audioSynth?.setWeatherState?.('clear');
         
         // Yield чтобы браузер успел обработать события
