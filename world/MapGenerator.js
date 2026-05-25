@@ -797,8 +797,9 @@ export class MapGenerator {
             this.hazards.push({ type: 'lava', position: new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r), radius: 4 + Math.random() * 3, damage: 0.5 });
         }
         const shockMat = new THREE.MeshStandardMaterial({ color: 0x8844ff, emissive: 0x8844ff, emissiveIntensity: 0.5, transparent: true, opacity: 0.3 });
+        const shockAngles = [-Math.PI * 0.3, 0, Math.PI * 0.2];
         for (let i = 0; i < 3; i++) {
-            const a = -Math.PI * 0.4 + Math.random() * 0.3, r = 100 + Math.random() * 60;
+            const a = shockAngles[i] + (Math.random() - 0.5) * 0.3, r = 110 + Math.random() * 50;
             const shock = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 6, 8), shockMat);
             shock.position.set(Math.cos(a) * r, 3, Math.sin(a) * r); this.scene.add(shock);
             this.hazards.push({ type: 'shock', position: new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r), radius: 3, damage: 0.3 });
