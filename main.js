@@ -1757,7 +1757,16 @@ class Game {
                 this.player.takeDamage(GAME_CONFIG.events.radiation.playerDps * delta, false, null, 0, 'storm');
             }
 
-            this.hud.updateZoneInfo('\u0417\u043e\u043d\u0430: \u041e\u0422\u041a\u041b\u042e\u0427\u0415\u041d\u0410 (\u0442\u0435\u0441\u0442)', false);
+            // Dynamic zone info
+            if (this.zonePhase === 'waiting') {
+                this.hud.updateZoneInfo(`\u0417\u043e\u043d\u0430 \u0441\u0436\u0430\u0442\u0438\u044f: ${Math.ceil(this.zonePhaseTimer)}s`, false);
+            } else if (this.fogPhaseEnabled && this.map?.getActiveSafeRadius) {
+                const safeRadius = this.map.getActiveSafeRadius();
+                const arenaRadius = this.map?.halfSize || this.zone.getCurrentRadius();
+                this.hud.updateFogPhase(this.zonePhaseIndex, safeRadius, arenaRadius);
+            } else {
+                this.hud.updateZoneInfo(`\u0417\u043e\u043d\u0430: R=${Math.round(this.zone.getCurrentRadius())}`, false);
+            }
 
             const fogDensity = this.scene?.fog?.density || 0;
             const nightBoost = this.env && (this.env.dayTime < 0.18 || this.env.dayTime > 0.78) ? 0.14 : 0;
