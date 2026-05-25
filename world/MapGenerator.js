@@ -1075,6 +1075,7 @@ export class MapGenerator {
         const floor = new THREE.Mesh(new THREE.CircleGeometry(70, 8),
             new THREE.MeshStandardMaterial({ color: COLOR.luminousFloor, roughness: 1.0 }));
         floor.rotation.x = -Math.PI / 2; floor.position.set(cx, 0.03, cz); floor.receiveShadow = true;
+        floor.userData.isLuminousForest = true; floor.userData.isFloor = true; floor.userData.isMapObject = true;
         this.scene.add(floor);
 
         const barkMat = new THREE.MeshStandardMaterial({ color: COLOR.luminousBark, roughness: 0.9 });
