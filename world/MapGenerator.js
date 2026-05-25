@@ -2294,6 +2294,55 @@ export class MapGenerator {
         return spots;
     }
 
+    // ===================== TRAP ACTIVATION =====================
+    // Check and activate traps near entities (call from game loop)
+    activateTrapsNearEntity(entity) {
+        if (!entity || !entity.position) return;
+        const pos = entity.position;
+        const now = performance.now();
+
+        for (const trap of this.traps) {
+            if (trap.triggered) {
+                const elapsed = now - trap.triggerTime;
+                if (elapsed > trap.cooldown) {
+                    trap.triggered = false;
+                    trap.triggerTime = 0;
+                } else {
+                    continue;
+                }
+            }
+
+            const dx = pos.x - trap.position.x;
+            const dz = pos.z - trap.position.z;
+            const dist = Math.sqrt(dx * dx + dz * dz);
+
+            if (dist <= trap.radius) {
+                trap.triggered = true;
+                trap.triggerTime = now;
+
+                // Apply trap damage
+                if (entity.takeDamage) {
+                    entity.takeDamage(trap.damage, false, null, 0, 'trap');
+
+                    // Handle special effects
+                    if (trap.snare) {
+                        entity.isSnared = true;
+                        setTimeout(() => { entity.isSnared = false; }, 3000);
+                    }
+                    if (trap.knockback) {
+                        // Knockback away from trap center
+                        const angle = Math.atan2(-dz, -dx);
+                        entity.physics.velocity.set(
+                            Math.cos(angle) * 15,
+                            3,
+                            Math.sin(angle) * 15
+                        );
+                    }
+                }
+            }
+        }
+    }
+
     // Get terrain height at world position
     getHeightAt(x, z) {
         const noise = this.noise;
