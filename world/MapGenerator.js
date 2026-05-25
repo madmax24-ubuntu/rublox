@@ -1308,6 +1308,7 @@ export class MapGenerator {
                 const roof = new THREE.Mesh(new THREE.ConeGeometry(2.5, 2, 4), woodMat);
                 roof.position.set(x, 8, z); roof.rotation.y = Math.PI / 4;
                 roof.castShadow = true;
+                roof.userData.isOuterPost = true; roof.userData.isWatchPost = true; roof.userData.isRoof = true; roof.userData.isMapObject = true;
                 this.scene.add(roof);
             }
         }
