@@ -180,26 +180,31 @@ export class MapGenerator {
             console.log('[MapGenerator] LuminousForest done');
             await this.yieldFrame();
 
-        this.buildBridges();
-        this.buildOuterOutposts();
-        this.buildHazardZones();
-        this.buildLootClusters();
-        this.buildTraps();
-        this.buildFogZones();
-        this.buildRadiationZones();
-        this.buildLootData();
-        await this.yieldFrame();
+            this.buildBridges();
+            this.buildOuterOutposts();
+            this.buildHazardZones();
+            this.buildLootClusters();
+            this.buildTraps();
+            this.buildFogZones();
+            this.buildRadiationZones();
+            this.buildLootData();
+            await this.yieldFrame();
 
-        this.setupAnimations();
+            this.setupAnimations();
 
-        this.scene.traverse(obj => {
-            if (obj.isMesh || obj.isGroup || obj.isInstancedMesh) {
-                obj.userData.mapGenerated = true;
-                obj.frustumCulled = false;
-            }
-        });
+            this.scene.traverse(obj => {
+                if (obj.isMesh || obj.isGroup || obj.isInstancedMesh) {
+                    obj.userData.mapGenerated = true;
+                    obj.frustumCulled = false;
+                }
+            });
 
-        this._resolveReady();
+            console.log('[MapGenerator] Generation COMPLETE');
+            this._resolveReady();
+        } catch (e) {
+            console.error('[MapGenerator] ERROR:', e.message, e.stack);
+            this._resolveReady();
+        }
     }
 
     // ===================== ZONE 0: ARENA FLOOR =====================
