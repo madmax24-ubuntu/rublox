@@ -658,7 +658,7 @@ export class MapGenerator {
             // Small platform
             const plat = new THREE.Mesh(new THREE.CylinderGeometry(tp.r * 0.9, tp.r * 0.9, 0.2, 6), towerDarkMat);
             plat.position.set(cx + tp.x, tp.h - 1, cz + tp.z); plat.receiveShadow = true;
-            plat.userData.isCitadel = true; plat.userData=isPlatform = true; plat.userData.isMapObject = true;
+            plat.userData.isCitadel = true; plat.userData.isPlatform = true; plat.userData.isMapObject = true;
             this.scene.add(plat);
 
             this.colliders.push({ type: 'cylinder', position: new THREE.Vector3(cx + tp.x, tp.h / 2, cz + tp.z), radius: tp.r, height: tp.h });
