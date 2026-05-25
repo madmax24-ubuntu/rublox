@@ -721,8 +721,8 @@ export class MapGenerator {
 
         const barkMat = new THREE.MeshStandardMaterial({ color: COLOR.luminousBark, roughness: 0.9 });
         const glowColors = [COLOR.luminousGlow, 0x44aaff, COLOR.luminousMushroom, 0xffaa44];
-        for (let i = 0; i < 45; i++) {
-            const a = Math.random() * Math.PI * 2, r = 4 + Math.random() * 62;
+        for (let i = 0; i < 30; i++) {
+            const a = Math.random() * Math.PI * 2, r = 5 + Math.random() * 62;
             const x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r;
             const treeH = 6 + Math.random() * 10, trunkR = 0.3 + Math.random() * 0.4;
             const trunk = new THREE.Mesh(new THREE.CylinderGeometry(trunkR * 0.6, trunkR, treeH, 6), barkMat);
@@ -736,7 +736,7 @@ export class MapGenerator {
             canopy.position.set(x, treeH + canopySize * 0.3, z); canopy.castShadow = true;
             this.scene.add(canopy);
 
-            if (Math.random() > 0.4) {
+            if (Math.random() > 0.5) {
                 const treeLight = new THREE.PointLight(canopyColor, 1, 12);
                 treeLight.position.set(x, treeH, z); this.scene.add(treeLight);
                 this.animatedObjects.push({ type: 'treeGlow', light: treeLight, baseIntensity: 1, color: canopyColor });
