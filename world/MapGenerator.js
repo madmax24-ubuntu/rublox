@@ -744,8 +744,8 @@ export class MapGenerator {
         }
 
         const mushMat = new THREE.MeshStandardMaterial({ color: COLOR.luminousMushroom, emissive: COLOR.luminousMushroom, emissiveIntensity: 0.8, roughness: 0.6 });
-        for (let i = 0; i < 40; i++) {
-            const a = Math.random() * Math.PI * 2, r = 2 + Math.random() * 64;
+        for (let i = 0; i < 20; i++) {
+            const a = Math.random() * Math.PI * 2, r = 3 + Math.random() * 60;
             const x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r;
             const mushH = 0.3 + Math.random() * 0.5;
             const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.1, mushH, 6), new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.8 }));
