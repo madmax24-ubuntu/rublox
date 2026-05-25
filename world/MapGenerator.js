@@ -1296,11 +1296,13 @@ export class MapGenerator {
                 for (const [px, pz] of [[-1.2, -1], [1.2, -1], [-1.2, 1], [1.2, 1]]) {
                     const post = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 6, 5), woodMat);
                     post.position.set(x + px, 3, z + pz); post.castShadow = true;
-                    this.scene.add(post);
+                post.userData.isOuterPost = true; post.userData.isWatchPost = true; post.userData.isSupport = true; post.userData.isMapObject = true;
+                this.scene.add(post);
                 }
                 // Platform
                 const plat = new THREE.Mesh(new THREE.BoxGeometry(3, 0.2, 2.5), woodMat);
                 plat.position.set(x, 6.1, z); plat.castShadow = true; plat.receiveShadow = true;
+                plat.userData.isOuterPost = true; plat.userData.isWatchPost = true; plat.userData.isPlatform = true; plat.userData.isMapObject = true;
                 this.scene.add(plat);
                 // Roof
                 const roof = new THREE.Mesh(new THREE.ConeGeometry(2.5, 2, 4), woodMat);
