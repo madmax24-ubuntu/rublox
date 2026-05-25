@@ -755,8 +755,8 @@ export class MapGenerator {
         }
 
         const pondMat = new THREE.MeshStandardMaterial({ color: COLOR.luminousPond, emissive: COLOR.luminousGlow, emissiveIntensity: 0.3, roughness: 0.1, transparent: true, opacity: 0.7 });
-        const pond = new THREE.Mesh(new THREE.CylinderGeometry(4, 4, 0.1, 12), pondMat);
-        pond.position.set(cx + 8, 0.1, cz - 5); this.scene.add(pond);
+        const pond = new THREE.Mesh(new THREE.CylinderGeometry(5, 5, 0.1, 12), pondMat);
+        pond.position.set(cx + 5, 0.1, cz - 5); this.scene.add(pond);
         const pondLight = new THREE.PointLight(COLOR.luminousGlow, 2, 15); pondLight.position.set(cx + 8, 2, cz - 5);
         this.scene.add(pondLight);
         this.animatedObjects.push({ type: 'pondGlow', light: pondLight, baseIntensity: 2, color: COLOR.luminousGlow });
