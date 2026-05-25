@@ -659,9 +659,10 @@ export class MapGenerator {
             crystal.position.set(x, h / 2, z); crystal.rotation.y = Math.random() * Math.PI;
             crystal.rotation.x = (Math.random() - 0.5) * 0.2; crystal.castShadow = true;
             this.scene.add(crystal);
-            if (Math.random() > 0.5) {
-                for (let j = 0; j < 3; j++) {
-                    const sc = new THREE.Mesh(new THREE.ConeGeometry(0.3 + Math.random() * 0.5, 1 + Math.random() * 2, 5), crystalMats[Math.floor(Math.random() * crystalMats.length)]);
+            if (Math.random() > 0.6) {
+                const scCount = 1 + Math.floor(Math.random() * 2);
+                for (let j = 0; j < scCount; j++) {
+                    const sc = new THREE.Mesh(new THREE.ConeGeometry(0.4 + Math.random() * 0.4, 1.5 + Math.random() * 1.5, 5), crystalMats[Math.floor(Math.random() * crystalMats.length)]);
                     sc.position.set(x + (Math.random() - 0.5) * 2, 0.5, z + (Math.random() - 0.5) * 2);
                     sc.rotation.z = (Math.random() - 0.5) * 0.5; this.scene.add(sc);
                 }
