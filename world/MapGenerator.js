@@ -1962,7 +1962,7 @@ export class MapGenerator {
         for (let i = phaseIndex + 1; i < this.fogZones.length; i++) {
             const z = this.fogZones[i];
             z.active = false;
-            z._mesh && (z._mesh.visible = false);
+            z.mesh && (z.mesh.visible = false);
             z._wall && (z._wall.visible = false);
             z.light && (z.light.visible = false);
             z._ringMat && (z._ringMat.opacity = 0);
@@ -1973,7 +1973,7 @@ export class MapGenerator {
         for (let i = 0; i <= phaseIndex; i++) {
             const z = this.fogZones[i];
             z.active = true;
-            z._mesh && (z._mesh.visible = true);
+            z.mesh && (z.mesh.visible = true);
             z._wall && (z._wall.visible = true);
             z.light && (z.light.visible = true);
         }
