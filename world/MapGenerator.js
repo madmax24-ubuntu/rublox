@@ -1150,7 +1150,8 @@ export class MapGenerator {
                 new THREE.CylinderGeometry(0.04, 0.08, mushH, 6),
                 new THREE.MeshStandardMaterial({ color: 0x777777, roughness: 0.8 })
             );
-            stem.position.set(x, mushH / 2, z); this.scene.add(stem);
+            stem.position.set(x, mushH / 2, z); stem.userData.isLuminousForest = true; stem.userData.isMushroom = true; stem.userData.isStem = true; stem.userData.isMapObject = true;
+            this.scene.add(stem);
             const cap = new THREE.Mesh(
                 new THREE.SphereGeometry(0.25 + Math.random() * 0.35, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2),
                 mushMat
