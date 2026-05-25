@@ -1108,6 +1108,7 @@ export class MapGenerator {
                 canopyMat
             );
             c2.position.set(x + (Math.random() - 0.5) * 1.5, treeH + canopySize * 0.5, z + (Math.random() - 0.5) * 1.5);
+            c2.userData.isLuminousForest = true; c2.userData.isTree = true; c2.userData.isCanopy = true; c2.userData.isMapObject = true;
             this.scene.add(c2);
 
             // Vines (30% of trees)
