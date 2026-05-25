@@ -317,14 +317,14 @@ export class MapGenerator {
         hornRightGroup.children.forEach(s => { s.position.x = -s.position.x; s.rotation.z = -s.rotation.z; });
         this.scene.add(hornRightGroup);
 
-        // Spire
+      // Spire
         const spire = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 3, 8, 8), baseMat);
         spire.position.set(0, 13, -5); spire.castShadow = true;
-        spire.userData.isCornucopia = true; spire.userData.isSpire = true; spire.userData.isMapObject = true;
+        spire.userData.isCornucopia = true; spire.userData.isSpire = true;
         this.scene.add(spire);
         const spireTop = new THREE.Mesh(new THREE.SphereGeometry(1.2, 8, 8), hornMat);
         spireTop.position.set(0, 17.5, -5); spireTop.castShadow = true;
-        spireTop.userData.isCornucopia = true; spireTop.userData.isSpire = true; spireTop.userData.isTop = true; spireTop.userData.isMapObject = true;
+        spireTop.userData.isCornucopia = true; spireTop.userData.isSpire = true; spireTop.userData.isTop = true;
         this.scene.add(spireTop);
 
         // Chest (center loot)
