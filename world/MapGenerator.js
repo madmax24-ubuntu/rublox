@@ -641,8 +641,8 @@ export class MapGenerator {
     async buildCrystalGrotto() {
         const angle = -Math.PI * 0.25, cr = 130;
         const cx = Math.cos(angle) * cr, cz = Math.sin(angle) * cr;
-        const floor = new THREE.Mesh(new THREE.CircleGeometry(28, 8), new THREE.MeshStandardMaterial({ color: COLOR.crystalFloor, roughness: 0.8, metalness: 0.2 }));
-        floor.rotation.x = -Math.PI / 2; floor.position.set(cx, 0.05, cz); floor.receiveShadow = true;
+        const floor = new THREE.Mesh(new THREE.CircleGeometry(65, 8), new THREE.MeshStandardMaterial({ color: COLOR.crystalFloor, roughness: 0.8, metalness: 0.2 }));
+        floor.rotation.x = -Math.PI / 2; floor.position.set(cx, 0.03, cz); floor.receiveShadow = true;
         this.scene.add(floor);
 
         const crystalMats = [
