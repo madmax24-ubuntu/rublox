@@ -473,7 +473,8 @@ export class MapGenerator {
                         plank.position.set(bx, 0.5 + p * 0.7, bz);
                         plank.rotation.y = Math.random() * Math.PI;
                         plank.castShadow = true; plank.receiveShadow = true;
-                        this.scene.add(plank);
+                    plank.userData.isInnerRing = true; plank.userData.isBarricade = true; plank.userData.isWooden = true; plank.userData.isCover = true; plank.userData.isMapObject = true;
+                    this.scene.add(plank);
                     }
                     this.colliders.push({ type: 'box', position: new THREE.Vector3(bx, 1.25, bz), size: new THREE.Vector3(2.5, 2.5, 0.5) });
                 }
