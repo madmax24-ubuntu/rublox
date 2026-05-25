@@ -362,56 +362,55 @@ export class MapGenerator {
     async generate() {
         console.log('[MapGenerator] generate START');
         this.generateHeightMap();
+        console.log('[MapGenerator] heightMap done');
 
-        // === 1. Circular arena floor ===
         await this.buildArenaFloor();
+        console.log('[MapGenerator] arenaFloor done');
 
-        // === 2. Forcefield boundary wall ===
         await this.buildForcefield();
         await this.yieldFrame();
+        console.log('[MapGenerator] forcefield done');
 
-        // === 3. Cornucopia (center structure) ===
         await this.buildCornucopia();
         await this.yieldFrame();
+        console.log('[MapGenerator] cornucopia done');
 
-        // === 4. Biome paths from Cornucopia ===
         await this.buildBiomePaths();
         await this.yieldFrame();
+        console.log('[MapGenerator] biomePaths done');
 
-        // === 5. NW: Ruined Citadel ===
         await this.buildRuinedCitadel();
         await this.yieldFrame();
+        console.log('[MapGenerator] citadel done');
 
-        // === 6. NE: Crystal Grotto ===
         await this.buildCrystalGrotto();
         await this.yieldFrame();
+        console.log('[MapGenerator] grotto done');
 
-        // === 7. SW: Burning Wastes ===
         await this.buildBurningWastes();
         await this.yieldFrame();
+        console.log('[MapGenerator] wastes done');
 
-        // === 8. SE: Luminous Forest ===
         await this.buildLuminousForest();
         await this.yieldFrame();
+        console.log('[MapGenerator] forest done');
 
-        // === 9. Bridges between zones ===
         this.buildBridges();
         await this.yieldFrame();
+        console.log('[MapGenerator] bridges done');
 
-        // === 10. Hazard zones ===
         this.buildHazardZones();
+        console.log('[MapGenerator] hazards done');
 
-        // === 11. Props & details ===
         this.buildArenaProps();
         await this.yieldFrame();
+        console.log('[MapGenerator] props done');
 
-        // === 12. Biome subtle boundaries ===
         this.buildBiomeBoundaries();
 
-        // === 13. Animations ===
         this.setupAnimations();
+        console.log('[MapGenerator] animations done, animatedObjects:', this.animatedObjects.length);
 
-        // Disable frustum culling
         this.scene.traverse(obj => {
             if (obj.isMesh || obj.isGroup || obj.isInstancedMesh) {
                 obj.userData.mapGenerated = true;
@@ -419,10 +418,11 @@ export class MapGenerator {
             }
         });
 
-        // Arena edge walls
         this.buildMapBoundaries();
+        console.log('[MapGenerator] boundaries done');
 
         this._resolveReady();
+        console.log('[MapGenerator] READY RESOLVED');
     }
 
     yieldFrame() {
