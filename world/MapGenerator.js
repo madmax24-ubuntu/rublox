@@ -1189,6 +1189,7 @@ export class MapGenerator {
                     })
                 );
                 flower.position.set(pp.x + Math.cos(pa) * pp.r, 0.25, pp.z + Math.sin(pa) * pp.r);
+                flower.userData.isLuminousForest = true; flower.userData.isFlower = true; flower.userData.isGlow = true; flower.userData.isDecor = true; flower.userData.isMapObject = true;
                 this.scene.add(flower);
             }
         }
