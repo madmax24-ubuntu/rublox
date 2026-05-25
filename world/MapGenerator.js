@@ -871,6 +871,7 @@ export class MapGenerator {
                     0.5 + Math.random(),
                     baseZ + (Math.random() - 0.5) * 4
                 );
+                stag.userData.isCrystalGrotto = true; stag.userData.isStalagmite = true; stag.userData.isCrystal = true; stag.userData.isCover = true; stag.userData.isMapObject = true;
                 this.scene.add(stag);
             }
 
