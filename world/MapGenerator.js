@@ -685,8 +685,8 @@ export class MapGenerator {
     async buildBurningWastes() {
         const angle = Math.PI * 0.75, cr = 130;
         const cx = Math.cos(angle) * cr, cz = Math.sin(angle) * cr;
-        const floor = new THREE.Mesh(new THREE.CircleGeometry(30, 8), new THREE.MeshStandardMaterial({ color: COLOR.wasteGround, roughness: 1.0 }));
-        floor.rotation.x = -Math.PI / 2; floor.position.set(cx, 0.05, cz); floor.receiveShadow = true;
+        const floor = new THREE.Mesh(new THREE.CircleGeometry(65, 8), new THREE.MeshStandardMaterial({ color: COLOR.wasteGround, roughness: 1.0 }));
+        floor.rotation.x = -Math.PI / 2; floor.position.set(cx, 0.03, cz); floor.receiveShadow = true;
         this.scene.add(floor);
 
         const lavaMat = new THREE.MeshStandardMaterial({ color: COLOR.lava, emissive: COLOR.lava, emissiveIntensity: 1.5, roughness: 0.3, transparent: true, opacity: 0.85 });
