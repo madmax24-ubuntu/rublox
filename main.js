@@ -2019,37 +2019,6 @@ class Game {
             this.hud.updateAmmo(this.player.currentWeapon || this.player.fists);
             this.hudStatsTimer = this.isMobile() ? 0.1 : 0.06;
         }
-        if (this.traps && this.traps.length) {
-            const applyTrap = (entity) => {
-                if (!entity.isAlive) return;
-                for (const trap of this.traps) {
-                    const dx = entity.position.x - trap.position.x;
-                    const dz = entity.position.z - trap.position.z;
-                    const dist = Math.sqrt(dx * dx + dz * dz);
-                    if (dist < trap.radius) {
-                        if (typeof entity.applySlow === 'function') {
-                            entity.applySlow(trap.slow, 0.6);
-                        }
-                        if (typeof entity.takeDamage === 'function') {
-                            entity.takeDamage(trap.damage * delta, false, null, 0, 'trap');
-                        }
-                    }
-                }
-            };
-            applyTrap(this.player);
-            const trapBatch = Math.max(
-                this.isMobile() ? 10 : 16,
-                Math.min(this.bots.length, Math.ceil(this.bots.length * (this.isMobile() ? 0.35 : 0.5)))
-            );
-            for (let i = 0; i < trapBatch && i < this.bots.length; i++) {
-                const botIndex = (this.trapBotCursor + i) % this.bots.length;
-                applyTrap(this.bots[botIndex]);
-            }
-            if (this.bots.length > 0) {
-                this.trapBotCursor = (this.trapBotCursor + trapBatch) % this.bots.length;
-            }
-        }
-
         this.forceEliminateInvalidSurvivors();
         const aliveSurvivors = this.entityManager.getAliveSurvivors?.() || [];
         const aliveCount = aliveSurvivors.length;
