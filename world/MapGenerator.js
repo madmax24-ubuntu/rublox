@@ -1171,7 +1171,8 @@ export class MapGenerator {
         ];
         for (const pp of pondPositions) {
             const pond = new THREE.Mesh(new THREE.CylinderGeometry(pp.r, pp.r, 0.1, 10), pondMat);
-            pond.position.set(pp.x, 0.1, pp.z); this.scene.add(pond);
+            pond.position.set(pp.x, 0.1, pp.z); pond.userData.isLuminousForest = true; pond.userData.isPond = true; pond.userData.isWater = true; pond.userData.isMapObject = true;
+            this.scene.add(pond);
             const pondLight = new THREE.PointLight(COLOR.luminousGlow, 2, 12);
             pondLight.position.set(pp.x, 1.5, pp.z); this.scene.add(pondLight);
             this.animatedObjects.push({ type: 'pondGlow', light: pondLight, baseIntensity: 2, color: COLOR.luminousGlow });
