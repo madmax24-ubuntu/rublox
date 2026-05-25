@@ -1243,7 +1243,8 @@ export class MapGenerator {
                         0.75,
                         z + Math.sin(angle + Math.PI / 2) * side * 1.7
                     );
-                    this.scene.add(rail);
+                    rail.userData.isBridge = true; rail.userData.isRail = true; rail.userData.isMapObject = true;
+                this.scene.add(rail);
                 }
 
                 // Top rail
