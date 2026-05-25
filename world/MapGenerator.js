@@ -1738,6 +1738,41 @@ export class MapGenerator {
             zone.light = light;
             this.animatedObjects.push({ type: 'fogGlow', light: light, baseIntensity: 0.5 + p * 0.3, fogPhase: p });
         }
+
+        // Active danger ring — single dynamic ring showing current safe boundary
+        const activeRingMat = new THREE.MeshStandardMaterial({
+            color: 0x44ff88,
+            emissive: 0x22cc66,
+            emissiveIntensity: 0.6,
+            transparent: true,
+            opacity: 0.5,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+        const activeRingGeo = new THREE.RingGeometry(0, 220, 64);
+        this.activeFogRing = new THREE.Mesh(activeRingGeo, activeRingMat);
+        this.activeFogRing.rotation.x = -Math.PI / 2;
+        this.activeFogRing.position.y = 0.3;
+        this.activeFogRing.userData.isActiveFogRing = true;
+        this.scene.add(this.activeFogRing);
+
+        // Vertical active wall
+        const activeWallMat = new THREE.MeshStandardMaterial({
+            color: 0x44ff88,
+            emissive: 0x22cc66,
+            emissiveIntensity: 0.4,
+            transparent: true,
+            opacity: 0.35,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+        const activeWallGeo = new THREE.CylinderGeometry(220, 220, 14, 64, 1, true);
+        const activeWall = new THREE.Mesh(activeWallGeo, activeWallMat);
+        activeWall.position.y = 7;
+        activeWall.userData.isActiveFogRing = true;
+        this.scene.add(activeWall);
+        this._activeWall = activeWall;
+        this._activeWallMat = activeWallMat;
     }
 
     // ===================== RADIATION ZONES =====================
