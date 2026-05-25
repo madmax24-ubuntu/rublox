@@ -219,6 +219,7 @@ export class MapGenerator {
             hill.rotation.y = Math.random() * Math.PI;
             hill.receiveShadow = true;
             hill.castShadow = h > 0;
+            hill.userData.isArena = true; hill.userData.isTerrain = hill.userData.isHill = true; hill.userData.isCover = true; hill.userData.isMapObject = true;
             this.scene.add(hill);
         }
         await this.yieldFrame();
