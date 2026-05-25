@@ -1206,6 +1206,7 @@ export class MapGenerator {
             );
             bush.position.set(cx + Math.cos(a) * r, 0.4, cz + Math.sin(a) * r);
             bush.castShadow = true;
+            bush.userData.isLuminousForest = true; bush.userData.isBush = true; bush.userData.isCover = true; bush.userData.isMapObject = true;
             this.scene.add(bush);
         }
 
