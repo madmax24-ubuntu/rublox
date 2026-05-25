@@ -148,23 +148,18 @@ export class MapGenerator {
             await this.yieldFrame();
 
             await this.buildCornucopia();
-            console.log('[MapGenerator] Cornucopia done');
             await this.yieldFrame();
 
             await this.buildInnerRing();
-            console.log('[MapGenerator] InnerRing done');
             await this.yieldFrame();
 
             await this.buildBiomePaths();
-            console.log('[MapGenerator] BiomePaths done');
             await this.yieldFrame();
 
             await this.buildRuinedCitadel();
-            console.log('[MapGenerator] RuinedCitadel done');
             await this.yieldFrame();
 
             await this.buildCrystalGrotto();
-            console.log('[MapGenerator] CrystalGrotto done');
             await this.yieldFrame();
 
             await this.buildBurningWastes();
