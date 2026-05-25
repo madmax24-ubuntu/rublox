@@ -636,7 +636,7 @@ export class MapGenerator {
             new THREE.MeshStandardMaterial({ color: COLOR.crystalPurple, roughness: 0.2, metalness: 0.6, transparent: true, opacity: 0.85 }),
             new THREE.MeshStandardMaterial({ color: COLOR.crystalGlow, roughness: 0.1, metalness: 0.7, emissive: COLOR.crystalGlow, emissiveIntensity: 0.3, transparent: true, opacity: 0.8 })
         ];
-        for (let i = 0; i < 50; i++) {
+        for (let i = 0; i < 35; i++) {
             const a = Math.random() * Math.PI * 2, r = 3 + Math.random() * 58;
             const x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r;
             const h = 2 + Math.random() * 10, baseR = 0.5 + Math.random() * 1.5;
