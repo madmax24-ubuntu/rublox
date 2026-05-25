@@ -332,9 +332,10 @@ export class MapGenerator {
         chestLid.position.set(0, 5.9, 0); chestLid.scale.set(1, 0.4, 0.83); chestLid.castShadow = true;
         chestLid.userData.isCornucopia = true; chestLid.userData.isChest = true; chestLid.userData.isLootContainer = true; chestLid.userData.isMapObject = true;
         this.scene.add(chestLid);
-        for (let by of [5, 5.9]) { const b = new THREE.Mesh(new THREE.BoxGeometry(2.9, 0.15, 2.3), chestTrimMat); b.position.set(0, by, 0); this.scene.add(b); }
+   for (let by of [5, 5.9]) { const b = new THREE.Mesh(new THREE.BoxGeometry(2.9, 0.15, 2.3), chestTrimMat); b.position.set(0, by, 0); b.userData.isCornucopia = true; b.userData.isChest = true; b.userData.isTrim = true; b.userData.isMapObject = true; this.scene.add(b); }
         const lock = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.25), chestTrimMat);
-        lock.position.set(0, 5, 1.15); this.scene.add(lock);
+        lock.position.set(0, 5, 1.15); lock.userData.isCornucopia = true; lock.userData.isChest = true; lock.userData.isLock = true; lock.userData.isMapObject = true;
+        this.scene.add(lock);
 
         // Chest glow
         const glowMat = new THREE.MeshStandardMaterial({ color: 0xffaa00, emissive: 0xff8800, emissiveIntensity: 2, transparent: true, opacity: 0.8 });
