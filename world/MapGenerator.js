@@ -1099,6 +1099,7 @@ export class MapGenerator {
             });
             const canopy = new THREE.Mesh(new THREE.SphereGeometry(canopySize, 8, 6), canopyMat);
             canopy.position.set(x, treeH + canopySize * 0.3, z); canopy.castShadow = true;
+            canopy.userData.isLuminousForest = true; canopy.userData.isTree = true; canopy.userData.isCanopy = true; canopy.userData.isCover = true; canopy.userData.isMapObject = true;
             this.scene.add(canopy);
 
             // Second canopy layer
