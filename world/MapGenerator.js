@@ -1074,7 +1074,7 @@ export class MapGenerator {
                 const doorPost = new THREE.Mesh(new THREE.BoxGeometry(0.5, bh, 0.8), bunkerMat);
                 doorPost.position.set(bx + side * 1.75, bh / 2, bz + bd / 2);
                 doorPost.castShadow = true;
-                doorPost.userData.isBurningWastes = true; doorPost.userData.isBunker = true; doorPost.userData.isMapObject = true;
+                doorPost.userData.isBurningWastes = true; doorPost.userData.isBunker = true; doorPost.userData.isCover = true; doorPost.userData.isMapObject = true;
                 this.scene.add(doorPost);
             }
             // Roof edge
