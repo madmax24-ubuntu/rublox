@@ -1054,6 +1054,7 @@ export class MapGenerator {
             );
             crater.position.set(cx + Math.cos(a) * r, 0.15, cz + Math.sin(a) * r);
             crater.rotation.x = Math.PI / 2;
+            crater.userData.isBurningWastes = true; crater.userData.isCrater = true; crater.userData.isHazard = true; crater.userData.isMapObject = true;
             this.scene.add(crater);
         }
 
