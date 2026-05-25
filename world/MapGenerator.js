@@ -128,6 +128,7 @@ export class MapGenerator {
         this.heightMap = null;
         this.currentFogPhase = 0;
         this.zoneTransitionTime = 0;
+        this.activeFogRing = null;
         this.ready = new Promise(resolve => { this._resolveReady = resolve; });
     }
 
