@@ -898,6 +898,7 @@ export class MapGenerator {
                 const pa = (i / 5) * Math.PI * 2;
                 const ec = new THREE.Mesh(new THREE.ConeGeometry(0.4, 1.2, 5), crystalMats[2]);
                 ec.position.set(pp.x + Math.cos(pa) * pp.r, 0.6, pp.z + Math.sin(pa) * pp.r);
+                ec.userData.isCrystalGrotto = true; ec.userData.isEdgeCrystal = true; ec.userData.isCrystal = true; ec.userData.isMapObject = true;
                 this.scene.add(ec);
             }
         }
