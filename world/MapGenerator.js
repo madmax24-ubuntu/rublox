@@ -464,6 +464,7 @@ export class MapGenerator {
                     for (const side of [-1, 1]) {
                         const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 2.5, 5), woodMat);
                         post.position.set(bx + side * 1, 1.25, bz); post.castShadow = true;
+                        post.userData.isInnerRing = true; post.userData.isBarricade = true; post.userData.isWooden = true; post.userData.isCover = true; post.userData.isMapObject = true;
                         this.scene.add(post);
                     }
                     // Horizontal planks
