@@ -674,13 +674,10 @@ export class MapGenerator {
         this.scene.add(floor);
 
         const lavaMat = new THREE.MeshStandardMaterial({ color: COLOR.lava, emissive: COLOR.lava, emissiveIntensity: 1.5, roughness: 0.3, transparent: true, opacity: 0.85 });
-        const lavaGlowMat = new THREE.MeshStandardMaterial({ color: COLOR.lavaGlow, emissive: COLOR.lavaGlow, emissiveIntensity: 2, transparent: true, opacity: 0.6 });
-        for (let i = 0; i < 15; i++) {
-            const t = i / 15, x = cx - 15 + t * 30, z = cz + Math.sin(t * Math.PI * 2) * 8, w = 2 + Math.sin(t * Math.PI) * 3;
-            const lava = new THREE.Mesh(new THREE.BoxGeometry(w, 0.15, 2.5), lavaMat);
+        for (let i = 0; i < 10; i++) {
+            const t = i / 10, x = cx - 20 + t * 40, z = cz + Math.sin(t * Math.PI * 2) * 10, w = 3 + Math.sin(t * Math.PI) * 4;
+            const lava = new THREE.Mesh(new THREE.BoxGeometry(w, 0.15, 3), lavaMat);
             lava.position.set(x, 0.12, z); this.scene.add(lava);
-            const glow = new THREE.Mesh(new THREE.BoxGeometry(w * 0.6, 0.1, 2), lavaGlowMat);
-            glow.position.set(x, 0.15, z); this.scene.add(glow);
         }
 
         const obsMat = new THREE.MeshStandardMaterial({ color: COLOR.obsidian, roughness: 0.3, metalness: 0.5 });
