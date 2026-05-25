@@ -987,6 +987,7 @@ export class MapGenerator {
             rock.position.set(cx + Math.cos(a) * r, 0.5, cz + Math.sin(a) * r);
             rock.rotation.set(Math.random(), Math.random(), Math.random());
             rock.castShadow = true; rock.receiveShadow = true;
+            rock.userData.isBurningWastes = true; rock.userData.isRock = true; rock.userData.isCover = true; rock.userData.isMapObject = true;
             this.scene.add(rock);
         }
 
