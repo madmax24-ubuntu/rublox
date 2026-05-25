@@ -1571,6 +1571,96 @@ export class HUD {
             drawDot(data.player.x, data.player.z, '#3cff7a', playerR);
         }
     }
+
+    // ===== ZONE / FOG / RADIATION DISPLAY =====
+
+    // Show a zone warning message at the top-center
+    showZoneWarning(message, duration = 3000) {
+        let overlay = document.getElementById('zoneWarningOverlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'zoneWarningOverlay';
+            overlay.style.cssText = `
+                position: absolute;
+                top: ${px(55)}px;
+                left: 50%;
+                transform: translateX(-50%);
+                font-size: ${px(20)}px;
+                font-weight: 800;
+                color: #ff4444;
+                background: rgba(30, 6, 6, 0.92);
+                padding: ${px(12)}px ${px(28)}px;
+                border-radius: ${px(10)}px;
+                border: 2px solid rgba(255, 50, 50, 0.6);
+                text-shadow: 0 0 8px rgba(255,0,0,0.6);
+                display: none;
+                z-index: 1400;
+                pointer-events: none;
+                text-align: center;
+                white-space: nowrap;
+            `;
+            const hudEl = document.getElementById('hud');
+            if (hudEl) hudEl.appendChild(overlay);
+        }
+        const el = document.getElementById('zoneWarningOverlay');
+        el.textContent = message;
+        el.style.display = 'block';
+        if (this._zoneWarningTimer) clearTimeout(this._zoneWarningTimer);
+        this._zoneWarningTimer = setTimeout(() => { el.style.display = 'none'; }, duration);
+    }
+
+    // Update fog zone phase display
+    updateFogPhase(phase, safeRadius, arenaRadius) {
+        const zoneInfo = document.getElementById('zoneInfo');
+        if (zoneInfo) {
+            const names = ['Внешняя', 'Средняя', 'Внутренняя', 'Центральная'];
+            const phaseName = phase > 0 ? names[phase - 1] || 'Финальная' : 'Безопасная';
+            const pct = safeRadius > 0 ? Math.round((safeRadius / arenaRadius) * 100) : 100;
+            zoneInfo.textContent = `Туман: ${phaseName} · R=${Math.round(safeRadius)} (${pct}%)`;
+            zoneInfo.style.background = phase > 0
+                ? 'rgba(100, 40, 40, 0.85)'
+                : 'rgba(14, 26, 36, 0.88)';
+        }
+
+        // Update storm overlay intensity based on phase
+        const storm = document.getElementById('stormOverlay');
+        if (storm) {
+            storm.style.opacity = phase > 0 ? String(Math.min(0.6, phase * 0.15)) : '0';
+        }
+    }
+
+    // Show radiation warning
+    showRadiationWarning(level = 'low', distance = Infinity) {
+        const zoneInfo = document.getElementById('zoneInfo');
+        if (zoneInfo) {
+            const names = { high: 'Радиация ВЫСОКАЯ', medium: 'Радиация СРЕДНЯЯ', low: 'Радиация НИЗКАЯ' };
+            const name = names[level] || names.low;
+            const dist = distance < Infinity ? `· ${Math.round(distance)}м` : '';
+            zoneInfo.textContent = `${name}${dist}`;
+            zoneInfo.style.background = level === 'high'
+                ? 'rgba(255, 120, 0, 0.85)'
+                : level === 'medium'
+                    ? 'rgba(200, 160, 0, 0.85)'
+                    : 'rgba(60, 120, 40, 0.85)';
+        }
+
+        // Green radiation overlay
+        const storm = document.getElementById('stormOverlay');
+        if (storm) {
+            const intensity = level === 'high' ? 0.25 : level === 'medium' ? 0.15 : 0.06;
+            storm.style.background = `radial-gradient(circle at 30% 30%, rgba(80, 255, 80, ${intensity}), rgba(12, 30, 18, ${intensity + 0.15}))`;
+            storm.style.opacity = '1';
+        }
+    }
+
+    // Clear radiation warning (back to safe)
+    clearRadiationWarning() {
+        const zoneInfo = document.getElementById('zoneInfo');
+        if (zoneInfo) {
+            zoneInfo.textContent = 'Зона: Безопасная';
+            zoneInfo.style.background = 'rgba(14, 26, 36, 0.88)';
+        }
+    }
 }
 
 
