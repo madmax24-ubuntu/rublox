@@ -142,7 +142,6 @@ export class MapGenerator {
         this.generateHeightMap();
 
             await this.buildArenaFloor();
-            console.log('[MapGenerator] ArenaFloor done');
             await this.yieldFrame();
 
             await this.buildForcefield();
