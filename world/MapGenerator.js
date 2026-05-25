@@ -485,8 +485,8 @@ export class MapGenerator {
                 color: 0xffcc44, emissive: 0xffaa22, emissiveIntensity: 1.5,
                 transparent: true, opacity: 0.6
             });
-            const glow = new THREE.Mesh(new THREE.SphereGeometry(0.3, 6, 6), lootGlow);
-            glow.position.set(x, 2, z);
+ const glow = new THREE.Mesh(new THREE.SphereGeometry(0.3, 6, 6), lootGlow);
+            glow.position.set(x, 2, z); glow.userData.isInnerRing = true; glow.userData.isLootGlow = true; glow.userData.isMarker = true; glow.userData.isMapObject = true;
             this.scene.add(glow);
             this.animatedObjects.push({
                 type: 'lanternGlow', light: new THREE.PointLight(0xffaa22, 1.5, 12),
