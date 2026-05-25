@@ -303,6 +303,7 @@ export class MapGenerator {
             const seg = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, 1.4, 8), hornMat);
             const angle = t * Math.PI * 0.5, h = 5 + t * 12, xOff = -t * 8;
             seg.position.set(xOff, h, 0); seg.rotation.z = angle * 0.5; seg.castShadow = true;
+            seg.userData.isCornucopia = true; seg.userData.isHorn = true; seg.userData.isCornucopiaPart = true; seg.userData.isMapObject = true;
             hornLeftGroup.add(seg);
         }
         this.scene.add(hornLeftGroup);
