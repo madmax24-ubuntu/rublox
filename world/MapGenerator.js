@@ -348,6 +348,7 @@ export class MapGenerator {
         // Observation platform (R=4.5, height=15)
         const obsPlatform = new THREE.Mesh(new THREE.CylinderGeometry(4.5, 4.5, 0.3, 8), baseMat);
         obsPlatform.position.set(0, 14.2, 0); obsPlatform.receiveShadow = true;
+        obsPlatform.userData.isCornucopia = true; obsPlatform.userData.isObservationPlatform = true; obsPlatform.userData.isElevated = true; obsPlatform.userData.isMapObject = true;
         this.scene.add(obsPlatform);
         const railMat = new THREE.MeshStandardMaterial({ color: COLOR.metalDark, roughness: 0.5, metalness: 0.9 });
         for (let i = 0; i < 12; i++) {
