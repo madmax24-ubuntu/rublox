@@ -352,8 +352,14 @@ export class MapGenerator {
         glowLight.position.set(0, 5.5, 0); this.scene.add(glowLight);
 
         // Observation platform (R=4.5, height=15)
+        // Support pillar connecting to hull
+        const supportPillar = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.8, 10, 8), baseMat);
+        supportPillar.position.set(0, 13, 0); supportPillar.castShadow = true; supportPillar.receiveShadow = true;
+        supportPillar.userData.isCornucopia = true; supportPillar.userData.isSupport = true; supportPillar.userData.isMapObject = true;
+        this.scene.add(supportPillar);
+
         const obsPlatform = new THREE.Mesh(new THREE.CylinderGeometry(4.5, 4.5, 0.3, 8), baseMat);
-        obsPlatform.position.set(0, 14.2, 0); obsPlatform.receiveShadow = true;
+        obsPlatform.position.set(0, 14.5, 0); obsPlatform.receiveShadow = true;
         obsPlatform.userData.isCornucopia = true; obsPlatform.userData.isObservationPlatform = true; obsPlatform.userData.isElevated = true; obsPlatform.userData.isMapObject = true;
         this.scene.add(obsPlatform);
         const railMat = new THREE.MeshStandardMaterial({ color: COLOR.metalDark, roughness: 0.5, metalness: 0.9 });
