@@ -648,15 +648,17 @@ export class MapGenerator {
             { x: 5, z: 20, h: 12, r: 2.2 },
             { x: 20, z: -18, h: 13, r: 2.3 },
         ];
-        for (const tp of watchTowers) {
+         for (const tp of watchTowers) {
             const tower = new THREE.Mesh(new THREE.CylinderGeometry(tp.r * 0.7, tp.r, tp.h, 6), towerMat);
             tower.position.set(cx + tp.x, tp.h / 2, cz + tp.z);
             tower.rotation.z = (Math.random() - 0.5) * 0.06;
             tower.castShadow = true; tower.receiveShadow = true;
+            tower.userData.isCitadel = true; tower.userData.isTower = true; tower.userData.isWatchTower = true; tower.userData.isMapObject = true;
             this.scene.add(tower);
             // Small platform
             const plat = new THREE.Mesh(new THREE.CylinderGeometry(tp.r * 0.9, tp.r * 0.9, 0.2, 6), towerDarkMat);
             plat.position.set(cx + tp.x, tp.h - 1, cz + tp.z); plat.receiveShadow = true;
+            plat.userData.isCitadel = true; plat.userData=isPlatform = true; plat.userData.isMapObject = true;
             this.scene.add(plat);
 
             this.colliders.push({ type: 'cylinder', position: new THREE.Vector3(cx + tp.x, tp.h / 2, cz + tp.z), radius: tp.r, height: tp.h });
