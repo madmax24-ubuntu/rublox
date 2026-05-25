@@ -360,56 +360,42 @@ export class MapGenerator {
     }
 
     async generate() {
-        console.log('[MapGenerator] generate START');
         this.generateHeightMap();
-        console.log('[MapGenerator] heightMap done');
 
         await this.buildArenaFloor();
-        console.log('[MapGenerator] arenaFloor done');
 
         await this.buildForcefield();
         await this.yieldFrame();
-        console.log('[MapGenerator] forcefield done');
 
         await this.buildCornucopia();
         await this.yieldFrame();
-        console.log('[MapGenerator] cornucopia done');
 
         await this.buildBiomePaths();
         await this.yieldFrame();
-        console.log('[MapGenerator] biomePaths done');
 
         await this.buildRuinedCitadel();
         await this.yieldFrame();
-        console.log('[MapGenerator] citadel done');
 
         await this.buildCrystalGrotto();
         await this.yieldFrame();
-        console.log('[MapGenerator] grotto done');
 
         await this.buildBurningWastes();
         await this.yieldFrame();
-        console.log('[MapGenerator] wastes done');
 
         await this.buildLuminousForest();
         await this.yieldFrame();
-        console.log('[MapGenerator] forest done');
 
         this.buildBridges();
         await this.yieldFrame();
-        console.log('[MapGenerator] bridges done');
 
         this.buildHazardZones();
-        console.log('[MapGenerator] hazards done');
 
         this.buildArenaProps();
         await this.yieldFrame();
-        console.log('[MapGenerator] props done');
 
         this.buildBiomeBoundaries();
 
         this.setupAnimations();
-        console.log('[MapGenerator] animations done, animatedObjects:', this.animatedObjects.length);
 
         this.scene.traverse(obj => {
             if (obj.isMesh || obj.isGroup || obj.isInstancedMesh) {
@@ -419,10 +405,8 @@ export class MapGenerator {
         });
 
         this.buildMapBoundaries();
-        console.log('[MapGenerator] boundaries done');
 
         this._resolveReady();
-        console.log('[MapGenerator] READY RESOLVED');
     }
 
     yieldFrame() {
