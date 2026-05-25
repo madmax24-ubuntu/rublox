@@ -116,6 +116,9 @@ export class MapGenerator {
     constructor(scene) {
         this.scene = scene;
         this.arenaRadius = 220;
+        this.spawnCourtyardRadius = 40;
+        this.halfSize = this.arenaRadius;
+        this.waterLevel = 0;
         this.colliders = [];
         this.spawnPads = [];
         this.hazards = [];
