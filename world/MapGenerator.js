@@ -953,6 +953,7 @@ export class MapGenerator {
                     cz + Math.sin(startAngle) * (t * 50) + Math.sin(t * 3) * 3
                 );
                 lava.rotation.y = startAngle + Math.PI / 2;
+                lava.userData.isBurningWastes = true; lava.userData.isLavaFlow = lava.userData.isHazard = lava.userData.isMapObject = true;
                 this.scene.add(lava);
             }
         }
