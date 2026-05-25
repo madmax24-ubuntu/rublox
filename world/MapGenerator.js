@@ -326,6 +326,7 @@ export class MapGenerator {
         const chestTrimMat = new THREE.MeshStandardMaterial({ color: COLOR.chestGold, roughness: 0.3, metalness: 0.8 });
         const chestBody = new THREE.Mesh(new THREE.BoxGeometry(2.8, 1.8, 2.2), chestMat);
         chestBody.position.set(0, 5, 0); chestBody.castShadow = true;
+        chestBody.userData.isCornucopia = true; chestBody.userData.isChest = true; chestBody.userData.isLootContainer = true; chestBody.userData.isMapObject = true;
         this.scene.add(chestBody);
         const chestLid = new THREE.Mesh(new THREE.SphereGeometry(1.3, 8, 8, 0, Math.PI * 2, 0, Math.PI / 2), chestMat);
         chestLid.position.set(0, 5.9, 0); chestLid.scale.set(1, 0.4, 0.83); chestLid.castShadow = true;
