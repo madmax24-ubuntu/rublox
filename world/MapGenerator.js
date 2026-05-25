@@ -592,6 +592,7 @@ export class MapGenerator {
         const floor = new THREE.Mesh(new THREE.CircleGeometry(70, 8),
             new THREE.MeshStandardMaterial({ color: COLOR.ruinFloor, roughness: 1.0 }));
         floor.rotation.x = -Math.PI / 2; floor.position.set(cx, 0.03, cz); floor.receiveShadow = true;
+        floor.userData.isCitadel = true; floor.userData.isFloor = true; floor.userData.isMapObject = true;
         this.scene.add(floor);
 
         const towerMat = new THREE.MeshStandardMaterial({ color: COLOR.ruinStone, roughness: 0.9, metalness: 0.1 });
