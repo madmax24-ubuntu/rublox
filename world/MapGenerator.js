@@ -805,8 +805,8 @@ export class MapGenerator {
     buildArenaProps() {
         const supplyMat = new THREE.MeshStandardMaterial({ color: 0x4a5a3a, roughness: 0.8, metalness: 0.2 });
         const supplyTrimMat = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.5, metalness: 0.7 });
-        for (let i = 0; i < 12; i++) {
-            const a = Math.random() * Math.PI * 2, r = 40 + Math.random() * (this.arenaRadius - 60);
+        for (let i = 0; i < 8; i++) {
+            const a = Math.random() * Math.PI * 2, r = 50 + Math.random() * (this.arenaRadius - 70);
             const x = Math.cos(a) * r, z = Math.sin(a) * r;
             const crate = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 1.8), supplyMat);
             crate.position.set(x, 1, z); crate.rotation.y = Math.random() * Math.PI;
