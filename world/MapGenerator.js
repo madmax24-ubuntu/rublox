@@ -1572,7 +1572,8 @@ export class MapGenerator {
         const stoneMat = new THREE.MeshStandardMaterial({ color: COLOR.stone, roughness: 0.85 });
         const woodMat = new THREE.MeshStandardMaterial({ color: COLOR.wood, roughness: 0.8 });
 
-        // 12 loot clusters scattered in mid-ring
+      // 12 loot clusters scattered in mid-ring
+        const lootRocks = [];
         for (let i = 0; i < 12; i++) {
             const a = Math.random() * Math.PI * 2;
             const r = 65 + Math.random() * 60;
@@ -1580,13 +1581,14 @@ export class MapGenerator {
 
             // Small rock formation around loot
             for (let j = 0; j < 3; j++) {
-                const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.8 + Math.random() * 1.2, 0), stoneMat);
+                const rockSize = 0.8 + Math.random() * 1.2;
                 const ra = (j / 3) * Math.PI * 2;
-                rock.position.set(x + Math.cos(ra) * 2, 0.4, z + Math.sin(ra) * 2);
-                rock.rotation.set(Math.random(), Math.random(), Math.random());
-              rock.castShadow = true;
-                rock.userData.isLootCluster = true; rock.userData.isRock = true; rock.userData.isCover = true; rock.userData.isMapObject = true;
-                this.scene.add(rock);
+                lootRocks.push({
+                    x: x + Math.cos(ra) * 2, y: 0.4, z: z + Math.sin(ra) * 2,
+                    sx: rockSize, sy: rockSize * 0.6, sz: rockSize,
+                    rotX: Math.random(), rotY: Math.random(), rotZ: Math.random(),
+                    isLootCluster: true, isRock: true, isCover: true
+                });
             }
 
             // Loot marker
