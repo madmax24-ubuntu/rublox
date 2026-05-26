@@ -72,7 +72,7 @@ class SimplexNoise {
 // ============ COLOR CONSTANTS ============
 const COLOR = {
     // Arena — bright vibrant colors
-    arenaGround: 0x7aaa5a,
+    arenaGround: 0x5a8a3a,
     arenaPath: 0xc8b898,
     // Cornucopia
     metalDark: 0x6a6a6a,
