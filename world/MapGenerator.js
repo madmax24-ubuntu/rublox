@@ -135,7 +135,12 @@ export class MapGenerator {
         this.currentFogPhase = 0;
         this.zoneTransitionTime = 0;
         this.activeFogRing = null;
+        this.onProgress = null; // callback(ratio, statusText)
         this.ready = new Promise(resolve => { this._resolveReady = resolve; });
+    }
+
+    reportProgress(ratio, status) {
+        this.onProgress?.(ratio, status);
     }
 
     // Helper: tag a mesh with gameplay identifiers
