@@ -2463,7 +2463,13 @@ export class MapGenerator {
             mesh.geometry.getAttribute('position').needsUpdate = true;
         }
 
-        // Animate fire pits and other dynamic objects
+      // Animate fire pits and other dynamic objects
+        for (const obj of this.animatedObjects) {
+            if (obj.update) {
+                obj.update();
+            }
+        }
+    }
 
     // Generate loot items based on tier (1-5)
     generateLootForTier(tier) {
