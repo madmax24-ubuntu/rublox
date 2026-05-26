@@ -33,7 +33,7 @@ export class Environment {
         this.sunLight.position.set(200, 300, 100);
         this.scene.add(this.sunLight);
 
-        this.scene.fog = new THREE.FogExp2(0x8fd3ff, 0.0028);
+        this.scene.fog = new THREE.FogExp2(0x8fd3ff, 0.0003);
         this.scene.background = new THREE.Color(0x8fd3ff);
         this.scene.userData.targetExposure = 1;
     }
