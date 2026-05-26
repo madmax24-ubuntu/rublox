@@ -12,12 +12,83 @@ const loadingOverlay = document.getElementById('loadingOverlay');
 const loadingFill = document.getElementById('loadingFill');
 const loadingText = document.getElementById('loadingText');
 
-const setLoadingProgress = (ratio) => {
-    if (!loadingFill || !loadingText) return;
-    const pct = Math.max(0, Math.min(100, Math.floor(ratio * 100)));
-    loadingFill.style.width = `${pct}%`;
-    loadingText.textContent = `${pct}%`;
+// Smooth animated loading system
+let _loadingTarget = 0;
+let _loadingCurrent = 0;
+let _loadingStatus = '';
+let _loadingAnimId = null;
+
+const LOADING_STATUSES = {
+    0: 'Инициализация движка...',
+    0.15: 'Загрузка ресурсов...',
+    0.35: 'Генерация карты...',
+    0.65: 'Построение ландшафта...',
+    0.80: 'Размещение объектов...',
+    0.90: 'Настройка освещения...',
+    0.97: 'Подготовка мира...',
+    1.0: 'Готово!'
 };
+
+const setStatus = (text) => {
+    if (text !== _loadingStatus) {
+        _loadingStatus = text;
+        if (loadingText && loadingText.parentElement) {
+            const statusEl = loadingText.parentElement.querySelector('.loading-status');
+            if (statusEl) statusEl.textContent = text;
+        }
+    }
+};
+
+const animateLoading = () => {
+    if (_loadingCurrent >= _loadingTarget) {
+        _loadingAnimId = null;
+        return;
+    }
+    const speed = 0.08 + _loadingTarget * 0.05;
+    _loadingCurrent += Math.min((_loadingTarget - _loadingCurrent) * speed, 0.03);
+
+    if (loadingFill) {
+        const pct = Math.max(0, Math.min(100, Math.floor(_loadingCurrent * 100)));
+        loadingFill.style.width = `${pct}%`;
+    }
+    if (loadingText) {
+        const pct = Math.max(0, Math.min(100, Math.floor(_loadingCurrent * 100)));
+        const statusKey = Object.keys(LOADING_STATUSES).reverse().find(k => _loadingCurrent >= k * 0.95);
+        const statusText = statusKey !== undefined ? LOADING_STATUSES[statusKey] : '';
+        loadingText.textContent = `${pct}% ${statusText}`;
+    }
+
+    if (_loadingCurrent < _loadingTarget) {
+        _loadingAnimId = requestAnimationFrame(animateLoading);
+    } else {
+        _loadingAnimId = null;
+    }
+};
+
+const setLoadingProgress = (ratio) => {
+    _loadingTarget = Math.max(_loadingTarget, Math.min(0, 100) ? ratio : ratio);
+    _loadingTarget = Math.max(0, Math.min(1, ratio));
+    if (_loadingAnimId) return; // animation running
+    _loadingAnimId = requestAnimationFrame(animateLoading);
+};
+
+const smoothSetProgress = (increment, status) => {
+    _loadingTarget = Math.min(1, _loadingTarget + increment);
+    if (status) setStatus(status);
+    if (!_loadingAnimId) {
+        _loadingAnimId = requestAnimationFrame(animateLoading);
+    }
+};
+
+// Insert status text into loading overlay
+(() => {
+    if (loadingOverlay && loadingText) {
+        const statusEl = document.createElement('div');
+        statusEl.className = 'loading-status';
+        statusEl.style.cssText = 'margin-top:6px;font-size:12px;opacity:0.6;min-height:16px;';
+        loadingText.parentElement.appendChild(statusEl);
+    }
+})();
 
 let gameHasStarted = false;
 
