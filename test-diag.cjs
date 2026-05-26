@@ -5,7 +5,7 @@ const { chromium } = require('playwright');
   await page.goto('http://localhost:3001');
 
   // Inject diagnostic script before game starts
-  await page.evaluateOnPageLoad(() => {
+  await page.evaluate(() => {
     window.__diagnostics = [];
 
     // Track canvas
