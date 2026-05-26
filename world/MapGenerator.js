@@ -1183,7 +1183,7 @@ export class MapGenerator {
         const bunkerPositions = [
             { x: -20, z: -15 }, { x: 25, z: 10 }, { x: -10, z: 25 }
         ];
-        const bunkerMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.8 });
+        const bunkerMat = new THREE.MeshStandardMaterial({ color: 0x6a6a6a, roughness: 0.8 });
         for (const bp of bunkerPositions) {
             // Bunker body (low rectangular with open top)
             const bx = cx + bp.x, bz = cz + bp.z;
