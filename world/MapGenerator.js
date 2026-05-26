@@ -158,7 +158,7 @@ export class MapGenerator {
     }
 
     yieldFrame() {
-        return new Promise(resolve => setTimeout(resolve, 0));
+        return Promise.resolve();
     }
 
     // ---- Shared geometry helper ----
