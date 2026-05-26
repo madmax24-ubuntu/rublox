@@ -1329,23 +1329,33 @@ export class MapGenerator {
         const mushMat = new THREE.MeshStandardMaterial({
             color: COLOR.luminousMushroom, emissive: COLOR.luminousMushroom, emissiveIntensity: 0.8, roughness: 0.6
         });
+        const mushStemMat = new THREE.MeshStandardMaterial({ color: COLOR.luminousBark, roughness: 0.8 });
+        const mushroomStems = [];
+        const mushroomCaps = [];
         for (let i = 0; i < 30; i++) {
             const a = Math.random() * Math.PI * 2, r = 3 + Math.random() * 58;
             const x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r;
             const mushH = 0.3 + Math.random() * 0.6;
-            const stem = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.04, 0.08, mushH, 6),
-                new THREE.MeshStandardMaterial({ color: COLOR.luminousBark, roughness: 0.8 })
-            );
-            stem.position.set(x, mushH / 2, z); stem.userData.isLuminousForest = true; stem.userData.isMushroom = true; stem.userData.isStem = true; stem.userData.isMapObject = true;
-            this.scene.add(stem);
-            const cap = new THREE.Mesh(
-                new THREE.SphereGeometry(0.25 + Math.random() * 0.35, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2),
-                mushMat
-            );
-            cap.position.set(x, mushH, z); cap.userData.isLuminousForest = true; cap.userData.isMushroom = true; cap.userData.isCap = true; cap.userData.isGlow = true; cap.userData.isMapObject = true;
-            this.scene.add(cap);
+            const capR = 0.25 + Math.random() * 0.35;
+
+            // Stem - batched
+            mushroomStems.push({
+                x, y: mushH / 2, z,
+                sx: 0.04, sy: mushH, sz: 0.08,
+                isLuminousForest: true, isMushroom: true, isStem: true
+            });
+
+            // Cap - batched (half-sphere using scale)
+            mushroomCaps.push({
+                x, y: mushH, z,
+                sx: capR, sy: capR * 0.5, sz: capR,
+                isLuminousForest: true, isMushroom: true, isCap: true, isGlow: true
+            });
         }
+        // Batch mushroom stems (30 → 1 InstancedMesh)
+        this.batchInstances(new THREE.CylinderGeometry(0.04, 0.08, 1, 6), mushStemMat, mushroomStems, { isLuminousForest: true, isMushroom: true });
+        // Batch mushroom caps (30 → 1 InstancedMesh)
+        this.batchInstances(new THREE.SphereGeometry(1, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), mushMat, mushroomCaps, { isLuminousForest: true, isMushroom: true });
 
         // === 2 PONDS (tactical water features) ===
         const pondMat = new THREE.MeshStandardMaterial({
