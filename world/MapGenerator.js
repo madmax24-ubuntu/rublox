@@ -153,7 +153,11 @@ export class MapGenerator {
             const it = items[0];
             m.position.set(it.x || 0, it.y || 0, it.z || 0);
             if (it.sx !== undefined) m.scale.set(it.sx, it.sy || it.sx, it.sz || it.sx);
+            if (it.rotX) m.rotation.x = it.rotX;
             if (it.rotY) m.rotation.y = it.rotY;
+            if (it.rotZ) m.rotation.z = it.rotZ;
+            m.castShadow = it.castShadow !== false;
+            m.receiveShadow = it.receiveShadow !== false;
             m.userData = { ...userData, ...it.userData };
             this.scene.add(m);
             return;
@@ -175,6 +179,8 @@ export class MapGenerator {
         }
 
         instanced.instanceMatrix.needsUpdate = true;
+        instanced.castShadow = true;
+        instanced.receiveShadow = true;
         instanced.userData = { isMapObject: true, ...userData };
         this.scene.add(instanced);
 
