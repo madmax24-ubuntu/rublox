@@ -1714,10 +1714,12 @@ export class MapGenerator {
                     sx: 0.4, sy: 0.4, sz: 0.4,
                     rotX: Math.random(), rotY: Math.random(), rotZ: Math.random(),
                     isFirePit: true
-                });
-            }
+             });
+        }
+        // Batch fire pit stones (96 → 1 InstancedMesh)
+        this.batchInstances(new THREE.DodecahedronGeometry(1, 0), fireMat, firePitStones, { isFirePit: true });
 
-            // Flame (animated)
+        // Flame (animated)
             const flame = new THREE.Mesh(new THREE.ConeGeometry(0.25, 1.2, 5), flameMat.clone());
             flame.position.set(loc.x, 0.8, loc.z);
             flame.userData.isFirePit = true;
