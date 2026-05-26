@@ -1383,41 +1383,50 @@ export class MapGenerator {
 
         const bridgeAngles = [-Math.PI * 0.75, -Math.PI * 0.25, Math.PI * 0.75, Math.PI * 0.25];
 
+        // Collect bridge data for InstancedMesh batching
+        const decks = [];
+        const sideRails = [];
+        const topRails = [];
+
         for (const angle of bridgeAngles) {
             // 4 bridge sections per direction = 16 total
             for (let i = 0; i < 4; i++) {
                 const t = (i + 0.5) / 4;
                 const r = 40 + t * (this.arenaRadius - 80);
                 const x = Math.cos(angle) * r, z = Math.sin(angle) * r;
+                const rotY = -angle + Math.PI / 2;
 
                 // Deck
-                const deck = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.25, 7), bridgeMat);
-                deck.position.set(x, 0.15, z);
-                deck.rotation.y = -angle + Math.PI / 2;
-                deck.receiveShadow = true; deck.castShadow = true;
-                deck.userData.isBridge = true; deck.userData.isDeck = true; deck.userData.isMapObject = true;
-                this.scene.add(deck);
+                decks.push({ x, y: 0.15, z, rotY, sx: 3.5, sy: 0.25, sz: 7, isBridge: true, isDeck: true });
 
-                // Rails
+                // Side rails (2 per bridge)
                 for (const side of [-1, 1]) {
-                    const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.2, 4), bridgeRailMat);
-                    rail.position.set(
-                        x + Math.cos(angle + Math.PI / 2) * side * 1.7,
-                        0.75,
-                        z + Math.sin(angle + Math.PI / 2) * side * 1.7
-                    );
-                    rail.userData.isBridge = true; rail.userData.isRail = true; rail.userData.isMapObject = true;
-                this.scene.add(rail);
+                    const railX = x + Math.cos(angle + Math.PI / 2) * side * 1.7;
+                    const railZ = z + Math.sin(angle + Math.PI / 2) * side * 1.7;
+                    sideRails.push({ x: railX, y: 0.75, z: railZ, isBridge: true, isRail: true });
                 }
 
-                // Top rail
-                const topRail = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 3.5, 4), bridgeRailMat);
-                topRail.position.set(x, 1.35, z);
-                topRail.rotation.y = -angle + Math.PI / 2;
-                topRail.userData.isBridge = true; topRail.userData.isRail = true; topRail.userData.isMapObject = true;
-                this.scene.add(topRail);
+                // Top rail (1 per bridge)
+                topRails.push({ x, y: 1.35, z, rotY, sx: 3.5, sy: 0.05, sz: 0.05, isBridge: true, isRail: true });
             }
         }
+
+        // Batch bridge decks (16 meshes → 1 InstancedMesh)
+        this.batchInstances(new THREE.BoxGeometry(1, 1, 1), bridgeMat, decks, { isBridge: true });
+
+        // Batch side rails (32 meshes → 1 InstancedMesh)
+        this.batchInstances(new THREE.CylinderGeometry(1, 1, 1.2, 4), bridgeRailMat, sideRails, { isBridge: true });
+
+        // Batch top rails (16 meshes → 1 InstancedMesh)
+        this.batchInstances(new THREE.CylinderGeometry(1, 1, 3.5, 4), bridgeRailMat, topRails, { isBridge: true });
+
+        // Apply shadows via scene traversal
+        this.scene.traverse(obj => {
+            if (obj.isInstancedMesh && obj.userData.isBridge) {
+                obj.castShadow = true;
+                obj.receiveShadow = true;
+            }
+        });
     }
 
     // ===================== ZONE 3-4: OUTER OUTPOSTS =====================
