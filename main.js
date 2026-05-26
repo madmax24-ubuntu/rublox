@@ -317,10 +317,9 @@ class Game {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.shadowMap.enabled = false;
         this.applyRendererSizing();
-        this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        this.renderer.toneMappingName = 'aces';
-        this.renderer.toneMappingExposure = 1.5;
+  this.renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
+        this.renderer.toneMapping = THREE.NoToneMapping;
+        this.renderer.toneMappingExposure = 1.0;
         if (!this.scene.userData.globalAmbientLight) {
             const ambient = new THREE.AmbientLight(0xffffff, 1.5);
             this.scene.add(ambient);
