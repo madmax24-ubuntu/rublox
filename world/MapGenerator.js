@@ -1704,15 +1704,17 @@ export class MapGenerator {
             { x: 50, z: 50 }, { x: -50, z: 50 }, { x: 50, z: -50 }, { x: -50, z: -50 },
         ];
 
+    const firePitStones = [];
         for (const loc of pitLocations) {
             // Stone ring base
             for (let i = 0; i < 6; i++) {
                 const angle = (i / 6) * Math.PI * 2;
-                const stone = new THREE.Mesh(new THREE.DodecahedronGeometry(0.4, 0), fireMat);
-                stone.position.set(loc.x + Math.cos(angle) * 0.8, 0.25, loc.z + Math.sin(angle) * 0.8);
-                stone.rotation.set(Math.random(), Math.random(), Math.random());
-                stone.userData.isFirePit = true;
-                this.scene.add(stone);
+                firePitStones.push({
+                    x: loc.x + Math.cos(angle) * 0.8, y: 0.25, z: loc.z + Math.sin(angle) * 0.8,
+                    sx: 0.4, sy: 0.4, sz: 0.4,
+                    rotX: Math.random(), rotY: Math.random(), rotZ: Math.random(),
+                    isFirePit: true
+                });
             }
 
             // Flame (animated)
