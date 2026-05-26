@@ -158,7 +158,12 @@ class Game {
 
     async initAsync() {
         if (this.initialized) return;
-        await this.initializeGame();
+        try {
+            await this.initializeGame();
+        } catch (err) {
+            console.error('[Game] initAsync error:', err);
+            console.error(err.stack);
+        }
         this.initialized = true;
     }
 
