@@ -143,6 +143,78 @@ export class MapGenerator {
         this.onProgress?.(ratio, status);
     }
 
+    // ============ PERFORMANCE: INSTANCED MESH BUILDER ============
+    // Converts multiple individual meshes with shared geometry+material into a single InstancedMesh
+    batchInstances(geometry, material, items, userData = {}) {
+        const count = items.length;
+        if (count === 0) return;
+        if (count === 1) {
+            const m = new THREE.Mesh(geometry, material);
+            const it = items[0];
+            m.position.set(it.x || 0, it.y || 0, it.z || 0);
+            if (it.sx !== undefined) m.scale.set(it.sx, it.sy || it.sx, it.sz || it.sx);
+            if (it.rotY) m.rotation.y = it.rotY;
+            m.userData = { ...userData, ...it.userData };
+            this.scene.add(m);
+            return;
+        }
+
+        const instanced = new THREE.InstancedMesh(geometry, material, count);
+        const dummy = new THREE.Object3D();
+        const entries = [];
+
+        for (let i = 0; i < count; i++) {
+            const it = items[i];
+            dummy.position.set(it.x || 0, it.y || 0, it.z || 0);
+            dummy.rotation.set(it.rotX || 0, it.rotY || 0, it.rotZ || 0);
+            const s = it.s || 1;
+            dummy.scale.set(it.sx || s, it.sy || s, it.sz || s);
+            dummy.updateMatrix();
+            instanced.setMatrixAt(i, dummy.matrix);
+            entries.push(it);
+        }
+
+        instanced.instanceMatrix.needsUpdate = true;
+        instanced.userData = { isMapObject: true, ...userData };
+        this.scene.add(instanced);
+
+        // Add individual colliders/props from entries
+        if (entries[0]?.userData?.isCollider) {
+            entries.forEach(it => {
+                this.colliders.push(it.collider);
+            });
+        }
+    }
+
+    // ============ PERFORMANCE: BATCH PROPS BY GEOMETRY ============
+    // Groups meshes by their geometry params and material, creates InstancedMesh for each group
+    batchPropsByMaterial(geometries, material, items) {
+        const key = `${geometries.key}-${material.uuid}`;
+        if (!this._batchCache) this._batchCache = new Map();
+        if (this._batchCache.has(key)) {
+            this._batchCache.get(key).push(...items);
+            return;
+        }
+        const cache = { geometries, material, items: [...items] };
+        this._batchCache.set(key, cache);
+    }
+
+    flushBatches() {
+        if (!this._batchCache) return;
+        for (const [key, cache] of this._batchCache) {
+            const { geometries, material, items } = cache;
+            // Use batchInstances for the first item's geometry type
+            const geoKey = Object.keys(geometries).find(k => geometries[k].type === items[0]?._geoType);
+            if (geoKey && geometries[geoKey]) {
+                this.batchInstances(geometries[geoKey], material, items.map(i => {
+                    const { _geoType, collider, ...rest } = i;
+                    return rest;
+                }), items[0]?.userData || {});
+            }
+        }
+        this._batchCache = null;
+    }
+
     // Helper: tag a mesh with gameplay identifiers
     tagMesh(mesh, ...tags) {
         mesh.userData.isMapObject = true;
