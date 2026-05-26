@@ -21,7 +21,7 @@ const { chromium } = require('playwright');
 
   // Evaluate game state
   let state = await page.evaluate(() => {
-    const game = window.__game || document.querySelector('#game')?.__gameInstance;
+    const game = window.game;
     return {
       gameState: game?.gameState || 'unknown',
       countdownTimer: game?.countdownTimer ?? -1,
@@ -38,7 +38,7 @@ const { chromium } = require('playwright');
   await page.waitForTimeout(18000);
 
   state = await page.evaluate(() => {
-    const game = window.__game || document.querySelector('#game')?.__gameInstance;
+    const game = window.game;
     return {
       gameState: game?.gameState || 'unknown',
       countdownTimer: game?.countdownTimer ?? -1,
@@ -55,7 +55,7 @@ const { chromium } = require('playwright');
   await page.waitForTimeout(15000);
 
   state = await page.evaluate(() => {
-    const game = window.__game || document.querySelector('#game')?.__gameInstance;
+    const game = window.game;
     return {
       gameState: game?.gameState || 'unknown',
       roundFinished: game?.roundFinished
