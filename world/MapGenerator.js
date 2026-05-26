@@ -111,7 +111,7 @@ const COLOR = {
     chestGold: 0xdaa520,
     forcefield: 0x4488ff,
     // Terrain
-    terrain: 0x5a9a3a,
+    terrain: 0x5a8a3a,
 };
 
 // ============ MAP GENERATOR ============
