@@ -488,87 +488,36 @@ export class MapGenerator {
             this.scene.add(hill);
         }
 
-        // Terrain displacement — use SimplexNoise to displace arena floor vertices
-        const posAttr = floorGeo.attributes.position;
-        const displaced = new Float32Array(posAttr.count * 3);
-        for (let i = 0; i < posAttr.count; i++) {
-            const x = posAttr.getX(i);
-            const z = posAttr.getZ(i);
-            const y = posAttr.getY(i);
+        // ---- Canvas detail texture for road/terrain overlay ----
+        const detailCanvas = document.createElement('canvas');
+        detailCanvas.width = detailCanvas.height = 256;
+        const dCtx = detailCanvas.getContext('2d');
 
-            // Multi-octave noise for natural terrain variation
-            let elevation = 0;
-            let amplitude = 1;
-            let frequency = 0.008;
-            for (let o = 0; o < 4; o++) {
-                elevation += amplitude * noise.noise2D(x * frequency, z * frequency);
-                amplitude *= 0.5;
-                frequency *= 2;
-            }
-
-            // Flatten near center (arena), roughen at edges
-            const dist = Math.sqrt(x * x + z * z);
-            const centerFlatten = Math.max(0, (120 - dist) / 120);
-            const edgeRoughen = Math.pow(Math.max(0, (dist - 100) / 80), 2);
-            const totalElevation = elevation * (0.3 + edgeRoughen * 1.5) * (1 - centerFlatten * 0.8);
-
-            displaced[i * 3] = x;
-            displaced[i * 3 + 1] = y + totalElevation * 0.8;
-            displaced[i * 3 + 2] = z;
-        }
-        floorGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(displaced), 3));
-        floorGeo.computeVertexNormals();
-
-        // Procedural terrain texture — canvas-generated grain + noise pattern
-        const terrainCanvas = document.createElement('canvas');
-        terrainCanvas.width = terrainCanvas.height = 512;
-        const tCtx = terrainCanvas.getContext('2d');
-        const tc = new THREE.Color(COLOR.arenaGround);
-        const baseR = Math.floor(tc.r * 255), baseG = Math.floor(tc.g * 255), baseB = Math.floor(tc.b * 255);
-        const imgData = tCtx.createImageData(512, 512);
-        for (let i = 0; i < imgData.data.length; i += 4) {
-            const n = (Math.random() - 0.5) * 40;
-            imgData.data[i] = Math.max(0, Math.min(255, baseR + n));
-            imgData.data[i + 1] = Math.max(0, Math.min(255, baseG + n));
-            imgData.data[i + 2] = Math.max(0, Math.min(255, baseB + n));
-            imgData.data[i + 3] = 255;
-        }
-        tCtx.putImageData(imgData, 0, 0);
-        const terrainTex = new THREE.CanvasTexture(terrainCanvas);
-        terrainTex.wrapS = terrainTex.wrapT = THREE.RepeatWrapping;
-        terrainTex.repeat.set(16, 16);
-        terrainTex.colorSpace = THREE.SRGBColorSpace;
-
-        const terrainNormalCanvas = document.createElement('canvas');
-        terrainNormalCanvas.width = terrainNormalCanvas.height = 256;
-        const nCtx = terrainNormalCanvas.getContext('2d');
-        const nImgData = nCtx.createImageData(256, 256);
-        const nData = nImgData.data;
-        for (let y = 0; y < 256; y++) {
-            for (let x = 0; x < 256; x++) {
-                const idx = (y * 256 + x) * 4;
-                const left = (y * 256 + Math.max(0, x - 1)) * 4;
-                const right = y * 256 + Math.min(255, x + 1) * 4;
-                const up = (Math.max(0, y - 1) * 256 + x) * 4;
-                const down = (Math.min(255, y + 1) * 256 + x) * 4;
-                const h = nData[idx] || 128;
-                const hl = nData[left] || 128, hr = nData[right] || 128;
-                const hu = nData[up] || 128, hd = nData[down] || 128;
-                nData[idx] = ((hl - hr) * 0.5 + 128);
-                nData[idx + 1] = ((hu - hd) * 0.5 + 128);
-                nData[idx + 2] = 128;
-                nData[idx + 3] = 255;
+        // Base grain: subtle noise variation
+        for (let y = 0; y < 256; y += 4) {
+            for (let x = 0; x < 256; x += 4) {
+                const n = (Math.random() - 0.5) * 16;
+                dCtx.fillStyle = `rgb(${128 + n | 0}, ${128 + n | 0}, ${128 + n | 0})`;
+                dCtx.fillRect(x, y, 4, 4);
             }
         }
-        nCtx.putImageData(nImgData, 0, 0);
-        const terrainNormal = new THREE.CanvasTexture(terrainNormalCanvas);
-        terrainNormal.wrapS = terrainNormal.wrapT = THREE.RepeatWrapping;
-        terrainNormal.repeat.set(16, 16);
 
-        groundMat.map = terrainTex;
-        groundMat.normalMap = terrainNormal;
-        groundMat.normalScale = new THREE.Vector2(0.3, 0.3);
-        groundMat.needsUpdate = true;
+        // Draw subtle radial road lines from center
+        dCtx.strokeStyle = 'rgba(70, 65, 50, 0.3)';
+        dCtx.lineWidth = 2;
+        for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
+            dCtx.beginPath();
+            dCtx.moveTo(128, 128);
+            dCtx.lineTo(128 + Math.cos(a) * 256, 128 + Math.sin(a) * 256);
+            dCtx.stroke();
+        }
+
+        const detailTex = new THREE.CanvasTexture(detailCanvas);
+        detailTex.wrapS = detailTex.wrapT = THREE.RepeatWrapping;
+        detailTex.repeat.set(32, 32);
+        detailTex.colorSpace = THREE.SRGBColorSpace;
+        terrainMat.uniforms.uDetailTex = { value: detailTex };
+
         await this.yieldFrame();
     }
 
