@@ -940,7 +940,10 @@ export class MapGenerator {
         }
 
         // === WALL SECTIONS (connecting towers, creating defensive perimeter) ===
-        const wallMat = new THREE.MeshStandardMaterial({ color: COLOR.ruinStone, roughness: 0.9, metalness: 0.1 });
+  const wallMat = new THREE.MeshStandardMaterial({
+            color: COLOR.ruinStone, roughness: 0.9, metalness: 0.1,
+            map: this.createProceduralTexture(COLOR.ruinStone, 30, 256)
+        });
         const wallSegments = [
             // Inner defensive wall
             { x1: -12, z1: -12, x2: 15, z2: -10, h: 5 },
