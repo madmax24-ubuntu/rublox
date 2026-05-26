@@ -2260,6 +2260,7 @@ class Game {
         }
 
         // players count is updated by throttled hudStatsTimer block above
+        } // end else (perkMenuBlocking)
     }
 
     getLocalizedFogBoost(position) {
