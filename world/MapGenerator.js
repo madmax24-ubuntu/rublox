@@ -700,6 +700,7 @@ export class MapGenerator {
         const lanternPosts = [];
         const lanternHeads = [];
         const lanternGlows = [];
+        const lanternMat = new THREE.MeshStandardMaterial({ color: COLOR.metalDark, roughness: 0.5, metalness: 0.8 });
 
         for (const ang of angles) {
             for (let i = 0; i < 45; i++) {
@@ -712,10 +713,6 @@ export class MapGenerator {
             }
 
             // Lantern posts every 12 tiles
-            const lanternMat = new THREE.MeshStandardMaterial({ color: COLOR.metalDark, roughness: 0.5, metalness: 0.8 });
-            const lanternGlowMat = new THREE.MeshStandardMaterial({
-                color: 0xffcc44, emissive: 0xffaa22, emissiveIntensity: 1.5, transparent: true, opacity: 0.8
-            });
             for (let i = 6; i < 45; i += 10) {
                 const t = i / 45, r = 22 + t * (this.arenaRadius - 55), w = 5 * (1 - t * 0.25);
                 const x = Math.cos(ang) * r, z = Math.sin(ang) * r;
