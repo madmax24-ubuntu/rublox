@@ -2794,10 +2794,33 @@ export class MapGenerator {
                 meshes.push(obj);
             }
         });
-        // TODO: Implement proper geometry merging with BufferGeometryUtils
-        // For now, just ensure frustum culling is enabled
-        for (const m of meshes) {
-            m.frustumCulled = true;
+        if (meshes.length <= 1) { meshes.forEach(m => m.frustumCulled = true); return; }
+
+        try {
+            const geometries = meshes.map(mesh => {
+                const geo = mesh.geometry.toNonIndexed();
+                mesh.updateWorldMatrix(true, false);
+                const m = new THREE.Matrix4().copy(mesh.matrixWorld);
+                geo.applyMatrix4(m);
+                return geo;
+            });
+
+            const merged = mergeBufferGeometries(geometries);
+            const mergedMesh = new THREE.Mesh(merged, material);
+            mergedMesh.frustumCulled = true;
+            mergedMesh.visible = meshes[0].visible;
+            this.scene.add(mergedMesh);
+
+            meshes.forEach(m => {
+                this.scene.remove(m);
+                m.geometry.dispose();
+            });
+
+            this.scene.userData.mergedMeshes = this.scene.userData.mergedMeshes || [];
+            this.scene.userData.mergedMeshes.push(mergedMesh);
+        } catch (e) {
+            console.warn(`[MapGenerator] Geometry merge failed, using culling fallback:`, e.message);
+            meshes.forEach(m => m.frustumCulled = true);
         }
     }
 
