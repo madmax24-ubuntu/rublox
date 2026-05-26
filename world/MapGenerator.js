@@ -375,8 +375,11 @@ export class MapGenerator {
                     float hR = terrainNoise((pXZ + vec2(eps, 0.0)) * 0.5);
                     float hU = terrainNoise((pXZ - vec2(0.0, eps)) * 0.5);
                     float hD = terrainNoise((pXZ + vec2(0.0, eps)) * 0.5);
-                    vec3 norm = normalize(vec3(hL - hR, eps * 2.0, hU - hD));
-                    vNormal = norm;
+                    // Transform normal: local X=world X, local Y=-world Z, local Z=world Y
+                    // So: (dX, dY, dZ) -> (dX, dZ, -dY) for world space
+                    vec3 norm = normalize(vec3(hL - hR, hU - hD, -(eps * 2.0)));
+                    // Apply normal matrix for rotation
+                    vNormal = normalize((normalMatrix * vec4(norm, 0.0)).xyz);
 
                     // World position with displacement
                     // After rotationX(-PI/2): local Z = world Y (height)
