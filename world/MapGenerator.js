@@ -1241,15 +1241,22 @@ export class MapGenerator {
         const barkMat = new THREE.MeshStandardMaterial({ color: COLOR.luminousBark, roughness: 0.9 });
         const glowColors = [COLOR.luminousGlow, 0x44aaff, COLOR.luminousMushroom, 0xffaa44, 0x44ffaa];
 
+        // Collect tree data for InstancedMesh batching
+        const treeTrunks = [];
+        const treeVines = [];
+
         // === 50 TREES (varied heights and canopy layers) ===
         for (let i = 0; i < 50; i++) {
             const a = Math.random() * Math.PI * 2, r = 5 + Math.random() * 60;
             const x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r;
             const treeH = 8 + Math.random() * 10, trunkR = 0.3 + Math.random() * 0.4;
-            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(trunkR * 0.5, trunkR, treeH, 6), barkMat);
-            trunk.position.set(x, treeH / 2, z); trunk.castShadow = true;
-            trunk.userData.isLuminousForest = true; trunk.userData.isTree = true; trunk.userData.isTrunk = true; trunk.userData.isCover = true; trunk.userData.isMapObject = true;
-            this.scene.add(trunk);
+
+            // Trunk - batched
+            treeTrunks.push({
+                x, y: treeH / 2, z,
+                sx: trunkR * 0.5, sy: treeH, sz: trunkR,
+                isLuminousForest: true, isTree: true, isTrunk: true, isCover: true
+            });
 
             const canopyColor = glowColors[Math.floor(Math.random() * glowColors.length)];
             const canopySize = 2 + Math.random() * 3;
@@ -1271,22 +1278,19 @@ export class MapGenerator {
             c2.userData.isLuminousForest = true; c2.userData.isTree = true; c2.userData.isCanopy = true; c2.userData.isMapObject = true;
             this.scene.add(c2);
 
-            // Vines (30% of trees)
+            // Vines (30% of trees) - batched separately
             if (Math.random() > 0.7) {
                 for (let v = 0; v < 2; v++) {
-                    const vine = new THREE.Mesh(
-                        new THREE.CylinderGeometry(0.02, 0.02, 1 + Math.random() * 1.5, 3),
-                        barkMat
-                    );
+                    const vineH = 1 + Math.random() * 1.5;
                     const va = Math.random() * Math.PI * 2;
-                    vine.position.set(
-                        x + Math.cos(va) * canopySize * 0.4,
-                        treeH - 1,
-                        z + Math.sin(va) * canopySize * 0.4
-                    );
-                    vine.rotation.z = (Math.random() - 0.5) * 0.5;
-                    vine.userData.isLuminousForest = true; vine.userData.isVine = true; vine.userData.isDecor = true; vine.userData.isMapObject = true;
-                    this.scene.add(vine);
+                    treeVines.push({
+                        x: x + Math.cos(va) * canopySize * 0.4,
+                        y: treeH - 1,
+                        z: z + Math.sin(va) * canopySize * 0.4,
+                        rotZ: (Math.random() - 0.5) * 0.5,
+                        sx: 0.02, sy: vineH, sz: 0.02,
+                        isLuminousForest: true, isVine: true, isDecor: true
+                    });
                 }
             }
 
@@ -1296,6 +1300,14 @@ export class MapGenerator {
                 treeLight.position.set(x, treeH, z); this.scene.add(treeLight);
                 this.animatedObjects.push({ type: 'treeGlow', light: treeLight, baseIntensity: 1, color: canopyColor });
             }
+        }
+
+        // Batch tree trunks (50 → 1 InstancedMesh)
+        this.batchInstances(new THREE.CylinderGeometry(0.5, 1, 1, 6), barkMat, treeTrunks, { isLuminousForest: true, isTree: true });
+
+        // Batch vines (~20-30 → 1 InstancedMesh)
+        if (treeVines.length > 0) {
+            this.batchInstances(new THREE.CylinderGeometry(1, 1, 1, 3), barkMat, treeVines, { isLuminousForest: true, isVine: true });
         }
 
         // === 30 MUSHROOMS ===
