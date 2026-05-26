@@ -71,45 +71,47 @@ class SimplexNoise {
 
 // ============ COLOR CONSTANTS ============
 const COLOR = {
-    // Arena
-    arenaGround: 0x3a5a2a,
-    arenaPath: 0x8b7355,
+    // Arena — brighter for visibility
+    arenaGround: 0x6a8a4a,
+    arenaPath: 0xb8a080,
     // Cornucopia
-    metalDark: 0x3a3a3a,
-    metalLight: 0x6a6a6a,
-    metalGold: 0xc8a830,
-    // Ruined Citadel (NW) — Mid-Range Combat & Verticality
-    ruinStone: 0x8a8580,
-    ruinDarkStone: 0x6a6560,
-    ruinFloor: 0x7a7570,
-    ruinMoss: 0x4a6a3a,
-    // Crystal Grotto (NE) — Close-Quarters & Stealth
+    metalDark: 0x5a5a5a,
+    metalLight: 0x8a8a8a,
+    metalGold: 0xe8c830,
+    // Ruined Citadel (NW)
+    ruinStone: 0xb0aab0,
+    ruinDarkStone: 0x8a8580,
+    ruinFloor: 0x9a9590,
+    ruinMoss: 0x6a8a5a,
+    // Crystal Grotto (NE)
     crystalBlue: 0x4488cc,
     crystalPurple: 0x8844aa,
-    crystalFloor: 0x2a2a3a,
-    crystalReflect: 0x6688aa,
+    crystalFloor: 0x4a4a5a,
+    crystalReflect: 0x88aacc,
     crystalGlow: 0x88ccff,
-    // Burning Wastes (SW) — Long-Range Open Combat
+    // Burning Wastes (SW)
     lava: 0xff4400,
-    obsidian: 0x1a1a2a,
-    wasteGround: 0x2a1a0a,
-    scorchedRock: 0x2a2a2a,
-    smoke: 0x1a1a1a,
-    // Luminous Forest (SE) — Mixed Combat & Late-Game Survival
-    luminousBark: 0x2a1a0a,
+    obsidian: 0x3a3a4a,
+    wasteGround: 0x5a3a2a,
+    scorchedRock: 0x4a4a4a,
+    smoke: 0x3a3a3a,
+    // Luminous Forest (SE)
+    luminousBark: 0x4a3a2a,
     luminousLeaf: 0x22aa44,
     luminousGlow: 0x44ff88,
     luminousMushroom: 0x8844ff,
-    luminousFloor: 0x1a2a1a,
+    luminousFloor: 0x3a5a3a,
     luminousPond: 0x226644,
     // Misc
-    bridgeWood: 0x5a4a3a,
-    fenceWood: 0x4a3a2a,
-    stone: 0x8c8c8c,
-    wood: 0x6b4226,
-    chestWood: 0x6b4226,
+    bridgeWood: 0x7a6a5a,
+    fenceWood: 0x6a5a4a,
+    stone: 0x9c9c9c,
+    wood: 0x8b6246,
+    chestWood: 0x8b6246,
     chestGold: 0xdaa520,
     forcefield: 0x4488ff,
+    // Terrain
+    terrain: 0x4a7a2a,
 };
 
 // ============ MAP GENERATOR ============
