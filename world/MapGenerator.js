@@ -471,6 +471,8 @@ export class MapGenerator {
         const floor = new THREE.Mesh(floorGeo, terrainMat);
         floor.position.y = -0.25;
         floor.receiveShadow = true;
+        floor.castShadow = true;
+        floor.renderOrder = -1000;
         floor.userData.isArena = true;
         floor.userData.isFloor = true;
         floor.userData.isGround = true;
