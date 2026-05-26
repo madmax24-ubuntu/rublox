@@ -1485,7 +1485,6 @@ class Game {
         ambient.color.lerp(target, delta * 3);
         ambient.intensity += (intensity - ambient.intensity) * delta * 3;
     }
-    }
 
     queueZombieBurst(reset, multiplier, capOverride, count, chunk = 6) {
         this.pendingZombieBursts.push({
