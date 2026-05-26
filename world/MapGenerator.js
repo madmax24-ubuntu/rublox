@@ -1147,15 +1147,19 @@ export class MapGenerator {
         }
 
         // === 25 ROCKS (scattered cover) ===
+        const burningRocks = [];
         for (let i = 0; i < 25; i++) {
             const a = Math.random() * Math.PI * 2, r = 8 + Math.random() * 55;
-            const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(1 + Math.random() * 2, 0), rockMat);
-            rock.position.set(cx + Math.cos(a) * r, 0.5, cz + Math.sin(a) * r);
-            rock.rotation.set(Math.random(), Math.random(), Math.random());
-            rock.castShadow = true; rock.receiveShadow = true;
-            rock.userData.isBurningWastes = true; rock.userData.isRock = true; rock.userData.isCover = true; rock.userData.isMapObject = true;
-            this.scene.add(rock);
+            const rockSize = 1 + Math.random() * 2;
+            const rx = cx + Math.cos(a) * r, rz = cz + Math.sin(a) * r;
+            burningRocks.push({
+                x: rx, y: 0.5, z: rz,
+                sx: rockSize, sy: rockSize * 0.6, sz: rockSize,
+                rotX: Math.random(), rotY: Math.random(), rotZ: Math.random(),
+                isBurningWastes: true, isRock: true, isCover: true
+            });
         }
+        this.batchInstances(new THREE.DodecahedronGeometry(1, 0), rockMat, burningRocks, { isBurningWastes: true, isRock: true });
 
         // === 8 SMOKE CLOUDS ===
         for (let i = 0; i < 8; i++) {
