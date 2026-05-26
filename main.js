@@ -1771,7 +1771,8 @@ class Game {
             this.updateDesktopCursorMode();
         }
 
-        } else if (this.gameState === 'spawn') {
+        // ===== SPAWN HANDLER (always runs) =====
+        if (this.gameState === 'spawn') {
             this.spawnTimer -= delta;
             this.player.isFrozen = false;
             this.bots.forEach(bot => { bot.isFrozen = false; });
