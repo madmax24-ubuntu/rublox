@@ -384,11 +384,11 @@ export class MapGenerator {
                     float dE = length(pos - ne), dW = length(pos - sw);
                     float dS = length(pos - se);
 
-                    float wC = 1.0 / (1.0 + pow(dC / s, 4.0) * exp(length(pos - nw) * length(pos - nw) / (2.0 * s * s)));
-                    float wN = 1.0 / (1.0 + pow(dN / s, 4.0) * exp(length(pos - center) * length(pos - center) / (2.0 * s * s)));
-                    float wE = 1.0 / (1.0 + pow(dE / s, 4.0) * exp(length(pos - center) * length(pos - center) / (2.0 * s * s)));
-                    float wW = 1.0 / (1.0 + pow(dW / s, 4.0) * exp(length(pos - center) * length(pos - center) / (2.0 * s * s)));
-                    float wS = 1.0 / (1.0 + pow(dS / s, 4.0) * exp(length(pos - center) * length(pos - center) / (2.0 * s * s)));
+                    float wC = 1.0 / (1.0 + pow(dC / s, 4.0));
+                    float wN = 1.0 / (1.0 + pow(dN / s, 4.0));
+                    float wE = 1.0 / (1.0 + pow(dE / s, 4.0));
+                    float wW = 1.0 / (1.0 + pow(dW / s, 4.0));
+                    float wS = 1.0 / (1.0 + pow(dS / s, 4.0));
 
                     float sum = wC + wN + wE + wW + wS;
                     return vec4(wC/sum, wN/sum, wE/sum, wW/sum);
