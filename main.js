@@ -1645,6 +1645,8 @@ class Game {
     }
 
     update(delta) {
+        // Handle perk menu navigation WITHOUT blocking game loop
+        let perkMenuBlocking = false;
         if (this.perkMenuOpen) {
             const wPressed = !!this.input.keys['KeyW'] || !!this.input.keys['ArrowUp'];
             const sPressed = !!this.input.keys['KeyS'] || !!this.input.keys['ArrowDown'];
@@ -1658,7 +1660,7 @@ class Game {
                 this.perkMenuIndex += 1;
                 this.hud.setPerkMenuSelection(this.perkMenuIndex);
             }
-            
+
             if (ePressed && !this.menuKeyLatch.e) {
                 if (this.hud && this.hud.perkButtons) {
                     const idx = this.hud.getPerkMenuSelection();
@@ -1671,7 +1673,7 @@ class Game {
             this.menuKeyLatch.s = sPressed;
             this.menuKeyLatch.e = ePressed;
             document.exitPointerLock?.();
-            return;
+            perkMenuBlocking = true;
         } else {
             this.menuKeyLatch.w = false;
             this.menuKeyLatch.s = false;
