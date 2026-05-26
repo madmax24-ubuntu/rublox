@@ -22,19 +22,34 @@ export class Environment {
     }
 
     init() {
-        this.ambient = new THREE.AmbientLight(0xffffff, 0.9);
-        this.scene.add(this.ambient);
+        // Use main.js lights if already set, otherwise create defaults
+        if (!this.scene.userData.globalAmbientLight) {
+            this.ambient = new THREE.AmbientLight(0xffffff, 0.9);
+            this.scene.add(this.ambient);
+        } else {
+            this.ambient = this.scene.userData.globalAmbientLight;
+        }
 
-        this.hemi = new THREE.HemisphereLight(0xbad5ff, 0x4a3a28, 0.95);
-        this.scene.add(this.hemi);
+        if (!this.scene.userData.hemiLight) {
+            this.hemi = new THREE.HemisphereLight(0xbad5ff, 0x4a3a28, 0.95);
+            this.scene.add(this.hemi);
+        } else {
+            this.hemi = this.scene.userData.hemiLight;
+        }
 
-        this.sunLight = new THREE.DirectionalLight(0xffd166, 1.4);
-        this.sunLight.castShadow = false;
-        this.sunLight.position.set(200, 300, 100);
-        this.scene.add(this.sunLight);
+        if (!this.scene.userData.globalSunLight) {
+            this.sunLight = new THREE.DirectionalLight(0xffd166, 1.4);
+            this.sunLight.castShadow = false;
+            this.sunLight.position.set(200, 300, 100);
+            this.scene.add(this.sunLight);
+        } else {
+            this.sunLight = this.scene.userData.globalSunLight;
+        }
 
         // Fog is now handled by main.js
-        this.scene.background = new THREE.Color(0x8fd3ff);
+        if (!this.overrideFog) {
+            this.scene.background = new THREE.Color(0x8899aa);
+        }
         this.scene.userData.targetExposure = 1;
     }
 
