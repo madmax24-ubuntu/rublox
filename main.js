@@ -1797,7 +1797,8 @@ class Game {
                     this.queuePoiBurst(1.65, this.isMobile() ? 16 : 22, this.isMobile() ? 4 : 5);
                 }
             }
-            this.updateZoneCycle(delta);
+          this.updateZoneCycle(delta);
+            this.updateBiomeAmbient(delta);
             this.chestRespawnTimer = Math.max(0, this.chestRespawnTimer - delta);
             if (this.chestRespawnTimer <= 0) {
                 const restored = this.lootManager.refillOpenedChests?.(6) || 0;
