@@ -161,6 +161,10 @@ export class MapGenerator {
         return Promise.resolve();
     }
 
+   startGeneration() {
+        return this.generate();
+    }
+
     // ---- Shared geometry helper ----
     getSharedGeo(name, createFn) {
         if (!this._sharedGeo.has(name)) {
