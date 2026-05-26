@@ -1588,6 +1588,209 @@ export class MapGenerator {
         }
     }
 
+    // ===================== PARTICLE SYSTEMS =====================
+    buildParticleSystems() {
+        // --- Fire spark particles ---
+        for (let p = 0; p < 20; p++) {
+            const a = (p / 20) * Math.PI * 2;
+            const r = 18;
+            const x = Math.cos(a) * r, z = Math.sin(a) * r;
+            this.createSparkParticles(x, z);
+        }
+
+        // --- Burning wastes ash ---
+        this.createAshParticles(100, 100, 30);
+        this.createAshParticles(-100, -80, 20);
+
+        // --- Luminous forest glow particles ---
+        this.createGlowParticles(-60, 60, 40);
+        this.createGlowParticles(-80, 80, 30);
+    }
+
+    createSparkParticles(cx, cz) {
+        const count = 60;
+        const geo = new THREE.BufferGeometry();
+        const positions = new Float32Array(count * 3);
+        const velocities = [];
+        const sizes = new Float32Array(count);
+
+        for (let i = 0; i < count; i++) {
+            positions[i * 3] = cx + (Math.random() - 0.5) * 2;
+            positions[i * 3 + 1] = Math.random() * 3;
+            positions[i * 3 + 2] = cz + (Math.random() - 0.5) * 2;
+            velocities.push({
+                x: (Math.random() - 0.5) * 0.5,
+                y: 0.5 + Math.random() * 1.5,
+                z: (Math.random() - 0.5) * 0.5,
+                life: Math.random()
+            });
+            sizes[i] = 0.15 + Math.random() * 0.2;
+        }
+
+        geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+        const mat = new THREE.PointsMaterial({
+            color: 0xff8833,
+            size: 0.2,
+            transparent: true,
+            opacity: 0.7,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending
+        });
+
+        const points = new THREE.Points(geo, mat);
+        points.userData.velocities = velocities;
+        points.userData.origin = { x: cx, z: cz };
+        points.userData.type = 'spark';
+        this.scene.add(points);
+        this.particleSystems.push(points);
+    }
+
+    createAshParticles(cx, cz, count) {
+        const geo = new THREE.BufferGeometry();
+        const positions = new Float32Array(count * 3);
+        const velocities = [];
+
+        for (let i = 0; i < count; i++) {
+            positions[i * 3] = cx + (Math.random() - 0.5) * 80;
+            positions[i * 3 + 1] = Math.random() * 10;
+            positions[i * 3 + 2] = cz + (Math.random() - 0.5) * 80;
+            velocities.push({
+                x: (Math.random() - 0.5) * 0.3,
+                y: 0.05 + Math.random() * 0.1,
+                z: (Math.random() - 0.5) * 0.3
+            });
+        }
+
+        geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+        const mat = new THREE.PointsMaterial({
+            color: 0x664422,
+            size: 0.3,
+            transparent: true,
+            opacity: 0.4,
+            depthWrite: false
+        });
+
+        const points = new THREE.Points(geo, mat);
+        points.userData.velocities = velocities;
+        points.userData.type = 'ash';
+        points.userData.radius = 40;
+        points.userData.center = { x: cx, z: cz };
+        this.scene.add(points);
+        this.particleSystems.push(points);
+    }
+
+    createGlowParticles(cx, cz, count) {
+        const geo = new THREE.BufferGeometry();
+        const positions = new Float32Array(count * 3);
+        const velocities = [];
+        const colors = new Float32Array(count * 3);
+
+        for (let i = 0; i < count; i++) {
+            positions[i * 3] = cx + (Math.random() - 0.5) * 60;
+            positions[i * 3 + 1] = 1 + Math.random() * 8;
+            positions[i * 3 + 2] = cz + (Math.random() - 0.5) * 60;
+            velocities.push({
+                x: (Math.random() - 0.5) * 0.15,
+                y: 0.1 + Math.random() * 0.3,
+                z: (Math.random() - 0.5) * 0.15,
+                phase: Math.random() * Math.PI * 2
+            });
+            // Cyan-green glow
+            colors[i * 3] = 0.2 + Math.random() * 0.3;
+            colors[i * 3 + 1] = 0.6 + Math.random() * 0.4;
+            colors[i * 3 + 2] = 0.8 + Math.random() * 0.2;
+        }
+
+        geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+        const mat = new THREE.PointsMaterial({
+            size: 0.25,
+            transparent: true,
+            opacity: 0.6,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending,
+            vertexColors: true
+        });
+
+        const points = new THREE.Points(geo, mat);
+        points.userData.velocities = velocities;
+        points.userData.type = 'glow';
+        points.userData.radius = 30;
+        points.userData.center = { x: cx, z: cz };
+        this.scene.add(points);
+        this.particleSystems.push(points);
+    }
+
+    updateParticles(delta) {
+        for (const ps of this.particleSystems) {
+            const positions = ps.geometry.getAttribute('position').array;
+            const vels = ps.userData.velocities;
+            const t = performance.now() * 0.001;
+
+            for (let i = 0; i < vels.length; i++) {
+                const v = vels[i];
+
+                if (ps.userData.type === 'spark') {
+                    v.life += delta * 0.4;
+                    if (v.life > 1) {
+                        // Reset to origin
+                        v.life = 0;
+                        positions[i * 3] = ps.userData.origin.x + (Math.random() - 0.5) * 1.5;
+                        positions[i * 3 + 1] = 0.5 + Math.random() * 0.5;
+                        positions[i * 3 + 2] = ps.userData.origin.z + (Math.random() - 0.5) * 1.5;
+                    } else {
+                        positions[i * 3] += v.x * delta;
+                        positions[i * 3 + 1] += v.y * delta;
+                        positions[i * 3 + 2] += v.z * delta;
+                        // Slight wind
+                        v.x += Math.sin(t + i) * 0.01;
+                    }
+                } else if (ps.userData.type === 'ash') {
+                    positions[i * 3] += v.x * delta;
+                    positions[i * 3 + 1] += v.y * delta;
+                    positions[i * 3 + 2] += v.z * delta;
+
+                    // Wrap around
+                    const dx = positions[i * 3] - ps.userData.center.x;
+                    const dz = positions[i * 3 + 2] - ps.userData.center.z;
+                    if (dx * dx + dz * dz > ps.userData.radius * ps.userData.radius) {
+                        const angle = Math.atan2(dz, dx);
+                        const r = Math.random() * 2;
+                        positions[i * 3] = ps.userData.center.x + Math.cos(angle) * r;
+                        positions[i * 3 + 2] = ps.userData.center.z + Math.sin(angle) * r;
+                        positions[i * 3 + 1] = 0;
+                    }
+                    if (positions[i * 3 + 1] > 10) {
+                        positions[i * 3 + 1] = 0;
+                    }
+                } else if (ps.userData.type === 'glow') {
+                    const phase = v.phase || 0;
+                    positions[i * 3] += (v.x + Math.sin(t + phase) * 0.2) * delta;
+                    positions[i * 3 + 1] += v.y * delta;
+                    positions[i * 3 + 2] += (v.z + Math.cos(t + phase) * 0.2) * delta;
+
+                    // Wrap around
+                    const dx = positions[i * 3] - ps.userData.center.x;
+                    const dz = positions[i * 3 + 2] - ps.userData.center.z;
+                    if (dx * dx + dz * dz > ps.userData.radius * ps.userData.radius) {
+                        positions[i * 3] = ps.userData.center.x + (Math.random() - 0.5) * 2;
+                        positions[i * 3 + 2] = ps.userData.center.z + (Math.random() - 0.5) * 2;
+                        positions[i * 3 + 1] = 0;
+                    }
+                    if (positions[i * 3 + 1] > 12) {
+                        positions[i * 3 + 1] = 0;
+                    }
+                }
+            }
+
+            ps.geometry.getAttribute('position').needsUpdate = true;
+        }
+    }
+
     // ===================== TRAPS =====================
     // Hunger Games traps: spike traps, bear traps, tripwires
     buildTraps() {
