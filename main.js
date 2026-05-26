@@ -108,17 +108,14 @@ THREE.DefaultLoadingManager.onStart = function () {
 THREE.DefaultLoadingManager.onProgress = function (url, loaded, total) {
     if (gameHasStarted || document.body?.classList?.contains('game-started')) return;
     if (total > 0) {
-        setLoadingProgress(loaded / total);
-    } else {
-        setLoadingProgress(0.2);
+        smoothSetProgress(loaded / total * 0.05);
     }
 };
 
 // Loading overlay stays visible until explicitly hidden by startGame()
 THREE.DefaultLoadingManager.onLoad = function () {
     if (gameHasStarted || document.body?.classList?.contains('game-started')) return;
-    setLoadingProgress(1);
-    // Don't auto-hide — startGame() hides it after perk panel
+    smoothSetProgress(0.1, 'Ресурсы загружены');
 };
 
 import { MapGenerator } from './world/MapGenerator.js';
