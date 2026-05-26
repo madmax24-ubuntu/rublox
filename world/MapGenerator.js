@@ -465,9 +465,10 @@ export class MapGenerator {
                     vec3 color = corn * zw.r + cit * zw.g + cry * zw.b + vol * zw.a + fore * wSE;
                     color = mix(color, roadColor, roadMask);
 
-                    // Diffuse lighting
-                    vec3 lightDir = normalize(vec3(1.0, 2.5, 1.0));
-                    float diff = max(dot(normalize(vNormal), lightDir), 0.35);
+                    // Diffuse lighting — ambient + directional
+                    vec3 lightDir = normalize(vec3(0.5, 1.0, 0.3));
+                    vec3 norm = normalize(vNormal);
+                    float diff = 0.4 + 0.6 * max(dot(norm, lightDir), 0.0);
                     color *= diff;
 
                     // Rim light for dramatic top-down view
