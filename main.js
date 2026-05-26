@@ -801,9 +801,10 @@ class Game {
         const minDistance = 8.2;
         const slots = [];
         const spawnPads = this.map?.getSpawnPads?.() || [];
-        
+
         // Use Pads First (Skip checks as pads are guaranteed safe)
-        const padPositions = spawnPads.map(p => ({ x: p.x, y: p.y ?? 2.5, z: p.z }));
+        const surfaceY = Math.max(1.54, 1.54 + (this.map?.getHeightAt?.(center.x, center.z) ?? 0.3));
+        const padPositions = spawnPads.map(p => ({ x: p.x, y: surfaceY, z: p.z }));
         for (let i = 0; i < padPositions.length && slots.length < botCount; i++) {
             slots.push(padPositions[i]);
         }
