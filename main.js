@@ -1702,6 +1702,11 @@ class Game {
             return;
         }
 
+        if (perkMenuBlocking) {
+            // Perk menu is open — skip game logic but keep countdown/rendering
+            return;
+        }
+
         this.handleQuickCommands(delta);
         this.processDeferredSpawns(delta);
         const canSelectPerk = this.gameState === 'countdown' && !this.perkLocked;
