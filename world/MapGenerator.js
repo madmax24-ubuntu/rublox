@@ -3086,4 +3086,116 @@ export class MapGenerator {
     setCourtyardGateOpen() {
         return;
     }
+    // ============ PROCEDURAL TEXTURES ============
+    createProceduralTexture(baseColor, variation = 25, size = 256) {
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        const tc = new THREE.Color(baseColor);
+        const r = Math.floor(tc.r * 255), g = Math.floor(tc.g * 255), b = Math.floor(tc.b * 255);
+        const imgData = ctx.createImageData(size, size);
+        for (let i = 0; i < imgData.data.length; i += 4) {
+            const n = (Math.random() - 0.5) * variation;
+            imgData.data[i] = Math.max(0, Math.min(255, r + n));
+            imgData.data[i + 1] = Math.max(0, Math.min(255, g + n));
+            imgData.data[i + 2] = Math.max(0, Math.min(255, b + n));
+            imgData.data[i + 3] = 255;
+        }
+        ctx.putImageData(imgData, 0, 0);
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+        tex.colorSpace = THREE.SRGBColorSpace;
+        return tex;
+    }
+
+    createBrickTexture(size = 256) {
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        const brickH = size / 8, brickW = size / 4;
+        ctx.fillStyle = '#6a6a6a';
+        ctx.fillRect(0, 0, size, size);
+        for (let y = 0; y < 8; y++) {
+            const offset = (y % 2) * (brickW / 2);
+            for (let x = -1; x < 5; x++) {
+                const r = 110 + Math.random() * 40, g = 65 + Math.random() * 30, b = 45 + Math.random() * 20;
+                ctx.fillStyle = `rgb(${r},${g},${b})`;
+                ctx.fillRect(x * brickW + offset + 1, y * brickH + 1, brickW - 2, brickH - 2);
+            }
+        }
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(4, 4);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        return tex;
+    }
+
+    createWoodTexture(size = 256) {
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#6b4423';
+        ctx.fillRect(0, 0, size, size);
+        for (let i = 0; i < 60; i++) {
+            const y = Math.random() * size;
+            ctx.strokeStyle = `rgba(${80 + Math.random() * 30}, ${50 + Math.random() * 20}, ${20 + Math.random() * 15}, 0.3)`;
+            ctx.lineWidth = 1 + Math.random() * 2;
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            for (let x = 0; x < size; x += 10) {
+                ctx.lineTo(x, y + Math.sin(x * 0.02) * 3 + (Math.random() - 0.5) * 2);
+            }
+            ctx.stroke();
+        }
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(4, 4);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        return tex;
+    }
+
+    // ============ ANIMATED WATER ============
+    createAnimatedWater(radius, color, height = 0.3, emissiveIntensity = 0.3) {
+        const waterGeo = new THREE.CylinderGeometry(radius, radius, height, 64);
+        const mat = new THREE.ShaderMaterial({
+            uniforms: {
+                uTime: { value: 0 },
+                uColor: { value: new THREE.Color(color) },
+                uEmissiveIntensity: { value: emissiveIntensity }
+            },
+            vertexShader: `
+                uniform float uTime;
+                varying vec2 vUv;
+                varying float vWave;
+                void main() {
+                    vUv = uv;
+                    vec3 pos = position;
+                    float wave1 = sin(pos.x * 0.3 + uTime * 1.5) * 0.15;
+                    float wave2 = cos(pos.z * 0.4 + uTime * 1.2) * 0.1;
+                    float wave3 = sin((pos.x + pos.z) * 0.2 + uTime * 0.8) * 0.08;
+                    pos.y += wave1 + wave2 + wave3;
+                    vWave = wave1 + wave2 + wave3;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform vec3 uColor;
+                uniform float uTime;
+                uniform float uEmissiveIntensity;
+                varying vec2 vUv;
+                varying float vWave;
+                void main() {
+                    float fresnel = pow(1.0 - abs(dot(normal vec3(0,1,0), normal vec3(0,1,0))), 2.0);
+                    vec3 deepColor = mix(uColor, vec3(0.1, 0.3, 0.6), vWave * 2.0);
+                    vec3 shallowColor = vec3(0.4, 0.7, 0.9);
+                    float alpha = 0.6 + fresnel * 0.3 + vWave * 0.5;
+                    gl_FragColor = vec4(mix(deepColor, shallowColor, 0.3), alpha);
+                }
+            `,
+            transparent: true,
+            depthWrite: false,
+            side: THREE.DoubleSide
+        });
+        return new THREE.Mesh(waterGeo, mat);
+    }
 }
