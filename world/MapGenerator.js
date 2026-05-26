@@ -1449,16 +1449,49 @@ export class MapGenerator {
         this.batchInstances(new THREE.SphereGeometry(1, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), mushMat, mushroomCaps, { isLuminousForest: true, isMushroom: true });
 
         // === 2 PONDS (tactical water features) ===
-        const pondMat = new THREE.MeshStandardMaterial({
-            color: COLOR.luminousPond, emissive: COLOR.luminousGlow, emissiveIntensity: 0.3,
-            roughness: 0.1, transparent: true, opacity: 0.7
-        });
         const pondPositions = [
             { x: cx + 8, z: cz - 8, r: 5 },
             { x: cx - 22, z: cz + 18, r: 4 },
         ];
         for (const pp of pondPositions) {
-            const pond = new THREE.Mesh(new THREE.CylinderGeometry(pp.r, pp.r, 0.1, 10), pondMat);
+            // Animated water shader
+            const pondMat = new THREE.ShaderMaterial({
+                uniforms: {
+                    uTime: { value: 0 },
+                    uColor: { value: new THREE.Color(COLOR.luminousPond) },
+                    uGlow: { value: new THREE.Color(COLOR.luminousGlow) },
+                },
+                vertexShader: `
+                    uniform float uTime;
+                    varying vec2 vUv;
+                    varying float vWave;
+                    void main() {
+                        vUv = uv;
+                        vec3 pos = position;
+                        float wave = sin(pos.x * 0.5 + uTime * 1.5) * 0.05 + cos(pos.z * 0.6 + uTime * 1.2) * 0.05;
+                        pos.y += wave;
+                        vWave = wave;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform vec3 uColor;
+                    uniform vec3 uGlow;
+                    uniform float uTime;
+                    varying vec2 vUv;
+                    varying float vWave;
+                    void main() {
+                        float sparkle = pow(max(0.0, vWave * 10.0), 3.0) * 0.5;
+                        vec3 col = mix(uColor, uGlow, 0.3) + vec3(sparkle);
+                        float alpha = 0.75 + vWave * 0.5;
+                        gl_FragColor = vec4(col, alpha);
+                    }
+                `,
+                transparent: true,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            });
+            const pond = new THREE.Mesh(new THREE.CylinderGeometry(pp.r, pp.r, 0.1, 16), pondMat);
             pond.position.set(pp.x, 0.1, pp.z); pond.userData.isLuminousForest = true; pond.userData.isPond = true; pond.userData.isWater = true; pond.userData.isMapObject = true;
             this.scene.add(pond);
             this.waterMeshes.push(pond);
