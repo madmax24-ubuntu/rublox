@@ -154,44 +154,60 @@ export class MapGenerator {
 
     async generate() {
         this.generateHeightMap();
+        this.reportProgress(0.05, 'Создание ландшафта...');
 
         await this.buildArenaFloor();
+        this.reportProgress(0.12, 'Ландшафт готов');
         await this.yieldFrame();
 
         await this.buildForcefield();
+        this.reportProgress(0.18, 'Арена построена');
         await this.yieldFrame();
 
         await this.buildCornucopia();
+        this.reportProgress(0.25, 'Корнукопия');
         await this.yieldFrame();
 
         await this.buildInnerRing();
+        this.reportProgress(0.32, 'Внутреннее кольцо');
         await this.yieldFrame();
 
         await this.buildBiomePaths();
+        this.reportProgress(0.38, 'Пути биомов');
         await this.yieldFrame();
 
         await this.buildRuinedCitadel();
+        this.reportProgress(0.45, 'Руины Цитадели');
         await this.yieldFrame();
 
         await this.buildCrystalGrotto();
+        this.reportProgress(0.52, 'Хрустальная гротовка');
         await this.yieldFrame();
 
         await this.buildBurningWastes();
+        this.reportProgress(0.58, 'Пылающие пустоши');
         await this.yieldFrame();
 
         await this.buildLuminousForest();
+        this.reportProgress(0.65, 'Светящийся лес');
         await this.yieldFrame();
 
+        this.reportProgress(0.68, 'Мосты и форпосты...');
         this.buildBridges();
         this.buildOuterOutposts();
         this.buildHazardZones();
         this.buildLootClusters();
-       this.buildFirePits();
+        this.buildFirePits();
+        this.reportProgress(0.75, 'Объекты размещены');
+        await this.yieldFrame();
+
         this.buildParticleSystems();
+        this.reportProgress(0.82, 'Частицы');
         this.buildTraps();
         this.buildFogZones();
         this.buildRadiationZones();
         this.buildLootData();
+        this.reportProgress(0.90, 'Лут и ловушки');
         await this.yieldFrame();
 
         this.setupAnimations();
@@ -203,6 +219,7 @@ export class MapGenerator {
             }
         });
 
+        this.reportProgress(0.95, 'Мир готов');
         this._resolveReady();
     }
 
