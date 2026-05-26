@@ -3,8 +3,8 @@ const { chromium } = require('playwright');
   const browser = await chromium.launch({ headless: false });
   const page = await browser.newPage({ viewport: { width: 1280, height: 720 }});
   await page.goto('http://localhost:3001');
-  await page.waitForSelector('#startBtn');
-  await page.click('#startBtn');
+  await page.waitForSelector('#startButtonDesktop');
+  await page.click('#startButtonDesktop');
   console.log('Start clicked');
 
   // Wait for game to initialize and reach playing state
