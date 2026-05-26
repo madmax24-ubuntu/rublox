@@ -317,7 +317,7 @@ class Game {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.shadowMap.enabled = false;
         this.applyRendererSizing();
-        this.renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
+        this.renderer.outputColorSpace = THREE.SRGBColorSpace;
         this.renderer.toneMapping = THREE.NoToneMapping;
         this.renderer.toneMappingExposure = 1.0;
         if (!this.scene.userData.globalAmbientLight) {
