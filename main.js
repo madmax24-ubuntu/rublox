@@ -318,9 +318,9 @@ class Game {
         this.renderer.shadowMap.enabled = false;
         this.applyRendererSizing();
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-       this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-       this.renderer.toneMappingName = 'aces';
-       this.renderer.toneMappingExposure = 1.5;
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        this.renderer.toneMappingName = 'aces';
+        this.renderer.toneMappingExposure = 1.5;
         if (!this.scene.userData.globalAmbientLight) {
             const ambient = new THREE.AmbientLight(0xffffff, 1.5);
             this.scene.add(ambient);
