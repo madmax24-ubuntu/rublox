@@ -1309,7 +1309,16 @@ export class MapGenerator {
         }
 
         // Batch tree trunks (50 → 1 InstancedMesh)
-        this.batchInstances(new THREE.CylinderGeometry(0.5, 1, 1, 6), barkMat, treeTrunks, { isLuminousForest: true, isTree: true });
+        // Use unit cylinder, scale per instance for varying radii/heights
+        const trunkGeo = new THREE.CylinderGeometry(0.5, 1, 1, 6);
+        this.batchInstances(trunkGeo, barkMat, treeTrunks.map(t => ({
+            x: t.x, y: t.y, z: t.z,
+            // Uniform scale for trunk (use average of sx and sy as base, then scaleY for height)
+            s: 1,
+            sx: t.sx, sy: t.sy, sz: t.sz,
+            isLuminousForest: true, isTree: true, isTrunk: true, isCover: true,
+            castShadow: true, receiveShadow: true
+        })), { isLuminousForest: true, isTree: true });
 
         // Batch vines (~20-30 → 1 InstancedMesh)
         if (treeVines.length > 0) {
