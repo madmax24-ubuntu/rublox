@@ -303,16 +303,168 @@ export class MapGenerator {
         this._resolveReady();
     }
 
-    // ===================== ZONE 0: ARENA FLOOR =====================
+    // ===================== ZONE 0: ARENA FLOOR (Multi-Biome Shader Terrain) =====================
     async buildArenaFloor() {
-        const groundMat = new THREE.MeshStandardMaterial({
-            color: COLOR.arenaGround, roughness: 0.95, metalness: 0.05
+        const halfSize = this.arenaRadius;
+
+        // ---- Shader uniforms for each biome zone ----
+        const terrainMat = new THREE.ShaderMaterial({
+            vertexShader: `
+                varying vec2 vUV;
+                varying vec3 vWorldPos;
+                varying vec3 vNormal;
+                uniform float uTime;
+
+                // Hash-based pseudo-random
+                vec3 hash3(vec3 p) {
+                    p = fract(p * vec3(9.547, 7.213, 3.887));
+                    p += dot(p, p.yzx * 0.1);
+                    return fract(vec3(12.9898, 78.233, 45.164) * sin(dot(p, vec3(1.0))));
+                }
+
+                // Multi-octave noise for terrain displacement
+                float terrainNoise(vec2 p) {
+                    float n = 0.0;
+                    float amp = 1.0, freq = 0.012;
+                    for (int i = 0; i < 6; i++) {
+                        n += (hash3(vec3(p, fract(uTime * 0.1 + float(i)))).x - 0.5) * amp;
+                        p *= 2.0;
+                        amp *= 0.5;
+                        freq *= 2.0;
+                    }
+                    return n;
+                }
+
+                void main() {
+                    vUV = uv;
+                    vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
+
+                    // Displacement: flatten at center, roughen at edges
+                    float dist = length(position.xz);
+                    float centerMask = clamp(1.0 - (dist - 30.0) / 80.0, 0.0, 1.0);
+                    float edgeMask = clamp((dist - 120.0) / 80.0, 0.0, 1.0);
+                    float disp = terrainNoise(position.xz * 0.5) * (0.2 + edgeMask * 2.0) * centerMask;
+                    disp += terrainNoise(position.xz * 1.5) * 0.3 * (1.0 - centerMask);
+
+                    // Compute normal via finite differences
+                    float eps = 1.0;
+                    float hL = terrainNoise((position.xz - vec2(eps, 0.0)) * 0.5);
+                    float hR = terrainNoise((position.xz + vec2(eps, 0.0)) * 0.5);
+                    float hU = terrainNoise((position.xz - vec2(0.0, eps)) * 0.5);
+                    float hD = terrainNoise((position.xz + vec2(0.0, eps)) * 0.5);
+                    vec3 norm = normalize(vec3(hL - hR, eps * 2.0, hU - hD));
+                    vNormal = norm;
+
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position + vec3(0.0, disp, 0.0), 1.0);
+                }
+            `,
+            fragmentShader: `
+                precision highp float;
+                varying vec2 vUV;
+                varying vec3 vWorldPos;
+                varying vec3 vNormal;
+                uniform float uTime;
+
+                // Pseudo-random grain
+                float grain(vec2 p) {
+                    return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+                }
+
+                // Zone weight: smooth blending from 5 biome zones
+                vec4 zoneWeights(vec2 pos) {
+                    // pos: normalized ~[-1.3, 1.3] range based on arena size
+                    vec2 center = vec2(0.0, 0.0);        // Cornucopia (center)
+                    vec2 nw     = vec2(-0.65, 0.65);      // Citadel (NW)
+                    vec2 ne     = vec2(0.65, 0.65);       // Crystal (NE)
+                    vec2 sw     = vec2(-0.65, -0.65);     // Volcano (SW)
+                    vec2 se     = vec2(0.65, -0.65);      // Forest (SE)
+
+                    float s = 0.4;
+                    float dC = length(pos - center), dN = length(pos - nw);
+                    float dE = length(pos - ne), dW = length(pos - sw);
+                    float dS = length(pos - se);
+
+                    float wC = 1.0 / (1.0 + pow(dC / s, 4.0) * exp(length(pos - nw) * length(pos - nw) / (2.0 * s * s)));
+                    float wN = 1.0 / (1.0 + pow(dN / s, 4.0) * exp(length(pos - center) * length(pos - center) / (2.0 * s * s)));
+                    float wE = 1.0 / (1.0 + pow(dE / s, 4.0) * exp(length(pos - center) * length(pos - center) / (2.0 * s * s)));
+                    float wW = 1.0 / (1.0 + pow(dW / s, 4.0) * exp(length(pos - center) * length(pos - center) / (2.0 * s * s)));
+                    float wS = 1.0 / (1.0 + pow(dS / s, 4.0) * exp(length(pos - center) * length(pos - center) / (2.0 * s * s)));
+
+                    float sum = wC + wN + wE + wW + wS;
+                    return vec4(wC/sum, wN/sum, wE/sum, wW/sum);
+                }
+
+                void main() {
+                    vec2 wp = vWorldPos.xz / 220.0; // normalize to ~[-1, 1]
+                    vec4 zw = zoneWeights(wp);
+                    float wSE = 1.0 - zw.r - zw.g - zw.b - zw.a;
+
+                    // Biome colors (pre-computed from COLOR constants)
+                    vec3 corn = vec3(0.42, 0.40, 0.38);  // metallic dark with gold
+                    vec3 cit  = vec3(0.78, 0.76, 0.75);  // stone gray
+                    vec3 cry  = vec3(0.35, 0.28, 0.55);  // blue-purple crystal
+                    vec3 vol  = vec3(0.24, 0.22, 0.28);  // dark obsidian
+                    vec3 fore = vec3(0.18, 0.38, 0.18);  // forest green
+
+                    // Per-biome grain variation
+                    float gC = grain(vWorldPos.xz * 0.3), gN = grain(vWorldPos.xz * 0.4);
+                    float gE = grain(vWorldPos.xz * 0.5), gW = grain(vWorldPos.xz * 0.6);
+                    float gS = grain(vWorldPos.xz * 0.7);
+                    corn += (gC - 0.5) * 0.06;
+                    cit  += (gN - 0.5) * 0.08;
+                    cry  += (gE - 0.5) * 0.10;
+                    vol  += (gW - 0.5) * 0.06;
+                    fore += (gS - 0.5) * 0.07;
+
+                    // Subtle pulsing glow per biome
+                    float pulse = sin(uTime * 0.5) * 0.12 + 0.88;
+                    corn += vec3(0.12, 0.08, 0.0) * pulse;    // gold shimmer
+                    cry  += vec3(0.0, 0.06, 0.10) * pulse;     // blue glow
+                    vol  += vec3(0.06, 0.01, 0.0) * pulse;     // lava glow
+                    fore += vec3(0.0, 0.05, 0.01) * pulse;     // green glow
+
+                    // Road overlay: radial paths from center to each corner
+                    float rw = 0.02;
+                    float r1 = abs(wp.x) - rw, r2 = abs(wp.y) - rw;
+                    float r3 = abs(wp.x - wp.y) / 1.4 - rw, r4 = abs(wp.x + wp.y) / 1.4 - rw;
+                    float r5 = smoothstep(0.1, 0.0, length(wp) - 0.15) * 0.15; // inner ring
+                    float road = min(min(r1, r2), min(min(r3, r4), r5));
+                    float roadMask = 1.0 - smoothstep(-0.01, 0.02, road);
+
+                    vec3 roadColor = vec3(0.28, 0.26, 0.22);
+                    vec3 color = corn * zw.r + cit * zw.g + cry * zw.b + vol * zw.a + fore * wSE;
+                    color = mix(color, roadColor, roadMask);
+
+                    // Diffuse lighting
+                    vec3 lightDir = normalize(vec3(1.0, 2.5, 1.0));
+                    float diff = max(dot(normalize(vNormal), lightDir), 0.35);
+                    color *= diff;
+
+                    // Rim light for dramatic top-down view
+                    vec3 viewDir = normalize(cameraPosition - vWorldPos);
+                    float rim = pow(1.0 - abs(dot(normalize(vNormal), viewDir)), 3.0);
+                    color += rim * vec3(0.04, 0.03, 0.05);
+
+                    gl_FragColor = vec4(color, 1.0);
+                }
+            `,
+            uniforms: {
+                uTime: { value: 0 }
+            },
+            side: THREE.FrontSide
         });
-        const floorGeo = new THREE.CylinderGeometry(this.arenaRadius, this.arenaRadius, 0.5, 64);
-        const floor = new THREE.Mesh(floorGeo, groundMat);
+
+        // PlaneGeometry: 440x440, 128x128 segments for smooth displacement
+        const floorGeo = new THREE.PlaneGeometry(halfSize * 2, halfSize * 2, 128, 128);
+        floorGeo.rotateX(-Math.PI / 2);
+
+        const floor = new THREE.Mesh(floorGeo, terrainMat);
         floor.position.y = -0.25;
         floor.receiveShadow = true;
-        floor.userData.isArena = true; floor.userData.isFloor = true; floor.userData.isGround = true; floor.userData.isMapObject = true;
+        floor.userData.isArena = true;
+        floor.userData.isFloor = true;
+        floor.userData.isGround = true;
+        floor.userData.isMapObject = true;
         this.scene.add(floor);
         this.colliders.push({ type: 'box', position: new THREE.Vector3(0, -0.5, 0), size: new THREE.Vector3(this.arenaRadius * 2, 1, this.arenaRadius * 2) });
 
