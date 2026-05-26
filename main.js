@@ -1771,45 +1771,6 @@ class Game {
             this.updateDesktopCursorMode();
         }
 
-        if (this.gameState === 'countdown') {
-            this.countdownTimer -= delta;
-            const sec = Math.max(0, Math.ceil(this.countdownTimer));
-            if (sec !== this.lastCountdownSecond) {
-                this.lastCountdownSecond = sec;
-                if (sec > 0) {
-                    this.audioSynth?.playTimerTick?.(sec <= 3 ? 1.25 : 0.9);
-                }
-            }
-
-            this.player.setInvulnerable(true);
-            this.bots.forEach(bot => bot.setInvulnerable(true));
-            this.player.isFrozen = true;
-            this.bots.forEach(bot => { bot.isFrozen = true; });
-
-            this.hud.showCountdown(sec);
-
-            if (this.countdownTimer <= 0) {
-                if (!this.perkLocked) {
-                    this.applyPerk('quickHands');
-                    this.perkLocked = true;
-                }
-                this.gameState = 'spawn';
-                this.perkLocked = true;
-                this.perkSelectionRequired = false;
-                this.perkMenuOpen = false;
-                this.hud.setPerkPanelLock(false);
-                this.hud.togglePerkPanel(false);
-                this.hud.setPerkSelectionEnabled(false);
-                this.updateDesktopCursorMode();
-                this.tryEnterGameplayPointerLock();
-                this.hud.hideCountdown();
-                this.hud.showGameMessage('\u0414\u043e\u0431\u0440\u043e \u043f\u043e\u0436\u0430\u043b\u043e\u0432\u0430\u0442\u044c \u043d\u0430 \u0413\u043e\u043b\u043e\u0434\u043d\u044b\u0435 \u0438\u0433\u0440\u044b, \u0432\u044b\u0436\u0438\u0432\u0435\u0442 \u0441\u0438\u043b\u044c\u043d\u0435\u0439\u0448\u0438\u0439!');
-                this.audioSynth.playBoxArrival?.(new THREE.Vector3(0, 1, 0));
-                this.player.isFrozen = false;
-                this.bots.forEach(bot => { bot.isFrozen = false; });
-                this.queueZombieBurst(true, 1.6, 120, 22, this.isMobile() ? 4 : 6);
-                this.queuePoiBurst(1.7, this.isMobile() ? 18 : 28, this.isMobile() ? 4 : 5);
-            }
         } else if (this.gameState === 'spawn') {
             this.spawnTimer -= delta;
             this.player.isFrozen = false;
