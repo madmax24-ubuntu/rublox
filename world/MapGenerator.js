@@ -71,47 +71,47 @@ class SimplexNoise {
 
 // ============ COLOR CONSTANTS ============
 const COLOR = {
-    // Arena — brighter for visibility
-    arenaGround: 0x6a8a4a,
-    arenaPath: 0xb8a080,
+    // Arena — bright vibrant colors
+    arenaGround: 0x7aaa5a,
+    arenaPath: 0xc8b898,
     // Cornucopia
-    metalDark: 0x5a5a5a,
-    metalLight: 0x8a8a8a,
-    metalGold: 0xe8c830,
+    metalDark: 0x6a6a6a,
+    metalLight: 0x9a9a9a,
+    metalGold: 0xf8d840,
     // Ruined Citadel (NW)
-    ruinStone: 0xb0aab0,
-    ruinDarkStone: 0x8a8580,
-    ruinFloor: 0x9a9590,
-    ruinMoss: 0x6a8a5a,
+    ruinStone: 0xc8c2c0,
+    ruinDarkStone: 0x9a9590,
+    ruinFloor: 0xb0aaa5,
+    ruinMoss: 0x7a9a5a,
     // Crystal Grotto (NE)
     crystalBlue: 0x4488cc,
     crystalPurple: 0x8844aa,
-    crystalFloor: 0x4a4a5a,
-    crystalReflect: 0x88aacc,
+    crystalFloor: 0x5a5a6a,
+    crystalReflect: 0x99bbdd,
     crystalGlow: 0x88ccff,
     // Burning Wastes (SW)
     lava: 0xff4400,
-    obsidian: 0x3a3a4a,
-    wasteGround: 0x5a3a2a,
-    scorchedRock: 0x4a4a4a,
-    smoke: 0x3a3a3a,
+    obsidian: 0x4a4a5a,
+    wasteGround: 0x7a5a3a,
+    scorchedRock: 0x5a5a5a,
+    smoke: 0x4a4a4a,
     // Luminous Forest (SE)
-    luminousBark: 0x4a3a2a,
+    luminousBark: 0x5a4a3a,
     luminousLeaf: 0x22aa44,
     luminousGlow: 0x44ff88,
     luminousMushroom: 0x8844ff,
-    luminousFloor: 0x3a5a3a,
+    luminousFloor: 0x5a8a5a,
     luminousPond: 0x226644,
     // Misc
-    bridgeWood: 0x7a6a5a,
-    fenceWood: 0x6a5a4a,
-    stone: 0x9c9c9c,
-    wood: 0x8b6246,
-    chestWood: 0x8b6246,
+    bridgeWood: 0x8a7a6a,
+    fenceWood: 0x7a6a5a,
+    stone: 0xb0b0b0,
+    wood: 0x9b6236,
+    chestWood: 0x9b6236,
     chestGold: 0xdaa520,
     forcefield: 0x4488ff,
     // Terrain
-    terrain: 0x4a7a2a,
+    terrain: 0x5a9a3a,
 };
 
 // ============ MAP GENERATOR ============
