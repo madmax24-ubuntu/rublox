@@ -841,8 +841,16 @@ export class MapGenerator {
         floor.userData.isCitadel = true; floor.userData.isFloor = true; floor.userData.isMapObject = true;
         this.scene.add(floor);
 
-        const towerMat = new THREE.MeshStandardMaterial({ color: COLOR.ruinStone, roughness: 0.9, metalness: 0.1 });
-        const towerDarkMat = new THREE.MeshStandardMaterial({ color: COLOR.ruinDarkStone, roughness: 0.95 });
+        const towerMat = new THREE.MeshStandardMaterial({
+            color: COLOR.ruinStone, roughness: 0.9, metalness: 0.1,
+            map: this.createProceduralTexture(COLOR.ruinStone, 30, 256),
+            normalScale: new THREE.Vector2(0.2, 0.2)
+        });
+        const towerDarkMat = new THREE.MeshStandardMaterial({
+            color: COLOR.ruinDarkStone, roughness: 0.95,
+            map: this.createProceduralTexture(COLOR.ruinDarkStone, 35, 256),
+            normalScale: new THREE.Vector2(0.2, 0.2)
+        });
 
         // === 10 TOWERS (3 types: Main, Watch, Outpost) ===
         // Main towers (tall, scouting platforms) — 4
