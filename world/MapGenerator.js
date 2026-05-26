@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import { mergeBufferGeometries } from "three/examples/jsm/geometries/mergeBufferGeometries.js";
 import { MapGenerator as TileMapGenerator } from "./MapGeneratorNode.js";
 
 // ============ NOISE UTILITY ============
