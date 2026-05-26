@@ -841,7 +841,7 @@ class Game {
         }
 
         for (let i = 0; i < botCount; i++) {
-            const s = slots[i] || slots[slots.length - 1] || { x: center.x, y: 2, z: center.z };
+            const s = slots[i] || slots[slots.length - 1] || { x: center.x, y: surfaceY, z: center.z };
             const spawnPos = new THREE.Vector3(s.x, s.y, s.z);
 
             const bot = new Bot(this.scene, i, spawnPos);
