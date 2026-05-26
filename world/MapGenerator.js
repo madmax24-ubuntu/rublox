@@ -692,16 +692,21 @@ export class MapGenerator {
     }
 
     // ===================== ZONE 2: BIOME PATHS =====================
-    async buildBiomePaths() {
+ async buildBiomePaths() {
         const pathMat = new THREE.MeshStandardMaterial({ color: COLOR.arenaPath, roughness: 1.0 });
         const angles = [-Math.PI * 0.75, -Math.PI * 0.25, Math.PI * 0.75, Math.PI * 0.25];
 
-        for (const a of angles) {
+        // Collect lantern data for InstancedMesh batching
+        const lanternPosts = [];
+        const lanternHeads = [];
+        const lanternGlows = [];
+
+        for (const ang of angles) {
             for (let i = 0; i < 45; i++) {
                 const t = i / 45, r = 22 + t * (this.arenaRadius - 55), w = 5 * (1 - t * 0.25);
-                const x = Math.cos(a) * r, z = Math.sin(a) * r;
+                const x = Math.cos(ang) * r, z = Math.sin(ang) * r;
                 const tile = new THREE.Mesh(new THREE.BoxGeometry(w * 1.6, 0.05, w * 1.1), pathMat);
-                tile.position.set(x, -0.01, z); tile.rotation.y = -a + Math.PI / 2;
+                tile.position.set(x, -0.01, z); tile.rotation.y = -ang + Math.PI / 2;
                 tile.receiveShadow = true; tile.userData.isPath = true; tile.userData.isFloor = true; tile.userData.isMapObject = true;
                 this.scene.add(tile);
             }
@@ -713,21 +718,13 @@ export class MapGenerator {
             });
             for (let i = 6; i < 45; i += 10) {
                 const t = i / 45, r = 22 + t * (this.arenaRadius - 55), w = 5 * (1 - t * 0.25);
-                const x = Math.cos(a) * r, z = Math.sin(a) * r;
-                const nx = Math.cos(a + Math.PI / 2), nz = Math.sin(a + Math.PI / 2);
+                const x = Math.cos(ang) * r, z = Math.sin(ang) * r;
+                const nx = Math.cos(ang + Math.PI / 2), nz = Math.sin(ang + Math.PI / 2);
                 for (const side of [-1, 1]) {
                     const px = x + nx * (w * 1.1 + 0.5), pz = z + nz * (w * 1.1 + 0.5);
-                    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 3.5, 6), lanternMat);
- post.position.set(px, 1.75, pz); post.castShadow = true;
-                    post.userData.isPath = true; post.userData.isLanternPost = true; post.userData.isSupport = true; post.userData.isMapObject = true;
-                    this.scene.add(post);
-                    const head = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.5, 0.4), lanternMat);
-                    head.position.set(px, 3.6, pz); head.castShadow = true;
-                    head.userData.isPath = true; head.userData.isLanternPost = true; head.userData.isLanternHead = true; head.userData.isMapObject = true;
-                    this.scene.add(head);
-                    const glow = new THREE.Mesh(new THREE.SphereGeometry(0.2, 6, 6), lanternGlowMat);
-  glow.position.set(px, 3.6, pz); glow.userData.isPath = true; glow.userData.isLanternGlow = true; glow.userData.isMarker = true; glow.userData.isMapObject = true;
-                    this.scene.add(glow);
+                    lanternPosts.push({ x: px, y: 1.75, z: pz, isPath: true, isLanternPost: true, isSupport: true });
+                    lanternHeads.push({ x: px, y: 3.6, z: pz, isPath: true, isLanternPost: true, isLanternHead: true });
+                    lanternGlows.push({ x: px, y: 3.6, z: pz, isPath: true, isLanternGlow: true, isMarker: true });
                     if (side === -1) {
                         const light = new THREE.PointLight(0xffaa22, 1.5, 12);
                         light.position.set(px, 3.6, pz); this.scene.add(light);
@@ -737,6 +734,16 @@ export class MapGenerator {
             }
             await this.yieldFrame();
         }
+
+        // Batch lantern posts (24 → 1 InstancedMesh)
+        this.batchInstances(new THREE.CylinderGeometry(0.08, 0.12, 3.5, 6), lanternMat, lanternPosts, { isPath: true, isLanternPost: true });
+        // Batch lantern heads (24 → 1 InstancedMesh)
+        this.batchInstances(new THREE.BoxGeometry(0.4, 0.5, 0.4), lanternMat, lanternHeads, { isPath: true, isLanternPost: true });
+        // Batch lantern glows (24 → 1 InstancedMesh)
+        const lgMat = new THREE.MeshStandardMaterial({
+            color: 0xffcc44, emissive: 0xffaa22, emissiveIntensity: 1.5, transparent: true, opacity: 0.8
+        });
+        this.batchInstances(new THREE.SphereGeometry(0.2, 6, 6), lgMat, lanternGlows, { isPath: true, isLanternGlow: true });
     }
 
     // ===================== BIOME 1: RUINED CITADEL (NW) =====================
