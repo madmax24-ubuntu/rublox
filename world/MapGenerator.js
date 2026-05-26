@@ -2987,4 +2987,19 @@ export class MapGenerator {
             }
         });
     }
+
+    // ============ COURTYARD GATE HELPERS ============
+    isInsideCourtyard() {
+        return false;
+    }
+
+    getCourtyardExitPosition() {
+        if (!this.playerSpawn) return new THREE.Vector3(0, 1.2, 0);
+        const world = this.toWorld(this.playerSpawn.x, this.playerSpawn.y);
+        return new THREE.Vector3(world.x, 1.2, world.z);
+    }
+
+    setCourtyardGateOpen() {
+        return;
+    }
 }
