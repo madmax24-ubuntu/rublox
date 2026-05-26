@@ -1434,7 +1434,57 @@ class Game {
             this.hud.showGameMessage("Событие: Радиационный дождь. Прячьтесь в домах или ангарах!");
         }
 
-        this.randomEventTimer = GAME_CONFIG.events.nextEventMin + Math.random() * GAME_CONFIG.events.nextEventVariance;
+       this.randomEventTimer = GAME_CONFIG.events.nextEventMin + Math.random() * GAME_CONFIG.events.nextEventVariance;
+    }
+
+    // Adjust ambient light based on player's biome location
+    updateBiomeAmbient(delta) {
+        if (!this.scene.userData.globalAmbientLight || !this.map) return;
+        const px = this.player.position.x;
+        const pz = this.player.position.z;
+        let color = 0xffffff;
+        let intensity = 1.5;
+
+        // Check radiation zones first (dark orange/red tint)
+        const radDmg = this.map.getRadiationDamageAt?.(px, pz) || 0;
+        if (radDmg > 0.25) {
+            color = 0xffaa66;
+            intensity = 1.2;
+        } else if (radDmg > 0.1) {
+            color = 0xffcc88;
+            intensity = 1.35;
+        }
+
+        // Burning wastes - dark orange
+        if (px > 30 && pz < -30 && Math.hypot(px - 100, pz + 100) < 50) {
+            color = 0xff8844;
+            intensity = 1.1;
+        }
+
+        // Luminous forest - cyan/blue tint
+        if (px < -30 && pz > 30 && Math.hypot(px + 60, pz - 60) < 50) {
+            color = 0xaaddff;
+            intensity = 1.4;
+        }
+
+        // Crystal grotto - blue tint
+        if (px > 30 && pz > 30 && Math.hypot(px - 60, pz - 60) < 50) {
+            color = 0x8899cc;
+            intensity = 1.2;
+        }
+
+        // Dark areas (inside structures)
+        const inside = this.map.getStructureAtPoint?.(px, pz, 8);
+        if (inside && (inside.userData.isInnerRing || inside.userData.isCornucopia)) {
+            intensity *= 0.85;
+        }
+
+        // Apply with smooth interpolation
+        const target = new THREE.Color(color);
+        const ambient = this.scene.userData.globalAmbientLight;
+        ambient.color.lerp(target, delta * 3);
+        ambient.intensity += (intensity - ambient.intensity) * delta * 3;
+    }
     }
 
     queueZombieBurst(reset, multiplier, capOverride, count, chunk = 6) {
