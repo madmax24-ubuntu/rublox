@@ -127,6 +127,8 @@ export class MapGenerator {
         this.radiationZones = [];
         this.lootData = [];
         this.animatedObjects = [];
+        this.waterMeshes = [];
+        this.particleSystems = [];
         this.noise = new SimplexNoise(42);
         this.heightMap = null;
         this.currentFogPhase = 0;
