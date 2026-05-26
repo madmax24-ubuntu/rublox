@@ -2084,6 +2084,7 @@ class Game {
 
         this.env.update(delta);
         this.map?.updateZoneAnimations?.(delta);
+        this.map?.updateParticles?.(delta);
         if ((this.env?.getWeatherType?.() || 'clear') === 'rain') {
             this.scene.background = new THREE.Color(0x3b3f46);
         }
