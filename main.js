@@ -291,6 +291,7 @@ class Game {
         this.scene.userData.mobileMode = isMobile;
         this.scene.fog = new THREE.FogExp2(0x8899aa, 0.006);
         this.scene.background = new THREE.Color(0x8899aa);
+        this.scene.environment = null;
         
         console.log('🔧 Creating camera...');
         try {
