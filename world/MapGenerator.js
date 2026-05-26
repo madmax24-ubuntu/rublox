@@ -366,6 +366,57 @@ export class MapGenerator {
         }
         floorGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(displaced), 3));
         floorGeo.computeVertexNormals();
+
+        // Procedural terrain texture — canvas-generated grain + noise pattern
+        const terrainCanvas = document.createElement('canvas');
+        terrainCanvas.width = terrainCanvas.height = 512;
+        const tCtx = terrainCanvas.getContext('2d');
+        const tc = new THREE.Color(COLOR.arenaGround);
+        const baseR = Math.floor(tc.r * 255), baseG = Math.floor(tc.g * 255), baseB = Math.floor(tc.b * 255);
+        const imgData = tCtx.createImageData(512, 512);
+        for (let i = 0; i < imgData.data.length; i += 4) {
+            const n = (Math.random() - 0.5) * 40;
+            imgData.data[i] = Math.max(0, Math.min(255, baseR + n));
+            imgData.data[i + 1] = Math.max(0, Math.min(255, baseG + n));
+            imgData.data[i + 2] = Math.max(0, Math.min(255, baseB + n));
+            imgData.data[i + 3] = 255;
+        }
+        tCtx.putImageData(imgData, 0, 0);
+        const terrainTex = new THREE.CanvasTexture(terrainCanvas);
+        terrainTex.wrapS = terrainTex.wrapT = THREE.RepeatWrapping;
+        terrainTex.repeat.set(16, 16);
+        terrainTex.colorSpace = THREE.SRGBColorSpace;
+
+        const terrainNormalCanvas = document.createElement('canvas');
+        terrainNormalCanvas.width = terrainNormalCanvas.height = 256;
+        const nCtx = terrainNormalCanvas.getContext('2d');
+        const nImgData = nCtx.createImageData(256, 256);
+        const nData = nImgData.data;
+        for (let y = 0; y < 256; y++) {
+            for (let x = 0; x < 256; x++) {
+                const idx = (y * 256 + x) * 4;
+                const left = (y * 256 + Math.max(0, x - 1)) * 4;
+                const right = y * 256 + Math.min(255, x + 1) * 4;
+                const up = (Math.max(0, y - 1) * 256 + x) * 4;
+                const down = (Math.min(255, y + 1) * 256 + x) * 4;
+                const h = nData[idx] || 128;
+                const hl = nData[left] || 128, hr = nData[right] || 128;
+                const hu = nData[up] || 128, hd = nData[down] || 128;
+                nData[idx] = ((hl - hr) * 0.5 + 128);
+                nData[idx + 1] = ((hu - hd) * 0.5 + 128);
+                nData[idx + 2] = 128;
+                nData[idx + 3] = 255;
+            }
+        }
+        nCtx.putImageData(nImgData, 0, 0);
+        const terrainNormal = new THREE.CanvasTexture(terrainNormalCanvas);
+        terrainNormal.wrapS = terrainNormal.wrapT = THREE.RepeatWrapping;
+        terrainNormal.repeat.set(16, 16);
+
+        groundMat.map = terrainTex;
+        groundMat.normalMap = terrainNormal;
+        groundMat.normalScale = new THREE.Vector2(0.3, 0.3);
+        groundMat.needsUpdate = true;
         await this.yieldFrame();
     }
 
