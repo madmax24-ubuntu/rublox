@@ -338,19 +338,43 @@ export class MapGenerator {
                 void main() {
                     vUV = uv;
 
-                    // Compute displacement
-                    float dist = length(position.xz);
+                    // For PlaneGeometry rotated X(-PI/2): local X=world X, local Z=world Y, local Y=world Z
+                    // So horizontal plane coordinates are: local X (world X) and local Z (world Y)
+                    // But we want world XZ (horizontal plane), which is: local X and local Z (before rotation)
+                    // After rotationX(-PI/2), local Z becomes world Y, local Y becomes -world Z
+                    // The plane's horizontal coordinates after rotation: position.x and position.z
+                    // position.x = world X
+                    // position.z = world Y (height, not horizontal!)
+                    // We need world X and world Z. For plane rotated X(-PI/2):
+                    //   - local X = world X
+                    //   - local Y = -world Z (so world Z = -local Y)
+                    // But plane.geometry doesn't use local Y for horizontal extent (it uses X and Z)
+                    // So: horizontal coords = position.x and position.z (both from plane geometry)
+                    // After rotationX(-PI/2): position.z becomes world Y (vertical), position.y becomes -world Z
+                    // Wait — PlaneGeometry creates vertices in XY plane (Z=0).
+                    // position.x = horizontal (world X after rotation)
+                    // position.y = depth (becomes -world Z after rotationX(-PI/2))
+                    // position.z = 0 (becomes world Y height after rotation)
+                    // So: world XZ = position.x, -position.y
+
+                    float worldX = position.x;
+                    float worldZ = -position.y;
+
+                    float dist = length(vec2(worldX, worldZ));
                     float centerMask = clamp(1.0 - (dist - 30.0) / 80.0, 0.0, 1.0);
                     float edgeMask = clamp((dist - 120.0) / 80.0, 0.0, 1.0);
-                    float disp = terrainNoise(position.xz * 0.5) * (0.2 + edgeMask * 2.0) * centerMask;
-                    disp += terrainNoise(position.xz * 1.5) * 0.3 * (1.0 - centerMask);
+
+                    // Noise for displacement
+                    float disp = terrainNoise(vec2(worldX, worldZ) * 0.5) * (0.2 + edgeMask * 2.0) * centerMask;
+                    disp += terrainNoise(vec2(worldX, worldZ) * 1.5) * 0.3 * (1.0 - centerMask);
 
                     // Compute normal via finite differences
                     float eps = 1.0;
-                    float hL = terrainNoise((position.xz - vec2(eps, 0.0)) * 0.5);
-                    float hR = terrainNoise((position.xz + vec2(eps, 0.0)) * 0.5);
-                    float hU = terrainNoise((position.xz - vec2(0.0, eps)) * 0.5);
-                    float hD = terrainNoise((position.xz + vec2(0.0, eps)) * 0.5);
+                    vec2 pXZ = vec2(worldX, worldZ);
+                    float hL = terrainNoise((pXZ - vec2(eps, 0.0)) * 0.5);
+                    float hR = terrainNoise((pXZ + vec2(eps, 0.0)) * 0.5);
+                    float hU = terrainNoise((pXZ - vec2(0.0, eps)) * 0.5);
+                    float hD = terrainNoise((pXZ + vec2(0.0, eps)) * 0.5);
                     vec3 norm = normalize(vec3(hL - hR, eps * 2.0, hU - hD));
                     vNormal = norm;
 
