@@ -508,7 +508,7 @@ export class MapGenerator {
         }
 
         // Weapons racks (4 at cardinal directions inside Cornucopia)
-        const rackMat = new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 0.8 });
+        const rackMat = new THREE.MeshStandardMaterial({ color: 0x7a6a5a, roughness: 0.8 });
         for (let i = 0; i < 4; i++) {
             const a = (i / 4) * Math.PI * 2;
             const rx = Math.cos(a) * 10, rz = Math.sin(a) * 10;
