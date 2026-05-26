@@ -2235,13 +2235,31 @@ export class MapGenerator {
             }
         }
 
-        // Animate fire pits and other dynamic objects
-        for (const obj of this.animatedObjects) {
-            if (obj.update) {
-                obj.update();
+        // Animate water surfaces (vertex ripple displacement)
+        for (const mesh of this.waterMeshes) {
+            if (!mesh._origPositions || !mesh.geometry.getAttribute('position')) continue;
+            const posArr = mesh.geometry.getAttribute('position').array;
+            const origArr = mesh._origPositions;
+            const radius = mesh.geometry.parameters.radiusTop || 5;
+            const cx = mesh.position.x;
+            const cz = mesh.position.z;
+            const ry = mesh.position.y;
+            for (let i = 0; i < posArr.length / 3; i++) {
+                const ox = origArr[i * 3] - cx;
+                const oz = origArr[i * 3 + 2] - cz;
+                const dist = Math.sqrt(ox * ox + oz * oz);
+                const norm = dist / (radius || 1);
+                // Ripple: outward traveling wave modulated by distance from center
+                const ripple = Math.sin(norm * 6 - t * 3) * (1 - norm) * 0.04
+                    + Math.sin(norm * 10 - t * 5) * (1 - norm) * 0.02;
+                posArr[i * 3] = origArr[i * 3];     // X unchanged
+                posArr[i * 3 + 1] = ry + ripple;     // Y displaced
+                posArr[i * 3 + 2] = origArr[i * 3 + 2]; // Z unchanged
             }
+            mesh.geometry.getAttribute('position').needsUpdate = true;
         }
-    }
+
+        // Animate fire pits and other dynamic objects
 
     // Generate loot items based on tier (1-5)
     generateLootForTier(tier) {
