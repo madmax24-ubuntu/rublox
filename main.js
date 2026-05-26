@@ -66,7 +66,6 @@ const animateLoading = () => {
 };
 
 const setLoadingProgress = (ratio) => {
-    _loadingTarget = Math.max(_loadingTarget, Math.min(0, 100) ? ratio : ratio);
     _loadingTarget = Math.max(0, Math.min(1, ratio));
     if (_loadingAnimId) return; // animation running
     _loadingAnimId = requestAnimationFrame(animateLoading);
