@@ -317,16 +317,19 @@ class Game {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.shadowMap.enabled = false;
         this.applyRendererSizing();
-  this.renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
+        this.renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
         this.renderer.toneMapping = THREE.NoToneMapping;
         this.renderer.toneMappingExposure = 1.0;
         if (!this.scene.userData.globalAmbientLight) {
-            const ambient = new THREE.AmbientLight(0xffffff, 1.5);
+            const ambient = new THREE.AmbientLight(0xffffff, 3.0);
             this.scene.add(ambient);
             this.scene.userData.globalAmbientLight = ambient;
+            const hemi = new THREE.HemisphereLight(0x87ceeb, 0x2d4a1d, 1.5);
+            this.scene.add(hemi);
+            this.scene.userData.hemiLight = hemi;
         }
         if (!this.scene.userData.globalSunLight) {
-            const sun = new THREE.DirectionalLight(0xffffff, 1.0);
+            const sun = new THREE.DirectionalLight(0xffffff, 2.0);
             sun.position.set(50, 100, 50);
             this.scene.add(sun);
             this.scene.userData.globalSunLight = sun;
