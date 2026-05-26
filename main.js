@@ -2503,9 +2503,9 @@ class Game {
     async startGame() {
         if (!this.initialized) {
             if (loadingOverlay) loadingOverlay.style.display = 'flex';
-            setLoadingProgress(0.15);
+            smoothSetProgress(0.05, 'Инициализация...');
             await this.initAsync();
-            setLoadingProgress(0.75);
+            smoothSetProgress(0.2, 'Ресурсы загружены');
             await new Promise(r => requestAnimationFrame(r));
         }
         if (this.isStarted) return;
@@ -2516,7 +2516,7 @@ class Game {
         try {
             // Hide start screen (but keep loading overlay visible)
             this.hideStartScreen();
-            setLoadingProgress(0.85);
+            smoothSetProgress(0.05, 'Генерация мира...');
 
             // Hide HUD during map generation
             const hudEl = document.getElementById('hud');
@@ -2528,6 +2528,8 @@ class Game {
             if (this.map?.ready?.then) {
                 await this.map.ready;
             }
+
+            smoothSetProgress(0.08, 'Мир построен');
 
             // NOW enter fullscreen — map is fully loaded
             this.enterFullscreen().catch(() => { });
@@ -2575,9 +2577,7 @@ class Game {
             this.applyRendererSizing();
             this.syncCameraToPlayer();
             this.render();
-            setLoadingProgress(1);
-            document.activeElement?.blur?.();
-            this.tryEnterGameplayPointerLock();
+            smoothSetProgress(0.07, 'Запуск...');
 
             // Hide loading overlay BEFORE perk panel — loading is complete
             if (loadingOverlay && loadingOverlay.style.display !== 'none') {
