@@ -479,7 +479,7 @@ export class MapGenerator {
             if (Math.abs(h) < 0.5) continue;
             const size = 4 + Math.abs(h) * 2;
             const hillH = Math.abs(h) * 1.2;
-            const hill = new THREE.Mesh(new THREE.BoxGeometry(size, hillH, size * 0.8), terrainMat);
+            const hill = new THREE.Mesh(new THREE.BoxGeometry(size, hillH, size * 0.8), terrainMatHill);
             hill.position.set(x, hillH * 0.3, z);
             hill.rotation.y = Math.random() * Math.PI;
             hill.receiveShadow = true;
