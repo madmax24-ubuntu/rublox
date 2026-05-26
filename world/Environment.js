@@ -33,7 +33,7 @@ export class Environment {
         this.sunLight.position.set(200, 300, 100);
         this.scene.add(this.sunLight);
 
-        this.scene.fog = null;
+        // Fog is now handled by main.js
         this.scene.background = new THREE.Color(0x8fd3ff);
         this.scene.userData.targetExposure = 1;
     }
