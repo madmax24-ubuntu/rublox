@@ -1238,6 +1238,8 @@ export class MapGenerator {
             pond.position.set(pp.x, 0.1, pp.z); pond.userData.isLuminousForest = true; pond.userData.isPond = true; pond.userData.isWater = true; pond.userData.isMapObject = true;
             this.scene.add(pond);
             this.waterMeshes.push(pond);
+            const pPos = pond.geometry.getAttribute('position');
+            pond._origPositions = new Float32Array(pPos.array);
             const pondLight = new THREE.PointLight(COLOR.luminousGlow, 2, 12);
             pondLight.position.set(pp.x, 1.5, pp.z); this.scene.add(pondLight);
             this.animatedObjects.push({ type: 'pondGlow', light: pondLight, baseIntensity: 2, color: COLOR.luminousGlow });
