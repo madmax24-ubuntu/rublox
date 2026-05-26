@@ -1187,7 +1187,10 @@ export class MapGenerator {
         const lavaMat = new THREE.MeshStandardMaterial({
             color: COLOR.lava, emissive: COLOR.lava, emissiveIntensity: 1.5, roughness: 0.3, transparent: true, opacity: 0.85
         });
-        const obsMat = new THREE.MeshStandardMaterial({ color: COLOR.obsidian, roughness: 0.3, metalness: 0.5 });
+ const obsMat = new THREE.MeshStandardMaterial({
+            color: COLOR.obsidian, roughness: 0.3, metalness: 0.5,
+            map: this.createProceduralTexture(COLOR.obsidian, 20, 256)
+        });
         const rockMat = new THREE.MeshStandardMaterial({ color: COLOR.scorchedRock, roughness: 0.9 });
         const smokeMat = new THREE.MeshStandardMaterial({ color: COLOR.smoke, transparent: true, opacity: 0.12, roughness: 1 });
 
