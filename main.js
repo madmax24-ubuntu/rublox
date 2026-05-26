@@ -2532,7 +2532,11 @@ class Game {
             smoothSetProgress(0.05, 'Инициализация...');
             await this.initAsync();
             smoothSetProgress(0.2, 'Ресурсы загружены');
-            await new Promise(r => requestAnimationFrame(r));
+            await new Promise(r => {
+                const id = requestAnimationFrame(r);
+                if (id) return;
+                setTimeout(r, 100);
+            });
         }
         if (this.isStarted) return;
         this.isStarted = true;
@@ -2548,7 +2552,11 @@ class Game {
             const hudEl = document.getElementById('hud');
             if (hudEl) hudEl.style.display = 'none';
 
-            await new Promise(r => requestAnimationFrame(r));
+            await new Promise(r => {
+                const id = requestAnimationFrame(r);
+                if (id) return;
+                setTimeout(r, 100);
+            });
 
             // Wait for full map generation BEFORE entering fullscreen
             if (this.map?.ready?.then) {
