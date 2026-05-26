@@ -986,7 +986,7 @@ export class MapGenerator {
         }
 
         // === 3 CAVE SYSTEMS (with tunnels and chambers) ===
-        const caveMat = new THREE.MeshStandardMaterial({ color: 0x1a1a2a, roughness: 1.0 });
+        const caveMat = new THREE.MeshStandardMaterial({ color: 0x5a5a6a, roughness: 1.0 });
         for (let c = 0; c < 3; c++) {
             const ca = Math.random() * Math.PI * 2;
             const cr2 = 15 + Math.random() * 35;
