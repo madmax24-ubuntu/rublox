@@ -317,7 +317,7 @@ export class MapGenerator {
         this.colliders.push({ type: 'box', position: new THREE.Vector3(0, -0.5, 0), size: new THREE.Vector3(this.arenaRadius * 2, 1, this.arenaRadius * 2) });
 
         // 60 gentle hills across arena for terrain interest (not overwhelming)
-        const terrainMat = new THREE.MeshStandardMaterial({ color: 0x2d4a1d, roughness: 1.0 });
+        const terrainMat = new THREE.MeshStandardMaterial({ color: COLOR.terrain, roughness: 1.0 });
         const noise = this.noise;
         for (let i = 0; i < 60; i++) {
             const angle = Math.random() * Math.PI * 2;
