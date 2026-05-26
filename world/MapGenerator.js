@@ -648,7 +648,7 @@ export class MapGenerator {
         }
 
         // Elevated scouting mounds (4 at diagonal positions)
-        const moundMat = new THREE.MeshStandardMaterial({ color: 0x3a5a2a, roughness: 1.0 });
+        const moundMat = new THREE.MeshStandardMaterial({ color: 0x6a8a4a, roughness: 1.0 });
         for (let i = 0; i < 4; i++) {
             const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
             const r = 45;
