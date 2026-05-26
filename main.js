@@ -396,6 +396,9 @@ class Game {
 
         // Этап 4: Генерация карты (самый долгий этап)
                 this.map = new MapGenerator(this.scene);
+        this.map.onProgress = (ratio, status) => {
+            smoothSetProgress(ratio * 0.5, status);
+        };
         await this.map.startGeneration();
 
         // Ждём завершения генерации карты
