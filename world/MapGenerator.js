@@ -335,6 +335,37 @@ export class MapGenerator {
             hill.userData.isArena = true; hill.userData.isTerrain = hill.userData.isHill = true; hill.userData.isCover = true; hill.userData.isMapObject = true;
             this.scene.add(hill);
         }
+
+        // Terrain displacement — use SimplexNoise to displace arena floor vertices
+        const posAttr = floorGeo.attributes.position;
+        const displaced = new Float32Array(posAttr.count * 3);
+        for (let i = 0; i < posAttr.count; i++) {
+            const x = posAttr.getX(i);
+            const z = posAttr.getZ(i);
+            const y = posAttr.getY(i);
+
+            // Multi-octave noise for natural terrain variation
+            let elevation = 0;
+            let amplitude = 1;
+            let frequency = 0.008;
+            for (let o = 0; o < 4; o++) {
+                elevation += amplitude * noise.noise2D(x * frequency, z * frequency);
+                amplitude *= 0.5;
+                frequency *= 2;
+            }
+
+            // Flatten near center (arena), roughen at edges
+            const dist = Math.sqrt(x * x + z * z);
+            const centerFlatten = Math.max(0, (120 - dist) / 120);
+            const edgeRoughen = Math.pow(Math.max(0, (dist - 100) / 80), 2);
+            const totalElevation = elevation * (0.3 + edgeRoughen * 1.5) * (1 - centerFlatten * 0.8);
+
+            displaced[i * 3] = x;
+            displaced[i * 3 + 1] = y + totalElevation * 0.8;
+            displaced[i * 3 + 2] = z;
+        }
+        floorGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(displaced), 3));
+        floorGeo.computeVertexNormals();
         await this.yieldFrame();
     }
 
