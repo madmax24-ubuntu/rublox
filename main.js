@@ -458,8 +458,9 @@ class Game {
         if (!this.player.parent) this.scene.add(this.player);
         if (spawnPads.length) {
             const pad = spawnPads[0];
-            const padTop = pad.y;
-            this.player.position.set(pad.x, padTop + this.player.physics.height, pad.z);
+            const groundY = this.map?.getHeightAt?.(pad.x, pad.z) ?? 0.3;
+            const surfaceY = Math.max(1.54 + Math.max(0, groundY), 1.54);
+            this.player.position.set(pad.x, surfaceY + this.player.physics.height, pad.z);
             this.player.physics.onGround = true;
         } else {
             const angle = Math.random() * Math.PI * 2;
