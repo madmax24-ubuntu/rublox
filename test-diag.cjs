@@ -12,7 +12,7 @@ const { chromium } = require('playwright');
     const origGetCanvas = HTMLCanvasElement.getContext;
     HTMLCanvasElement.prototype.getContext = function(...args) {
       const ctx = origGetCanvas.apply(this, args);
-      if (ctx && ctx WebGLRenderingContext) {
+      if (ctx && typeof ctx instanceof WebGL2RenderingContext) {
         window.__diagnostics.push(`Canvas ${this.id} got WebGL context`);
         // Wrap WebGL methods to catch errors
         const gl = ctx;
