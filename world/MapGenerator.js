@@ -1598,7 +1598,7 @@ export class MapGenerator {
         // Batch loot rocks (36 → 1 InstancedMesh)
         this.batchInstances(new THREE.DodecahedronGeometry(1, 0), stoneMat, lootRocks, { isLootCluster: true, isRock: true });
 
-        // Loot marker
+        // Loot markers
             const markerMat = new THREE.MeshStandardMaterial({
                 color: 0xffcc44, emissive: 0xffaa22, emissiveIntensity: 1.2,
                 transparent: true, opacity: 0.5
