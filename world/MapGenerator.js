@@ -673,22 +673,21 @@ export class MapGenerator {
             }
         }
 
-        // Cover rocks between Cornucopia and inner ring
+       // Cover rocks between Cornucopia and inner ring
+        const innerRocks = [];
         for (let i = 0; i < 20; i++) {
             const a = Math.random() * Math.PI * 2;
             const r = 22 + Math.random() * 18;
             const x = Math.cos(a) * r, z = Math.sin(a) * r;
             const s = 1 + Math.random() * 2;
-            const rock = new THREE.Mesh(
-                new THREE.DodecahedronGeometry(s, 0),
-                stoneMat
-            );
-            rock.position.set(x, s * 0.3, z);
-            rock.rotation.set(Math.random(), Math.random(), Math.random());
-            rock.castShadow = true; rock.receiveShadow = true;
-            rock.userData.isInnerRing = true; rock.userData.isRock = true; rock.userData.isCover = true; rock.userData.isMapObject = true;
-            this.scene.add(rock);
+            innerRocks.push({
+                x, y: s * 0.3, z,
+                sx: s, sy: s * 0.6, sz: s,
+                rotX: Math.random(), rotY: Math.random(), rotZ: Math.random(),
+                isInnerRing: true, isRock: true, isCover: true
+            });
         }
+        this.batchInstances(new THREE.DodecahedronGeometry(1, 0), stoneMat, innerRocks, { isInnerRing: true, isRock: true });
         await this.yieldFrame();
     }
 
