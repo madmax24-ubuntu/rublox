@@ -1029,7 +1029,10 @@ export class MapGenerator {
         this.scene.add(floor);
 
         const crystalMats = [
-            new THREE.MeshStandardMaterial({ color: COLOR.crystalBlue, roughness: 0.2, metalness: 0.6, transparent: true, opacity: 0.8 }),
+            new THREE.MeshStandardMaterial({
+            color: COLOR.crystalBlue, roughness: 0.2, metalness: 0.6, transparent: true, opacity: 0.8,
+            map: this.createProceduralTexture(COLOR.crystalBlue, 25, 256)
+        }),
             new THREE.MeshStandardMaterial({ color: COLOR.crystalPurple, roughness: 0.2, metalness: 0.6, transparent: true, opacity: 0.8 }),
             new THREE.MeshStandardMaterial({ color: COLOR.crystalGlow, roughness: 0.1, metalness: 0.7, emissive: COLOR.crystalGlow, emissiveIntensity: 0.3, transparent: true, opacity: 0.75 })
         ];
