@@ -379,8 +379,9 @@ export class MapGenerator {
                     vNormal = norm;
 
                     // World position with displacement
+                    // After rotationX(-PI/2): local Z = world Y (height)
                     vec3 pos = position;
-                    pos.y += disp;
+                    pos.z += disp;
                     vec4 worldPos = modelMatrix * vec4(pos, 1.0);
                     vWorldPos = worldPos.xyz;
 
