@@ -453,15 +453,12 @@ export class MapGenerator {
                     gl_FragColor = vec4(color, 1.0);
                 }
             `,
-            uniforms: {
+             uniforms: {
                 uTime: { value: 0 }
             },
             side: THREE.FrontSide,
             depthWrite: true,
             depthTest: true
-        });
-        terrainMat.depthWrite = true;
-        terrainMat.depthTest = true;
         });
 
         // PlaneGeometry: 440x440, 128x128 segments for smooth displacement
