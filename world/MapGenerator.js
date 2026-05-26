@@ -337,9 +337,8 @@ export class MapGenerator {
 
                 void main() {
                     vUV = uv;
-                    vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
 
-                    // Displacement: flatten at center, roughen at edges
+                    // Compute displacement
                     float dist = length(position.xz);
                     float centerMask = clamp(1.0 - (dist - 30.0) / 80.0, 0.0, 1.0);
                     float edgeMask = clamp((dist - 120.0) / 80.0, 0.0, 1.0);
@@ -355,7 +354,13 @@ export class MapGenerator {
                     vec3 norm = normalize(vec3(hL - hR, eps * 2.0, hU - hD));
                     vNormal = norm;
 
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position + vec3(0.0, disp, 0.0), 1.0);
+                    // World position with displacement
+                    vec3 pos = position;
+                    pos.y += disp;
+                    vec4 worldPos = modelMatrix * vec4(pos, 1.0);
+                    vWorldPos = worldPos.xyz;
+
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
                 }
             `,
             fragmentShader: `
