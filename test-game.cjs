@@ -20,20 +20,17 @@ const path = require('path');
 
     console.log('Navigating to game...');
     await page.goto('http://localhost:3001/');
-    await page.waitForSelector('#startButtonDesktop', { timeout: 10000 });
 
-    // Screenshot start screen
+    // Wait for start button then click
+    await page.waitForSelector('#startButtonDesktop', { timeout: 10000 });
     await page.screenshot({ path: 'test-screenshots/01-start.png', fullPage: false });
     console.log('Screenshot: start screen');
 
-    // Click start button only if it exists
-    const startBtn = await page.$('#startButtonDesktop');
-    if (startBtn) {
-        console.log('Clicking start button...');
-        await page.click('#startButtonDesktop');
-    } else {
-        console.log('Start button not found, game may already be running');
-    }
+    console.log('Clicking start button...');
+    await page.evaluate(() => {
+        const btn = document.getElementById('startButtonDesktop');
+        if (btn) btn.click();
+    });
 
     // Wait for game to initialize - check every 3 seconds
     for (let i = 0; i < 20; i++) {
