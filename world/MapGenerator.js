@@ -1572,7 +1572,7 @@ export class MapGenerator {
     }
 
     // ===================== OUTER OUTPOSTS =====================
-    buildOuterOutposts() {
+    async buildOuterOutposts() {
         for (let i = 0; i < 6; i++) {
             const angle = (i / 6) * Math.PI * 2;
             const r = 185;
