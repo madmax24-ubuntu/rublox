@@ -495,7 +495,6 @@ class Game {
         this.entityManager = new EntityManager(this.scene);
         this.entityManager.physicsRef = this.physics;
         this.scene.userData.entityManager = this.entityManager;
-        console.log('[Game] EntityManager created');
         this.lootManager = new LootManager(this.scene, this.map);
         this.lootManager.generateChests?.();
         console.log('[Game] LootManager created');
