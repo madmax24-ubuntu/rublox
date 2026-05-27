@@ -43,10 +43,35 @@ let screenshots = [];
 let errorCount = 0;
 
 async function screenshot(name) {
-    const buf = await page.screenshot({ fullPage: false });
-    screenshots.push({ name, data: buf });
-    console.log(`📷 ${name}: ${buf.length} bytes`);
-    return buf;
+    try {
+        const buf = await page.screenshot({ fullPage: false, timeout: 5000 });
+        screenshots.push({ name, data: buf });
+        console.log(`📷 ${name}: ${buf.length} bytes`);
+        return buf;
+    } catch (e) {
+        console.log(`⚠️  ${name}: screenshot timeout, using canvas data`);
+        // Fallback: get canvas data URL
+        try {
+            const dataUrl = await page.evaluate(() => {
+                const canvas = document.querySelector('canvas');
+                if (!canvas) return null;
+                try {
+                    return canvas.toDataURL('image/png');
+                } catch (e) {
+                    return 'canvas_blocked';
+                }
+            });
+            if (dataUrl && dataUrl.startsWith('data:image')) {
+                const buf = Buffer.from(dataUrl.split(',')[1], 'base64');
+                screenshots.push({ name, data: buf });
+                console.log(`📷 ${name}: ${buf.length} bytes (canvas)`);
+            } else {
+                screenshots.push({ name, data: Buffer.from('') });
+            }
+        } catch (e2) {
+            screenshots.push({ name, data: Buffer.from('') });
+        }
+    }
 }
 
 // Check loading screen
