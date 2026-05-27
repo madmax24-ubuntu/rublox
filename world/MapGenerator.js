@@ -124,7 +124,7 @@ function getMat(color, opts = {}) {
 }
 
 // ============ MAP GENERATOR ============
-const _yield = () => new Promise(r => setTimeout(r, 200)); // ~12 frame yield
+const _yield = () => new Promise(r => setTimeout(r, 50)); // 50ms yield
 
 export class MapGenerator {
     constructor(scene) {
