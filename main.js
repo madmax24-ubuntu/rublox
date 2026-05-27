@@ -417,12 +417,7 @@ class Game {
         this.audioSynth?.setWeatherState?.('clear');
         
         // Yield чтобы браузер успел обработать события
-        await new Promise(r => {
-            const id = requestAnimationFrame(r);
-            if (id) return;
-            // Fallback if rAF is blocked (headless, background tab)
-            setTimeout(r, 100);
-        });
+        await new Promise(r => setTimeout(r, 100));
 
         // Этап 4: Генерация карты (самый долгий этап)
                 this.map = new MapGenerator(this.scene);
