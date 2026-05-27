@@ -9,9 +9,10 @@ export class Player extends THREE.Group {
         this.camera = camera;
         this.input = input;
 
-        this.yaw = this; 
+        this.yaw = new THREE.Group();
         this.pitch = new THREE.Group();
-        this.add(this.pitch);
+        this.add(this.yaw);
+        this.yaw.add(this.pitch);
         this.pitch.add(this.camera);
 
         this.mesh = new THREE.Mesh(
