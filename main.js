@@ -491,8 +491,14 @@ class Game {
         console.log('[Game] radiation rain effect init done');
         this.initWeatherRainEffect();
         console.log('[Game] weather rain effect init done');
+        console.log('[Game] creating EntityManager...');
 
         this.entityManager = new EntityManager(this.scene);
+        console.log('[Game] EntityManager created');
+        console.log('[Game] creating LootManager...');
+        this.lootManager = new LootManager(this.scene, this.map);
+        console.log('[Game] LootManager created');
+        this.lootManager.generateChests?.();
         this.entityManager.physicsRef = this.physics;
         this.scene.userData.entityManager = this.entityManager;
         this.lootManager = new LootManager(this.scene, this.map);
