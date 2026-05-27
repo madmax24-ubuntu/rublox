@@ -1968,7 +1968,7 @@ export class MapGenerator {
                 triggerTime: 0,
                 spikes
             });
-            if (i % 5 === 0) await _yield();
+            await _yield();
         }
 
         // Bear traps
@@ -1998,7 +1998,7 @@ export class MapGenerator {
                 triggered: false,
                 triggerTime: 0
             });
-            if (i % 3 === 0) await _yield();
+            await _yield();
         }
         await _yield();
     }
