@@ -2258,6 +2258,9 @@ export class MapGenerator {
         console.log('[MapGen] wastes done');
         this.reportProgress(0.58, 'Пылающие пустоши');
 
+        console.log('[MapGen] yielding 200ms before forest...');
+        await new Promise(r => setTimeout(r, 200));
+
         await this.buildLuminousForest();
         console.log('[MapGen] forest done');
         this.reportProgress(0.65, 'Светящийся лес');
