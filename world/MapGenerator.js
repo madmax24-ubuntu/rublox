@@ -2278,8 +2278,11 @@ export class MapGenerator {
         this.reportProgress(0.68, 'Мосты и форпосты...');
         await this.buildBridges();
         console.log('[MapGen] bridges done');
+        console.log('[MapGen] about to yield before outposts...');
         await new Promise(r => setTimeout(r, 500));
+        console.log('[MapGen] yield done before outposts');
 
+        console.log('[MapGen] calling buildOuterOutposts...');
         await this.buildOuterOutposts();
         console.log('[MapGen] outer outposts done');
         await this.buildHazardZones();
