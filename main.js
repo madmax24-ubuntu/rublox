@@ -483,7 +483,9 @@ class Game {
         this.weatherRainEffect = null;
         this.weatherRainActive = false;
         this.initRadiationRainEffect();
+        console.log('[Game] radiation rain effect init done');
         this.initWeatherRainEffect();
+        console.log('[Game] weather rain effect init done');
 
         this.entityManager = new EntityManager(this.scene);
         this.entityManager.physicsRef = this.physics;
