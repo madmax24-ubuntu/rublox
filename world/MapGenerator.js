@@ -2306,6 +2306,7 @@ export class MapGenerator {
         await _yield();
 
         // Defer heavy scene traversal to next frame
+        console.log('[MapGen] scheduling deferred setup...');
         setTimeout(async () => {
             try {
                 console.log('[MapGen] deferred setup starting...');
