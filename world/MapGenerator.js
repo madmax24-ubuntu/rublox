@@ -2184,38 +2184,39 @@ export class MapGenerator {
         console.log('[MapGen] generate() starting');
         this.generateHeightMap();
         this.reportProgress(0.05, 'Создание ландшафта...');
+        await new Promise(r => setTimeout(r, 50));
 
-        await this.buildArenaFloor();
+        this.buildArenaFloor();
         console.log('[MapGen] arena floor done');
         this.reportProgress(0.12, 'Ландшафт готов');
-        await this.yieldFrame();
+        await new Promise(r => setTimeout(r, 50));
 
-        await this.buildForcefield();
+        this.buildForcefield();
         console.log('[MapGen] forcefield done');
         this.reportProgress(0.18, 'Арена построена');
-        await this.yieldFrame();
+        await new Promise(r => setTimeout(r, 50));
 
-        await this.buildCornucopia();
+        this.buildCornucopia();
         console.log('[MapGen] cornucopia done');
         this.reportProgress(0.25, 'Корнукопия');
-        await this.yieldFrame();
+        await new Promise(r => setTimeout(r, 50));
 
-        await this.buildInnerRing();
+        this.buildInnerRing();
         console.log('[MapGen] inner ring done');
         this.reportProgress(0.32, 'Внутреннее кольцо');
-        await this.yieldFrame();
+        await new Promise(r => setTimeout(r, 50));
 
-        await this.buildBiomePaths();
+        this.buildBiomePaths();
         console.log('[MapGen] biome paths done');
         this.reportProgress(0.38, 'Пути биомов');
-        await this.yieldFrame();
+        await new Promise(r => setTimeout(r, 50));
 
-        await this.buildRuinedCitadel();
+        this.buildRuinedCitadel();
         console.log('[MapGen] citadel done');
         this.reportProgress(0.45, 'Руины Цитадели');
-        await this.yieldFrame();
+        await new Promise(r => setTimeout(r, 50));
 
-        await this.buildCrystalGrotto();
+        this.buildCrystalGrotto();
         console.log('[MapGen] crystal grotto done');
         this.reportProgress(0.52, 'Хрустальная гротовка');
         await this.yieldFrame();
