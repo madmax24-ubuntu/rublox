@@ -62,7 +62,7 @@ export class LootManager {
         this.generateChests();
     }
 
-    generateChests() {
+    async generateChests() {
         const floorTiles = this.mapGenerator.getFloorTiles?.() || [];
         const targetByMapSize = Math.floor(Math.max(140, floorTiles.length * (this.isMobile ? 0.08 : 0.12)));
         const chestCount = Math.max(this.isMobile ? 150 : 220, Math.floor(targetByMapSize * this.lootDensity));
@@ -79,6 +79,7 @@ export class LootManager {
                 const chest = this.createChest(spot.x, y, spot.z, spot.grade || 'house');
                 this.chests.push(chest);
                 this.addChestToIndex(chest);
+                if (i % 5 === 0) await new Promise(r => setTimeout(r, 16));
             }
             if (this.chests.length > 0) {
                 this.rebuildChestIndex();
@@ -95,6 +96,7 @@ export class LootManager {
                 const chest = this.createChest(tile.x, y, tile.z);
                 this.chests.push(chest);
                 this.addChestToIndex(chest);
+                if (i % 5 === 0) await new Promise(r => setTimeout(r, 16));
             }
             this.rebuildChestIndex();
             return;
@@ -115,6 +117,7 @@ export class LootManager {
             const chest = this.createChest(x, y, z);
             this.chests.push(chest);
             this.addChestToIndex(chest);
+            if (i % 5 === 0) await new Promise(r => setTimeout(r, 16));
         }
         this.rebuildChestIndex();
     }
