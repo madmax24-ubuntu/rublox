@@ -2244,7 +2244,7 @@ export class MapGenerator {
         console.log('[MapGen] inner ring done');
         this.reportProgress(0.32, 'Внутреннее кольцо');
 
-        this.buildBiomePaths();
+        await this.buildBiomePaths();
         console.log('[MapGen] biome paths done');
         this.reportProgress(0.38, 'Пути биомов');
         await new Promise(r => setTimeout(r, 500));
