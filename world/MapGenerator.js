@@ -2300,10 +2300,14 @@ export class MapGenerator {
         await new Promise(r => setTimeout(r, 500));
         await this.buildFogZones();
         console.log('[MapGen] fog zones done');
-        await new Promise(r => setTimeout(r, 500));
+        console.log('[MapGen] yielding 3s before radiation...');
+        await new Promise(r => setTimeout(r, 3000));
+        console.log('[MapGen] resuming after 3s yield');
         await this.buildRadiationZones();
         console.log('[MapGen] radiation zones done');
-        await new Promise(r => setTimeout(r, 500));
+        console.log('[MapGen] yielding 1s before loot data...');
+        await new Promise(r => setTimeout(r, 1000));
+        console.log('[MapGen] resuming after loot yield');
         await this.buildLootData();
         console.log('[MapGen] loot data done');
         this.reportProgress(0.90, 'Лут и ловушки');
