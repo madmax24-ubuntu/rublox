@@ -435,7 +435,12 @@ class Game {
         };
         this.map.startGeneration();
         console.log('[Game] waiting for map ready...');
-        await this.map.ready;
+        const mapReady = this.map.ready;
+        const checkReady = setInterval(() => {
+            console.log('[Game] map.ready check:', !!mapReady);
+        }, 2000);
+        await mapReady;
+        clearInterval(checkReady);
         console.log('[Game] map ready!');
 
         // Performance: setup LOD and frustum culling
