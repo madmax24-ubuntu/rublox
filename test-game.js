@@ -28,15 +28,20 @@ import { chromium } from 'playwright';
     const start = Date.now();
     let overlayGone = false;
     while (Date.now() - start < 90000 && !overlayGone) {
-        overlayGone = await page.evaluate(() => {
+        const overlayDisplay = await page.evaluate(() => {
             const overlay = document.getElementById('loadingOverlay');
-            return !overlay || overlay.style.display === 'none' || overlay.style.display === 'hidden';
-        }).catch(() => false);
-        if (!overlayGone) {
-            await page.waitForTimeout(500);
+            if (!overlay) return 'no-overlay';
+            return overlay.style.display || 'inline';
+        }).catch(() => 'error');
+        if (overlayDisplay === 'none') {
+            overlayGone = true;
+            console.log('Overlay hidden');
+        } else if (Date.now() - start % 10000 < 1000) {
+            console.log('Overlay still visible, display:', overlayDisplay);
         }
+        await page.waitForTimeout(500);
     }
-    console.log('Overlay gone:', overlayGone);
+    console.log('Overlay gone:', overlayGone, 'display:', overlayDisplay);
 
     // Check final state
     try {
