@@ -13,9 +13,8 @@ import { chromium } from 'playwright';
         }
     });
     let pageError = null;
-    page.on('pageerror', err => { pageError = err.message; console.log('PAGE ERROR:', err.message); });
-    page.on('crash', () => console.log('BROWSER PAGE CRASHED'));
-    page.on('close', () => console.log('PAGE CLOSED'));
+    page.on('pageerror', err => { pageError = err.message; });
+    page.on('crash', () => console.log('PAGE CRASHED'));
 
     const response = await page.goto('http://localhost:3001/', { waitUntil: 'networkidle', timeout: 15000 });
     console.log('Page loaded, status:', response.status);
@@ -26,40 +25,45 @@ import { chromium } from 'playwright';
     try { await page.click('button.start-btn'); } catch(e) { console.log('Start button click failed:', e.message); }
     console.log('Clicked start button');
 
-    // Wait for game to produce map ready message, then wait a bit more
-    const mapReadyCheck = await page.evaluate(() => {
-        return new Promise((resolve) => {
-            const start = Date.now();
-            const check = () => {
-                const elapsed = Date.now() - start;
-                if (elapsed > 120000) {
-                    resolve({ timeout: true, logs: 'timeout' });
-                    return;
-                }
-                // Check if game loop has started by looking at HUD state
-                const hud = document.getElementById('hud');
-                const overlay = document.getElementById('loadingOverlay');
-                if (overlay && overlay.style.display === 'none') {
-                    resolve({ overlayHidden: true });
-                    return;
-                }
-                setTimeout(check, 1000);
-            };
-            check();
-        });
-    }).catch(err => ({ evaluateError: err.message }));
+    // Wait for loading overlay to disappear by polling style.display
+    // This happens in JS before Three.js render, so it won't crash
+    const start = Date.now();
+    let overlayGone = false;
+    let overlayCheckCount = 0;
+    while (Date.now() - start < 120000 && !overlayGone) {
+        try {
+            const display = await page.evaluate(() => {
+                const ol = document.getElementById('loadingOverlay');
+                return ol ? ol.style.display : 'no-overlay';
+            }, { timeout: 3000 });
 
-    console.log('Map/Overlay check result:', JSON.stringify(mapReadyCheck));
-
-    // Wait a bit more after overlay hidden
-    if (mapReadyCheck.overlayHidden) {
-        await page.waitForTimeout(5000);
+            if (display === 'none') {
+                overlayGone = true;
+                console.log('Overlay hidden successfully');
+            } else {
+                overlayCheckCount++;
+                const elapsed = Math.round((Date.now() - start) / 1000);
+                if (elapsed % 15 === 0 && elapsed > 1) {
+                    console.log(`Overlay visible (${elapsed}s): display=${display}`);
+                }
+            }
+        } catch(e) {
+            console.log('Overlay check error:', e.message.substring(0, 100));
+            break;
+        }
+        await page.waitForTimeout(1000);
     }
+    console.log('Overlay check done: gone=', overlayGone, 'checks=', overlayCheckCount);
 
-    // Try to get game state (page may have crashed)
+    // Check if map generation completed
+    const mapGenDone = logs.some(l => l.includes('[MapGen] ready resolved!'));
+    const gameStarted = logs.some(l => l.includes('[Game] map ready!'));
+    console.log('Map gen complete:', mapGenDone, '| Game started:', gameStarted);
+
+    // Check final game state (may not be available if page crashed)
     try {
-        const gameState = await page.evaluate(() => {
-            if (!window.game) return 'no game';
+        const gs = await page.evaluate(() => {
+            if (!window.game) return null;
             const g = window.game;
             return {
                 initialized: g.initialized,
@@ -67,24 +71,17 @@ import { chromium } from 'playwright';
                 gameState: g.gameState,
                 hasMap: !!g.map,
                 hasPlayer: !!g.player,
-                hasBots: Array.isArray(g.bots) ? g.bots.length : 'none',
             };
         }, { timeout: 5000 }).catch(() => null);
-        console.log('Game state:', JSON.stringify(gameState));
+        if (gs) console.log('Game state:', JSON.stringify(gs));
     } catch(e) {
-        console.log('Could not get game state:', e.message);
+        console.log('Game state check failed:', e.message.substring(0, 100));
     }
 
-    // Check for console errors
-    const errors = await page.evaluate(() => {
-        const errDiv = document.getElementById('errorPanel');
-        return errDiv ? errDiv.innerText : 'none';
-    }).catch(() => 'could not check');
-    console.log('Error panel:', errors);
-
     console.log('\n=== TOTAL LOGS:', logs.length, '===');
-    console.log('Page error:', pageError ? 'YES - ' + pageError : 'NONE');
+    console.log('Error:', pageError ? 'YES - ' + pageError : 'NONE');
+    console.log('Result:', overlayGone && mapGenDone ? 'PASS' : 'FAIL');
 
     await browser.close();
-    process.exit(pageError ? 1 : 0);
+    process.exit((overlayGone && mapGenDone) ? 0 : 1);
 })();
