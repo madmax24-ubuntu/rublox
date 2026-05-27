@@ -2058,6 +2058,7 @@ export class MapGenerator {
                 _ringMat: ringMat,
                 light
             });
+            await _yield();
         }
     }
 
