@@ -1663,7 +1663,7 @@ export class MapGenerator {
     }
 
     // ===================== HAZARD ZONES =====================
-    buildHazardZones() {
+    async buildHazardZones() {
         // Lava patches
         for (let i = 0; i < 6; i++) {
             const angle = Math.random() * Math.PI * 2;
@@ -1722,7 +1722,7 @@ export class MapGenerator {
     }
 
     // ===================== LOOT CLUSTERS =====================
-    buildLootClusters() {
+    async buildLootClusters() {
         for (let i = 0; i < 12; i++) {
             const angle = Math.random() * Math.PI * 2;
             const r = 30 + Math.random() * 160;
