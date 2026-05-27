@@ -1019,10 +1019,11 @@ export class MapGenerator {
             });
         }
 
-        // Citadel light
+      // Citadel light
         const citLight = new THREE.PointLight(0xffeedd, 1, 40);
         citLight.position.set(cx, 8, cz);
         this.scene.add(citLight);
+        await _yield();
     }
 
     // ===================== CRYSTAL GROTTO (NE) =====================
