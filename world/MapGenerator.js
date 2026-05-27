@@ -1918,7 +1918,6 @@ export class MapGenerator {
         points.userData.type = 'glow';
         this.scene.add(points);
         this.particleSystems.push(points);
-        await _yield();
     }
 
     // ===================== TRAPS =====================
