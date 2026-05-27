@@ -1359,10 +1359,11 @@ export class MapGenerator {
         const wastLight = new THREE.PointLight(0xff6633, 0.8, 50);
         wastLight.position.set(cx, 5, cz);
         this.scene.add(wastLight);
+        await _yield();
     }
 
     // ===================== LUMINOUS FOREST (SE) =====================
-    buildLuminousForest() {
+    async buildLuminousForest() {
         const cx = 80, cz = -80;
 
         // Floor
