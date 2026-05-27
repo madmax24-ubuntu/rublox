@@ -2627,16 +2627,22 @@ class Game {
 
             this.updateDesktopCursorMode();
 
-            this.gameLoop.start();
             this.applyRendererSizing();
             this.syncCameraToPlayer();
-            this.render();
-            smoothSetProgress(0.07, 'Запуск...');
 
-            // Hide loading overlay BEFORE perk panel — loading is complete
+            // Hide loading overlay BEFORE render — prevents freeze if WebGL fails
             if (loadingOverlay && loadingOverlay.style.display !== 'none') {
                 loadingOverlay.style.display = 'none';
             }
+
+            // Start game loop with error handling (WebGL may not be available in all environments)
+            try {
+                this.render();
+                this.gameLoop.start();
+            } catch (err) {
+                console.warn('Render/game loop failed (non-fatal):', err);
+            }
+            smoothSetProgress(0.07, 'Запуск...');
 
             // Show perk panel AFTER loading is fully complete
             if (this.perkMenuOpen) {
