@@ -2238,8 +2238,9 @@ export class MapGenerator {
 
         console.log('[MapGen] deferring scene setup to next frame...');
 
-        // Defer heavy scene traversal to next frame to avoid hanging the main thread
-        requestAnimationFrame(() => {
+        // Defer heavy scene traversal to avoid hanging the main thread
+        // Use setTimeout as a fallback since RAF may not fire if browser is busy
+        setTimeout(() => {
             try {
                 this.setupAnimations();
                 if (this.scene.traverse) {
@@ -2257,7 +2258,7 @@ export class MapGenerator {
                 console.error('[MapGen] ERROR in deferred setup:', e.message, e.stack);
                 this._resolveReady();
             }
-        });
+        }, 10);
     } catch (e) {
         console.error('[MapGen] ERROR in generate:', e.message, e.stack);
         this._resolveReady();
