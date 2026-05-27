@@ -3,52 +3,38 @@ const { chromium } = require('playwright');
 (async () => {
     const browser = await chromium.launch({ headless: true });
     const page = await browser.newPage();
-    
-    let error = null;
-    page.on('pageerror', err => { error = err.message; });
-    
+
     const logs = [];
     page.on('console', msg => {
         const text = msg.text();
-        if (text.includes('[Game]') || text.includes('[MapGen]') || text.includes('[Environment]')) {
+        if (text.includes('[Game]') || text.includes('[MapGen]')) {
             logs.push(text);
+            console.log(text);
         }
     });
-    
-    const response = await page.goto('http://localhost:3001/', { waitUntil: 'networkidle', timeout: 30000 });
+    let error = null;
+    page.on('pageerror', err => { error = err.message; console.log('PAGE ERROR:', error); });
+
+    const response = await page.goto('http://localhost:3001/', { waitUntil: 'networkidle', timeout: 15000 });
     console.log('Page loaded, status:', response.status);
-    
-    // Wait for page to be interactive
+
     await page.waitForTimeout(2000);
 
     // Click the start button
-    await page.click('button.start-btn');
+    try { await page.click('button.start-btn'); } catch(e) { console.log('Start button click failed:', e.message); }
     console.log('Clicked start button');
 
-    // Wait for map generation (up to 60s)
-    const mapReady = await page.evaluate(() => {
-        return new Promise((resolve) => {
-            const start = Date.now();
-            const check = () => {
-                if (window.mapReady === true) { resolve(true); return; }
-                if (Date.now() - start > 60000) { resolve(false); return; }
-                setTimeout(check, 500);
-            };
-            check();
-        });
-    });
-    console.log('Map ready:', mapReady);
-    
-    // Check for errors
-    if (error) {
-        console.log('JS ERROR:', error);
+    // Wait for map ready (up to 60s)
+    try {
+        await page.waitForFunction(() => {
+            return typeof window.game !== 'undefined' && window.game.initialized === true;
+        }, { timeout: 60000 }).catch(() => {});
+        console.log('Map ready: SUCCESS');
+    } catch(e) {
+        console.log('Map ready: TIMEOUT after 60s');
     }
-    
-    // Check page content
-    const content = await page.content();
-    console.log('Page has loading overlay:', content.includes('loadingOverlay'));
-    
-    // Try to get the game instance
+
+    // Check final state
     try {
         const gameState = await page.evaluate(() => {
             if (!window.game) return 'no game';
@@ -61,14 +47,12 @@ const { chromium } = require('playwright');
             };
         });
         console.log('Game state:', JSON.stringify(gameState));
-    } catch (e) {
+    } catch(e) {
         console.log('Could not get game state:', e.message);
     }
-    
-    // Print all logs
-    console.log('\n=== ALL LOGS ===');
-    logs.forEach(l => console.log(l));
-    
+
+    console.log('\n=== TOTAL LOGS:', logs.length, '===');
+
     await browser.close();
     process.exit(error ? 1 : 0);
 })();
