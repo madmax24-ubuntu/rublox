@@ -1996,8 +1996,8 @@ export class MapGenerator {
                 triggerTime: 0
             });
         }
+        await _yield();
     }
-    await _yield();
 
     // ===================== FOG ZONES =====================
     async buildFogZones() {
