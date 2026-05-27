@@ -247,10 +247,10 @@ export class MapGenerator {
         this.scene.add(spawnPad);
 
         // Gentle terrain hills using InstancedMesh
-        await this._buildTerrainHills();
+        this._buildTerrainHills();
     }
 
-    async _buildTerrainHills() {
+    _buildTerrainHills() {
         const hillMat = new THREE.MeshStandardMaterial({
             color: COLOR.terrain,
             roughness: 1.0,
