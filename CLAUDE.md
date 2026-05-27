@@ -19,9 +19,11 @@
 
 ## MCP Servers
 - **playwright** — browser automation (navigate, screenshot, click, type)
+- **playwright** — also read browser console via `page.on('console', msg => log(msg.text()))`
+- **playwright** — also capture all console logs: `const logs = await page.evaluate(() => window._consoleLogs || [])`
 - **context7** — search documentation, API references, best practices
 - Use context7 first for any Three.js/JS question
-- Use playwright for testing the game in browser
+- Use playwright for testing the game in browser — always read console to debug
 
 ## Agent Usage
 - Use Agent tool for complex multi-step tasks
