@@ -24,15 +24,19 @@ import { chromium } from 'playwright';
     try { await page.click('button.start-btn'); } catch(e) { console.log('Start button click failed:', e.message); }
     console.log('Clicked start button');
 
-    // Wait for map ready (up to 60s)
-    try {
-        await page.waitForFunction(() => {
-            return typeof window.game !== 'undefined' && window.game.initialized === true;
-        }, { timeout: 60000 }).catch(() => {});
-        console.log('Map ready: SUCCESS');
-    } catch(e) {
-        console.log('Map ready: TIMEOUT after 60s');
+    // Wait for loading overlay to disappear (up to 90s)
+    const start = Date.now();
+    let overlayGone = false;
+    while (Date.now() - start < 90000 && !overlayGone) {
+        overlayGone = await page.evaluate(() => {
+            const overlay = document.getElementById('loadingOverlay');
+            return !overlay || overlay.style.display === 'none' || overlay.style.display === 'hidden';
+        }).catch(() => false);
+        if (!overlayGone) {
+            await page.waitForTimeout(500);
+        }
     }
+    console.log('Overlay gone:', overlayGone);
 
     // Check final state
     try {
