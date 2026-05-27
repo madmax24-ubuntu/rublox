@@ -1570,9 +1570,9 @@ export class MapGenerator {
                     this.scene.add(rail);
               }
             }
-            await _yield();
+            await new Promise(r => setTimeout(r, 50));
         }
-        await new Promise(r => setTimeout(r, 100));
+        await new Promise(r => setTimeout(r, 200));
     }
 
     // ===================== OUTER OUTPOSTS =====================
