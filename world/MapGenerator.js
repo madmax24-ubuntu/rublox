@@ -2179,9 +2179,10 @@ export class MapGenerator {
 
     // ===================== GENERATION ORCHESTRATOR =====================
     generate() {
-        console.log('[MapGen] generate() starting');
-        this.generateHeightMap();
-        this.reportProgress(0.05, 'Создание ландшафта...');
+        try {
+            console.log('[MapGen] generate() starting');
+            this.generateHeightMap();
+            this.reportProgress(0.05, 'Создание ландшафта...');
 
         this.buildArenaFloor();
         console.log('[MapGen] arena floor done');
