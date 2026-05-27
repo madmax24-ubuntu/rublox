@@ -1994,7 +1994,7 @@ export class MapGenerator {
     }
 
     // ===================== FOG ZONES =====================
-    buildFogZones() {
+    async buildFogZones() {
         const phases = [
             { name: 'Внешняя', innerRadius: 180, outerRadius: 220, damage: 0.2 },
             { name: 'Средняя', innerRadius: 130, outerRadius: 180, damage: 0.5 },
