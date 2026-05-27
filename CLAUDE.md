@@ -3,13 +3,11 @@
 - After compact: continue immediately, no summary
 - Context window: 140000 tokens
 
-## Task Timeouts
-- **Every task gets a timeout** — use Bash with timeout flag or setTimeout for long operations
-- **Default timeout**: 120s for Node.js, 30s for npm/node operations, 60s for playwright/browser
-- **For agent spawns**: use `isolation: "worktree"` when possible, set `run_in_background` for >60s tasks
-- **Never wait indefinitely** — always have a fallback: if something hangs for 60s, kill and retry with different approach
-- **Browser automation**: always use timeout wrappers around playwright commands (30s max)
-- **File operations**: use timeouts on bulk operations (find, grep on large dirs)
+## Timeouts (on tool responses only)
+- **If a tool (Bash/Agent/Playwright) stops responding** — kill it and retry with different approach
+- **Default timeout**: 60s for tool calls, 30s for browser operations
+- **Never wait indefinitely for a tool response** — if stuck, close the tool, change approach, move forward
+- **Agents**: if an agent takes >60s without output, stop it and retry with narrower scope
 
 ## Autonomy Rules
 - **Install dependencies automatically** — if a tool/package is missing, `npm i` / `apt install` without asking
