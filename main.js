@@ -535,16 +535,10 @@ class Game {
         this.zombieSpawnCandidates = [];
         this.zombieSpawnCursor = 0;
         this.poiSpawnCandidates = [];
-        this.poiSpawnCursor = 0;
-        console.log('[Game] spawning bots...');
+       this.poiSpawnCursor = 0;
         this.spawnBots();
-        console.log('[Game] bots spawned');
-        console.log('[Game] rebuilding spawn caches...');
         this.rebuildSpawnCaches();
-        console.log('[Game] spawn caches rebuilt');
-        console.log('[Game] spawning environment entities...');
         this.spawnEnvironmentEntities();
-        console.log('[Game] environment entities spawned');
         this.gateClosed = false;
         this.nightNotified = false;
         this.nightWaveTimer = 0;
