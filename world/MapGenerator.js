@@ -2349,13 +2349,7 @@ export class MapGenerator {
                         console.log('[MapGen] ready resolved!');
                     }
                 };
-                if (objects.length > 200) {
-                    setTimeout(processChunk, 16);
-                } else {
-                    this.reportProgress(0.95, 'Мир готов');
-                    this._resolveReady();
-                    console.log('[MapGen] ready resolved!');
-                }
+                setTimeout(processChunk, 16);
             } catch (e) {
                 console.error('[MapGen] ERROR in deferred setup:', e.message, e.stack);
                 this._resolveReady();
