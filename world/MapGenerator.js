@@ -580,11 +580,12 @@ export class MapGenerator {
                 this._buildWoodenBarricade(x, z, angle);
             }
 
-            // Loot glow
+          // Loot glow
             const glowLight = new THREE.PointLight(0xffcc44, 0.5, 10);
             glowLight.position.set(x, 3, z);
             this.scene.add(glowLight);
         }
+        await _yield();
 
         // Scouting mounds (4 cardinal)
         for (let i = 0; i < 4; i++) {
