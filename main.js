@@ -499,11 +499,7 @@ class Game {
         this.lootManager = new LootManager(this.scene, this.map);
         console.log('[Game] LootManager created');
         this.lootManager.generateChests?.();
-        this.entityManager.physicsRef = this.physics;
-        this.scene.userData.entityManager = this.entityManager;
-        this.lootManager = new LootManager(this.scene, this.map);
-        this.lootManager.generateChests?.();
-        console.log('[Game] LootManager created');
+        console.log('[Game] Player setup starting...');
 
         const spawnPads = this.map.getSpawnPads?.() || [];
         this.player = new Player(this.scene, this.camera, this.input);
