@@ -1766,6 +1766,7 @@ export class MapGenerator {
             lootLight.position.set(lx, 2, lz);
             this.scene.add(lootLight);
         }
+        await _yield();
     }
 
     // ===================== FIRE PITS =====================
