@@ -2208,15 +2208,17 @@ export class MapGenerator {
 
         await _yield();
 
-        this.buildCornucopia();
+        await this.buildCornucopia();
         console.log('[MapGen] cornucopia done');
         this.reportProgress(0.25, 'Корнукопия');
 
-        this.buildInnerRing();
+        await _yield();
+
+        await this.buildInnerRing();
         console.log('[MapGen] inner ring done');
         this.reportProgress(0.32, 'Внутреннее кольцо');
 
-        this.buildBiomePaths();
+        await this.buildBiomePaths();
         console.log('[MapGen] biome paths done');
         this.reportProgress(0.38, 'Пути биомов');
 
