@@ -500,6 +500,8 @@ class Game {
         console.log('[Game] LootManager created');
         this.lootManager.generateChests?.();
         console.log('[Game] Player setup starting...');
+        this.entityManager.physicsRef = this.physics;
+        this.scene.userData.entityManager = this.entityManager;
 
         const spawnPads = this.map.getSpawnPads?.() || [];
         this.player = new Player(this.scene, this.camera, this.input);
