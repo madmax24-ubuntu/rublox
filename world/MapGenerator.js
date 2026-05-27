@@ -2331,21 +2331,31 @@ export class MapGenerator {
                     console.log('[MapGen] collected', objects.length, 'objects');
                 }
 
-                // Process in chunks of 200
-                for (let i = 0; i < objects.length; i += 200) {
-                    for (let j = i; j < Math.min(i + 200, objects.length); j++) {
+                // Process in chunks of 200, using recursive setTimeout for yielding
+                let idx = 0;
+                const processChunk = () => {
+                    const end = Math.min(idx + 200, objects.length);
+                    for (let j = idx; j < end; j++) {
                         const obj = objects[j];
                         obj.userData.mapGenerated = true;
                         obj.frustumCulled = false;
                     }
-                    if (i + 200 < objects.length) {
-                        await new Promise(r => setTimeout(r, 16));
+                    idx = end;
+                    if (idx < objects.length) {
+                        setTimeout(processChunk, 16);
+                    } else {
+                        this.reportProgress(0.95, 'Мир готов');
+                        this._resolveReady();
+                        console.log('[MapGen] ready resolved!');
                     }
+                };
+                if (objects.length > 200) {
+                    setTimeout(processChunk, 16);
+                } else {
+                    this.reportProgress(0.95, 'Мир готов');
+                    this._resolveReady();
+                    console.log('[MapGen] ready resolved!');
                 }
-
-                this.reportProgress(0.95, 'Мир готов');
-                this._resolveReady();
-                console.log('[MapGen] ready resolved!');
             } catch (e) {
                 console.error('[MapGen] ERROR in deferred setup:', e.message, e.stack);
                 this._resolveReady();
