@@ -1659,8 +1659,9 @@ export class MapGenerator {
                 roof.userData.isOutpost = true;
                 roof.userData.isMapObject = true;
                 this.scene.add(roof);
-            }
+          }
         }
+        await _yield();
     }
 
     // ===================== HAZARD ZONES =====================
