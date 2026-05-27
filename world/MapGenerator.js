@@ -2180,34 +2180,42 @@ export class MapGenerator {
 
     // ===================== GENERATION ORCHESTRATOR =====================
     async generate() {
+        console.log('[MapGen] generate() starting');
         this.generateHeightMap();
         this.reportProgress(0.05, 'Создание ландшафта...');
 
         await this.buildArenaFloor();
+        console.log('[MapGen] arena floor done');
         this.reportProgress(0.12, 'Ландшафт готов');
         await this.yieldFrame();
 
         await this.buildForcefield();
+        console.log('[MapGen] forcefield done');
         this.reportProgress(0.18, 'Арена построена');
         await this.yieldFrame();
 
         await this.buildCornucopia();
+        console.log('[MapGen] cornucopia done');
         this.reportProgress(0.25, 'Корнукопия');
         await this.yieldFrame();
 
         await this.buildInnerRing();
+        console.log('[MapGen] inner ring done');
         this.reportProgress(0.32, 'Внутреннее кольцо');
         await this.yieldFrame();
 
         await this.buildBiomePaths();
+        console.log('[MapGen] biome paths done');
         this.reportProgress(0.38, 'Пути биомов');
         await this.yieldFrame();
 
         await this.buildRuinedCitadel();
+        console.log('[MapGen] citadel done');
         this.reportProgress(0.45, 'Руины Цитадели');
         await this.yieldFrame();
 
         await this.buildCrystalGrotto();
+        console.log('[MapGen] crystal grotto done');
         this.reportProgress(0.52, 'Хрустальная гротовка');
         await this.yieldFrame();
 
