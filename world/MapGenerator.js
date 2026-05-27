@@ -2155,6 +2155,7 @@ export class MapGenerator {
                 items: []
             });
         }
+        await _yield();
     }
 
     // ===================== ANIMATIONS =====================
