@@ -1719,8 +1719,9 @@ export class MapGenerator {
                 position: new THREE.Vector3(sx, 4, sz),
                 radius: 4,
                 damage: 15
-            });
+         });
         }
+        await _yield();
     }
 
     // ===================== LOOT CLUSTERS =====================
