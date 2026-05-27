@@ -1664,8 +1664,7 @@ export class MapGenerator {
                 this.scene.add(roof);
           }
         }
-            await _yield();
-        }
+        await _yield();
     }
 
     // ===================== HAZARD ZONES =====================
