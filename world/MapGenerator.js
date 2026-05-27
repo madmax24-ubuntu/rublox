@@ -2258,7 +2258,8 @@ export class MapGenerator {
         console.log('[MapGen] forest done');
         this.reportProgress(0.65, 'Светящийся лес');
 
-        await _yield();
+        console.log('[MapGen] yielding 200ms before bridges...');
+        await new Promise(r => setTimeout(r, 200));
 
         this.reportProgress(0.68, 'Мосты и форпосты...');
         await this.buildBridges();
