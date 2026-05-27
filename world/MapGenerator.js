@@ -1359,7 +1359,7 @@ export class MapGenerator {
     }
 
     // ===================== LUMINOUS FOREST (SE) =====================
-    async buildLuminousForest() {
+    buildLuminousForest() {
         const cx = 80, cz = -80;
 
         // Floor
