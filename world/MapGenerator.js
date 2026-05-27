@@ -961,8 +961,9 @@ export class MapGenerator {
                 position: new THREE.Vector3(cx + mx, 3, cz + mz),
                 size: new THREE.Vector3(wallLen, 6, 0.8),
                 walkable: false
-            });
+           });
         }
+        await _yield();
 
         // Moss patches
         for (let i = 0; i < 15; i++) {
