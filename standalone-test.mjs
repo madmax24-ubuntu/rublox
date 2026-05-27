@@ -8,33 +8,34 @@ let failed = 0;
 let warnings = 0;
 
 function test(name, fn) {
+    let result;
     try {
-        const result = fn();
-        if (result instanceof Promise) {
-            result.then(r => {
-                if (r === true || r === undefined) {
-                    console.log(`  ✅ ${name}`);
-                    passed++;
-                } else {
-                    console.log(`  ❌ ${name}: ${r}`);
-                    failed++;
-                }
-            }).catch(e => {
-                console.log(`  ❌ ${name}: ${e.message}`);
-                failed++;
-            });
-        } else if (result === true || result === undefined) {
-            console.log(`  ✅ ${name}`);
-            passed++;
-        } else {
-            console.log(`  ❌ ${name}: ${result}`);
-            failed++;
-        }
+        result = fn();
     } catch (e) {
         console.log(`  ❌ ${name}: ${e.message}`);
         failed++;
+        return;
     }
-    // Return result so callers can await if needed
+    if (result instanceof Promise) {
+        result.then(r => {
+            if (r === true || r === undefined) {
+                console.log(`  ✅ ${name}`);
+                passed++;
+            } else {
+                console.log(`  ❌ ${name}: ${r}`);
+                failed++;
+            }
+        }).catch(e => {
+            console.log(`  ❌ ${name}: ${e.message}`);
+            failed++;
+        });
+    } else if (result === true || result === undefined) {
+        console.log(`  ✅ ${name}`);
+        passed++;
+    } else {
+        console.log(`  ❌ ${name}: ${result}`);
+        failed++;
+    }
     return result;
 }
 
