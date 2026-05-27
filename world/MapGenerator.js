@@ -1212,6 +1212,7 @@ export class MapGenerator {
             this.scene.add(lava);
             this.animatedObjects.push({ type: 'lava', mesh: lava, material: lava.material });
         }
+        await _yield();
 
         // Obsidian barriers
         for (let i = 0; i < 15; i++) {
