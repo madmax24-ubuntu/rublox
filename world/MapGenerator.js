@@ -2328,12 +2328,12 @@ export class MapGenerator {
         await this.buildRadiationZones();
         console.log('[MapGen] radiation zones done');
         console.log('[MapGen] yielding 1s before loot data...');
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 200));
         console.log('[MapGen] resuming after loot yield');
         await this.buildLootData();
         console.log('[MapGen] loot data done');
         this.reportProgress(0.90, 'Лут и ловушки');
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 200));
 
       // Resolve immediately - no deferred setup needed
         console.log('[MapGen] resolving immediately...');
