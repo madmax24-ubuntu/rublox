@@ -33,15 +33,17 @@ export class LootManager {
         this.chestMaterials = this.createChestMaterials();
         this.chestReady = false;
         this.claimTTL = 2.4;
-        // Generate chests synchronously to avoid async timing issues
-        try {
-            this.generateChests();
-            this.rebuildChestIndex();
-            this.chestReady = true;
-        } catch (e) {
-            console.error('[LootManager] Chest generation failed:', e.message);
-            this.chestReady = true;
-        }
+        // Defer chest generation to next frame to avoid freezing
+        requestAnimationFrame(() => {
+            try {
+                this.generateChests();
+                this.rebuildChestIndex();
+                this.chestReady = true;
+            } catch (e) {
+                console.error('[LootManager] Chest generation failed:', e.message);
+                this.chestReady = true;
+            }
+        });
     }
 
     getChestPlacementY(x, z) {
