@@ -2052,7 +2052,7 @@ export class MapGenerator {
     }
 
     // ===================== RADIATION ZONES =====================
-    buildRadiationZones() {
+    async buildRadiationZones() {
         const zones = [
             { type: 'high', cx: -80, cz: -80, radius: 50, damage: 0.3, color: 0xff4444 },
             { type: 'medium', cx: -80, cz: 80, radius: 35, damage: 0.15, color: 0xff8844 },
