@@ -3015,6 +3015,7 @@ window.addEventListener('DOMContentLoaded', () => {
             try {
                 game.audioSynth?.unlock?.().catch(() => { });
                 await game.startGame();
+                hideLoadingOverlay();
             } catch (err) {
                 console.error('Start failed:', err);
             }
