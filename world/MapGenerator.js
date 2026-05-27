@@ -2244,8 +2244,10 @@ export class MapGenerator {
             }
         });
 
-         this.reportProgress(0.95, 'Мир готов');
+         console.log('[MapGen] about to resolve ready...');
+        this.reportProgress(0.95, 'Мир готов');
         this._resolveReady();
+        console.log('[MapGen] ready resolved!');
     }
 
     // ===================== ANIMATION UPDATES =====================
