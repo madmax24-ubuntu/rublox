@@ -316,16 +316,14 @@ test('MeshStandardMaterial works', () => {
 
 test('Shadow map enabled', () => {
     try {
-        const canvas = document?.createElement?.('canvas');
-        if (canvas) {
-            const renderer = new THREE.WebGLRenderer({ canvas });
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            return renderer.shadowMap.enabled ? 'Shadows enabled' : 'Shadows not enabled';
-        }
-        return true;
+        const { createCanvas } = require('canvas');
+        const canvas = createCanvas(800, 600);
+        const renderer = new THREE.WebGLRenderer({ canvas });
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        return renderer.shadowMap.enabled ? 'Shadows enabled' : 'Shadows not enabled';
     } catch (e) {
-        return `Shadow setup error: ${e.message}`;
+        return `Canvas package not installed (${e.message})`;
     }
 });
 
@@ -333,7 +331,7 @@ test('Shadow map enabled', () => {
 console.log('\n⚙️  Test 5: Physics System');
 
 test('Physics class exists', () => {
-    const { Physics } = require('./world/Physics.js');
+    const { Physics } = await import('./world/Physics.js');
     return Physics ? 'Class exists' : 'Physics class not found';
 });
 
@@ -342,7 +340,7 @@ console.log('\n🖥️  Test 6: HUD System');
 
 test('HUD creates UI elements', () => {
     try {
-        const { HUD } = require('./ui/HUD.js');
+        const { HUD } = await import('./ui/HUD.js');
         const hud = new HUD();
         return hud ? 'HUD created' : 'HUD null';
     } catch (e) {
@@ -353,22 +351,22 @@ test('HUD creates UI elements', () => {
 // ========== TEST 7: Game Balance ==========
 console.log('\n📊 Test 7: Game Balance');
 
-test('GAME_CONFIG has round settings', () => {
-    const { GAME_CONFIG } = require('./core/GameBalance.js');
+test('GAME_CONFIG has round settings', async () => {
+    const { GAME_CONFIG } = await import('./core/GameBalance.js');
     if (!GAME_CONFIG?.round) return 'round config missing';
     if (!GAME_CONFIG.round.countdownSeconds) return 'countdownSeconds missing';
     return `Countdown: ${GAME_CONFIG.round.countdownSeconds}s`;
 });
 
-test('GAME_CONFIG has zone settings', () => {
-    const { GAME_CONFIG } = require('./core/GameBalance.js');
+test('GAME_CONFIG has zone settings', async () => {
+    const { GAME_CONFIG } = await import('./core/GameBalance.js');
     if (!GAME_CONFIG?.zone) return 'zone config missing';
     if (!GAME_CONFIG.zone.durationSeconds) return 'durationSeconds missing';
     return `Zone duration: ${GAME_CONFIG.zone.durationSeconds}s`;
 });
 
-test('GAME_CONFIG has bot settings', () => {
-    const { GAME_CONFIG } = require('./core/GameBalance.js');
+test('GAME_CONFIG has bot settings', async () => {
+    const { GAME_CONFIG } = await import('./core/GameBalance.js');
     if (!GAME_CONFIG?.bots) return 'bots config missing';
     return `Bot count: ${GAME_CONFIG.bots.count || 'N/A'}`;
 });
