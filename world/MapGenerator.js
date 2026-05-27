@@ -2283,11 +2283,14 @@ export class MapGenerator {
         await this.buildBridges();
         console.log('[MapGen] bridges done');
         console.log('[MapGen] about to yield before outposts...');
+        const t1 = Date.now();
         await new Promise(r => setTimeout(r, 500));
-        console.log('[MapGen] yield done before outposts');
+        console.log('[MapGen] yield before outposts took', Date.now() - t1, 'ms');
 
         console.log('[MapGen] calling buildOuterOutposts...');
+        const t2 = Date.now();
         await this.buildOuterOutposts();
+        console.log('[MapGen] buildOuterOutposts took', Date.now() - t2, 'ms');
         console.log('[MapGen] outer outposts done');
         await this.buildHazardZones();
         console.log('[MapGen] hazard zones done');
