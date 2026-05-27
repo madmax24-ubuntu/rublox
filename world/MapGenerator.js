@@ -2249,22 +2249,28 @@ export class MapGenerator {
         await _yield();
 
         this.reportProgress(0.68, 'Мосты и форпосты...');
-        this.buildBridges();
+        await this.buildBridges();
         console.log('[MapGen] bridges done');
-        this.buildOuterOutposts();
+
+        await _yield();
+
+        await this.buildOuterOutposts();
         console.log('[MapGen] outer outposts done');
-        this.buildHazardZones();
+        await this.buildHazardZones();
         console.log('[MapGen] hazard zones done');
-        this.buildLootClusters();
+
+        await _yield();
+
+        await this.buildLootClusters();
         console.log('[MapGen] loot clusters done');
-        this.buildFirePits();
+        await this.buildFirePits();
         console.log('[MapGen] fire pits done');
         this.reportProgress(0.75, 'Объекты размещены');
 
-        this.buildParticleSystems();
+        await this.buildParticleSystems();
         console.log('[MapGen] particle systems done');
         this.reportProgress(0.82, 'Частицы');
-        this.buildTraps();
+        await this.buildTraps();
         console.log('[MapGen] traps done');
         this.buildFogZones();
         console.log('[MapGen] fog zones done');
