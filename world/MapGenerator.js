@@ -938,6 +938,7 @@ export class MapGenerator {
                 dynamic: true,
                enabled: false
             });
+            if ((i % 2) === 0) await _yield();
         }
         await _yield();
 
