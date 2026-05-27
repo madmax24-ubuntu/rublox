@@ -2272,14 +2272,16 @@ export class MapGenerator {
         await this.buildBridges();
         console.log('[MapGen] bridges done');
 
-        await _yield();
+        console.log('[MapGen] yielding 100ms...');
+        await new Promise(r => setTimeout(r, 100));
 
         await this.buildOuterOutposts();
         console.log('[MapGen] outer outposts done');
         await this.buildHazardZones();
         console.log('[MapGen] hazard zones done');
 
-        await _yield();
+        console.log('[MapGen] yielding 100ms...');
+        await new Promise(r => setTimeout(r, 100));
 
         await this.buildLootClusters();
         console.log('[MapGen] loot clusters done');
