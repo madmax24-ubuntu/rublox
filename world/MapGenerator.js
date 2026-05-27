@@ -2246,7 +2246,7 @@ export class MapGenerator {
         this.reportProgress(0.25, 'Корнукопия');
 
         console.log('[MapGen] yielding 500ms before inner ring...');
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 100));
 
         await this.buildInnerRing();
         console.log('[MapGen] inner ring done');
@@ -2255,10 +2255,10 @@ export class MapGenerator {
         await this.buildBiomePaths();
         console.log('[MapGen] biome paths done');
         this.reportProgress(0.38, 'Пути биомов');
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 100));
 
         console.log('[MapGen] yielding 500ms before citadel...');
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 100));
 
         console.log('[MapGen] starting citadel...');
         await this.buildRuinedCitadel();
@@ -2268,31 +2268,31 @@ export class MapGenerator {
         await this.buildCrystalGrotto();
         console.log('[MapGen] crystal grotto done');
         this.reportProgress(0.52, 'Хрустальная гротовка');
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 100));
 
         console.log('[MapGen] yielding 500ms before wastes...');
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 100));
 
         await this.buildBurningWastes();
         console.log('[MapGen] wastes done');
         this.reportProgress(0.58, 'Пылающие пустоши');
 
         console.log('[MapGen] yielding 500ms before forest...');
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 100));
 
         await this.buildLuminousForest();
         console.log('[MapGen] forest done');
         this.reportProgress(0.65, 'Светящийся лес');
 
         console.log('[MapGen] yielding 500ms before bridges...');
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 100));
 
         this.reportProgress(0.68, 'Мосты и форпосты...');
         await this.buildBridges();
         console.log('[MapGen] bridges done');
         console.log('[MapGen] about to yield before outposts...');
         const t1 = Date.now();
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 100));
         console.log('[MapGen] yield before outposts took', Date.now() - t1, 'ms');
 
         console.log('[MapGen] calling buildOuterOutposts...');
@@ -2302,24 +2302,24 @@ export class MapGenerator {
         console.log('[MapGen] outer outposts done');
         await this.buildHazardZones();
         console.log('[MapGen] hazard zones done');
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 100));
 
         await this.buildLootClusters();
         console.log('[MapGen] loot clusters done');
         await this.buildFirePits();
         console.log('[MapGen] fire pits done');
         this.reportProgress(0.75, 'Объекты размещены');
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 100));
 
         await this.buildParticleSystems();
         console.log('[MapGen] particle systems done');
         this.reportProgress(0.82, 'Частицы');
         console.log('[MapGen] about to yield 500ms before traps...');
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 100));
         console.log('[MapGen] yield done, calling buildTraps()...');
         await this.buildTraps();
         console.log('[MapGen] traps done');
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 100));
         await this.buildFogZones();
         console.log('[MapGen] fog zones done');
         console.log('[MapGen] yielding 3s before radiation...');
