@@ -2294,12 +2294,16 @@ export class MapGenerator {
         await this.buildParticleSystems();
         console.log('[MapGen] particle systems done');
         this.reportProgress(0.82, 'Частицы');
+        await new Promise(r => setTimeout(r, 50));
         await this.buildTraps();
         console.log('[MapGen] traps done');
+        await new Promise(r => setTimeout(r, 50));
         await this.buildFogZones();
         console.log('[MapGen] fog zones done');
+        await new Promise(r => setTimeout(r, 50));
         await this.buildRadiationZones();
         console.log('[MapGen] radiation zones done');
+        await new Promise(r => setTimeout(r, 50));
         await this.buildLootData();
         console.log('[MapGen] loot data done');
         this.reportProgress(0.90, 'Лут и ловушки');
