@@ -2546,10 +2546,12 @@ class Game {
     }
 
     async startGame() {
+        console.log('[Game] startGame() called, initialized:', this.initialized);
         if (!this.initialized) {
             if (loadingOverlay) loadingOverlay.style.display = 'flex';
             smoothSetProgress(0.05, 'Инициализация...');
             await this.initAsync();
+            console.log('[Game] initAsync() completed, initialized:', this.initialized);
             smoothSetProgress(0.2, 'Ресурсы загружены');
             await new Promise(r => setTimeout(r, 100));
         }
