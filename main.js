@@ -2533,11 +2533,7 @@ class Game {
             smoothSetProgress(0.05, 'Инициализация...');
             await this.initAsync();
             smoothSetProgress(0.2, 'Ресурсы загружены');
-            await new Promise(r => {
-                const id = requestAnimationFrame(r);
-                if (id) return;
-                setTimeout(r, 100);
-            });
+            await new Promise(r => setTimeout(r, 100));
         }
         if (this.isStarted) return;
         this.isStarted = true;
