@@ -1811,7 +1811,7 @@ export class MapGenerator {
     }
 
     // ===================== PARTICLES =====================
-    buildParticleSystems() {
+    async buildParticleSystems() {
         // Spark particles around Cornucopia
         this._createSparkParticles(0, 0, 0, 100, 0xf8d840);
 
