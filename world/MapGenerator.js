@@ -1458,6 +1458,7 @@ export class MapGenerator {
             cap.userData.isMapObject = true;
             this.scene.add(cap);
         }
+        await _yield();
 
         // Bushes
         for (let i = 0; i < 20; i++) {
