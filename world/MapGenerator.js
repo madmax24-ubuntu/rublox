@@ -124,6 +124,8 @@ function getMat(color, opts = {}) {
 }
 
 // ============ MAP GENERATOR ============
+const _yield = () => new Promise(r => setTimeout(r, 50));
+
 export class MapGenerator {
     constructor(scene) {
         console.log('[MapGen] constructor starting...');
