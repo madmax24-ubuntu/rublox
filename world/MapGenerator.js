@@ -2355,10 +2355,6 @@ export class MapGenerator {
                 this._resolveReady();
             }
         }, 10);
-                console.error('[MapGen] ERROR in deferred setup:', e.message, e.stack);
-                this._resolveReady();
-            }
-        }, 10);
     } catch (e) {
         console.error('[MapGen] ERROR in generate:', e.message, e.stack);
         this._resolveReady();
