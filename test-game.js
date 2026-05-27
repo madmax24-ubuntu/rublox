@@ -27,53 +27,57 @@ import { chromium } from 'playwright';
     // Wait for loading overlay to disappear (up to 120s)
     const start = Date.now();
     let overlayGone = false;
-    while (Date.now() - start < 120000 && !overlayGone) {
-        const overlayInfo = await page.evaluate(() => {
-            const overlay = document.getElementById('loadingOverlay');
-            if (!overlay) return { exists: false, display: 'no-overlay' };
-            const computed = window.getComputedStyle(overlay).display;
-            return { exists: true, display: overlay.style.display, computed, opacity: window.getComputedStyle(overlay).opacity };
-        }).catch(() => ({ exists: true, display: 'error', computed: 'error' }));
+    try {
+        while (Date.now() - start < 120000 && !overlayGone) {
+            const overlayInfo = await page.evaluate(() => {
+                const overlay = document.getElementById('loadingOverlay');
+                if (!overlay) return { exists: false, display: 'no-overlay' };
+                const computed = window.getComputedStyle(overlay).display;
+                return { exists: true, display: overlay.style.display, computed, opacity: window.getComputedStyle(overlay).opacity };
+            }).catch(() => ({ exists: true, display: 'error', computed: 'error' }));
 
-        if (overlayInfo.display === 'none' || overlayInfo.computed === 'none') {
-            overlayGone = true;
-            console.log('Overlay hidden');
-        } else {
-            const elapsed = Math.round((Date.now() - start) / 1000);
-            if (elapsed % 15 === 0 && elapsed > 1) {
-                console.log(`Overlay still visible (${elapsed}s): ${JSON.stringify(overlayInfo)}`);
+            if (overlayInfo.display === 'none' || overlayInfo.computed === 'none') {
+                overlayGone = true;
+                console.log('Overlay hidden');
+            } else {
+                const elapsed = Math.round((Date.now() - start) / 1000);
+                if (elapsed % 15 === 0 && elapsed > 1) {
+                    console.log(`Overlay still visible (${elapsed}s): ${JSON.stringify(overlayInfo)}`);
+                }
             }
+            await page.waitForTimeout(500);
         }
-        await page.waitForTimeout(500);
+    } catch(e) {
+        console.log('Overlay detection error:', e.message);
     }
     console.log('Overlay check done: gone=', overlayGone);
 
-    // Wait for game to finish starting (startGame resolves when game loop starts)
-    // The overlay hide happens inside startGame, so if overlay is hidden, game started
-    await page.waitForTimeout(3000);
+    // Wait a bit for game loop to start
+    await page.waitForTimeout(5000);
 
-    // Check final state
+    // Check final state with timeout
     try {
         const gameState = await page.evaluate(() => {
             if (!window.game) return 'no game';
+            const g = window.game;
             return {
-                initialized: window.game.initialized,
-                isStarted: window.game.isStarted,
-                gameState: window.game.gameState,
-                hasMap: !!window.game.map,
-                hasPlayer: !!window.game.player,
-                hasBots: Array.isArray(window.game.bots) ? window.game.bots.length : 'none',
+                initialized: g.initialized,
+                isStarted: g.isStarted,
+                gameState: g.gameState,
+                hasMap: !!g.map,
+                hasPlayer: !!g.player,
+                hasBots: Array.isArray(g.bots) ? g.bots.length : 'none',
             };
-        });
+        }, { timeout: 10000 });
         console.log('Game state:', JSON.stringify(gameState));
     } catch(e) {
         console.log('Could not get game state:', e.message);
     }
 
-    // Take a screenshot for visual check
+    // Take screenshot
     try {
         await page.screenshot({ path: './test-screenshot.png' });
-        console.log('Screenshot saved to test-screenshot.png');
+        console.log('Screenshot saved');
     } catch(e) {
         console.log('Screenshot failed:', e.message);
     }
