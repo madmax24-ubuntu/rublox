@@ -621,6 +621,7 @@ export class MapGenerator {
             plat.userData.isMapObject = true;
             this.scene.add(plat);
         }
+        await _yield();
 
         // Cover rocks
         for (let i = 0; i < 30; i++) {
