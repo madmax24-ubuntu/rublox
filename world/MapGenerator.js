@@ -764,7 +764,7 @@ export class MapGenerator {
     }
 
     // ===================== BIOME ZONES =====================
-    buildBiomePaths() {
+    async buildBiomePaths() {
         const pathMat = new THREE.MeshStandardMaterial({
             color: COLOR.arenaPath,
             roughness: 0.9,
