@@ -930,9 +930,10 @@ export class MapGenerator {
                 size: new THREE.Vector3(7, 8, 7),
                 walkable: true,
                 dynamic: true,
-                enabled: false
+               enabled: false
             });
         }
+        await _yield();
 
         // Connecting walls
         for (let i = 0; i < 4; i++) {
