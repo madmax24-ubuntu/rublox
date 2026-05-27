@@ -434,11 +434,15 @@ class Game {
             smoothSetProgress(ratio * 0.5, status);
         };
         this.map.startGeneration();
+        console.log('[Game] waiting for map ready...');
         await this.map.ready;
+        console.log('[Game] map ready!');
 
         // Performance: setup LOD and frustum culling
+        console.log('[Game] setupLOD:', this.map.setupLOD?.toString().substring(0, 20));
         this.map.setupLOD?.(this.isMobile());
         this.map.enableOptimizedCulling?.();
+        console.log('[Game] after setupLOD/enhancedCulling');
         
         // Камера для тестирования карты (вид сверху)
         if (this.camera) {
