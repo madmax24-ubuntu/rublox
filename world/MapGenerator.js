@@ -1274,6 +1274,7 @@ export class MapGenerator {
             rock.userData.isMapObject = true;
             this.scene.add(rock);
         }
+        await _yield();
 
         // Smoke clouds
         for (let i = 0; i < 8; i++) {
