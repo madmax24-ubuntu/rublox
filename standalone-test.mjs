@@ -263,8 +263,7 @@ try {
         return true;
     });
 
-    test('Zone shrink works', async () => {
-        const { Zone } = await import('./world/Zone.js');
+    test('Zone shrink works', () => {
         const scene2 = new THREE.Scene();
         const zone2 = new Zone(scene2, 440);
         const before = zone2.getCurrentRadius();
@@ -274,8 +273,7 @@ try {
         return true;
     });
 
-    test('Zone damage calculation', async () => {
-        const { Zone } = await import('./world/Zone.js');
+    test('Zone damage calculation', () => {
         const scene3 = new THREE.Scene();
         const zone3 = new Zone(scene3, 440);
         const hasGetDamage = typeof zone3.getDamageAt === 'function';
