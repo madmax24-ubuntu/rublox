@@ -2274,8 +2274,8 @@ export class MapGenerator {
         await this.buildBridges();
         console.log('[MapGen] bridges done');
 
-        console.log('[MapGen] yielding 100ms...');
-        await new Promise(r => setTimeout(r, 100));
+        console.log('[MapGen] yielding 300ms...');
+        await new Promise(r => setTimeout(r, 300));
 
         await this.buildOuterOutposts();
         console.log('[MapGen] outer outposts done');
