@@ -9,7 +9,10 @@ const path = require('path');
 
     // Capture console messages
     page.on('console', msg => {
-        console.log(`[CONSOLE ${msg.type()}]:`, msg.text().substring(0, 200));
+        const text = msg.text().substring(0, 200);
+        if (!text.includes('DEBUG:') && !text.includes('Camera options')) {
+            console.log(`[CONSOLE ${msg.type()}]:`, text);
+        }
     });
     page.on('pageerror', err => {
         console.error(`[PAGE ERROR]:`, err.message);
@@ -23,12 +26,17 @@ const path = require('path');
     await page.screenshot({ path: 'test-screenshots/01-start.png', fullPage: false });
     console.log('Screenshot: start screen');
 
-    // Click start button
-    console.log('Clicking start button...');
-    await page.click('#startButtonDesktop');
+    // Click start button only if it exists
+    const startBtn = await page.$('#startButtonDesktop');
+    if (startBtn) {
+        console.log('Clicking start button...');
+        await page.click('#startButtonDesktop');
+    } else {
+        console.log('Start button not found, game may already be running');
+    }
 
-    // Wait for game to initialize
-    for (let i = 0; i < 10; i++) {
+    // Wait for game to initialize - check every 3 seconds
+    for (let i = 0; i < 20; i++) {
         await page.waitForTimeout(3000);
         const state = await page.evaluate(() => {
             return {
@@ -42,23 +50,22 @@ const path = require('path');
                     `${window.game.player.position.x},${window.game.player.position.y},${window.game.player.position.z}` : 'none',
                 rendererW: window.game?.renderer?.domElement?.offsetWidth || 0,
                 rendererH: window.game?.renderer?.domElement?.offsetHeight || 0,
-                error: window.game?.initError || 'none'
+                bots: window.game?.bots?.length || 0,
+                zone: window.game?.zone?.currentRadius || 0
             };
         });
 
         const step = i + 2;
-        await page.screenshot({ path: `test-screenshots/${step.toString().padStart(2, '0')}-state${step}.png`, fullPage: false });
-        console.log(`Step ${step}:`, JSON.stringify(state));
+        try {
+            await page.screenshot({ path: `test-screenshots/${step.toString().padStart(2, '0')}-state${step}.png`, fullPage: false });
+        } catch(e) {}
+        console.log(`Step ${step}: children=${state.children} gameState=${state.gameState} player=${state.playerPos}`);
 
         if (state.isStarted && state.children > 50) {
             console.log('GAME LOADED SUCCESSFULLY!');
             break;
         }
     }
-
-    // Final screenshot
-    await page.waitForTimeout(2000);
-    await page.screenshot({ path: 'test-screenshots/99-final.png', fullPage: false });
 
     // Get final state
     const finalState = await page.evaluate(() => {
