@@ -993,6 +993,7 @@ export class MapGenerator {
             moss.userData.isMapObject = true;
             this.scene.add(moss);
         }
+        await _yield();
 
         // Courtyard cover walls
         for (let i = 0; i < 6; i++) {
