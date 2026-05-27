@@ -1302,6 +1302,7 @@ export class MapGenerator {
                 baseOpacity: 0.2
             });
         }
+        await _yield();
 
         // Ruined bunkers
         for (let i = 0; i < 3; i++) {
