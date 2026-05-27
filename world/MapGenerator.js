@@ -2297,18 +2297,33 @@ export class MapGenerator {
         await _yield();
 
         // Defer heavy scene traversal to next frame
-        setTimeout(() => {
+        setTimeout(async () => {
             try {
                 console.log('[MapGen] deferred setup starting...');
                 this.setupAnimations();
+
+                // Chunk the scene traversal to avoid blocking
+                const objects = [];
                 if (this.scene.traverse) {
                     this.scene.traverse(obj => {
                         if (obj.isMesh || obj.isGroup || obj.isInstancedMesh) {
-                            obj.userData.mapGenerated = true;
-                            obj.frustumCulled = false;
+                            objects.push(obj);
                         }
                     });
                 }
+
+                // Process in chunks of 200
+                for (let i = 0; i < objects.length; i += 200) {
+                    for (let j = i; j < Math.min(i + 200, objects.length); j++) {
+                        const obj = objects[j];
+                        obj.userData.mapGenerated = true;
+                        obj.frustumCulled = false;
+                    }
+                    if (i + 200 < objects.length) {
+                        await new Promise(r => setTimeout(r, 16));
+                    }
+                }
+
                 this.reportProgress(0.95, 'Мир готов');
                 this._resolveReady();
                 console.log('[MapGen] ready resolved!');
