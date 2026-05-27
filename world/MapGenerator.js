@@ -1089,6 +1089,7 @@ export class MapGenerator {
                 size: new THREE.Vector3(1.5, h, 1.5),
                 walkable: false
             });
+            if (i % 10 === 0) await _yield();
         }
         await _yield();
 
