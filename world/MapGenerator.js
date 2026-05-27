@@ -2256,7 +2256,10 @@ export class MapGenerator {
         this.reportProgress(0.95, 'Мир готов');
         this._resolveReady();
         console.log('[MapGen] ready resolved!');
+    } catch (e) {
+        console.error('[MapGen] ERROR in generate:', e.message, e.stack);
     }
+}
 
     // ===================== ANIMATION UPDATES =====================
     updateZoneAnimations(deltaTime) {
