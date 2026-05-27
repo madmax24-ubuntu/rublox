@@ -76,9 +76,9 @@ export class Environment {
         const daySky = new THREE.Color(0x8fd3ff);
         const duskSky = new THREE.Color(0xffb574);
         const sunHeight = Math.sin(angle);
-        // Polyfill for smoothstep (removed in newer Three.js)
-        const smoothstep = (a, b, c) => {
-            const t = Math.max(0, Math.min(1, (sunHeight - b) / (c - b)));
+        // Polyfill for THREE.MathUtils.smoothstep (removed in newer Three.js)
+        const smoothstep = (value, edge0, edge1) => {
+            const t = Math.max(0, Math.min(1, (value - edge0) / (edge1 - edge0)));
             return t * t * (3 - 2 * t);
         };
         const dayFactor = smoothstep(sunHeight, -0.12, 0.18);
