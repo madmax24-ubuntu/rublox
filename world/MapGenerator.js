@@ -2106,8 +2106,9 @@ export class MapGenerator {
                 _gasMat: gasMat,
                 _groundGlow: ground,
                 light
-            });
+           });
         }
+        await _yield();
     }
 
     // ===================== LOOT DATA =====================
