@@ -2309,39 +2309,11 @@ export class MapGenerator {
         this.reportProgress(0.90, 'Лут и ловушки');
         await new Promise(r => setTimeout(r, 1000));
 
-       // Defer heavy scene traversal to next frame
-        console.log('[MapGen] scheduling deferred setup...');
-        setTimeout(() => {
-            try {
-                console.log('[MapGen] deferred setup starting...');
-                this.setupAnimations();
-
-                // Chunk the scene traversal to avoid blocking
-                const objects = [];
-                if (this.scene.traverse) {
-                    this.scene.traverse(obj => {
-                        if (obj.isMesh || obj.isGroup || obj.isInstancedMesh) {
-                            objects.push(obj);
-                        }
-                    });
-                    console.log('[MapGen] collected', objects.length, 'objects');
-                }
-
-                // Process all chunks synchronously (fast operation)
-                for (let i = 0; i < objects.length; i++) {
-                    const obj = objects[i];
-                    obj.userData.mapGenerated = true;
-                    obj.frustumCulled = false;
-                }
-                console.log('[MapGen] processed all', objects.length, 'objects synchronously');
-                this.reportProgress(0.95, 'Мир готов');
-                this._resolveReady();
-                console.log('[MapGen] ready resolved!');
-            } catch (e) {
-                console.error('[MapGen] ERROR in deferred setup:', e.message, e.stack);
-                this._resolveReady();
-            }
-        }, 100);
+      // Resolve immediately - no deferred setup needed
+        console.log('[MapGen] resolving immediately...');
+        this.reportProgress(0.95, 'Мир готов');
+        this._resolveReady();
+        console.log('[MapGen] ready resolved!');
     } catch (e) {
         console.error('[MapGen] ERROR in generate:', e.message, e.stack);
         this._resolveReady();
