@@ -1174,7 +1174,7 @@ export class MapGenerator {
     }
 
     // ===================== BURNING WASTES (SW) =====================
-    async buildBurningWastes() {
+    buildBurningWastes() {
         const cx = -80, cz = -80;
 
         // Floor
