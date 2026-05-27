@@ -295,7 +295,7 @@ test('Three.js scene creation', () => {
     return scene ? true : 'Scene creation failed';
 });
 
-test('Three.js renderer creation', () => {
+test('Three.js renderer creation', async () => {
     try {
         const { createCanvas } = await import('canvas');
         const canvas = createCanvas(800, 600);
@@ -317,9 +317,9 @@ test('MeshStandardMaterial works', () => {
     return mat.isMeshStandardMaterial ? true : 'Not a MeshStandardMaterial';
 });
 
-test('Shadow map enabled', () => {
+test('Shadow map enabled', async () => {
     try {
-        const { createCanvas } = require('canvas');
+        const { createCanvas } = await import('canvas');
         const canvas = createCanvas(800, 600);
         const renderer = new THREE.WebGLRenderer({ canvas });
         renderer.shadowMap.enabled = true;
@@ -333,7 +333,7 @@ test('Shadow map enabled', () => {
 // ========== TEST 5: Physics System ==========
 console.log('\n⚙️  Test 5: Physics System');
 
-test('Physics class exists', () => {
+test('Physics class exists', async () => {
     const { Physics } = await import('./world/Physics.js');
     return Physics ? 'Class exists' : 'Physics class not found';
 });
@@ -341,7 +341,7 @@ test('Physics class exists', () => {
 // ========== TEST 6: HUD System ==========
 console.log('\n🖥️  Test 6: HUD System');
 
-test('HUD creates UI elements', () => {
+test('HUD creates UI elements', async () => {
     try {
         const { HUD } = await import('./ui/HUD.js');
         const hud = new HUD();
@@ -375,6 +375,7 @@ test('GAME_CONFIG has bot settings', async () => {
 });
 
 // ========== SUMMARY ==========
+await new Promise(resolve => setTimeout(resolve, 1500));
 console.log('\n' + '='.repeat(50));
 console.log('TEST SUMMARY');
 console.log('='.repeat(50));
