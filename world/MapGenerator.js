@@ -2251,6 +2251,9 @@ export class MapGenerator {
         console.log('[MapGen] crystal grotto done');
         this.reportProgress(0.52, 'Хрустальная гротовка');
 
+        console.log('[MapGen] yielding 200ms before wastes...');
+        await new Promise(r => setTimeout(r, 200));
+
         await this.buildBurningWastes();
         console.log('[MapGen] wastes done');
         this.reportProgress(0.58, 'Пылающие пустоши');
