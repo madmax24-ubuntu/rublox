@@ -423,10 +423,13 @@ class Game {
         console.log('[Game] Environment done');
         
         // Yield чтобы браузер успел обработать события
+        console.log('[Game] Yielding 100ms before map...');
         await new Promise(r => setTimeout(r, 100));
+        console.log('[Game] Yield done, creating MapGenerator...');
 
         // Этап 4: Генерация карты (самый долгий этап)
                 this.map = new MapGenerator(this.scene);
+        console.log('[Game] MapGenerator instance created');
         this.map.onProgress = (ratio, status) => {
             smoothSetProgress(ratio * 0.5, status);
         };
