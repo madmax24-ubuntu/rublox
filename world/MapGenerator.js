@@ -1428,6 +1428,7 @@ export class MapGenerator {
                 });
             }
         }
+        await _yield();
 
         // Mushrooms
         for (let i = 0; i < 30; i++) {
