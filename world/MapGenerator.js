@@ -2296,7 +2296,9 @@ export class MapGenerator {
         await this.buildParticleSystems();
         console.log('[MapGen] particle systems done');
         this.reportProgress(0.82, 'Частицы');
+        console.log('[MapGen] about to yield 500ms before traps...');
         await new Promise(r => setTimeout(r, 500));
+        console.log('[MapGen] yield done, calling buildTraps()...');
         await this.buildTraps();
         console.log('[MapGen] traps done');
         await new Promise(r => setTimeout(r, 500));
