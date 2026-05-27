@@ -2265,7 +2265,8 @@ export class MapGenerator {
         console.log('[MapGen] citadel done');
         this.reportProgress(0.45, 'Руины Цитадели');
 
-      console.log('[MapGen] crystal grotto done');
+        await this.buildCrystalGrotto();
+        console.log('[MapGen] crystal grotto done');
         this.reportProgress(0.52, 'Хрустальная гротовка');
         await new Promise(r => setTimeout(r, 500));
 
