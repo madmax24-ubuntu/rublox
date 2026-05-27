@@ -294,14 +294,14 @@ test('Three.js scene creation', () => {
 
 test('Three.js renderer creation', () => {
     try {
-        const { createCanvas } = require('canvas');
+        const { createCanvas } = await import('canvas');
         const canvas = createCanvas(800, 600);
         const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
         renderer.setSize(800, 600);
         renderer.shadowMap.enabled = true;
         return renderer.domElement ? 'Renderer created' : 'No canvas element';
     } catch (e) {
-        return `Renderer error: ${e.message}`;
+        return `Canvas package not installed (${e.message}) — renderer requires DOM canvas`;
     }
 });
 
