@@ -1024,7 +1024,7 @@ export class MapGenerator {
     }
 
     // ===================== CRYSTAL GROTTO (NE) =====================
-    buildCrystalGrotto() {
+    async buildCrystalGrotto() {
         const cx = 80, cz = 80;
 
         // Floor
