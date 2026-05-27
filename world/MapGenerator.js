@@ -2347,8 +2347,13 @@ export class MapGenerator {
                         console.log('[MapGen] ready resolved!');
                     }
                 };
+                console.log('[MapGen] scheduled processChunk, idx=', idx);
                 setTimeout(processChunk, 1000);
             } catch (e) {
+                console.error('[MapGen] ERROR in deferred setup:', e.message, e.stack);
+                this._resolveReady();
+            }
+        }, 10);
                 console.error('[MapGen] ERROR in deferred setup:', e.message, e.stack);
                 this._resolveReady();
             }
