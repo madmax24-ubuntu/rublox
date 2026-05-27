@@ -1974,6 +1974,7 @@ export class MapGenerator {
         }
 
         // Bear traps
+        console.log('[MapGen] bear traps starting');
         for (let i = 0; i < 10; i++) {
             const angle = Math.random() * Math.PI * 2;
             const r = 40 + Math.random() * 140;
