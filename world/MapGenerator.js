@@ -2338,14 +2338,14 @@ export class MapGenerator {
                     }
                     idx = end;
                     if (idx < objects.length) {
-                        setTimeout(processChunk, 200);
+                        setTimeout(processChunk, 1000);
                     } else {
                         this.reportProgress(0.95, 'Мир готов');
                         this._resolveReady();
                         console.log('[MapGen] ready resolved!');
                     }
                 };
-                setTimeout(processChunk, 200);
+                setTimeout(processChunk, 1000);
             } catch (e) {
                 console.error('[MapGen] ERROR in deferred setup:', e.message, e.stack);
                 this._resolveReady();
