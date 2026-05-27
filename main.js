@@ -290,8 +290,7 @@ class Game {
         this.showStartScreen();
         if (!this.isMobile()) document.body.style.cursor = 'auto';
         const isMobile = this.isMobile();
-        console.log('[Game] Starting initializeGame...');
-
+        
         // Этап 1: Базовая инициализация Three.js
         this.scene = new THREE.Scene();
         this.scene.userData.mobileMode = isMobile;
