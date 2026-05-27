@@ -79,7 +79,7 @@ export class LootManager {
                 const chest = this.createChest(spot.x, y, spot.z, spot.grade || 'house');
                 this.chests.push(chest);
                 this.addChestToIndex(chest);
-                if (i % 5 === 0) await new Promise(r => setTimeout(r, 16));
+                if (i % 5 === 0) await new Promise(r => setTimeout(r, 100));
             }
             if (this.chests.length > 0) {
                 this.rebuildChestIndex();
@@ -96,7 +96,7 @@ export class LootManager {
                 const chest = this.createChest(tile.x, y, tile.z);
                 this.chests.push(chest);
                 this.addChestToIndex(chest);
-                if (i % 5 === 0) await new Promise(r => setTimeout(r, 16));
+                if (i % 5 === 0) await new Promise(r => setTimeout(r, 100));
             }
             this.rebuildChestIndex();
             return;
@@ -117,7 +117,7 @@ export class LootManager {
             const chest = this.createChest(x, y, z);
             this.chests.push(chest);
             this.addChestToIndex(chest);
-            if (i % 5 === 0) await new Promise(r => setTimeout(r, 16));
+            if (i % 5 === 0) await new Promise(r => setTimeout(r, 100));
         }
         this.rebuildChestIndex();
     }
