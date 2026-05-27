@@ -7,7 +7,16 @@ console.log('Target:', url);
 
 const browser = await chromium.launch({
     headless: false,
-    args: ['--start-fullscreen', '--disable-gpu', '--no-sandbox']
+    args: [
+        '--start-fullscreen',
+        '--disable-gpu',
+        '--no-sandbox',
+        '--disable-dev-shm-usage',
+        '--enable-unsafe-swiftshader',
+        '--ignore-gpu-blocklist',
+        '--use-gl=swiftshader',
+        '--use-pref-control=true'
+    ]
 });
 const context = await browser.newContext({
     viewport: { width: 1280, height: 720 },
