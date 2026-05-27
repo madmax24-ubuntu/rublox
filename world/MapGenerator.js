@@ -479,8 +479,9 @@ export class MapGenerator {
                 position: new THREE.Vector3(cp.x, 0.5, cp.z),
                 size: new THREE.Vector3(1.2, 1, 1),
                 walkable: false
-            });
+           });
         }
+        await _yield();
 
         // 11 spawn pads
         this.spawnPads.push({ x: 0, y: 0, z: 0, radius: 3.5 });
