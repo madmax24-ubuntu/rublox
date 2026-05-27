@@ -2,6 +2,7 @@ import * as THREE from 'three';
 
 export class Environment {
     constructor(scene) {
+        console.log('[Environment] constructor start');
         this.scene = scene;
         this.sunLight = null;
         this.dayTime = 0.3;
@@ -18,7 +19,9 @@ export class Environment {
         this.hemi = null;
         this.nightAmbientColor = new THREE.Color(0x0b132b);
         this.targetExposure = 1;
+        console.log('[Environment] calling init...');
         this.init();
+        console.log('[Environment] constructor done');
     }
 
     init() {
