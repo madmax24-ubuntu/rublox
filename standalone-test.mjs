@@ -10,7 +10,20 @@ let warnings = 0;
 function test(name, fn) {
     try {
         const result = fn();
-        if (result === true || result === undefined) {
+        if (result instanceof Promise) {
+            result.then(r => {
+                if (r === true || r === undefined) {
+                    console.log(`  ✅ ${name}`);
+                    passed++;
+                } else {
+                    console.log(`  ❌ ${name}: ${r}`);
+                    failed++;
+                }
+            }).catch(e => {
+                console.log(`  ❌ ${name}: ${e.message}`);
+                failed++;
+            });
+        } else if (result === true || result === undefined) {
             console.log(`  ✅ ${name}`);
             passed++;
         } else {
