@@ -2222,19 +2222,19 @@ export class MapGenerator {
 
         await _yield();
 
-        this.buildRuinedCitadel();
+        await this.buildRuinedCitadel();
         console.log('[MapGen] citadel done');
         this.reportProgress(0.45, 'Руины Цитадели');
 
-        this.buildCrystalGrotto();
+        await this.buildCrystalGrotto();
         console.log('[MapGen] crystal grotto done');
         this.reportProgress(0.52, 'Хрустальная гротовка');
 
-        this.buildBurningWastes();
+        await this.buildBurningWastes();
         console.log('[MapGen] wastes done');
         this.reportProgress(0.58, 'Пылающие пустоши');
 
-        this.buildLuminousForest();
+        await this.buildLuminousForest();
         console.log('[MapGen] forest done');
         this.reportProgress(0.65, 'Светящийся лес');
 
