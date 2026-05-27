@@ -1766,7 +1766,7 @@ export class MapGenerator {
     }
 
     // ===================== FIRE PITS =====================
-    buildFirePits() {
+    async buildFirePits() {
         const stoneMat = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 1.0 });
         const flameMat = new THREE.MeshBasicMaterial({ color: 0xff6622, transparent: true, opacity: 0.8 });
 
