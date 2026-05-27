@@ -1566,9 +1566,10 @@ export class MapGenerator {
                     rail.userData.isBridge = true;
                     rail.userData.isMapObject = true;
                     this.scene.add(rail);
-                }
+              }
             }
         }
+        await _yield();
     }
 
     // ===================== OUTER OUTPOSTS =====================
