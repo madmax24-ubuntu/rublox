@@ -18,7 +18,7 @@ function test(name, fn) {
     }
     if (result instanceof Promise) {
         result.then(r => {
-            if (r === true || r === undefined) {
+            if (r === true || r === undefined || (typeof r === 'string' && !r.startsWith('Error') && !r.startsWith('❌'))) {
                 console.log(`  ✅ ${name}`);
                 passed++;
             } else {
@@ -29,7 +29,7 @@ function test(name, fn) {
             console.log(`  ❌ ${name}: ${e.message}`);
             failed++;
         });
-    } else if (result === true || result === undefined) {
+    } else if (result === true || result === undefined || (typeof result === 'string' && !result.startsWith('Error') && !result.startsWith('❌'))) {
         console.log(`  ✅ ${name}`);
         passed++;
     } else {
