@@ -495,17 +495,9 @@ class Game {
 
         this.entityManager = new EntityManager(this.scene);
         console.log('[Game] EntityManager created');
-        console.log('[Game] creating LootManager...');
         this.lootManager = new LootManager(this.scene, this.map);
         console.log('[Game] LootManager created');
-        try {
-            console.log('[Game] generating chests...');
-            this.lootManager.generateChests?.();
-            console.log('[Game] chests generated');
-        } catch (err) {
-            console.warn('[Game] generateChests failed:', err);
-        }
-        console.log('[Game] Player setup starting...');
+        this.lootManager.generateChests?.();
         this.entityManager.physicsRef = this.physics;
         this.scene.userData.entityManager = this.entityManager;
 
