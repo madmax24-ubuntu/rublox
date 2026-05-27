@@ -2272,11 +2272,11 @@ export class MapGenerator {
         this.reportProgress(0.82, 'Частицы');
         await this.buildTraps();
         console.log('[MapGen] traps done');
-        this.buildFogZones();
+        await this.buildFogZones();
         console.log('[MapGen] fog zones done');
-        this.buildRadiationZones();
+        await this.buildRadiationZones();
         console.log('[MapGen] radiation zones done');
-        this.buildLootData();
+        await this.buildLootData();
         console.log('[MapGen] loot data done');
         this.reportProgress(0.90, 'Лут и ловушки');
 
