@@ -521,6 +521,8 @@ export class MapGenerator {
         await _yield();
         console.log('[MapGen] buildInnerRing yield3');
     }
+
+    _buildChest(x, y, z, tier) {
         const chestGroup = new THREE.Group();
         chestGroup.position.set(x, y, z);
 
