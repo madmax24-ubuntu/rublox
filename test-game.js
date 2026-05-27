@@ -20,14 +20,24 @@ const { chromium } = require('playwright');
     
     // Wait for page to be interactive
     await page.waitForTimeout(2000);
-    
+
     // Click the start button
     await page.click('button.start-btn');
     console.log('Clicked start button');
-    
-    // Wait for map generation
-    await page.waitForTimeout(3000);
-    console.log('After 3s - logs:', logs.length);
+
+    // Wait for map generation (up to 60s)
+    const mapReady = await page.evaluate(() => {
+        return new Promise((resolve) => {
+            const start = Date.now();
+            const check = () => {
+                if (window.mapReady === true) { resolve(true); return; }
+                if (Date.now() - start > 60000) { resolve(false); return; }
+                setTimeout(check, 500);
+            };
+            check();
+        });
+    });
+    console.log('Map ready:', mapReady);
     
     // Check for errors
     if (error) {
