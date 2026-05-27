@@ -871,6 +871,17 @@
             testModeEnabled = true;
         }
     </script>
+    <script>
+        // Console log capture — stores all console output for Playwright testing
+        window._consoleLogs = [];
+        const _origLog = console.log;
+        const _origWarn = console.warn;
+        const _origError = console.error;
+        console.log = function(...args) { _origLog.apply(console, args); window._consoleLogs.push({t: Date.now(), type: 'log', msg: args.map(a => String(a)).join(' ')}); };
+        console.warn = function(...args) { _origWarn.apply(console, args); window._consoleLogs.push({t: Date.now(), type: 'warn', msg: args.map(a => String(a)).join(' ')}); };
+        console.error = function(...args) { _origError.apply(console, args); window._consoleLogs.push({t: Date.now(), type: 'error', msg: args.map(a => String(a)).join(' ')}); };
+        window.getConsoleLogs = function(count) { return window._consoleLogs.slice(-count || -9999); };
+    </script>
     <script type="module" src="./main.js"></script>
 </body>
 </html>
