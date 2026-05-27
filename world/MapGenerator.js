@@ -2104,7 +2104,7 @@ export class MapGenerator {
     }
 
     // ===================== LOOT DATA =====================
-    buildLootData() {
+    async buildLootData() {
         // Cornucopia chest (tier 5)
         this.lootData.push({
             type: 'chest',
