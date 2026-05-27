@@ -540,7 +540,6 @@ class Game {
         this.zombieSpawnCursor = 0;
         this.poiSpawnCandidates = [];
         this.poiSpawnCursor = 0;
-        console.log('[Game] EntityManager created');
         console.log('[Game] spawning bots...');
         this.spawnBots();
         console.log('[Game] bots spawned');
