@@ -34,6 +34,8 @@ function test(name, fn) {
         console.log(`  ❌ ${name}: ${e.message}`);
         failed++;
     }
+    // Return result so callers can await if needed
+    return result;
 }
 
 // ========== TEST 1: Module Loading ==========
