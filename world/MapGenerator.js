@@ -1810,8 +1810,9 @@ export class MapGenerator {
                 light: fireLight,
                 baseOpacity: 0.8,
                 baseLightIntensity: 0.6
-            });
+          });
         }
+        await _yield();
     }
 
     // ===================== PARTICLES =====================
