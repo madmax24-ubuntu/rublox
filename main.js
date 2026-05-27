@@ -667,6 +667,7 @@ class Game {
                 }
             }
         });
+        console.log('[Game] initializeGame() COMPLETE');
     }
 
     applyPerk(perk) {
