@@ -177,6 +177,7 @@ export class MapGenerator {
 
     // ===================== ZONE 0: ARENA FLOOR (Standard Materials) =====================
     async buildArenaFloor() {
+        console.log('[MapGen] buildArenaFloor() starting');
         const halfSize = this.arenaRadius;
 
         // Main terrain ground
