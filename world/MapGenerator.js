@@ -126,7 +126,9 @@ function getMat(color, opts = {}) {
 // ============ MAP GENERATOR ============
 export class MapGenerator {
     constructor(scene) {
+        console.log('[MapGen] constructor starting...');
         this.scene = scene;
+        console.log('[MapGen] scene stored');
         this.arenaRadius = 220;
         this.spawnCourtyardRadius = 40;
         this.halfSize = this.arenaRadius;
