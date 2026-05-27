@@ -310,7 +310,7 @@ export class MapGenerator {
     }
 
     // ===================== FORCEFIELD =====================
-    async buildForcefield() {
+    buildForcefield() {
         const ffMat = new THREE.MeshBasicMaterial({
             color: COLOR.forcefield,
             transparent: true,
