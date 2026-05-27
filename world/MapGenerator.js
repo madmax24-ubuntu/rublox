@@ -1524,7 +1524,7 @@ export class MapGenerator {
     }
 
     // ===================== BRIDGES =====================
-    buildBridges() {
+    async buildBridges() {
         const bridgeMat = new THREE.MeshStandardMaterial({
             color: COLOR.bridgeWood, roughness: 0.85
         });
