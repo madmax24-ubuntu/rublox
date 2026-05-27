@@ -161,8 +161,7 @@ export class MapGenerator {
         this.onProgress?.(ratio, status);
     }
 
-  
-   startGeneration() {
+    startGeneration() {
         return this.generate();
     }
 
