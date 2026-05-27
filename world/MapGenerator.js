@@ -2244,7 +2244,7 @@ export class MapGenerator {
             }
         });
 
-        this.reportProgress(0.95, 'Мир готов');
+         this.reportProgress(0.95, 'Мир готов');
         this._resolveReady();
     }
 
