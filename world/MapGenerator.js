@@ -1916,7 +1916,7 @@ export class MapGenerator {
     }
 
     // ===================== TRAPS =====================
-    buildTraps() {
+    async buildTraps() {
         for (let i = 0; i < 20; i++) {
             const angle = Math.random() * Math.PI * 2;
             const r = 30 + Math.random() * 150;
