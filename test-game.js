@@ -24,24 +24,33 @@ import { chromium } from 'playwright';
     try { await page.click('button.start-btn'); } catch(e) { console.log('Start button click failed:', e.message); }
     console.log('Clicked start button');
 
-    // Wait for loading overlay to disappear (up to 90s)
+    // Wait for loading overlay to disappear (up to 120s)
     const start = Date.now();
     let overlayGone = false;
-    while (Date.now() - start < 90000 && !overlayGone) {
-        const overlayDisplay = await page.evaluate(() => {
+    while (Date.now() - start < 120000 && !overlayGone) {
+        const overlayInfo = await page.evaluate(() => {
             const overlay = document.getElementById('loadingOverlay');
-            if (!overlay) return 'no-overlay';
-            return overlay.style.display || 'inline';
-        }).catch(() => 'error');
-        if (overlayDisplay === 'none') {
+            if (!overlay) return { exists: false, display: 'no-overlay' };
+            const computed = window.getComputedStyle(overlay).display;
+            return { exists: true, display: overlay.style.display, computed, opacity: window.getComputedStyle(overlay).opacity };
+        }).catch(() => ({ exists: true, display: 'error', computed: 'error' }));
+
+        if (overlayInfo.display === 'none' || overlayInfo.computed === 'none') {
             overlayGone = true;
             console.log('Overlay hidden');
-        } else if (Date.now() - start % 10000 < 1000) {
-            console.log('Overlay still visible, display:', overlayDisplay);
+        } else {
+            const elapsed = Math.round((Date.now() - start) / 1000);
+            if (elapsed % 15 === 0 && elapsed > 1) {
+                console.log(`Overlay still visible (${elapsed}s): ${JSON.stringify(overlayInfo)}`);
+            }
         }
         await page.waitForTimeout(500);
     }
-    console.log('Overlay gone:', overlayGone, 'display:', overlayDisplay);
+    console.log('Overlay check done: gone=', overlayGone);
+
+    // Wait for game to finish starting (startGame resolves when game loop starts)
+    // The overlay hide happens inside startGame, so if overlay is hidden, game started
+    await page.waitForTimeout(3000);
 
     // Check final state
     try {
@@ -52,7 +61,8 @@ import { chromium } from 'playwright';
                 isStarted: window.game.isStarted,
                 gameState: window.game.gameState,
                 hasMap: !!window.game.map,
-                hasPlayer: !!window.game.player
+                hasPlayer: !!window.game.player,
+                hasBots: Array.isArray(window.game.bots) ? window.game.bots.length : 'none',
             };
         });
         console.log('Game state:', JSON.stringify(gameState));
@@ -60,7 +70,16 @@ import { chromium } from 'playwright';
         console.log('Could not get game state:', e.message);
     }
 
+    // Take a screenshot for visual check
+    try {
+        await page.screenshot({ path: './test-screenshot.png' });
+        console.log('Screenshot saved to test-screenshot.png');
+    } catch(e) {
+        console.log('Screenshot failed:', e.message);
+    }
+
     console.log('\n=== TOTAL LOGS:', logs.length, '===');
+    console.log('Error:', error ? 'YES - ' + error : 'NONE');
 
     await browser.close();
     process.exit(error ? 1 : 0);
