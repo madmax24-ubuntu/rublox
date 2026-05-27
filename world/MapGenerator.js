@@ -2235,14 +2235,21 @@ export class MapGenerator {
         this.buildLootData();
         this.reportProgress(0.90, 'Лут и ловушки');
 
+        console.log('[MapGen] setting up animations...');
         this.setupAnimations();
+        console.log('[MapGen] traversing scene...');
 
-        this.scene.traverse(obj => {
-            if (obj.isMesh || obj.isGroup || obj.isInstancedMesh) {
-                obj.userData.mapGenerated = true;
-                obj.frustumCulled = false;
-            }
-        });
+        if (this.scene.traverse) {
+            this.scene.traverse(obj => {
+                if (obj.isMesh || obj.isGroup || obj.isInstancedMesh) {
+                    obj.userData.mapGenerated = true;
+                    obj.frustumCulled = false;
+                }
+            });
+            console.log('[MapGen] traverse done');
+        } else {
+            console.log('[MapGen] no traverse method');
+        }
 
          console.log('[MapGen] about to resolve ready...');
         this.reportProgress(0.95, 'Мир готов');
