@@ -2315,11 +2315,9 @@ export class MapGenerator {
 
         // Defer heavy scene traversal to next frame
         console.log('[MapGen] scheduling deferred setup...');
-        setTimeout(async () => {
+        setTimeout(() => {
             try {
                 console.log('[MapGen] deferred setup starting...');
-                // Yield before heavy setup to let browser process pending work
-                await new Promise(r => setTimeout(r, 100));
                 this.setupAnimations();
 
                 // Chunk the scene traversal to avoid blocking
