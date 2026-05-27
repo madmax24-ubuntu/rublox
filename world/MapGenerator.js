@@ -2219,15 +2219,17 @@ export class MapGenerator {
         await this.buildCrystalGrotto();
         console.log('[MapGen] crystal grotto done');
         this.reportProgress(0.52, 'Хрустальная гротовка');
-        await this.yieldFrame();
+        await new Promise(r => setTimeout(r, 50));
 
         await this.buildBurningWastes();
+        console.log('[MapGen] wastes done');
         this.reportProgress(0.58, 'Пылающие пустоши');
-        await this.yieldFrame();
+        await new Promise(r => setTimeout(r, 50));
 
         await this.buildLuminousForest();
+        console.log('[MapGen] forest done');
         this.reportProgress(0.65, 'Светящийся лес');
-        await this.yieldFrame();
+        await new Promise(r => setTimeout(r, 50));
 
         this.reportProgress(0.68, 'Мосты и форпосты...');
         this.buildBridges();
@@ -2236,7 +2238,7 @@ export class MapGenerator {
         this.buildLootClusters();
         this.buildFirePits();
         this.reportProgress(0.75, 'Объекты размещены');
-        await this.yieldFrame();
+        await new Promise(r => setTimeout(r, 50));
 
         this.buildParticleSystems();
         this.reportProgress(0.82, 'Частицы');
@@ -2245,7 +2247,7 @@ export class MapGenerator {
         this.buildRadiationZones();
         this.buildLootData();
         this.reportProgress(0.90, 'Лут и ловушки');
-        await this.yieldFrame();
+        await new Promise(r => setTimeout(r, 50));
 
         this.setupAnimations();
 
