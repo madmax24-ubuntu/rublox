@@ -467,7 +467,6 @@ class Game {
         console.log('[Game] creating Zone...');
         this.zone = new Zone(this.scene, this.map.size);
         console.log('[Game] Zone created');
-        this.zone = new Zone(this.scene, this.map.size);
         this.zoneDuration = GAME_CONFIG.zone.durationSeconds;
         this.zoneMinRadius = Math.max(
             GAME_CONFIG.zone.minRadiusAbsolute,
