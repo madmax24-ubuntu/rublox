@@ -14,43 +14,42 @@ import { chromium } from 'playwright';
     await page.goto('http://127.0.0.1:3001/', { waitUntil: 'load', timeout: 30000 });
 
     // Click the start button
-    console.log('Looking for start button...');
+    console.log('Clicking start button...');
     const startBtn = await page.$('.start-btn, #startBtn, button');
-    if (startBtn) {
-        console.log('Clicking start button...');
-        await startBtn.click();
+    if (startBtn) await startBtn.click();
+
+    // Poll for logs more frequently
+    for (let i = 0; i < 60; i++) {
+        try {
+            await page.waitForTimeout(1000);
+            const logs = await page.evaluate(() => window.getConsoleLogs?.(500) || []);
+            const logMsgs = logs.map(l => l.msg || String(l));
+
+            const mapReady = logMsgs.some(l => l.includes('ready resolved'));
+            if (mapReady) {
+                console.log(`\nSUCCESS: MapGen ready after ${i}s!`);
+                console.log(`Total logs: ${logMsgs.length}`);
+                console.log('\n--- Last 40 logs ---');
+                console.log(logMsgs.slice(-40).join('\n'));
+                await browser.close();
+                process.exit(0);
+            }
+            if (i % 10 === 0) {
+                console.log(`[${i}s] ${logMsgs.length} logs, last: ${logMsgs.slice(-3).join(' | ')}`);
+            }
+            if (globalError) {
+                console.log(`FATAL: ${globalError}`);
+                await browser.close();
+                process.exit(1);
+            }
+        } catch (e) {
+            console.log(`Poll error at ${i}s: ${e.message}`);
+            // Try to re-navigate
+            try {
+                await page.reload();
+            } catch {}
+        }
     }
-
-    // Wait for async operations
-    for (let i = 0; i < 45; i++) {
-        await page.waitForTimeout(1000);
-        const logs = await page.evaluate(() => window.getConsoleLogs?.(500) || []);
-        const logMsgs = logs.map(l => l.msg || String(l));
-
-        const mapReady = logMsgs.some(l => l.includes('ready resolved'));
-        if (mapReady) {
-            console.log(`\nMapGen ready after ${i}s! Logs: ${logMsgs.length}`);
-            console.log('\n--- Last 40 logs ---');
-            console.log(logMsgs.slice(-40).join('\n'));
-            await browser.close();
-            process.exit(0);
-        }
-        if (i === 0) {
-            console.log(`After 1s - ${logMsgs.length} logs:`);
-            console.log(logMsgs.slice(-5).join('\n'));
-        }
-        if (globalError) {
-            console.log(`FATAL ERROR: ${globalError}`);
-            await browser.close();
-            process.exit(1);
-        }
-    }
-
-    const logs = await page.evaluate(() => window.getConsoleLogs?.(500) || []);
-    const logMsgs = logs.map(l => l.msg || String(l));
-    console.log(`\nTimeout after 45s - ${logMsgs.length} logs:`);
-    console.log('\n--- All logs ---');
-    console.log(logMsgs.join('\n'));
 
     await browser.close();
     process.exit(1);
