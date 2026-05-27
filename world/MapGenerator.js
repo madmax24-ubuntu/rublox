@@ -2178,7 +2178,7 @@ export class MapGenerator {
     }
 
     // ===================== GENERATION ORCHESTRATOR =====================
-    generate() {
+    async generate() {
         try {
             console.log('[MapGen] generate() starting');
             this.generateHeightMap();
@@ -2192,6 +2192,8 @@ export class MapGenerator {
         console.log('[MapGen] forcefield done');
         this.reportProgress(0.18, 'Арена построена');
 
+        await _yield();
+
         this.buildCornucopia();
         console.log('[MapGen] cornucopia done');
         this.reportProgress(0.25, 'Корнукопия');
@@ -2203,6 +2205,8 @@ export class MapGenerator {
         this.buildBiomePaths();
         console.log('[MapGen] biome paths done');
         this.reportProgress(0.38, 'Пути биомов');
+
+        await _yield();
 
         this.buildRuinedCitadel();
         console.log('[MapGen] citadel done');
@@ -2219,6 +2223,8 @@ export class MapGenerator {
         this.buildLuminousForest();
         console.log('[MapGen] forest done');
         this.reportProgress(0.65, 'Светящийся лес');
+
+        await _yield();
 
         this.reportProgress(0.68, 'Мосты и форпосты...');
         this.buildBridges();
@@ -2246,9 +2252,9 @@ export class MapGenerator {
         console.log('[MapGen] loot data done');
         this.reportProgress(0.90, 'Лут и ловушки');
 
-        console.log('[MapGen] deferring scene setup to next frame...');
+        await _yield();
 
-        // Defer heavy scene traversal to avoid hanging the main thread
+        // Defer heavy scene traversal to next frame
         setTimeout(() => {
             try {
                 console.log('[MapGen] deferred setup starting...');
