@@ -1998,6 +1998,7 @@ export class MapGenerator {
             });
         }
     }
+    await _yield();
 
     // ===================== FOG ZONES =====================
     async buildFogZones() {
