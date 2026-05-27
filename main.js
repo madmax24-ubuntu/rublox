@@ -441,8 +441,9 @@ class Game {
         // Performance: setup LOD and frustum culling
         console.log('[Game] setupLOD:', this.map.setupLOD?.toString().substring(0, 20));
         this.map.setupLOD?.(this.isMobile());
+        console.log('[Game] after setupLOD');
         this.map.enableOptimizedCulling?.();
-        console.log('[Game] after setupLOD/enhancedCulling');
+        console.log('[Game] after enhancedCulling');
         
         // Камера для тестирования карты (вид сверху)
         if (this.camera) {
