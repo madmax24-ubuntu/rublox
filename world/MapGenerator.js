@@ -2202,27 +2202,22 @@ export class MapGenerator {
         this.buildBiomePaths();
         console.log('[MapGen] biome paths done');
         this.reportProgress(0.38, 'Пути биомов');
-        await new Promise(r => setTimeout(r, 50));
 
-        await this.buildRuinedCitadel();
+        this.buildRuinedCitadel();
         console.log('[MapGen] citadel done');
         this.reportProgress(0.45, 'Руины Цитадели');
-        await new Promise(r => setTimeout(r, 50));
 
-        await this.buildCrystalGrotto();
+        this.buildCrystalGrotto();
         console.log('[MapGen] crystal grotto done');
         this.reportProgress(0.52, 'Хрустальная гротовка');
-        await new Promise(r => setTimeout(r, 50));
 
-        await this.buildBurningWastes();
+        this.buildBurningWastes();
         console.log('[MapGen] wastes done');
         this.reportProgress(0.58, 'Пылающие пустоши');
-        await new Promise(r => setTimeout(r, 50));
 
-        await this.buildLuminousForest();
+        this.buildLuminousForest();
         console.log('[MapGen] forest done');
         this.reportProgress(0.65, 'Светящийся лес');
-        await new Promise(r => setTimeout(r, 50));
 
         this.reportProgress(0.68, 'Мосты и форпосты...');
         this.buildBridges();
@@ -2231,7 +2226,6 @@ export class MapGenerator {
         this.buildLootClusters();
         this.buildFirePits();
         this.reportProgress(0.75, 'Объекты размещены');
-        await new Promise(r => setTimeout(r, 50));
 
         this.buildParticleSystems();
         this.reportProgress(0.82, 'Частицы');
@@ -2240,7 +2234,6 @@ export class MapGenerator {
         this.buildRadiationZones();
         this.buildLootData();
         this.reportProgress(0.90, 'Лут и ловушки');
-        await new Promise(r => setTimeout(r, 50));
 
         this.setupAnimations();
 
