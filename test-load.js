@@ -4,70 +4,51 @@ import { chromium } from 'playwright';
     const browser = await chromium.launch({ headless: true });
     const page = await browser.newPage();
 
-    let globalError = null;
-    let crashDetected = false;
-    page.on('pageerror', error => {
-        globalError = error.message;
-        console.log(`PAGE ERROR: ${error.message}`);
-    });
-    page.on('close', () => {
-        crashDetected = true;
-        console.log('PAGE CLOSED');
+    page.on('pageerror', error => console.log(`PAGE ERROR: ${error.message}`));
+    page.on('console', msg => {
+        if (msg.type() === 'error') console.log(`CONSOLE ERROR: ${msg.text()}`);
     });
 
     console.log('Loading game...');
     await page.goto('http://127.0.0.1:3001/', { waitUntil: 'load', timeout: 30000 });
 
-    console.log('Clicking start button...');
+    console.log('Clicking start...');
     const startBtn = await page.$('.start-btn, #startBtn, button');
     if (startBtn) await startBtn.click();
 
-    // Quick poll every 500ms
-    const startTime = Date.now();
-    while (Date.now() - startTime < 55000) {
-        if (crashDetected) {
-            console.log('Page crashed!');
-            break;
-        }
-        if (globalError) {
-            console.log(`FATAL: ${globalError}`);
-            break;
-        }
+    // Quick check at 2s
+    await page.waitForTimeout(2000);
+    const logs = await page.evaluate(() => window.getConsoleLogs?.(100) || []);
+    const logMsgs = logs.map(l => l.msg || String(l));
+    console.log(`\n[2s] ${logMsgs.length} logs:`);
+    console.log('Last 10:', logMsgs.slice(-10).join('\n'));
 
+    const mapReady = logMsgs.some(l => l.includes('ready resolved'));
+    if (mapReady) {
+        console.log('SUCCESS: MapGen ready!');
+        await browser.close();
+        process.exit(0);
+    }
+
+    // Continue polling
+    for (let i = 0; i < 55; i++) {
+        await page.waitForTimeout(1000);
         try {
-            const logs = await page.evaluate(() => window.getConsoleLogs?.(500) || []);
-            const logMsgs = logs.map(l => l.msg || String(l));
-            const mapReady = logMsgs.some(l => l.includes('ready resolved'));
-            const elapsed = Math.floor((Date.now() - startTime) / 1000);
-
-            if (mapReady) {
-                console.log(`\nSUCCESS: MapGen ready after ${elapsed}s!`);
-                console.log(`Total logs: ${logMsgs.length}`);
-                console.log('\n--- Last 40 logs ---');
-                console.log(logMsgs.slice(-40).join('\n'));
+            const logs2 = await page.evaluate(() => window.getConsoleLogs?.(100) || []);
+            const logMsgs2 = logs2.map(l => l.msg || String(l));
+            const mapReady2 = logMsgs2.some(l => l.includes('ready resolved'));
+            if (mapReady2) {
+                console.log(`\nSUCCESS: MapGen ready after ${i+2}s!`);
+                console.log('Last 40 logs:');
+                console.log(logMsgs2.slice(-40).join('\n'));
                 await browser.close();
                 process.exit(0);
             }
-
-            if (elapsed % 5 === 0) {
-                console.log(`[${elapsed}s] ${logMsgs.length} logs`);
-            }
-            await page.waitForTimeout(500);
+            console.log(`[${i+2}s] ${logMsgs2.length} logs`);
         } catch (e) {
-            if (e.message.includes('closed')) {
-                crashDetected = true;
-                break;
-            }
-            await page.waitForTimeout(500);
+            console.log(`Poll error at ${i+2}s: ${e.message}`);
+            break;
         }
-    }
-
-    if (!crashDetected && !globalError) {
-        try {
-            const logs = await page.evaluate(() => window.getConsoleLogs?.(500) || []);
-            const logMsgs = logs.map(l => l.msg || String(l));
-            console.log(`\nTimeout - ${logMsgs.length} logs, last: ${logMsgs.slice(-5).join(' | ')}`);
-        } catch {}
     }
 
     await browser.close();
