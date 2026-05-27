@@ -644,6 +644,7 @@ export class MapGenerator {
                 walkable: false
             });
         }
+        await _yield();
     }
 
     _buildStoneOutpost(x, z, angle) {
