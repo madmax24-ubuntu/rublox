@@ -1570,8 +1570,9 @@ export class MapGenerator {
                     this.scene.add(rail);
               }
             }
+            await _yield();
         }
-        await _yield();
+        await new Promise(r => setTimeout(r, 100));
     }
 
     // ===================== OUTER OUTPOSTS =====================
