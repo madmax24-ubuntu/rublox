@@ -1580,7 +1580,7 @@ export class MapGenerator {
             }
             await new Promise(r => setTimeout(r, 50));
         }
-        await new Promise(r => setTimeout(r, 200));
+        await new Promise(r => setTimeout(r, 100));
     }
 
     // ===================== OUTER OUTPOSTS =====================
