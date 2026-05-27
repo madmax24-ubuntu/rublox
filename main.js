@@ -437,7 +437,7 @@ class Game {
         const mapReady = this.map.ready;
         const timeoutId = setTimeout(() => {
             console.log('[Game] map ready TIMED OUT after 30s');
-        }, 30000);
+        }, 90000);
         await mapReady;
         clearTimeout(timeoutId);
         console.log('[Game] map ready!');
