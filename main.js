@@ -2549,11 +2549,7 @@ class Game {
             const hudEl = document.getElementById('hud');
             if (hudEl) hudEl.style.display = 'none';
 
-            await new Promise(r => {
-                const id = requestAnimationFrame(r);
-                if (id) return;
-                setTimeout(r, 100);
-            });
+            await new Promise(r => setTimeout(r, 100));
 
             // Wait for full map generation BEFORE entering fullscreen
             if (this.map?.ready?.then) {
