@@ -2222,18 +2222,28 @@ export class MapGenerator {
 
         this.reportProgress(0.68, 'Мосты и форпосты...');
         this.buildBridges();
+        console.log('[MapGen] bridges done');
         this.buildOuterOutposts();
+        console.log('[MapGen] outer outposts done');
         this.buildHazardZones();
+        console.log('[MapGen] hazard zones done');
         this.buildLootClusters();
+        console.log('[MapGen] loot clusters done');
         this.buildFirePits();
+        console.log('[MapGen] fire pits done');
         this.reportProgress(0.75, 'Объекты размещены');
 
         this.buildParticleSystems();
+        console.log('[MapGen] particle systems done');
         this.reportProgress(0.82, 'Частицы');
         this.buildTraps();
+        console.log('[MapGen] traps done');
         this.buildFogZones();
+        console.log('[MapGen] fog zones done');
         this.buildRadiationZones();
+        console.log('[MapGen] radiation zones done');
         this.buildLootData();
+        console.log('[MapGen] loot data done');
         this.reportProgress(0.90, 'Лут и ловушки');
 
         console.log('[MapGen] deferring scene setup to next frame...');
