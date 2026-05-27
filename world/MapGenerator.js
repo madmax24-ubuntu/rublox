@@ -2338,7 +2338,7 @@ export class MapGenerator {
                         obj.frustumCulled = false;
                     }
                     idx = end;
-                    console.log('[MapGen] processChunk done, idx=', idx);
+                   console.log('[MapGen] processChunk done, idx=', idx);
                     if (idx < objects.length) {
                         setTimeout(processChunk, 1000);
                     } else {
@@ -2347,8 +2347,9 @@ export class MapGenerator {
                         console.log('[MapGen] ready resolved!');
                     }
                 };
-                console.log('[MapGen] scheduled processChunk, idx=', idx);
+                console.log('[MapGen] about to schedule processChunk, idx=', idx);
                 setTimeout(processChunk, 1000);
+                console.log('[MapGen] processChunk scheduled');
             } catch (e) {
                 console.error('[MapGen] ERROR in deferred setup:', e.message, e.stack);
                 this._resolveReady();
