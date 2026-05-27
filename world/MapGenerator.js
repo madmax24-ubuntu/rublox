@@ -841,7 +841,7 @@ export class MapGenerator {
     }
 
     // ===================== RUINED CITADEL (NW) =====================
-    buildRuinedCitadel() {
+    async buildRuinedCitadel() {
         const cx = -80, cz = 80;
 
         // Floor
