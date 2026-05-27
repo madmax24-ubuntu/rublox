@@ -3012,10 +3012,10 @@ window.addEventListener('DOMContentLoaded', () => {
                 loadingOverlay.style.display = 'flex';
                 setLoadingProgress(0.05);
             }
-            try {
+         try {
                 game.audioSynth?.unlock?.().catch(() => { });
                 await game.startGame();
-                hideLoadingOverlay();
+                if (loadingOverlay) loadingOverlay.style.display = 'none';
             } catch (err) {
                 console.error('Start failed:', err);
             }
