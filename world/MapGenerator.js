@@ -838,10 +838,12 @@ export class MapGenerator {
                 });
 
                 const lanternLight = new THREE.PointLight(0xffcc66, 0.3, 8);
-                lanternLight.position.set(lx, 3.5, lz);
+               lanternLight.position.set(lx, 3.5, lz);
                 this.scene.add(lanternLight);
             }
+            await _yield();
         }
+        await _yield();
     }
 
     // ===================== RUINED CITADEL (NW) =====================
