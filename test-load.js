@@ -11,21 +11,22 @@ import { chromium } from 'playwright';
     });
 
     console.log('Loading game...');
-    const start = Date.now();
-    await page.goto('http://127.0.0.1:3001/', { waitUntil: 'load', timeout: 60000 });
+    await page.goto('http://127.0.0.1:3001/', { waitUntil: 'load', timeout: 30000 });
 
-    // Check for errors
-    if (globalError) {
-        console.log(`FATAL: ${globalError}`);
-        await browser.close();
-        process.exit(1);
+    // Click the start button
+    console.log('Looking for start button...');
+    const startBtn = await page.$('.start-btn, #startBtn, button');
+    if (startBtn) {
+        console.log('Clicking start button...');
+        await startBtn.click();
     }
 
     // Wait for async operations
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 45; i++) {
         await page.waitForTimeout(1000);
         const logs = await page.evaluate(() => window.getConsoleLogs?.(500) || []);
         const logMsgs = logs.map(l => l.msg || String(l));
+
         const mapReady = logMsgs.some(l => l.includes('ready resolved'));
         if (mapReady) {
             console.log(`\nMapGen ready after ${i}s! Logs: ${logMsgs.length}`);
@@ -35,22 +36,19 @@ import { chromium } from 'playwright';
             process.exit(0);
         }
         if (i === 0) {
-            console.log(`\nAfter 1s - ${logMsgs.length} logs:`);
-            console.log(logMsgs.join('\n'));
+            console.log(`After 1s - ${logMsgs.length} logs:`);
+            console.log(logMsgs.slice(-5).join('\n'));
         }
-        if (i === 10 && logMsgs.length <= 3) {
-            // Check what's on the page
-            const title = await page.title();
-            const bodyContent = await page.evaluate(() => document.querySelector('.loading-status')?.textContent || '');
-            console.log(`\nAfter 10s - title: ${title}`);
-            console.log(`Loading status: ${bodyContent}`);
+        if (globalError) {
+            console.log(`FATAL ERROR: ${globalError}`);
+            await browser.close();
+            process.exit(1);
         }
     }
 
-    // Timeout
     const logs = await page.evaluate(() => window.getConsoleLogs?.(500) || []);
     const logMsgs = logs.map(l => l.msg || String(l));
-    console.log(`\nTimeout after 40s - ${logMsgs.length} logs:`);
+    console.log(`\nTimeout after 45s - ${logMsgs.length} logs:`);
     console.log('\n--- All logs ---');
     console.log(logMsgs.join('\n'));
 
