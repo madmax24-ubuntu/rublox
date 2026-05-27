@@ -2314,6 +2314,8 @@ export class MapGenerator {
         setTimeout(async () => {
             try {
                 console.log('[MapGen] deferred setup starting...');
+                // Yield before heavy setup to let browser process pending work
+                await new Promise(r => setTimeout(r, 100));
                 this.setupAnimations();
 
                 // Chunk the scene traversal to avoid blocking
@@ -2324,6 +2326,7 @@ export class MapGenerator {
                             objects.push(obj);
                         }
                     });
+                    console.log('[MapGen] collected', objects.length, 'objects');
                 }
 
                 // Process in chunks of 200
