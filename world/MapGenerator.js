@@ -2309,7 +2309,7 @@ export class MapGenerator {
         this.reportProgress(0.90, 'Лут и ловушки');
         await new Promise(r => setTimeout(r, 1000));
 
-        // Defer heavy scene traversal to next frame
+       // Defer heavy scene traversal to next frame
         console.log('[MapGen] scheduling deferred setup...');
         setTimeout(() => {
             try {
@@ -2327,34 +2327,21 @@ export class MapGenerator {
                     console.log('[MapGen] collected', objects.length, 'objects');
                 }
 
-                // Process in chunks of 200, using recursive setTimeout for yielding
-                let idx = 0;
-                const processChunk = () => {
-                    console.log('[MapGen] processChunk starting, idx=', idx);
-                    const end = Math.min(idx + 200, objects.length);
-                    for (let j = idx; j < end; j++) {
-                        const obj = objects[j];
-                        obj.userData.mapGenerated = true;
-                        obj.frustumCulled = false;
-                    }
-                    idx = end;
-                   console.log('[MapGen] processChunk done, idx=', idx);
-                    if (idx < objects.length) {
-                        setTimeout(processChunk, 1000);
-                    } else {
-                        this.reportProgress(0.95, 'Мир готов');
-                        this._resolveReady();
-                        console.log('[MapGen] ready resolved!');
-                    }
-                };
-                console.log('[MapGen] about to schedule processChunk, idx=', idx);
-                setTimeout(processChunk, 1000);
-                console.log('[MapGen] processChunk scheduled');
+                // Process all chunks synchronously (fast operation)
+                for (let i = 0; i < objects.length; i++) {
+                    const obj = objects[i];
+                    obj.userData.mapGenerated = true;
+                    obj.frustumCulled = false;
+                }
+                console.log('[MapGen] processed all', objects.length, 'objects synchronously');
+                this.reportProgress(0.95, 'Мир готов');
+                this._resolveReady();
+                console.log('[MapGen] ready resolved!');
             } catch (e) {
                 console.error('[MapGen] ERROR in deferred setup:', e.message, e.stack);
                 this._resolveReady();
             }
-        }, 10);
+        }, 100);
     } catch (e) {
         console.error('[MapGen] ERROR in generate:', e.message, e.stack);
         this._resolveReady();
