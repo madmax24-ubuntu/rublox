@@ -294,14 +294,12 @@ test('Three.js scene creation', () => {
 
 test('Three.js renderer creation', () => {
     try {
-        const canvas = document?.createElement?.('canvas');
-        if (canvas) {
-            const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-            renderer.setSize(800, 600);
-            renderer.shadowMap.enabled = true;
-            return renderer.domElement ? 'Renderer created' : 'No canvas element';
-        }
-        return 'Canvas not available in Node.js';
+        const { createCanvas } = require('canvas');
+        const canvas = createCanvas(800, 600);
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer.setSize(800, 600);
+        renderer.shadowMap.enabled = true;
+        return renderer.domElement ? 'Renderer created' : 'No canvas element';
     } catch (e) {
         return `Renderer error: ${e.message}`;
     }
