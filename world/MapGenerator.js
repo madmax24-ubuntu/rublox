@@ -2002,7 +2002,8 @@ export class MapGenerator {
                 triggered: false,
                 triggerTime: 0
             });
-            await _yield();
+            console.log('[MapGen] bear trap done, yielding 500ms...');
+            await new Promise(r => setTimeout(r, 500));
         }
         await _yield();
     }
