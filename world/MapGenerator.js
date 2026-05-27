@@ -160,7 +160,7 @@ export class MapGenerator {
     }
 
     yieldFrame() {
-        return new Promise(resolve => setTimeout(resolve, 0));
+        return new Promise(resolve => setTimeout(resolve, 50));
     }
 
    startGeneration() {
