@@ -2186,37 +2186,37 @@ export class MapGenerator {
         this.reportProgress(0.05, 'Создание ландшафта...');
         await new Promise(r => setTimeout(r, 50));
 
-        this.buildArenaFloor();
+        await this.buildArenaFloor();
         console.log('[MapGen] arena floor done');
         this.reportProgress(0.12, 'Ландшафт готов');
         await new Promise(r => setTimeout(r, 50));
 
-        this.buildForcefield();
+        await this.buildForcefield();
         console.log('[MapGen] forcefield done');
         this.reportProgress(0.18, 'Арена построена');
         await new Promise(r => setTimeout(r, 50));
 
-        this.buildCornucopia();
+        await this.buildCornucopia();
         console.log('[MapGen] cornucopia done');
         this.reportProgress(0.25, 'Корнукопия');
         await new Promise(r => setTimeout(r, 50));
 
-        this.buildInnerRing();
+        await this.buildInnerRing();
         console.log('[MapGen] inner ring done');
         this.reportProgress(0.32, 'Внутреннее кольцо');
         await new Promise(r => setTimeout(r, 50));
 
-        this.buildBiomePaths();
+        await this.buildBiomePaths();
         console.log('[MapGen] biome paths done');
         this.reportProgress(0.38, 'Пути биомов');
         await new Promise(r => setTimeout(r, 50));
 
-        this.buildRuinedCitadel();
+        await this.buildRuinedCitadel();
         console.log('[MapGen] citadel done');
         this.reportProgress(0.45, 'Руины Цитадели');
         await new Promise(r => setTimeout(r, 50));
 
-        this.buildCrystalGrotto();
+        await this.buildCrystalGrotto();
         console.log('[MapGen] crystal grotto done');
         this.reportProgress(0.52, 'Хрустальная гротовка');
         await this.yieldFrame();
