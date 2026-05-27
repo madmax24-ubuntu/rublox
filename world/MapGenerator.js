@@ -799,6 +799,7 @@ export class MapGenerator {
                 tile.userData.isPath = true;
                 tile.userData.isMapObject = true;
                 this.scene.add(tile);
+                if (t % 5 === 0) await _yield();
             }
 
             // Lantern posts
