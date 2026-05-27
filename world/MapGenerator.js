@@ -2178,33 +2178,28 @@ export class MapGenerator {
     }
 
     // ===================== GENERATION ORCHESTRATOR =====================
-    async generate() {
+    generate() {
         console.log('[MapGen] generate() starting');
         this.generateHeightMap();
         this.reportProgress(0.05, 'Создание ландшафта...');
-        await new Promise(r => setTimeout(r, 50));
 
-        await this.buildArenaFloor();
+        this.buildArenaFloor();
         console.log('[MapGen] arena floor done');
         this.reportProgress(0.12, 'Ландшафт готов');
-        await new Promise(r => setTimeout(r, 50));
 
-        await this.buildForcefield();
+        this.buildForcefield();
         console.log('[MapGen] forcefield done');
         this.reportProgress(0.18, 'Арена построена');
-        await new Promise(r => setTimeout(r, 50));
 
-        await this.buildCornucopia();
+        this.buildCornucopia();
         console.log('[MapGen] cornucopia done');
         this.reportProgress(0.25, 'Корнукопия');
-        await new Promise(r => setTimeout(r, 50));
 
-        await this.buildInnerRing();
+        this.buildInnerRing();
         console.log('[MapGen] inner ring done');
         this.reportProgress(0.32, 'Внутреннее кольцо');
-        await new Promise(r => setTimeout(r, 50));
 
-        await this.buildBiomePaths();
+        this.buildBiomePaths();
         console.log('[MapGen] biome paths done');
         this.reportProgress(0.38, 'Пути биомов');
         await new Promise(r => setTimeout(r, 50));
