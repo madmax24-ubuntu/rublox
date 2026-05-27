@@ -1978,8 +1978,8 @@ export class MapGenerator {
                 triggerTime: 0,
                 spikes
             });
-            console.log('[MapGen] spike trap done, yielding...');
-            await new Promise(r => setTimeout(r, 500));
+            console.log('[MapGen] spike trap ' + i + ' done');
+            await new Promise(r => setTimeout(r, 100));
         }
 
         // Bear traps
