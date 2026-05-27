@@ -2222,7 +2222,8 @@ export class MapGenerator {
         console.log('[MapGen] forcefield done');
         this.reportProgress(0.18, 'Арена построена');
 
-        await _yield();
+        console.log('[MapGen] yielding 100ms before cornucopia...');
+        await new Promise(r => setTimeout(r, 100));
 
         await this.buildCornucopia();
         console.log('[MapGen] cornucopia done');
