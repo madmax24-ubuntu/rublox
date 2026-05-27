@@ -1078,6 +1078,7 @@ export class MapGenerator {
                 walkable: false
             });
         }
+        await _yield();
 
         // Crystal columns
         for (let i = 0; i < 6; i++) {
