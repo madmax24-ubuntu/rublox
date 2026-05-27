@@ -161,10 +161,7 @@ export class MapGenerator {
         this.onProgress?.(ratio, status);
     }
 
-    yieldFrame() {
-        return new Promise(resolve => setTimeout(resolve, 50));
-    }
-
+  
    startGeneration() {
         return this.generate();
     }
