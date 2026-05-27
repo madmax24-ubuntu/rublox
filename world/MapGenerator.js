@@ -1925,13 +1925,13 @@ export class MapGenerator {
 
     // ===================== TRAPS =====================
     async buildTraps() {
+        // Spike traps
         for (let i = 0; i < 20; i++) {
             const angle = Math.random() * Math.PI * 2;
             const r = 30 + Math.random() * 150;
             const tx = Math.cos(angle) * r;
             const tz = Math.sin(angle) * r;
 
-            // Spike trap
             const spikeCount = 3 + Math.floor(Math.random() * 3);
             const spikes = [];
             for (let s = 0; s < spikeCount; s++) {
@@ -1948,7 +1948,6 @@ export class MapGenerator {
                 spikes.push(spike);
             }
 
-            // Trigger plate
             const plateGeo = new THREE.CylinderGeometry(1, 1, 0.05, 8);
             const plate = new THREE.Mesh(plateGeo, new THREE.MeshStandardMaterial({
                 color: 0x555555, roughness: 0.7, metalness: 0.4
@@ -1969,6 +1968,7 @@ export class MapGenerator {
                 triggerTime: 0,
                 spikes
             });
+            if (i % 5 === 0) await _yield();
         }
 
         // Bear traps
@@ -1998,6 +1998,7 @@ export class MapGenerator {
                 triggered: false,
                 triggerTime: 0
             });
+            if (i % 3 === 0) await _yield();
         }
         await _yield();
     }
