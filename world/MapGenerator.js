@@ -515,6 +515,7 @@ export class MapGenerator {
             ring.position.set(pad.x, 0.05, pad.z);
             this.scene.add(ring);
         }
+        await _yield();
     }
 
     _buildChest(x, y, z, tier) {
