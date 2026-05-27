@@ -271,16 +271,19 @@ try {
         const zone2 = new Zone(scene2, 440);
         const before = zone2.getCurrentRadius();
         zone2.shrink(zone2.getCurrentRadius() * 0.5);
-        const after = zone2.getCurrentRadius();
-        if (after >= before) return `Radius ${after} should be < ${before}`;
+        const target = zone2.getTargetRadius();
+        if (target >= before) return `Target ${target} should be < ${before}`;
         return true;
     });
 
     test('Zone damage calculation', () => {
         const scene3 = new THREE.Scene();
         const zone3 = new Zone(scene3, 440);
-        const hasGetDamage = typeof zone3.getDamageAt === 'function';
-        return hasGetDamage ? true : `getDamageAt not available`;
+        const hasGetDamage = typeof zone3.getDamage === 'function';
+        if (!hasGetDamage) return 'getDamage not available';
+        const dmg = zone3.getDamage(1, new THREE.Vector3(300, 0, 0));
+        if (dmg <= 0) return `Damage ${dmg} should be > 0 for outside position`;
+        return true;
     });
 } catch (e) {
     console.log(`  ❌ Zone System: ${e.message}`);
