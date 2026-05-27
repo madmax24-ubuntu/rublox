@@ -570,7 +570,6 @@ export class MapGenerator {
 
     // ===================== INNER RING =====================
     async buildInnerRing() {
-        console.log('[MapGen] buildInnerRing START');
         // 8 outposts around the ring
         for (let i = 0; i < 8; i++) {
             const angle = (i / 8) * Math.PI * 2;
