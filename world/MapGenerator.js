@@ -1511,6 +1511,7 @@ export class MapGenerator {
         const foreLight = new THREE.PointLight(0x44ff88, 0.6, 50);
         foreLight.position.set(cx, 5, cz);
         this.scene.add(foreLight);
+        await _yield();
     }
 
     // ===================== BRIDGES =====================
