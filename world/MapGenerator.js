@@ -2236,8 +2236,10 @@ export class MapGenerator {
         console.log('[MapGen] biome paths done');
         this.reportProgress(0.38, 'Пути биомов');
 
-        await _yield();
+        console.log('[MapGen] yielding 50ms before citadel...');
+        await new Promise(r => setTimeout(r, 50));
 
+        console.log('[MapGen] starting citadel...');
         await this.buildRuinedCitadel();
         console.log('[MapGen] citadel done');
         this.reportProgress(0.45, 'Руины Цитадели');
