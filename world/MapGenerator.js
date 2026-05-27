@@ -2330,6 +2330,7 @@ export class MapGenerator {
                 // Process in chunks of 200, using recursive setTimeout for yielding
                 let idx = 0;
                 const processChunk = () => {
+                    console.log('[MapGen] processChunk starting, idx=', idx);
                     const end = Math.min(idx + 200, objects.length);
                     for (let j = idx; j < end; j++) {
                         const obj = objects[j];
@@ -2337,6 +2338,7 @@ export class MapGenerator {
                         obj.frustumCulled = false;
                     }
                     idx = end;
+                    console.log('[MapGen] processChunk done, idx=', idx);
                     if (idx < objects.length) {
                         setTimeout(processChunk, 1000);
                     } else {
