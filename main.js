@@ -433,9 +433,7 @@ class Game {
         this.map.onProgress = (ratio, status) => {
             smoothSetProgress(ratio * 0.5, status);
         };
-        await this.map.startGeneration();
-
-        // Ждём завершения генерации карты
+        this.map.startGeneration();
         await this.map.ready;
 
         // Performance: setup LOD and frustum culling
