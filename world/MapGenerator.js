@@ -1162,16 +1162,18 @@ export class MapGenerator {
             const caveLight = new THREE.PointLight(COLOR.crystalGlow, 0.6, 12);
             caveLight.position.set(cx2, 3, cz2);
             this.scene.add(caveLight);
+            if ((c % 2) === 0) await _yield();
         }
 
         // Crystal glow
         const cryLight = new THREE.PointLight(COLOR.crystalGlow, 1, 50);
         cryLight.position.set(cx, 5, cz);
         this.scene.add(cryLight);
+        await _yield();
     }
 
     // ===================== BURNING WASTES (SW) =====================
-    buildBurningWastes() {
+    async buildBurningWastes() {
         const cx = -80, cz = -80;
 
         // Floor
