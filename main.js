@@ -416,9 +416,11 @@ class Game {
         this.zombieMaintainTimer = 3.6;
 
         // Этап 3: Environment
+                console.log('[Game] Creating Environment...');
                 this.env = new Environment(this.scene);
         this.env.enableWeather = true;
         this.audioSynth?.setWeatherState?.('clear');
+        console.log('[Game] Environment done');
         
         // Yield чтобы браузер успел обработать события
         await new Promise(r => setTimeout(r, 100));
