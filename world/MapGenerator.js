@@ -2239,9 +2239,9 @@ export class MapGenerator {
         console.log('[MapGen] deferring scene setup to next frame...');
 
         // Defer heavy scene traversal to avoid hanging the main thread
-        // Use setTimeout as a fallback since RAF may not fire if browser is busy
         setTimeout(() => {
             try {
+                console.log('[MapGen] deferred setup starting...');
                 this.setupAnimations();
                 if (this.scene.traverse) {
                     this.scene.traverse(obj => {
