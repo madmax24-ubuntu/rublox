@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Debug Map Test</title>
+    <style>
+        body { margin: 0; background: #000; overflow: hidden; }
+        #debug-ui {
+            position: fixed; top: 10px; left: 10px; z-index: 1000;
+            background: rgba(0,0,0,0.8); color: #0f0; font-family: monospace;
+            padding: 15px; border-radius: 8px; max-height: 90vh; overflow-y: auto;
+            font-size: 12px; max-width: 600px;
+        }
+        #debug-ui h2 { margin: 0 0 10px 0; color: #ff0; font-size: 16px; }
+        #debug-ui .section { margin: 10px 0; border-top: 1px solid #333; padding-top: 10px; }
+        #debug-ui .log-entry { margin: 2px 0; color: #0f0; }
+        #debug-ui .log-entry.error { color: #f00; }
+        #debug-ui .log-entry.warn { color: #f80; }
+        #debug-ui .status { color: #0ff; font-weight: bold; }
+        #debug-ui .camera-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            margin-top: 10px;
+        }
+        #debug-ui .camera-view {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 10px;
+            position: relative;
+        }
+        #debug-ui .camera-view canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        #debug-ui .camera-label {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            background: rgba(0,0,0,0.7);
+            color: #0ff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+        button {
+            background: #333;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 8px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: monospace;
+            margin: 3px;
+        }
+        button:hover { background: #0f0; color: #000; }
+        button:disabled { opacity: 0.3; cursor: not-allowed; }
+        #main-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="debug-ui">
+        <h2>🔧 Debug Map Test</h2>
+        <div id="status" class="status">Инициализация...</div>
+        <div class="section">
+            <button id="btn-start" onclick="startDebug()">🚀 Начать тест</button>
+            <button id="btn-screenshot" onclick="takeAllScreenshots()" disabled>📸 Сделать скриншоты</button>
+            <button id="btn-export" onclick="exportScreenshots()" disabled>💾 Экспорт</button>
+            <div id="progress"></div>
+        </div>
+        <div id="logs" class="section">
+            <h3>📋 Логи:</h3>
+            <div id="log-container"></div>
+        </div>
+        <div id="cameras" class="section">
+            <h3>📷 Виды камер:</h3>
+            <div id="camera-container" class="camera-grid"></div>
+        </div>
+    </div>
+
+    <canvas id="main-canvas"></canvas>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+
+        let mainScene, mainRenderer, mainCamera;
+        let debugRenderer;
+        let gameScript = null;
+        let gameInstance = null;
+
+        const cameraViews = [];
+        const cameraLabels = [];
+        const screenshotCanvas = document.createElement('canvas');
+
+        // Debug camera positions around the map
+        const cameraPositions = [
+            // High overview cameras
+            { name: 'Top Center', x: 0, y: 300, z: 0, lookAt: { x: 0, y: 0, z: 0 } },
+            { name: 'Top Left', x: -100, y: 250, z: 100, lookAt: { x: -80, y: 0, z: 80 } },
+            { name: 'Top Right', x: 100, y: 250, z: 100, lookAt: { x: 80, y: 0, z: 80 } },
+            { name: 'Top Front', x: 0, y: 200, z: -150, lookAt: { x: 0, y: 0, z: 0 } },
+            { name: 'Top Back', x: 0, y: 200, z: 150, lookAt: { x: 0, y: 0, z: 0 } },
+
+            // Mid-level cameras
+            { name: 'Citadel Ground', x: -80, y: 30, z: 80, lookAt: { x: -80, y: 0, z: 80 } },
+            { name: 'Crystal Ground', x: 80, y: 30, z: 80, lookAt: { x: 80, y: 0, z: 80 } },
+            { name: 'Wastes Ground', x: -80, y: 30, z: -80, lookAt: { x: -80, y: 0, z: -80 } },
+            { name: 'Forest Ground', x: 80, y: 30, z: -80, lookAt: { x: 80, y: 0, z: -80 } },
+
+            // Gate cameras
+            { name: 'North Gate', x: 0, y: 20, z: -25, lookAt: { x: 0, y: 0, z: -25 } },
+            { name: 'South Gate', x: 0, y: 20, z: 25, lookAt: { x: 0, y: 0, z: 25 } },
+            { name: 'West Gate', x: -25, y: 20, z: 0, lookAt: { x: -25, y: 0, z: 0 } },
+            { name: 'East Gate', x: 25, y: 20, z: 0, lookAt: { x: 25, y: 0, z: 0 } },
+
+            // Close-up cameras
+            { name: 'Spawn Pad', x: 0, y: 15, z: 0, lookAt: { x: 0, y: 0, z: 0 } },
+            { name: 'Cornucopia', x: 15, y: 15, z: 15, lookAt: { x: 0, y: 10, z: 0 } },
+            { name: 'Center Path', x: 0, y: 25, z: 50, lookAt: { x: 0, y: 0, z: 50 } },
+
+            // Edge cameras
+            { name: 'Arena Edge NE', x: 120, y: 50, z: 120, lookAt: { x: 0, y: 0, z: 0 } },
+            { name: 'Arena Edge NW', x: -120, y: 50, z: 120, lookAt: { x: 0, y: 0, z: 0 } },
+            { name: 'Arena Edge SE', x: 120, y: 50, z: -120, lookAt: { x: 0, y: 0, z: 0 } },
+            { name: 'Arena Edge SW', x: -120, y: 50, z: -120, lookAt: { x: 0, y: 0, z: 0 } },
+        ];
+
+        window.log = function(msg, type = 'info') {
+            const container = document.getElementById('log-container');
+            const div = document.createElement('div');
+            div.className = `log-entry ${type}`;
+            const time = new Date().toLocaleTimeString();
+            div.textContent = `[${time}] ${msg}`;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            console.log(msg);
+        };
+
+        window.setStatus = function(text) {
+            document.getElementById('status').textContent = text;
+        };
+
+        window.createCameraViews = function() {
+            const container = document.getElementById('camera-container');
+            container.innerHTML = '';
+            cameraViews.length = 0;
+            cameraLabels.length = 0;
+
+            cameraPositions.forEach((pos, i) => {
+                const div = document.createElement('div');
+                div.className = 'camera-view';
+
+                const label = document.createElement('div');
+                label.className = 'camera-label';
+                label.textContent = pos.name;
+                div.appendChild(label);
+
+                const canvas = document.createElement('canvas');
+                canvas.width = 320;
+                canvas.height = 180;
+                div.appendChild(canvas);
+
+                container.appendChild(div);
+
+                cameraViews.push({
+                    camera: new THREE.PerspectiveCamera(60, 320/180, 0.1, 1000),
+                    canvas: canvas,
+                    label: pos.name,
+                    context: canvas.getContext('2d')
+                });
+
+                cameraLabels.push({
+                    name: pos.name,
+                    position: { x: pos.x, y: pos.y, z: pos.z },
+                    lookAt: pos.lookAt
+                });
+            });
+        };
+
+        window.takeAllScreenshots = async function() {
+            if (!gameInstance || !gameInstance.map) {
+                log('❌ Карта не загружена!', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('btn-screenshot');
+            btn.disabled = true;
+            btn.textContent = '📸 Делаем скриншоты...';
+            log('📸 Начинаем создание скриншотов...');
+
+            // Create debug renderer if not exists
+            if (!debugRenderer) {
+                debugRenderer = new THREE.WebGLRenderer({ antialias: false, alpha: false });
+                debugRenderer.setSize(320, 180);
+                debugRenderer.setClearColor(0x87CEEB, 1); // Sky blue
+            }
+
+            // Copy main scene properties
+            debugRenderer.setSize(320, 180);
+
+            const promises = cameraViews.map((view, i) => {
+                return new Promise(resolve => {
+                    try {
+                        // Setup camera
+                        view.camera.position.set(
+                            cameraPositions[i].x,
+                            cameraPositions[i].y,
+                            cameraPositions[i].z
+                        );
+                        view.camera.lookAt(
+                            cameraPositions[i].lookAt.x,
+                            cameraPositions[i].lookAt.y,
+                            cameraPositions[i].lookAt.z
+                        );
+
+                        // Render
+                        debugRenderer.render(mainScene, view.camera);
+
+                        // Draw to canvas
+                        const ctx = view.context;
+                        const data = debugRenderer.readViewBox();
+
+                        resolve(i);
+                    } catch (err) {
+                        log(`❌ Ошибка камеры ${view.label}: ${err.message}`, 'error');
+                        resolve(i);
+                    }
+                });
+            });
+
+            await Promise.all(promises);
+
+            btn.disabled = false;
+            btn.textContent = '📸 Готово!';
+            log('✅ Все скриншоты готовы!');
+
+            document.getElementById('btn-export').disabled = false;
+        };
+
+        window.exportScreenshots = function() {
+            log('💾 Экспортируем скриншоты...');
+
+            // Download each camera view
+            cameraViews.forEach((view, i) => {
+                const link = document.createElement('a');
+                link.download = `debug_${i}_${view.label.replace(/\s/g, '_')}.png`;
+                link.href = view.canvas.toDataURL('image/png');
+                link.click();
+                log(`📷 ${view.label} экспортирован`);
+            });
+        };
+
+        window.startDebug = async function() {
+            document.getElementById('btn-start').disabled = true;
+            setStatus('⏳ Загрузка игры...');
+            log('🚀 Начинаем debug тест...');
+
+            try {
+                // Load the main game
+                const response = await fetch('index.html');
+                const html = await response.text();
+
+                log('📄 Загрузка main.js...');
+
+                // Create a script element to load main.js
+                const script = document.createElement('script');
+                script.type = 'module';
+                script.textContent = `
+                    import { Game } from './main.js';
+
+                    window._gameLoaded = new Promise((resolve, reject) => {
+                        window._gameResolve = resolve;
+                        window._gameReject = reject;
+                    });
+
+                    // Override window.game to capture instance
+                    const originalGame = window.game;
+
+                    // Create game instance
+                    try {
+                        window.gameInstance = new Game();
+                        window.gameInstance.onReady?.then?.().catch(() => {});
+                        window._gameResolve(window.gameInstance);
+                    } catch (err) {
+                        console.error('Game creation failed:', err);
+                        window._gameReject(err);
+                    }
+                `;
+
+                document.head.appendChild(script);
+
+                // Wait for game to load
+                log('⏳ Ждём инициализацию игры...');
+                const game = await new Promise((resolve, reject) => {
+                    setTimeout(() => reject(new Error('Таймаут загрузки')), 30000);
+                });
+
+                gameInstance = game;
+                log('✅ Игра инициализирована');
+
+                // Setup main scene
+                mainScene = game.scene;
+                mainCamera = game.camera;
+
+                // Setup main renderer for background
+                const mainCanvas = document.getElementById('main-canvas');
+                mainRenderer = game.renderer;
+                mainRenderer.setSize(window.innerWidth, window.innerHeight);
+                mainRenderer.domElement.id = 'main-canvas';
+                mainRenderer.domElement.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    z-index: 0;
+                `;
+
+                if (!document.body.contains(mainRenderer.domElement)) {
+                    document.body.prepend(mainRenderer.domElement);
+                }
+
+                // Start the game
+                setStatus('⏳ Генерация карты...');
+                log('🗺️ Запускаем генерацию карты...');
+
+                await game.startGame();
+
+                log('✅ Карта сгенерирована!');
+                setStatus('✅ Карта загружена. Нажмите "Сделать скриншоты"');
+
+                document.getElementById('btn-screenshot').disabled = false;
+
+                // Start animation loop
+                game.render();
+                game.gameLoop.start();
+
+                // Auto-screenshot after 5 seconds
+                setTimeout(async () => {
+                    log('📸 Автоматический скриншот...');
+                    await window.takeAllScreenshots();
+                }, 5000);
+
+            } catch (err) {
+                log(`❌ Ошибка: ${err.message}`, 'error');
+                log(`Stack: ${err.stack}`, 'error');
+                setStatus('❌ Ошибка запуска');
+                document.getElementById('btn-start').disabled = false;
+            }
+        };
+
+        // Override console.log to capture logs
+        const originalLog = console.log;
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const msg = args.join(' ');
+            const isError = msg.includes('ERROR') || msg.includes('error');
+            const isWarn = msg.includes('WARN') || msg.includes('warn');
+            log(msg, isError ? 'error' : isWarn ? 'warn' : 'info');
+        };
+
+        // Override console.error
+        const originalError = console.error;
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            log(args.join(' '), 'error');
+        };
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (mainCamera) {
+                mainCamera.aspect = window.innerWidth / window.innerHeight;
+                mainCamera.updateProjectionMatrix();
+            }
+            if (mainRenderer) {
+                mainRenderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        });
+    </script>
+</body>
+</html>
