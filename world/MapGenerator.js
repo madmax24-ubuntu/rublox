@@ -4047,7 +4047,6 @@ export class MapGenerator {
     }
 
     update(delta, playerPos) {
-        this.updateCulling();
         if (playerPos) {
             this.updatePropVisibility(playerPos);
         }
