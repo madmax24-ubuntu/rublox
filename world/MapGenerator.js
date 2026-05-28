@@ -231,57 +231,69 @@ export class MapGenerator {
             this.scene.add(biomeMesh);
         }
 
-        // === Clear zone separator walls (cross-shaped divider) ===
+        // === Clear zone separators (ground trenches + low walls with gaps) ===
         console.log('[MapGen] building zone dividers...');
-        const dividerMat = new THREE.MeshStandardMaterial({ color: 0x4a4a3a, roughness: 0.9 });
+        const dividerMat = new THREE.MeshStandardMaterial({ color: 0x3a3a2a, roughness: 0.95 });
 
-        // Vertical divider (between left/right zones)
-        const vDividerGeo = new THREE.BoxGeometry(1.5, 0.6, 440);
-        const vDivider = new THREE.Mesh(vDividerGeo, dividerMat);
-        vDivider.position.set(0, 0.3, 0);
-        vDivider.receiveShadow = true;
-        vDivider.userData.isDecoration = true;
-        vDivider.userData.decorationType = 'zoneDivider';
-        vDivider.userData.isMapObject = true;
-        this.scene.add(vDivider);
-        this.colliders.push({
-            type: 'box',
-            position: new THREE.Vector3(0, 0.3, 0),
-            size: new THREE.Vector3(1.5, 0.6, 440),
-            enabled: true
-        });
+        // Helper: build a segmented divider wall (with gate gaps)
+        function buildDividerAxis(segments) {
+            for (const seg of segments) {
+                const geo = new THREE.BoxGeometry(seg.w || 1, 0.5, seg.h || 1);
+                const wall = new THREE.Mesh(geo, dividerMat);
+                wall.position.set(seg.x, 0.25, seg.z);
+                wall.receiveShadow = true;
+                wall.userData.isDecoration = true;
+                wall.userData.decorationType = 'zoneDivider';
+                wall.userData.isMapObject = true;
+                this.scene.add(wall);
+                if (seg.collide) {
+                    this.colliders.push({
+                        type: 'box',
+                        position: new THREE.Vector3(seg.x, 0.25, seg.z),
+                        size: new THREE.Vector3(seg.w || 1, 0.5, seg.h || 1),
+                        enabled: true
+                    });
+                }
+            }
+        }
 
-        // Horizontal divider (between front/back zones)
-        const hDividerGeo = new THREE.BoxGeometry(440, 0.6, 1.5);
-        const hDivider = new THREE.Mesh(hDividerGeo, dividerMat);
-        hDivider.position.set(0, 0.3, 0);
-        hDivider.receiveShadow = true;
-        hDivider.userData.isDecoration = true;
-        hDivider.userData.decorationType = 'zoneDivider';
-        hDivider.userData.isMapObject = true;
-        this.scene.add(hDivider);
-        this.colliders.push({
-            type: 'box',
-            position: new THREE.Vector3(0, 0.3, 0),
-            size: new THREE.Vector3(440, 0.6, 1.5),
-            enabled: true
-        });
+        // Vertical axis divider (x=0, with gaps at gates)
+        const vSegments = [];
+        for (let z = -200; z <= 200; z += 4) {
+            const inGate = Math.abs(z) < 4; // gate gaps near z=±25
+            if (!inGate) {
+                vSegments.push({ x: 0, z: z, w: 1.2, h: 4, collide: true });
+            }
+        }
+        buildDividerAxis.call(this, vSegments);
 
-        // Gap fillers between corners (diagonal gaps near corners)
-        const gapPositions = [
-            { x: -35, z: 35 }, { x: 35, z: 35 },
-            { x: -35, z: -35 }, { x: 35, z: -35 }
+        // Horizontal axis divider (z=0, with gaps at gates)
+        const hSegments = [];
+        for (let x = -200; x <= 200; x += 4) {
+            const inGate = Math.abs(x) < 4;
+            if (!inGate) {
+                hSegments.push({ x: x, z: 0, w: 4, h: 1.2, collide: true });
+            }
+        }
+        buildDividerAxis.call(this, hSegments);
+
+        // Corner diagonal fillers (connect dividers at corners)
+        const cornerPositions = [
+            { x: -30, z: 30, r: Math.PI * 0.25 },
+            { x: 30, z: 30, r: -Math.PI * 0.25 },
+            { x: -30, z: -30, r: -Math.PI * 0.75 },
+            { x: 30, z: -30, r: Math.PI * 0.75 },
         ];
-        const gapMat = new THREE.MeshStandardMaterial({ color: 0x5a5a4a, roughness: 0.9 });
-        for (const gp of gapPositions) {
-            const gapGeo = new THREE.BoxGeometry(2, 0.6, 2);
-            const gap = new THREE.Mesh(gapGeo, gapMat);
-            gap.position.set(gp.x, 0.3, gp.z);
-            gap.receiveShadow = true;
-            gap.userData.isDecoration = true;
-            gap.userData.decorationType = 'zoneDivider';
-            gap.userData.isMapObject = true;
-            this.scene.add(gap);
+        for (const cp of cornerPositions) {
+            const geo = new THREE.BoxGeometry(1, 0.5, 3);
+            const c = new THREE.Mesh(geo, dividerMat);
+            c.position.set(cp.x, 0.25, cp.z);
+            c.rotation.y = cp.r;
+            c.receiveShadow = true;
+            c.userData.isDecoration = true;
+            c.userData.decorationType = 'zoneDivider';
+            c.userData.isMapObject = true;
+            this.scene.add(c);
         }
 
         // === Gate openings in dividers (passageways between zones) ===
