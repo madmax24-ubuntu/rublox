@@ -376,10 +376,16 @@ export class BotBrain {
         bot.target = target;
         const dist = bot.position.distanceTo(target.position);
         const weapon = bot.currentWeapon || bot.fists;
-        const range = Math.max(2.7, (weapon.range || 3) * (weapon.type === 'shotgun' ? 0.88 : 0.95));
+        const weaponType = weapon.type || 'fists';
+        // Weapon-specific range adjustments
+        let effectiveRange = Math.max(2.7, (weapon.range || 3) * 0.95);
+        if (weaponType === 'sniper') effectiveRange *= 1.3;
+        if (weaponType === 'smg') effectiveRange *= 0.8;
+        if (weaponType === 'crossbow') effectiveRange *= 1.1;
+        if (weaponType === 'shotgun') effectiveRange *= 0.88;
 
         bot.lookAt(target.position);
-        if (dist <= range) {
+        if (dist <= effectiveRange) {
             const targetKey = this.getObjectKey(target) || `${Math.round(target.position.x)}:${Math.round(target.position.z)}`;
             if (bot._reactionTargetKey !== targetKey) {
                 bot._reactionTargetKey = targetKey;
