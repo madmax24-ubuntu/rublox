@@ -2434,6 +2434,16 @@ export class MapGenerator {
         return this.spawnPads;
     }
 
+    setCourtyardGateOpen(open) {
+        this._courtyardGateOpen = open;
+        // Update gate meshes if they exist
+        this.oneWayGates?.forEach(g => {
+            if (g.mesh) {
+                g.mesh.visible = open;
+            }
+        });
+    }
+
     getColliders() {
         return this.colliders;
     }
