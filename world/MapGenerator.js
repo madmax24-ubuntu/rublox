@@ -204,12 +204,13 @@ export class MapGenerator {
             walkable: true
         });
 
-        // Biome zone overlays (slightly elevated to avoid z-fighting)
+        // Biome zone overlays - rectangular zones, no overlap
+        // Each quadrant is a distinct biome with clear boundaries
         const biomeZones = [
-            { name: 'citadel', color: COLOR.ruinFloor, x: -80, z: 80, radius: 75, rot: 0 },
-            { name: 'crystal', color: COLOR.crystalFloor, x: 80, z: 80, radius: 70, rot: 0 },
-            { name: 'wastes',  color: COLOR.wasteGround, x: -80, z: -80, radius: 75, rot: 0 },
-            { name: 'forest',  color: COLOR.luminousFloor, x: 80, z: -80, radius: 75, rot: 0 },
+            { name: 'citadel', color: COLOR.ruinFloor,   x: -70, z:  70, w: 120, h: 120 },
+            { name: 'crystal', color: COLOR.crystalFloor, x:  70, z:  70, w: 110, h: 120 },
+            { name: 'wastes',  color: COLOR.wasteGround,  x: -70, z: -70, w: 120, h: 110 },
+            { name: 'forest',  color: COLOR.luminousFloor, x:  70, z: -70, w: 110, h: 120 },
         ];
 
         for (const bz of biomeZones) {
@@ -218,7 +219,7 @@ export class MapGenerator {
                 roughness: 0.85,
                 metalness: 0.05
             });
-            const biomeGeo = new THREE.CircleGeometry(bz.radius, 32);
+            const biomeGeo = new THREE.PlaneGeometry(bz.w, bz.h, 1, 1);
             biomeGeo.rotateX(-Math.PI / 2);
             const biomeMesh = new THREE.Mesh(biomeGeo, biomeMat);
             biomeMesh.position.set(bz.x, 0.01, bz.z);
@@ -228,6 +229,113 @@ export class MapGenerator {
             biomeMesh.userData.biomeName = bz.name;
             biomeMesh.userData.isMapObject = true;
             this.scene.add(biomeMesh);
+        }
+
+        // === Clear zone separator walls (cross-shaped divider) ===
+        console.log('[MapGen] building zone dividers...');
+        const dividerMat = new THREE.MeshStandardMaterial({ color: 0x4a4a3a, roughness: 0.9 });
+
+        // Vertical divider (between left/right zones)
+        const vDividerGeo = new THREE.BoxGeometry(1.5, 0.6, 440);
+        const vDivider = new THREE.Mesh(vDividerGeo, dividerMat);
+        vDivider.position.set(0, 0.3, 0);
+        vDivider.receiveShadow = true;
+        vDivider.userData.isDecoration = true;
+        vDivider.userData.decorationType = 'zoneDivider';
+        vDivider.userData.isMapObject = true;
+        this.scene.add(vDivider);
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(0, 0.3, 0),
+            size: new THREE.Vector3(1.5, 0.6, 440),
+            enabled: true
+        });
+
+        // Horizontal divider (between front/back zones)
+        const hDividerGeo = new THREE.BoxGeometry(440, 0.6, 1.5);
+        const hDivider = new THREE.Mesh(hDividerGeo, dividerMat);
+        hDivider.position.set(0, 0.3, 0);
+        hDivider.receiveShadow = true;
+        hDivider.userData.isDecoration = true;
+        hDivider.userData.decorationType = 'zoneDivider';
+        hDivider.userData.isMapObject = true;
+        this.scene.add(hDivider);
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(0, 0.3, 0),
+            size: new THREE.Vector3(440, 0.6, 1.5),
+            enabled: true
+        });
+
+        // Gap fillers between corners (diagonal gaps near corners)
+        const gapPositions = [
+            { x: -35, z: 35 }, { x: 35, z: 35 },
+            { x: -35, z: -35 }, { x: 35, z: -35 }
+        ];
+        const gapMat = new THREE.MeshStandardMaterial({ color: 0x5a5a4a, roughness: 0.9 });
+        for (const gp of gapPositions) {
+            const gapGeo = new THREE.BoxGeometry(2, 0.6, 2);
+            const gap = new THREE.Mesh(gapGeo, gapMat);
+            gap.position.set(gp.x, 0.3, gp.z);
+            gap.receiveShadow = true;
+            gap.userData.isDecoration = true;
+            gap.userData.decorationType = 'zoneDivider';
+            gap.userData.isMapObject = true;
+            this.scene.add(gap);
+        }
+
+        // === Gate openings in dividers (passageways between zones) ===
+        // Gates on each axis from center
+        const gatePositions = [
+            { x: -25, z: 0, axis: 'x' },  // Left gate (citadel-wastes side)
+            { x: 25, z: 0, axis: 'x' },   // Right gate (crystal-forest side)
+            { x: 0, z: -25, axis: 'z' },  // Bottom gate (wastes-forest side)
+            { x: 0, z: 25, axis: 'z' },   // Top gate (citadel-crystal side)
+        ];
+        const gateMat = new THREE.MeshStandardMaterial({ color: 0x6a5a3a, roughness: 0.8 });
+        for (const gate of gatePositions) {
+            // Gate posts
+            const postGeo = new THREE.CylinderGeometry(0.12, 0.15, 3, 6);
+            const postL = new THREE.Mesh(postGeo, gateMat);
+            const postR = new THREE.Mesh(postGeo, gateMat);
+            const postH = new THREE.Mesh(postGeo, gateMat);
+            const postT = new THREE.Mesh(postGeo, gateMat);
+
+            if (Math.abs(gate.x) < 5) {
+                // Vertical gate (top/bottom)
+                postL.position.set(gate.x - 1.5, 1.5, gate.z);
+                postR.position.set(gate.x + 1.5, 1.5, gate.z);
+                postH.position.set(gate.x, 1.5, gate.z - 1.8);
+                postT.position.set(gate.x, 1.5, gate.z + 1.8);
+            } else {
+                // Horizontal gate (left/right)
+                postL.position.set(gate.x, 1.5, gate.z - 1.5);
+                postR.position.set(gate.x, 1.5, gate.z + 1.5);
+                postH.position.set(gate.x - 1.8, 1.5, gate.z);
+                postT.position.set(gate.x + 1.8, 1.5, gate.z);
+            }
+            postL.castShadow = true;
+            postR.castShadow = true;
+            postH.castShadow = true;
+            postT.castShadow = true;
+            postL.userData.isDecoration = true;
+            postR.userData.isDecoration = true;
+            postH.userData.isDecoration = true;
+            postT.userData.isDecoration = true;
+            postL.userData.isMapObject = true;
+            postR.userData.isMapObject = true;
+            postH.userData.isMapObject = true;
+            postT.userData.isMapObject = true;
+            this.scene.add(postL);
+            this.scene.add(postR);
+            this.scene.add(postH);
+            this.scene.add(postT);
+
+            // Gate sign/light
+            const signLight = new THREE.PointLight(0xf8d840, 0.4, 6);
+            signLight.position.set(gate.x, 3.2, gate.z);
+            this.scene.add(signLight);
+            this.animatedObjects.push({ type: 'glow', light: signLight, baseIntensity: 0.4 });
         }
 
         // Spawn courtyard (flat pad in the center)
