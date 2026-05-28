@@ -255,7 +255,7 @@ function createArrowProjectileMesh() {
 
 function getRotationOffsets(type) {
     if (type === 'knife') return { pitch: -Math.PI / 2, yaw: 0, roll: 0 };
-    if (type === 'bow') return { pitch: 0.04, yaw: Math.PI / 2, roll: -0.04 };
+    if (type === 'bow' || type === 'crossbow') return { pitch: 0.04, yaw: Math.PI / 2, roll: -0.04 };
     // Third-person alignment for character forward (+Z in our actor space).
     return { pitch: 0, yaw: Math.PI / 2, roll: 0 };
 }
