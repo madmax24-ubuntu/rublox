@@ -3810,9 +3810,8 @@ export class MapGenerator {
     updatePropVisibility(playerPos) {
         if (!playerPos || !this._mapObjects?.length) return;
 
-        const dist = this._cullInterval;
-        if (performance.now() - this._lastCullTime < dist * 1000) return;
-        this._lastCullTime = performance.now() / 1000;
+        if (performance.now() - this._lastCullTime < this._cullInterval * 1000) return;
+        this._lastCullTime = performance.now();
 
         const visibleRadius = 120;
         const maxObjects = 500;
