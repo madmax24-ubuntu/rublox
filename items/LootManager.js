@@ -96,7 +96,7 @@ export class LootManager {
                 const chest = this.createChest(tile.x, y, tile.z);
                 this.chests.push(chest);
                 this.addChestToIndex(chest);
-                if (i % 5 === 0) await new Promise(r => setTimeout(r, 100));
+                if (i % 2 === 0) await new Promise(r => setTimeout(r, 200));
             }
             this.rebuildChestIndex();
             return;
