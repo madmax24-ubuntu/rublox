@@ -3149,7 +3149,6 @@ export class MapGenerator {
         }
 
         // === Signs ===
-        console.log('[MapGen] placing signs...');
         const signPositions = [
             { x: -50, z: 50, rot: Math.PI / 4, text: 'Citadel' },
             { x: 50, z: 50, rot: -Math.PI / 4, text: 'Crystal' },
