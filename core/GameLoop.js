@@ -61,11 +61,5 @@ export class GameLoop {
         }
 
         this._frameCount++;
-        if (this._frameCount === 1) {
-            console.log('[GameLoop] first frame: update=' + typeof this.game.update + ' render=' + typeof this.game.render + ' paused=' + this.game.isPaused + ' hidden=' + document.hidden);
-        }
-        if (this._frameCount % 120 === 0) {
-            console.log('[GameLoop] frame#' + this._frameCount);
-        }
     }
 }
