@@ -3271,8 +3271,7 @@ export class MapGenerator {
             if (i % 3 === 0) await _yield();
         }
 
-        // === Smoke vents in wastes ===
-        console.log('[MapGen] placing smoke vents...');
+      // === Smoke vents in wastes ===
         for (let i = 0; i < 12; i++) {
             const x = -80 + (Math.random() - 0.5) * 60;
             const z = -80 + (Math.random() - 0.5) * 60;
