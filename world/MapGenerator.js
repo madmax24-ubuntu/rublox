@@ -3787,7 +3787,7 @@ export class MapGenerator {
      * Enable optimized frustum culling based on camera distance
      */
     enableOptimizedCulling() {
-        this._lastCullTime = 0;
+        this._lastCullTime = performance.now();
         this._cullInterval = 1.5; // seconds
         this._cameraPos = new THREE.Vector3();
         this._mapObjects = [];
