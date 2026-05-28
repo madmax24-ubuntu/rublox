@@ -244,22 +244,31 @@ export class EntityManager {
         const dy = p1.y - p0.y;
         const dz = p1.z - p0.z;
 
-        const checkAxis = (start, delta, min, max) => {
+        let min, max;
+        if (box.min && box.max) {
+            min = box.min;
+            max = box.max;
+        } else {
+            min = new THREE.Vector3(box.position.x - box.size.x / 2, box.position.y - box.size.y / 2, box.position.z - box.size.z / 2);
+            max = new THREE.Vector3(box.position.x + box.size.x / 2, box.position.y + box.size.y / 2, box.position.z + box.size.z / 2);
+        }
+
+        const checkAxis = (start, delta, minVal, maxVal) => {
             if (Math.abs(delta) < 1e-6) {
-                return start >= min && start <= max;
+                return start >= minVal && start <= maxVal;
             }
             const inv = 1 / delta;
-            let t1 = (min - start) * inv;
-            let t2 = (max - start) * inv;
+            let t1 = (minVal - start) * inv;
+            let t2 = (maxVal - start) * inv;
             if (t1 > t2) [t1, t2] = [t2, t1];
             tmin = Math.max(tmin, t1);
             tmax = Math.min(tmax, t2);
             return tmin <= tmax;
         };
 
-        if (!checkAxis(p0.x, dx, box.min.x, box.max.x)) return false;
-        if (!checkAxis(p0.y, dy, box.min.y, box.max.y)) return false;
-        if (!checkAxis(p0.z, dz, box.min.z, box.max.z)) return false;
+        if (!checkAxis(p0.x, dx, min.x, max.x)) return false;
+        if (!checkAxis(p0.y, dy, min.y, max.y)) return false;
+        if (!checkAxis(p0.z, dz, min.z, max.z)) return false;
         return true;
     }
 
