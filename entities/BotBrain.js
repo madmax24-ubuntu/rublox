@@ -391,23 +391,68 @@ export class BotBrain {
                 bot._reactionTargetKey = targetKey;
                 bot._reactionReadyAt = nowSec + this.reactionMin + Math.random() * (this.reactionMax - this.reactionMin);
             }
-            const strafeDir = ((bot.id + Math.floor(nowSec * 4)) % 2 === 0) ? 1 : -1;
-            const to = this._tmpVec.subVectors(target.position, bot.position);
-            const len = Math.max(0.001, Math.hypot(to.x, to.z));
-            const side = new THREE.Vector3(-to.z / len, 0, to.x / len).multiplyScalar(strafeDir * (3.4 + (bot.id % 3)));
-            const strafeTarget = new THREE.Vector3(bot.position.x + side.x, 0, bot.position.z + side.z);
-            if (bot.mapRef?.isWalkableAt?.(strafeTarget.x, strafeTarget.z)) {
-                this.steerMove(bot, strafeTarget, bot.physics.speed * 0.92);
-            }
-            if (this.attackCooldown <= 0) {
+            if (weaponType === 'sniper') {
+                // Sniper: stand still for accuracy, slow fire rate
+                bot._reactionReadyAt = nowSec + 0.6 + Math.random() * 0.4;
                 if (bot._reactionReadyAt && nowSec < bot._reactionReadyAt) return;
-                const tv = target.physics?.velocity;
-                const targetSpeed = tv ? Math.hypot(tv.x || 0, tv.z || 0) : 0;
-                const distNorm = Math.max(0, Math.min(1, dist / Math.max(8, (weapon.range || 40))));
-                const moveNorm = Math.max(0, Math.min(1, targetSpeed / 9));
-                bot._dynamicAimError = 0.01 + distNorm * 0.04 + moveNorm * 0.055;
-                bot.attack(target, entityManager);
-                this.attackCooldown = Math.max(0.05, (weapon.cooldown || 0.2) * 0.5);
+                if (this.attackCooldown <= 0) {
+                    bot.attack(target, entityManager);
+                    this.attackCooldown = Math.max(0.8, (weapon.cooldown || 1.2) * 0.8);
+                }
+            } else if (weaponType === 'smg') {
+                // SMG: aggressive strafing, fast fire rate
+                const to2 = this._tmpVec2.subVectors(target.position, bot.position);
+                const len2 = Math.max(0.001, Math.hypot(to2.x, to2.z));
+                const side2 = new THREE.Vector3(-to2.z / len2, 0, to2.x / len2).multiplyScalar(strafeDir * (4.5 + (bot.id % 4)));
+                const strafeTarget2 = new THREE.Vector3(bot.position.x + side2.x, 0, bot.position.z + side2.z);
+                if (bot.mapRef?.isWalkableAt?.(strafeTarget2.x, strafeTarget2.z)) {
+                    this.steerMove(bot, strafeTarget2, bot.physics.speed * 1.08);
+                }
+                if (this.attackCooldown <= 0) {
+                    bot.attack(target, entityManager);
+                    this.attackCooldown = Math.max(0.03, (weapon.cooldown || 0.06) * 0.4);
+                }
+            } else if (weaponType === 'crossbow') {
+                // Crossbow: hold position, deliberate shots
+                if (dist > 20) {
+                    this.steerMove(bot, target.position, bot.physics.speed * 0.7);
+                }
+                if (this.attackCooldown <= 0) {
+                    bot.attack(target, entityManager);
+                    this.attackCooldown = Math.max(1.0, (weapon.cooldown || 1.5) * 0.7);
+                }
+            } else if (weaponType === 'shotgun') {
+                // Shotgun: close-range push, aggressive
+                const to = this._tmpVec.subVectors(target.position, bot.position);
+                const len = Math.max(0.001, Math.hypot(to.x, to.z));
+                const side = new THREE.Vector3(-to.z / len, 0, to.x / len).multiplyScalar(strafeDir * (2.5 + (bot.id % 2)));
+                const strafeTarget = new THREE.Vector3(bot.position.x + side.x, 0, bot.position.z + side.z);
+                if (bot.mapRef?.isWalkableAt?.(strafeTarget.x, strafeTarget.z)) {
+                    this.steerMove(bot, strafeTarget, bot.physics.speed * 0.85);
+                }
+                if (this.attackCooldown <= 0) {
+                    bot.attack(target, entityManager);
+                    this.attackCooldown = Math.max(0.5, (weapon.cooldown || 0.98) * 0.5);
+                }
+            } else {
+                // Default: standard strafing
+                const to = this._tmpVec.subVectors(target.position, bot.position);
+                const len = Math.max(0.001, Math.hypot(to.x, to.z));
+                const side = new THREE.Vector3(-to.z / len, 0, to.x / len).multiplyScalar(strafeDir * (3.4 + (bot.id % 3)));
+                const strafeTarget = new THREE.Vector3(bot.position.x + side.x, 0, bot.position.z + side.z);
+                if (bot.mapRef?.isWalkableAt?.(strafeTarget.x, strafeTarget.z)) {
+                    this.steerMove(bot, strafeTarget, bot.physics.speed * 0.92);
+                }
+                if (this.attackCooldown <= 0) {
+                    if (bot._reactionReadyAt && nowSec < bot._reactionReadyAt) return;
+                    const tv = target.physics?.velocity;
+                    const targetSpeed = tv ? Math.hypot(tv.x || 0, tv.z || 0) : 0;
+                    const distNorm = Math.max(0, Math.min(1, dist / Math.max(8, (weapon.range || 40))));
+                    const moveNorm = Math.max(0, Math.min(1, targetSpeed / 9));
+                    bot._dynamicAimError = 0.01 + distNorm * 0.04 + moveNorm * 0.055;
+                    bot.attack(target, entityManager);
+                    this.attackCooldown = Math.max(0.05, (weapon.cooldown || 0.2) * 0.5);
+                }
             }
             return;
         }
