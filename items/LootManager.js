@@ -384,37 +384,42 @@ export class LootManager {
     generateLoot(rare = false) {
         if (rare) {
             const rareRoll = Math.random();
-            if (rareRoll < 0.4) return { type: 'weapon', weaponType: 'laser' };
-            if (rareRoll < 0.7) return { type: 'weapon', weaponType: 'flamethrower' };
-            if (rareRoll < 0.87) return { type: 'weapon', weaponType: 'machinegun' };
+            if (rareRoll < 0.25) return { type: 'weapon', weaponType: 'sniper' };
+            if (rareRoll < 0.35) return { type: 'weapon', weaponType: 'crossbow' };
+            if (rareRoll < 0.5) return { type: 'weapon', weaponType: 'smg' };
+            if (rareRoll < 0.7) return { type: 'weapon', weaponType: 'laser' };
+            if (rareRoll < 0.85) return { type: 'weapon', weaponType: 'machinegun' };
             if (rareRoll < 0.95) return { type: 'weapon', weaponType: 'shotgun' };
             if (rareRoll < 0.985) return { type: 'armor', amount: 60 + Math.random() * 40 };
             return { type: 'heal', amount: 55 };
         }
 
-        // Предыдущая логика генерации добычи была запутанной и содержала недостижимый код.
-        // Эта версия использует понятную цепочку "else if", что упрощает понимание и настройку вероятностей.
-        // Вероятности сохранены близкими к первоначальному замыслу.
         const rand = Math.random();
-        if (rand < 0.02) { // 2% для лазера
+        if (rand < 0.03) { // 3% для снайперской винтовки
+            return { type: 'weapon', weaponType: 'sniper' };
+        } else if (rand < 0.06) { // 3% для пистолета-пулемёта
+            return { type: 'weapon', weaponType: 'smg' };
+        } else if (rand < 0.09) { // 3% для арбалета
+            return { type: 'weapon', weaponType: 'crossbow' };
+        } else if (rand < 0.12) { // 3% для лазера
             return { type: 'weapon', weaponType: 'laser' };
-        } else if (rand < 0.12) { // 10% для огнемета
+        } else if (rand < 0.22) { // 10% для огнемета
             return { type: 'weapon', weaponType: 'flamethrower' };
-        } else if (rand < 0.25) { // 13% для дробовика
+        } else if (rand < 0.35) { // 13% для дробовика
             return { type: 'weapon', weaponType: 'shotgun' };
-        } else if (rand < 0.36) { // 11% для лука
+        } else if (rand < 0.46) { // 11% для лука
             return { type: 'weapon', weaponType: 'bow' };
-        } else if (rand < 0.6) { // 24% для пистолета
+        } else if (rand < 0.64) { // 18% для пистолета
             return { type: 'weapon', weaponType: 'pistol' };
-        } else if (rand < 0.74) { // 14% для винтовки
+        } else if (rand < 0.76) { // 12% для винтовки
             return { type: 'weapon', weaponType: 'rifle' };
-        } else if (rand < 0.84) { // 10% для пулемета
+        } else if (rand < 0.86) { // 10% для пулемета
             return { type: 'weapon', weaponType: 'machinegun' };
-        } else if (rand < 0.9) { // 6% для аптечки
+        } else if (rand < 0.92) { // 6% для аптечки
             return { type: 'heal', amount: 40 + Math.random() * 25 };
-        } else if (rand < 0.95) { // 5% для патронов
+        } else if (rand < 0.97) { // 5% для патронов
             return { type: 'ammo', amount: 10 + Math.floor(Math.random() * 9) };
-        } else { // 5% для брони
+        } else { // 3% для брони
             return { type: 'armor', amount: 25 + Math.random() * 25 };
         }
     }
