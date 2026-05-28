@@ -3841,11 +3841,8 @@ export class MapGenerator {
         const camPos = this.scene?.userData?.camera?.position;
         if (!camPos) return;
 
-        // Light culling
+        // Light culling to prevent MAX_FRAGMENT_UNIFORM_V
         this._cullPointLights(camPos);
-
-        // Update animated objects
-        this.updateZoneAnimations(performance.now() / 1000);
     }
 
     /**
