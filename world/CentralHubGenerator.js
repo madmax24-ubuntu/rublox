@@ -93,8 +93,6 @@ export default class CentralHubGenerator {
      * Creates decorative grass ring around the hub
      */
     _createGrassRing() {
-        console.log('[CentralHub] Creating grass ring...');
-        
         const innerRadius = this.plinthSize / 2 + 2;
         const outerRadius = this.hubRadius - 10;
         const segments = Math.floor((outerRadius - innerRadius) / 3);
