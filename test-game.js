@@ -7,7 +7,7 @@ import { chromium } from 'playwright';
     const logs = [];
     page.on('console', msg => {
         const text = msg.text();
-        if (text.includes('[Game]') || text.includes('[MapGen]')) {
+        if (text.includes('[Game]') || text.includes('[MapGen]') || text.includes('[Loot]')) {
             logs.push(text);
             console.log(text);
         }
