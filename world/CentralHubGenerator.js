@@ -25,8 +25,7 @@ export default class CentralHubGenerator {
      * Generates the complete central hub
      */
     generate() {
-        console.log('[CentralHub] Generating central hub...');
-        
+
         // 1. Mosaic plinth base
         this._createPlinth();
         
