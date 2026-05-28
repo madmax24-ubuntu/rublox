@@ -3910,4 +3910,163 @@ export class MapGenerator {
         if (x < -40 && z > 40) return 'forest';
         return 'arena';
     }
+
+    // ===================== GAMEPLAY INTERFACES =====================
+
+    getFloorTiles() {
+        // Return spawn area center positions for supply drops
+        const tiles = [];
+        const r = this.spawnCourtyardRadius - 10;
+        for (let i = 0; i < 20; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = Math.random() * r;
+            tiles.push({ x: Math.cos(angle) * dist, z: Math.sin(angle) * dist });
+        }
+        return tiles;
+    }
+
+    getHouseSpots() {
+        // No houses currently — return empty array
+        return [];
+    }
+
+    getHangarSpots() {
+        // No hangars currently — return empty array
+        return [];
+    }
+
+    getStoryNotes() {
+        // No story notes currently — return empty array
+        return [];
+    }
+
+    getExplosiveBarrelSpots() {
+        return this.hazards || [];
+    }
+
+    getTraps() {
+        return this.traps || [];
+    }
+
+    getFogZones() {
+        return this.fogZones || [];
+    }
+
+    getSpawnPads() {
+        return this.spawnPads || [];
+    }
+
+    getCourtyardExitPosition() {
+        // Return a safe position outside the courtyard
+        return new THREE.Vector3(60, 0, 0);
+    }
+
+    isInsideCourtyard(pos) {
+        const dist = Math.sqrt(pos.x * pos.x + pos.z * pos.z);
+        return dist < this.spawnCourtyardRadius;
+    }
+
+    setCourtyardGateOpen(open) {
+        // No actual gate mesh — just a flag for game logic
+        this.courtyardGateOpen = open;
+    }
+
+    activateFogPhase(phase) {
+        this.currentFogPhase = phase;
+        const zoneRadius = this.spawnCourtyardRadius || 220;
+        const shrinkAmount = [0, 40, 70, 100][phase] || 0;
+        this.zoneTargetRadius = Math.max(30, zoneRadius - shrinkAmount);
+        return this.zoneTargetRadius;
+    }
+
+    getActiveSafeRadius() {
+        return this.zoneTargetRadius || this.spawnCourtyardRadius || 220;
+    }
+
+    getClosestRadiationZone(x, z) {
+        let closest = null;
+        let closestDist = Infinity;
+        for (const rz of this.radiationZones) {
+            const dx = x - rz.position.x;
+            const dz = z - rz.position.z;
+            const dist = Math.sqrt(dx * dx + dz * dz);
+            if (dist < closestDist) {
+                closestDist = dist;
+                closest = { zone: rz, distance: dist };
+            }
+        }
+        return closestDist < 100 ? closest : null;
+    }
+
+    getRadiationDamageAt(x, z) {
+        for (const rz of this.radiationZones) {
+            const dx = x - rz.position.x;
+            const dz = z - rz.position.z;
+            const dist = Math.sqrt(dx * dx + dz * dz);
+            if (dist < rz.radius) {
+                const intensity = 1 - dist / rz.radius;
+                return rz.damage * intensity;
+            }
+        }
+        return 0;
+    }
+
+    getStructureAtPoint(x, z, radius) {
+        // Check if near any major structure
+        return null;
+    }
+
+    findStructureInteriorPoint(point, type) {
+        return null;
+    }
+
+    getStructureEntryPoint(point, type, playerPos) {
+        return null;
+    }
+
+    findStructureGuardPoint(point, type) {
+        return null;
+    }
+
+    isWalkableAt(x, z) {
+        // Default: walkable everywhere on the arena
+        const dist = Math.sqrt(x * x + z * z);
+        return dist < (this.arenaRadius || 220);
+    }
+
+    raycastGroundY(x, z, radius) {
+        // Return ground Y at position
+        return 0;
+    }
+
+    getSurfaceHeightAt(x, z) {
+        // Simple terrain height approximation
+        const h1 = this.noise?.fbm?.(x * 0.01, z * 0.01, 2) ?? 0;
+        return Math.max(0, h1 * 3);
+    }
+
+    getHeightAt(x, z) {
+        return this.getSurfaceHeightAt(x, z);
+    }
+
+    update(delta, playerPos) {
+        this.updateCulling();
+        if (playerPos) {
+            this.updatePropVisibility(playerPos);
+        }
+    }
+
+    setWetTerrain(wet) {
+        // Could modify materials for wet look
+        // Currently a no-op
+    }
+
+    setRainPuddles(active, center) {
+        // Could spawn puddle meshes
+        // Currently a no-op
+    }
+
+    getOneWayGates() {
+        return [];
+    }
 }
