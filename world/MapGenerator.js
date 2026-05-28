@@ -3231,7 +3231,6 @@ export class MapGenerator {
         }
 
         // Regular trees along connector paths (between gates, not in biome zones)
-        console.log('[MapGen] neutral trees along paths...');
         for (let i = 0; i < 30; i++) {
             const side = Math.floor(Math.random() * 4);
             let x, z;
