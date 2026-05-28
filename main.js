@@ -497,19 +497,8 @@ class Game {
         console.log('[Game] EntityManager created');
         this.lootManager = new LootManager(this.scene, this.map);
         console.log('[Game] LootManager created');
-        console.log('[Game] calling generateChests...');
-        console.log('[Game] lootManager:', typeof this.lootManager, !!this.lootManager);
-        console.log('[Game] generateChests:', typeof this.lootManager?.generateChests);
-        try {
-            console.log('[Game] about to await generateChests...');
-            console.log('[Game] floorTiles:', this.map?.getFloorTiles?.().length);
-            console.log('[Game] spots:', this.map?.getChestSpots?.().length);
-            console.log('[Game] waterLevel:', this.map?.waterLevel);
-            const result = await this.lootManager.generateChests();
-            console.log('[Game] chests generated, result:', typeof result);
-        } catch (err) {
-            console.warn('[Game] generateChests failed:', err.message);
-        }
+        await this.lootManager.generateChests?.();
+        console.log('[Game] chests generated');
         this.entityManager.physicsRef = this.physics;
         this.scene.userData.entityManager = this.entityManager;
 
