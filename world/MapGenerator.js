@@ -3280,7 +3280,6 @@ export class MapGenerator {
         }
 
         // === Ponds in forest ===
-        console.log('[MapGen] placing ponds...');
         for (let i = 0; i < 6; i++) {
             const x = 80 + (Math.random() - 0.5) * 50;
             const z = -80 + (Math.random() - 0.5) * 50;
