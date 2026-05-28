@@ -808,8 +808,6 @@ class Game {
                 total++;
             }
         });
-        console.log(`DEBUG: Total map objects in scene: ${total}; renderables: ${renderables}`);
-        Object.keys(biomeCount).forEach((k) => console.log(`Biome Spawned: ${k} Count: ${biomeCount[k]}`));
         return total;
     }
 
