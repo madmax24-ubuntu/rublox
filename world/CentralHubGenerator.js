@@ -172,8 +172,6 @@ export default class CentralHubGenerator {
      * Creates 24 mini-figures arranged in a perfect circle
      */
     _createMiniFigures() {
-        console.log('[CentralHub] Creating 24 mini-figures...');
-        
         const figureGroup = new THREE.Group();
         const figureCount = 24;
         const angleStep = (Math.PI * 2) / figureCount;
