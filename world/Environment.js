@@ -18,9 +18,7 @@ export class Environment {
         this.hemi = null;
         this.nightAmbientColor = new THREE.Color(0x0b132b);
         this.targetExposure = 1;
-        console.log('[Environment] calling init...');
         this.init();
-        console.log('[Environment] constructor done');
     }
 
     init() {
