@@ -2260,10 +2260,11 @@ export class MapGenerator {
 
     // ===================== RADIATION ZONES =====================
     async buildRadiationZones() {
-        const zones = [
-            { type: 'high', cx: -80, cz: -80, radius: 50, damage: 0.3, color: 0xff4444 },
-            { type: 'medium', cx: -80, cz: 80, radius: 35, damage: 0.15, color: 0xff8844 },
-            { type: 'low', cx: 80, cz: -80, radius: 30, damage: 0.1, color: 0xffaa44 }
+       const zones = [
+            { type: 'high', cx: -80, cz: -80, radius: 50, damage: 0.3, color: 0xff4444 },    // Wastes
+            { type: 'medium', cx: -80, cz: 80, radius: 35, damage: 0.15, color: 0xff8844 },  // Citadel
+            { type: 'low', cx: 80, cz: -80, radius: 30, damage: 0.1, color: 0xffaa44 },      // Forest
+            { type: 'low', cx: 80, cz: 80, radius: 25, damage: 0.08, color: 0xffcc44 }       // Crystal
         ];
 
         for (const z of zones) {
