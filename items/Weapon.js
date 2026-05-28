@@ -548,10 +548,18 @@ export class Weapon {
             mesh = createArrowProjectileMesh();
             knockback = 6;
             gravity = 0.02;
-        } else if (type === 'pistol' || type === 'rifle' || type === 'machinegun' || type === 'shotgun') {
+       } else if (type === 'pistol' || type === 'rifle' || type === 'machinegun' || type === 'shotgun' || type === 'sniper') {
             const m = getMaterial('proj_bullet', () => new THREE.MeshStandardMaterial({ color: 0xffd54f, emissive: 0xffc107, emissiveIntensity: 0.35, roughness: 0.28, metalness: 0.35, flatShading: true }));
             mesh = createPart(getGeom('proj_bullet', () => new THREE.CylinderGeometry(0.04, 0.04, 0.3, 8)), m, 0, 0, 0, 0, 0, Math.PI / 2);
-            knockback = type === 'rifle' || type === 'machinegun' ? 4 : 3;
+            knockback = type === 'sniper' ? 7 : (type === 'rifle' || type === 'machinegun' ? 4 : 3);
+        } else if (type === 'smg') {
+            const m = getMaterial('proj_smg', () => new THREE.MeshStandardMaterial({ color: 0xffaa22, emissive: 0xff8800, emissiveIntensity: 0.25, roughness: 0.3, metalness: 0.3, flatShading: true }));
+            mesh = createPart(getGeom('proj_smg', () => new THREE.CylinderGeometry(0.03, 0.03, 0.22, 8)), m, 0, 0, 0, 0, 0, Math.PI / 2);
+            knockback = 3;
+        } else if (type === 'crossbow') {
+            mesh = createArrowProjectileMesh();
+            knockback = 7;
+            gravity = 0.025;
         } else if (type === 'flame') {
             const m = getMaterial('proj_flame', () => new THREE.MeshStandardMaterial({ color: 0xff6d00, emissive: 0xff8f00, emissiveIntensity: 0.68, roughness: 0.45, transparent: true, opacity: 0.82, flatShading: true }));
             mesh = createPart(getGeom('proj_flame', () => new THREE.ConeGeometry(0.2, 0.6, 6)), m, 0, 0, 0, 0, 0, Math.PI / 2);
