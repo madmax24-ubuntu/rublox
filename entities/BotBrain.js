@@ -642,8 +642,15 @@ export class BotBrain {
         let bestScore = Infinity;
         for (const c of colliders) {
             if (!c || c.enabled === false || c.walkable) continue;
-            const cx = (c.min.x + c.max.x) * 0.5;
-            const cz = (c.min.z + c.max.z) * 0.5;
+            let cMin, cMax;
+            if (c.min && c.max) {
+                cMin = c.min; cMax = c.max;
+            } else {
+                cMin = new THREE.Vector3(c.position.x - c.size.x / 2, c.position.y - c.size.y / 2, c.position.z - c.size.z / 2);
+                cMax = new THREE.Vector3(c.position.x + c.size.x / 2, c.position.y + c.size.y / 2, c.position.z + c.size.z / 2);
+            }
+            const cx = (cMin.x + cMax.x) * 0.5;
+            const cz = (cMin.z + cMax.z) * 0.5;
             if (!map?.isWalkableAt?.(cx, cz)) continue;
             const dBot = Math.hypot(bot.position.x - cx, bot.position.z - cz);
             if (dBot < 3 || dBot > 46) continue;
