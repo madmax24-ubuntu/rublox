@@ -3311,7 +3311,6 @@ export class MapGenerator {
         }
 
         this.reportProgress(0.88, 'Декорации и указатели');
-        console.log('[MapGen] biome trees done');
         await _yield();
     }
 
