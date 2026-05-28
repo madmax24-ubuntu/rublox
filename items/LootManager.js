@@ -103,7 +103,8 @@ export class LootManager {
             return;
         }
 
-        for (let i = 0; i < chestCount; i++) {
+        let failCount = 0;
+        for (let i = 0; i < chestCount && failCount < chestCount * 3; i++) {
             const angle = Math.random() * Math.PI * 2;
             const distance = 40 + Math.random() * 150;
             const x = Math.cos(angle) * distance;
@@ -111,7 +112,7 @@ export class LootManager {
             const y = this.getChestPlacementY(x, z);
 
             if (y < this.mapGenerator.waterLevel + 1) {
-                i--;
+                failCount++;
                 continue;
             }
 
