@@ -166,7 +166,7 @@ export class MapGenerator {
 
     // ---- Tracked PointLight helper ----
     _createPointLight(color, intensity, distance) {
-        const light = new THREE.PointLight(color, intensity, distance);
+        const light = this._createPointLight(color, intensity, distance);
         this._allPointLights.push(light);
         return light;
     }
@@ -401,7 +401,7 @@ export class MapGenerator {
             // Gate light
             const lightColor = gp.x < -10 ? 0xcc8844 : gp.x > 10 ? 0x44aacc :
                               gp.z < -10 ? 0xcc4444 : 0x44cc44;
-            const gateLight = new THREE.PointLight(lightColor, 0.5, 8);
+            const gateLight = this._createPointLight(lightColor, 0.5, 8);
             gateLight.position.set(gp.x, 4, gp.z);
             this.scene.add(gateLight);
             this.animatedObjects.push({ type: 'glow', light: gateLight, baseIntensity: 0.5 });
@@ -763,7 +763,7 @@ export class MapGenerator {
             }
 
           // Loot glow
-            const glowLight = new THREE.PointLight(0xffcc44, 0.5, 10);
+            const glowLight = this._createPointLight(0xffcc44, 0.5, 10);
             glowLight.position.set(x, 3, z);
             this.scene.add(glowLight);
         }
@@ -1021,7 +1021,7 @@ export class MapGenerator {
                     baseOpacity: 0.6
                 });
 
-                const lanternLight = new THREE.PointLight(0xffcc66, 0.3, 8);
+                const lanternLight = this._createPointLight(0xffcc66, 0.3, 8);
                lanternLight.position.set(lx, 3.5, lz);
                 this.scene.add(lanternLight);
             }
@@ -1212,7 +1212,7 @@ export class MapGenerator {
         }
 
       // Citadel light
-        const citLight = new THREE.PointLight(0xffeedd, 1, 40);
+        const citLight = this._createPointLight(0xffeedd, 1, 40);
         citLight.position.set(cx, 8, cz);
         this.scene.add(citLight);
         await _yield();
@@ -1355,14 +1355,14 @@ export class MapGenerator {
             }
 
             // Cave light
-            const caveLight = new THREE.PointLight(COLOR.crystalGlow, 0.6, 12);
+            const caveLight = this._createPointLight(COLOR.crystalGlow, 0.6, 12);
             caveLight.position.set(cx2, 3, cz2);
             this.scene.add(caveLight);
             if ((c % 2) === 0) await _yield();
         }
 
         // Crystal glow
-        const cryLight = new THREE.PointLight(COLOR.crystalGlow, 1, 50);
+        const cryLight = this._createPointLight(COLOR.crystalGlow, 1, 50);
         cryLight.position.set(cx, 5, cz);
         this.scene.add(cryLight);
         await _yield();
@@ -1552,7 +1552,7 @@ export class MapGenerator {
         }
 
         // Wastes light
-        const wastLight = new THREE.PointLight(0xff6633, 0.8, 50);
+        const wastLight = this._createPointLight(0xff6633, 0.8, 50);
         wastLight.position.set(cx, 5, cz);
         this.scene.add(wastLight);
         await _yield();
@@ -1704,7 +1704,7 @@ export class MapGenerator {
         }
 
         // Forest light
-        const foreLight = new THREE.PointLight(0x44ff88, 0.6, 50);
+        const foreLight = this._createPointLight(0x44ff88, 0.6, 50);
         foreLight.position.set(cx, 5, cz);
         this.scene.add(foreLight);
         await _yield();
@@ -1950,7 +1950,7 @@ export class MapGenerator {
             });
 
             // Loot glow light
-            const lootLight = new THREE.PointLight(0xffdd44, 0.4, 8);
+            const lootLight = this._createPointLight(0xffdd44, 0.4, 8);
             lootLight.position.set(lx, 2, lz);
             this.scene.add(lootLight);
         }
@@ -1988,7 +1988,7 @@ export class MapGenerator {
             this.scene.add(flame);
 
             // Fire light
-            const fireLight = new THREE.PointLight(0xff6622, 0.6, 12);
+            const fireLight = this._createPointLight(0xff6622, 0.6, 12);
             fireLight.position.set(fx, 2, fz);
             this.scene.add(fireLight);
 
@@ -2239,7 +2239,7 @@ export class MapGenerator {
             this.scene.add(wall);
 
             // Light
-            const light = new THREE.PointLight(0x4488ff, 0.3, p.outerRadius);
+            const light = this._createPointLight(0x4488ff, 0.3, p.outerRadius);
             this.scene.add(light);
 
             this.fogZones.push({
@@ -2293,7 +2293,7 @@ export class MapGenerator {
             this.scene.add(ground);
 
             // Light
-            const light = new THREE.PointLight(z.color, 0.3, z.radius);
+            const light = this._createPointLight(z.color, 0.3, z.radius);
             light.position.set(z.cx, 5, z.cz);
             this.scene.add(light);
 
@@ -2528,13 +2528,13 @@ export class MapGenerator {
 
         // Crystal glow tree gets point light
         if (type === 'glowing') {
-            const glow = new THREE.PointLight(0x44ff88, 0.5, 8);
+            const glow = this._createPointLight(0x44ff88, 0.5, 8);
             glow.position.set(x, y + height, z);
             this.scene.add(glow);
             this.animatedObjects.push({ type: 'glow', light: glow, baseIntensity: 0.5 });
         }
         if (type === 'crystal') {
-            const glow = new THREE.PointLight(0x44aacc, 0.4, 6);
+            const glow = this._createPointLight(0x44aacc, 0.4, 6);
             glow.position.set(x, y + height, z);
             this.scene.add(glow);
             this.animatedObjects.push({ type: 'glow', light: glow, baseIntensity: 0.4 });
@@ -2820,7 +2820,7 @@ export class MapGenerator {
 
             // Glow light
             if (Math.random() > 0.5) {
-                const glow = new THREE.PointLight(capColor, 0.2, 3);
+                const glow = this._createPointLight(capColor, 0.2, 3);
                 glow.position.y = mSize * 2.5;
                 group.add(glow);
                 this.animatedObjects.push({ type: 'glow', light: glow, baseIntensity: 0.2 });
@@ -2870,7 +2870,7 @@ export class MapGenerator {
 
             // Small glow
             if (Math.random() > 0.6) {
-                const glow = new THREE.PointLight(crystalColor, 0.3, 5);
+                const glow = this._createPointLight(crystalColor, 0.3, 5);
                 glow.position.copy(crystal.position);
                 glow.position.y += cHeight * 0.3;
                 this.scene.add(glow);
@@ -2978,7 +2978,7 @@ export class MapGenerator {
             this.scene.add(orb);
 
             // Glow light
-            const glow = new THREE.PointLight(color, 0.3, 6);
+            const glow = this._createPointLight(color, 0.3, 6);
             glow.position.set(mx, 2.8, mz);
             this.scene.add(glow);
             this.animatedObjects.push({ type: 'glow', light: glow, baseIntensity: 0.3 });
@@ -3030,7 +3030,7 @@ export class MapGenerator {
         this.scene.add(orb);
 
         // Light
-        const glow = new THREE.PointLight(color, 0.4, 5);
+        const glow = this._createPointLight(color, 0.4, 5);
         glow.position.set(x, 1.8, z);
         this.scene.add(glow);
         this.animatedObjects.push({ type: 'glow', light: glow, baseIntensity: 0.4 });
