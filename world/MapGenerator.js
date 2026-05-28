@@ -3118,8 +3118,7 @@ export class MapGenerator {
             if (i % 15 === 0) await _yield();
         }
 
-        // === Scatter debris clusters ===
-        console.log('[MapGen] scattering debris...');
+       // === Scatter debris clusters ===
         for (let i = 0; i < 40; i++) {
             const angle = Math.random() * Math.PI * 2;
             const r = 15 + Math.random() * 170;
