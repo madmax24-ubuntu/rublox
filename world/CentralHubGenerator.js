@@ -46,8 +46,6 @@ export default class CentralHubGenerator {
      * Creates the mosaic plinth base
      */
     _createPlinth() {
-        console.log('[CentralHub] Creating plinth...');
-        
         const plinthGroup = new THREE.Group();
         
         // Мозаичная основа (сектора)
