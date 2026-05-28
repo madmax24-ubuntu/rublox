@@ -1,0 +1,531 @@
+Debug Map Test - Отчёт
+════════════════════════════════════════════════════════════
+Время: 28.05.2026, 23:07:14
+Время генерации: 0с
+Скриншотов: 13
+Ошибок логов: 6
+
+Последовательность событий:
+  1. game_start (Начало игры)
+  2. arena (Арена)
+  3. map_start (Начало генерации)
+  4. cornucopia (Корнукопия)
+  5. inner_ring (Внутреннее кольцо)
+  6. biome_paths (Пути биомов)
+  7. citadel (Руины Цитадели)
+  8. crystal (Хрустальная гротовка)
+  9. wastes (Пылающие пустоши)
+  10. forest (Светящийся лес)
+  11. particles (Системы частиц)
+  12. decorations (Декорации)
+  13. biome_trees (Деревья биомов)
+  14. traps (Ловушки)
+  15. fog (Зоны тумана)
+  16. radiation (Радиационные зоны)
+  17. loot (Лут)
+  18. map_ready (Карта готова)
+
+Скриншоты:
+  1. [23:06:34] menu (none) - Меню
+  2. [23:06:36] game_start (spawn_pad) - Начало игры
+  3. [23:06:37] map_ready (overview_high) - Карта готова
+  4. [23:06:38] game_started (spawn_pad) - Начало игры
+  5. [23:06:39] citadel (citadel_center) - Руины Цитадели
+  6. [23:06:44] decorations (center_path) - Декорации
+  7. [23:06:50] traps (gate_north) - Ловушки
+  8. [23:07:08] final (citadel_center) - Цитадель центр
+  9. [23:07:09] final (crystal_center) - Кристальная гротовка
+  10. [23:07:10] final (wastes_center) - Пустоши центр
+  11. [23:07:11] final (forest_center) - Светящийся лес
+  12. [23:07:12] final (edge_ne) - Арена край СВ
+  13. [23:07:14] final (edge_sw) - Арена край ЮЗ
+
+Полные логи:
+════════════════════════════════════════════════════════════
+[23:06:33] [LOG] DEBUG: Checking game object properties...
+[23:06:33] [LOG]   camera: false undefined
+[23:06:33] [LOG]   scene: false undefined
+[23:06:34] [LOG] [Game] startGame() called, initialized: false
+[23:06:34] [LOG] 🔧 Creating camera...
+[23:06:34] [LOG] Camera options: {"fov":75,"aspect":1.7777777777777777,"near":0.1,"far":5000}
+[23:06:34] [LOG] ✅ Camera created at position: 0 0 0
+[23:06:34] [LOG] [Game] Stage 1 done (Three.js setup)
+[23:06:34] [LOG] [Game] Input created
+[23:06:34] [LOG] [Game] AudioSynth created
+[23:06:34] [LOG] [Game] HUD created
+[23:06:34] [LOG] [Game] Creating Environment...
+[23:06:34] [LOG] [Environment] constructor start
+[23:06:34] [LOG] [Environment] calling init...
+[23:06:34] [LOG] [Environment] constructor done
+[23:06:34] [LOG] [Game] Environment done
+[23:06:34] [LOG] [Game] Yielding 100ms before map...
+[23:06:34] [LOG] [Game] Yield done, creating MapGenerator...
+[23:06:34] [LOG] [MapGen] constructor starting...
+[23:06:34] [LOG] [MapGen] scene stored
+[23:06:34] [LOG] [Game] MapGenerator instance created
+[23:06:34] [LOG] [MapGen] generate() starting
+[23:06:34] [LOG] [MapGen] buildArenaFloor() starting
+[23:06:34] [LOG] [MapGen] building zone dividers...
+[23:06:34] [LOG] [MapGen] arena floor done
+[23:06:34] [LOG] [MapGen] forcefield done
+[23:06:34] [LOG] [MapGen] yielding 100ms before cornucopia...
+[23:06:34] [LOG] [Game] waiting for map ready...
+[23:06:34] [LOG] [MapGen] buildCornucopia START
+[23:06:35] [LOG] [MapGen] buildInnerRing yield1
+[23:06:35] [LOG] [MapGen] buildInnerRing yield2
+[23:06:35] [LOG] [MapGen] buildInnerRing yield3
+[23:06:35] [LOG] [MapGen] cornucopia done
+[23:06:35] [LOG] [MapGen] yielding 500ms before inner ring...
+[23:06:36] [LOG] [MapGen] inner ring done
+[23:06:38] [LOG] [MapGen] biome paths done
+[23:06:38] [LOG] [MapGen] yielding 500ms before citadel...
+[23:06:39] [LOG] [MapGen] starting citadel...
+[23:06:39] [LOG] [MapGen] citadel done
+[23:06:39] [LOG] [MapGen] crystal grotto done
+[23:06:39] [LOG] [MapGen] yielding 500ms before wastes...
+[23:06:40] [LOG] [MapGen] wastes done
+[23:06:40] [LOG] [MapGen] yielding 500ms before forest...
+[23:06:40] [LOG] [MapGen] forest done
+[23:06:40] [LOG] [MapGen] yielding 500ms before bridges...
+[23:06:41] [LOG] [MapGen] bridges done
+[23:06:41] [LOG] [MapGen] about to yield before outposts...
+[23:06:41] [LOG] [MapGen] yield before outposts took 100 ms
+[23:06:41] [LOG] [MapGen] calling buildOuterOutposts...
+[23:06:41] [LOG] [MapGen] buildOuterOutposts took 60 ms
+[23:06:41] [LOG] [MapGen] outer outposts done
+[23:06:41] [LOG] [MapGen] hazard zones done
+[23:06:41] [LOG] [MapGen] loot clusters done
+[23:06:41] [LOG] [MapGen] fire pits done
+[23:06:41] [LOG] [MapGen] particle systems done
+[23:06:41] [LOG] [MapGen] building decorations...
+[23:06:41] [LOG] [MapGen] scattering rocks...
+[23:06:42] [LOG] [MapGen] scattering debris...
+[23:06:42] [LOG] [MapGen] placing barrels and crates...
+[23:06:43] [LOG] [MapGen] placing benches...
+[23:06:43] [LOG] [MapGen] placing signs...
+[23:06:43] [LOG] [MapGen] placing fences...
+[23:06:43] [LOG] [MapGen] building zone boundaries...
+[23:06:43] [LOG] [MapGen] decorations done
+[23:06:43] [LOG] [MapGen] building biome trees...
+[23:06:43] [LOG] [MapGen] citadel trees...
+[23:06:43] [LOG] [MapGen] crystal trees...
+[23:06:44] [LOG] [MapGen] burnt trees...
+[23:06:44] [LOG] [MapGen] glowing trees...
+[23:06:44] [LOG] [MapGen] neutral trees along paths...
+[23:06:44] [LOG] [MapGen] placing mushrooms...
+[23:06:45] [LOG] [MapGen] placing crystal formations...
+[23:06:45] [LOG] [MapGen] placing smoke vents...
+[23:06:45] [LOG] [MapGen] placing ponds...
+[23:06:45] [LOG] [MapGen] placing ruined walls...
+[23:06:46] [LOG] [MapGen] placing loot indicators...
+[23:06:46] [LOG] [MapGen] biome trees done
+[23:06:46] [LOG] [MapGen] biome trees done
+[23:06:46] [LOG] [MapGen] about to yield before traps...
+[23:06:46] [LOG] [MapGen] yield done, calling buildTraps()...
+[23:06:46] [LOG] [MapGen] buildTraps() STARTING
+[23:06:46] [LOG] [MapGen] trap iteration 0
+[23:06:46] [LOG] [MapGen] spike trap 0 done
+[23:06:46] [LOG] [MapGen] trap iteration 1
+[23:06:46] [LOG] [MapGen] spike trap 1 done
+[23:06:46] [LOG] [MapGen] trap iteration 2
+[23:06:46] [LOG] [MapGen] spike trap 2 done
+[23:06:46] [LOG] [MapGen] trap iteration 3
+[23:06:46] [LOG] [MapGen] spike trap 3 done
+[23:06:46] [LOG] [MapGen] trap iteration 4
+[23:06:46] [LOG] [MapGen] spike trap 4 done
+[23:06:47] [LOG] [MapGen] trap iteration 5
+[23:06:47] [LOG] [MapGen] spike trap 5 done
+[23:06:47] [LOG] [MapGen] trap iteration 6
+[23:06:47] [LOG] [MapGen] spike trap 6 done
+[23:06:47] [LOG] [MapGen] trap iteration 7
+[23:06:47] [LOG] [MapGen] spike trap 7 done
+[23:06:47] [LOG] [MapGen] trap iteration 8
+[23:06:47] [LOG] [MapGen] spike trap 8 done
+[23:06:47] [LOG] [MapGen] trap iteration 9
+[23:06:47] [LOG] [MapGen] spike trap 9 done
+[23:06:47] [LOG] [MapGen] trap iteration 10
+[23:06:47] [LOG] [MapGen] spike trap 10 done
+[23:06:47] [LOG] [MapGen] trap iteration 11
+[23:06:47] [LOG] [MapGen] spike trap 11 done
+[23:06:47] [LOG] [MapGen] trap iteration 12
+[23:06:47] [LOG] [MapGen] spike trap 12 done
+[23:06:47] [LOG] [MapGen] trap iteration 13
+[23:06:47] [LOG] [MapGen] spike trap 13 done
+[23:06:47] [LOG] [MapGen] trap iteration 14
+[23:06:47] [LOG] [MapGen] spike trap 14 done
+[23:06:48] [LOG] [MapGen] trap iteration 15
+[23:06:48] [LOG] [MapGen] spike trap 15 done
+[23:06:48] [LOG] [MapGen] trap iteration 16
+[23:06:48] [LOG] [MapGen] spike trap 16 done
+[23:06:48] [LOG] [MapGen] trap iteration 17
+[23:06:48] [LOG] [MapGen] spike trap 17 done
+[23:06:48] [LOG] [MapGen] trap iteration 18
+[23:06:48] [LOG] [MapGen] spike trap 18 done
+[23:06:48] [LOG] [MapGen] trap iteration 19
+[23:06:48] [LOG] [MapGen] spike trap 19 done
+[23:06:48] [LOG] [MapGen] bear traps starting
+[23:06:48] [LOG] [MapGen] bear trap 0 done
+[23:06:48] [LOG] [MapGen] bear trap 1 done
+[23:06:48] [LOG] [MapGen] bear trap 2 done
+[23:06:48] [LOG] [MapGen] bear trap 3 done
+[23:06:49] [LOG] [MapGen] bear trap 4 done
+[23:06:49] [LOG] [MapGen] bear trap 5 done
+[23:06:49] [LOG] [MapGen] bear trap 6 done
+[23:06:49] [LOG] [MapGen] bear trap 7 done
+[23:06:49] [LOG] [MapGen] bear trap 8 done
+[23:06:49] [LOG] [MapGen] bear trap 9 done
+[23:06:49] [LOG] [MapGen] traps yield done
+[23:06:49] [LOG] [MapGen] traps done
+[23:06:49] [LOG] [MapGen] fog zones done
+[23:06:49] [LOG] [MapGen] yielding 3s before radiation...
+[23:06:50] [LOG] [MapGen] resuming after 3s yield
+[23:06:50] [LOG] [MapGen] radiation zones done
+[23:06:50] [LOG] [MapGen] yielding 1s before loot data...
+[23:06:50] [LOG] [MapGen] resuming after loot yield
+[23:06:50] [LOG] [MapGen] loot data done
+[23:06:51] [LOG] [MapGen] resolving immediately...
+[23:06:51] [LOG] [MapGen] ready resolved!
+[23:06:51] [LOG] [Game] map ready!
+[23:06:51] [LOG] [Game] setupLOD: undefined
+[23:06:51] [LOG] [Game] after setupLOD
+[23:06:51] [LOG] [Game] after enhancedCulling
+[23:06:51] [LOG] [Game] creating Physics...
+[23:06:51] [LOG] [Game] Physics created
+[23:06:51] [LOG] [Game] creating Zone...
+[23:06:51] [LOG] [Game] Zone created
+[23:06:51] [LOG] [Game] radiation rain effect init done
+[23:06:51] [LOG] [Game] weather rain effect init done
+[23:06:51] [LOG] [Game] creating EntityManager...
+[23:06:51] [LOG] [Game] EntityManager created
+[23:06:51] [LOG] [Game] LootManager created
+[23:06:51] [LOG] [Game] chests generated
+[23:06:51] [LOG] [Game] initializeGame() COMPLETE
+[23:06:51] [LOG] [Game] initAsync() completed, initialized: true
+[23:06:51] [LOG] DEBUG: Total map objects in scene: 0; renderables: 0
+[23:06:51] [LOG] [Game] FIRST render: renderer=WebGLRenderer renderMethod=function renderName=
+[23:06:51] [LOG] [Game] Camera: pos=0,500,0 near=0.1 far=5000
+[23:06:51] [LOG] [Game] Scene children: 3442 mapGround=3442
+[23:06:51] [LOG] [Game] Large mesh: type=PlaneGeometry pos=0,0,0 size=440x440x?
+[23:06:51] [LOG] [Game] Large mesh: type=PlaneGeometry pos=-70,0.01,70 size=120x120x?
+[23:06:51] [LOG] [Game] Large mesh: type=PlaneGeometry pos=70,0.01,70 size=110x120x?
+[23:06:51] [LOG] [Game] Large mesh: type=PlaneGeometry pos=-70,0.01,-70 size=120x110x?
+[23:06:51] [LOG] [Game] Large mesh: type=PlaneGeometry pos=70,0.01,-70 size=110x120x?
+[23:06:51] [LOG] [THREE.WebGLRenderer.render #1]
+[23:06:51] [ERROR] THREE.WebGLProgram: Shader Error 0 - VALIDATE_STATUS false
+
+Program Info Log: FRAGMENT shader uniforms count exceeds MAX_FRAGMENT_UNIFORM_VECTORS(1024)
+ 
+
+
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [ERROR] THREE.WebGLProgram: Shader Error 1282 - VALIDATE_STATUS false
+
+Program Info Log: FRAGMENT shader uniforms count exceeds MAX_FRAGMENT_UNIFORM_VECTORS(1024)
+ 
+
+
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [ERROR] THREE.WebGLProgram: Shader Error 1282 - VALIDATE_STATUS false
+
+Program Info Log: FRAGMENT shader uniforms count exceeds MAX_FRAGMENT_UNIFORM_VECTORS(1024)
+ 
+
+
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [ERROR] THREE.WebGLProgram: Shader Error 1282 - VALIDATE_STATUS false
+
+Program Info Log: FRAGMENT shader uniforms count exceeds MAX_FRAGMENT_UNIFORM_VECTORS(1024)
+ 
+
+
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:51] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [ERROR] THREE.WebGLProgram: Shader Error 1282 - VALIDATE_STATUS false
+
+Program Info Log: FRAGMENT shader uniforms count exceeds MAX_FRAGMENT_UNIFORM_VECTORS(1024)
+ 
+
+
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [ERROR] THREE.WebGLProgram: Shader Error 1282 - VALIDATE_STATUS false
+
+Program Info Log: FRAGMENT shader uniforms count exceeds MAX_FRAGMENT_UNIFORM_VECTORS(1024)
+ 
+
+
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [LOG] [GameLoop] starting, isRunning=true
+[23:06:52] [LOG] [THREE.WebGLRenderer.render #2]
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [LOG] [GameLoop] first frame: update=function render=function paused=false hidden=false
+[23:06:52] [LOG] [THREE.WebGLRenderer.render #3]
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: INVALID_OPERATION: useProgram: program not valid
+[23:06:52] [WARNING] WebGL: too many errors, no more errors will be reported to the console for this context.
+[23:06:52] [LOG] [THREE.WebGLRenderer.render #4]
+[23:06:52] [LOG] [THREE.WebGLRenderer.render #5]
+[23:06:52] [LOG] [THREE.WebGLRenderer.render #6]
+[23:06:52] [LOG] [THREE.WebGLRenderer.render #7]
+[23:06:52] [LOG] [THREE.WebGLRenderer.render #8]
+[23:06:52] [LOG] [THREE.WebGLRenderer.render #9]
+[23:06:52] [LOG] [THREE.WebGLRenderer.render #10]
+[23:06:57] [LOG] [THREE.WebGLRenderer.render #120]
+[23:06:57] [LOG] [GameLoop] frame#120
+[23:07:01] [LOG] [THREE.WebGLRenderer.render #240]
+[23:07:01] [LOG] [GameLoop] frame#240
+[23:07:05] [LOG] [THREE.WebGLRenderer.render #360]
+[23:07:05] [LOG] [GameLoop] frame#360
+[23:07:08] [LOG] [THREE.WebGLRenderer.render #480]
+[23:07:08] [LOG] [GameLoop] frame#480
+[23:07:10] [LOG] [THREE.WebGLRenderer.render #600]
+[23:07:10] [LOG] [GameLoop] frame#600
+[23:07:12] [LOG] [THREE.WebGLRenderer.render #720]
+[23:07:12] [LOG] [GameLoop] frame#720
+[23:07:13] [LOG] [THREE.WebGLRenderer.render #840]
+[23:07:13] [LOG] [GameLoop] frame#840
