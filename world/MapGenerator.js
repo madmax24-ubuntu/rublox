@@ -145,6 +145,9 @@ export class MapGenerator {
         this.animatedObjects = [];
         this.waterMeshes = [];
         this.particleSystems = [];
+        this._allPointLights = [];
+        this._maxVisiblePointLights = 10;
+        this._maxLightDistance = 120;
         this.noise = new SimplexNoise(42);
         this.heightMap = null;
         this.currentFogPhase = 0;
