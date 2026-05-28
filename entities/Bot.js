@@ -1087,8 +1087,16 @@ export class Bot {
         for (const box of nearby) {
             if (box.enabled === false) continue;
             if (box.walkable) continue;
-            const closestX = Math.max(box.min.x, Math.min(box.max.x, this.position.x));
-            const closestZ = Math.max(box.min.z, Math.min(box.max.z, this.position.z));
+            let min, max;
+            if (box.min && box.max) {
+                min = box.min;
+                max = box.max;
+            } else {
+                min = new THREE.Vector3(box.position.x - box.size.x / 2, box.position.y - box.size.y / 2, box.position.z - box.size.z / 2);
+                max = new THREE.Vector3(box.position.x + box.size.x / 2, box.position.y + box.size.y / 2, box.position.z + box.size.z / 2);
+            }
+            const closestX = Math.max(min.x, Math.max(min.z, Math.min(max.x, this.position.x)));
+            const closestZ = Math.min(max.z, Math.min(max.x, this.position.z));
             const dx = this.position.x - closestX;
             const dz = this.position.z - closestZ;
             const distSq = dx * dx + dz * dz;
