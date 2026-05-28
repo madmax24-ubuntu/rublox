@@ -3197,10 +3197,8 @@ export class MapGenerator {
 
     // ---- Biome-specific trees ----
     async buildBiomeTrees() {
-        console.log('[MapGen] building biome trees...');
 
         // Ruined Citadel: dead/partially dead trees
-        console.log('[MapGen] citadel trees...');
         for (let i = 0; i < 25; i++) {
             const x = -80 + (Math.random() - 0.5) * 60;
             const z = 80 + (Math.random() - 0.5) * 60;
