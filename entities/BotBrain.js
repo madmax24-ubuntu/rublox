@@ -375,14 +375,27 @@ export class BotBrain {
 
         bot.target = target;
         const dist = bot.position.distanceTo(target.position);
-        const weapon = bot.currentWeapon || bot.fists;
+        let weapon = bot.currentWeapon || bot.fists;
         const weaponType = weapon.type || 'fists';
+        // Ammo check - fallback to knife if out of ammo on ranged weapon
+        if ((weaponType === 'sniper' || weaponType === 'smg' || weaponType === 'crossbow' || weaponType === 'laser' || weaponType === 'machinegun' || weaponType === 'rifle' || weaponType === 'shotgun' || weaponType === 'pistol') && weapon.ammo !== null && weapon.ammo <= 0) {
+            // Switch to backup weapon
+            if (bot._backupWeapon) {
+                weapon = bot._backupWeapon;
+                bot.currentWeapon = weapon;
+                weapon.setVisible?.(true);
+            } else {
+                // Fall back to knife
+                weapon = bot.fists;
+            }
+        }
+        const updatedType = weapon.type || 'fists';
         // Weapon-specific range adjustments
         let effectiveRange = Math.max(2.7, (weapon.range || 3) * 0.95);
-        if (weaponType === 'sniper') effectiveRange *= 1.3;
-        if (weaponType === 'smg') effectiveRange *= 0.8;
-        if (weaponType === 'crossbow') effectiveRange *= 1.1;
-        if (weaponType === 'shotgun') effectiveRange *= 0.88;
+        if (updatedType === 'sniper') effectiveRange *= 1.3;
+        if (updatedType === 'smg') effectiveRange *= 0.8;
+        if (updatedType === 'crossbow') effectiveRange *= 1.1;
+        if (updatedType === 'shotgun') effectiveRange *= 0.88;
 
         bot.lookAt(target.position);
         if (dist <= effectiveRange) {
