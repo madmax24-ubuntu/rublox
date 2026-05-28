@@ -3292,6 +3292,9 @@ export class MapGenerator {
                     }
                     break;
                 case 'glow':
+                    if (obj.light) {
+                        obj.light.intensity = (obj.baseIntensity || 0.3) * (0.7 + Math.sin(deltaTime * 2.5) * 0.3);
+                    }
                     if (obj.mesh && obj.mesh.material.opacity !== undefined) {
                         const pulse = 0.3 + Math.sin(deltaTime * 2 + Math.random()) * 0.15;
                         obj.mesh.material.opacity = Math.max(0.2, pulse);
