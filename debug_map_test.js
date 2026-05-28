@@ -1,82 +1,51 @@
-// Debug Map Test Script
+// Debug Map Test - Автоматический тест карты с несколькими камерами
 // Запуск: node debug_map_test.js
-// Требует: playwright, three.js
 
 const { chromium } = require('playwright');
-const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
 
-// Create output directory
 const outputDir = path.join(__dirname, 'debug_output');
 if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
 }
 
-// Camera positions for map analysis
 const cameraPositions = [
-    // High overview
-    { name: 'top_center', x: 0, y: 300, z: 0, rx: 0, ry: 0, rz: 0, fov: 90 },
-    { name: 'top_left', x: -100, y: 250, z: 100, rx: 0, ry: 0, rz: 0, fov: 60 },
-    { name: 'top_right', x: 100, y: 250, z: 100, rx: 0, ry: 0, rz: 0, fov: 60 },
-    { name: 'top_front', x: 0, y: 200, z: -150, rx: 0, ry: 0, rz: 0, fov: 75 },
-    { name: 'top_back', x: 0, y: 200, z: 150, rx: 0, ry: 0, rz: 0, fov: 75 },
+    // Высокие обзоры
+    { name: 'top_center', x: 0, y: 300, z: 0, fov: 90, color: '#ff0000' },
+    { name: 'top_left', x: -100, y: 250, z: 100, fov: 60, color: '#ff4400' },
+    { name: 'top_right', x: 100, y: 250, z: 100, fov: 60, color: '#ff8800' },
+    { name: 'top_front', x: 0, y: 200, z: -150, fov: 75, color: '#ffaa00' },
+    { name: 'top_back', x: 0, y: 200, z: 150, fov: 75, color: '#ffcc00' },
 
-    // Biome ground cameras
-    { name: 'citadel_ground', x: -80, y: 25, z: 80, rx: 0, ry: 0, rz: 0, fov: 60 },
-    { name: 'crystal_ground', x: 80, y: 25, z: 80, rx: 0, ry: 0, rz: 0, fov: 60 },
-    { name: 'wastes_ground', x: -80, y: 25, z: -80, rx: 0, ry: 0, rz: 0, fov: 60 },
-    { name: 'forest_ground', x: 80, y: 25, z: -80, rx: 0, ry: 0, rz: 0, fov: 60 },
+    // Биомы на земле
+    { name: 'citadel_ground', x: -80, y: 25, z: 80, fov: 60, color: '#00ff00' },
+    { name: 'crystal_ground', x: 80, y: 25, z: 80, fov: 60, color: '#00ff44' },
+    { name: 'wastes_ground', x: -80, y: 25, z: -80, fov: 60, color: '#00ff88' },
+    { name: 'forest_ground', x: 80, y: 25, z: -80, fov: 60, color: '#00ffcc' },
 
-    // Gate cameras
-    { name: 'gate_north', x: 0, y: 15, z: -25, rx: 0, ry: 0, rz: 0, fov: 60 },
-    { name: 'gate_south', x: 0, y: 15, z: 25, rx: 0, ry: 0, rz: 0, fov: 60 },
-    { name: 'gate_west', x: -25, y: 15, z: 0, rx: 0, ry: 0, rz: 0, fov: 60 },
-    { name: 'gate_east', x: 25, y: 15, z: 0, rx: 0, ry: 0, rz: 0, fov: 60 },
+    // Ворота
+    { name: 'gate_north', x: 0, y: 15, z: -25, fov: 60, color: '#0088ff' },
+    { name: 'gate_south', x: 0, y: 15, z: 25, fov: 60, color: '#0044ff' },
+    { name: 'gate_west', x: -25, y: 15, z: 0, fov: 60, color: '#4400ff' },
+    { name: 'gate_east', x: 25, y: 15, z: 0, fov: 60, color: '#8800ff' },
 
-    // Close-up
-    { name: 'spawn_pad', x: 0, y: 12, z: 0, rx: 0, ry: 0, rz: 0, fov: 70 },
-    { name: 'cornucopia', x: 15, y: 15, z: 15, rx: 0, ry: 0, rz: 0, fov: 65 },
-    { name: 'center_path', x: 0, y: 20, z: 50, rx: 0, ry: 0, rz: 0, fov: 70 },
+    // Ближие ракурсы
+    { name: 'spawn_pad', x: 0, y: 12, z: 0, fov: 70, color: '#cc00ff' },
+    { name: 'cornucopia', x: 15, y: 15, z: 15, fov: 65, color: '#ff00cc' },
+    { name: 'center_path', x: 0, y: 20, z: 50, fov: 70, color: '#ff0088' },
 
-    // Arena edges
-    { name: 'edge_ne', x: 120, y: 60, z: 120, rx: 0, ry: 0, rz: 0, fov: 65 },
-    { name: 'edge_nw', x: -120, y: 60, z: 120, rx: 0, ry: 0, rz: 0, fov: 65 },
-    { name: 'edge_se', x: 120, y: 60, z: -120, rx: 0, ry: 0, rz: 0, fov: 65 },
-    { name: 'edge_sw', x: -120, y: 60, z: -120, rx: 0, ry: 0, rz: 0, fov: 65 },
+    // Края арены
+    { name: 'edge_ne', x: 120, y: 60, z: 120, fov: 65, color: '#ff0044' },
+    { name: 'edge_nw', x: -120, y: 60, z: 120, fov: 65, color: '#ff0066' },
+    { name: 'edge_se', x: 120, y: 60, z: -120, fov: 65, color: '#ff0022' },
+    { name: 'edge_sw', x: -120, y: 60, z: -120, fov: 65, color: '#ff0011' },
 ];
 
-async function startServer(port = 8080) {
-    return new Promise((resolve) => {
-        const { spawn } = require('child_process');
-        const python = process.platform === 'win32' ? 'python' : 'python3';
-        const server = spawn(python, ['-m', 'http.server', port, '--bind', '127.0.0.1']);
-
-        server.stdout.on('data', (data) => {
-            console.log(`[Server] ${data.toString().trim()}`);
-        });
-
-        server.stderr.on('data', (data) => {
-            console.error(`[Server Error] ${data.toString().trim()}`);
-        });
-
-        // Wait for server to start
-        setTimeout(() => {
-            resolve(server);
-        }, 1000);
-    });
-}
-
 async function runDebugTest() {
-    console.log('🔧 Запуск Debug Map Test...');
-    console.log(`📂 Output: ${outputDir}`);
+    console.log('🔧 Запуск Debug Map Test...\n');
+    console.log(`📂 Output: ${outputDir}\n`);
 
-    // Start HTTP server
-    const server = await startServer(8080);
-    console.log('✅ Сервер запущен на http://127.0.0.1:8080\n');
-
-    // Launch Playwright
     const browser = await chromium.launch({
         headless: false,
         slowMo: 0,
@@ -89,152 +58,154 @@ async function runDebugTest() {
 
     const page = await context.newPage();
 
-    // Capture console logs
     const logs = [];
     page.on('console', (msg) => {
         const text = msg.text();
-        const time = new Date().toLocaleTimeString();
-        logs.push({ time, text, type: msg.type() });
-        const color = msg.type() === 'error' ? '❌' : msg.type() === 'warn' ? '⚠️' : '✅';
-        console.log(`[${time}] ${color} ${text}`);
+        logs.push({ time: Date.now(), text, type: msg.type() });
+        const icon = msg.type() === 'error' ? '❌' : msg.type() === 'warn' ? '⚠️' : '✅';
+        console.log(`  ${icon} ${text.substring(0, 120)}`);
     });
 
     page.on('pageerror', (error) => {
-        const time = new Date().toLocaleTimeString();
-        logs.push({ time, text: `PageError: ${error}`, type: 'error' });
-        console.log(`[${time}] ❌ PageError: ${error}`);
+        logs.push({ time: Date.now(), text: `PageError: ${error}`, type: 'error' });
+        console.log(`  ❌ PageError: ${error}`);
     });
 
-    // Navigate to game
+    // Запуск сервера
+    const { spawn } = require('child_process');
+    const python = process.platform === 'win32' ? 'python' : 'python3';
+    const server = spawn(python, ['-m', 'http.server', '8080', '--bind', '127.0.0.1']);
+
+    console.log('⏳ Ожидание запуска сервера...');
+    await new Promise(r => setTimeout(r, 2000));
+
+    // Загрузка игры
     console.log('\n🌐 Загрузка игры...');
     await page.goto('http://127.0.0.1:8080/');
     await page.waitForSelector('.start-btn', { timeout: 10000 });
     console.log('✅ Страница загружена\n');
 
-    // Click start button
+    // Клик по кнопке
     console.log('🚀 Нажимаем "Начать игру"...');
-    const startBtn = await page.$('.start-btn');
-    await startBtn.click();
-    console.log('✅ Клик по кнопке сделан\n');
+    await page.$eval('.start-btn', btn => btn.click());
+    console.log('✅ Клик сделан\n');
 
-    // Wait for map generation
-    console.log('⏳ Ждём генерацию карты...');
+    // Ожидание генерации карты
+    console.log('⏳ Ожидание генерации карты...');
     const startTime = Date.now();
+    let loadingText = '';
 
-    // Monitor loading progress
-    const loadingMonitor = setInterval(async () => {
-        const loadingText = await page.$eval('.loading-screen p', el => el.textContent).catch(() => 'Loading...');
-        const elapsed = Math.round((Date.now() - startTime) / 1000);
-        console.log(`⏱️ ${elapsed}с - ${loadingText}`);
-    }, 2000);
+    const progressInterval = setInterval(async () => {
+        try {
+            loadingText = await page.$eval('.loading-screen p', el => el.textContent) || 'Загрузка...';
+            const elapsed = Math.round((Date.now() - startTime) / 1000);
+            process.stdout.write(`\r  ⏱️ ${elapsed}с - ${loadingText}   `);
+        } catch (e) {
+            // Ignore
+        }
+    }, 1000);
 
-    // Wait for map ready (max 90 seconds)
-    const mapReadyTimeout = setTimeout(() => {
-        clearInterval(loadingMonitor);
-        console.log('❌ Таймаут генерации карты (90с)');
-    }, 90000);
+    // Таймаут 120 секунд
+    const timeout = setTimeout(() => {
+        clearInterval(progressInterval);
+        console.log('\n❌ Таймаут генерации карты (120с)');
+    }, 120000);
 
-    // Wait for loading screen to disappear
-    await page.waitForSelector('.loading-screen', { state: 'hidden', timeout: 90000 }).catch(() => {
-        console.log('✅ Загрузочный экран исчез');
+    // Ожидание исчезновения загрузочного экрана
+    await page.waitForSelector('.loading-screen', { state: 'hidden', timeout: 120000 }).catch(() => {
+        console.log('\n✅ Загрузочный экран исчез');
     });
-    clearTimeout(mapReadyTimeout);
-    clearInterval(loadingMonitor);
 
+    clearTimeout(timeout);
+    clearInterval(progressInterval);
     const mapTime = Math.round((Date.now() - startTime) / 1000);
-    console.log(`✅ Карта сгенерирована за ${mapTime} секунд\n`);
+    console.log(`\n✅ Карта сгенерирована за ${mapTime} секунд\n`);
 
-    // Wait a bit for game to stabilize
-    console.log('⏳ Стабилизация игры...');
+    // Стабилизация
+    console.log('⏳ Стабилизация игры (3с)...');
     await page.waitForTimeout(3000);
     console.log('✅ Игра стабильна\n');
 
-    // Take screenshots from all camera positions
+    // Делаем скриншоты
     console.log('📸 Делаем скриншоты с камер...\n');
+    const results = [];
 
-    const screenshots = [];
+    for (let i = 0; i < cameraPositions.length; i++) {
+        const cam = cameraPositions[i];
+        console.log(`📷 ${cam.name}: (${cam.x}, ${cam.y}, ${cam.z})`);
 
-    for (const camPos of cameraPositions) {
-        const time = Date.now();
-        console.log(`📷 ${camPos.name}: (${camPos.x}, ${camPos.y}, ${camPos.z})`);
+        try {
+            await page.evaluate((cam) => {
+                if (window.gameInstance && window.gameInstance.camera) {
+                    window.gameInstance.camera.position.set(cam.x, cam.y, cam.z);
+                    window.gameInstance.camera.lookAt(0, 0, 0);
+                    window.gameInstance.camera.fov = cam.fov || 60;
+                    window.gameInstance.camera.updateProjectionMatrix();
+                    window.gameInstance.render();
+                }
+            }, cam);
 
-        // Execute camera move and screenshot
-        const result = await page.evaluate(async (cam) => {
-            // Wait for game instance
-            if (!window.gameInstance) {
-                await new Promise(r => setTimeout(r, 1000));
-            }
+            // Сохраняем скриншот
+            const screenshot = await page.screenshot({
+                type: 'png',
+                clip: { x: 0, y: 0, width: 1280, height: 720 }
+            });
 
-            const game = window.gameInstance;
-            if (!game || !game.scene || !game.renderer) {
-                return { error: 'Game not ready' };
-            }
-
-            // Create debug camera
-            const { PerspectiveCamera, BoxGeometry, WebGLRenderer } = await import('three');
-
-            const debugCamera = new PerspectiveCamera(cam.fov || 60, 1, 0.1, 1000);
-            debugCamera.position.set(cam.x, cam.y, cam.z);
-            debugCamera.lookAt(cam.lookAt?.x || 0, cam.lookAt?.y || 0, cam.lookAt?.z || 0);
-
-            // Create debug renderer
-            const debugRenderer = new WebGLRenderer({ antialias: false, alpha: false });
-            debugRenderer.setSize(800, 450);
-            debugRenderer.setClearColor(0x87CEEB, 1);
-            debugRenderer.setClearColor(0x000000, 1); // Black background
-
-            // Render scene
-            debugRenderer.render(game.scene, debugCamera);
-
-            // Get canvas data
-            const canvas = debugRenderer.domElement;
-            const dataURL = canvas.toDataURL('image/png');
-
-            return { success: true, dataURL, width: canvas.width, height: canvas.height };
-        }, { ...camPos, lookAt: { x: 0, y: 0, z: 0 } });
-
-        screenshots.push({ camera: camPos.name, result, time: Date.now() - time });
-
-        if (result.error) {
-            console.log(`  ❌ Ошибка: ${result.error}`);
-        } else if (result.success) {
-            console.log(`  ✅ OK (${result.width}x${result.height})`);
-
-            // Save screenshot
-            const base64Data = result.dataURL.split(',')[1];
-            const fileName = `cam_${camPos.name}.png`;
+            const fileName = `${String(i + 1).padStart(2, '_')}_${cam.name}.png`;
             const filePath = path.join(outputDir, fileName);
+            fs.writeFileSync(filePath, screenshot);
 
-            try {
-                fs.writeFileSync(filePath, base64Data, 'base64');
-                console.log(`  💾 Сохранено: ${fileName}`);
-            } catch (err) {
-                console.log(`  ❌ Не удалось сохранить: ${err.message}`);
-            }
+            console.log(`  ✅ Сохранено: ${fileName}`);
+            results.push({ camera: cam.name, status: 'success', time: Date.now() });
+
+        } catch (err) {
+            console.log(`  ❌ Ошибка: ${err.message}`);
+            results.push({ camera: cam.name, status: 'error', error: err.message, time: Date.now() });
         }
 
-        // Small delay between screenshots
-        await page.waitForTimeout(500);
+        await page.waitForTimeout(200);
     }
 
-    console.log('\n📊 Результаты тестирования:');
-    console.log('═'.repeat(60));
-
-    // Summary
-    const successful = screenshots.filter(s => s.result.success);
-    const failed = screenshots.filter(s => !s.result.success);
-
-    console.log(`\n📷 Всего камер: ${cameraPositions.length}`);
-    console.log(`✅ Успешно: ${successful.length}`);
-    console.log(`❌ Ошибки: ${failed.length}`);
-
-    // Scene info
+    // Информация о сцене
+    console.log('\n📊 Информация о карте:');
     const sceneInfo = await page.evaluate(() => {
         const game = window.gameInstance;
         if (!game) return null;
 
+        let meshCount = 0;
+        let biomeCount = 0;
+        let decorationCount = 0;
+        let zoneDividerCount = 0;
+        let treeCount = 0;
+        let rockCount = 0;
+        let barrelCount = 0;
+        let crateCount = 0;
+
+        game.scene.traverse((obj) => {
+            if (obj.isMesh) {
+                meshCount++;
+            }
+            if (obj.isGroup) {
+                // Count groups
+            }
+            if (obj.userData?.isBiome) biomeCount++;
+            if (obj.userData?.isDecoration) decorationCount++;
+            if (obj.userData?.decorationType === 'zoneDivider') zoneDividerCount++;
+            if (obj.userData?.decorationType === 'tree' || obj.userData?.treeType) treeCount++;
+            if (obj.userData?.decorationType === 'rock') rockCount++;
+            if (obj.userData?.decorationType === 'barrel') barrelCount++;
+            if (obj.userData?.decorationType === 'crate') crateCount++;
+        });
+
         return {
-            sceneChildren: game.scene?.children?.length || 0,
+            meshCount,
+            biomeCount,
+            decorationCount,
+            zoneDividerCount,
+            treeCount,
+            rockCount,
+            barrelCount,
+            crateCount,
             colliders: game.mapGenerator?.colliders?.length || 0,
             animatedObjects: game.mapGenerator?.animatedObjects?.length || 0,
             particleSystems: game.mapGenerator?.particleSystems?.length || 0,
@@ -246,75 +217,72 @@ async function runDebugTest() {
     });
 
     if (sceneInfo) {
-        console.log('\n🗺️ Информация о карте:');
-        console.log(`  📦 Объектов в сцене: ${sceneInfo.sceneChildren}`);
+        console.log(`  📦 Треугольников (mesh): ${sceneInfo.meshCount}`);
+        console.log(`  🗺️ Биом-зон: ${sceneInfo.biomeCount}`);
+        console.log(`  🎨 Декораций: ${sceneInfo.decorationCount}`);
+        console.log(`  🚧 Разделителей зон: ${sceneInfo.zoneDividerCount}`);
+        console.log(`  🌳 Деревьев: ${sceneInfo.treeCount}`);
+        console.log(`  🪨 Камней: ${sceneInfo.rockCount}`);
+        console.log(`  🛢️ Бочек: ${sceneInfo.barrelCount}`);
+        console.log(`  📦 Ящиков: ${sceneInfo.crateCount}`);
         console.log(`  🔒 Коллайдеров: ${sceneInfo.colliders}`);
-        console.log(`  ✨ Анимированных объектов: ${sceneInfo.animatedObjects}`);
-        console.log(`  💧 Систем частиц: ${sceneInfo.particleSystems}`);
-        console.log(`  🌊 Водных объектов: ${sceneInfo.waterMeshes}`);
+        console.log(`  ✨ Анимированных: ${sceneInfo.animatedObjects}`);
+        console.log(`  💧 Частиц: ${sceneInfo.particleSystems}`);
+        console.log(`  🌊 Воды: ${sceneInfo.waterMeshes}`);
         console.log(`  💣 Ловушек: ${sceneInfo.traps}`);
-        console.log(`  🌫️ Зон тумана: ${sceneInfo.fogZones}`);
-        console.log(`  🏁 Падтов спавна: ${sceneInfo.spawnPads}`);
+        console.log(`  🌫️ Тумана: ${sceneInfo.fogZones}`);
+        console.log(`  🏁 Падтов: ${sceneInfo.spawnPads}`);
     }
 
-    // Console logs summary
+    // Итоги логов
     const errors = logs.filter(l => l.type === 'error');
     const warnings = logs.filter(l => l.type === 'warn');
 
-    console.log('\n📋 Логи консоли:');
+    console.log(`\n📋 Логи консоли:`);
     console.log(`  ❌ Ошибки: ${errors.length}`);
     console.log(`  ⚠️ Предупреждения: ${warnings.length}`);
-    console.log(`  ℹ️ Всего записей: ${logs.length}`);
+    console.log(`  ℹ️ Всего: ${logs.length}`);
 
     if (errors.length > 0) {
-        console.log('\n  Ошибки:');
-        errors.slice(0, 10).forEach(err => {
-            console.log(`    ${err.time} - ${err.text.substring(0, 100)}`);
+        console.log(`\n  Первые ошибки:`);
+        errors.slice(0, 5).forEach(err => {
+            console.log(`    ${err.text.substring(0, 100)}`);
         });
-        if (errors.length > 10) {
-            console.log(`    ... и ещё ${errors.length - 10} ошибок`);
-        }
     }
 
-    // Save full log
+    // Сохраняем полный лог
     const logFile = path.join(outputDir, 'full_log.txt');
     fs.writeFileSync(logFile,
-        'Debug Map Test Log\n' +
+        'Debug Map Test - Full Log\n' +
         '═'.repeat(60) + '\n' +
-        `Время: ${new Date().toLocaleString()}\n\n` +
-        `Успешных скриншотов: ${successful.length} из ${cameraPositions.length}\n` +
-        `Ошибок: ${failed.length}\n\n` +
+        `Время: ${new Date().toLocaleString()}\n` +
+        `Время генерации: ${mapTime}с\n\n` +
+        `Успешных камер: ${results.filter(r => r.status === 'success').length} из ${cameraPositions.length}\n` +
+        `Ошибок камер: ${results.filter(r => r.status === 'error').length}\n\n` +
         'Сцена:\n' +
         JSON.stringify(sceneInfo, null, 2) + '\n\n' +
-        'Полные логи:\n' +
+        'Логи:\n' +
         '═'.repeat(60) + '\n' +
-        logs.map(l => `[${l.time}] [${l.type}] ${l.text}`).join('\n') + '\n'
+        logs.map(l => `[${new Date(l.time).toLocaleTimeString()}] [${l.type.toUpperCase()}] ${l.text}`).join('\n') + '\n'
     );
 
-    console.log(`\n💾 Полный лог сохранён: ${logFile}`);
-    console.log(`📁 Скриншоты сохранены в: ${outputDir}\n`);
+    console.log(`\n💾 Полный лог: ${logFile}`);
+    console.log(`📁 Скриншоты: ${outputDir}\n`);
 
-    // Keep browser open for manual inspection
-    console.log('👀 Браузер оставлен открытым для ручной проверки');
-    console.log('   Нажмите Enter для закрытия...');
+    console.log('👀 Браузер оставлен открытым для проверки');
+    console.log('   Нажмите Enter для закрытия...\n');
 
-    // Wait for user input
     await new Promise(resolve => {
-        process.stdin.once('data', () => {
-            resolve();
-        });
-        // Auto-resolve after 60 seconds
+        process.stdin.once('data', () => resolve());
         setTimeout(resolve, 60000);
     });
 
-    // Cleanup
     await browser.close();
     server.kill();
 
     console.log('\n✅ Debug тест завершён!\n');
 }
 
-// Run the test
 runDebugTest().catch(err => {
     console.error('❌ Критическая ошибка:', err);
     process.exit(1);
