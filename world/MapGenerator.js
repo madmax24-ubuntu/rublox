@@ -3391,7 +3391,6 @@ export class MapGenerator {
 
             this._resolveReady();
         } catch (e) {
-            console.error('[MapGen] ERROR in generate:', e.message, e.stack);
             this._resolveReady();
         }
     }
