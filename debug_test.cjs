@@ -99,9 +99,9 @@ async function runDebugTest() {
     const logs = [];
     const screenshots = [];
     let currentCamera = null;
-    let lastScreenshotTime = 0;
     let gameStarted = false;
     let mapReady = false;
+    let _lastScreenshotTime = Date.now();
 
     // Слушаем логи
     page.on('console', (msg) => {
