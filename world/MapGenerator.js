@@ -94,7 +94,7 @@ const COLOR = {
     luminousLeaf: 0x22aa44,
     luminousGlow: 0x44ff88,
     luminousMushroom: 0x8844ff,
-    luminousFloor: 0x5a8a5a,
+    luminousFloor: 0x00cc66,
     luminousPond: 0x226644,
     bridgeWood: 0x8a7a6a,
     fenceWood: 0x7a6a5a,
