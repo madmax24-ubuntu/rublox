@@ -1866,10 +1866,12 @@ export class MapGenerator {
             depthWrite: false
         });
 
-        const points = new THREE.Points(geo, mat);
+       const points = new THREE.Points(geo, mat);
         points.userData.isParticle = true;
         points.userData.velocities = velocities;
         points.userData.type = 'spark';
+        points.userData.cx = cx;
+        points.userData.cz = cz;
         this.scene.add(points);
         this.particleSystems.push(points);
     }
