@@ -116,8 +116,6 @@ export default class CentralHubGenerator {
      * Creates the golden cornucopia (roar of abundance)
      */
     _createCornucopia() {
-        console.log('[CentralHub] Creating cornucopia...');
-        
         const cornucopiaGroup = new THREE.Group();
         
         // Основной корпус рога (спиральная форма)
