@@ -3847,4 +3847,67 @@ export class MapGenerator {
         // Update animated objects
         this.updateZoneAnimations(performance.now() / 1000);
     }
+
+    /**
+     * Update particle systems position
+     */
+    updateParticles(delta) {
+        for (const ps of this.particleSystems) {
+            const pos = ps.geometry?.getAttribute('position');
+            if (!pos || !ps.userData.velocities) continue;
+            const vels = ps.userData.velocities;
+            const type = ps.userData.type;
+
+            for (let i = 0; i < pos.count; i++) {
+                pos.array[i * 3 + 1] += (vels[i]?.y || 0) * delta * 0.5;
+                pos.array[i * 3] += (vels[i]?.x || 0) * delta;
+                pos.array[i * 3 + 2] += (vels[i]?.z || 0) * delta;
+
+                // Reset particles that go out of bounds
+                const cx = ps.userData.cx || 0;
+                const cz = ps.userData.cz || 0;
+                const maxR = type === 'ash' ? 60 : type === 'glow' ? 50 : 30;
+                const dx = pos.array[i * 3] - cx;
+                const dz = pos.array[i * 3 + 2] - cz;
+                if (dx * dx + dz * dz > maxR * maxR || pos.array[i * 3 + 1] > 15 || pos.array[i * 3 + 1] < -2) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const r = Math.random() * Math.min(maxR, 10);
+                    pos.array[i * 3] = cx + Math.cos(angle) * r;
+                    pos.array[i * 3 + 1] = type === 'ash' ? 3 + Math.random() * 8 : 2 + Math.random() * 5;
+                    pos.array[i * 3 + 2] = cz + Math.sin(angle) * r;
+                }
+            }
+            pos.needsUpdate = true;
+        }
+    }
+
+    /**
+     * Update emissive intensity of floor materials based on night/day
+     */
+    setNightEmissive(isNight) {
+        this.scene.traverse(obj => {
+            if (obj.isMesh && obj.userData.isFloor && obj.material) {
+                const mat = Array.isArray(obj.material) ? obj.material[0] : obj.material;
+                if (mat && mat.emissiveIntensity !== undefined) {
+                    mat.emissiveIntensity = isNight ? 0.3 : 0;
+                    if (isNight && !mat.emissive) {
+                        mat.emissive = new THREE.Color(0x111122);
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Get the biome material type at a given position
+     */
+    getTerrainMaterialAt(x, z) {
+        // Simple biome classification based on position
+        const dist = Math.sqrt(x * x + z * z);
+        if (dist < 40) return 'spawn';
+        if (x < -40 && z < -40) return 'waste';
+        if (x > 40 && z > 40) return 'crystal';
+        if (x < -40 && z > 40) return 'forest';
+        return 'arena';
+    }
 }
