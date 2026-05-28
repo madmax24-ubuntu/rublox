@@ -447,7 +447,6 @@ class Game {
        // Создаём остальные объекты, которые зависят от карты
         this.physics = new Physics(this.scene, this.map);
         this.zone = new Zone(this.scene, this.map.size);
-        console.log('[Game] Zone created');
         this.zoneDuration = GAME_CONFIG.zone.durationSeconds;
         this.zoneMinRadius = Math.max(
             GAME_CONFIG.zone.minRadiusAbsolute,
