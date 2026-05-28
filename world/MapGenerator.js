@@ -3264,7 +3264,6 @@ export class MapGenerator {
         }
 
         // === Crystal formations in grotto ===
-        console.log('[MapGen] placing crystal formations...');
         for (let i = 0; i < 15; i++) {
             const x = 80 + (Math.random() - 0.5) * 50;
             const z = 80 + (Math.random() - 0.5) * 50;
