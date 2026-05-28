@@ -2005,8 +2005,8 @@ export class MapGenerator {
 
     // ===================== PARTICLES =====================
     async buildParticleSystems() {
-        // Spark particles around Cornucopia
-        this._createSparkParticles(0, 0, 0, 100, 0xf8d840);
+        // Spark particles around Cornucopia (center, elevated)
+        this._createSparkParticles(0, 4, 0, 100, 0xf8d840);
 
         // Ash particles in Burning Wastes
         this._createAshParticles(-80, -80, 60);
