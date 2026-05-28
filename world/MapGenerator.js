@@ -3783,7 +3783,7 @@ export class MapGenerator {
         console.log(`[MapGen] LOD setup: maxDist=${maxDist}, shadowOff=${shadowOff}`);
     }
 
-    /**
+   /**
      * Enable optimized frustum culling based on camera distance
      */
     enableOptimizedCulling() {
@@ -3832,17 +3832,6 @@ export class MapGenerator {
             const dSq = obj.position.distanceToSquared(playerPos);
             obj.visible = i < limit && dSq < limitSq;
         }
-    }
-
-    /**
-     * Called every frame in main loop to update culling
-     */
-    updateCulling() {
-        const camPos = this.scene?.userData?.camera?.position;
-        if (!camPos) return;
-
-        // Light culling to prevent MAX_FRAGMENT_UNIFORM_V
-        this._cullPointLights(camPos);
     }
 
     /**
