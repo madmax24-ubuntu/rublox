@@ -371,60 +371,6 @@ export class MapGenerator {
             this.animatedObjects.push({ type: 'glow', light: gateLight, baseIntensity: 0.5 });
         }
 
-        // === Gate openings in dividers (passageways between zones) ===
-        // Gates on each axis from center
-        const gatePositions = [
-            { x: -25, z: 0, axis: 'x' },  // Left gate (citadel-wastes side)
-            { x: 25, z: 0, axis: 'x' },   // Right gate (crystal-forest side)
-            { x: 0, z: -25, axis: 'z' },  // Bottom gate (wastes-forest side)
-            { x: 0, z: 25, axis: 'z' },   // Top gate (citadel-crystal side)
-        ];
-        const gateMat = new THREE.MeshStandardMaterial({ color: 0x6a5a3a, roughness: 0.8 });
-        for (const gate of gatePositions) {
-            // Gate posts
-            const postGeo = new THREE.CylinderGeometry(0.12, 0.15, 3, 6);
-            const postL = new THREE.Mesh(postGeo, gateMat);
-            const postR = new THREE.Mesh(postGeo, gateMat);
-            const postH = new THREE.Mesh(postGeo, gateMat);
-            const postT = new THREE.Mesh(postGeo, gateMat);
-
-            if (Math.abs(gate.x) < 5) {
-                // Vertical gate (top/bottom)
-                postL.position.set(gate.x - 1.5, 1.5, gate.z);
-                postR.position.set(gate.x + 1.5, 1.5, gate.z);
-                postH.position.set(gate.x, 1.5, gate.z - 1.8);
-                postT.position.set(gate.x, 1.5, gate.z + 1.8);
-            } else {
-                // Horizontal gate (left/right)
-                postL.position.set(gate.x, 1.5, gate.z - 1.5);
-                postR.position.set(gate.x, 1.5, gate.z + 1.5);
-                postH.position.set(gate.x - 1.8, 1.5, gate.z);
-                postT.position.set(gate.x + 1.8, 1.5, gate.z);
-            }
-            postL.castShadow = true;
-            postR.castShadow = true;
-            postH.castShadow = true;
-            postT.castShadow = true;
-            postL.userData.isDecoration = true;
-            postR.userData.isDecoration = true;
-            postH.userData.isDecoration = true;
-            postT.userData.isDecoration = true;
-            postL.userData.isMapObject = true;
-            postR.userData.isMapObject = true;
-            postH.userData.isMapObject = true;
-            postT.userData.isMapObject = true;
-            this.scene.add(postL);
-            this.scene.add(postR);
-            this.scene.add(postH);
-            this.scene.add(postT);
-
-            // Gate sign/light
-            const signLight = new THREE.PointLight(0xf8d840, 0.4, 6);
-            signLight.position.set(gate.x, 3.2, gate.z);
-            this.scene.add(signLight);
-            this.animatedObjects.push({ type: 'glow', light: signLight, baseIntensity: 0.4 });
-        }
-
         // Spawn courtyard (flat pad in the center)
         const spawnMat = new THREE.MeshStandardMaterial({
             color: COLOR.metalLight,
