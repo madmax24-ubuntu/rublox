@@ -78,7 +78,7 @@ const COLOR = {
     metalGold: 0xf8d840,
     ruinStone: 0xc8c2c0,
     ruinDarkStone: 0x9a9590,
-    ruinFloor: 0xb0aaa5,
+    ruinFloor: 0x8b4513,
     ruinMoss: 0x7a9a5a,
     crystalBlue: 0x4488cc,
     crystalPurple: 0x8844aa,
