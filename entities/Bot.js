@@ -1095,8 +1095,8 @@ export class Bot {
                 min = new THREE.Vector3(box.position.x - box.size.x / 2, box.position.y - box.size.y / 2, box.position.z - box.size.z / 2);
                 max = new THREE.Vector3(box.position.x + box.size.x / 2, box.position.y + box.size.y / 2, box.position.z + box.size.z / 2);
             }
-            const closestX = Math.max(min.x, Math.max(min.z, Math.min(max.x, this.position.x)));
-            const closestZ = Math.min(max.z, Math.min(max.x, this.position.z));
+            const closestX = Math.max(min.x, Math.min(max.x, this.position.x));
+            const closestZ = Math.max(min.z, Math.min(max.z, this.position.z));
             const dx = this.position.x - closestX;
             const dz = this.position.z - closestZ;
             const distSq = dx * dx + dz * dz;
