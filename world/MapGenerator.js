@@ -268,7 +268,6 @@ export class MapGenerator {
         }
 
         // === Clear zone separators (ground trenches + low walls with gaps) ===
-        console.log('[MapGen] building zone dividers...');
         const dividerMat = new THREE.MeshStandardMaterial({ color: 0x3a3a2a, roughness: 0.95 });
 
       // Helper: build a segmented divider wall (with gate gaps)
