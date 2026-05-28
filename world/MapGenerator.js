@@ -3216,8 +3216,20 @@ export class MapGenerator {
 
         await this.buildParticleSystems();
         console.log('[MapGen] particle systems done');
-        this.reportProgress(0.82, 'Частицы');
-        console.log('[MapGen] about to yield 500ms before traps...');
+        this.reportProgress(0.72, 'Частицы');
+
+        // === DECORATIONS & VISUAL INDICATORS ===
+        await this.buildDecorations();
+        console.log('[MapGen] decorations done');
+        this.reportProgress(0.80, 'Декорации');
+        await new Promise(r => setTimeout(r, 100));
+
+        await this.buildBiomeTrees();
+        console.log('[MapGen] biome trees done');
+        this.reportProgress(0.90, 'Зоны обозначены');
+        await new Promise(r => setTimeout(r, 100));
+
+        console.log('[MapGen] about to yield before traps...');
         await new Promise(r => setTimeout(r, 100));
         console.log('[MapGen] yield done, calling buildTraps()...');
         await this.buildTraps();
