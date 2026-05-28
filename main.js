@@ -502,6 +502,9 @@ class Game {
         console.log('[Game] generateChests:', typeof this.lootManager?.generateChests);
         try {
             console.log('[Game] about to await generateChests...');
+            console.log('[Game] floorTiles:', this.map?.getFloorTiles?.().length);
+            console.log('[Game] spots:', this.map?.getChestSpots?.().length);
+            console.log('[Game] waterLevel:', this.map?.waterLevel);
             const result = await this.lootManager.generateChests();
             console.log('[Game] chests generated, result:', typeof result);
         } catch (err) {
