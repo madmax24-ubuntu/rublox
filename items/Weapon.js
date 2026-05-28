@@ -326,6 +326,9 @@ function getThirdPersonGripForType(rawType) {
     if (type === 'shotgun') return { forward: 0.24, right: 0.12, up: -0.34 };
     if (type === 'rifle' || type === 'machinegun') return { forward: 0.25, right: 0.12, up: -0.35 };
     if (type === 'flamethrower' || type === 'laser') return { forward: 0.24, right: 0.12, up: -0.35 };
+    if (type === 'sniper') return { forward: 0.26, right: 0.12, up: -0.36 };
+    if (type === 'smg') return { forward: 0.23, right: 0.12, up: -0.33 };
+    if (type === 'crossbow') return { forward: 0.26, right: 0.16, up: -0.36 };
     return base;
 }
 
