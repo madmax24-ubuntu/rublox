@@ -3215,7 +3215,6 @@ export class MapGenerator {
         }
 
         // Burning Wastes: burnt trunks, no leaves
-        console.log('[MapGen] burnt trees...');
         for (let i = 0; i < 20; i++) {
             const x = -80 + (Math.random() - 0.5) * 60;
             const z = -80 + (Math.random() - 0.5) * 60;
