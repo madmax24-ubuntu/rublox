@@ -3186,13 +3186,28 @@ export class MapGenerator {
             if (i % 5 === 0) await _yield();
         }
 
-        // Regular trees in neutral zones
-        console.log('[MapGen] neutral trees...');
-        for (let i = 0; i < 40; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = 40 + Math.random() * 140;
-            const x = Math.cos(angle) * r;
-            const z = Math.sin(angle) * r;
+        // Regular trees along connector paths (between gates, not in biome zones)
+        console.log('[MapGen] neutral trees along paths...');
+        for (let i = 0; i < 30; i++) {
+            const side = Math.floor(Math.random() * 4);
+            let x, z;
+            if (side === 0) {
+                // North path (center to citadel-crystal gate)
+                x = (Math.random() - 0.5) * 6;
+                z = 10 + Math.random() * 50;
+            } else if (side === 1) {
+                // South path
+                x = (Math.random() - 0.5) * 6;
+                z = -10 - Math.random() * 50;
+            } else if (side === 2) {
+                // West path
+                x = -10 - Math.random() * 50;
+                z = (Math.random() - 0.5) * 6;
+            } else {
+                // East path
+                x = 10 + Math.random() * 50;
+                z = (Math.random() - 0.5) * 6;
+            }
             this._createTree(x, 0, z, 'normal');
             if (i % 8 === 0) await _yield();
         }
