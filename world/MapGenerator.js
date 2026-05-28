@@ -3107,10 +3107,7 @@ export class MapGenerator {
 
     // ---- Main decoration method ----
     async buildDecorations() {
-        console.log('[MapGen] building decorations...');
-
         // === Scatter rocks everywhere ===
-        console.log('[MapGen] scattering rocks...');
         for (let i = 0; i < 120; i++) {
             const angle = Math.random() * Math.PI * 2;
             const r = 10 + Math.random() * 180;
