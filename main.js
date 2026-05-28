@@ -820,7 +820,6 @@ class Game {
         const slots = [];
         const spawnPads = this.map?.getSpawnPads?.() || [];
 
-        // Use Pads First (Skip checks as pads are guaranteed safe)
         const surfaceY = Math.max(1.54, 1.54 + (this.map?.getHeightAt?.(center.x, center.z) ?? 0.3));
         const padPositions = spawnPads.map(p => ({ x: p.x, y: surfaceY, z: p.z }));
         for (let i = 0; i < padPositions.length && slots.length < botCount; i++) {
@@ -858,6 +857,37 @@ class Game {
             tryAddSlot(x, z);
         }
 
+        // Tactical loadout pool - distributes weapons across 60 bots
+        const weaponRoles = [];
+        const primaryWeapons = ['sniper', 'rifle', 'smg', 'shotgun', 'machinegun', 'crossbow', 'pistol', 'laser', 'bow', 'flamethrower', 'knife'];
+        for (let i = 0; i < botCount; i++) {
+            // Weighted distribution: more common weapons for more bots
+            const roll = Math.random();
+            if (i < 4) {
+                weaponRoles.push('sniper');
+            } else if (i < 12) {
+                weaponRoles.push('rifle');
+            } else if (i < 22) {
+                weaponRoles.push('smg');
+            } else if (i < 32) {
+                weaponRoles.push('shotgun');
+            } else if (i < 40) {
+                weaponRoles.push('machinegun');
+            } else if (i < 44) {
+                weaponRoles.push('crossbow');
+            } else if (i < 50) {
+                weaponRoles.push('laser');
+            } else if (i < 55) {
+                weaponRoles.push('bow');
+            } else if (i < 58) {
+                weaponRoles.push('flamethrower');
+            } else if (i < 62) {
+                weaponRoles.push('pistol');
+            } else {
+                weaponRoles.push('knife');
+            }
+        }
+
         for (let i = 0; i < botCount; i++) {
             const s = slots[i] || slots[slots.length - 1] || { x: center.x, y: surfaceY, z: center.z };
             const spawnPos = new THREE.Vector3(s.x, s.y, s.z);
@@ -868,7 +898,18 @@ class Game {
             bot.state = 'spawn';
             bot.target = null;
             bot.patrolTarget = null;
-            bot.pickupLoot?.({ type: 'weapon', weaponType: 'knife' });
+            bot.weaponRole = weaponRoles[i] || 'knife';
+            bot.pickupLoot?.({ type: 'weapon', weaponType: bot.weaponRole });
+
+            // Give medkits to ~30% of bots
+            if (Math.random() < 0.3) {
+                bot.medkits = (bot.medkits || 0) + 1 + Math.floor(Math.random() * 2);
+            }
+            // Give armor to ~40% of bots
+            if (Math.random() < 0.4) {
+                bot.armor = Math.min(100, (bot.armor || 0) + 30 + Math.floor(Math.random() * 40));
+            }
+
             this.physics.addEntity(bot);
             this.entityManager.addEntity(bot);
             this.bots.push(bot);
