@@ -356,7 +356,7 @@ function shouldTakeScreenshot(eventKey, action) {
         'fog', 'radiation', 'loot'
     ];
 
-    return alwaysScreenshot.includes(action) || Date.now() - lastScreenshotTime > 5000;
+    return alwaysScreenshot.includes(action) || Date.now() - _lastScreenshotTime > 5000;
 }
 
 // Какую камеру выбрать для события?
