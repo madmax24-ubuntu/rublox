@@ -82,7 +82,7 @@ const COLOR = {
     ruinMoss: 0x7a9a5a,
     crystalBlue: 0x4488cc,
     crystalPurple: 0x8844aa,
-    crystalFloor: 0x0088cc,
+    crystalFloor: 0x0044aa,
     crystalReflect: 0x99bbdd,
     crystalGlow: 0x88ccff,
     lava: 0xff4400,
