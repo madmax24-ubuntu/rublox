@@ -2175,12 +2175,10 @@ export class MapGenerator {
                 triggerTime: 0,
                 spikes
             });
-            console.log('[MapGen] spike trap ' + i + ' done');
             await new Promise(r => setTimeout(r, 100));
         }
 
         // Bear traps
-        console.log('[MapGen] bear traps starting');
         for (let i = 0; i < 10; i++) {
             const angle = Math.random() * Math.PI * 2;
             const r = 40 + Math.random() * 140;
