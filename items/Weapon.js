@@ -414,6 +414,9 @@ export class Weapon {
         else if (this.type === 'shotgun') group.add(createGunModel('shotgun'));
         else if (this.type === 'flamethrower') group.add(createGunModel('flamethrower'));
         else if (this.type === 'laser') group.add(createGunModel('laser'));
+        else if (this.type === 'sniper') group.add(createGunModel('sniper'));
+        else if (this.type === 'smg') group.add(createGunModel('smg'));
+        else if (this.type === 'crossbow') group.add(createCrossbowModel());
 
         configureMeshForGameplay(group);
         group.userData.ignoreDamageTint = true;
