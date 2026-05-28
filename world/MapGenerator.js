@@ -3188,7 +3188,6 @@ export class MapGenerator {
         this._createSign(-8, 0, 8, 'ARENA', Math.PI / 2);
 
         // === Zone boundary markers ===
-        console.log('[MapGen] building zone boundaries...');
         this._buildZoneBoundaryMarkers(180, { x: 0, z: 0 }, 0xff6622, 'outer');
         this._buildZoneBoundaryMarkers(120, { x: 0, z: 0 }, 0xffaa44, 'inner');
 
