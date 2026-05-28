@@ -2132,10 +2132,8 @@ export class MapGenerator {
 
     // ===================== TRAPS =====================
     async buildTraps() {
-        console.log('[MapGen] buildTraps() STARTING');
         // Spike traps
         for (let i = 0; i < 20; i++) {
-            console.log('[MapGen] trap iteration', i);
             const angle = Math.random() * Math.PI * 2;
             const r = 30 + Math.random() * 150;
             const tx = Math.cos(angle) * r;
