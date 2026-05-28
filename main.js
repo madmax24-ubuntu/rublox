@@ -419,21 +419,14 @@ class Game {
             smoothSetProgress(ratio * 0.5, status);
         };
         this.map.startGeneration();
-        console.log('[Game] waiting for map ready...');
         const mapReady = this.map.ready;
-        const timeoutId = setTimeout(() => {
-            console.log('[Game] map ready TIMED OUT after 30s');
-        }, 90000);
+        const timeoutId = setTimeout(() => {}, 90000);
         await mapReady;
         clearTimeout(timeoutId);
-        console.log('[Game] map ready!');
 
         // Performance: setup LOD and frustum culling
-        console.log('[Game] setupLOD:', this.map.setupLOD?.toString().substring(0, 20));
         this.map.setupLOD?.(this.isMobile());
-        console.log('[Game] after setupLOD');
         this.map.enableOptimizedCulling?.();
-        console.log('[Game] after enhancedCulling');
         
         // Камера для тестирования карты (вид сверху)
         if (this.camera) {
