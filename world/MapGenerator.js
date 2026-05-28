@@ -3127,7 +3127,6 @@ export class MapGenerator {
         }
 
         // === Barrels and crates ===
-        console.log('[MapGen] placing barrels and crates...');
         for (let i = 0; i < 25; i++) {
             const angle = Math.random() * Math.PI * 2;
             const r = 20 + Math.random() * 160;
