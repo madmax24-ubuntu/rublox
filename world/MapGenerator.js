@@ -3288,7 +3288,6 @@ export class MapGenerator {
         }
 
         // === Ruined walls near citadel ===
-        console.log('[MapGen] placing ruined walls...');
         for (let i = 0; i < 8; i++) {
             const angle = Math.random() * Math.PI * 2;
             const r = 50 + Math.random() * 30;
