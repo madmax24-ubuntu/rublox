@@ -3461,6 +3461,11 @@ export class MapGenerator {
 
     // ===================== ANIMATION UPDATES =====================
     updateZoneAnimations(deltaTime) {
+        // Light culling to prevent MAX_FRAGMENT_UNIFORM_V
+        const camPos = this.scene?.userData?.camera?.position;
+        if (camPos) {
+            this._cullPointLights(camPos);
+        }
         for (const obj of this.animatedObjects) {
             switch (obj.type) {
                 case 'forcefield':
