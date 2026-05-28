@@ -164,6 +164,39 @@ export class MapGenerator {
         this.onProgress?.(ratio, status);
     }
 
+    // ---- Tracked PointLight helper ----
+    _createPointLight(color, intensity, distance) {
+        const light = new THREE.PointLight(color, intensity, distance);
+        this._allPointLights.push(light);
+        return light;
+    }
+
+    // ---- Light culling: hide distant lights ----
+    _cullPointLights(playerPos) {
+        if (!playerPos || this._allPointLights.length === 0) return;
+        const maxDist = this._maxLightDistance;
+        const maxVisible = this._maxVisiblePointLights;
+
+        // Sort lights by distance to player
+        const sorted = this._allPointLights.slice().sort((a, b) => {
+            const da = a.position.distanceToSquared(playerPos);
+            const db = b.position.distanceToSquared(playerPos);
+            return da - db;
+        });
+
+        // Show only the closest N lights
+        for (let i = 0; i < sorted.length; i++) {
+            sorted[i].visible = i < maxVisible;
+        }
+
+        // Also hide lights beyond max distance
+        for (const light of this._allPointLights) {
+            if (light.visible && light.position.distanceToSquared(playerPos) > maxDist * maxDist) {
+                light.visible = false;
+            }
+        }
+    }
+
     startGeneration() {
         return this.generate();
     }
