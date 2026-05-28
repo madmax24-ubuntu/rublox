@@ -3300,7 +3300,6 @@ export class MapGenerator {
         }
 
         // === Loot indicators scattered around map ===
-        console.log('[MapGen] placing loot indicators...');
         for (let i = 0; i < 20; i++) {
             const angle = Math.random() * Math.PI * 2;
             const r = 30 + Math.random() * 150;
