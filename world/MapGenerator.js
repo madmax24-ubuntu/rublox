@@ -2335,12 +2335,22 @@ export class MapGenerator {
             });
         }
 
-        // Biome loot zones
+        // Biome loot zones — matched to actual biome positions & tiers
+        // Citadel (NW, -80, 80) — high-tier ruins, tier 4
         this.lootData.push(
-            { type: 'biome', position: new THREE.Vector3(-80, 0, 80), radius: 60, tier: 3, items: [] },
-            { type: 'biome', position: new THREE.Vector3(80, 0, 80), radius: 55, tier: 2, items: [] },
-            { type: 'biome', position: new THREE.Vector3(-80, 0, -80), radius: 60, tier: 4, items: [] },
-            { type: 'biome', position: new THREE.Vector3(80, 0, -80), radius: 60, tier: 2, items: [] }
+            { type: 'biome', position: new THREE.Vector3(-80, 0, 80), radius: 55, tier: 4, items: [] }
+        );
+        // Crystal (NE, 80, 80) — mid-tier crystal cave, tier 3
+        this.lootData.push(
+            { type: 'biome', position: new THREE.Vector3(80, 0, 80), radius: 50, tier: 3, items: [] }
+        );
+        // Wastes (SW, -80, -80) — hazardous but rich loot, tier 4
+        this.lootData.push(
+            { type: 'biome', position: new THREE.Vector3(-80, 0, -80), radius: 55, tier: 4, items: [] }
+        );
+        // Forest (SE, 80, -80) — basic supplies, tier 2
+        this.lootData.push(
+            { type: 'biome', position: new THREE.Vector3(80, 0, -80), radius: 50, tier: 2, items: [] }
         );
 
         // Random clusters
