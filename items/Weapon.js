@@ -342,6 +342,9 @@ function getThirdPersonWorldScale(rawType) {
     if (type === 'machinegun') return 0.72;
     if (type === 'flamethrower') return 0.7;
     if (type === 'laser') return 0.72;
+    if (type === 'sniper') return 0.68;
+    if (type === 'smg') return 0.7;
+    if (type === 'crossbow') return 0.76;
     return 0.78;
 }
 
