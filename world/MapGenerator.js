@@ -240,13 +240,16 @@ export class MapGenerator {
             walkable: true
         });
 
-        // Biome zone overlays - rectangular zones, no overlap
-        // Each quadrant is a distinct biome with clear boundaries
+       // Biome zone overlays — match terrain circle centers and radii
+        // Citadel: center (-80, 80), radius 70 → x=-150..-10, z=10..150
+        // Crystal: center (80, 80), radius 70 → x=10..150, z=10..150
+        // Wastes: center (-80, -80), radius 75 → x=-155..-5, z=-155..-5
+        // Forest: center (80, -80), radius 75 → x=5..155, z=-155..-5
         const biomeZones = [
-            { name: 'citadel', color: COLOR.ruinFloor,   x: -70, z:  70, w: 120, h: 120 },
-            { name: 'crystal', color: COLOR.crystalFloor, x:  70, z:  70, w: 110, h: 120 },
-            { name: 'wastes',  color: COLOR.wasteGround,  x: -70, z: -70, w: 120, h: 110 },
-            { name: 'forest',  color: COLOR.luminousFloor, x:  70, z: -70, w: 110, h: 120 },
+            { name: 'citadel',  color: COLOR.ruinFloor,   x: -80, z:  80, w: 140, h: 140 },
+            { name: 'crystal',  color: COLOR.crystalFloor, x:  80, z:  80, w: 140, h: 140 },
+            { name: 'wastes',   color: COLOR.wasteGround,  x: -80, z: -80, w: 150, h: 150 },
+            { name: 'forest',   color: COLOR.luminousFloor, x:  80, z: -80, w: 150, h: 150 },
         ];
 
         for (const bz of biomeZones) {
