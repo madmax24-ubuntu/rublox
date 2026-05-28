@@ -120,8 +120,8 @@ async function runDebugTest() {
 
                 // Принимаем решение: делать скриншот?
                 const shouldScreenshot = shouldTakeScreenshot(key, config.action);
-                if (shouldScreenshot && Date.now() - lastScreenshotTime > 3000) {
-                    lastScreenshotTime = Date.now();
+                if (shouldScreenshot && Date.now() - _lastScreenshotTime > 3000) {
+                    _lastScreenshotTime = Date.now();
                     console.log(`  📸 КЛЮЧЕВОЕ СОБЫТИЕ: ${config.action} - делаем скриншот!`);
 
                     // Переключаем камеру
