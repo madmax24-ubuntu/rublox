@@ -3715,8 +3715,6 @@ export class MapGenerator {
         if (isMobile && this.scene.fog) {
             this.scene.fog.density = Math.max(0.002, this.scene.fog.density - 0.001);
         }
-
-        console.log(`[MapGen] LOD setup: maxDist=${maxDist}, shadowOff=${shadowOff}`);
     }
 
    /**
