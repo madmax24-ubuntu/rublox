@@ -1710,7 +1710,7 @@ export class MapGenerator {
         await _yield();
     }
 
-    // ===================== BRIDGES =====================
+   // ===================== BRIDGES (radial arms to inner ring) =====================
     async buildBridges() {
         const bridgeMat = new THREE.MeshStandardMaterial({
             color: COLOR.bridgeWood, roughness: 0.85
@@ -1719,20 +1719,25 @@ export class MapGenerator {
             color: COLOR.metalDark, roughness: 0.6, metalness: 0.3
         });
 
+        // 4 radial bridges from center to inner ring at r=110
+        // Positioned along the gap axes (cardinal directions)
         for (let d = 0; d < 4; d++) {
             const angle = (d / 4) * Math.PI * 2;
             const dirX = Math.cos(angle);
             const dirZ = Math.sin(angle);
 
-            for (let s = 0; s < 4; s++) {
-                const dist = 25 + s * 8;
-                const bx = dirX * dist;
-                const bz = dirZ * dist;
+            // Bridge segments: from r=14 to r=110
+            for (let s = 0; s < 8; s++) {
+                const segStart = 14 + s * 12;
+                const segEnd = segStart + 12;
+                const segMid = (segStart + segEnd) / 2;
+                const bx = dirX * segMid;
+                const bz = dirZ * segMid;
 
-                // Deck planks
-                const deckGeo = new THREE.BoxGeometry(3, 0.15, 6);
+                // Deck planks (12 units long along the radial)
+                const deckGeo = new THREE.BoxGeometry(3, 0.15, 12);
                 const deck = new THREE.Mesh(deckGeo, bridgeMat);
-                deck.position.set(bx, 2, bz);
+                deck.position.set(bx, 1.5, bz);
                 deck.castShadow = true;
                 deck.receiveShadow = true;
                 deck.userData.isArena = true;
@@ -1740,20 +1745,36 @@ export class MapGenerator {
                 deck.userData.isMapObject = true;
                 this.scene.add(deck);
 
-                // Side rails
-                for (let r = -1; r <= 1; r += 2) {
-                    const railGeo = new THREE.CylinderGeometry(0.06, 0.06, 6, 4);
+                // Side rails (along the bridge length)
+                for (let side = -1; side <= 1; side += 2) {
+                    const perpX = -dirZ * side * 1.4;
+                    const perpZ = dirX * side * 1.4;
+                    const railGeo = new THREE.CylinderGeometry(0.06, 0.06, 12, 4);
                     const rail = new THREE.Mesh(railGeo, railMat);
-                    rail.position.set(bx + dirZ * r * 1.4, 3, bz - dirX * r * 1.4);
-                    rail.rotation.y = Math.PI / 2;
-                    rail.rotation.z = -dirX * 0.3;
-                    rail.rotation.x = dirZ * 0.3;
+                    rail.position.set(bx + perpX, 3, bz + perpZ);
+                    rail.rotation.z = dirX * 0.15;
+                    rail.rotation.y = -dirZ * 0.15;
                     rail.castShadow = true;
                     rail.userData.isArena = true;
                     rail.userData.isBridge = true;
                     rail.userData.isMapObject = true;
                     this.scene.add(rail);
-              }
+
+                    // Vertical posts
+                    const postGeo = new THREE.CylinderGeometry(0.05, 0.05, 1.5, 4);
+                    for (let p = -3; p <= 3; p += 3) {
+                        const post = new THREE.Mesh(postGeo, railMat);
+                        const postDist = segMid + dirX * p;
+                        const postSide = perpX * (p / 3);
+                        const postSideZ = perpZ * (p / 3);
+                        post.position.set(bx + postSide, 2.2, bz + postSideZ);
+                        post.castShadow = true;
+                        post.userData.isArena = true;
+                        post.userData.isBridge = true;
+                        post.userData.isMapObject = true;
+                        this.scene.add(post);
+                    }
+                }
             }
             await new Promise(r => setTimeout(r, 50));
         }
