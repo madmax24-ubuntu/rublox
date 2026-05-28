@@ -2444,6 +2444,10 @@ export class MapGenerator {
         });
     }
 
+    getCourtyardExitPosition() {
+        return new THREE.Vector3(0, 10, 0);
+    }
+
     getColliders() {
         return this.colliders;
     }
