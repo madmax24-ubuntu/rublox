@@ -254,8 +254,6 @@ export default class CentralHubGenerator {
      * Creates decorative compass rose
      */
     _createCompassRose() {
-        console.log('[CentralHub] Creating compass rose...');
-        
         const roseGroup = new THREE.Group();
         
         // Основание розы
