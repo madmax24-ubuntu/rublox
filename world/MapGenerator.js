@@ -3162,7 +3162,6 @@ export class MapGenerator {
         }
 
         // === Fences around spawn courtyard ===
-        console.log('[MapGen] placing fences...');
         for (let i = 0; i < 8; i++) {
             const angle = (i / 8) * Math.PI * 2;
             const r = 42;
