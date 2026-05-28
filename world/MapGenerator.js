@@ -2213,6 +2213,909 @@ export class MapGenerator {
         return top;
     }
 
+    // ===================== DECORATIONS & VISUAL INDICATORS =====================
+
+    // ---- Generic rock generation ----
+    _createRock(x, y, z, scale, color = 0x8a8a8a) {
+        const geo = new THREE.DodecahedronGeometry(scale, 1);
+        // Deform vertices for natural look
+        const pos = geo.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+            const vx = pos.getX(i), vy = pos.getY(i), vz = pos.getZ(i);
+            const noise = this.noise.noise2D(vx * 0.5, vz * 0.5) * scale * 0.3;
+            pos.setXYZ(i, vx + noise * 0.3, vy + noise, vz + noise * 0.3);
+        }
+            geo.computeVertexNormals();
+        const mat = getMat(color, { roughness: 0.9, metalness: 0.05 });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(x, y + scale * 0.4, z);
+        mesh.rotation.set(Math.random() * 0.3, Math.random() * Math.PI * 2, Math.random() * 0.3);
+        const s = scale * (0.7 + Math.random() * 0.6);
+        mesh.scale.set(s * (0.7 + Math.random() * 0.6), s * (0.6 + Math.random() * 0.5), s * (0.7 + Math.random() * 0.6));
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        mesh.userData.isArena = true;
+        mesh.userData.isDecoration = true;
+        mesh.userData.decorationType = 'rock';
+        mesh.userData.isMapObject = true;
+        this.scene.add(mesh);
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(x, y + scale * 0.3, z),
+            size: new THREE.Vector3(scale * 1.2, scale * 0.8, scale * 1.2),
+            enabled: true
+        });
+    }
+
+    // ---- Decorative trees per biome ----
+    _createTree(x, y, z, type = 'normal') {
+        const height = 4 + Math.random() * 4;
+        const trunkRadius = 0.15 + Math.random() * 0.1;
+
+        // Trunk
+        let trunkColor, leafColor;
+        switch (type) {
+            case 'ruined':
+                trunkColor = 0x5a4a3a;
+                leafColor = 0x4a6a2a;
+                break;
+            case 'crystal':
+                trunkColor = 0x6a6a8a;
+                leafColor = 0x44aacc;
+                break;
+            case 'burnt':
+                trunkColor = 0x3a2a1a;
+                leafColor = null; // No leaves
+                break;
+            case 'glowing':
+                trunkColor = 0x4a3a2a;
+                leafColor = 0x22cc66;
+                break;
+            default:
+                trunkColor = 0x8b6236;
+                leafColor = 0x228b22;
+        }
+
+        // Trunk
+        const trunkGeo = new THREE.CylinderGeometry(trunkRadius * 0.6, trunkRadius, height, 6);
+        const trunkMat = getMat(trunkColor, { roughness: 0.9 });
+        const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+        trunk.position.set(x, y + height / 2, z);
+        trunk.castShadow = true;
+        trunk.userData.isArena = true;
+        trunk.userData.isDecoration = true;
+        trunk.userData.decorationType = 'tree';
+        trunk.userData.treeType = type;
+        trunk.userData.isMapObject = true;
+        this.scene.add(trunk);
+
+        // Branches
+        const branchCount = 3 + Math.floor(Math.random() * 3);
+        for (let b = 0; b < branchCount; b++) {
+            const bAngle = Math.random() * Math.PI * 2;
+            const bHeight = height * 0.4 + Math.random() * height * 0.5;
+            const bLength = 0.8 + Math.random() * 1.5;
+            const branchGeo = new THREE.CylinderGeometry(0.03, trunkRadius * 0.5, bLength, 4);
+            const branch = new THREE.Mesh(branchGeo, trunkMat);
+            branch.position.set(
+                x + Math.cos(bAngle) * bLength * 0.4,
+                y + bHeight,
+                z + Math.sin(bAngle) * bLength * 0.4
+            );
+            branch.rotation.z = Math.cos(bAngle) * 0.8;
+            branch.rotation.x = Math.sin(bAngle) * 0.8;
+            branch.castShadow = true;
+            branch.userData.isDecoration = true;
+            branch.userData.isMapObject = true;
+            this.scene.add(branch);
+        }
+
+        // Canopy
+        if (leafColor) {
+            const canopyRadius = 1.5 + Math.random() * 1.5;
+            const canopyGeo = new THREE.SphereGeometry(canopyRadius, 6, 5);
+            const canopyMat = getMat(leafColor, { roughness: 0.8 });
+            const canopy = new THREE.Mesh(canopyGeo, canopyMat);
+            canopy.position.set(x, y + height + canopyRadius * 0.5, z);
+            canopy.scale.set(1 + Math.random() * 0.3, 0.7 + Math.random() * 0.3, 1 + Math.random() * 0.3);
+            canopy.castShadow = true;
+            canopy.receiveShadow = true;
+            canopy.userData.isDecoration = true;
+            canopy.userData.decorationType = 'canopy';
+            canopy.userData.treeType = type;
+            canopy.userData.isMapObject = true;
+            this.scene.add(canopy);
+
+            // Extra canopy lumps
+            for (let c = 0; c < 2; c++) {
+                const clGeo = new THREE.SphereGeometry(canopyRadius * 0.6, 5, 4);
+                const cl = new THREE.Mesh(clGeo, canopyMat);
+                const clAngle = Math.random() * Math.PI * 2;
+                cl.position.set(
+                    x + Math.cos(clAngle) * canopyRadius * 0.5,
+                    y + height + canopyRadius * 0.2 + Math.random() * canopyRadius * 0.5,
+                    z + Math.sin(clAngle) * canopyRadius * 0.5
+                );
+                cl.castShadow = true;
+                cl.userData.isDecoration = true;
+                cl.userData.isMapObject = true;
+                this.scene.add(cl);
+            }
+        }
+
+        // Crystal glow tree gets point light
+        if (type === 'glowing') {
+            const glow = new THREE.PointLight(0x44ff88, 0.5, 8);
+            glow.position.set(x, y + height, z);
+            this.scene.add(glow);
+            this.animatedObjects.push({ type: 'glow', light: glow, baseIntensity: 0.5 });
+        }
+        if (type === 'crystal') {
+            const glow = new THREE.PointLight(0x44aacc, 0.4, 6);
+            glow.position.set(x, y + height, z);
+            this.scene.add(glow);
+            this.animatedObjects.push({ type: 'glow', light: glow, baseIntensity: 0.4 });
+        }
+    }
+
+    // ---- Barrels ----
+    _createBarrel(x, y, z) {
+        const group = new THREE.Group();
+        const barrelMat = getMat(0x7a5a2a, { roughness: 0.85 });
+        const bandMat = getMat(0x4a4a4a, { roughness: 0.7, metalness: 0.5 });
+
+        // Barrel body (8 segments)
+        const bodyGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.8, 8);
+        const body = new THREE.Mesh(bodyGeo, barrelMat);
+        body.position.y = 0.4;
+        group.add(body);
+
+        // Metal bands
+        const bandGeo = new THREE.TorusGeometry(0.36, 0.04, 4, 8);
+        const band1 = new THREE.Mesh(bandGeo, bandMat);
+        band1.position.y = 0.6;
+        band1.rotation.x = Math.PI / 2;
+        group.add(band1);
+        const band2 = new THREE.Mesh(bandGeo, bandMat);
+        band2.position.y = 0.2;
+        band2.rotation.x = Math.PI / 2;
+        group.add(band2);
+
+        group.position.set(x, y, z);
+        group.rotation.set(0, Math.random() * Math.PI * 2, (Math.random() - 0.5) * 0.1);
+        group.castShadow = true;
+        group.userData.isArena = true;
+        group.userData.isDecoration = true;
+        group.userData.decorationType = 'barrel';
+        group.userData.isMapObject = true;
+        this.scene.add(group);
+
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(x, y + 0.4, z),
+            size: new THREE.Vector3(0.7, 0.8, 0.7),
+            enabled: true
+        });
+    }
+
+    // ---- Crates ----
+    _createCrate(x, y, z, size = 0.8) {
+        const crateMat = getMat(0x9b7236, { roughness: 0.8 });
+        const darkMat = getMat(0x7a5a2a, { roughness: 0.85 });
+
+        const group = new THREE.Group();
+
+        // Box
+        const boxGeo = new THREE.BoxGeometry(size, size, size);
+        const box = new THREE.Mesh(boxGeo, crateMat);
+        box.position.y = size / 2;
+        box.castShadow = true;
+        group.add(box);
+
+        // Plank lines
+        const plankGeo = new THREE.BoxGeometry(size * 0.98, 0.02, size * 0.02);
+        for (let p = 0; p < 3; p++) {
+            const plank = new THREE.Mesh(plankGeo, darkMat);
+            plank.position.y = size * 0.2 + p * size * 0.3;
+            plank.position.z = size / 2 + 0.005;
+            group.add(plank);
+        }
+
+        // Corner brackets
+        const bracketGeo = new THREE.BoxGeometry(0.05, size, 0.05);
+        const bracketMat = getMat(0x6a6a6a, { roughness: 0.7, metalness: 0.5 });
+        [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([dx, dz]) => {
+            const bracket = new THREE.Mesh(bracketGeo, bracketMat);
+            bracket.position.set(dx * size / 2, size / 2, dz * (size / 2 + 0.005));
+            group.add(bracket);
+        });
+
+        group.position.set(x, y, z);
+        group.rotation.y = Math.random() * Math.PI * 2;
+        group.castShadow = true;
+        group.userData.isArena = true;
+        group.userData.isDecoration = true;
+        group.userData.decorationType = 'crate';
+        group.userData.isMapObject = true;
+        this.scene.add(group);
+
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(x, y + size / 2, z),
+            size: new THREE.Vector3(size, size, size),
+            enabled: true
+        });
+    }
+
+    // ---- Benches ----
+    _createBench(x, y, z, rotation = 0) {
+        const woodMat = getMat(0x8b6236, { roughness: 0.85 });
+        const metalMat = getMat(0x5a5a5a, { roughness: 0.7, metalness: 0.5 });
+
+        const group = new THREE.Group();
+
+        // Seat
+        const seatGeo = new THREE.BoxGeometry(1.6, 0.08, 0.5);
+        const seat = new THREE.Mesh(seatGeo, woodMat);
+        seat.position.set(0, 0.5, 0);
+        seat.castShadow = true;
+        group.add(seat);
+
+        // Back
+        const backGeo = new THREE.BoxGeometry(1.6, 0.6, 0.06);
+        const back = new THREE.Mesh(backGeo, woodMat);
+        back.position.set(0, 0.85, -0.22);
+        back.rotation.x = -0.1;
+        back.castShadow = true;
+        group.add(back);
+
+        // Legs
+        const legGeo = new THREE.BoxGeometry(0.06, 0.5, 0.06);
+        [[-0.65, -0.15], [0.65, -0.15], [-0.65, 0.15], [0.65, 0.15]].forEach(([dx, dz]) => {
+            const leg = new THREE.Mesh(legGeo, metalMat);
+            leg.position.set(dx, 0.25, dz);
+            leg.castShadow = true;
+            group.add(leg);
+        });
+
+        group.position.set(x, y, z);
+        group.rotation.y = rotation;
+        group.castShadow = true;
+        group.userData.isArena = true;
+        group.userData.isDecoration = true;
+        group.userData.decorationType = 'bench';
+        group.userData.isMapObject = true;
+        this.scene.add(group);
+    }
+
+    // ---- Wooden signs ----
+    _createSign(x, y, z, text = '', rotation = 0) {
+        const group = new THREE.Group();
+        const postMat = getMat(0x7a5a3a, { roughness: 0.9 });
+        const signMat = getMat(0x9b7236, { roughness: 0.85 });
+
+        // Post
+        const postGeo = new THREE.CylinderGeometry(0.06, 0.08, 2.0, 6);
+        const post = new THREE.Mesh(postGeo, postMat);
+        post.position.set(0, 1.0, 0);
+        post.castShadow = true;
+        group.add(post);
+
+        // Sign board
+        const boardGeo = new THREE.BoxGeometry(1.0, 0.5, 0.06);
+        const board = new THREE.Mesh(boardGeo, signMat);
+        board.position.set(0, 1.8, 0.05);
+        board.castShadow = true;
+        group.add(board);
+
+        // Frame
+        const frameMat = getMat(0x6a4a2a, { roughness: 0.85 });
+        const topGeo = new THREE.BoxGeometry(1.05, 0.04, 0.07);
+        const top = new THREE.Mesh(topGeo, frameMat);
+        top.position.set(0, 2.07, 0.05);
+        group.add(top);
+        const bottom = new THREE.Mesh(topGeo, frameMat);
+        bottom.position.set(0, 1.53, 0.05);
+        group.add(bottom);
+
+        group.position.set(x, y, z);
+        group.rotation.y = rotation;
+        group.userData.isDecoration = true;
+        group.userData.decorationType = 'sign';
+        group.userData.isMapObject = true;
+        this.scene.add(group);
+    }
+
+    // ---- Fences ----
+    _createFenceSegment(x, z, length, rotation = 0) {
+        const postMat = getMat(0x7a5a3a, { roughness: 0.9 });
+        const railMat = getMat(0x8b6a4a, { roughness: 0.85 });
+
+        const group = new THREE.Group();
+        const posts = Math.floor(length / 2);
+
+        for (let i = 0; i <= posts; i++) {
+            const postGeo = new THREE.BoxGeometry(0.1, 1.2, 0.1);
+            const post = new THREE.Mesh(postGeo, postMat);
+            post.position.set(i * 2 - length / 2, 0.6, 0);
+            post.castShadow = true;
+            group.add(post);
+        }
+
+        // Rails
+        for (let r = 0; r < 2; r++) {
+            const railGeo = new THREE.BoxGeometry(length, 0.06, 0.06);
+            const rail = new THREE.Mesh(railGeo, railMat);
+            rail.position.set(0, 0.8 + r * 0.4, 0);
+            group.add(rail);
+        }
+
+        group.position.set(x, 0, z);
+        group.rotation.y = rotation;
+        group.castShadow = true;
+        group.userData.isArena = true;
+        group.userData.isDecoration = true;
+        group.userData.decorationType = 'fence';
+        group.userData.isMapObject = true;
+        this.scene.add(group);
+    }
+
+    // ---- Debris / scattered items ----
+    _createDebris(x, y, z) {
+        const group = new THREE.Group();
+        const items = [];
+        const debrisCount = 2 + Math.floor(Math.random() * 4);
+
+        for (let i = 0; i < debrisCount; i++) {
+            const type = Math.random();
+            let geo, mat, mesh;
+
+            if (type < 0.3) {
+                // Broken wood plank
+                geo = new THREE.BoxGeometry(0.3 + Math.random() * 0.5, 0.05, 0.08 + Math.random() * 0.05);
+                mat = getMat(0x8b7236, { roughness: 0.9 });
+                mesh = new THREE.Mesh(geo, mat);
+            } else if (type < 0.5) {
+                // Small rock
+                geo = new THREE.DodecahedronGeometry(0.08 + Math.random() * 0.1, 0);
+                mat = getMat(0x9a9a9a, { roughness: 0.9 });
+                mesh = new THREE.Mesh(geo, mat);
+            } else if (type < 0.7) {
+                // Metal scrap
+                geo = new THREE.BoxGeometry(0.15, 0.03, 0.1);
+                mat = getMat(0x7a7a7a, { roughness: 0.6, metalness: 0.5 });
+                mesh = new THREE.Mesh(geo, mat);
+            } else {
+                // Pipe
+                geo = new THREE.CylinderGeometry(0.03, 0.03, 0.3 + Math.random() * 0.4, 5);
+                mat = getMat(0x6a6a6a, { roughness: 0.7, metalness: 0.5 });
+                mesh = new THREE.Mesh(geo, mat);
+            }
+
+            mesh.position.set(
+                (Math.random() - 0.5) * 1.5,
+                0.05 + Math.random() * 0.05,
+                (Math.random() - 0.5) * 1.5
+            );
+            mesh.rotation.set(Math.random() * 0.5, Math.random() * Math.PI * 2, Math.random() * 0.5);
+            mesh.castShadow = true;
+            items.push(mesh);
+        }
+
+        items.forEach(item => group.add(item));
+        group.position.set(x, y, z);
+        group.userData.isDecoration = true;
+        group.userData.decorationType = 'debris';
+        group.userData.isMapObject = true;
+        this.scene.add(group);
+    }
+
+    // ---- Glowing mushrooms (forest) ----
+    _createMushroom(x, y, z, count = 3) {
+        for (let i = 0; i < count; i++) {
+            const group = new THREE.Group();
+            const mSize = 0.1 + Math.random() * 0.2;
+
+            // Stem
+            const stemGeo = new THREE.CylinderGeometry(mSize * 0.3, mSize * 0.4, mSize * 2, 5);
+            const stemMat = getMat(0xccccaa, { roughness: 0.8 });
+            const stem = new THREE.Mesh(stemGeo, stemMat);
+            stem.position.y = mSize;
+            group.add(stem);
+
+            // Cap
+            const capGeo = new THREE.SphereGeometry(mSize * 1.2, 6, 4, 0, Math.PI * 2, 0, Math.PI / 2);
+            const capColor = Math.random() > 0.5 ? 0x8844ff : 0x44ff88;
+            const capMat = getMat(capColor, {
+                roughness: 0.5,
+                emissive: capColor,
+                emissiveIntensity: 0.3
+            });
+            const cap = new THREE.Mesh(capGeo, capMat);
+            cap.position.y = mSize * 2;
+            group.add(cap);
+
+            // Glow light
+            if (Math.random() > 0.5) {
+                const glow = new THREE.PointLight(capColor, 0.2, 3);
+                glow.position.y = mSize * 2.5;
+                group.add(glow);
+                this.animatedObjects.push({ type: 'glow', light: glow, baseIntensity: 0.2 });
+            }
+
+            group.position.set(
+                x + (Math.random() - 0.5) * 1.5,
+                y,
+                z + (Math.random() - 0.5) * 1.5
+            );
+            group.rotation.y = Math.random() * Math.PI * 2;
+            group.userData.isDecoration = true;
+            group.userData.decorationType = 'mushroom';
+            group.userData.isMapObject = true;
+            this.scene.add(group);
+        }
+    }
+
+    // ---- Crystal formations (crystal grotto) ----
+    _createCrystalFormation(x, y, z, count = 5) {
+        for (let i = 0; i < count; i++) {
+            const cHeight = 1 + Math.random() * 2.5;
+            const cRadius = 0.15 + Math.random() * 0.3;
+            const cAngle = Math.random() * Math.PI * 2;
+
+            const crystalGeo = new THREE.ConeGeometry(cRadius, cHeight, 5);
+            const crystalColor = Math.random() > 0.5 ? 0x44aacc : 0x8844aa;
+            const crystalMat = getMat(crystalColor, {
+                roughness: 0.2,
+                metalness: 0.3,
+                transparent: true,
+                opacity: 0.85
+            });
+            const crystal = new THREE.Mesh(crystalGeo, crystalMat);
+            crystal.position.set(
+                x + Math.cos(cAngle) * i * 0.5,
+                y + cHeight / 2,
+                z + Math.sin(cAngle) * i * 0.5
+            );
+            crystal.rotation.z = (Math.random() - 0.5) * 0.3;
+            crystal.rotation.x = (Math.random() - 0.5) * 0.3;
+            crystal.castShadow = true;
+            crystal.userData.isDecoration = true;
+            crystal.userData.decorationType = 'crystal';
+            crystal.userData.isMapObject = true;
+            this.scene.add(crystal);
+
+            // Small glow
+            if (Math.random() > 0.6) {
+                const glow = new THREE.PointLight(crystalColor, 0.3, 5);
+                glow.position.copy(crystal.position);
+                glow.position.y += cHeight * 0.3;
+                this.scene.add(glow);
+                this.animatedObjects.push({ type: 'glow', light: glow, baseIntensity: 0.3 });
+            }
+        }
+    }
+
+    // ---- Smoke vents (burning wastes) ----
+    _createSmokeVent(x, y, z) {
+        const group = new THREE.Group();
+
+        // Pipe sticking out
+        const pipeGeo = new THREE.CylinderGeometry(0.1, 0.12, 0.8, 6);
+        const pipeMat = getMat(0x4a4a4a, { roughness: 0.7, metalness: 0.6 });
+        const pipe = new THREE.Mesh(pipeGeo, pipeMat);
+        pipe.position.y = 0.4;
+        pipe.rotation.z = 0.3;
+        pipe.castShadow = true;
+        group.add(pipe);
+
+        // Steam particle system
+        this._createSmokeVentParticles(x, y + 0.8, z);
+
+        group.position.set(x, y, z);
+        group.userData.isDecoration = true;
+        group.userData.decorationType = 'smokeVent';
+        group.userData.isMapObject = true;
+        this.scene.add(group);
+
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(x, y + 0.4, z),
+            size: new THREE.Vector3(0.4, 0.8, 0.4),
+            enabled: true
+        });
+    }
+
+    _createSmokeVentParticles(x, y, z) {
+        const count = 30;
+        const geo = new THREE.BufferGeometry();
+        const positions = new Float32Array(count * 3);
+        const velocities = [];
+
+        for (let i = 0; i < count; i++) {
+            positions[i * 3] = x + (Math.random() - 0.5) * 0.5;
+            positions[i * 3 + 1] = y + Math.random() * 4;
+            positions[i * 3 + 2] = z + (Math.random() - 0.5) * 0.5;
+            velocities.push({
+                x: (Math.random() - 0.5) * 0.2,
+                y: 0.3 + Math.random() * 0.3,
+                z: (Math.random() - 0.5) * 0.2
+            });
+        }
+
+        geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const mat = new THREE.PointsMaterial({
+            color: 0x888888,
+            size: 0.3,
+            transparent: true,
+            opacity: 0.2,
+            depthWrite: false
+        });
+
+        const points = new THREE.Points(geo, mat);
+        points.userData.isParticle = true;
+        points.userData.velocities = velocities;
+        points.userData.type = 'smokeVent';
+        points.userData.origin = { x, y, z };
+        this.scene.add(points);
+        this.particleSystems.push(points);
+    }
+
+    // ---- Zone boundary markers ----
+    _buildZoneBoundaryMarkers(radius, center, color, label) {
+        const markerCount = 24;
+        const markerMat = getMat(color, {
+            emissive: color,
+            emissiveIntensity: 0.15
+        });
+
+        for (let i = 0; i < markerCount; i++) {
+            const angle = (i / markerCount) * Math.PI * 2;
+            const mx = center.x + Math.cos(angle) * radius;
+            const mz = center.z + Math.sin(angle) * radius;
+
+            // Pillar
+            const pillarGeo = new THREE.CylinderGeometry(0.08, 0.1, 2.5, 6);
+            const pillar = new THREE.Mesh(pillarGeo, markerMat);
+            pillar.position.set(mx, 1.25, mz);
+            pillar.castShadow = true;
+            pillar.userData.isDecoration = true;
+            pillar.userData.decorationType = 'zoneMarker';
+            pillar.userData.zoneLabel = label;
+            pillar.userData.isMapObject = true;
+            this.scene.add(pillar);
+
+            // Top orb
+            const orbGeo = new THREE.SphereGeometry(0.15, 6, 4);
+            const orb = new THREE.Mesh(orbGeo, markerMat);
+            orb.position.set(mx, 2.65, mz);
+            orb.userData.isDecoration = true;
+            orb.userData.decorationType = 'zoneMarker';
+            orb.userData.isMapObject = true;
+            this.scene.add(orb);
+
+            // Glow light
+            const glow = new THREE.PointLight(color, 0.3, 6);
+            glow.position.set(mx, 2.8, mz);
+            this.scene.add(glow);
+            this.animatedObjects.push({ type: 'glow', light: glow, baseIntensity: 0.3 });
+        }
+
+        // Zone boundary ring (transparent cylinder)
+        const ringGeo = new THREE.CylinderGeometry(radius, radius, 6, 32, 1, true);
+        const ringMat = new THREE.MeshBasicMaterial({
+            color: color,
+            transparent: true,
+            opacity: 0.08,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.position.set(center.x, 3, center.z);
+        ring.userData.isDecoration = true;
+        ring.userData.decorationType = 'zoneBoundary';
+        ring.userData.zoneLabel = label;
+        ring.userData.isMapObject = true;
+        this.scene.add(ring);
+    }
+
+    // ---- Loot zone indicators ----
+    _createLootIndicator(x, z, color = 0xf8d840) {
+        const pillarGeo = new THREE.CylinderGeometry(0.06, 0.08, 1.5, 6);
+        const pillarMat = getMat(0x6a6a6a, { roughness: 0.6, metalness: 0.5 });
+        const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+        pillar.position.set(x, 0.75, z);
+        pillar.castShadow = true;
+        pillar.userData.isDecoration = true;
+        pillar.userData.decorationType = 'lootIndicator';
+        pillar.userData.isMapObject = true;
+        this.scene.add(pillar);
+
+        // Glowing top
+        const orbGeo = new THREE.SphereGeometry(0.12, 6, 4);
+        const orbMat = getMat(color, {
+            emissive: color,
+            emissiveIntensity: 0.4,
+            transparent: true,
+            opacity: 0.8
+        });
+        const orb = new THREE.Mesh(orbGeo, orbMat);
+        orb.position.set(x, 1.65, z);
+        orb.userData.isDecoration = true;
+        orb.userData.decorationType = 'lootIndicator';
+        orb.userData.isMapObject = true;
+        this.scene.add(orb);
+
+        // Light
+        const glow = new THREE.PointLight(color, 0.4, 5);
+        glow.position.set(x, 1.8, z);
+        this.scene.add(glow);
+        this.animatedObjects.push({ type: 'glow', light: glow, baseIntensity: 0.4 });
+    }
+
+    // ---- Small ponds/water features ----
+    _createPond(x, z, radius, color = 0x2266aa) {
+        const pondGeo = new THREE.CircleGeometry(radius, 16);
+        pondGeo.rotateX(-Math.PI / 2);
+        const pondMat = new THREE.MeshBasicMaterial({
+            color: color,
+            transparent: true,
+            opacity: 0.6
+        });
+        const pond = new THREE.Mesh(pondGeo, pondMat);
+        pond.position.set(x, 0.03, z);
+        pond.userData.isDecoration = true;
+        pond.userData.decorationType = 'pond';
+        pond.userData.isMapObject = true;
+        pond.userData.isWater = true;
+        this.scene.add(pond);
+        this.waterMeshes.push(pond);
+
+        // Edge rocks
+        for (let i = 0; i < Math.floor(radius * 3); i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const r = radius - 0.1 + (Math.random() - 0.5) * 0.3;
+            this._createRock(x + Math.cos(angle) * r, 0, z + Math.sin(angle) * r, 0.15 + Math.random() * 0.15, 0x7a7a6a);
+        }
+    }
+
+    // ---- Ruined wall segments ----
+    _createRuinedWall(x, z, length, height, rotation = 0, color = 0xb0aaa5) {
+        const wallGeo = new THREE.BoxGeometry(length, height, 0.5);
+        const wallMat = getMat(color, { roughness: 0.9 });
+        const wall = new THREE.Mesh(wallGeo, wallMat);
+        wall.position.set(x, height / 2, z);
+        wall.rotation.y = rotation;
+        wall.castShadow = true;
+        wall.receiveShadow = true;
+        wall.userData.isDecoration = true;
+        wall.userData.decorationType = 'ruinedWall';
+        wall.userData.isMapObject = true;
+        this.scene.add(wall);
+
+        this.colliders.push({
+            type: 'box',
+            position: new THREE.Vector3(x, height / 2, z),
+            size: new THREE.Vector3(length, height, 0.5),
+            enabled: true
+        });
+    }
+
+    // ---- Main decoration method ----
+    async buildDecorations() {
+        console.log('[MapGen] building decorations...');
+
+        // === Scatter rocks everywhere ===
+        console.log('[MapGen] scattering rocks...');
+        for (let i = 0; i < 120; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const r = 10 + Math.random() * 180;
+            const x = Math.cos(angle) * r;
+            const z = Math.sin(angle) * r;
+            const s = 0.3 + Math.random() * 1.5;
+            this._createRock(x, 0, z, s, Math.random() > 0.5 ? 0x8a8a8a : 0x9a9a90);
+            if (i % 15 === 0) await _yield();
+        }
+
+        // === Scatter debris clusters ===
+        console.log('[MapGen] scattering debris...');
+        for (let i = 0; i < 40; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const r = 15 + Math.random() * 170;
+            this._createDebris(Math.cos(angle) * r, 0, Math.sin(angle) * r);
+            if (i % 5 === 0) await _yield();
+        }
+
+        // === Barrels and crates ===
+        console.log('[MapGen] placing barrels and crates...');
+        for (let i = 0; i < 25; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const r = 20 + Math.random() * 160;
+            this._createBarrel(Math.cos(angle) * r, 0, Math.sin(angle) * r);
+            if (i % 5 === 0) await _yield();
+        }
+        for (let i = 0; i < 30; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const r = 20 + Math.random() * 160;
+            this._createCrate(Math.cos(angle) * r, 0, Math.sin(angle) * r, 0.6 + Math.random() * 0.6);
+            if (i % 5 === 0) await _yield();
+        }
+
+        // === Benches ===
+        console.log('[MapGen] placing benches...');
+        for (let i = 0; i < 15; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const r = 30 + Math.random() * 120;
+            this._createBench(Math.cos(angle) * r, 0, Math.sin(angle) * r, angle);
+            if (i % 5 === 0) await _yield();
+        }
+
+        // === Signs ===
+        console.log('[MapGen] placing signs...');
+        const signPositions = [
+            { x: -50, z: 50, rot: Math.PI / 4, text: 'Citadel' },
+            { x: 50, z: 50, rot: -Math.PI / 4, text: 'Crystal' },
+            { x: -50, z: -50, rot: Math.PI * 0.75, text: 'Wastes' },
+            { x: 50, z: -50, rot: Math.PI / 4, text: 'Forest' },
+        ];
+        for (let i = 0; i < signPositions.length; i++) {
+            const sp = signPositions[i];
+            this._createSign(sp.x, 0, sp.z, sp.text, sp.rot);
+            if (i % 3 === 0) await _yield();
+        }
+
+        // === Fences around spawn courtyard ===
+        console.log('[MapGen] placing fences...');
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const r = 42;
+            this._createFenceSegment(
+                Math.cos(angle) * r,
+                Math.sin(angle) * r,
+                6,
+                angle + Math.PI / 2
+            );
+        }
+
+        // === Fences near citadel ===
+        for (let i = 0; i < 6; i++) {
+            this._createFenceSegment(
+                -80 + (Math.random() - 0.5) * 40,
+                80 + (Math.random() > 0.5 ? 20 : -20),
+                8 + Math.random() * 6,
+                Math.random() * Math.PI
+            );
+        }
+
+        // === Signage near cornucopia ===
+        this._createSign(8, 0, 8, 'START', 0);
+        this._createSign(-8, 0, 8, 'ARENA', Math.PI / 2);
+
+        // === Zone boundary markers ===
+        console.log('[MapGen] building zone boundaries...');
+        this._buildZoneBoundaryMarkers(180, { x: 0, z: 0 }, 0xff6622, 'outer');
+        this._buildZoneBoundaryMarkers(120, { x: 0, z: 0 }, 0xffaa44, 'inner');
+
+        await _yield();
+    }
+
+    // ---- Biome-specific trees ----
+    async buildBiomeTrees() {
+        console.log('[MapGen] building biome trees...');
+
+        // Ruined Citadel: dead/partially dead trees
+        console.log('[MapGen] citadel trees...');
+        for (let i = 0; i < 25; i++) {
+            const x = -80 + (Math.random() - 0.5) * 60;
+            const z = 80 + (Math.random() - 0.5) * 60;
+            this._createTree(x, 0, z, 'ruined');
+            if (i % 5 === 0) await _yield();
+        }
+
+        // Crystal Grotto: crystal-leaf trees
+        console.log('[MapGen] crystal trees...');
+        for (let i = 0; i < 20; i++) {
+            const x = 80 + (Math.random() - 0.5) * 50;
+            const z = 80 + (Math.random() - 0.5) * 50;
+            this._createTree(x, 0, z, 'crystal');
+            if (i % 5 === 0) await _yield();
+        }
+
+        // Burning Wastes: burnt trunks, no leaves
+        console.log('[MapGen] burnt trees...');
+        for (let i = 0; i < 20; i++) {
+            const x = -80 + (Math.random() - 0.5) * 60;
+            const z = -80 + (Math.random() - 0.5) * 60;
+            this._createTree(x, 0, z, 'burnt');
+            if (i % 5 === 0) await _yield();
+        }
+
+        // Luminous Forest: glowing trees
+        console.log('[MapGen] glowing trees...');
+        for (let i = 0; i < 30; i++) {
+            const x = 80 + (Math.random() - 0.5) * 60;
+            const z = -80 + (Math.random() - 0.5) * 60;
+            this._createTree(x, 0, z, 'glowing');
+            if (i % 5 === 0) await _yield();
+        }
+
+        // Regular trees in neutral zones
+        console.log('[MapGen] neutral trees...');
+        for (let i = 0; i < 40; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const r = 40 + Math.random() * 140;
+            const x = Math.cos(angle) * r;
+            const z = Math.sin(angle) * r;
+            this._createTree(x, 0, z, 'normal');
+            if (i % 8 === 0) await _yield();
+        }
+
+        // === Mushrooms in forest ===
+        console.log('[MapGen] placing mushrooms...');
+        for (let i = 0; i < 30; i++) {
+            const x = 80 + (Math.random() - 0.5) * 70;
+            const z = -80 + (Math.random() - 0.5) * 70;
+            this._createMushroom(x, 0, z, 2 + Math.floor(Math.random() * 4));
+            if (i % 5 === 0) await _yield();
+        }
+
+        // === Crystal formations in grotto ===
+        console.log('[MapGen] placing crystal formations...');
+        for (let i = 0; i < 15; i++) {
+            const x = 80 + (Math.random() - 0.5) * 50;
+            const z = 80 + (Math.random() - 0.5) * 50;
+            this._createCrystalFormation(x, 0, z, 3 + Math.floor(Math.random() * 5));
+            if (i % 3 === 0) await _yield();
+        }
+
+        // === Smoke vents in wastes ===
+        console.log('[MapGen] placing smoke vents...');
+        for (let i = 0; i < 12; i++) {
+            const x = -80 + (Math.random() - 0.5) * 60;
+            const z = -80 + (Math.random() - 0.5) * 60;
+            this._createSmokeVent(x, 0, z);
+            if (i % 3 === 0) await _yield();
+        }
+
+        // === Ponds in forest ===
+        console.log('[MapGen] placing ponds...');
+        for (let i = 0; i < 6; i++) {
+            const x = 80 + (Math.random() - 0.5) * 50;
+            const z = -80 + (Math.random() - 0.5) * 50;
+            this._createPond(x, z, 2 + Math.random() * 3, 0x22aa66);
+            if (i % 2 === 0) await _yield();
+        }
+
+        // === Ruined walls near citadel ===
+        console.log('[MapGen] placing ruined walls...');
+        for (let i = 0; i < 8; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const r = 50 + Math.random() * 30;
+            const x = -80 + Math.cos(angle) * r * 0.5;
+            const z = 80 + Math.sin(angle) * r * 0.5;
+            const len = 3 + Math.random() * 8;
+            const h = 1 + Math.random() * 3;
+            this._createRuinedWall(x, z, len, h, angle, 0xb0aaa5);
+            if (i % 2 === 0) await _yield();
+        }
+
+        // === Loot indicators scattered around map ===
+        console.log('[Mapen] placing loot indicators...');
+        for (let i = 0; i < 20; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const r = 30 + Math.random() * 150;
+            const x = Math.cos(angle) * r;
+            const z = Math.sin(angle) * r;
+            const colors = [0xf8d840, 0x44ff44, 0x4488ff, 0xff4488];
+            this._createLootIndicator(x, z, colors[Math.floor(Math.random() * colors.length)]);
+            if (i % 5 === 0) await _yield();
+        }
+
+        this.reportProgress(0.88, 'Декорации и указатели');
+        console.log('[MapGen] biome trees done');
+        await _yield();
+    }
+
     generateHeightMap() {
         const size = 512, res = 128, step = size / res;
         this.heightMap = Array.from({ length: res + 1 }, () => new Float32Array(res + 1));
