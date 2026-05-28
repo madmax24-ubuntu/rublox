@@ -176,9 +176,64 @@ function createGunModel(style) {
         group.add(createPart(getGeom('laser_core', () => new THREE.CylinderGeometry(0.035, 0.035, 0.4, 8)), neon, 0.18, 0.06, 0, 0, 0, Math.PI / 2));
         group.add(createPart(getGeom('laser_grip', () => new THREE.BoxGeometry(0.12, 0.22, 0.12)), dark, -0.06, -0.17, 0));
         group.add(createPart(getGeom('laser_cell', () => new THREE.BoxGeometry(0.12, 0.18, 0.12)), neon, -0.04, -0.04, 0));
+    } else if (style === 'sniper') {
+        group.add(createPart(getGeom('sniper_body', () => new THREE.BoxGeometry(1.32, 0.12, 0.13)), metal, 0.2, 0.06, 0));
+        group.add(createPart(getGeom('sniper_barrel', () => new THREE.CylinderGeometry(0.028, 0.028, 0.88, 8)), dark, 0.78, 0.06, 0, 0, 0, Math.PI / 2));
+        group.add(createPart(getGeom('sniper_stock', () => new THREE.BoxGeometry(0.48, 0.18, 0.14)), wood, -0.42, 0.04, 0));
+        group.add(createPart(getGeom('sniper_mag', () => new THREE.BoxGeometry(0.11, 0.22, 0.09)), dark, 0.08, -0.1, 0));
+        group.add(createPart(getGeom('sniper_grip', () => new THREE.BoxGeometry(0.11, 0.18, 0.1)), dark, -0.06, -0.12, 0));
+        group.add(createPart(getGeom('sniper_scope', () => new THREE.CylinderGeometry(0.055, 0.055, 0.48, 8)), dark, 0.22, 0.16, 0));
+        group.add(createPart(getGeom('sniper_scope_ring', () => new THREE.TorusGeometry(0.065, 0.012, 8, 12)), metal, 0.22, 0.14, 0, Math.PI / 2));
+        const redDot = getMaterial('sniper_red_dot', () => new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 0.8 }));
+        group.add(createPart(getGeom('sniper_red_dot_g', () => new THREE.SphereGeometry(0.018, 6, 6)), redDot, 0.44, 0.16, 0));
+    } else if (style === 'smg') {
+        group.add(createPart(getGeom('smg_body', () => new THREE.BoxGeometry(0.78, 0.13, 0.13)), metal, 0.14, 0.06, 0));
+        group.add(createPart(getGeom('smg_barrel', () => new THREE.CylinderGeometry(0.03, 0.03, 0.52, 8)), dark, 0.62, 0.06, 0, 0, 0, Math.PI / 2));
+        group.add(createPart(getGeom('smg_stock', () => new THREE.BoxGeometry(0.24, 0.14, 0.12)), dark, -0.26, 0.04, 0));
+        group.add(createPart(getGeom('smg_mag', () => new THREE.BoxGeometry(0.11, 0.26, 0.09)), dark, 0.02, -0.12, 0));
+        group.add(createPart(getGeom('smg_grip', () => new THREE.BoxGeometry(0.1, 0.16, 0.1)), dark, -0.04, -0.1, 0));
+        const blueGlow = getMaterial('smg_glow', () => new THREE.MeshStandardMaterial({ color: 0x4488ff, emissive: 0x4488ff, emissiveIntensity: 0.3 }));
+        group.add(createPart(getGeom('smg_glow', () => new THREE.BoxGeometry(0.06, 0.06, 0.06)), blueGlow, 0.14, 0.13, 0));
     }
 
     group.rotation.y = Math.PI;
+    return group;
+}
+
+function createCrossbowModel() {
+    const group = new THREE.Group();
+    const woodMat = getMaterial('crossbow_wood', () => new THREE.MeshStandardMaterial({ color: 0x6b4a20, roughness: 0.7, flatShading: true }));
+    const metalMat = getMaterial('crossbow_metal', () => new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.45, metalness: 0.5, flatShading: true }));
+    const stringMat = getMaterial('crossbow_string', () => new THREE.LineBasicMaterial({ color: 0x222222 }));
+
+    // Stock
+    group.add(createPart(getGeom('crossbow_stock', () => new THREE.BoxGeometry(0.62, 0.1, 0.09)), woodMat, -0.08, -0.02, 0));
+    // Upper limb frame
+    group.add(createPart(getGeom('crossbow_frame', () => new THREE.BoxGeometry(0.78, 0.07, 0.06)), woodMat, 0.22, 0.12, 0));
+    // Lower limb frame
+    group.add(createPart(getGeom('crossbow_frame_l', () => new THREE.BoxGeometry(0.78, 0.07, 0.06)), woodMat, 0.22, -0.12, 0));
+    // Barrel groove
+    group.add(createPart(getGeom('crossbow_barrel', () => new THREE.BoxGeometry(0.58, 0.06, 0.08)), metalMat, 0.22, 0, 0));
+    // Trigger
+    group.add(createPart(getGeom('crossbow_trigger', () => new THREE.BoxGeometry(0.06, 0.14, 0.06)), metalMat, -0.02, -0.08, 0));
+    // Grip
+    group.add(createPart(getGeom('crossbow_grip', () => new THREE.BoxGeometry(0.08, 0.18, 0.08)), woodMat, -0.14, -0.1, 0));
+
+    // String (center to front)
+    const string = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(0.62, 0.12, 0),
+            new THREE.Vector3(0.0, 0, 0),
+            new THREE.Vector3(0.62, -0.12, 0)
+        ]),
+        stringMat
+    );
+    string.frustumCulled = false;
+    group.add(string);
+
+    // Sighting rail
+    group.add(createPart(getGeom('crossbow_rail', () => new THREE.BoxGeometry(0.42, 0.02, 0.03)), metalMat, 0.22, 0.16, 0));
+    group.scale.setScalar(0.88);
     return group;
 }
 
