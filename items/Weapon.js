@@ -458,6 +458,9 @@ export class Weapon {
             else if (this.type === 'pistol') audioSynth.playPistol?.(srcPos, srcKey);
             else if (this.type === 'machinegun') audioSynth.playMachinegun?.(srcPos, srcKey);
             else if (this.type === 'rifle') audioSynth.playRifle?.(srcPos, srcKey);
+            else if (this.type === 'sniper') audioSynth.playRifle?.(srcPos, srcKey);
+            else if (this.type === 'smg') audioSynth.playMachinegun?.(srcPos, srcKey);
+            else if (this.type === 'crossbow') audioSynth.playBowShot?.(srcPos, srcKey);
         }
 
         if (this.type === 'fists' || this.type === 'knife') {
