@@ -498,9 +498,11 @@ class Game {
         this.lootManager = new LootManager(this.scene, this.map);
         console.log('[Game] LootManager created');
         console.log('[Game] calling generateChests...');
+        console.log('[Game] lootManager:', typeof this.lootManager, !!this.lootManager);
+        console.log('[Game] generateChests:', typeof this.lootManager?.generateChests);
         try {
-            await this.lootManager.generateChests?.();
-            console.log('[Game] chests generated');
+            const result = await this.lootManager.generateChests?.();
+            console.log('[Game] chests generated, result:', typeof result);
         } catch (err) {
             console.warn('[Game] generateChests failed:', err.message);
         }
