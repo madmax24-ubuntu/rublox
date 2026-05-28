@@ -3140,8 +3140,7 @@ export class MapGenerator {
             if (i % 5 === 0) await _yield();
         }
 
-        // === Benches ===
-        console.log('[MapGen] placing benches...');
+       // === Benches ===
         for (let i = 0; i < 15; i++) {
             const angle = Math.random() * Math.PI * 2;
             const r = 30 + Math.random() * 120;
