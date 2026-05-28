@@ -297,14 +297,9 @@ class Game {
         this.scene.fog = new THREE.FogExp2(0x8899aa, 0.006);
         this.scene.background = new THREE.Color(0x8899aa);
         this.scene.environment = null;
-        
-        console.log('🔧 Creating camera...');
+
         try {
-            const camOptions = { fov: 75, aspect: window.innerWidth / window.innerHeight, near: 0.1, far: 5000 };
-            console.log('Camera options:', JSON.stringify(camOptions));
-            
             this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
-            console.log('✅ Camera created at position:', this.camera.position?.x, this.camera.position?.y, this.camera.position?.z);
         } catch(err) {
             console.error('❌ Failed to create camera:', err.message);
             throw err;
