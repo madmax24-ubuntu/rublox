@@ -1,7 +1,7 @@
 import { chromium } from 'playwright';
 
 (async () => {
-    const browser = await chromium.launch({ headless: true });
+    const browser = await chromium.launch({ headless: true, args: ['--use-gl=swiftshader'] });
     const page = await browser.newPage();
 
     const logs = [];
