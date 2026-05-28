@@ -31,7 +31,6 @@ export class GameLoop {
 
     animate() {
         if (!this.isRunning) {
-            console.log('[GameLoop] not running, stopping');
             return;
         }
 
