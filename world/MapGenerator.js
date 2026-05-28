@@ -3256,7 +3256,6 @@ export class MapGenerator {
         }
 
         // === Mushrooms in forest ===
-        console.log('[MapGen] placing mushrooms...');
         for (let i = 0; i < 30; i++) {
             const x = 80 + (Math.random() - 0.5) * 70;
             const z = -80 + (Math.random() - 0.5) * 70;
