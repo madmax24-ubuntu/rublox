@@ -239,7 +239,7 @@ async function runDebugTest() {
     // Финальные скриншоты
     console.log('\n📸 Финальные скриншоты...');
     const finalCameras = ['citadel_center', 'crystal_center', 'wastes_center', 'forest_center', 'edge_ne', 'edge_sw'];
-    for (const camName of finalCambers) {
+    for (const camName of finalCameras) {
         const cam = cameraPositions[camName];
         if (cam) {
             await switchCamera(page, cam, 'final');
