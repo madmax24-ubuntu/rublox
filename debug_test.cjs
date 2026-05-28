@@ -11,6 +11,8 @@ if (!fs.existsSync(outputDir)) {
 }
 
 // Камеры по карте - ключевые точки для анализа
+let _lastScreenshotTime = Date.now();
+
 const cameraPositions = {
     // Обзор с высоты
     overview_high: { x: 0, y: 350, z: 0, fov: 95, label: 'Обзор сверху' },
