@@ -444,11 +444,8 @@ class Game {
             }
         }
         
-        // Создаём остальные объекты, которые зависят от карты
-        console.log('[Game] creating Physics...');
+       // Создаём остальные объекты, которые зависят от карты
         this.physics = new Physics(this.scene, this.map);
-        console.log('[Game] Physics created');
-        console.log('[Game] creating Zone...');
         this.zone = new Zone(this.scene, this.map.size);
         console.log('[Game] Zone created');
         this.zoneDuration = GAME_CONFIG.zone.durationSeconds;
