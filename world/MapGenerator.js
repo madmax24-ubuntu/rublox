@@ -87,7 +87,7 @@ const COLOR = {
     crystalGlow: 0x88ccff,
     lava: 0xff4400,
     obsidian: 0x4a4a5a,
-    wasteGround: 0xcc4400,
+    wasteGround: 0xff2200,
     scorchedRock: 0x5a5a5a,
     smoke: 0x4a4a4a,
     luminousBark: 0x5a4a3a,
