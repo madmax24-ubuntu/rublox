@@ -2,7 +2,6 @@ import * as THREE from 'three';
 
 export class Environment {
     constructor(scene) {
-        console.log('[Environment] constructor start');
         this.scene = scene;
         this.sunLight = null;
         this.dayTime = 0.3;
