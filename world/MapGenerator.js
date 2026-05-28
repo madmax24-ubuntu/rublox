@@ -3733,8 +3733,6 @@ export class MapGenerator {
                 obj.userData._originalVisible = obj.visible;
             }
         });
-
-        console.log(`[MapGen] Optimized culling: ${this._mapObjects.length} objects tracked`);
     }
 
     /**
