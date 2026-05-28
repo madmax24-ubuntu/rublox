@@ -3223,7 +3223,6 @@ export class MapGenerator {
         }
 
         // Luminous Forest: glowing trees
-        console.log('[MapGen] glowing trees...');
         for (let i = 0; i < 30; i++) {
             const x = 80 + (Math.random() - 0.5) * 60;
             const z = -80 + (Math.random() - 0.5) * 60;
