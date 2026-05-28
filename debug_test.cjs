@@ -103,7 +103,6 @@ async function runDebugTest() {
     let currentCamera = null;
     let gameStarted = false;
     let mapReady = false;
-    let _lastScreenshotTime = Date.now();
 
     // Слушаем логи
     page.on('console', (msg) => {
