@@ -15,7 +15,6 @@ export class GameLoop {
         this.isRunning = true;
         this.clock.start();
         this.resetDelta();
-        console.log('[GameLoop] starting, isRunning=' + this.isRunning);
         this.animate();
     }
 
