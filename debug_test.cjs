@@ -327,16 +327,15 @@ async function switchCamera(page, cam, event) {
     try {
         await page.evaluate((c) => {
             if (window.gameInstance && window.gameInstance.camera) {
-                const { Vector3, Euler } = require('three');
                 window.gameInstance.camera.position.set(c.x, c.y, c.z);
-                window.gameInstance.camera.lookAt(0, 0, 0);
-                window.gameInstance.camera.fov = c.fov;
+                window.gameInstance.camera.lookAt(c.lookAt?.x || 0, c.lookAt?.y || 0, c.lookAt?.z || 0);
+                window.gameInstance.camera.fov = c.fov || 60;
                 window.gameInstance.camera.updateProjectionMatrix();
                 window.gameInstance.render();
             }
         }, cam);
     } catch (e) {
-        console.log(`  ⚠️ Не удалось переключить камеру ${cam}: ${e.message}`);
+        console.log(`  ⚠️ Не удалось переключить камеру ${cam.name}: ${e.message}`);
     }
 }
 
