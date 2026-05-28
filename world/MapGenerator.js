@@ -3359,140 +3359,78 @@ export class MapGenerator {
             }
     }
 
-      // ===================== GENERATION ORCHESTRATOR =====================
+    // ===================== GENERATION ORCHESTRATOR =====================
     async generate() {
         try {
-            console.log('[MapGen] generate() starting');
             this.generateHeightMap();
             this.reportProgress(0.05, 'Создание ландшафта...');
 
-        this.buildArenaFloor();
-        console.log('[MapGen] arena floor done');
-        this.reportProgress(0.12, 'Ландшафт готов');
+            this.buildArenaFloor();
+            this.reportProgress(0.10, 'Ландшафт готов');
 
-        this.buildForcefield();
-        console.log('[MapGen] forcefield done');
-        this.reportProgress(0.18, 'Арена построена');
+            this.buildForcefield();
+            this.reportProgress(0.15, 'Арена построена');
 
-        console.log('[MapGen] yielding 100ms before cornucopia...');
-        await new Promise(r => setTimeout(r, 100));
+            await new Promise(r => setTimeout(r, 100));
+            await this.buildCornucopia();
+            this.reportProgress(0.22, 'Корнукопия');
 
-        await this.buildCornucopia();
-        console.log('[MapGen] cornucopia done');
-        this.reportProgress(0.25, 'Корнукопия');
+            await new Promise(r => setTimeout(r, 100));
+            await this.buildInnerRing();
+            this.reportProgress(0.30, 'Внутреннее кольцо');
 
-        console.log('[MapGen] yielding 500ms before inner ring...');
-        await new Promise(r => setTimeout(r, 100));
+            await this.buildBiomePaths();
+            this.reportProgress(0.35, 'Пути биомов');
+            await new Promise(r => setTimeout(r, 100));
 
-        await this.buildInnerRing();
-        console.log('[MapGen] inner ring done');
-        this.reportProgress(0.32, 'Внутреннее кольцо');
+            await this.buildRuinedCitadel();
+            this.reportProgress(0.42, 'Руины Цитадели');
 
-        await this.buildBiomePaths();
-        console.log('[MapGen] biome paths done');
-        this.reportProgress(0.38, 'Пути биомов');
-        await new Promise(r => setTimeout(r, 100));
+            await this.buildCrystalGrotto();
+            this.reportProgress(0.50, 'Хрустальная гротовка');
+            await new Promise(r => setTimeout(r, 100));
 
-        console.log('[MapGen] yielding 500ms before citadel...');
-        await new Promise(r => setTimeout(r, 100));
+            await this.buildBurningWastes();
+            this.reportProgress(0.58, 'Пылающие пустоши');
 
-        console.log('[MapGen] starting citadel...');
-        await this.buildRuinedCitadel();
-        console.log('[MapGen] citadel done');
-        this.reportProgress(0.45, 'Руины Цитадели');
+            await this.buildLuminousForest();
+            this.reportProgress(0.66, 'Светящийся лес');
+            await new Promise(r => setTimeout(r, 100));
 
-        await this.buildCrystalGrotto();
-        console.log('[MapGen] crystal grotto done');
-        this.reportProgress(0.52, 'Хрустальная гротовка');
-        await new Promise(r => setTimeout(r, 100));
+            this.reportProgress(0.70, 'Мосты и форпосты...');
+            await this.buildBridges();
+            await this.buildOuterOutposts();
+            await this.buildHazardZones();
+            this.reportProgress(0.76, 'Объекты размещены');
+            await new Promise(r => setTimeout(r, 100));
 
-        console.log('[MapGen] yielding 500ms before wastes...');
-        await new Promise(r => setTimeout(r, 100));
+            await this.buildLootClusters();
+            await this.buildFirePits();
+            this.reportProgress(0.80, 'Частицы');
+            await this.buildParticleSystems();
+            await new Promise(r => setTimeout(r, 100));
 
-        await this.buildBurningWastes();
-        console.log('[MapGen] wastes done');
-        this.reportProgress(0.58, 'Пылающие пустоши');
+            await this.buildDecorations();
+            this.reportProgress(0.86, 'Декорации');
+            await this.buildBiomeTrees();
+            this.reportProgress(0.92, 'Зоны обозначены');
+            await new Promise(r => setTimeout(r, 100));
 
-        console.log('[MapGen] yielding 500ms before forest...');
-        await new Promise(r => setTimeout(r, 100));
+            await this.buildTraps();
+            this.reportProgress(0.94, 'Ловушки');
+            await this.buildFogZones();
+            await new Promise(r => setTimeout(r, 200));
 
-        await this.buildLuminousForest();
-        console.log('[MapGen] forest done');
-        this.reportProgress(0.65, 'Светящийся лес');
+            await this.buildRadiationZones();
+            await this.buildLootData();
+            this.reportProgress(0.98, 'Мир готов');
 
-        console.log('[MapGen] yielding 500ms before bridges...');
-        await new Promise(r => setTimeout(r, 100));
-
-        this.reportProgress(0.68, 'Мосты и форпосты...');
-        await this.buildBridges();
-        console.log('[MapGen] bridges done');
-        console.log('[MapGen] about to yield before outposts...');
-        const t1 = Date.now();
-        await new Promise(r => setTimeout(r, 100));
-        console.log('[MapGen] yield before outposts took', Date.now() - t1, 'ms');
-
-        console.log('[MapGen] calling buildOuterOutposts...');
-        const t2 = Date.now();
-        await this.buildOuterOutposts();
-        console.log('[MapGen] buildOuterOutposts took', Date.now() - t2, 'ms');
-        console.log('[MapGen] outer outposts done');
-        await this.buildHazardZones();
-        console.log('[MapGen] hazard zones done');
-        await new Promise(r => setTimeout(r, 100));
-
-        await this.buildLootClusters();
-        console.log('[MapGen] loot clusters done');
-        await this.buildFirePits();
-        console.log('[MapGen] fire pits done');
-        this.reportProgress(0.75, 'Объекты размещены');
-        await new Promise(r => setTimeout(r, 100));
-
-        await this.buildParticleSystems();
-        console.log('[MapGen] particle systems done');
-        this.reportProgress(0.72, 'Частицы');
-
-        // === DECORATIONS & VISUAL INDICATORS ===
-        await this.buildDecorations();
-        console.log('[MapGen] decorations done');
-        this.reportProgress(0.80, 'Декорации');
-        await new Promise(r => setTimeout(r, 100));
-
-        await this.buildBiomeTrees();
-        console.log('[MapGen] biome trees done');
-        this.reportProgress(0.90, 'Зоны обозначены');
-        await new Promise(r => setTimeout(r, 100));
-
-        console.log('[MapGen] about to yield before traps...');
-        await new Promise(r => setTimeout(r, 100));
-        console.log('[MapGen] yield done, calling buildTraps()...');
-        await this.buildTraps();
-        console.log('[MapGen] traps done');
-        await new Promise(r => setTimeout(r, 100));
-        await this.buildFogZones();
-        console.log('[MapGen] fog zones done');
-        console.log('[MapGen] yielding 3s before radiation...');
-        await new Promise(r => setTimeout(r, 500));
-        console.log('[MapGen] resuming after 3s yield');
-        await this.buildRadiationZones();
-        console.log('[MapGen] radiation zones done');
-        console.log('[MapGen] yielding 1s before loot data...');
-        await new Promise(r => setTimeout(r, 200));
-        console.log('[MapGen] resuming after loot yield');
-        await this.buildLootData();
-        console.log('[MapGen] loot data done');
-        this.reportProgress(0.90, 'Лут и ловушки');
-        await new Promise(r => setTimeout(r, 200));
-
-      // Resolve immediately - no deferred setup needed
-        console.log('[MapGen] resolving immediately...');
-        this.reportProgress(0.95, 'Мир готов');
-        this._resolveReady();
-        console.log('[MapGen] ready resolved!');
-    } catch (e) {
-        console.error('[MapGen] ERROR in generate:', e.message, e.stack);
-        this._resolveReady();
+            this._resolveReady();
+        } catch (e) {
+            console.error('[MapGen] ERROR in generate:', e.message, e.stack);
+            this._resolveReady();
+        }
     }
-}
 
     // ===================== ANIMATION UPDATES =====================
     updateZoneAnimations(deltaTime) {
