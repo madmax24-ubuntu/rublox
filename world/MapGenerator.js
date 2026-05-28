@@ -3207,7 +3207,6 @@ export class MapGenerator {
         }
 
         // Crystal Grotto: crystal-leaf trees
-        console.log('[MapGen] crystal trees...');
         for (let i = 0; i < 20; i++) {
             const x = 80 + (Math.random() - 0.5) * 50;
             const z = 80 + (Math.random() - 0.5) * 50;
