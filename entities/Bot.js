@@ -1068,9 +1068,16 @@ export class Bot {
         const bottom = this.position.y - this.physics.height + 0.2;
         for (const box of nearby) {
             if (box.enabled === false) continue;
-            if (this._tmpProbe.x < box.min.x - 0.1 || this._tmpProbe.x > box.max.x + 0.1) continue;
-            if (this._tmpProbe.z < box.min.z - 0.1 || this._tmpProbe.z > box.max.z + 0.1) continue;
-            if (bottom > box.max.y - 0.1) continue;
+            let boxMin, boxMax;
+            if (box.min && box.max) {
+                boxMin = box.min; boxMax = box.max;
+            } else {
+                boxMin = new THREE.Vector3(box.position.x - box.size.x / 2, box.position.y - box.size.y / 2, box.position.z - box.size.z / 2);
+                boxMax = new THREE.Vector3(box.position.x + box.size.x / 2, box.position.y + box.size.y / 2, box.position.z + box.size.z / 2);
+            }
+            if (this._tmpProbe.x < boxMin.x - 0.1 || this._tmpProbe.x > boxMax.x + 0.1) continue;
+            if (this._tmpProbe.z < boxMin.z - 0.1 || this._tmpProbe.z > boxMax.z + 0.1) continue;
+            if (bottom > boxMax.y - 0.1) continue;
             return true;
         }
         return false;
