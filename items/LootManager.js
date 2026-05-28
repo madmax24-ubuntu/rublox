@@ -67,6 +67,7 @@ export class LootManager {
         const targetByMapSize = Math.floor(Math.max(140, floorTiles.length * (this.isMobile ? 0.08 : 0.12)));
         const chestCount = Math.max(this.isMobile ? 150 : 220, Math.floor(targetByMapSize * this.lootDensity));
         const spots = this.mapGenerator.getChestSpots?.() || [];
+        console.log('[LootManager] generating chests: spots=', spots.length, 'floorTiles=', floorTiles.length, 'target=', chestCount);
 
         if (spots.length > 0) {
             const shuffled = [...spots].sort(() => Math.random() - 0.5);
