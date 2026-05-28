@@ -947,7 +947,7 @@ export class Bot {
             this.currentWeapon = null;
             weapon = this.fists;
         }
-        if ((weapon.type === 'bow' || weapon.type === 'laser' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle' || weapon.type === 'machinegun') && weapon.ammo !== null && weapon.ammo <= 0) {
+        if ((weapon.type === 'bow' || weapon.type === 'laser' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle' || weapon.type === 'machinegun' || weapon.type === 'sniper' || weapon.type === 'smg' || weapon.type === 'crossbow') && weapon.ammo !== null && weapon.ammo <= 0) {
             this.currentWeapon = null;
             weapon = this.fists;
         }
