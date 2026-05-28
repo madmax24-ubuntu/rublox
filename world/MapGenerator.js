@@ -542,7 +542,6 @@ export class MapGenerator {
 
     // ===================== CORNUOPIA =====================
     async buildCornucopia() {
-        console.log('[MapGen] buildCornucopia START');
         // Base platform
         const baseGeo = this.getSharedGeo('cornBase', () =>
             new THREE.CylinderGeometry(16, 18, 3, 8));
