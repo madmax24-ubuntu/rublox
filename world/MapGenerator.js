@@ -166,7 +166,7 @@ export class MapGenerator {
 
     // ---- Tracked PointLight helper ----
     _createPointLight(color, intensity, distance) {
-        const light = this._createPointLight(color, intensity, distance);
+        const light = new THREE.PointLight(color, intensity, distance);
         this._allPointLights.push(light);
         return light;
     }
