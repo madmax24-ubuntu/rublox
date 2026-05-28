@@ -626,6 +626,28 @@ export class Weapon {
                 this.mesh.rotation.copy(originalRotation);
                 this.mesh.position.copy(originalPosition);
             }, 120);
+        } else if (this.type === 'sniper') {
+            this.mesh.rotation.x = originalRotation.x - 0.35;
+            this.mesh.position.z = originalPosition.z - 0.12;
+            setTimeout(() => {
+                if (!this.mesh) return;
+                this.mesh.rotation.copy(originalRotation);
+                this.mesh.position.copy(originalPosition);
+            }, 180);
+        } else if (this.type === 'smg') {
+            this.mesh.rotation.x = originalRotation.x - 0.18;
+            this.mesh.position.z = originalPosition.z - 0.04;
+            setTimeout(() => {
+                if (!this.mesh) return;
+                this.mesh.rotation.copy(originalRotation);
+                this.mesh.position.copy(originalPosition);
+            }, 80);
+        } else if (this.type === 'crossbow') {
+            this.mesh.rotation.z = originalRotation.z - 0.15;
+            setTimeout(() => {
+                if (!this.mesh) return;
+                this.mesh.rotation.copy(originalRotation);
+            }, 220);
         } else if (this.type === 'flamethrower') {
             this.mesh.rotation.x = originalRotation.x - 0.12;
             setTimeout(() => {
