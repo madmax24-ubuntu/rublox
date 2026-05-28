@@ -2502,21 +2502,6 @@ class Game {
     render() {
         this.renderFrameCount = (this.renderFrameCount || 0) + 1;
         this.camera.layers.enableAll();
-        if (this.renderFrameCount === 1) {
-            console.log('[Game] FIRST render: renderer=' + this.renderer?.constructor?.name + ' renderMethod=' + typeof this.renderer.render + ' renderName=' + this.renderer.render?.name);
-            console.log('[Game] Camera: pos=' + this.camera.position.x + ',' + this.camera.position.y + ',' + this.camera.position.z + ' near=' + this.camera.near + ' far=' + this.camera.far);
-            console.log('[Game] Scene children: ' + this.scene.children.length + ' mapGround=' + (this.map?.scene?.children?.length || 0));
-            // Check if ground planes exist
-            this.scene.traverse(obj => {
-                if (obj.isMesh && (obj.geometry?.type === 'PlaneGeometry' || obj.geometry?.type === 'BoxGeometry')) {
-                    const geo = obj.geometry;
-                    const params = geo.parameters || {};
-                    if ((params.width || 0) > 200 || (params.width || 0) > 10 && (params.height || 0) > 10) {
-                        console.log('[Game] Large mesh: type=' + obj.geometry?.type + ' pos=' + obj.position.x + ',' + obj.position.y + ',' + obj.position.z + ' size=' + (params.width || '?') + 'x' + (params.height || '?') + 'x' + (params.depth || '?'));
-                    }
-                }
-            });
-        }
         this.renderer.render(this.scene, this.camera);
     }
 
