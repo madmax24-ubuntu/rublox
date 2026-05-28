@@ -3322,9 +3322,11 @@ export class MapGenerator {
                 // Reset if too high
                 if (pos.array[i * 3 + 1] > 15) {
                     pos.array[i * 3 + 1] = 0;
-                    const cx = ps.userData.cx || 0, cz = ps.userData.cz || 0;
+                    const origin = ps.userData.origin;
+                    const cx = origin ? origin.x : (ps.userData.cx || 0);
+                    const cz = origin ? origin.z : (ps.userData.cz || 0);
                     const angle = Math.random() * Math.PI * 2;
-                    const r = Math.random() * 30;
+                    const r = Math.random() * 5;
                     pos.array[i * 3] = cx + Math.cos(angle) * r;
                     pos.array[i * 3 + 2] = cz + Math.sin(angle) * r;
                 }
