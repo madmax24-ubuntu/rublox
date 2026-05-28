@@ -958,7 +958,7 @@ export class Bot {
 
         if (distance > attackRange) return null;
 
-        if (weapon.type === 'laser' || weapon.type === 'bow' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle' || weapon.type === 'machinegun') {
+        if (weapon.type === 'laser' || weapon.type === 'bow' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle' || weapon.type === 'machinegun' || weapon.type === 'sniper' || weapon.type === 'smg' || weapon.type === 'crossbow') {
             const direction = this._tmpDirection
                 .subVectors(target.position, this.position)
                 .normalize();
