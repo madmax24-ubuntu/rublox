@@ -404,7 +404,7 @@ export class BotBrain {
                 bot._reactionTargetKey = targetKey;
                 bot._reactionReadyAt = nowSec + this.reactionMin + Math.random() * (this.reactionMax - this.reactionMin);
             }
-            if (weaponType === 'sniper') {
+ if (updatedType === 'sniper') {
                 // Sniper: stand still for accuracy, slow fire rate
                 bot._reactionReadyAt = nowSec + 0.6 + Math.random() * 0.4;
                 if (bot._reactionReadyAt && nowSec < bot._reactionReadyAt) return;
@@ -412,7 +412,7 @@ export class BotBrain {
                     bot.attack(target, entityManager);
                     this.attackCooldown = Math.max(0.8, (weapon.cooldown || 1.2) * 0.8);
                 }
-            } else if (weaponType === 'smg') {
+            } else if (updatedType === 'smg') {
                 // SMG: aggressive strafing, fast fire rate
                 const to2 = this._tmpVec2.subVectors(target.position, bot.position);
                 const len2 = Math.max(0.001, Math.hypot(to2.x, to2.z));
@@ -425,7 +425,7 @@ export class BotBrain {
                     bot.attack(target, entityManager);
                     this.attackCooldown = Math.max(0.03, (weapon.cooldown || 0.06) * 0.4);
                 }
-            } else if (weaponType === 'crossbow') {
+            } else if (updatedType === 'crossbow') {
                 // Crossbow: hold position, deliberate shots
                 if (dist > 20) {
                     this.steerMove(bot, target.position, bot.physics.speed * 0.7);
@@ -434,7 +434,7 @@ export class BotBrain {
                     bot.attack(target, entityManager);
                     this.attackCooldown = Math.max(1.0, (weapon.cooldown || 1.5) * 0.7);
                 }
-            } else if (weaponType === 'shotgun') {
+            } else if (updatedType === 'shotgun') {
                 // Shotgun: close-range push, aggressive
                 const to = this._tmpVec.subVectors(target.position, bot.position);
                 const len = Math.max(0.001, Math.hypot(to.x, to.z));
