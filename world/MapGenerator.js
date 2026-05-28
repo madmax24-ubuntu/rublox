@@ -1898,6 +1898,8 @@ export class MapGenerator {
         const points = new THREE.Points(geo, mat);
         points.userData.isParticle = true;
         points.userData.type = 'ash';
+        points.userData.cx = cx;
+        points.userData.cz = cz;
         this.scene.add(points);
         this.particleSystems.push(points);
     }
