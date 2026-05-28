@@ -358,16 +358,12 @@ class Game {
 
         this.applyCameraRescuePose();
         this.scene.add(this.camera);
-        console.log('[Game] Stage 1 done (Three.js setup)');
 
         // Этап 2: Системные компоненты
                 this.input = new Input();
-        console.log('[Game] Input created');
         this.audioSynth = new AudioSynth();
-        console.log('[Game] AudioSynth created');
         this.hud = new HUD();
-        console.log('[Game] HUD created');
-        
+
         // Инициализация переменных состояния
         this.roundMode = 'hybrid';
         this.perk = 'none';
