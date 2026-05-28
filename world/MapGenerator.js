@@ -3750,4 +3750,101 @@ export class MapGenerator {
         this.waterMeshes.length = 0;
         this.particleSystems.length = 0;
     }
+
+    // ===================== PERFORMANCE METHODS =====================
+
+    /**
+     * Setup LOD: disable frustum culling and set render priorities
+     * @param {boolean} isMobile - whether on mobile device
+     */
+    setupLOD(isMobile) {
+        const maxDist = isMobile ? 180 : 350;
+        const shadowOff = isMobile;
+
+        this.scene.traverse(obj => {
+            if (obj.isMesh) {
+                // Frustum culling for distant objects
+                if (!obj.userData.isMapObject) {
+                    obj.frustumCulled = true;
+                }
+
+                // Disable shadow casting on mobile or for far objects
+                if (shadowOff && obj.castShadow) {
+                    obj.castShadow = false;
+                }
+            }
+        });
+
+        // Reduce fog for better performance on mobile
+        if (isMobile && this.scene.fog) {
+            this.scene.fog.density = Math.max(0.002, this.scene.fog.density - 0.001);
+        }
+
+        console.log(`[MapGen] LOD setup: maxDist=${maxDist}, shadowOff=${shadowOff}`);
+    }
+
+    /**
+     * Enable optimized frustum culling based on camera distance
+     */
+    enableOptimizedCulling() {
+        this._lastCullTime = 0;
+        this._cullInterval = 1.5; // seconds
+        this._cameraPos = new THREE.Vector3();
+        this._mapObjects = [];
+
+        // Collect all map objects
+        this.scene.traverse(obj => {
+            if (obj.isMesh && obj.userData.isMapObject) {
+                this._mapObjects.push(obj);
+                obj.userData._originalVisible = obj.visible;
+            }
+        });
+
+        console.log(`[MapGen] Optimized culling: ${this._mapObjects.length} objects tracked`);
+    }
+
+    /**
+     * Update visibility of props/decorations based on player position
+     * @param {THREE.Vector3} playerPos
+     */
+    updatePropVisibility(playerPos) {
+        if (!playerPos || !this._mapObjects?.length) return;
+
+        const dist = this._cullInterval;
+        if (performance.now() - this._lastCullTime < dist * 1000) return;
+        this._lastCullTime = performance.now() / 1000;
+
+        const visibleRadius = 120;
+        const maxObjects = 500;
+        const maxObjectsMobile = 250;
+
+        const sorted = this._mapObjects.slice().sort((a, b) => {
+            const da = a.position.distanceToSquared(playerPos);
+            const db = b.position.distanceToSquared(playerPos);
+            return da - db;
+        });
+
+        const limit = this.scene.userData?.mobileMode ? maxObjectsMobile : maxObjects;
+        const limitSq = visibleRadius * visibleRadius;
+
+        for (let i = 0; i < sorted.length; i++) {
+            const obj = sorted[i];
+            const dSq = obj.position.distanceToSquared(playerPos);
+            obj.visible = i < limit && dSq < limitSq;
+        }
+    }
+
+    /**
+     * Called every frame in main loop to update culling
+     */
+    updateCulling() {
+        const camPos = this.scene?.userData?.camera?.position;
+        if (!camPos) return;
+
+        // Light culling
+        this._cullPointLights(camPos);
+
+        // Update animated objects
+        this.updateZoneAnimations(performance.now() / 1000);
+    }
 }
