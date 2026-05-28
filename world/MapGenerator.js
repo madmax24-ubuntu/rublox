@@ -691,11 +691,8 @@ export class MapGenerator {
             ring.position.set(pad.x, 0.05, pad.z);
             this.scene.add(ring);
         }
-        console.log('[MapGen] buildInnerRing yield1');
         await _yield();
-        console.log('[MapGen] buildInnerRing yield2');
         await _yield();
-        console.log('[MapGen] buildInnerRing yield3');
     }
 
     _buildChest(x, y, z, tier) {
