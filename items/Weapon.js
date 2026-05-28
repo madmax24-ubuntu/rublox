@@ -9,7 +9,16 @@ const WEAPON_BALANCE = {
     flamethrower: { damage: 3.8, range: 13.5, cooldown: 0.12, ammo: 260, durability: null, projectileSpeed: 16, flameCount: 4 },
     pistol: { damage: 20, range: 62, cooldown: 0.36, ammo: 90, durability: null, projectileSpeed: 82 },
     rifle: { damage: 27, range: 96, cooldown: 0.28, ammo: 120, durability: null, projectileSpeed: 98 },
-    machinegun: { damage: 16, range: 86, cooldown: 0.12, ammo: 180, durability: null, projectileSpeed: 94 }
+    machinegun: { damage: 16, range: 86, cooldown: 0.12, ammo: 180, durability: null, projectileSpeed: 94 },
+    sniper: { damage: 48, range: 150, cooldown: 1.2, ammo: 30, durability: null, projectileSpeed: 110 },
+    smg: { damage: 12, range: 50, cooldown: 0.06, ammo: 150, durability: null, projectileSpeed: 88 },
+    crossbow: { damage: 38, range: 42, cooldown: 1.5, ammo: 20, durability: null, projectileSpeed: 52 }
+};
+
+const WEAPON_TACTICAL = {
+    sniper: { soundCategory: 'sniper', fireSound: 'rifle', reloadSound: 'timer', muzzleIntensity: 0.6 },
+    smg: { soundCategory: 'smg', fireSound: 'machinegun', reloadSound: 'timer', muzzleIntensity: 0.25 },
+    crossbow: { soundCategory: 'bow', fireSound: 'bowShot', reloadSound: 'timer', muzzleIntensity: 0.05 }
 };
 
 const TYPE_ALIASES = {
