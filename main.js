@@ -2209,6 +2209,12 @@ class Game {
             this.deathHandled = true;
             this.endRound('\u0418\u0433\u0440\u0430 \u043e\u043a\u043e\u043d\u0447\u0435\u043d\u0430. \u041d\u0430\u0436\u043c\u0438\u0442\u0435 E \u0447\u0442\u043e\u0431\u044b \u043d\u0430\u0447\u0430\u0442\u044c \u0437\u0430\u043d\u043e\u0432\u043e');
         }
+        // Freeze player physics after death to prevent camera from falling through the map
+        if (!this.player.isAlive) {
+            this.player.physics.velocity.set(0, 0, 0);
+            this.player.physics.onGround = true;
+            this.player.position.y = Math.max(this.player.position.y, 0);
+        }
 
         if (this.roundFinished && this.input.isKeyPressed('KeyE')) {
             window.location.reload();
