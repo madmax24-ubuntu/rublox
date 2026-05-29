@@ -2262,7 +2262,167 @@ export class MapGenerator {
                 false
             );
             // Keep hangars open inside for clear combat and looting flow.
+
+            // === MEZZANINE FLOOR for vertical gameplay ===
+            const mezzY = baseY + height * 0.45;
+            const mezzW = width * 0.55;
+            const mezzD = depth * 0.4;
+            const mezzMat = new THREE.MeshStandardMaterial({
+                color: options.wallColor ?? 0x546e7a, roughness: 0.85, metalness: 0.1, flatShading: true
+            });
+            const mezz = new THREE.Mesh(
+                new THREE.BoxGeometry(mezzW, 0.2, mezzD),
+                mezzMat
+            );
+            mezz.position.set(position.x - width * 0.15, mezzY, position.z - depth * 0.1);
+            mezz.userData.walkableSurface = true;
+            mezz.userData.mapGenerated = true;
+            group.add(mezz);
+            this.addColliderBox(new THREE.Vector3(mezz.position.x, mezzY, mezz.position.z), mezzW + 0.3, 0.3, mezzD + 0.3, true);
+
+            // Support pillars
+            for (const [px, pz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+                const pillar = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.15, 0.15, mezzY - baseY, 8),
+                    new THREE.MeshStandardMaterial({ color: 0x455a64, roughness: 0.8, metalness: 0.3, flatShading: true })
+                );
+                pillar.position.set(
+                    position.x + px * mezzW * 0.35,
+                    baseY + (mezzY - baseY) * 0.5,
+                    position.z + pz * mezzD * 0.3
+                );
+                pillar.userData.mapGenerated = true;
+                group.add(pillar);
+                this.addColliderBox(pillar.position.clone(), 0.35, mezzY - baseY, 0.35, false);
+            }
         }
+
+        // === INTERIOR DIVIDER for small buildings (2-room layout) ===
+        if (!isMassiveHangar && width < 14 && depth < 12) {
+            const dividerMat = new THREE.MeshStandardMaterial({
+                color: options.wallColor ?? 0xbca48a, roughness: 0.92, flatShading: true
+            });
+            const dividerW = wallThickness;
+            const dividerH = height * 0.82;
+            const dividerD = depth * 0.35;
+            const divider = new THREE.Mesh(
+                new THREE.BoxGeometry(dividerW, dividerH, dividerD),
+                dividerMat
+            );
+            divider.position.set(position.x - width * 0.12, wallY, position.z - depth * 0.12);
+            divider.userData.mapGenerated = true;
+            group.add(divider);
+            this.addColliderBox(
+                new THREE.Vector3(divider.position.x, wallY - 0.3, divider.position.z),
+                dividerW + 0.2, dividerH + 0.2, dividerD + 0.2, false
+            );
+        }
+
+        // === INTERIOR FLOOR (defines walkable area inside) ===
+        if (!isMassiveHangar) {
+            const floorMat = new THREE.MeshStandardMaterial({
+                color: options.wallColor ?? 0xbca48a, roughness: 0.95, flatShading: true
+            });
+            const floorGeo = new THREE.BoxGeometry(width - 1, 0.08, depth - 1);
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.position.set(position.x, baseY + 0.04, position.z);
+            floor.userData.walkableSurface = true;
+            floor.userData.mapGenerated = true;
+            group.add(floor);
+        }
+
+        // === INTERIOR FURNITURE (tables, crates, barrels) ===
+        if (!isMassiveHangar) {
+            const furnColor = 0x6d4c41;
+            const furnMat = new THREE.MeshStandardMaterial({ color: furnColor, roughness: 0.85, flatShading: true });
+
+            // Table (center cover)
+            const tableTop = new THREE.Mesh(
+                new THREE.BoxGeometry(2.4, 0.12, 1.6),
+                furnMat
+            );
+            tableTop.position.set(position.x, baseY + 0.82, position.z);
+            tableTop.userData.mapGenerated = true;
+            group.add(tableTop);
+            this.addColliderBox(new THREE.Vector3(tableTop.position.x, baseY + 0.82, tableTop.position.z), 2.4, 0.25, 1.6, true);
+
+            // Table legs
+            const legMat = new THREE.MeshStandardMaterial({ color: 0x5a3e2b, roughness: 0.85, flatShading: true });
+            for (const [lx, lz] of [[-1, -0.6], [1, -0.6], [-1, 0.6], [1, 0.6]]) {
+                const leg = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.06, 0.06, 0.82, 6),
+                    legMat
+                );
+                leg.position.set(position.x + lx * 0.8, baseY + 0.41, position.z + lz * 0.8);
+                leg.userData.mapGenerated = true;
+                group.add(leg);
+            }
+
+            // Wooden crates (random scatter, solid cover)
+            const crateMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.88, flatShading: true });
+            const crateCount = Math.max(1, Math.floor(Math.min(width, depth) / 4));
+            for (let i = 0; i < crateCount; i++) {
+                const s = 0.5 + rand() * 0.5; // 0.5-1.0
+                const crate = new THREE.Mesh(
+                    new THREE.BoxGeometry(s * 0.8, s * 0.7, s * 0.6),
+                    crateMat
+                );
+                const cx = position.x + (Math.random() - 0.5) * (width * 0.6);
+                const cz = position.z + (Math.random() - 0.5) * (depth * 0.6);
+                crate.position.set(cx, baseY + s * 0.35, cz);
+                crate.rotation.y = Math.random() * Math.PI;
+                crate.userData.mapGenerated = true;
+                group.add(crate);
+                this.addColliderBox(crate.position.clone(), s * 0.85, s * 0.75, s * 0.65, false);
+            }
+
+            // Barrel cluster (2-3 barrels)
+            const barrelMat = new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.9, flatShading: true });
+            for (let i = 0; i < 2; i++) {
+                const barrel = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.35, 0.4, 1.1, 8),
+                    barrelMat
+                );
+                const bx = position.x + (width / 2) * 0.6 * (i === 0 ? 1 : -1);
+                const bz = position.z + (depth / 2) * 0.5;
+                barrel.position.set(bx, baseY + 0.55, bz);
+                barrel.rotation.z = (Math.random() - 0.5) * 0.2;
+                barrel.userData.mapGenerated = true;
+                group.add(barrel);
+                this.addColliderBox(barrel.position.clone(), 0.45, 1.1, 0.45, false);
+            }
+        } else {
+            // Hangar: ammo boxes + crate stacks instead of tables
+            const ammoMat = new THREE.MeshStandardMaterial({ color: 0x556b2f, roughness: 0.85, flatShading: true });
+            for (let i = 0; i < 4; i++) {
+                const box = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.6, 0.5, 0.4),
+                    ammoMat
+                );
+                const bx = position.x + (Math.random() - 0.5) * width * 0.7;
+                const bz = position.z + (Math.random() - 0.5) * depth * 0.5;
+                box.position.set(bx, baseY + 0.25, bz);
+                box.userData.mapGenerated = true;
+                group.add(box);
+                this.addColliderBox(box.position.clone(), 0.65, 0.55, 0.45, false);
+            }
+        }
+
+        // === INTERIOR LIGHTING (one point light per building) ===
+        const lightColor = 0xfff9c4;
+        const intLight = new THREE.PointLight(lightColor, 0.7, 14);
+        intLight.position.set(position.x, baseY + height - 0.5, position.z);
+        intLight.castShadow = false;
+        group.add(intLight);
+
+        // Visible light fixture
+        const fixture = new THREE.Mesh(
+            new THREE.SphereGeometry(0.15, 6, 6),
+            new THREE.MeshBasicMaterial({ color: lightColor })
+        );
+        fixture.position.copy(intLight.position);
+        fixture.userData.mapGenerated = true;
+        group.add(fixture);
     }
 
     buildMassiveStructures() {
