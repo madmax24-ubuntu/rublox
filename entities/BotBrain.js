@@ -301,8 +301,14 @@ export class BotBrain {
             if (bot.patrolTarget) this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 1.1);
             return;
         }
-        if (!bot.patrolTarget || bot.position.distanceTo(bot.patrolTarget) < 2.2 || bot.isStuck || ctx.crowdNear >= 3) {
-            bot.patrolTarget = this.pickSpreadTarget(bot, 24, 120);
+        if (!bot.patrolTarget || bot.position.distanceTo(bot.patrolTarget) < 2.2 || bot.isStuck || ctx.crowdNear >= 2) {
+            // Lone wolves spread far apart — use POI-based targets across the map
+            const mapSize = (this.mapRef && this.mapRef.size) || 440;
+            if (this.avoidsOthers && ctx.crowdNear >= 2) {
+                bot.patrolTarget = this.pickSpreadTarget(bot, 40, 160);
+            } else {
+                bot.patrolTarget = this.pickSpreadTarget(bot, 24, 80);
+            }
         }
         if (bot.patrolTarget) {
             // Cautious bots occasionally pause to scan for threats
