@@ -541,6 +541,7 @@ export class MapGenerator {
 
         this.buildQuadrantGroundPlanes();
         this.buildQuadrantBiomeWorld();
+        this.generateDioramaMap();
         this.applyStaticPhysicsToGenerated();
     }
 
