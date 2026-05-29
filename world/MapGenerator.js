@@ -17,19 +17,19 @@ class SimplexNoise {
     }
     noise2D(x, y) {
         const F2 = 0.5 * (Math.sqrt(3) - 1), G2 = (3 - Math.sqrt(3)) / 6;
-        const s = (x + y) * F2, g = (i, j) => [i - Math.floor(x + s) + Math.floor((i + j) * G2), j - Math.floor(x + s) + Math.floor((i + j) * G2)];
-        const i = Math.floor(x + s), j = Math.floor(y + s);
-        const x0 = x - i, y0 = y - j;
+        const s = (x + y) * F2, i = Math.floor(x + s), j = Math.floor(y + s);
+        const t = (i + j) * G2, X0 = i - t, Y0 = j - t;
+        const x0 = x - X0, y0 = y - Y0;
         const i1 = x0 > y0 ? 1 : 0, j1 = x0 > y0 ? 0 : 1;
-        const x1 = x0 - i1 + G2, y1 = y0 - j1 + G2, x2 = x0 - 1 + 2 * G2, y2 = y0 - 1 + 2 * G2;
+        const x1 = x0 - i1 + G2, y1 = y0 - j1 + G2;
+        const x2 = x0 - 1 + 2 * G2, y2 = y0 - 1 + 2 * G2;
         const ii = (i + 256) & 255, jj = (j + 256) & 255;
         const pi = v => ((v % 12) + 12) % 12;
-        const gi = (n) => pi(this.p[ii + this.p[jj + n]]);
         const dot = (g, x, y) => g[0] * x + g[1] * y;
         let t0 = 0.5 - x0 * x0 - y0 * y0, t1 = 0.5 - x1 * x1 - y1 * y1, t2 = 0.5 - x2 * x2 - y2 * y2;
-        const n0 = t0 > 0 ? t0 * t0 * dot(this.grad3[gi(0)], x0, y0) : 0;
-        const n1 = t1 > 0 ? t1 * t1 * dot(this.grad3[gi(1)], x1, y1) : 0;
-        const n2 = t2 > 0 ? t2 * t2 * dot(this.grad3[gi(2)], x2, y2) : 0;
+        const n0 = t0 > 0 ? t0 * t0 * dot(this.grad3[pi(this.p[ii + this.p[jj]])], x0, y0) : 0;
+        const n1 = t1 > 0 ? t1 * t1 * dot(this.grad3[pi(this.p[ii + i1 + this.p[jj + j1]])], x1, y1) : 0;
+        const n2 = t2 > 0 ? t2 * t2 * dot(this.grad3[pi(this.p[ii + 1 + this.p[jj + 1]])], x2, y2) : 0;
         return 70 * (n0 + n1 + n2);
     }
     fbm(x, y, octaves = 4, lac = 2, gain = 0.5) {
@@ -41,795 +41,1054 @@ class SimplexNoise {
 
 // ============ COLORS ============
 const C = {
-    grass: 0x5a8a3a, dirt: 0x7a6a4a, stone: 0x9a9a9a, stoneDark: 0x6a6a6a,
-    wood: 0x8b6236, woodDark: 0x5a3a1a, metal: 0x7a7a7a, metalDark: 0x4a4a4a,
-    gold: 0xdaa520, rust: 0xb5651d, red: 0xcc2222, blue: 0x3388cc,
-    cyan: 0x44cccc, purple: 0x8844aa, green: 0x22aa44, orange: 0xff8800,
-    lava: 0xff3300, obsidian: 0x2a2a3a, bone: 0xd4c4a0, white: 0xe0e0e0,
-    black: 0x1a1a1a, sand: 0xd4c480, snow: 0xe8e8f0
+    sand: 0xe8d4a0, sandDark: 0xc8b880, water: 0x2288bb, waterDeep: 0x115577,
+    grass: 0x2d8a3a, grassDark: 0x1a6a2a, jungle: 0x1a7a2a, jungleDark: 0x0a5a1a,
+    palmTrunk: 0x7a5a30, palmLeaf: 0x2a9a3a,
+    stone: 0x8a8a7a, stoneDark: 0x5a5a4a, obsidian: 0x2a2a3a,
+    wood: 0x8b6236, woodDark: 0x5a3a1a, woodLight: 0xb09070,
+    thatch: 0xc8a850, thatchDark: 0x987830,
+    lava: 0xff3300, lavaGlow: 0xff6600,
+    crystal: 0x44cccc, crystalGlow: 0x66eeff,
+    metal: 0x7a7a7a, metalDark: 0x4a4a4a, rust: 0xb5651d, gold: 0xdaa520,
+    white: 0xe8e8e0, black: 0x1a1a1a,
+    red: 0xcc2222, blue: 0x3388cc, green: 0x22aa44, orange: 0xff8800,
 };
 
 // ============ MATERIAL CACHE ============
 const _mat = new Map();
 function mat(color, opts = {}) {
     const k = color.toString(16) + ':' + JSON.stringify(opts, null, 2);
-    if (!_mat.has(k)) {
-        _mat.set(k, new THREE.MeshStandardMaterial({ color, ...opts }));
-    }
+    if (!_mat.has(k)) _mat.set(k, new THREE.MeshStandardMaterial({ color, ...opts }));
     return _mat.get(k);
 }
 
 // ============ HELPERS ============
 function box(w, h, d, color, opts = {}) {
-    const geo = new THREE.BoxGeometry(w, h, d);
-    const m = new THREE.Mesh(geo, mat(color, opts));
-    m.castShadow = true; m.receiveShadow = true;
-    return m;
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(color, opts));
+    m.castShadow = true; m.receiveShadow = true; return m;
 }
 function cyl(rt, rb, h, seg, color, opts = {}) {
-    const geo = new THREE.CylinderGeometry(rt, rb, h, seg);
-    const m = new THREE.Mesh(geo, mat(color, opts));
-    m.castShadow = true; m.receiveShadow = true;
-    return m;
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg), mat(color, opts));
+    m.castShadow = true; m.receiveShadow = true; return m;
 }
-function sphere(r, wSeg, hSeg, color, opts = {}) {
-    const geo = new THREE.SphereGeometry(r, wSeg, hSeg);
-    const m = new THREE.Mesh(geo, mat(color, opts));
-    m.castShadow = true; m.receiveShadow = true;
-    return m;
-}
-
 function addCollider(gen, type, pos, size, walkable = false) {
-    gen.colliders.push({ type, position: new THREE.Vector3(...pos), size: new THREE.Vector3(...size), walkable });
+    if (gen?.colliders) gen.colliders.push({ type, position: new THREE.Vector3(...pos), size: new THREE.Vector3(...size), walkable });
 }
 
-// ============ LOW-POLY MODEL GENERATORS ============
+// ===================== TROPICAL ISLAND MAP =====================
+// Theme: Survival Island — Apex Legends / Island BR style
+// Structure: Beach -> Village -> Camp (spawn) -> Jungle -> Volcano -> Lighthouse -> Caves -> Bunker -> River
 
-// --- Building: stone outpost with roof, door, interior ---
-function stoneOutpost(x, z, angle, scene, gen) {
-    const g = new THREE.Group();
-    const wallM = mat(C.stone, { roughness: 0.85, metalness: 0.1 });
-    const darkM = mat(C.stoneDark, { roughness: 0.9 });
-    const roofM = mat(C.rust, { roughness: 0.95 });
+const RADIUS = 220;
 
-    // 4 walls with door gap
-    const wallLen = 6, wallH = 3.8, wallThick = 0.7;
+// --- Terrain: circular island with raised center ---
+async function buildIslandTerrain(scene, gen) {
+    const halfSize = RADIUS;
+
+    // Main ground — circular island with elevation
+    const groundMat = mat(C.grass, { roughness: 0.9, metalness: 0.05 });
+    const groundGeo = new THREE.PlaneGeometry(halfSize * 2, halfSize * 2, 120, 120);
+    groundGeo.rotateX(-Math.PI / 2);
+    const pos = groundGeo.attributes.position;
+
+    for (let i = 0; i <= pos.count; i++) {
+        const x = pos.getX(i), z = pos.getZ(i);
+        const dist = Math.sqrt(x * x + z * z) / halfSize;
+
+        // Island shape: raise edges to form island, lower beyond radius
+        if (dist < 0.85) {
+            // Center: raised terrain (mountain/volcano at center)
+            const h = gen.noise.fbm(x * 0.005, z * 0.005, 4, 2, 0.5) * 12 + 3 * (1 - dist);
+            pos.setY(i, Math.max(h, 0.5));
+        } else if (dist < 1) {
+            // Edge: slope down to water
+            const slope = 1 - (dist - 0.85) / 0.15;
+            pos.setY(i, 3 * slope * slope);
+        } else {
+            pos.setY(i, -3);
+        }
+    }
+    groundGeo.computeVertexNormals();
+
+    const ground = new THREE.Mesh(groundGeo, groundMat);
+    ground.receiveShadow = true;
+    ground.userData.isArena = true; ground.userData.isFloor = true; ground.userData.isGround = true;
+    ground.userData.isMapObject = true;
+    scene.add(ground);
+
+    gen.colliders.push({
+        type: 'box', position: new THREE.Vector3(0, 0, 0),
+        size: new THREE.Vector3(halfSize * 2, 1, halfSize * 2), walkable: true
+    });
+
+    // Beach ring (sand around edges)
+    const beachMat = mat(C.sand, { roughness: 0.85 });
+    const beachGeo = new THREE.RingGeometry(halfSize * 0.75, halfSize * 0.98, 48);
+    beachGeo.rotateX(-Math.PI / 2);
+    const beach = new THREE.Mesh(beachGeo, beachMat);
+    beach.position.y = 0.55; beach.receiveShadow = true;
+    beach.userData.isArena = true; beach.userData.isBeach = true;
+    beach.userData.isMapObject = true;
+    scene.add(beach);
+
+    // Water ring (ocean around island)
+    const waterMat = mat(C.water, { transparent: true, opacity: 0.7, roughness: 0.1 });
+    const waterGeo = new THREE.CircleGeometry(halfSize * 1.1, 48);
+    waterGeo.rotateX(-Math.PI / 2);
+    const water = new THREE.Mesh(waterGeo, waterMat);
+    water.position.y = -0.5; water.userData.isMapObject = true; water.userData.isWater = true;
+    scene.add(water);
+
+    // Forcefield over ocean (invisible boundary)
+    const ffMat = mat(C.blue, { transparent: true, opacity: 0.08, depthWrite: false, side: THREE.DoubleSide });
+    const ffGeo = new THREE.CylinderGeometry(halfSize * 0.75, halfSize * 0.75, 15, 64, 1, true);
+    const ff = new THREE.Mesh(ffGeo, ffMat);
+    ff.position.y = 7.5; ff.userData.isArena = true; ff.userData.isForcefield = true;
+    ff.userData.isMapObject = true; scene.add(ff);
+    gen.animatedObjects.push({ type: 'forcefield', mesh: ff, material: ffMat, baseOpacity: 0.08 });
+
+    // Top ring
+    const rimMat = mat(C.blue, { transparent: true, opacity: 0.4, side: THREE.DoubleSide });
+    const topRing = new THREE.Mesh(new THREE.TorusGeometry(halfSize * 0.75, 0.3, 8, 64), rimMat);
+    topRing.position.y = 15; topRing.rotation.x = Math.PI / 2;
+    topRing.userData.isMapObject = true; scene.add(topRing);
+}
+
+// --- Beach Zone (West) ---
+async function buildBeach(scene, gen) {
+    // Beach camp (light loot)
+    for (let i = 0; i < 8; i++) {
+        const a = -Math.PI * 0.7 + (i / 7) * Math.PI * 0.5; // arc on west side
+        const r = RADIUS * 0.7 + Math.random() * RADIUS * 0.15;
+        const x = Math.cos(a) * r, z = Math.sin(a) * r;
+
+        // Simple tent
+        const tent = new THREE.Group();
+        // Poles
+        const p1 = cyl(0.06, 0.06, 2, 5, C.woodDark, { roughness: 0.9 });
+        p1.position.set(-0.8, 1, 0); p1.userData.isMapObject = true; tent.add(p1);
+        const p2 = p1.clone(); p2.position.set(0.8, 1, 0); tent.add(p2);
+        // Canvas
+        const canvas = new THREE.Mesh(
+            new THREE.ConeGeometry(1.5, 2, 4),
+            mat(C.white, { roughness: 0.8 })
+        );
+        canvas.position.y = 1.8; canvas.rotation.y = Math.PI / 4;
+        canvas.userData.isMapObject = true; tent.add(canvas);
+
+        tent.position.set(x, 0.5, z);
+        scene.add(tent);
+        addCollider(gen, 'box', [x, 1, z], [3, 2, 3]);
+    }
+
+    // Beached boats (decoration + cover)
     for (let i = 0; i < 4; i++) {
-        const a = angle + (i - 1) * Math.PI / 2;
-        const isDoor = i === 1; // door side
-        const wallLen2 = isDoor ? wallLen * 0.55 : wallLen;
+        const a = -Math.PI * 0.6 + (i / 3) * Math.PI * 0.4;
+        const r = RADIUS * 0.8 + Math.random() * 10;
+        const x = Math.cos(a) * r, z = Math.sin(a) * r;
 
-        if (!isDoor) {
-            const w = box(wallLen2, wallH, wallThick, C.stone, { roughness: 0.85, metalness: 0.1 });
-            w.position.set(0, wallH / 2, isDoor ? wallLen * 0.225 : 0);
-            w.userData.isMapObject = true;
-            g.add(w);
-            addCollider(gen, 'box', [0, wallH / 2, isDoor ? wallLen * 0.225 : 0], [wallLen2, wallH, wallThick]);
-        }
-
-        // Corner pillars
-        if (!isDoor) {
-            const p1 = cyl(0.22, 0.25, wallH + 0.6, 6, C.stoneDark, { roughness: 0.9 });
-            p1.position.set(wallLen2 / 2, (wallH + 0.6) / 2, wallThick / 2);
-            p1.userData.isMapObject = true; g.add(p1);
-            addCollider(gen, 'box', [wallLen2 / 2, (wallH + 0.6) / 2, wallThick / 2], [0.44, wallH + 0.6, 0.44]);
-
-            const p2 = p1.clone();
-            p2.position.set(-wallLen2 / 2, (wallH + 0.6) / 2, wallThick / 2);
-            p2.userData.isMapObject = true; g.add(p2);
-        }
+        const boat = new THREE.Group();
+        // Hull
+        const hull = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.6, 0.3, 4, 6),
+            mat(C.wood, { roughness: 0.85 })
+        );
+        hull.rotation.z = Math.PI / 2; hull.rotation.y = a;
+        hull.position.y = 0.5; hull.userData.isMapObject = true; hull.userData.isCover = true;
+        boat.add(hull);
+        addCollider(gen, 'box', [x, 0.5, z], [4, 1, 1.2]);
+        boat.position.set(x, 0.5, z);
+        scene.add(boat);
     }
 
-    // Door frame
-    const doorFrame = cyl(0.15, 0.15, wallH, 6, C.stoneDark, { roughness: 0.85 });
-    doorFrame.position.set(0, wallH / 2, wallLen * 0.225);
-    doorFrame.rotation.z = Math.PI / 2;
-    doorFrame.userData.isMapObject = true; g.add(doorFrame);
-
-    // Wooden door
-    const door = box(2.2, 3, 0.15, C.wood, { roughness: 0.8 });
-    door.position.set(0, 1.5, wallLen * 0.225);
-    door.userData.isMapObject = true; door.userData.isDoor = true;
-    g.add(door);
-
-    // Roof (pyramid)
-    const roofGeo = new THREE.ConeGeometry(5, 3, 4);
-    const roof = new THREE.Mesh(roofGeo, mat(C.rust, { roughness: 0.9 }));
-    roof.position.set(0, wallH + 1.5, 0);
-    roof.rotation.y = Math.PI / 4;
-    roof.castShadow = true; roof.receiveShadow = true;
-    roof.userData.isMapObject = true; g.add(roof);
-
-    // Floor
-    const floorGeo = new THREE.PlaneGeometry(wallLen, wallLen, 4, 4);
-    floorGeo.rotateX(-Math.PI / 2);
-    const floor = new THREE.Mesh(floorGeo, mat(C.dirt, { roughness: 0.95 }));
-    floor.position.set(0, 0.02, 0);
-    floor.receiveShadow = true; floor.userData.isMapObject = true; g.add(floor);
-
-    // Interior loot crate
-    const crate = box(0.9, 0.8, 0.9, C.gold, { roughness: 0.4, metalness: 0.5 });
-    crate.position.set(0, 0.4, -1.5);
-    crate.userData.isMapObject = true; crate.userData.isLoot = true;
-    g.add(crate);
-
-    // Light inside
-    const light = new THREE.PointLight(0xffcc66, 1.5, 12);
-    light.position.set(0, 3.2, 0);
-    light.userData.isMapObject = true;
-    g.add(light);
-
-    // Rotate and position
-    g.position.set(x, 0, z);
-    scene.add(g);
-}
-
-// --- Building: wooden barricade ---
-function woodenBarricade(x, z, angle, scene, gen) {
-    const g = new THREE.Group();
-    const woodM = mat(C.wood, { roughness: 0.85 });
-    const plankH = 0.25, plankThick = 0.12;
-
-    // 3 walls of planks
-    for (let w = 0; w < 3; w++) {
-        const a = angle + w * Math.PI * 2 / 3;
-        const nx = Math.cos(a), nz = Math.sin(a);
-        for (let p = 0; p < 4; p++) {
-            const plank = box(3.5, plankH, plankThick, C.wood, { roughness: 0.85 });
-            plank.position.set(nx * (p - 1.5) * 0.1, 0.5 + p * plankH, nz * (p - 1.5) * 0.1);
-            plank.rotation.y = a;
-            plank.userData.isMapObject = true; g.add(plank);
-            addCollider(gen, 'box', [plank.position.x, plank.position.y, plank.position.z], [3.5, plankH, plankThick]);
-        }
-    }
-
-    // Support posts
-    for (let w = 0; w < 3; w++) {
-        const a = angle + w * Math.PI * 2 / 3;
-        const post = cyl(0.18, 0.2, 3.5, 6, C.woodDark, { roughness: 0.9 });
-        post.position.set(Math.cos(a) * 1.8, 1.75, Math.sin(a) * 1.8);
-        post.userData.isMapObject = true; g.add(post);
-    }
-
-    g.position.set(x, 0, z);
-    scene.add(g);
-}
-
-// --- Building: ruined citadel ---
-function ruinedCitadel(cx, cz, scene, gen) {
-    const g = new THREE.Group();
-    const stoneM = mat(C.stone, { roughness: 0.8, metalness: 0.15 });
-    const mossM = mat(C.green, { roughness: 0.95 });
-    const floorM = mat(C.red, { roughness: 0.9, metalness: 0.05 });
-
-    // Main floor platform
-    const floor = box(24, 0.4, 24, C.stoneDark, { roughness: 0.9 });
-    floor.position.set(0, 0.2, 0);
-    floor.userData.isMapObject = true; floor.userData.isFloor = true;
-    g.add(floor);
-
-    // Inner red floor
-    const innerFloor = box(20, 0.1, 20, C.red, { roughness: 0.95, transparent: true, opacity: 0.6 });
-    innerFloor.position.set(0, 0.45, 0);
-    innerFloor.receiveShadow = true; innerFloor.userData.isMapObject = true; g.add(innerFloor);
-
-    // Broken walls (partial)
-    const wallPositions = [
-        { x: 0, z: 10, ry: 0, h: 5 }, { x: 0, z: -10, ry: 0, h: 3.5 },
-        { x: 10, z: 0, ry: Math.PI / 2, h: 4.5 }, { x: -10, z: 0, ry: Math.PI / 2, h: 6 },
-    ];
-    for (const wp of wallPositions) {
-        const w = box(8, wp.h, 0.8, C.stone, { roughness: 0.8, metalness: 0.15 });
-        w.position.set(wp.x, wp.h / 2 + 0.4, wp.z);
-        w.rotation.y = wp.ry;
-        w.userData.isMapObject = true; g.add(w);
-        addCollider(gen, 'box', [wp.x, wp.h / 2 + 0.4, wp.z], [8, wp.h, 0.8]);
-    }
-
-    // Columns (some broken)
+    // Beach loot crates
     for (let i = 0; i < 6; i++) {
-        const a = (i / 6) * Math.PI * 2;
-        const r = 12;
-        const h = i % 2 === 0 ? 7 : 3.5; // alternating height
-        const col = cyl(0.4, 0.5, h, 8, C.stone, { roughness: 0.7, metalness: 0.2 });
-        col.position.set(Math.cos(a) * r, h / 2 + 0.4, Math.sin(a) * r);
-        col.userData.isMapObject = true; g.add(col);
-        if (h > 4) {
-            addCollider(gen, 'cylinder', [Math.cos(a) * r, h / 2 + 0.4, Math.sin(a) * r], [0.6, h]);
-        }
+        const a = -Math.PI * 0.7 + Math.random() * Math.PI * 0.5;
+        const r = RADIUS * 0.72 + Math.random() * RADIUS * 0.15;
+        const x = Math.cos(a) * r, z = Math.sin(a) * r;
+        const c = box(0.8, 0.8, 0.8, C.gold, { roughness: 0.4, metalness: 0.5 });
+        c.position.set(x, 0.4, z);
+        c.userData.isMapObject = true; c.userData.isLoot = true; c.userData.isBeach = true;
+        scene.add(c);
     }
 
-    // Archway entrance
-    const archPillar1 = cyl(0.5, 0.6, 6, 8, C.stone, { roughness: 0.7 });
-    archPillar1.position.set(-2, 3.2, 12);
-    archPillar1.userData.isMapObject = true; g.add(archPillar1);
-
-    const archPillar2 = cyl(0.5, 0.6, 6, 8, C.stone, { roughness: 0.7 });
-    archPillar2.position.set(2, 3.2, 12);
-    archPillar2.userData.isMapObject = true; g.add(archPillar2);
-
-    const archTop = box(5, 1.2, 1.2, C.stone, { roughness: 0.7 });
-    archTop.position.set(0, 6.6, 12);
-    archTop.userData.isMapObject = true; g.add(archTop);
-
-    // Moss patches
-    for (let i = 0; i < 15; i++) {
-        const mx = (Math.random() - 0.5) * 18;
-        const mz = (Math.random() - 0.5) * 18;
-        const moss = box(1.5 + Math.random() * 2, 0.1, 1.5 + Math.random(), C.green, { roughness: 0.95 });
-        moss.position.set(mx, 0.45, mz);
-        moss.rotation.y = Math.random() * Math.PI;
-        moss.userData.isMapObject = true; g.add(moss);
-    }
-
-    // Central altar
-    const altar = cyl(1.5, 2, 1.5, 8, C.stoneDark, { roughness: 0.6, metalness: 0.3 });
-    altar.position.set(0, 1.15, 0);
-    altar.userData.isMapObject = true; g.add(altar);
-    addCollider(gen, 'cylinder', [0, 1.15, 0], [2, 1.5]);
-
-    // Glow on altar
-    const glow = new THREE.PointLight(0xcc2244, 2, 15);
-    glow.position.set(0, 2.5, 0);
-    glow.userData.isMapObject = true;
-    g.add(glow);
-
-    g.position.set(cx, 0, cz);
-    scene.add(g);
-}
-
-// --- Building: crystal grotto (cave with crystals) ---
-function crystalGrotto(cx, cz, scene, gen) {
-    const g = new THREE.Group();
-    const caveMat = mat(C.stoneDark, { roughness: 0.9, metalness: 0.1 });
-    const crystalM = mat(C.cyan, { roughness: 0.3, metalness: 0.4, transparent: true, opacity: 0.7 });
-
-    // Cave floor
-    const caveFloor = new THREE.Mesh(
-        new THREE.CircleGeometry(12, 16),
-        mat(C.stone, { roughness: 0.85 })
-    );
-    caveFloor.rotation.x = -Math.PI / 2;
-    caveFloor.position.y = 0.3;
-    caveFloor.receiveShadow = true; caveFloor.userData.isMapObject = true; g.add(caveFloor);
-
-    // Cave walls (broken circle)
-    for (let i = 0; i < 24; i++) {
-        const a = (i / 24) * Math.PI * 2;
-        if (i === 0) continue; // entrance gap
-        const h = 4 + Math.random() * 4;
-        const wall = box(2.5, h, 1.5, C.stoneDark, { roughness: 0.85 });
-        wall.position.set(Math.cos(a) * 11, h / 2, Math.sin(a) * 11);
-        wall.rotation.y = -a;
-        wall.userData.isMapObject = true; g.add(wall);
-        if (i % 3 === 0) addCollider(gen, 'box', [wall.position.x, wall.position.y, wall.position.z], [2.5, h, 1.5]);
-    }
-
-    // Crystal formations
+    // Driftwood / rocks for cover
     for (let i = 0; i < 20; i++) {
-        const a = Math.random() * Math.PI * 2;
-        const r = 2 + Math.random() * 8;
-        const ch = 1 + Math.random() * 3;
-        const crystal = new THREE.Mesh(
-            new THREE.ConeGeometry(0.3 + Math.random() * 0.4, ch, 5),
-            mat(C.cyan + (Math.random() > 0.5 ? 0x111111 : 0), {
-                roughness: 0.2, metalness: 0.5, transparent: true, opacity: 0.75
-            })
-        );
-        crystal.position.set(Math.cos(a) * r, ch / 2 + 0.3, Math.sin(a) * r);
-        crystal.rotation.y = Math.random();
-        crystal.userData.isMapObject = true; g.add(crystal);
-    }
+        const a = Math.random() * Math.PI * 0.5 - Math.PI * 0.75;
+        const r = RADIUS * 0.6 + Math.random() * RADIUS * 0.25;
+        const x = Math.cos(a) * r, z = Math.sin(a) * r;
 
-    // Stalactites from ceiling
-    for (let i = 0; i < 12; i++) {
-        const a = Math.random() * Math.PI * 2;
-        const r = 3 + Math.random() * 6;
-        const sl = 1 + Math.random() * 2;
-        const stal = new THREE.Mesh(
-            new THREE.ConeGeometry(0.2, sl, 5),
-            mat(C.cyan, { roughness: 0.25, metalness: 0.5, transparent: true, opacity: 0.6 })
-        );
-        stal.position.set(Math.cos(a) * r, 5 + sl / 2, Math.sin(a) * r);
-        stal.rotation.z = Math.PI; // point down
-        stal.userData.isMapObject = true; g.add(stal);
-    }
-
-    // Cave glow lights
-    const glowLight = new THREE.PointLight(0x44cccc, 2, 18);
-    glowLight.position.set(0, 3, 0);
-    glowLight.userData.isMapObject = true; g.add(glowLight);
-
-    g.position.set(cx, 0, cz);
-    scene.add(g);
-}
-
-// --- Building: burning wastes structures ---
-function wasteStructure(x, z, type, scene, gen) {
-    const g = new THREE.Group();
-
-    if (type === 'bunker') {
-        // Reinforced bunker
-        const body = box(5, 3, 4, C.obsidian, { roughness: 0.5, metalness: 0.4 });
-        body.position.set(0, 1.5, 0);
-        body.userData.isMapObject = true; g.add(body);
-        addCollider(gen, 'box', [0, 1.5, 0], [5, 3, 4]);
-
-        // Roof plates
-        const roof1 = box(5.2, 0.3, 4.2, C.stoneDark, { roughness: 0.6 });
-        roof1.position.set(0, 3.15, 0);
-        roof1.userData.isMapObject = true; g.add(roof1);
-
-        // Vent
-        const vent = cyl(0.4, 0.4, 1.5, 8, C.stoneDark, { roughness: 0.5 });
-        vent.position.set(0, 3.9, 0);
-        vent.userData.isMapObject = true; g.add(vent);
-
-        // Door
-        const door = box(1.2, 2.2, 0.2, C.metal, { roughness: 0.6, metalness: 0.5 });
-        door.position.set(0, 1.1, 2.1);
-        door.userData.isMapObject = true; door.userData.isDoor = true;
-        g.add(door);
-    } else if (type === 'watchtower') {
-        // Watchtower
-        for (let i = 0; i < 4; i++) {
-            const a = (i / 4) * Math.PI * 2;
-            const post = cyl(0.2, 0.25, 7, 6, C.woodDark, { roughness: 0.85 });
-            post.position.set(Math.cos(a) * 2, 3.5, Math.sin(a) * 2);
-            post.userData.isMapObject = true; g.add(post);
+        if (Math.random() > 0.5) {
+            // Rock
+            const rock = new THREE.Mesh(
+                new THREE.DodecahedronGeometry(0.8 + Math.random() * 1.2, 0),
+                mat(C.stone, { roughness: 0.85 })
+            );
+            rock.position.set(x, 0.5, z);
+            rock.rotation.set(Math.random(), Math.random(), Math.random());
+            rock.scale.y = 0.6 + Math.random() * 0.4;
+            rock.castShadow = true; rock.receiveShadow = true;
+            rock.userData.isMapObject = true; rock.userData.isCover = true;
+            scene.add(rock);
+        } else {
+            // Driftwood
+            const wood = cyl(0.1, 0.15, 2 + Math.random() * 2, 5, C.woodDark, { roughness: 0.95 });
+            wood.position.set(x, 0.3, z);
+            wood.rotation.z = Math.PI / 2;
+            wood.rotation.y = Math.random();
+            wood.userData.isMapObject = true; wood.userData.isCover = true;
+            scene.add(wood);
         }
+    }
+}
 
-        // Platform
-        const plat = box(4, 0.3, 4, C.wood, { roughness: 0.8 });
-        plat.position.set(0, 7, 0);
-        plat.userData.isMapObject = true; g.add(plat);
+// --- Village (South) ---
+async function buildVillage(scene, gen) {
+    // 6 huts on stilts (native village)
+    for (let i = 0; i < 6; i++) {
+        const a = Math.PI * 0.6 + (i / 5) * Math.PI * 0.5; // arc on south
+        const r = RADIUS * 0.45 + Math.random() * 30;
+        const x = Math.cos(a) * r, z = Math.sin(a) * r;
 
-        // Railing
-        for (let i = 0; i < 4; i++) {
-            const a = (i / 4) * Math.PI * 2;
-            const rail = box(0.1, 1.2, 3.6, C.wood, { roughness: 0.85 });
-            rail.position.set(Math.cos(a) * 2.2, 7.6, Math.sin(a) * 2.2);
-            rail.rotation.y = a;
-            rail.userData.isMapObject = true; g.add(rail);
+        const hut = new THREE.Group();
+        // Stilts (4 wooden posts)
+        for (let s = 0; s < 4; s++) {
+            const sa = (s / 4) * Math.PI * 2;
+            const stilt = cyl(0.1, 0.12, 2.5, 5, C.woodDark, { roughness: 0.9 });
+            stilt.position.set(Math.cos(sa) * 1.5, 1.25, Math.sin(sa) * 1.5);
+            stilt.userData.isMapObject = true; hut.add(stilt);
         }
-
-        // Roof
-        const twRoof = new THREE.Mesh(
-            new THREE.ConeGeometry(3.5, 2, 4),
-            mat(C.woodDark, { roughness: 0.9 })
+        // Floor platform
+        const floor = box(3.5, 0.2, 3.5, C.wood, { roughness: 0.85 });
+        floor.position.y = 2.6; floor.userData.isMapObject = true; hut.add(floor);
+        // Walls (3 sides, open front)
+        for (let w = 0; w < 3; w++) {
+            const wa = (w / 3) * Math.PI * 2 + Math.PI / 3;
+            if (w === 1) continue; // door gap
+            const wall = box(2.5, 2.2, 0.15, C.thatch, { roughness: 0.9 });
+            wall.position.set(Math.cos(wa) * 1.7, 3.8, Math.sin(wa) * 1.7);
+            wall.rotation.y = wa;
+            wall.userData.isMapObject = true; hut.add(wall);
+        }
+        // Thatched roof
+        const roof = new THREE.Mesh(
+            new THREE.ConeGeometry(3, 1.8, 6),
+            mat(C.thatch, { roughness: 0.95 })
         );
-        twRoof.position.set(0, 8.6, 0);
-        twRoof.rotation.y = Math.PI / 4;
-        twRoof.userData.isMapObject = true; g.add(twRoof);
+        roof.position.y = 5.8; roof.rotation.y = Math.PI / 6;
+        roof.userData.isMapObject = true; hut.add(roof);
 
-        // Light on top
-        const twLight = new THREE.PointLight(0xffaa44, 3, 20);
-        twLight.position.set(0, 9.5, 0);
-        twLight.userData.isMapObject = true; g.add(twLight);
+        // Totem pole at entrance
+        const totem = cyl(0.15, 0.18, 3, 6, C.woodDark, { roughness: 0.8 });
+        totem.position.set(Math.cos(a) * 2.5, 1.5, Math.sin(a) * 2.5);
+        totem.userData.isMapObject = true; hut.add(totem);
+
+        // Loot inside
+        const lootCrate = box(0.6, 0.6, 0.6, C.gold, { roughness: 0.4, metalness: 0.5 });
+        lootCrate.position.set(Math.cos(a) * 0.5, 3, Math.sin(a) * 0.5);
+        lootCrate.userData.isMapObject = true; lootCrate.userData.isLoot = true; lootCrate.userData.isVillage = true;
+        hut.add(lootCrate);
+
+        // Interior light
+        const light = new THREE.PointLight(0xffaa44, 1.5, 10);
+        light.position.y = 4; light.userData.isMapObject = true; hut.add(light);
+
+        hut.position.set(x, 0.3, z);
+        scene.add(hut);
+        addCollider(gen, 'box', [x, 1.5, z], [3.5, 3, 3.5]);
     }
 
-    g.position.set(x, 0, z);
-    scene.add(g);
-}
-
-// --- Props: barrel ---
-function barrel(x, y, z, scene) {
-    const g = new THREE.Group();
-    const body = cyl(0.35, 0.35, 0.9, 8, C.woodDark, { roughness: 0.85 });
-    body.position.y = 0.45; body.userData.isMapObject = true; g.add(body);
-
-    // Metal bands
-    for (let i = 0; i < 2; i++) {
-        const band = new THREE.Mesh(
-            new THREE.TorusGeometry(0.36, 0.03, 6, 8),
-            mat(C.metal, { roughness: 0.5, metalness: 0.6 })
-        );
-        band.position.y = 0.25 + i * 0.45;
-        band.rotation.x = Math.PI / 2;
-        band.userData.isMapObject = true; g.add(band);
+    // Village fire pit (central)
+    const vFIRE = new THREE.Group();
+    for (let i = 0; i < 6; i++) {
+        const log = cyl(0.08, 0.08, 0.8, 5, C.woodDark, { roughness: 0.95 });
+        log.position.set(Math.cos(i * Math.PI / 3) * 0.4, 0.15, Math.sin(i * Math.PI / 3) * 0.4);
+        log.rotation.z = Math.PI / 2; log.rotation.y = i * Math.PI / 3;
+        log.userData.isMapObject = true; vFIRE.add(log);
     }
-
-    g.position.set(x, y, z);
-    scene.add(g);
+    const vLight = new THREE.PointLight(0xff6600, 3, 15);
+    vLight.position.y = 0.6; vLight.userData.isMapObject = true; vFIRE.add(vLight);
+    vFIRE.position.set(0, 0.3, RADIUS * 0.4);
+    scene.add(vFIRE);
 }
 
-// --- Props: crate ---
-function crate(x, y, z, scene, size = 1) {
-    const g = box(0.9 * size, 0.9 * size, 0.9 * size, C.wood, { roughness: 0.8 });
-    g.position.set(x, y + 0.45 * size, z);
-    g.userData.isMapObject = true; g.userData.isLoot = true;
-    scene.add(g);
-    addCollider(null, 'box', [g.position.x, g.position.y, g.position.z], [0.9 * size, 0.9 * size, 0.9 * size]);
-}
-
-// --- Props: fence post ---
-function fencePost(x, y, z, scene) {
-    const post = cyl(0.08, 0.1, 1.2, 5, C.woodDark, { roughness: 0.9 });
-    post.position.set(x, y + 0.6, z);
-    post.userData.isMapObject = true; scene.add(post);
-}
-
-// --- Props: campfire ---
-function campfire(x, y, z, scene) {
-    const g = new THREE.Group();
-    // Fire logs
-    for (let i = 0; i < 4; i++) {
-        const log = cyl(0.06, 0.06, 0.6, 5, C.woodDark, { roughness: 0.95 });
-        log.position.set(Math.cos(i * Math.PI / 2) * 0.15, 0.1, Math.sin(i * Math.PI / 2) * 0.15);
-        log.rotation.z = Math.PI / 2;
-        log.rotation.y = i * Math.PI / 2;
-        log.userData.isMapObject = true; g.add(log);
-    }
-    // Fire light
-    const fireLight = new THREE.PointLight(0xff6600, 3, 12);
-    fireLight.position.y = 0.5;
-    fireLight.userData.isMapObject = true; g.add(fireLight);
-    g.position.set(x, y, z);
-    scene.add(g);
-}
-
-// --- Props: road marker ---
-function roadMarker(x, y, z, scene) {
-    const g = new THREE.Group();
-    const pole = cyl(0.05, 0.06, 2, 6, C.metal, { roughness: 0.5, metalness: 0.6 });
-    pole.position.y = 1; pole.userData.isMapObject = true; g.add(pole);
-    const sign = box(0.8, 0.6, 0.1, C.white, { roughness: 0.7 });
-    sign.position.set(0, 2, 0);
-    sign.userData.isMapObject = true; g.add(sign);
-    g.position.set(x, y, z);
-    scene.add(g);
-}
-
-// --- Tree: proper low-poly tree ---
-function tree(x, y, z, scene, type = 'normal') {
-    const g = new THREE.Group();
-    const trunkH = 2 + Math.random() * 2;
-    const trunkR = 0.2 + Math.random() * 0.15;
-
-    // Trunk
-    const trunk = cyl(trunkR * 0.6, trunkR, trunkH, 6, C.woodDark, { roughness: 0.95 });
-    trunk.position.y = trunkH / 2;
-    trunk.userData.isMapObject = true; trunk.userData.isTree = true; g.add(trunk);
-
-    // Canopy layers
-    const canopyColors = type === 'ruined' ? C.stoneDark : type === 'crystal' ? C.cyan : C.grass;
-    for (let i = 0; i < 3; i++) {
-        const cr = 1.2 + (3 - i) * 0.5;
-        const ch = 1.5 + (3 - i) * 0.3;
-        const canopy = new THREE.Mesh(
-            new THREE.ConeGeometry(cr, ch, 6),
-            mat(canopyColors, { roughness: 0.9, metalness: type === 'crystal' ? 0.4 : 0 })
-        );
-        canopy.position.y = trunkH + 1 + i * 1;
-        canopy.rotation.y = i * Math.PI / 6;
-        canopy.userData.isMapObject = true; canopy.userData.isTree = true; g.add(canopy);
-    }
-
-    g.position.set(x, y, z);
-    scene.add(g);
-}
-
-// --- Cornucopia: proper horn of plenty ---
-function cornucopia(scene, gen) {
-    const g = new THREE.Group();
-    const metalMat = mat(C.gold, { roughness: 0.3, metalness: 0.8 });
-    const darkMat = mat(C.metalDark, { roughness: 0.5, metalness: 0.5 });
-
-    // Base platform (octagonal)
-    const base = new THREE.Mesh(
-        new THREE.CylinderGeometry(12, 14, 2, 8),
-        mat(C.metal, { roughness: 0.6, metalness: 0.4 })
+// --- Spawn Camp (Center) ---
+async function buildSpawnCamp(scene, gen) {
+    // Camp ground (flat pad)
+    const campFloor = new THREE.Mesh(
+        new THREE.CircleGeometry(30, 32),
+        mat(C.sand, { roughness: 0.85 })
     );
-    base.position.y = 1; base.receiveShadow = true; base.userData.isMapObject = true; base.userData.isCornucopia = true;
-    g.add(base);
-    addCollider(gen, 'cylinder', [0, 1, 0], [14, 2]);
+    campFloor.rotation.x = -Math.PI / 2;
+    campFloor.position.y = 0.35; campFloor.receiveShadow = true;
+    campFloor.userData.isArena = true; campFloor.userData.isSpawnPad = true;
+    campFloor.userData.isMapObject = true;
+    scene.add(campFloor);
 
-    // Main body - two crossed horns
-    for (let side of [-1, 1]) {
-        const horn = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.6, 2.5, 14, 10),
-            metalMat
-        );
-        horn.position.set(side * 6, 10, 0);
-        horn.rotation.z = side * 0.4;
-        horn.userData.isMapObject = true; horn.userData.isCornucopia = true;
-        g.add(horn);
-    }
+    // Central supply crate
+    const mainCrate = box(2, 1.5, 2, C.gold, { roughness: 0.4, metalness: 0.5 });
+    mainCrate.position.set(0, 1.05, 0);
+    mainCrate.userData.isMapObject = true; mainCrate.userData.isLoot = true; mainCrate.userData.isCamp = true;
+    scene.add(mainCrate);
+    addCollider(gen, 'box', [0, 1.05, 0], [2, 1.5, 2]);
 
-    // Central structure
-    const central = new THREE.Mesh(
-        new THREE.CylinderGeometry(4, 6, 8, 8),
-        mat(C.metal, { roughness: 0.4, metalness: 0.6 })
-    );
-    central.position.y = 6; central.userData.isMapObject = true; central.userData.isCornucopia = true;
-    g.add(central);
-
-    // Spire
-    const spire = new THREE.Mesh(
-        new THREE.ConeGeometry(2.5, 10, 8),
-        metalMat
-    );
-    spire.position.y = 15; spire.userData.isMapObject = true; spire.userData.isCornucopia = true;
-    g.add(spire);
-
-    // Spire orb
-    const orb = new THREE.Mesh(
-        new THREE.SphereGeometry(1.2, 8, 6),
-        mat(C.cyan, { roughness: 0.1, metalness: 0.7, emissive: C.cyan, emissiveIntensity: 0.5, transparent: true, opacity: 0.7 })
-    );
-    orb.position.y = 21; orb.userData.isMapObject = true; g.add(orb);
-
-    // Glow
-    const cornLight = new THREE.PointLight(0xffcc44, 5, 40);
-    cornLight.position.y = 18; cornLight.userData.isMapObject = true; g.add(cornLight);
-    gen.animatedObjects.push({ type: 'glow', light: cornLight, baseIntensity: 5, pulse: true });
-
-    // Chains around base
-    for (let i = 0; i < 8; i++) {
-        const a = (i / 8) * Math.PI * 2;
-        const chain = cyl(0.06, 0.06, 4, 5, metalMat, { roughness: 0.3 });
-        chain.position.set(Math.cos(a) * 12, 2, Math.sin(a) * 12);
-        chain.userData.isMapObject = true; g.add(chain);
-    }
-
-    // Corner pillars
-    for (let i = 0; i < 8; i++) {
-        const a = (i / 8) * Math.PI * 2;
-        const pillar = cyl(0.4, 0.5, 6, 8, darkMat, { roughness: 0.5, metalness: 0.5 });
-        pillar.position.set(Math.cos(a) * 13, 3, Math.sin(a) * 13);
-        pillar.userData.isMapObject = true; g.add(pillar);
-
-        // Pillar top
-        const pTop = sphere(0.6, 8, 6, C.gold, { roughness: 0.3, metalness: 0.8 });
-        pTop.position.set(Math.cos(a) * 13, 6.6, Math.sin(a) * 13);
-        pTop.userData.isMapObject = true; g.add(pTop);
-
-        // Pillar lights
-        const pLight = new THREE.PointLight(0xffaa44, 1, 15);
-        pLight.position.set(Math.cos(a) * 13, 7.2, Math.sin(a) * 13);
-        pLight.userData.isMapObject = true; g.add(pLight);
-    }
-
-    // Supply crates around base
+    // Supply crates around camp
     const cratePositions = [
-        [6, 2.2, 6], [-6, 2.2, 6], [6, 2.2, -6], [-6, 2.2, -6],
-        [10, 2.2, 0], [-10, 2.2, 0], [0, 2.2, 10], [0, 2.2, -10],
+        [6, 6], [-6, 6], [6, -6], [-6, -6],
+        [10, 0], [-10, 0], [0, 10], [0, -10],
+        [14, 14], [-14, 14], [14, -14], [-14, -14],
     ];
-    for (const cp of cratePositions) {
+    for (const [cx, cz] of cratePositions) {
         const c = box(1, 1, 1, C.gold, { roughness: 0.4, metalness: 0.5 });
-        c.position.set(...cp);
-        c.userData.isMapObject = true; c.userData.isLoot = true; c.userData.isCornucopia = true;
-        g.add(c);
-        addCollider(gen, 'box', cp, [1, 1, 1]);
+        c.position.set(cx, 0.5, cz);
+        c.userData.isMapObject = true; c.userData.isLoot = true; c.userData.isCamp = true;
+        scene.add(c);
+        addCollider(gen, 'box', [cx, 0.5, cz], [1, 1, 1]);
+    }
+
+    // Camp tents (medic/safe zone)
+    for (let i = 0; i < 4; i++) {
+        const a = (i / 4) * Math.PI * 2;
+        const r = 18;
+        const tx = Math.cos(a) * r, tz = Math.sin(a) * r;
+
+        const tent = new THREE.Group();
+        const pole1 = cyl(0.06, 0.06, 2.5, 5, C.woodDark, { roughness: 0.9 });
+        pole1.position.set(-1, 1.25, 0); pole1.userData.isMapObject = true; tent.add(pole1);
+        const pole2 = pole1.clone(); pole2.position.set(1, 1.25, 0); tent.add(pole2);
+        const tCanvas = new THREE.Mesh(
+            new THREE.ConeGeometry(2, 2.5, 4),
+            mat(C.white, { roughness: 0.8 })
+        );
+        tCanvas.position.y = 1.5; tCanvas.rotation.y = Math.PI / 4;
+        tCanvas.userData.isMapObject = true; tent.add(tCanvas);
+
+        tent.position.set(tx, 0.35, tz);
+        scene.add(tent);
+        addCollider(gen, 'box', [tx, 1.5, tz], [4, 2.5, 4]);
     }
 
     // Spawn pads
-    gen.spawnPads.push({ x: 0, y: 0.5, z: 0, radius: 4 });
+    gen.spawnPads.push({ x: 0, y: 0.35, z: 0, radius: 5 });
     for (let i = 0; i < 5; i++) {
         const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
-        gen.spawnPads.push({ x: Math.cos(a) * 10, y: 0.5, z: Math.sin(a) * 10, radius: 2.5 });
+        gen.spawnPads.push({ x: Math.cos(a) * 12, y: 0.35, z: Math.sin(a) * 12, radius: 3 });
     }
     for (let i = 0; i < 5; i++) {
         const a = (i / 5) * Math.PI * 2 - Math.PI / 2 + Math.PI / 5;
-        gen.spawnPads.push({ x: Math.cos(a) * 20, y: 0.5, z: Math.sin(a) * 20, radius: 2 });
+        gen.spawnPads.push({ x: Math.cos(a) * 22, y: 0.35, z: Math.sin(a) * 22, radius: 2.5 });
     }
 
-    // Spawn pad visual rings
+    // Campfire lights
+    for (let i = 0; i < 4; i++) {
+        const a = (i / 4) * Math.PI * 2;
+        const r = 18;
+        const cLight = new THREE.PointLight(0xffaa44, 2, 12);
+        cLight.position.set(Math.cos(a) * r, 3, Math.sin(a) * r);
+        cLight.userData.isMapObject = true; scene.add(cLight);
+    }
+
+    // Spawn visual rings
     for (const pad of gen.spawnPads) {
         const ring = new THREE.Mesh(
-            new THREE.RingGeometry(pad.radius * 0.7, pad.radius, 32),
-            mat(0x4488ff, { transparent: true, opacity: 0.25, side: THREE.DoubleSide })
+            new THREE.RingGeometry(pad.radius * 0.6, pad.radius, 32),
+            mat(0x4488ff, { transparent: true, opacity: 0.2, side: THREE.DoubleSide })
         );
         ring.rotation.x = -Math.PI / 2;
-        ring.position.set(pad.x, 0.55, pad.z);
+        ring.position.set(pad.x, 0.36, pad.z);
         ring.userData.isMapObject = true;
-        g.add(ring);
+        scene.add(ring);
     }
 
-    scene.add(g);
+    // Supply drop beacon (glowing pole)
+    const beacon = cyl(0.1, 0.1, 6, 6, C.metal, { roughness: 0.4, metalness: 0.6 });
+    beacon.position.set(0, 3, 0); beacon.userData.isMapObject = true; scene.add(beacon);
+    const beaconLight = new THREE.PointLight(0xffcc44, 4, 30);
+    beaconLight.position.set(0, 6.5, 0); beaconLight.userData.isMapObject = true; scene.add(beaconLight);
+    gen.animatedObjects.push({ type: 'glow', light: beaconLight, baseIntensity: 4, pulse: true });
 }
 
-// --- Lava pools ---
-function lavaPool(x, z, radius, scene, gen) {
-    const g = new THREE.Group();
-    const lavaMat = mat(C.lava, { roughness: 0.1, metalness: 0.8, emissive: 0xff3300, emissiveIntensity: 0.6 });
+// --- Jungle (East) ---
+async function buildJungle(scene, gen) {
+    const jungleCenter = new THREE.Vector3(RADIUS * 0.5, 0, 0);
 
-    // Lava surface
-    const lava = new THREE.Mesh(
-        new THREE.CircleGeometry(radius, 16),
-        lavaMat
-    );
-    lava.rotation.x = -Math.PI / 2;
-    lava.position.y = 0.2;
-    lava.receiveShadow = true; lava.userData.isMapObject = true; lava.userData.isLava = true;
-    g.add(lava);
+    // Dense palm trees
+    for (let i = 0; i < 80; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = 20 + Math.random() * 80;
+        const x = jungleCenter.x + Math.cos(a) * r;
+        const z = jungleCenter.z + Math.sin(a) * r;
 
-    // Obsidian ring
-    const ring = new THREE.Mesh(
-        new THREE.TorusGeometry(radius, 0.8, 6, 16),
-        mat(C.obsidian, { roughness: 0.6, metalness: 0.5 })
+        const trunkH = 6 + Math.random() * 4;
+        const trunkR = 0.25 + Math.random() * 0.15;
+
+        // Trunk (curved)
+        const trunk = cyl(trunkR * 0.6, trunkR, trunkH, 6, C.palmTrunk, { roughness: 0.95 });
+        trunk.position.set(x, trunkH / 2, z);
+        trunk.rotation.z = (Math.random() - 0.5) * 0.2;
+        trunk.userData.isMapObject = true; trunk.userData.isTree = true; scene.add(trunk);
+
+        // Palm leaves (flat cones)
+        for (let l = 0; l < 6; l++) {
+            const leaf = new THREE.Mesh(
+                new THREE.ConeGeometry(0.8, 3, 3),
+                mat(C.palmLeaf, { roughness: 0.9 })
+            );
+            leaf.position.set(x, trunkH + 0.5, z);
+            leaf.rotation.z = (l / 6) * Math.PI * 2;
+            leaf.rotation.y = (l / 6) * Math.PI * 2;
+            leaf.userData.isMapObject = true; leaf.userData.isTree = true; scene.add(leaf);
+        }
+
+        // Canopy (green ball at top)
+        const canopy = new THREE.Mesh(
+            new THREE.SphereGeometry(2.5, 6, 4),
+            mat(C.jungle, { roughness: 0.9 })
+        );
+        canopy.position.set(x, trunkH + 1, z);
+        canopy.userData.isMapObject = true; canopy.userData.isTree = true; scene.add(canopy);
+    }
+
+    // Dense underbrush (low foliage)
+    for (let i = 0; i < 60; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = 10 + Math.random() * 70;
+        const x = jungleCenter.x + Math.cos(a) * r;
+        const z = jungleCenter.z + Math.sin(a) * r;
+
+        const bush = new THREE.Mesh(
+            new THREE.SphereGeometry(0.8 + Math.random() * 0.6, 5, 3),
+            mat(C.jungleDark, { roughness: 0.95 })
+        );
+        bush.position.set(x, 0.5, z);
+        bush.scale.y = 0.6;
+        bush.castShadow = true; bush.receiveShadow = true;
+        bush.userData.isMapObject = true; bush.userData.isCover = true;
+        scene.add(bush);
+    }
+
+    // Jungle trap zones
+    for (let i = 0; i < 10; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = 20 + Math.random() * 60;
+        const x = jungleCenter.x + Math.cos(a) * r;
+        const z = jungleCenter.z + Math.sin(a) * r;
+
+        // Spike trap
+        const trap = new THREE.Group();
+        const plate = box(1.2, 0.08, 1.2, C.metal, { roughness: 0.6, metalness: 0.5 });
+        plate.position.y = 0.04; plate.userData.isMapObject = true; trap.add(plate);
+        for (let s = 0; s < 5; s++) {
+            const spike = new THREE.Mesh(
+                new THREE.ConeGeometry(0.1, 0.6, 4),
+                mat(C.metal, { roughness: 0.4, metalness: 0.7 })
+            );
+            spike.position.set((Math.random() - 0.5) * 0.8, 0.35, (Math.random() - 0.5) * 0.8);
+            spike.userData.isMapObject = true; trap.add(spike);
+        }
+        trap.position.set(x, 0.3, z);
+        scene.add(trap);
+        gen.traps.push({ type: 'spike', position: new THREE.Vector3(x, 0.3, z), radius: 1.5, damage: 12 });
+    }
+
+    // Jungle loot
+    for (let i = 0; i < 15; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = 15 + Math.random() * 60;
+        const x = jungleCenter.x + Math.cos(a) * r;
+        const z = jungleCenter.z + Math.sin(a) * r;
+        const c = box(0.7, 0.7, 0.7, C.gold, { roughness: 0.4, metalness: 0.5 });
+        c.position.set(x, 0.35, z);
+        c.userData.isMapObject = true; c.userData.isLoot = true; c.userData.isJungle = true;
+        scene.add(c);
+    }
+}
+
+// --- Volcano (North) ---
+async function buildVolcano(scene, gen) {
+    const vCenter = new THREE.Vector3(0, 0, -RADIUS * 0.6);
+
+    // Volcano cone (raised terrain with crater)
+    const volcanoGeo = new THREE.ConeGeometry(60, 40, 32);
+    const volcano = new THREE.Mesh(volcanoGeo, mat(C.obsidian, { roughness: 0.5, metalness: 0.4 }));
+    volcano.position.set(vCenter.x, 20, vCenter.z);
+    volcano.castShadow = true; volcano.receiveShadow = true;
+    volcano.userData.isMapObject = true; volcano.userData.isVolcano = true;
+    scene.add(volcano);
+    addCollider(gen, 'cylinder', [vCenter.x, 20, vCenter.z], [60, 40]);
+
+    // Crater (depression with lava)
+    const craterFloor = new THREE.Mesh(
+        new THREE.CircleGeometry(15, 24),
+        mat(C.lava, { roughness: 0.1, metalness: 0.8, emissive: 0xff3300, emissiveIntensity: 0.6 })
     );
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.y = 0.3;
-    ring.userData.isMapObject = true; g.add(ring);
-    addCollider(gen, 'box', [x, 0.3, z], [radius * 2.2, 0.6, radius * 2.2]);
+    craterFloor.rotation.x = -Math.PI / 2;
+    craterFloor.position.set(vCenter.x, 38.5, vCenter.z);
+    craterFloor.receiveShadow = true;
+    craterFloor.userData.isMapObject = true; craterFloor.userData.isLava = true;
+    scene.add(craterFloor);
 
     // Lava glow
-    const lLight = new THREE.PointLight(0xff4400, 4, 20);
-    lLight.position.y = 1; lLight.userData.isMapObject = true; g.add(lLight);
+    const lavaLight = new THREE.PointLight(0xff4400, 8, 40);
+    lavaLight.position.set(vCenter.x, 40, vCenter.z);
+    lavaLight.userData.isMapObject = true; scene.add(lavaLight);
+    gen.animatedObjects.push({ type: 'glow', light: lavaLight, baseIntensity: 8, pulse: true });
 
-    g.position.set(x, 0, z);
-    scene.add(g);
-    gen.waterMeshes.push({ type: 'lava', mesh: lava, material: lavaMat });
+    // Lava flows (narrow channels from crater)
+    for (let i = 0; i < 3; i++) {
+        const a = (i / 3) * Math.PI * 2;
+        const flowLen = 30 + Math.random() * 20;
+        const flowGeo = new THREE.PlaneGeometry(3, flowLen, 1, 1);
+        flowGeo.rotateX(-Math.PI / 2);
+        const flow = new THREE.Mesh(flowGeo, mat(C.lava, {
+            roughness: 0.1, metalness: 0.8, emissive: 0xff3300, emissiveIntensity: 0.4
+        }));
+        flow.position.set(
+            vCenter.x + Math.cos(a) * (flowLen / 2),
+            36,
+            vCenter.z + Math.sin(a) * (flowLen / 2)
+        );
+        flow.rotation.z = -a;
+        flow.userData.isMapObject = true; flow.userData.isLava = true;
+        scene.add(flow);
+    }
+
+    // Obsidian formations
+    for (let i = 0; i < 30; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = 25 + Math.random() * 30;
+        const x = vCenter.x + Math.cos(a) * r;
+        const z = vCenter.z + Math.sin(a) * r;
+        const h = 3 + Math.random() * 8;
+
+        const formation = new THREE.Mesh(
+            new THREE.ConeGeometry(0.8 + Math.random() * 0.5, h, 5),
+            mat(C.obsidian, { roughness: 0.4, metalness: 0.5 })
+        );
+        formation.position.set(x, h / 2 + 5, z);
+        formation.rotation.y = Math.random();
+        formation.castShadow = true; formation.receiveShadow = true;
+        formation.userData.isMapObject = true; formation.userData.isCover = true;
+        scene.add(formation);
+    }
+
+    // High-tier loot crates near crater
+    for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * Math.PI * 2;
+        const r = 18;
+        const x = vCenter.x + Math.cos(a) * r;
+        const z = vCenter.z + Math.sin(a) * r;
+        const c = box(1.2, 1.2, 1.2, C.gold, { roughness: 0.3, metalness: 0.7 });
+        c.position.set(x, 0.6, z);
+        c.userData.isMapObject = true; c.userData.isLoot = true; c.userData.isVolcano = true;
+        scene.add(c);
+    }
+
+    // Smoke/steam clouds around volcano
+    for (let i = 0; i < 10; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = 30 + Math.random() * 20;
+        const x = vCenter.x + Math.cos(a) * r;
+        const z = vCenter.z + Math.sin(a) * r;
+
+        const cloud = new THREE.Group();
+        for (let j = 0; j < 4; j++) {
+            const p = new THREE.Mesh(
+                new THREE.SphereGeometry(1.5 + Math.random(), 8, 6),
+                mat(0x888888, { transparent: true, opacity: 0.25, roughness: 1 })
+            );
+            p.position.set((Math.random() - 0.5) * 3, Math.random() * 3, (Math.random() - 0.5) * 3);
+            p.userData.isMapObject = true; cloud.add(p);
+        }
+        cloud.position.set(x, 35 + Math.random() * 10, z);
+        scene.add(cloud);
+        gen.animatedObjects.push({ type: 'smoke', group: cloud });
+    }
 }
 
-// --- Forest pond ---
-function forestPond(x, z, radius, scene) {
-    const g = new THREE.Group();
-    const waterMat = mat(C.green, { transparent: true, opacity: 0.6, roughness: 0.1 });
+// --- Lighthouse (South-East promontory) ---
+async function buildLighthouse(scene, gen) {
+    const lCenter = new THREE.Vector3(RADIUS * 0.45, 0, -RADIUS * 0.5);
 
-    const water = new THREE.Mesh(
-        new THREE.CircleGeometry(radius, 16),
-        waterMat
-    );
-    water.rotation.x = -Math.PI / 2;
-    water.position.y = 0.15;
-    water.userData.isMapObject = true; water.userData.isWater = true; g.add(water);
-
-    // Stone rim
-    const rim = new THREE.Mesh(
-        new THREE.TorusGeometry(radius, 0.5, 6, 16),
+    // Hill for lighthouse
+    const hill = new THREE.Mesh(
+        new THREE.SphereGeometry(20, 16, 8),
         mat(C.stone, { roughness: 0.85 })
     );
-    rim.rotation.x = -Math.PI / 2;
-    rim.position.y = 0.1;
-    rim.userData.isMapObject = true; g.add(rim);
+    hill.position.set(lCenter.x, -2, lCenter.z);
+    hill.scale.y = 0.5; hill.receiveShadow = true;
+    hill.userData.isMapObject = true; hill.userData.isTerrain = true;
+    scene.add(hill);
+    addCollider(gen, 'sphere', [lCenter.x, 0, lCenter.z], 20);
 
-    g.position.set(x, 0, z);
-    scene.add(g);
-}
-
-// --- Biome path ---
-function biomePath(x1, z1, x2, z2, scene) {
-    const dx = x2 - x1, dz = z2 - z1;
-    const len = Math.sqrt(dx * dx + dz * dz);
-    const angle = Math.atan2(dx, dz);
-
-    const path = box(3, 0.08, len, C.dirt, { roughness: 0.95 });
-    path.position.set((x1 + x2) / 2, 0.05, (z1 + z2) / 2);
-    path.rotation.y = angle;
-    path.receiveShadow = true; path.userData.isMapObject = true; path.userData.isPath = true;
-    scene.add(path);
-}
-
-// --- Bridge ---
-function bridge(x, z, length, rotation, scene) {
-    const g = new THREE.Group();
-
-    // Deck planks
-    for (let i = 0; i < Math.floor(length / 1.5); i++) {
-        const plank = box(3.5, 0.15, 1.4, C.wood, { roughness: 0.85 });
-        plank.position.set(0, 1.5, -length / 2 + i * 1.5 + 0.75);
-        plank.userData.isMapObject = true; g.add(plank);
-    }
-
-    // Ropes
-    for (let side of [-1, 1]) {
-        for (let i = 0; i < 5; i++) {
-            const rope = cyl(0.05, 0.05, 1.8, 5, C.woodDark, { roughness: 0.9 });
-            rope.position.set(side * 1.7, 2.5, -length / 2 + i * (length / 4));
-            rope.userData.isMapObject = true; g.add(rope);
-        }
-        // Top rope
-        const topRope = cyl(0.06, 0.06, length, 5, C.woodDark, { roughness: 0.9 });
-        topRope.position.set(side * 1.7, 3.4, 0);
-        topRope.rotation.x = Math.PI / 2;
-        topRope.userData.isMapObject = true; g.add(topRope);
-    }
-
-    // Support chains
-    for (let i = 0; i < 3; i++) {
-        const chain = cyl(0.08, 0.08, 2.5, 5, C.metal, { roughness: 0.5, metalness: 0.6 });
-        chain.position.set(0, 0.5, -length / 2 + i * (length / 2) + length / 4);
-        chain.userData.isMapObject = true; g.add(chain);
-    }
-
-    g.position.set(x, 0, z);
-    g.rotation.y = rotation;
-    scene.add(g);
-}
-
-// --- Smoke cloud ---
-function smokeCloud(x, y, z, scene, gen) {
-    const g = new THREE.Group();
-    for (let i = 0; i < 5; i++) {
-        const cloud = sphere(1.5 + Math.random(), 8, 6, C.stoneDark, {
-            transparent: true, opacity: 0.35, roughness: 1
-        });
-        cloud.position.set(
-            (Math.random() - 0.5) * 3,
-            Math.random() * 2,
-            (Math.random() - 0.5) * 3
-        );
-        cloud.userData.isMapObject = true;
-        g.add(cloud);
-    }
-    g.position.set(x, y, z);
-    scene.add(g);
-    gen.animatedObjects.push({ type: 'smoke', group: g });
-}
-
-// --- Radiant cloud ---
-function radCloud(x, y, z, radius, damage, scene) {
-    const g = new THREE.Group();
-    const cloud = new THREE.Mesh(
-        new THREE.SphereGeometry(radius, 12, 8),
-        mat(0x88cc44, { transparent: true, opacity: 0.2, emissive: 0x88cc44, emissiveIntensity: 0.3 })
+    // Lighthouse tower
+    const tower = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.5, 3, 20, 8),
+        mat(C.white, { roughness: 0.6, metalness: 0.2 })
     );
-    cloud.position.y = y; cloud.userData.isMapObject = true; g.add(cloud);
+    tower.position.set(lCenter.x, 10, lCenter.z);
+    tower.userData.isMapObject = true; tower.userData.isLighthouse = true;
+    scene.add(tower);
 
-    const glow = new THREE.PointLight(0x88cc44, 2, radius);
-    glow.position.y = y; glow.userData.isMapObject = true; g.add(glow);
-
-    g.position.set(x, 0, z);
-    scene.add(g);
-    gen.radiationZones.push({ position: new THREE.Vector3(x, 0, z), radius, damage });
-}
-
-// --- Trap: spike ---
-function spikeTrap(x, z, scene) {
-    const g = new THREE.Group();
-    // Base plate
-    const plate = box(1.2, 0.08, 1.2, C.metal, { roughness: 0.6, metalness: 0.5 });
-    plate.position.y = 0.04; plate.userData.isMapObject = true; g.add(plate);
-
-    // Spikes
-    for (let i = 0; i < 5; i++) {
-        const spike = new THREE.Mesh(
-            new THREE.ConeGeometry(0.1, 0.6, 4),
-            mat(C.metal, { roughness: 0.4, metalness: 0.7 })
+    // Tower stripes
+    for (let i = 0; i < 3; i++) {
+        const stripe = new THREE.Mesh(
+            new THREE.CylinderGeometry(2.5 - i * 0.3, 2.7 - i * 0.3, 1.5, 8),
+            mat(C.red, { roughness: 0.6 })
         );
-        spike.position.set(
-            (Math.random() - 0.5) * 0.8,
-            0.35,
-            (Math.random() - 0.5) * 0.8
-        );
-        spike.userData.isMapObject = true; g.add(spike);
+        stripe.position.set(lCenter.x, 6 + i * 6, lCenter.z);
+        stripe.userData.isMapObject = true; scene.add(stripe);
     }
 
-    g.position.set(x, 0, z);
-    scene.add(g);
-    gen.traps.push({ type: 'spike', position: new THREE.Vector3(x, 0, z), radius: 1.5, damage: 12 });
-    addCollider(null, 'box', [x, 0, z], [1.2, 0.6, 1.2]);
+    // Lighthouse top
+    const top = new THREE.Mesh(
+        new THREE.ConeGeometry(2, 3, 8),
+        mat(C.metal, { roughness: 0.4, metalness: 0.6 })
+    );
+    top.position.set(lCenter.x, 21.5, lCenter.z);
+    top.userData.isMapObject = true; scene.add(top);
+
+    // Light beam
+    const beaconLight = new THREE.PointLight(0xffcc44, 6, 50);
+    beaconLight.position.set(lCenter.x, 23, lCenter.z);
+    beaconLight.userData.isMapObject = true; scene.add(beaconLight);
+    gen.animatedObjects.push({ type: 'glow', light: beaconLight, baseIntensity: 6, pulse: true });
+
+    // Keeper's cabin
+    const cabin = box(4, 3, 3, C.wood, { roughness: 0.85 });
+    cabin.position.set(lCenter.x + 5, 1.5, lCenter.z);
+    cabin.userData.isMapObject = true; scene.add(cabin);
+    addCollider(gen, 'box', [lCenter.x + 5, 1.5, lCenter.z], [4, 3, 3]);
+
+    // Loot inside
+    const lootCrate = box(1, 1, 1, C.gold, { roughness: 0.4, metalness: 0.5 });
+    lootCrate.position.set(lCenter.x + 5, 0.5, lCenter.z + 1);
+    lootCrate.userData.isMapObject = true; lootCrate.userData.isLoot = true; lootCrate.userData.isLighthouse = true;
+    scene.add(lootCrate);
 }
 
-// --- Trap: bear trap ---
-function bearTrap(x, z, scene) {
-    const g = new THREE.Group();
-    // Two jaws
-    for (let i = 0; i < 2; i++) {
-        const jaw = new THREE.Mesh(
-            new THREE.BoxGeometry(0.8, 0.15, 0.12),
-            mat(C.metal, { roughness: 0.5, metalness: 0.7 })
+// --- Caves (South-West) ---
+async function buildCaves(scene, gen) {
+    const cCenter = new THREE.Vector3(-RADIUS * 0.5, 0, -RADIUS * 0.45);
+
+    // Cave entrance (hollowed hill)
+    const caveHill = new THREE.Mesh(
+        new THREE.SphereGeometry(18, 16, 8),
+        mat(C.stoneDark, { roughness: 0.9 })
+    );
+    caveHill.position.set(cCenter.x, -3, cCenter.z);
+    caveHill.scale.y = 0.5; caveHill.receiveShadow = true;
+    caveHill.userData.isMapObject = true; caveHill.userData.isTerrain = true;
+    scene.add(caveHill);
+
+    // Cave opening (dark tunnel)
+    const cave = new THREE.Mesh(
+        new THREE.CylinderGeometry(4, 5, 20, 8),
+        mat(C.black, { roughness: 1 })
+    );
+    cave.rotation.z = Math.PI / 2;
+    cave.position.set(cCenter.x, 4, cCenter.z);
+    cave.userData.isMapObject = true; cave.userData.isCave = true;
+    scene.add(cave);
+
+    // Crystal formations inside
+    for (let i = 0; i < 20; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = 3 + Math.random() * 10;
+        const x = cCenter.x + Math.cos(a) * r * 0.3;
+        const z = cCenter.z + Math.sin(a) * r * 0.3;
+        const h = 1 + Math.random() * 3;
+
+        const crystal = new THREE.Mesh(
+            new THREE.ConeGeometry(0.4 + Math.random() * 0.3, h, 5),
+            mat(C.crystal, { roughness: 0.2, metalness: 0.5, transparent: true, opacity: 0.7 })
         );
-        jaw.position.set((i - 0.5) * 0.8, 0.08, 0);
-        jaw.rotation.z = (i - 0.5) * 0.3;
-        jaw.userData.isMapObject = true; g.add(jaw);
+        crystal.position.set(x, h / 2 + 3, z);
+        crystal.rotation.y = Math.random();
+        crystal.userData.isMapObject = true; scene.add(crystal);
     }
 
-    g.position.set(x, 0, z);
-    scene.add(g);
-    gen.traps.push({ type: 'bearTrap', position: new THREE.Vector3(x, 0, z), radius: 1, damage: 8 });
+    // Crystal glow
+    const caveLight = new THREE.PointLight(C.crystalGlow, 3, 25);
+    caveLight.position.set(cCenter.x, 5, cCenter.z);
+    caveLight.userData.isMapObject = true; scene.add(caveLight);
+
+    // Stalactites from ceiling
+    for (let i = 0; i < 10; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = 2 + Math.random() * 8;
+        const x = cCenter.x + Math.cos(a) * r * 0.3;
+        const z = cCenter.z + Math.sin(a) * r * 0.3;
+        const sl = 1 + Math.random() * 2;
+
+        const stal = new THREE.Mesh(
+            new THREE.ConeGeometry(0.2, sl, 5),
+            mat(C.crystal, { roughness: 0.25, metalness: 0.5, transparent: true, opacity: 0.6 })
+        );
+        stal.position.set(x, 8 + sl / 2, z);
+        stal.rotation.z = Math.PI;
+        stal.userData.isMapObject = true; scene.add(stal);
+    }
+
+    // Cave loot
+    for (let i = 0; i < 8; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = 5 + Math.random() * 10;
+        const x = cCenter.x + Math.cos(a) * r * 0.2;
+        const z = cCenter.z + Math.sin(a) * r * 0.2;
+        const c = box(0.8, 0.8, 0.8, C.gold, { roughness: 0.4, metalness: 0.5 });
+        c.position.set(x, 0.4, z);
+        c.userData.isMapObject = true; c.userData.isLoot = true; c.userData.isCave = true;
+        scene.add(c);
+    }
 }
 
-// ============ MAP GENERATOR CLASS ============
+// --- Military Bunker (West) ---
+async function buildBunker(scene, gen) {
+    const bCenter = new THREE.Vector3(-RADIUS * 0.55, 0, 0);
+
+    // Bunker body (reinforced structure)
+    const bunker = box(8, 4, 12, C.metalDark, { roughness: 0.5, metalness: 0.6 });
+    bunker.position.set(bCenter.x, 2, bCenter.z);
+    bunker.userData.isMapObject = true; bunker.userData.isBunker = true;
+    scene.add(bunker);
+    addCollider(gen, 'box', [bCenter.x, 2, bCenter.z], [8, 4, 12]);
+
+    // Reinforced roof plates
+    const roof = box(8.5, 0.5, 12.5, C.stoneDark, { roughness: 0.6 });
+    roof.position.set(bCenter.x, 4.25, bCenter.z);
+    roof.userData.isMapObject = true; scene.add(roof);
+
+    // Ventilation
+    const vent = cyl(0.5, 0.5, 2, 8, C.metalDark, { roughness: 0.5 });
+    vent.position.set(bCenter.x, 5.5, bCenter.z);
+    vent.userData.isMapObject = true; scene.add(vent);
+
+    // Door
+    const door = box(1.8, 3, 0.3, C.metal, { roughness: 0.5, metalness: 0.6 });
+    door.position.set(bCenter.x, 1.5, bCenter.z + 6.1);
+    door.userData.isMapObject = true; door.userData.isDoor = true;
+    scene.add(door);
+
+    // Radar dish on top
+    const radar = cyl(0.1, 0.1, 6, 6, C.metal, { roughness: 0.4, metalness: 0.6 });
+    radar.position.set(bCenter.x, 7, bCenter.z);
+    radar.userData.isMapObject = true; scene.add(radar);
+    const radarDish = new THREE.Mesh(
+        new THREE.ConeGeometry(1.5, 3, 8),
+        mat(C.metal, { roughness: 0.4, metalness: 0.6 })
+    );
+    radarDish.position.set(bCenter.x, 10, bCenter.z);
+    radarDish.rotation.x = Math.PI / 3;
+    radarDish.userData.isMapObject = true; scene.add(radarDish);
+
+    // High-tier loot
+    for (let i = 0; i < 6; i++) {
+        const c = box(1.2, 1.2, 1.2, C.gold, { roughness: 0.3, metalness: 0.7 });
+        const a = (i / 6) * Math.PI * 2;
+        const r = 6;
+        c.position.set(bCenter.x + Math.cos(a) * r, 0.6, bCenter.z + Math.sin(a) * r);
+        c.userData.isMapObject = true; c.userData.isLoot = true; c.userData.isBunker = true;
+        scene.add(c);
+    }
+
+    // Bunker light
+    const bLight = new THREE.PointLight(0x4488ff, 2, 15);
+    bLight.position.set(bCenter.x, 3, bCenter.z);
+    bLight.userData.isMapObject = true; scene.add(bLight);
+}
+
+// --- River & Bridges ---
+async function buildRiver(scene, gen) {
+    // River flowing from north (volcano) to south (village)
+    const riverMat = mat(C.water, { transparent: true, opacity: 0.6, roughness: 0.1 });
+
+    // Main river channel
+    const riverGeo = new THREE.PlaneGeometry(8, RADIUS * 1.6, 1, 1);
+    riverGeo.rotateX(-Math.PI / 2);
+    const river = new THREE.Mesh(riverGeo, riverMat);
+    river.position.set(0, 0.4, 0);
+    river.receiveShadow = true;
+    river.userData.isMapObject = true; river.userData.isWater = true; river.userData.isRiver = true;
+    scene.add(river);
+
+    // Bridges across river
+    const bridgePositions = [
+        { x: 0, z: -RADIUS * 0.3 },
+        { x: 0, z: 0 },
+        { x: 0, z: RADIUS * 0.3 },
+    ];
+
+    for (const bp of bridgePositions) {
+        const bridge = new THREE.Group();
+
+        // Deck planks
+        for (let i = 0; i < 8; i++) {
+            const plank = box(5, 0.2, 1.5, C.wood, { roughness: 0.85 });
+            plank.position.set(0, 1.5, -6 + i * 1.7);
+            plank.userData.isMapObject = true; bridge.add(plank);
+        }
+
+        // Support pillars
+        const pillar = cyl(0.2, 0.25, 3, 6, C.stone, { roughness: 0.8 });
+        pillar.position.set(0, 0, -6); pillar.userData.isMapObject = true; bridge.add(pillar);
+        const pillar2 = pillar.clone(); pillar2.position.set(0, 0, 6); bridge.add(pillar2);
+
+        // Ropes
+        for (let side of [-1, 1]) {
+            const rope = cyl(0.05, 0.05, 14, 5, C.woodDark, { roughness: 0.9 });
+            rope.position.set(side * 2.5, 2.8, 0);
+            rope.userData.isMapObject = true; bridge.add(rope);
+        }
+
+        bridge.position.set(bp.x, 0.4, bp.z);
+        scene.add(bridge);
+        addCollider(gen, 'box', [bp.x, 1.5, bp.z], [5.5, 3, 14]);
+    }
+}
+
+// --- Outer Outposts (scattered) ---
+async function buildOutposts(scene, gen) {
+    const outpostPositions = [
+        { x: RADIUS * 0.3, z: RADIUS * 0.3 },   // NE
+        { x: -RADIUS * 0.3, z: RADIUS * 0.3 },  // NW
+        { x: RADIUS * 0.3, z: -RADIUS * 0.3 },  // SE
+        { x: -RADIUS * 0.3, z: -RADIUS * 0.3 }, // SW
+    ];
+
+    for (const op of outpostPositions) {
+        const outpost = new THREE.Group();
+
+        // 4 walls with door gap
+        const wallH = 3, wallThick = 0.6;
+        for (let w = 0; w < 4; w++) {
+            if (w === 0) continue; // door gap
+            const wall = box(4, wallH, wallThick, C.stone, { roughness: 0.85 });
+            const a = w * Math.PI / 2;
+            wall.position.set(Math.cos(a) * 2, wallH / 2, Math.sin(a) * 2);
+            wall.rotation.y = a;
+            wall.userData.isMapObject = true; outpost.add(wall);
+        }
+
+        // Corner pillars
+        for (let c = 0; c < 4; c++) {
+            const a = c * Math.PI / 2;
+            const pillar = cyl(0.2, 0.25, wallH + 0.5, 6, C.stoneDark, { roughness: 0.9 });
+            pillar.position.set(Math.cos(a) * 2.3, (wallH + 0.5) / 2, Math.sin(a) * 2.3);
+            pillar.userData.isMapObject = true; outpost.add(pillar);
+        }
+
+        // Pyramidal roof
+        const roof = new THREE.Mesh(
+            new THREE.ConeGeometry(3.5, 2.5, 4),
+            mat(C.rust, { roughness: 0.9 })
+        );
+        roof.position.y = wallH + 1.25; roof.rotation.y = Math.PI / 4;
+        roof.userData.isMapObject = true; outpost.add(roof);
+
+        // Loot crate inside
+        const loot = box(0.7, 0.7, 0.7, C.gold, { roughness: 0.4, metalness: 0.5 });
+        loot.position.set(0, 0.35, -1);
+        loot.userData.isMapObject = true; loot.userData.isLoot = true; loot.userData.isOutpost = true;
+        outpost.add(loot);
+
+        // Light inside
+        const light = new THREE.PointLight(0xffcc44, 1.5, 10);
+        light.position.y = 2.5; light.userData.isMapObject = true; outpost.add(light);
+
+        outpost.position.set(op.x, 0.3, op.z);
+        scene.add(outpost);
+        addCollider(gen, 'box', [op.x, 1.5, op.z], [5, 3, 5]);
+    }
+}
+
+// --- Trees scattered ---
+function buildTrees(scene, gen) {
+    const treePositions = [];
+
+    // Palm trees on beach
+    for (let i = 0; i < 30; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = RADIUS * 0.6 + Math.random() * RADIUS * 0.2;
+        treePositions.push({
+            x: Math.cos(a) * r, z: Math.sin(a) * r,
+            type: 'palm'
+        });
+    }
+
+    // Forest trees (non-jungle)
+    for (let i = 0; i < 40; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = 30 + Math.random() * 100;
+        treePositions.push({
+            x: Math.cos(a) * r, z: Math.sin(a) * r,
+            type: 'forest'
+        });
+    }
+
+    for (const tp of treePositions) {
+        const g = new THREE.Group();
+
+        if (tp.type === 'palm') {
+            const h = 5 + Math.random() * 3;
+            const trunk = cyl(0.15, 0.2, h, 6, C.palmTrunk, { roughness: 0.95 });
+            trunk.position.y = h / 2; trunk.userData.isMapObject = true; trunk.userData.isTree = true; g.add(trunk);
+            for (let l = 0; l < 6; l++) {
+                const leaf = new THREE.Mesh(
+                    new THREE.ConeGeometry(0.6, 2.5, 3),
+                    mat(C.palmLeaf, { roughness: 0.9 })
+                );
+                leaf.position.set(0, h + 0.3, 0);
+                leaf.rotation.z = (l / 6) * Math.PI * 2;
+                leaf.rotation.y = (l / 6) * Math.PI * 2;
+                leaf.userData.isMapObject = true; leaf.userData.isTree = true; g.add(leaf);
+            }
+        } else {
+            // Forest tree (standard)
+            const h = 4 + Math.random() * 3;
+            const trunk = cyl(0.15, 0.2, h * 0.6, 6, C.woodDark, { roughness: 0.95 });
+            trunk.position.y = h * 0.3; trunk.userData.isMapObject = true; trunk.userData.isTree = true; g.add(trunk);
+            const canopy = new THREE.Mesh(
+                new THREE.ConeGeometry(2, 3, 6),
+                mat(C.grass, { roughness: 0.9 })
+            );
+            canopy.position.y = h * 0.7; canopy.userData.isMapObject = true; canopy.userData.isTree = true; g.add(canopy);
+        }
+
+        g.position.set(tp.x, 0.3, tp.z);
+        scene.add(g);
+    }
+}
+
+// --- Decorations ---
+function buildDecorations(scene, gen) {
+    // Barrels
+    for (let i = 0; i < 40; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = 20 + Math.random() * 140;
+        const x = Math.cos(a) * r, z = Math.sin(a) * r;
+        const barrel = cyl(0.35, 0.35, 0.9, 8, C.woodDark, { roughness: 0.85 });
+        barrel.position.set(x, 0.45, z);
+        barrel.userData.isMapObject = true; scene.add(barrel);
+    }
+
+    // Crates scattered
+    for (let i = 0; i < 20; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = 20 + Math.random() * 130;
+        const x = Math.cos(a) * r, z = Math.sin(a) * r;
+        const c = box(0.8, 0.8, 0.8, C.gold, { roughness: 0.4, metalness: 0.5 });
+        c.position.set(x, 0.4, z);
+        c.userData.isMapObject = true; c.userData.isLoot = true; scene.add(c);
+    }
+
+    // Fence posts along paths
+    for (let i = 0; i < 20; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = 30 + Math.random() * 100;
+        const x = Math.cos(a) * r, z = Math.sin(a) * r;
+        const post = cyl(0.08, 0.1, 1.2, 5, C.woodDark, { roughness: 0.9 });
+        post.position.set(x, 0.6, z);
+        post.userData.isMapObject = true; scene.add(post);
+    }
+
+    // Campfires scattered
+    for (let i = 0; i < 8; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = 30 + Math.random() * 100;
+        const x = Math.cos(a) * r, z = Math.sin(a) * r;
+        const fire = new THREE.Group();
+        for (let j = 0; j < 4; j++) {
+            const log = cyl(0.06, 0.06, 0.6, 5, C.woodDark, { roughness: 0.95 });
+            log.position.set(Math.cos(j * Math.PI / 2) * 0.15, 0.1, Math.sin(j * Math.PI / 2) * 0.15);
+            log.rotation.z = Math.PI / 2; log.rotation.y = j * Math.PI / 2;
+            log.userData.isMapObject = true; fire.add(log);
+        }
+        const fLight = new THREE.PointLight(0xff6600, 2, 10);
+        fLight.position.y = 0.5; fLight.userData.isMapObject = true; fire.add(fLight);
+        fire.position.set(x, 0.3, z);
+        scene.add(fire);
+    }
+
+    // Road markers
+    for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        const r = 50 + Math.random() * 80;
+        const x = Math.cos(a) * r, z = Math.sin(a) * r;
+        const marker = new THREE.Group();
+        const pole = cyl(0.05, 0.06, 2, 5, C.metal, { roughness: 0.5, metalness: 0.6 });
+        pole.position.y = 1; pole.userData.isMapObject = true; marker.add(pole);
+        const sign = box(0.6, 0.4, 0.08, C.white, { roughness: 0.7 });
+        sign.position.set(0, 2, 0); sign.userData.isMapObject = true; marker.add(sign);
+        marker.position.set(x, 0.3, z);
+        scene.add(marker);
+    }
+}
+
+// --- Radiation zones ---
+function buildRadiation(scene, gen) {
+    const radPositions = [
+        [RADIUS * 0.4, RADIUS * 0.3],   // near volcano
+        [-RADIUS * 0.4, -RADIUS * 0.3], // near caves
+        [0, -RADIUS * 0.5],              // near lighthouse
+    ];
+    for (const [rx, rz] of radPositions) {
+        const cloud = new THREE.Mesh(
+            new THREE.SphereGeometry(10, 12, 8),
+            mat(0x88cc44, { transparent: true, opacity: 0.15, emissive: 0x88cc44, emissiveIntensity: 0.3 })
+        );
+        cloud.position.set(rx, 8, rz);
+        cloud.userData.isMapObject = true; scene.add(cloud);
+
+        const glow = new THREE.PointLight(0x88cc44, 1.5, 15);
+        glow.position.set(rx, 8, rz);
+        glow.userData.isMapObject = true; scene.add(glow);
+
+        gen.radiationZones.push({ position: new THREE.Vector3(rx, 0, rz), radius: 10, damage: 0.5 });
+    }
+}
+
+// --- Traps ---
+function buildTraps(scene, gen) {
+    // Bear traps
+    for (let i = 0; i < 8; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = 30 + Math.random() * 130;
+        const x = Math.cos(a) * r, z = Math.sin(a) * r;
+        const trap = new THREE.Group();
+        for (let j = 0; j < 2; j++) {
+            const jaw = new THREE.Mesh(
+                new THREE.BoxGeometry(0.8, 0.15, 0.12),
+                mat(C.metal, { roughness: 0.5, metalness: 0.7 })
+            );
+            jaw.position.set((j - 0.5) * 0.8, 0.08, 0);
+            jaw.rotation.z = (j - 0.5) * 0.3;
+            jaw.userData.isMapObject = true; trap.add(jaw);
+        }
+        trap.position.set(x, 0.3, z);
+        scene.add(trap);
+        gen.traps.push({ type: 'bearTrap', position: new THREE.Vector3(x, 0.3, z), radius: 1, damage: 8 });
+    }
+}
+
+// --- Fog zones ---
+function buildFogZones(gen) {
+    gen.fogZones = [
+        { position: new THREE.Vector3(0, 0, 0), radius: 160, damage: 0.3 },
+        { position: new THREE.Vector3(0, 0, 0), radius: 120, damage: 0.6 },
+        { position: new THREE.Vector3(0, 0, 0), radius: 80, damage: 1.0 },
+        { position: new THREE.Vector3(0, 0, 0), radius: 40, damage: 2.0 },
+    ];
+}
+
+// ===================== MAP GENERATOR CLASS =====================
 const _yield = () => new Promise(r => setTimeout(r, 50));
 
 export class MapGenerator {
     constructor(scene) {
         this.scene = scene;
-        this.arenaRadius = 220;
-        this.spawnCourtyardRadius = 40;
+        this.arenaRadius = RADIUS;
+        this.spawnCourtyardRadius = 30;
         this.waterLevel = 0;
         this.colliders = [];
         this.spawnPads = [];
@@ -878,20 +1137,10 @@ export class MapGenerator {
 
     startGeneration() { return this.generate(); }
 
-    // ===================== HEIGHT MAP =====================
-    generateHeightMap() {
-        const size = 512, res = 128, step = size / res;
-        this.heightMap = Array.from({ length: res + 1 }, () => new Float32Array(res + 1));
-        for (let i = 0; i <= res; i++)
-            for (let j = 0; j <= res; j++) {
-                const x = (i - res / 2) * step, z = (j - res / 2) * step;
-                this.heightMap[i][j] = this.noise.fbm(x * 0.01, z * 0.01, 4, 2.0, 0.5) * 15;
-            }
-    }
-
     getHeightAt(x, z) {
-        const h1 = this.noise?.fbm?.(x * 0.01, z * 0.01, 2) ?? 0;
-        return Math.max(0, h1 * 3);
+        const dist = Math.sqrt(x * x + z * z) / RADIUS;
+        if (dist < 0.85) return this.noise.fbm(x * 0.005, z * 0.005, 4, 2, 0.5) * 12 + 3 * (1 - dist);
+        return 0;
     }
 
     getSurfaceHeightAt(x, z) { return this.getHeightAt(x, z); }
@@ -899,662 +1148,79 @@ export class MapGenerator {
     // ===================== GENERATION ORCHESTRATOR =====================
     async generate() {
         try {
-            this.generateHeightMap();
-            this.reportProgress(0.05, 'Создание ландшафта...');
+            this.reportProgress(0.05, 'Создание острова...');
+            await _yield();
 
-            await this._buildArena();
-            this.reportProgress(0.10, 'Ландшафт готов');
+            await buildIslandTerrain(this.scene, this);
+            this.reportProgress(0.10, 'Остров создан');
 
             await _yield();
-            await this._buildForcefield();
-            this.reportProgress(0.15, 'Арена построена');
+            await buildSpawnCamp(this.scene, this);
+            this.reportProgress(0.15, 'Лагерь спавна');
 
             await _yield();
-            await this._buildCornucopia();
-            this.reportProgress(0.22, 'Корнукопия');
+            await buildBeach(this.scene, this);
+            this.reportProgress(0.20, 'Пляж');
 
             await _yield();
-            await this._buildInnerRing();
-            this.reportProgress(0.30, 'Внутреннее кольцо');
+            await buildVillage(this.scene, this);
+            this.reportProgress(0.25, 'Деревня');
 
-            await this._buildBiomePaths();
-            this.reportProgress(0.35, 'Пути биомов');
+            await _yield();
+            await buildRiver(this.scene, this);
+            this.reportProgress(0.30, 'Река и мосты');
 
-            await this._buildRuinedCitadel();
-            this.reportProgress(0.42, 'Руины Цитадели');
+            await _yield();
+            await buildJungle(this.scene, this);
+            this.reportProgress(0.35, 'Джунгли');
 
-            await this._buildCrystalGrotto();
-            this.reportProgress(0.50, 'Хрустальная гротовка');
+            await _yield();
+            await buildVolcano(this.scene, this);
+            this.reportProgress(0.45, 'Вулкан');
 
-            await this._buildBurningWastes();
-            this.reportProgress(0.58, 'Пылающие пустоши');
+            await _yield();
+            await buildLighthouse(this.scene, this);
+            this.reportProgress(0.50, 'Маяк');
 
-            await this._buildLuminousForest();
-            this.reportProgress(0.66, 'Светящийся лес');
+            await _yield();
+            await buildCaves(this.scene, this);
+            this.reportProgress(0.55, 'Пещеры');
 
-            this.reportProgress(0.70, 'Мосты и форпосты...');
-            await this._buildBridges();
-            await this._buildOuterOutposts();
-            await this._buildHazardZones();
-            this.reportProgress(0.76, 'Объекты размечены');
+            await _yield();
+            await buildBunker(this.scene, this);
+            this.reportProgress(0.60, 'Бункер');
 
-            await this._buildLootClusters();
-            await this._buildFirePits();
-            this.reportProgress(0.80, 'Эффекты');
+            await _yield();
+            await buildOutposts(this.scene, this);
+            this.reportProgress(0.65, 'Аванпосты');
 
-            await this._buildDecorations();
-            this.reportProgress(0.86, 'Декорации');
+            await _yield();
+            buildTrees(this.scene, this);
+            this.reportProgress(0.70, 'Деревья');
 
-            await this._buildBiomeTrees();
-            this.reportProgress(0.92, 'Зоны обозначены');
+            await _yield();
+            buildDecorations(this.scene, this);
+            this.reportProgress(0.75, 'Декорации');
 
-            await this._buildTraps();
-            this.reportProgress(0.94, 'Ловушки');
+            await _yield();
+            buildTraps(this.scene, this);
+            this.reportProgress(0.80, 'Ловушки');
 
-            await this._buildFogZones();
-            await this._buildRadiationZones();
+            await _yield();
+            buildRadiation(this.scene, this);
+            this.reportProgress(0.85, 'Радиация');
+
+            await _yield();
+            buildFogZones(this);
+            this.reportProgress(0.90, 'Зоны обозначены');
+
             await this._buildLootData();
-            this.reportProgress(0.98, 'Мир готов');
+            this.reportProgress(0.95, 'Мир готов');
 
             this._resolveReady();
         } catch (e) { this._resolveReady(); }
     }
 
-    // ===================== ARENA FLOOR =====================
-    async _buildArena() {
-        const halfSize = this.arenaRadius;
-
-        // Main terrain
-        const groundMat = mat(C.grass, { roughness: 0.9, metalness: 0.05 });
-        const groundGeo = new THREE.PlaneGeometry(halfSize * 2, halfSize * 2, 120, 120);
-        groundGeo.rotateX(-Math.PI / 2);
-
-        const pos = groundGeo.attributes.position;
-        for (let i = 0; i <= pos.count; i++) {
-            const x = pos.getX(i), z = pos.getZ(i);
-            pos.setY(i, this.getHeightAt(x, z));
-        }
-        groundGeo.computeVertexNormals();
-
-        const ground = new THREE.Mesh(groundGeo, groundMat);
-        ground.receiveShadow = true;
-        ground.userData.isArena = true; ground.userData.isFloor = true; ground.userData.isGround = true;
-        ground.userData.isMapObject = true;
-        this.scene.add(ground);
-
-        this.colliders.push({
-            type: 'box', position: new THREE.Vector3(0, 0, 0),
-            size: new THREE.Vector3(halfSize * 2, 1, halfSize * 2), walkable: true
-        });
-
-        // Biome overlays
-        const biomeZones = [
-            { name: 'citadel',  color: C.red,     x: -80, z:  80, radius: 70 },
-            { name: 'crystal',  color: C.blue,    x:  80, z:  80, radius: 70 },
-            { name: 'wastes',   color: 0xcc4400,  x: -80, z: -80, radius: 75 },
-            { name: 'forest',   color: C.green,   x:  80, z: -80, radius: 75 },
-        ];
-
-        for (const bz of biomeZones) {
-            const biomeGeo = new THREE.CircleGeometry(bz.radius, 48, 24);
-            biomeGeo.rotateX(-Math.PI / 2);
-            const bp = biomeGeo.attributes.position;
-            for (let i = 0; i <= bp.count; i++) {
-                const px = bp.getX(i), pz = bp.getZ(i);
-                const dist = Math.sqrt(px * px + pz * pz);
-                if (dist <= bz.radius - 0.5) {
-                    const h = this.noise.fbm(px * 0.03, pz * 0.03, 3, 2, 0.5) * 2.5;
-                    const blend = dist / (bz.radius - 1);
-                    bp.setY(i, h + Math.pow(1 - blend, 2) * 0.15);
-                }
-            }
-            biomeGeo.computeVertexNormals();
-
-            const biomeMesh = new THREE.Mesh(biomeGeo, mat(bz.color, { roughness: 0.85, transparent: true, opacity: 0.35 }));
-            biomeMesh.position.set(bz.x, 0.02, bz.z);
-            biomeMesh.receiveShadow = true;
-            biomeMesh.userData.isArena = true; biomeMesh.userData.isBiome = true;
-            biomeMesh.userData.biomeName = bz.name;
-            biomeMesh.userData.isMapObject = true;
-            this.scene.add(biomeMesh);
-        }
-
-        // Zone dividers
-        await this._buildDividers();
-
-        // Spawn courtyard
-        const spawnGeo = new THREE.CircleGeometry(this.spawnCourtyardRadius, 32);
-        spawnGeo.rotateX(-Math.PI / 2);
-        const spawnPad = new THREE.Mesh(spawnGeo, mat(C.metalLight || 0x9a9a9a, { roughness: 0.6, metalness: 0.2 }));
-        spawnPad.position.y = 0.02;
-        spawnPad.receiveShadow = true;
-        spawnPad.userData.isArena = true; spawnPad.userData.isSpawnPad = true;
-        spawnPad.userData.isMapObject = true;
-        this.scene.add(spawnPad);
-
-        // Terrain hills
-        await this._buildTerrainHills();
-    }
-
-    async _buildDividers() {
-        const dividerMat = mat(0x3a3a2a, { roughness: 0.95 });
-        const gateMat = mat(0x6a5a3a, { roughness: 0.8 });
-
-        // Gate positions
-        const gatePositions = [
-            { x: 0, z: -25 }, { x: 0, z: 25 },
-            { x: -25, z: 0 }, { x: 25, z: 0 }
-        ];
-
-        function isGate(z, x, gates) {
-            for (const gp of gates) {
-                if (gp.axis === 'z' && Math.abs(z - gp.z) < 5) return true;
-                if (gp.axis === 'x' && Math.abs(x - gp.x) < 5) return true;
-            }
-            return false;
-        }
-
-        // Vertical divider (x=0)
-        for (let z = -200; z <= 200; z += 4) {
-            if (Math.abs(z) < 25 && Math.abs(z) < 30) {
-                const inGate = gatePositions.some(gp => gp.axis === 'z' && Math.abs(z - gp.z) < 5);
-                if (!inGate) {
-                    const w = box(1.2, 0.5, 4, 0x3a3a2a, { roughness: 0.95 });
-                    w.position.set(0, 0.25, z);
-                    w.userData.isMapObject = true;
-                    this.scene.add(w);
-                    this.colliders.push({ type: 'box', position: new THREE.Vector3(0, 0.25, z), size: new THREE.Vector3(1.2, 0.5, 4), walkable: false });
-                }
-            }
-        }
-
-        // Horizontal divider (z=0)
-        for (let x = -200; x <= 200; x += 4) {
-            const inGate = gatePositions.some(gp => gp.axis === 'x' && Math.abs(x - gp.x) < 5);
-            if (!inGate) {
-                const w = box(4, 0.5, 1.2, 0x3a3a2a, { roughness: 0.95 });
-                w.position.set(x, 0.25, 0);
-                w.userData.isMapObject = true;
-                this.scene.add(w);
-                this.colliders.push({ type: 'box', position: new THREE.Vector3(x, 0.25, 0), size: new THREE.Vector3(4, 0.5, 1.2), walkable: false });
-            }
-        }
-
-        // Gate structures
-        for (const gp of gatePositions) {
-            const gatePostGeo = new THREE.CylinderGeometry(0.12, 0.15, 3.5, 6);
-            const posts = [];
-
-            if (gp.axis === 'z') {
-                for (let dx of [-2, 2]) {
-                    const p = new THREE.Mesh(gatePostGeo, gateMat);
-                    p.position.set(gp.x + dx, 1.75, gp.z);
-                    p.castShadow = true; posts.push(p);
-                }
-                const beam = box(4.5, 0.2, 0.5, C.wood, { roughness: 0.8 });
-                beam.position.set(gp.x, 3.5, gp.z);
-                beam.castShadow = true; beam.userData.isMapObject = true; this.scene.add(beam);
-            } else {
-                for (let dz of [-2, 2]) {
-                    const p = new THREE.Mesh(gatePostGeo, gateMat);
-                    p.position.set(gp.x, 1.75, gp.z + dz);
-                    p.castShadow = true; posts.push(p);
-                }
-                const beam = box(0.5, 0.2, 4.5, C.wood, { roughness: 0.8 });
-                beam.position.set(gp.x, 3.5, gp.z);
-                beam.castShadow = true; beam.userData.isMapObject = true; this.scene.add(beam);
-            }
-
-            posts.forEach(p => { p.userData.isMapObject = true; p.userData.isGatePost = true; this.scene.add(p); });
-
-            const lightColor = gp.x < -10 ? 0xcc8844 : gp.x > 10 ? 0x44aacc : gp.z < -10 ? 0xcc4444 : 0x44cc44;
-            const gateLight = this._createPointLight(lightColor, 0.5, 8);
-            gateLight.position.set(gp.x, 4, gp.z);
-            this.scene.add(gateLight);
-            this.animatedObjects.push({ type: 'glow', light: gateLight, baseIntensity: 0.5 });
-        }
-    }
-
-    async _buildTerrainHills() {
-        const hillMat = mat(C.grass, { roughness: 1.0 });
-        const hillData = [];
-
-        for (let i = 0; i < 50; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = 40 + Math.random() * (this.arenaRadius - 65);
-            const x = Math.cos(angle) * r, z = Math.sin(angle) * r;
-            const h = this.noise.fbm(x * 0.008, z * 0.008, 3) * 4;
-            if (Math.abs(h) < 0.3) continue;
-
-            hillData.push({ x, y: Math.abs(h) * 0.4, z, scale: Math.max(0.6, Math.abs(h) * 0.6), rotY: Math.random() * Math.PI });
-        }
-
-        if (hillData.length > 0) {
-            const geo = new THREE.IcosahedronGeometry(1, 2);
-            const inst = new THREE.InstancedMesh(geo, hillMat, hillData.length);
-            const dummy = new THREE.Object3D();
-            for (let i = 0; i < hillData.length; i++) {
-                const d = hillData[i];
-                dummy.position.set(d.x, d.y, d.z);
-                dummy.rotation.set(0, d.rotY, 0);
-                dummy.scale.set(d.scale * 1.3, d.scale * 0.6, d.scale * 1.3);
-                dummy.updateMatrix();
-                inst.setMatrixAt(i, dummy.matrix);
-            }
-            inst.instanceMatrix.needsUpdate = true;
-            inst.receiveShadow = true; inst.castShadow = true;
-            inst.userData.isTerrain = true; inst.userData.isMapObject = true;
-            this.scene.add(inst);
-        }
-    }
-
-    // ===================== FORCEFIELD =====================
-    async _buildForcefield() {
-        const ffMat = mat(C.blue, { transparent: true, opacity: 0.15, depthWrite: false, side: THREE.DoubleSide });
-        const ffGeo = new THREE.CylinderGeometry(this.arenaRadius, this.arenaRadius, 12, 64, 1, true);
-        const forcefield = new THREE.Mesh(ffGeo, ffMat);
-        forcefield.position.y = 6;
-        forcefield.userData.isArena = true; forcefield.userData.isForcefield = true;
-        forcefield.userData.isMapObject = true;
-        this.scene.add(forcefield);
-
-        this.animatedObjects.push({ type: 'forcefield', mesh: forcefield, material: ffMat, baseOpacity: 0.15 });
-
-        const ringMat = mat(C.blue, { transparent: true, opacity: 0.5, side: THREE.DoubleSide });
-        const topRing = new THREE.Mesh(new THREE.TorusGeometry(this.arenaRadius, 0.3, 8, 64), ringMat);
-        topRing.position.y = 12; topRing.rotation.x = Math.PI / 2;
-        topRing.userData.isMapObject = true; this.scene.add(topRing);
-
-        const bottomRing = new THREE.Mesh(new THREE.TorusGeometry(this.arenaRadius, 0.3, 8, 64), ringMat);
-        bottomRing.position.y = 0; bottomRing.rotation.x = Math.PI / 2;
-        bottomRing.userData.isMapObject = true; this.scene.add(bottomRing);
-
-        for (let i = 0; i < 48; i++) {
-            const a = (i / 48) * Math.PI * 2;
-            const pts = [
-                new THREE.Vector3(Math.cos(a) * this.arenaRadius, 0, Math.sin(a) * this.arenaRadius),
-                new THREE.Vector3(Math.cos(a) * this.arenaRadius, 12, Math.sin(a) * this.arenaRadius)
-            ];
-            const line = new THREE.Line(
-                new THREE.BufferGeometry().setFromPoints(pts),
-                new THREE.LineBasicMaterial({ color: C.blue, transparent: true, opacity: 0.3 })
-            );
-            line.userData.isMapObject = true;
-            this.scene.add(line);
-        }
-    }
-
-    // ===================== CORNUCOPIA =====================
-    async _buildCornucopia() {
-        cornucopia(this.scene, this);
-        await _yield();
-    }
-
-    // ===================== INNER RING =====================
-    async _buildInnerRing() {
-        // 8 outposts
-        for (let i = 0; i < 8; i++) {
-            const a = (i / 8) * Math.PI * 2, r = 110;
-            const x = Math.cos(a) * r, z = Math.sin(a) * r;
-
-            if (i % 2 === 0) {
-                stoneOutpost(x, z, a, this.scene, this);
-            } else {
-                woodenBarricade(x, z, a, this.scene, this);
-            }
-
-            const glowLight = this._createPointLight(0xffcc44, 0.5, 10);
-            glowLight.position.set(x, 3, z);
-            this.scene.add(glowLight);
-            await _yield();
-        }
-
-        // Scouting mounds
-        for (let i = 0; i < 4; i++) {
-            const a = (i / 4) * Math.PI * 2 + Math.PI / 8;
-            const r = 130;
-            const x = Math.cos(a) * r, z = Math.sin(a) * r;
-
-            const moundGeo = new THREE.ConeGeometry(5, 6, 6);
-            const mound = new THREE.Mesh(moundGeo, mat(C.stone, { roughness: 0.9 }));
-            mound.position.set(x, 3, z); mound.castShadow = true;
-            mound.userData.isMapObject = true; mound.userData.isTerrain = true;
-            this.scene.add(mound);
-
-            const platGeo = new THREE.CylinderGeometry(3, 3, 0.2, 8);
-            const plat = new THREE.Mesh(platGeo, mat(C.stone, { roughness: 0.8 }));
-            plat.position.set(x, 6.1, z); plat.receiveShadow = true;
-            plat.userData.isMapObject = true; this.scene.add(plat);
-            await _yield();
-        }
-
-        // Cover rocks
-        for (let i = 0; i < 30; i++) {
-            const a = Math.random() * Math.PI * 2;
-            const r = 45 + Math.random() * 160;
-            const x = Math.cos(a) * r, z = Math.sin(a) * r;
-
-            const rockGeo = new THREE.DodecahedronGeometry(0.8 + Math.random() * 1.2, 0);
-            const rock = new THREE.Mesh(rockGeo, mat(C.stone, { roughness: 0.9, metalness: 0.05 }));
-            rock.position.set(x, 0.5, z);
-            rock.rotation.set(Math.random(), Math.random(), Math.random());
-            rock.scale.y = 0.6 + Math.random() * 0.4;
-            rock.castShadow = true; rock.receiveShadow = true;
-            rock.userData.isMapObject = true; rock.userData.isCover = true;
-            this.scene.add(rock);
-            this.colliders.push({ type: 'box', position: new THREE.Vector3(x, 0.5, z), size: new THREE.Vector3(1.6, 1.6, 1.6), walkable: false });
-        }
-    }
-
-    // ===================== BIOME PATHS =====================
-    async _buildBiomePaths() {
-        // Connect biome zones with paths
-        const paths = [
-            [-80, 80, 80, 80], // citadel to crystal
-            [-80, 80, -80, -80], // citadel to wastes
-            [-80, -80, 80, -80], // wastes to forest
-            [80, 80, 80, -80], // crystal to forest
-        ];
-        for (const [x1, z1, x2, z2] of paths) {
-            biomePath(x1, z1, x2, z2, this.scene);
-            await _yield();
-        }
-    }
-
-    // ===================== RUINED CITADEL =====================
-    async _buildRuinedCitadel() {
-        ruinedCitadel(-80, 80, this.scene, this);
-        await _yield();
-    }
-
-    // ===================== CRYSTAL GROTTO =====================
-    async _buildCrystalGrotto() {
-        crystalGrotto(80, 80, this.scene, this);
-        await _yield();
-    }
-
-    // ===================== BURNING WASTES =====================
-    async _buildBurningWastes() {
-        // Lava pools
-        for (let i = 0; i < 12; i++) {
-            const a = Math.random() * Math.PI * 2;
-            const r = 30 + Math.random() * 40;
-            const x = -80 + Math.cos(a) * r, z = -80 + Math.sin(a) * r;
-            lavaPool(x, z, 2 + Math.random() * 3, this.scene, this);
-            await _yield();
-        }
-
-        // Bunkers
-        for (let i = 0; i < 3; i++) {
-            const a = (i / 3) * Math.PI * 2;
-            const r = 60;
-            const x = -80 + Math.cos(a) * r, z = -80 + Math.sin(a) * r;
-            wasteStructure(x, z, 'bunker', this.scene, this);
-            await _yield();
-        }
-
-        // Watchtowers
-        for (let i = 0; i < 2; i++) {
-            const a = (i / 2) * Math.PI * 2 + Math.PI / 6;
-            const r = 70;
-            const x = -80 + Math.cos(a) * r, z = -80 + Math.sin(a) * r;
-            wasteStructure(x, z, 'watchtower', this.scene, this);
-            await _yield();
-        }
-
-        // Obsidian walls
-        for (let i = 0; i < 20; i++) {
-            const a = Math.random() * Math.PI * 2;
-            const r = 20 + Math.random() * 50;
-            const x = -80 + Math.cos(a) * r, z = -80 + Math.sin(a) * r;
-            const h = 2 + Math.random() * 4;
-            const wall = box(2 + Math.random() * 3, h, 0.8, C.obsidian, { roughness: 0.5, metalness: 0.5 });
-            wall.position.set(x, h / 2, z);
-            wall.rotation.y = Math.random() * Math.PI;
-            wall.userData.isMapObject = true; this.scene.add(wall);
-        }
-
-        // Smoke clouds
-        for (let i = 0; i < 8; i++) {
-            const a = Math.random() * Math.PI * 2;
-            const r = 30 + Math.random() * 40;
-            const x = -80 + Math.cos(a) * r, z = -80 + Math.sin(a) * r;
-            smokeCloud(x, 6, z, this.scene, this);
-        }
-    }
-
-    // ===================== LUMINOUS FOREST =====================
-    async _buildLuminousForest() {
-        // Forest ponds
-        for (let i = 0; i < 6; i++) {
-            const a = Math.random() * Math.PI * 2;
-            const r = 20 + Math.random() * 40;
-            const x = 80 + Math.cos(a) * r, z = -80 + Math.sin(a) * r;
-            forestPond(x, z, 2 + Math.random() * 3, this.scene);
-            await _yield();
-        }
-
-        // Glowing mushrooms
-        for (let i = 0; i < 30; i++) {
-            const a = Math.random() * Math.PI * 2;
-            const r = 15 + Math.random() * 50;
-            const x = 80 + Math.cos(a) * r, z = -80 + Math.sin(a) * r;
-            const mh = 0.3 + Math.random() * 0.5;
-            const stem = cyl(0.04, 0.05, mh, 5, C.white, { roughness: 0.8 });
-            stem.position.set(x, mh / 2, z);
-            stem.userData.isMapObject = true; this.scene.add(stem);
-
-            const cap = new THREE.Mesh(
-                new THREE.SphereGeometry(0.2 + Math.random() * 0.3, 6, 4),
-                mat(C.cyan, { roughness: 0.3, emissive: C.cyan, emissiveIntensity: 0.4, transparent: true, opacity: 0.7 })
-            );
-            cap.position.set(x, mh + 0.2, z);
-            cap.userData.isMapObject = true; this.scene.add(cap);
-        }
-    }
-
-    // ===================== BRIDGES =====================
-    async _buildBridges() {
-        // Bridges across zone dividers
-        const bridges = [
-            { x: 0, z: -25, len: 6, rot: 0 },
-            { x: 0, z: 25, len: 6, rot: 0 },
-            { x: -25, z: 0, len: 6, rot: Math.PI / 2 },
-            { x: 25, z: 0, len: 6, rot: Math.PI / 2 },
-        ];
-        for (const b of bridges) {
-            bridge(b.x, b.z, b.len, b.rot, this.scene);
-        }
-    }
-
-    // ===================== OUTER OUTPOSTS =====================
-    async _buildOuterOutposts() {
-        for (let i = 0; i < 6; i++) {
-            const a = (i / 6) * Math.PI * 2;
-            const r = 150 + Math.random() * 20;
-            const x = Math.cos(a) * r, z = Math.sin(a) * r;
-            wasteStructure(x, z, i % 2 === 0 ? 'bunker' : 'watchtower', this.scene, this);
-            await _yield();
-        }
-    }
-
-    // ===================== HAZARDS =====================
-    async _buildHazardZones() {
-        // Explosive barrel zones
-        for (let i = 0; i < 4; i++) {
-            const a = Math.random() * Math.PI * 2;
-            const r = 40 + Math.random() * 120;
-            const x = Math.cos(a) * r, z = Math.sin(a) * r;
-
-            // Cluster of explosive barrels
-            for (let j = 0; j < 3; j++) {
-                const bx = x + (Math.random() - 0.5) * 2;
-                const bz = z + (Math.random() - 0.5) * 2;
-                barrel(bx, 0, bz, this.scene);
-                this.hazards.push({ type: 'explosiveBarrel', position: new THREE.Vector3(bx, 0.5, bz), radius: 5, damage: 40 });
-            }
-            await _yield();
-        }
-    }
-
-    // ===================== LOOT CLUSTERS =====================
-    async _buildLootClusters() {
-        for (let i = 0; i < 20; i++) {
-            const a = Math.random() * Math.PI * 2;
-            const r = 30 + Math.random() * 150;
-            const x = Math.cos(a) * r, z = Math.sin(a) * r;
-            crate(x, 0, z, this.scene, 0.8 + Math.random() * 0.4);
-            await _yield();
-        }
-    }
-
-    // ===================== FIRE PITS =====================
-    async _buildFirePits() {
-        for (let i = 0; i < 10; i++) {
-            const a = Math.random() * Math.PI * 2;
-            const r = 40 + Math.random() * 120;
-            const x = Math.cos(a) * r, z = Math.sin(a) * r;
-            campfire(x, 0, z, this.scene);
-        }
-    }
-
-    // ===================== PARTICLE SYSTEMS =====================
-    async _buildParticleSystems() {
-        // No-op: particles handled by Environment
-    }
-
-    // ===================== DECORATIONS =====================
-    async _buildDecorations() {
-        // Barrels scattered
-        for (let i = 0; i < 40; i++) {
-            const a = Math.random() * Math.PI * 2;
-            const r = 30 + Math.random() * 150;
-            const x = Math.cos(a) * r, z = Math.sin(a) * r;
-            barrel(x, 0, z, this.scene);
-        }
-
-        // Crates
-        for (let i = 0; i < 25; i++) {
-            const a = Math.random() * Math.PI * 2;
-            const r = 20 + Math.random() * 140;
-            const x = Math.cos(a) * r, z = Math.sin(a) * r;
-            crate(x, 0, z, this.scene, 0.6 + Math.random() * 0.6);
-        }
-
-        // Fence posts along paths
-        for (let i = 0; i < 30; i++) {
-            const a = Math.random() * Math.PI * 2;
-            const r = 50 + Math.random() * 100;
-            const x = Math.cos(a) * r, z = Math.sin(a) * r;
-            fencePost(x, 0, z, this.scene);
-        }
-
-        // Road markers
-        for (let i = 0; i < 12; i++) {
-            const a = (i / 12) * Math.PI * 2;
-            const r = 60 + Math.random() * 80;
-            const x = Math.cos(a) * r, z = Math.sin(a) * r;
-            roadMarker(x, 0, z, this.scene);
-        }
-    }
-
-    // ===================== BIOME TREES =====================
-    async _buildBiomeTrees() {
-        // Citadel: ruined trees
-        for (let i = 0; i < 25; i++) {
-            const a = Math.random() * Math.PI * 2;
-            const r = 10 + Math.random() * 50;
-            const x = -80 + Math.cos(a) * r, z = 80 + Math.sin(a) * r;
-            tree(x, 0, z, this.scene, 'ruined');
-        }
-
-        // Crystal: crystal trees
-        for (let i = 0; i < 20; i++) {
-            const a = Math.random() * Math.PI * 2;
-            const r = 10 + Math.random() * 50;
-            const x = 80 + Math.cos(a) * r, z = 80 + Math.sin(a) * r;
-            tree(x, 0, z, this.scene, 'crystal');
-        }
-
-        // Forest: normal trees
-        for (let i = 0; i < 60; i++) {
-            const a = Math.random() * Math.PI * 2;
-            const r = 15 + Math.random() * 55;
-            const x = 80 + Math.cos(a) * r, z = -80 + Math.sin(a) * r;
-            tree(x, 0, z, this.scene, 'normal');
-        }
-
-        // Wastes: burnt trees
-        for (let i = 0; i < 15; i++) {
-            const a = Math.random() * Math.PI * 2;
-            const r = 15 + Math.random() * 45;
-            const x = -80 + Math.cos(a) * r, z = -80 + Math.sin(a) * r;
-            const g = new THREE.Group();
-            const trunk = cyl(0.15, 0.2, 3, 5, C.obsidian, { roughness: 0.9 });
-            trunk.position.y = 1.5; trunk.userData.isMapObject = true; g.add(trunk);
-            const stump = new THREE.Mesh(
-                new THREE.ConeGeometry(0.8, 1.5, 5),
-                mat(C.obsidian, { roughness: 0.8 })
-            );
-            stump.position.y = 3.5; stump.userData.isMapObject = true; g.add(stump);
-            g.position.set(x, 0, z);
-            this.scene.add(g);
-        }
-    }
-
-    // ===================== TRAPS =====================
-    async _buildTraps() {
-        // Spike traps
-        for (let i = 0; i < 15; i++) {
-            const a = Math.random() * Math.PI * 2;
-            const r = 30 + Math.random() * 130;
-            const x = Math.cos(a) * r, z = Math.sin(a) * r;
-            spikeTrap(x, z, this.scene);
-            await _yield();
-        }
-
-        // Bear traps
-        for (let i = 0; i < 8; i++) {
-            const a = Math.random() * Math.PI * 2;
-            const r = 30 + Math.random() * 130;
-            const x = Math.cos(a) * r, z = Math.sin(a) * r;
-            bearTrap(x, z, this.scene);
-            await _yield();
-        }
-    }
-
-    // ===================== FOG ZONES =====================
-    async _buildFogZones() {
-        const phases = [
-            { radius: 160, damage: 0.3, color: 0x888888 },
-            { radius: 120, damage: 0.6, color: 0x666666 },
-            { radius: 80, damage: 1.0, color: 0x444444 },
-            { radius: 40, damage: 2.0, color: 0x222222 }
-        ];
-        for (let i = 1; i < phases.length; i++) {
-            this.fogZones.push({
-                position: new THREE.Vector3(0, 0, 0),
-                radius: phases[i].radius,
-                damage: phases[i].damage,
-                color: phases[i].color
-            });
-        }
-    }
-
-    // ===================== RADIATION ZONES =====================
-    async _buildRadiationZones() {
-        const radPositions = [
-            [-80, 80], [80, 80], [-80, -80], [80, -80]
-        ];
-        for (const [rx, rz] of radPositions) {
-            radCloud(rx, 8, rz, 12, 0.5, this.scene); // high
-            radCloud(rx + 30, 6, rz + 20, 10, 0.3, this.scene); // medium
-            radCloud(rx - 20, 4, rz - 15, 8, 0.1, this.scene); // low
-            await _yield();
-        }
-    }
-
-    // ===================== LOOT DATA =====================
     async _buildLootData() {
         this.lootData = [];
         const lootTypes = ['weapon', 'ammo', 'health', 'armor', 'scope', 'magazine'];
@@ -1562,8 +1228,7 @@ export class MapGenerator {
             const a = Math.random() * Math.PI * 2;
             const r = 20 + Math.random() * 150;
             this.lootData.push({
-                x: Math.cos(a) * r,
-                z: Math.sin(a) * r,
+                x: Math.cos(a) * r, z: Math.sin(a) * r,
                 type: lootTypes[Math.floor(Math.random() * lootTypes.length)],
                 tier: Math.random() > 0.6 ? 2 : 1
             });
@@ -1586,8 +1251,11 @@ export class MapGenerator {
         }
     }
 
-    updatePropVisibility(playerPos) {
-        this._cullPointLights(playerPos);
+    updatePropVisibility(playerPos) { this._cullPointLights(playerPos); }
+
+    update(delta, playerPos) {
+        if (playerPos) this.updatePropVisibility(playerPos);
+        this.updateZoneAnimations(delta);
     }
 
     // ===================== GAMEPLAY INTERFACES =====================
@@ -1620,13 +1288,13 @@ export class MapGenerator {
 
     activateFogPhase(phase) {
         this.currentFogPhase = phase;
-        const zoneRadius = this.spawnCourtyardRadius || 220;
+        const zoneRadius = this.spawnCourtyardRadius || RADIUS;
         const shrinkAmount = [0, 40, 70, 100][phase] || 0;
         this.zoneTargetRadius = Math.max(30, zoneRadius - shrinkAmount);
         return this.zoneTargetRadius;
     }
 
-    getActiveSafeRadius() { return this.zoneTargetRadius || this.spawnCourtyardRadius || 220; }
+    getActiveSafeRadius() { return this.zoneTargetRadius || this.spawnCourtyardRadius || RADIUS; }
 
     getClosestRadiationZone(x, z) {
         let closest = null, closestDist = Infinity;
@@ -1654,35 +1322,31 @@ export class MapGenerator {
 
     isWalkableAt(x, z) {
         const dist = Math.sqrt(x * x + z * z);
-        return dist < (this.arenaRadius || 220);
+        return dist < (RADIUS || 220);
     }
 
-    raycastGroundY(x, z) { return 0; }
-
-    update(delta, playerPos) {
-        if (playerPos) { this.updatePropVisibility(playerPos); }
-        this.updateZoneAnimations(delta);
-    }
+    raycastGroundY(x, z) { return this.getHeightAt(x, z); }
 
     setNightEmissive(isNight) {
         this.scene.traverse(obj => {
             if (obj.isMesh && obj.userData.isFloor && obj.material) {
-                const mat2 = Array.isArray(obj.material) ? obj.material[0] : obj.material;
-                if (mat2 && mat2.emissiveIntensity !== undefined) {
-                    mat2.emissiveIntensity = isNight ? 0.3 : 0;
-                    if (isNight && !mat2.emissive) mat2.emissive = new THREE.Color(0x111122);
+                const m = Array.isArray(obj.material) ? obj.material[0] : obj.material;
+                if (m && m.emissiveIntensity !== undefined) {
+                    m.emissiveIntensity = isNight ? 0.3 : 0;
+                    if (isNight && !m.emissive) m.emissive = new THREE.Color(0x111122);
                 }
             }
         });
     }
 
     getTerrainMaterialAt(x, z) {
-        const dist = Math.sqrt(x * x + z * z);
-        if (dist < 40) return 'spawn';
-        if (x < -40 && z < -40) return 'waste';
-        if (x > 40 && z > 40) return 'crystal';
-        if (x < -40 && z > 40) return 'forest';
-        return 'arena';
+        const dist = Math.sqrt(x * x + z * z) / RADIUS;
+        if (dist < 0.15) return 'camp';
+        if (x < -40 && z < -40) return 'jungle';
+        if (x > 40 && z > 40) return 'volcano';
+        if (x < -40 && z > 40) return 'caves';
+        if (x > 40 && z < -40) return 'beach';
+        return 'village';
     }
 
     setWetTerrain(wet) {}
