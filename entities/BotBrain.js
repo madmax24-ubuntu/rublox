@@ -504,7 +504,14 @@ export class BotBrain {
         bot.patrolTarget = target;
         bot.target = null;
         this.releaseCombatReservation(bot);
-        this.steerMove(bot, target, bot.physics.speed * 1.28);
+        const retreatSpeed = this.cautious ? bot.physics.speed * 1.4 : bot.physics.speed * 1.28;
+        // Aggressive bots sometimes counter-attack instead of retreating
+        if (this.personality === 'aggressive' && ctx.nearestEnemy && Math.random() < 0.25) {
+            bot.state = STATES.ENGAGE;
+            this.actEngage(bot, ctx, ctx.entityManager);
+            return;
+        }
+        this.steerMove(bot, target, retreatSpeed);
     }
 
     actReloadCover(bot, ctx) {
