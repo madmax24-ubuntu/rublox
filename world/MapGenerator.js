@@ -1262,16 +1262,54 @@ export class MapGenerator {
     // ===================== GAMEPLAY INTERFACES =====================
     getFloorTiles() {
         const tiles = [];
-        const r = this.spawnCourtyardRadius - 10;
-        for (let i = 0; i < 20; i++) {
-            const angle = Math.random() * Math.PI * 2, dist = Math.random() * r;
-            tiles.push({ x: Math.cos(angle) * dist, z: Math.sin(angle) * dist });
+        // Spread tiles across the ENTIRE map, not just the courtyard
+        const POIs = [
+            // Volcano sector (south)
+            { x: 0, z: -132, r: 50 },
+            // Lighthouse sector (southeast)
+            { x: 99, z: -110, r: 40 },
+            // Caves sector (northwest)
+            { x: -110, z: -99, r: 40 },
+            // Bunker sector (west)
+            { x: -121, z: 0, r: 30 },
+            // Random spread across entire map
+            { x: 160, z: 100, r: 35 },
+            { x: -160, z: 80, r: 35 },
+            { x: 80, z: 170, r: 35 },
+            { x: -80, z: -170, r: 35 },
+            // Outer ring for maximum spread
+            { x: 0, z: 180, r: 25 },
+            { x: 180, z: 0, r: 25 },
+            { x: 0, z: -180, r: 25 },
+            { x: -180, z: 0, r: 25 },
+        ];
+        for (const poi of POIs) {
+            for (let i = 0; i < 6; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const dist = Math.random() * poi.r;
+                tiles.push({ x: poi.x + Math.cos(angle) * dist, z: poi.z + Math.sin(angle) * dist });
+            }
         }
         return tiles;
     }
 
-    getHouseSpots() { return []; }
-    getHangarSpots() { return []; }
+    getHouseSpots() {
+        // Return POI locations as spawn/chest spots (volcano, lighthouse, caves, bunker)
+        return [
+            { x: 0, z: -132, type: 'volcano' },
+            { x: 99, z: -110, type: 'lighthouse' },
+            { x: -110, z: -99, type: 'caves' },
+            { x: -121, z: 0, type: 'bunker' },
+            { x: 160, z: 100, type: 'ruins' },
+            { x: -160, z: 80, type: 'ruins' },
+            { x: 80, z: 170, type: 'camp' },
+            { x: -80, z: -170, type: 'ruins' },
+        ];
+    }
+
+    getHangarSpots() {
+        return this.getHouseSpots().map(s => ({ ...s, type: s.type === 'bunker' ? 'hangar' : s.type }));
+    }
     getStoryNotes() { return []; }
     getExplosiveBarrelSpots() { return this.hazards || []; }
     getTraps() { return this.traps || []; }
