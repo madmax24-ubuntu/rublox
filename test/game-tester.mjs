@@ -531,7 +531,7 @@ async function phase4Gameplay() {
         details.push('jump_error');
     }
 
-    // Test weapon attack (LMB)
+    // Test weapon attack (LMB) - simulate multiple clicks
     try {
         const attackRect = await page.evaluate(() => {
             const c = document.querySelector('canvas');
@@ -540,11 +540,11 @@ async function phase4Gameplay() {
             return { x: r.width / 2, y: r.height / 2 };
         });
         if (attackRect) {
-            await simulateClick(attackRect.x, attackRect.y, 'left');
-            await page.waitForTimeout(200);
-            await simulateClick(attackRect.x, attackRect.y, 'left');
-            await page.waitForTimeout(200);
-            log('Attack (LMB) tested');
+            for (let i = 0; i < 3; i++) {
+                await page.mouse.click(attackRect.x, attackRect.y, { button: 'left' });
+                await page.waitForTimeout(300);
+            }
+            log('Attack (LMB) tested - 3 clicks');
         }
     } catch (e) {
         addError(`Attack test error: ${e.message}`);
