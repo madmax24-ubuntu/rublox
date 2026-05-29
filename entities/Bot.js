@@ -209,12 +209,14 @@ export class Bot {
             grip.forward * gripMul + 0.12
         );
         this._tmpWeaponRot.set(0, 0, 0);
+        // Weapon model +Z = forward. Rotate Y by π/2 so it points forward from the bot's perspective.
+        this._tmpWeaponRot.y = Math.PI / 2;
         if (this.currentWeapon.type === 'bow') {
             this._tmpWeaponRot.x = -0.12;
-            this._tmpWeaponRot.y = 0.04;
+            this._tmpWeaponRot.y = Math.PI / 2 + 0.04;
         } else if (this.currentWeapon.type === 'knife') {
             this._tmpWeaponRot.x = -0.08;
-            this._tmpWeaponRot.y = -0.05;
+            this._tmpWeaponRot.y = Math.PI / 2 - 0.05;
         } else if (this.currentWeapon.type === 'pistol') {
             this._tmpWeaponRot.x = -0.03;
         } else if (this.currentWeapon.type === 'shotgun' || this.currentWeapon.type === 'rifle' || this.currentWeapon.type === 'machinegun' || this.currentWeapon.type === 'flamethrower' || this.currentWeapon.type === 'laser') {
