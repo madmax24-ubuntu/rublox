@@ -249,16 +249,16 @@ export class MapGenerator {
             walkable: true
         });
 
-       // Biome zone overlays — match terrain circle centers and radii
-        // Citadel: center (-80, 80), radius 70 → x=-150..-10, z=10..150
-        // Crystal: center (80, 80), radius 70 → x=10..150, z=10..150
-        // Wastes: center (-80, -80), radius 75 → x=-155..-5, z=-155..-5
-        // Forest: center (80, -80), radius 75 → x=5..155, z=-155..-5
+       // Biome zone overlays — circular with terrain variation and edge blending
+        // Citadel: center (-80, 80), radius 70
+        // Crystal: center (80, 80), radius 70
+        // Wastes: center (-80, -80), radius 75
+        // Forest: center (80, -80), radius 75
         const biomeZones = [
-            { name: 'citadel',  color: COLOR.ruinFloor,   x: -80, z:  80, w: 140, h: 140 },
-            { name: 'crystal',  color: COLOR.crystalFloor, x:  80, z:  80, w: 140, h: 140 },
-            { name: 'wastes',   color: COLOR.wasteGround,  x: -80, z: -80, w: 150, h: 150 },
-            { name: 'forest',   color: COLOR.luminousFloor, x:  80, z: -80, w: 150, h: 150 },
+            { name: 'citadel',  color: COLOR.ruinFloor,   x: -80, z:  80, radius: 70 },
+            { name: 'crystal',  color: COLOR.crystalFloor, x:  80, z:  80, radius: 70 },
+            { name: 'wastes',   color: COLOR.wasteGround,  x: -80, z: -80, radius: 75 },
+            { name: 'forest',   color: COLOR.luminousFloor, x:  80, z: -80, radius: 75 },
         ];
 
         for (const bz of biomeZones) {
@@ -267,11 +267,30 @@ export class MapGenerator {
                 roughness: 0.85,
                 metalness: 0.05
             });
-            const biomeGeo = new THREE.PlaneGeometry(bz.w, bz.h, 1, 1);
+            // Circular biome with segments for height variation
+            const biomeGeo = new THREE.CircleGeometry(bz.radius, 48, 24);
             biomeGeo.rotateX(-Math.PI / 2);
+
+            // Displace vertices for terrain variation
+            const pos = biomeGeo.attributes.position;
+            for (let i = 0; i <= pos.count; i++) {
+                const px = pos.getX(i);
+                const pz = pos.getZ(i);
+                const dist = Math.sqrt(px * px + pz * pz);
+                if (dist <= bz.radius - 0.5) {
+                    const h = this.noise.fbm(px * 0.03, pz * 0.03, 3, 2, 0.5) * 2.5;
+                    // Fade height near edges for blending
+                    const blendFactor = dist / (bz.radius - 1);
+                    const fade = Math.pow(1 - blendFactor, 2) * 0.15;
+                    pos.setY(i, h + fade);
+                }
+            }
+            biomeGeo.computeVertexNormals();
+
             const biomeMesh = new THREE.Mesh(biomeGeo, biomeMat);
-            biomeMesh.position.set(bz.x, 0.01, bz.z);
+            biomeMesh.position.set(bz.x, 0.015, bz.z);
             biomeMesh.receiveShadow = true;
+            biomeMesh.castShadow = false;
             biomeMesh.userData.isArena = true;
             biomeMesh.userData.isBiome = true;
             biomeMesh.userData.biomeName = bz.name;
