@@ -18,6 +18,18 @@ export class Environment {
         this.hemi = null;
         this.nightAmbientColor = new THREE.Color(0x0b132b);
         this.targetExposure = 1;
+
+        // Biome-specific fog/sky colors
+        this.biomeFogColors = {
+            citadel: new THREE.Color(0x6a2a2a),
+            crystal: new THREE.Color(0x2a4a8a),
+            wastes: new THREE.Color(0x8a3a1a),
+            forest: new THREE.Color(0x1a6a3a),
+            default: new THREE.Color(0x8899aa)
+        };
+        this.currentBiome = 'default';
+        this.biomeTransitionSpeed = 0.5;
+
         this.init();
     }
 
