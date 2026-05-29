@@ -98,7 +98,7 @@ function createKnifeModel() {
     group.add(createPart(getGeom('knife_b', () => new THREE.BoxGeometry(0.76, 0.06, 0.04)), bladeMat, 0.38, 0.01, 0));
     group.add(createPart(getGeom('knife_bs', () => new THREE.BoxGeometry(0.64, 0.02, 0.03)), guardMat, 0.29, 0.045, 0));
     group.add(createPart(getGeom('knife_t', () => new THREE.ConeGeometry(0.038, 0.16, 6)), bladeMat, 0.82, 0.01, 0, 0, 0, -Math.PI / 2));
-    // Model parts positioned in model space (forward = +Z). No extra rotation.
+    // Parts along +X (barrel forward). No extra rotation needed.
     return group;
 }
 
