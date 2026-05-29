@@ -899,7 +899,6 @@ class Game {
             bot.target = null;
             bot.patrolTarget = null;
             bot.weaponRole = weaponRoles[i] || 'knife';
-            bot.pickupLoot?.({ type: 'weapon', weaponType: bot.weaponRole });
 
             // Give medkits to ~30% of bots
             if (Math.random() < 0.3) {
