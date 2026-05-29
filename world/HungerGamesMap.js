@@ -464,9 +464,8 @@ function buildMap(scene) {
         powerGroup.add(wire);
     }
     // Screen on wall
-    const powerScreen = new THREE.Mesh(SCREEN, mats.screen2);
+    const powerScreen = new THREE.Mesh(PLANE(3, 2), mats.screen2);
     powerScreen.position.set(0, 5, 5.05);
-    powerScreen.scale.set(3, 2, 1);
     powerGroup.add(powerScreen);
     powerGroup.position.set(80, 0, -60);
     landmarks.add(powerGroup);
