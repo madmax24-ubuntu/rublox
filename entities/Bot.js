@@ -227,7 +227,7 @@ export class Bot {
             this._tmpWeaponRot.x = -0.12;
             this._tmpWeaponRot.z = 0.05;
         }
-        mesh.rotation.set(this._tmpWeaponRot.x, this._tmpWeaponRot.y + Math.PI / 2, this._tmpWeaponRot.z);
+        mesh.rotation.set(this._tmpWeaponRot.x, this._tmpWeaponRot.y, this._tmpWeaponRot.z);
     }
 
     createMesh() {
