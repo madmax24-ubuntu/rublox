@@ -1071,7 +1071,7 @@ export class MapGenerator {
         citFloor.userData.isMapObject = true;
         this.scene.add(citFloor);
 
-        // 4 main towers
+        // 4 main towers — tapered stone towers with architectural detail
         for (let i = 0; i < 4; i++) {
             const angle = (i / 4) * Math.PI * 2 + Math.PI / 4;
             const r = 55;
@@ -1080,14 +1080,14 @@ export class MapGenerator {
 
             const towerMat = new THREE.MeshStandardMaterial({
                 color: i % 2 === 0 ? COLOR.ruinStone : COLOR.ruinDarkStone,
-                roughness: 0.85,
-                metalness: 0.1
+                roughness: 0.88,
+                metalness: 0.08
             });
 
-            // Tower body
-            const towerGeo = new THREE.CylinderGeometry(3, 3.5, 12, 8);
+            // Tower body — tapered (wider at base)
+            const towerGeo = new THREE.CylinderGeometry(2.2, 3.8, 14, 8);
             const tower = new THREE.Mesh(towerGeo, towerMat);
-            tower.position.set(tx, 6, tz);
+            tower.position.set(tx, 7, tz);
             tower.castShadow = true;
             tower.receiveShadow = true;
             tower.userData.isArena = true;
@@ -1095,14 +1095,34 @@ export class MapGenerator {
             tower.userData.isMapObject = true;
             this.scene.add(tower);
 
-            // Battlements
-            for (let b = 0; b < 8; b++) {
-                const ba = (b / 8) * Math.PI * 2;
-                const bx = tx + Math.cos(ba) * 3.3;
-                const bz = tz + Math.sin(ba) * 3.3;
-                const battGeo = new THREE.BoxGeometry(1, 1.5, 0.6);
+            // Stone banding — horizontal stone layers
+            for (let band = 0; band < 3; band++) {
+                const bandMat = new THREE.MeshStandardMaterial({
+                    color: i % 2 === 0 ? 0xb8b2b0 : 0x8a8580,
+                    roughness: 0.92,
+                    metalness: 0.05
+                });
+                const bandGeo = new THREE.TorusGeometry(2.8 - band * 0.3, 0.15, 8, 8);
+                const bandMesh = new THREE.Mesh(bandGeo, bandMat);
+                bandMesh.position.set(tx, 3 + band * 4, tz);
+                bandMesh.rotation.x = Math.PI / 2;
+                bandMesh.castShadow = true;
+                this.scene.add(bandMesh);
+            }
+
+            // Battlements — 12 irregular merlons
+            for (let b = 0; b < 12; b++) {
+                const ba = (b / 12) * Math.PI * 2 + (b % 2) * 0.15;
+                const bx = tx + Math.cos(ba) * 3.5;
+                const bz = tz + Math.sin(ba) * 3.5;
+                const battH = 1.2 + Math.random() * 0.8;
+                const battGeo = new THREE.BoxGeometry(
+                    0.8 + Math.random() * 0.4,
+                    battH,
+                    0.5 + Math.random() * 0.2
+                );
                 const batt = new THREE.Mesh(battGeo, towerMat);
-                batt.position.set(bx, 12.75, bz);
+                batt.position.set(bx, 14 + battH / 2, bz);
                 batt.rotation.y = -ba;
                 batt.castShadow = true;
                 batt.userData.isArena = true;
@@ -1111,7 +1131,32 @@ export class MapGenerator {
                 this.scene.add(batt);
             }
 
-            // Door
+            // Tower top rim
+            const rimGeo = new THREE.TorusGeometry(2.1, 0.2, 8, 8);
+            const rimMat = new THREE.MeshStandardMaterial({
+                color: COLOR.metalDark,
+                roughness: 0.6,
+                metalness: 0.3
+            });
+            const rim = new THREE.Mesh(rimGeo, rimMat);
+            rim.position.set(tx, 13.8, tz);
+            rim.rotation.x = 0;
+            rim.castShadow = true;
+            this.scene.add(rim);
+
+            // Door arch
+            const archGeo = new THREE.TorusGeometry(1.5, 0.15, 8, 8, Math.PI);
+            const archMat = new THREE.MeshStandardMaterial({
+                color: COLOR.ruinDarkStone,
+                roughness: 0.9,
+                metalness: 0.05
+            });
+            const arch = new THREE.Mesh(archGeo, archMat);
+            arch.position.set(tx + Math.cos(angle) * 3.8, 2.5, tz + Math.sin(angle) * 3.8);
+            arch.rotation.y = -angle;
+            arch.rotation.z = Math.PI;
+            arch.castShadow = true;
+            this.scene.add(arch);
             const doorGeo = new THREE.BoxGeometry(1.5, 3, 0.5);
             const doorMat = new THREE.MeshStandardMaterial({
                 color: COLOR.wood, roughness: 0.9
