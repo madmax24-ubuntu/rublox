@@ -254,9 +254,7 @@ function createArrowProjectileMesh() {
 }
 
 function getRotationOffsets(type) {
-    if (type === 'knife') return { pitch: 0.08, yaw: 0, roll: 0.08 };
-    if (type === 'bow' || type === 'crossbow') return { pitch: 0.04, yaw: 0, roll: 0 };
-    // No Y offset — view pose aligns weapon; model +Z = forward direction.
+    // Offsets are already baked into the view pose rotations above. Zero here.
     return { pitch: 0, yaw: 0, roll: 0 };
 }
 
