@@ -105,7 +105,8 @@ async function buildIslandTerrain(scene, gen) {
             const slope = 1 - (dist - 0.85) / 0.15;
             pos.setY(i, 3 * slope * slope);
         } else {
-            pos.setY(i, -3);
+            // Beyond island — flat at water level (no gap)
+            pos.setY(i, 0);
         }
     }
     groundGeo.computeVertexNormals();
