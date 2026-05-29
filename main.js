@@ -1901,8 +1901,8 @@ class Game {
                 const kickOut = (entity) => {
                     if (this.map.isInsideCourtyard(entity.position)) {
                         const exitPos = this.map.getCourtyardExitPosition();
-                        const exitY = this.map.getHeightAt?.(exitPos.x, exitPos.z) ?? 0;
-                        const groundY = Math.max(0.5, exitY);
+                        // Use raycastGroundY same as initial spawn for consistent ground level
+                        const groundY = this.map.raycastGroundY?.(exitPos.x, exitPos.z, 0.5) ?? 0.5;
                         entity.position.set(exitPos.x, groundY + entity.physics.height, exitPos.z);
                         entity.physics.velocity.set(0, 0, 0);
                     }
