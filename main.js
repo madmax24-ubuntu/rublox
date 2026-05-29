@@ -1901,7 +1901,6 @@ class Game {
                 const kickOut = (entity) => {
                     if (this.map.isInsideCourtyard(entity.position)) {
                         const exitPos = this.map.getCourtyardExitPosition();
-                        // Use the minimum terrain height matching the map generator
                         const exitY = this.map.getHeightAt?.(exitPos.x, exitPos.z) ?? 0;
                         const groundY = Math.max(0.5, exitY);
                         entity.position.set(exitPos.x, groundY + entity.physics.height, exitPos.z);
