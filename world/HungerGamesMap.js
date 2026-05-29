@@ -800,16 +800,6 @@ function buildMap(scene) {
         details.add(marker);
     }
 
-    scene.add(zones.terrain);
-    scene.add(zones.arena_wall);
-    scene.add(zones.cornucopia);
-    scene.add(zones.mountains);
-    scene.add(zones.forest);
-    scene.add(zones.swamp);
-    scene.add(zones.farm);
-    scene.add(zones.landmarks);
-    scene.add(zones.details);
-
     return { zones, mats };
 }
 
