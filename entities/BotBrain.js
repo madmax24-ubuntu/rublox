@@ -48,6 +48,14 @@ export class BotBrain {
         this.reactionMax = 0.35;
         // Биомный целевой сектор для разбегания
         this.homeBiome = ['forest','maze','war','ice','plaza'][Math.floor(Math.random() * 5)];
+        // Personality traits — each bot is unique
+        const personality = ['aggressive','cautious','tactical','reckless','sniper_pref','rusher','survivor'][Math.floor(Math.random() * 7)];
+        this.personality = personality;
+        this.aggression = personality === 'aggressive' || personality === 'rusher' ? 1.3 : personality === 'reckless' ? 1.5 : personality === 'cautious' ? 0.6 : 1.0;
+        this.cautious = personality === 'cautious' || personality === 'sniper_pref';
+        this.willFlank = personality === 'tactical' || personality === 'aggressive';
+        this.reactionDelay = personality === 'cautious' ? 0.5 : personality === 'reckless' ? 0.05 : this.reactionMin + Math.random() * (this.reactionMax - this.reactionMin);
+        this.hesitationChance = personality === 'cautious' ? 0.25 : personality === 'reckless' ? 0.02 : 0.08;
     }
 
     getMatchAge() {
