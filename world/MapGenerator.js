@@ -2362,7 +2362,7 @@ export class MapGenerator {
             const crateMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.88, flatShading: true });
             const crateCount = Math.max(1, Math.floor(Math.min(width, depth) / 4));
             for (let i = 0; i < crateCount; i++) {
-                const s = 0.5 + rand() * 0.5; // 0.5-1.0
+                const s = 0.5 + Math.random() * 0.5; // 0.5-1.0
                 const crate = new THREE.Mesh(
                     new THREE.BoxGeometry(s * 0.8, s * 0.7, s * 0.6),
                     crateMat
