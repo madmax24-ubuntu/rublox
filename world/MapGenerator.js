@@ -541,15 +541,6 @@ export class MapGenerator {
 
         this.buildQuadrantGroundPlanes();
         this.buildQuadrantBiomeWorld();
-        const debugLandmark = new THREE.Mesh(
-            new THREE.BoxGeometry(12, 12, 12),
-            new THREE.MeshBasicMaterial({ color: 0xff0000, depthTest: true, transparent: false, opacity: 1 })
-        );
-        debugLandmark.position.set(0, 6, 0);
-        debugLandmark.userData.mapGenerated = true;
-        debugLandmark.userData.biomeId = 'debug_landmark';
-        debugLandmark.frustumCulled = false;
-        this.addToMapObjects(debugLandmark);
         this.applyStaticPhysicsToGenerated();
     }
 
