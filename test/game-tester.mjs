@@ -484,6 +484,11 @@ async function phase3PreGame() {
     await screenshot('p3_pre_game_hud');
     await page.waitForTimeout(3000);
 
+    // Capture top-down views for map inspection
+    log('=== Capturing Top-Down Map Views ===');
+    await captureTopViews();
+    log('Top-down views captured');
+
     recordPhaseResult('phase3', pass ? 'PASS' : 'FAIL', details);
     return pass;
 }
