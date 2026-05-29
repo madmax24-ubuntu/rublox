@@ -316,16 +316,22 @@ export class BotBrain {
         }
     }
 
-    // Селектор целевой точки по биому (для разбегания)
+   // POI-based target spread across the entire map — lone wolves scatter far apart
     pickBiomeTarget(bot) {
-        const biomeTargets = {
-            forest: new THREE.Vector3(-200 + (Math.random()-0.5)*200, 0, 200 + (Math.random()-0.5)*200),
-            maze:   new THREE.Vector3(200 + (Math.random()-0.5)*200, 0, 200 + (Math.random()-0.5)*200),
-            war:    new THREE.Vector3(-200 + (Math.random()-0.5)*200, 0, -200 + (Math.random()-0.5)*200),
-            ice:    new THREE.Vector3(200 + (Math.random()-0.5)*200, 0, -200 + (Math.random()-0.5)*200),
-            plaza:  new THREE.Vector3((Math.random()-0.5)*100, 0, (Math.random()-0.5)*100)
-        };
-        return biomeTargets[this.homeBiome] || this.pickSpreadTarget(bot, 60, 300);
+        const mapSize = (this.mapRef && this.mapRef.size) || 440;
+        const half = mapSize * 0.4;
+        let sectorX, sectorZ;
+        if (this.homeSector === 'NW') { sectorX = -half + (Math.random()-0.5)*100; sectorZ = -half + (Math.random()-0.5)*100; }
+        else if (this.homeSector === 'NE') { sectorX = half + (Math.random()-0.5)*100; sectorZ = -half + (Math.random()-0.5)*100; }
+        else if (this.homeSector === 'SW') { sectorX = -half + (Math.random()-0.5)*100; sectorZ = half + (Math.random()-0.5)*100; }
+        else { sectorX = half + (Math.random()-0.5)*100; sectorZ = half + (Math.random()-0.5)*100; }
+        // Use map tiles if available for valid positions
+        const floors = this.mapRef?.getFloorTiles?.();
+        if (floors?.length) {
+            const tile = floors[(Math.floor((Math.random() * 1000 + this._rngShift) * floors.length)) % floors.length];
+            if (this.mapRef?.isWalkableAt?.(tile.x, tile.z)) return new THREE.Vector3(tile.x + (Math.random()-0.5)*16, 0, tile.z + (Math.random()-0.5)*16);
+        }
+        return new THREE.Vector3(sectorX, 0, sectorZ);
     }
 
 
