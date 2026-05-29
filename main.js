@@ -142,7 +142,10 @@ class Game {
         this.isStarted = false;
         this.startingGame = false;
         this.initialized = false;
-        this._testMode = typeof window.setTestMode === 'function' && window.setTestMode() === true;
+        this._testMode = typeof window.testMode === 'boolean' && window.testMode === true;
+        if (!this._testMode && typeof window.setTestMode === 'function') {
+            this._testMode = window.setTestMode() === true;
+        }
         if (!this._testMode && typeof localStorage !== 'undefined') {
             this._testMode = localStorage.getItem('testMode') === 'true';
         }
