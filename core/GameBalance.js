@@ -7,7 +7,7 @@ export const GAME_CONFIG = {
     round: {
         countdownSeconds: 15,
         preFightInvulnerableSeconds: 0,
-        botLootPhaseSeconds: 8
+        botLootPhaseSeconds: 12
     },
     zone: {
         durationSeconds: 600,
