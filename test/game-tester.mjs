@@ -38,6 +38,54 @@ function log(msg) {
     process.stdout.write(`[${elapsed}s] ${msg}\n`);
 }
 
+async function setCameraPosition(x, y, z, lookAtX = 0, lookAtY = 0, lookAtZ = 0, fov = 90) {
+    try {
+        await page.evaluate((cx, cy, cz, lx, ly, lz, f) => {
+            const g = window.getGameInstance?.();
+            if (g && g.camera) {
+                g.camera.position.set(cx, cy, cz);
+                g.camera.lookAt(lx, ly, lz);
+                g.camera.fov = f;
+                g.camera.updateProjectionMatrix();
+            }
+        }, x, y, z, lookAtX, lookAtY, lookAtZ, fov);
+    } catch {
+        // ignore
+    }
+}
+
+async function countObjectsByType(type) {
+    try {
+        return await page.evaluate((t) => {
+            const g = window.getGameInstance?.();
+            if (!g || !g.scene) return 0;
+            let count = 0;
+            g.scene.traverse((obj) => {
+                if (obj.userData?.mapGenerated && obj.type === t) count++;
+            });
+            return count;
+        }, type);
+    } catch {
+        return 0;
+    }
+}
+
+async function captureTopViews() {
+    const positions = [
+        { name: 'north', x: 0, y: 300, z: -50, fov: 90 },
+        { name: 'east', x: 200, y: 200, z: 0, fov: 90 },
+        { name: 'south', x: 0, y: 300, z: 50, fov: 90 },
+        { name: 'west', x: -200, y: 200, z: 0, fov: 90 },
+        { name: 'center_45', x: 100, y: 250, z: 100, fov: 60 },
+    ];
+    for (const pos of positions) {
+        await setCameraPosition(pos.x, pos.y, pos.z, 0, 0, 0, pos.fov);
+        await page.waitForTimeout(200);
+        await screenshot(`top_${pos.name}`);
+    }
+    await setCameraPosition(0, 500, 0, 0, 0, 0, 60);
+}
+
 async function screenshot(name) {
     const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase();
     const dir = join(process.cwd(), SCREENSHOT_DIR);
