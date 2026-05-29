@@ -832,7 +832,7 @@ class Game {
         };
         const tryAddSlot = (x, z) => {
             if (!canUsePoint(x, z)) return false;
-            const y0 = this.map?.getHeightAt?.(x, z) ?? 1.5;
+            const y0 = 1.54;
             slots.push({ x, y: y0 + 1.9, z });
             return true;
         };
