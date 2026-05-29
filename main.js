@@ -478,8 +478,8 @@ class Game {
         if (!this.player.parent) this.scene.add(this.player);
         if (spawnPads.length) {
             const pad = spawnPads[0];
-            const groundY = this.map?.getHeightAt?.(pad.x, pad.z) ?? 0.3;
-            const surfaceY = Math.max(1.54 + Math.max(0, groundY), 1.54);
+            // Use pad Y or default ground level — not getHeightAt which returns noise
+            const surfaceY = (pad.y ?? 0) || 1.54;
             this.player.position.set(pad.x, surfaceY + this.player.physics.height, pad.z);
             this.player.physics.onGround = true;
         } else {
