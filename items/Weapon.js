@@ -270,7 +270,7 @@ function getViewPoseForType(rawType) {
 
     if (type === 'knife') {
         base.position.set(0.25, -0.34, -0.8);
-        base.rotation.set(0.08, 0, 0.08);
+        base.rotation.set(0.08, -Math.PI / 2, 0.08);
         base.scale = 0.98;
     } else if (type === 'bow') {
         base.position.set(0.24, -0.3, -0.98);
