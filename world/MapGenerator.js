@@ -656,7 +656,7 @@ function lavaPool(x, z, radius, scene, gen) {
 
     // Lava glow
     const lLight = new THREE.PointLight(0xff4400, 4, 20);
-    lLight.position.y = 1; lLight.userData.isMapObject = true; g.add(light);
+    lLight.position.y = 1; lLight.userData.isMapObject = true; g.add(lLight);
 
     g.position.set(x, 0, z);
     scene.add(g);
