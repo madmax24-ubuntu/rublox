@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { MapGenerator as TileMapGenerator } from "./MapGeneratorNode.js";
+import { buildMap as buildHungerGamesMap } from "./HungerGamesMap.js";
 
 // ============ NOISE ============
 class SimplexNoise {
