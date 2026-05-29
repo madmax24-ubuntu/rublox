@@ -1,137 +1,835 @@
 import * as THREE from "three";
-import { mergeBufferGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { MapGenerator as TileMapGenerator } from "./MapGeneratorNode.js";
 
-// ============ NOISE UTILITY ============
+// ============ NOISE ============
 class SimplexNoise {
     constructor(seed = Math.random()) {
-        this.grad3 = [
-            [1,1,0],[-1,1,0],[1,-1,0],[-1,-1,0],
-            [1,0,1],[-1,0,1],[1,0,-1],[-1,0,-1],
-            [0,1,1],[0,-1,1],[0,1,-1],[0,-1,-1]
-        ];
+        this.grad3 = [[1,1,0],[-1,1,0],[1,-1,0],[-1,-1,0],[1,0,1],[-1,0,1],[1,0,-1],[-1,0,-1],[0,1,1],[0,-1,1],[0,1,-1],[0,-1,-1]];
         this.p = [];
         for (let i = 0; i < 256; i++) this.p[i] = i;
         let s = (seed * 2147483647) | 0;
         for (let i = 255; i > 0; i--) {
-            s = ((s * 16807) | 0);
-            if (s < 0) s += 2147483647;
+            s = ((s * 16807) | 0); if (s < 0) s += 2147483647;
             const j = s % (i + 1);
             [this.p[i], this.p[j]] = [this.p[j], this.p[i]];
         }
-        for (let i = 0; i < 256; i++) this.p[i] = this.p[i] & 255;
         for (let i = 256; i < 512; i++) this.p[i] = this.p[i - 256];
     }
-
     noise2D(x, y) {
-        const F2 = 0.5 * (Math.sqrt(3) - 1);
-        const G2 = (3 - Math.sqrt(3)) / 6;
-        const s = (x + y) * F2;
-        const i = Math.floor(x + s);
-        const j = Math.floor(y + s);
-        const t = (i + j) * G2;
-        const X0 = i - t;
-        const Y0 = j - t;
-        const x0 = x - X0;
-        const y0 = y - Y0;
-        let i1, j1;
-        if (x0 > y0) { i1 = 1; j1 = 0; } else { i1 = 0; j1 = 1; }
-        const x1 = x0 - i1 + G2;
-        const y1 = y0 - j1 + G2;
-        const x2 = x0 - 1 + 2 * G2;
-        const y2 = y0 - 1 + 2 * G2;
-        const ii = (i + 256) & 255;
-        const jj = (j + 256) & 255;
-        const pi = (v) => ((v % 12) + 12) % 12;
-        const gi0 = pi(this.p[ii + this.p[jj]]);
-        const gi1 = pi(this.p[ii + i1 + this.p[jj + j1]]);
-        const gi2 = pi(this.p[ii + 1 + this.p[jj + 1]]);
+        const F2 = 0.5 * (Math.sqrt(3) - 1), G2 = (3 - Math.sqrt(3)) / 6;
+        const s = (x + y) * F2, g = (i, j) => [i - Math.floor(x + s) + Math.floor((i + j) * G2), j - Math.floor(x + s) + Math.floor((i + j) * G2)];
+        const i = Math.floor(x + s), j = Math.floor(y + s);
+        const x0 = x - i, y0 = y - j;
+        const i1 = x0 > y0 ? 1 : 0, j1 = x0 > y0 ? 0 : 1;
+        const x1 = x0 - i1 + G2, y1 = y0 - j1 + G2, x2 = x0 - 1 + 2 * G2, y2 = y0 - 1 + 2 * G2;
+        const ii = (i + 256) & 255, jj = (j + 256) & 255;
+        const pi = v => ((v % 12) + 12) % 12;
+        const gi = (n) => pi(this.p[ii + this.p[jj + n]]);
         const dot = (g, x, y) => g[0] * x + g[1] * y;
-        let n0, n1, n2;
-        let t0 = 0.5 - x0 * x0 - y0 * y0;
-        n0 = t0 < 0 ? 0 : (t0 *= t0, t0 * t0 * dot(this.grad3[gi0], x0, y0));
-        let t1 = 0.5 - x1 * x1 - y1 * y1;
-        n1 = t1 < 0 ? 0 : (t1 *= t1, t1 * t1 * dot(this.grad3[gi1], x1, y1));
-        let t2 = 0.5 - x2 * x2 - y2 * y2;
-        n2 = t2 < 0 ? 0 : (t2 *= t2, t2 * t2 * dot(this.grad3[gi2], x2, y2));
+        let t0 = 0.5 - x0 * x0 - y0 * y0, t1 = 0.5 - x1 * x1 - y1 * y1, t2 = 0.5 - x2 * x2 - y2 * y2;
+        const n0 = t0 > 0 ? t0 * t0 * dot(this.grad3[gi(0)], x0, y0) : 0;
+        const n1 = t1 > 0 ? t1 * t1 * dot(this.grad3[gi(1)], x1, y1) : 0;
+        const n2 = t2 > 0 ? t2 * t2 * dot(this.grad3[gi(2)], x2, y2) : 0;
         return 70 * (n0 + n1 + n2);
     }
-
-    fbm(x, y, octaves = 4, lacunarity = 2, gain = 0.5) {
-        let val = 0, amp = 1, freq = 1, max = 0;
-        for (let i = 0; i < octaves; i++) {
-            val += amp * this.noise2D(x * freq, y * freq);
-            max += amp;
-            amp *= gain;
-            freq *= lacunarity;
-        }
-        return val / max;
+    fbm(x, y, octaves = 4, lac = 2, gain = 0.5) {
+        let v = 0, a = 1, f = 1, m = 0;
+        for (let i = 0; i < octaves; i++) { v += a * this.noise2D(x * f, y * f); m += a; a *= gain; f *= lac; }
+        return v / m;
     }
 }
 
-// ============ COLOR CONSTANTS ============
-const COLOR = {
-    arenaGround: 0x5a8a3a,
-    arenaPath: 0xc8b898,
-    metalDark: 0x6a6a6a,
-    metalLight: 0x9a9a9a,
-    metalGold: 0xf8d840,
-    ruinStone: 0xc8c2c0,
-    ruinDarkStone: 0x9a9590,
-    ruinFloor: 0x8b0000,
-    ruinMoss: 0x7a9a5a,
-    crystalBlue: 0x4488cc,
-    crystalPurple: 0x8844aa,
-    crystalFloor: 0x0044aa,
-    crystalReflect: 0x99bbdd,
-    crystalGlow: 0x88ccff,
-    lava: 0xff4400,
-    obsidian: 0x4a4a5a,
-    wasteGround: 0xff2200,
-    scorchedRock: 0x5a5a5a,
-    smoke: 0x4a4a4a,
-    luminousBark: 0x5a4a3a,
-    luminousLeaf: 0x22aa44,
-    luminousGlow: 0x44ff88,
-    luminousMushroom: 0x8844ff,
-    luminousFloor: 0x00cc66,
-    luminousPond: 0x226644,
-    bridgeWood: 0x8a7a6a,
-    fenceWood: 0x7a6a5a,
-    stone: 0xb0b0b0,
-    wood: 0x9b6236,
-    chestWood: 0x9b6236,
-    chestGold: 0xdaa520,
-    forcefield: 0x4488ff,
-    terrain: 0x5a8a3a,
+// ============ COLORS ============
+const C = {
+    grass: 0x5a8a3a, dirt: 0x7a6a4a, stone: 0x9a9a9a, stoneDark: 0x6a6a6a,
+    wood: 0x8b6236, woodDark: 0x5a3a1a, metal: 0x7a7a7a, metalDark: 0x4a4a4a,
+    gold: 0xdaa520, rust: 0xb5651d, red: 0xcc2222, blue: 0x3388cc,
+    cyan: 0x44cccc, purple: 0x8844aa, green: 0x22aa44, orange: 0xff8800,
+    lava: 0xff3300, obsidian: 0x2a2a3a, bone: 0xd4c4a0, white: 0xe0e0e0,
+    black: 0x1a1a1a, sand: 0xd4c480, snow: 0xe8e8f0
 };
 
 // ============ MATERIAL CACHE ============
-const _matCache = new Map();
-function getMat(color, opts = {}) {
-    const key = color.toString(16) + ':' + JSON.stringify(opts, null, 2);
-    if (!_matCache.has(key)) {
-        _matCache.set(key, new THREE.MeshStandardMaterial({ color, ...opts }));
+const _mat = new Map();
+function mat(color, opts = {}) {
+    const k = color.toString(16) + ':' + JSON.stringify(opts, null, 2);
+    if (!_mat.has(k)) {
+        _mat.set(k, new THREE.MeshStandardMaterial({ color, ...opts }));
     }
-    const m = _matCache.get(key);
-    if (m.transparent !== opts.transparent || m.opacity !== opts.opacity) {
-        _matCache.delete(key);
-        const m2 = new THREE.MeshStandardMaterial({ color, ...opts });
-        _matCache.set(key, m2);
-        return m2;
-    }
+    return _mat.get(k);
+}
+
+// ============ HELPERS ============
+function box(w, h, d, color, opts = {}) {
+    const geo = new THREE.BoxGeometry(w, h, d);
+    const m = new THREE.Mesh(geo, mat(color, opts));
+    m.castShadow = true; m.receiveShadow = true;
+    return m;
+}
+function cyl(rt, rb, h, seg, color, opts = {}) {
+    const geo = new THREE.CylinderGeometry(rt, rb, h, seg);
+    const m = new THREE.Mesh(geo, mat(color, opts));
+    m.castShadow = true; m.receiveShadow = true;
+    return m;
+}
+function sphere(r, wSeg, hSeg, color, opts = {}) {
+    const geo = new THREE.SphereGeometry(r, wSeg, hSeg);
+    const m = new THREE.Mesh(geo, mat(color, opts));
+    m.castShadow = true; m.receiveShadow = true;
     return m;
 }
 
-// ============ MAP GENERATOR ============
-const _yield = () => new Promise(r => setTimeout(r, 50)); // 50ms yield
+function addCollider(gen, type, pos, size, walkable = false) {
+    gen.colliders.push({ type, position: new THREE.Vector3(...pos), size: new THREE.Vector3(...size), walkable });
+}
+
+// ============ LOW-POLY MODEL GENERATORS ============
+
+// --- Building: stone outpost with roof, door, interior ---
+function stoneOutpost(x, z, angle, scene, gen) {
+    const g = new THREE.Group();
+    const wallM = mat(C.stone, { roughness: 0.85, metalness: 0.1 });
+    const darkM = mat(C.stoneDark, { roughness: 0.9 });
+    const roofM = mat(C.rust, { roughness: 0.95 });
+
+    // 4 walls with door gap
+    const wallLen = 6, wallH = 3.8, wallThick = 0.7;
+    for (let i = 0; i < 4; i++) {
+        const a = angle + (i - 1) * Math.PI / 2;
+        const isDoor = i === 1; // door side
+        const wallLen2 = isDoor ? wallLen * 0.55 : wallLen;
+
+        if (!isDoor) {
+            const w = box(wallLen2, wallH, wallThick, C.stone, { roughness: 0.85, metalness: 0.1 });
+            w.position.set(0, wallH / 2, isDoor ? wallLen * 0.225 : 0);
+            w.userData.isMapObject = true;
+            g.add(w);
+            addCollider(gen, 'box', [0, wallH / 2, isDoor ? wallLen * 0.225 : 0], [wallLen2, wallH, wallThick]);
+        }
+
+        // Corner pillars
+        if (!isDoor) {
+            const p1 = cyl(0.22, 0.25, wallH + 0.6, 6, C.stoneDark, { roughness: 0.9 });
+            p1.position.set(wallLen2 / 2, (wallH + 0.6) / 2, wallThick / 2);
+            p1.userData.isMapObject = true; g.add(p1);
+            addCollider(gen, 'box', [wallLen2 / 2, (wallH + 0.6) / 2, wallThick / 2], [0.44, wallH + 0.6, 0.44]);
+
+            const p2 = p1.clone();
+            p2.position.set(-wallLen2 / 2, (wallH + 0.6) / 2, wallThick / 2);
+            p2.userData.isMapObject = true; g.add(p2);
+        }
+    }
+
+    // Door frame
+    const doorFrame = cyl(0.15, 0.15, wallH, 6, C.stoneDark, { roughness: 0.85 });
+    doorFrame.position.set(0, wallH / 2, wallLen * 0.225);
+    doorFrame.rotation.z = Math.PI / 2;
+    doorFrame.userData.isMapObject = true; g.add(doorFrame);
+
+    // Wooden door
+    const door = box(2.2, 3, 0.15, C.wood, { roughness: 0.8 });
+    door.position.set(0, 1.5, wallLen * 0.225);
+    door.userData.isMapObject = true; door.userData.isDoor = true;
+    g.add(door);
+
+    // Roof (pyramid)
+    const roofGeo = new THREE.ConeGeometry(5, 3, 4);
+    const roof = new THREE.Mesh(roofGeo, mat(C.rust, { roughness: 0.9 }));
+    roof.position.set(0, wallH + 1.5, 0);
+    roof.rotation.y = Math.PI / 4;
+    roof.castShadow = true; roof.receiveShadow = true;
+    roof.userData.isMapObject = true; g.add(roof);
+
+    // Floor
+    const floorGeo = new THREE.PlaneGeometry(wallLen, wallLen, 4, 4);
+    floorGeo.rotateX(-Math.PI / 2);
+    const floor = new THREE.Mesh(floorGeo, mat(C.dirt, { roughness: 0.95 }));
+    floor.position.set(0, 0.02, 0);
+    floor.receiveShadow = true; floor.userData.isMapObject = true; g.add(floor);
+
+    // Interior loot crate
+    const crate = box(0.9, 0.8, 0.9, C.gold, { roughness: 0.4, metalness: 0.5 });
+    crate.position.set(0, 0.4, -1.5);
+    crate.userData.isMapObject = true; crate.userData.isLoot = true;
+    g.add(crate);
+
+    // Light inside
+    const light = new THREE.PointLight(0xffcc66, 1.5, 12);
+    light.position.set(0, 3.2, 0);
+    light.userData.isMapObject = true;
+    g.add(light);
+
+    // Rotate and position
+    g.position.set(x, 0, z);
+    scene.add(g);
+}
+
+// --- Building: wooden barricade ---
+function woodenBarricade(x, z, angle, scene, gen) {
+    const g = new THREE.Group();
+    const woodM = mat(C.wood, { roughness: 0.85 });
+    const plankH = 0.25, plankThick = 0.12;
+
+    // 3 walls of planks
+    for (let w = 0; w < 3; w++) {
+        const a = angle + w * Math.PI * 2 / 3;
+        const nx = Math.cos(a), nz = Math.sin(a);
+        for (let p = 0; p < 4; p++) {
+            const plank = box(3.5, plankH, plankThick, C.wood, { roughness: 0.85 });
+            plank.position.set(nx * (p - 1.5) * 0.1, 0.5 + p * plankH, nz * (p - 1.5) * 0.1);
+            plank.rotation.y = a;
+            plank.userData.isMapObject = true; g.add(plank);
+            addCollider(gen, 'box', [plank.position.x, plank.position.y, plank.position.z], [3.5, plankH, plankThick]);
+        }
+    }
+
+    // Support posts
+    for (let w = 0; w < 3; w++) {
+        const a = angle + w * Math.PI * 2 / 3;
+        const post = cyl(0.18, 0.2, 3.5, 6, C.woodDark, { roughness: 0.9 });
+        post.position.set(Math.cos(a) * 1.8, 1.75, Math.sin(a) * 1.8);
+        post.userData.isMapObject = true; g.add(post);
+    }
+
+    g.position.set(x, 0, z);
+    scene.add(g);
+}
+
+// --- Building: ruined citadel ---
+function ruinedCitadel(cx, cz, scene, gen) {
+    const g = new THREE.Group();
+    const stoneM = mat(C.stone, { roughness: 0.8, metalness: 0.15 });
+    const mossM = mat(C.green, { roughness: 0.95 });
+    const floorM = mat(C.red, { roughness: 0.9, metalness: 0.05 });
+
+    // Main floor platform
+    const floor = box(24, 0.4, 24, C.stoneDark, { roughness: 0.9 });
+    floor.position.set(0, 0.2, 0);
+    floor.userData.isMapObject = true; floor.userData.isFloor = true;
+    g.add(floor);
+
+    // Inner red floor
+    const innerFloor = box(20, 0.1, 20, C.red, { roughness: 0.95, transparent: true, opacity: 0.6 });
+    innerFloor.position.set(0, 0.45, 0);
+    innerFloor.receiveShadow = true; innerFloor.userData.isMapObject = true; g.add(innerFloor);
+
+    // Broken walls (partial)
+    const wallPositions = [
+        { x: 0, z: 10, ry: 0, h: 5 }, { x: 0, z: -10, ry: 0, h: 3.5 },
+        { x: 10, z: 0, ry: Math.PI / 2, h: 4.5 }, { x: -10, z: 0, ry: Math.PI / 2, h: 6 },
+    ];
+    for (const wp of wallPositions) {
+        const w = box(8, wp.h, 0.8, C.stone, { roughness: 0.8, metalness: 0.15 });
+        w.position.set(wp.x, wp.h / 2 + 0.4, wp.z);
+        w.rotation.y = wp.ry;
+        w.userData.isMapObject = true; g.add(w);
+        addCollider(gen, 'box', [wp.x, wp.h / 2 + 0.4, wp.z], [8, wp.h, 0.8]);
+    }
+
+    // Columns (some broken)
+    for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2;
+        const r = 12;
+        const h = i % 2 === 0 ? 7 : 3.5; // alternating height
+        const col = cyl(0.4, 0.5, h, 8, C.stone, { roughness: 0.7, metalness: 0.2 });
+        col.position.set(Math.cos(a) * r, h / 2 + 0.4, Math.sin(a) * r);
+        col.userData.isMapObject = true; g.add(col);
+        if (h > 4) {
+            addCollider(gen, 'cylinder', [Math.cos(a) * r, h / 2 + 0.4, Math.sin(a) * r], [0.6, h]);
+        }
+    }
+
+    // Archway entrance
+    const archPillar1 = cyl(0.5, 0.6, 6, 8, C.stone, { roughness: 0.7 });
+    archPillar1.position.set(-2, 3.2, 12);
+    archPillar1.userData.isMapObject = true; g.add(archPillar1);
+
+    const archPillar2 = cyl(0.5, 0.6, 6, 8, C.stone, { roughness: 0.7 });
+    archPillar2.position.set(2, 3.2, 12);
+    archPillar2.userData.isMapObject = true; g.add(archPillar2);
+
+    const archTop = box(5, 1.2, 1.2, C.stone, { roughness: 0.7 });
+    archTop.position.set(0, 6.6, 12);
+    archTop.userData.isMapObject = true; g.add(archTop);
+
+    // Moss patches
+    for (let i = 0; i < 15; i++) {
+        const mx = (Math.random() - 0.5) * 18;
+        const mz = (Math.random() - 0.5) * 18;
+        const moss = box(1.5 + Math.random() * 2, 0.1, 1.5 + Math.random(), C.green, { roughness: 0.95 });
+        moss.position.set(mx, 0.45, mz);
+        moss.rotation.y = Math.random() * Math.PI;
+        moss.userData.isMapObject = true; g.add(moss);
+    }
+
+    // Central altar
+    const altar = cyl(1.5, 2, 1.5, 8, C.stoneDark, { roughness: 0.6, metalness: 0.3 });
+    altar.position.set(0, 1.15, 0);
+    altar.userData.isMapObject = true; g.add(altar);
+    addCollider(gen, 'cylinder', [0, 1.15, 0], [2, 1.5]);
+
+    // Glow on altar
+    const glow = new THREE.PointLight(0xcc2244, 2, 15);
+    glow.position.set(0, 2.5, 0);
+    glow.userData.isMapObject = true;
+    g.add(glow);
+
+    g.position.set(cx, 0, cz);
+    scene.add(g);
+}
+
+// --- Building: crystal grotto (cave with crystals) ---
+function crystalGrotto(cx, cz, scene, gen) {
+    const g = new THREE.Group();
+    const caveMat = mat(C.stoneDark, { roughness: 0.9, metalness: 0.1 });
+    const crystalM = mat(C.cyan, { roughness: 0.3, metalness: 0.4, transparent: true, opacity: 0.7 });
+
+    // Cave floor
+    const caveFloor = new THREE.Mesh(
+        new THREE.CircleGeometry(12, 16),
+        mat(C.stone, { roughness: 0.85 })
+    );
+    caveFloor.rotation.x = -Math.PI / 2;
+    caveFloor.position.y = 0.3;
+    caveFloor.receiveShadow = true; caveFloor.userData.isMapObject = true; g.add(caveFloor);
+
+    // Cave walls (broken circle)
+    for (let i = 0; i < 24; i++) {
+        const a = (i / 24) * Math.PI * 2;
+        if (i === 0) continue; // entrance gap
+        const h = 4 + Math.random() * 4;
+        const wall = box(2.5, h, 1.5, C.stoneDark, { roughness: 0.85 });
+        wall.position.set(Math.cos(a) * 11, h / 2, Math.sin(a) * 11);
+        wall.rotation.y = -a;
+        wall.userData.isMapObject = true; g.add(wall);
+        if (i % 3 === 0) addCollider(gen, 'box', [wall.position.x, wall.position.y, wall.position.z], [2.5, h, 1.5]);
+    }
+
+    // Crystal formations
+    for (let i = 0; i < 20; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = 2 + Math.random() * 8;
+        const ch = 1 + Math.random() * 3;
+        const crystal = new THREE.Mesh(
+            new THREE.ConeGeometry(0.3 + Math.random() * 0.4, ch, 5),
+            mat(C.cyan + (Math.random() > 0.5 ? 0x111111 : 0), {
+                roughness: 0.2, metalness: 0.5, transparent: true, opacity: 0.75
+            })
+        );
+        crystal.position.set(Math.cos(a) * r, ch / 2 + 0.3, Math.sin(a) * r);
+        crystal.rotation.y = Math.random();
+        crystal.userData.isMapObject = true; g.add(crystal);
+    }
+
+    // Stalactites from ceiling
+    for (let i = 0; i < 12; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = 3 + Math.random() * 6;
+        const sl = 1 + Math.random() * 2;
+        const stal = new THREE.Mesh(
+            new THREE.ConeGeometry(0.2, sl, 5),
+            mat(C.cyan, { roughness: 0.25, metalness: 0.5, transparent: true, opacity: 0.6 })
+        );
+        stal.position.set(Math.cos(a) * r, 5 + sl / 2, Math.sin(a) * r);
+        stal.rotation.z = Math.PI; // point down
+        stal.userData.isMapObject = true; g.add(stal);
+    }
+
+    // Cave glow lights
+    const glowLight = new THREE.PointLight(0x44cccc, 2, 18);
+    glowLight.position.set(0, 3, 0);
+    glowLight.userData.isMapObject = true; g.add(glowLight);
+
+    g.position.set(cx, 0, cz);
+    scene.add(g);
+}
+
+// --- Building: burning wastes structures ---
+function wasteStructure(x, z, type, scene, gen) {
+    const g = new THREE.Group();
+
+    if (type === 'bunker') {
+        // Reinforced bunker
+        const body = box(5, 3, 4, C.obsidian, { roughness: 0.5, metalness: 0.4 });
+        body.position.set(0, 1.5, 0);
+        body.userData.isMapObject = true; g.add(body);
+        addCollider(gen, 'box', [0, 1.5, 0], [5, 3, 4]);
+
+        // Roof plates
+        const roof1 = box(5.2, 0.3, 4.2, C.stoneDark, { roughness: 0.6 });
+        roof1.position.set(0, 3.15, 0);
+        roof1.userData.isMapObject = true; g.add(roof1);
+
+        // Vent
+        const vent = cyl(0.4, 0.4, 1.5, 8, C.stoneDark, { roughness: 0.5 });
+        vent.position.set(0, 3.9, 0);
+        vent.userData.isMapObject = true; g.add(vent);
+
+        // Door
+        const door = box(1.2, 2.2, 0.2, C.metal, { roughness: 0.6, metalness: 0.5 });
+        door.position.set(0, 1.1, 2.1);
+        door.userData.isMapObject = true; door.userData.isDoor = true;
+        g.add(door);
+    } else if (type === 'watchtower') {
+        // Watchtower
+        for (let i = 0; i < 4; i++) {
+            const a = (i / 4) * Math.PI * 2;
+            const post = cyl(0.2, 0.25, 7, 6, C.woodDark, { roughness: 0.85 });
+            post.position.set(Math.cos(a) * 2, 3.5, Math.sin(a) * 2);
+            post.userData.isMapObject = true; g.add(post);
+        }
+
+        // Platform
+        const plat = box(4, 0.3, 4, C.wood, { roughness: 0.8 });
+        plat.position.set(0, 7, 0);
+        plat.userData.isMapObject = true; g.add(plat);
+
+        // Railing
+        for (let i = 0; i < 4; i++) {
+            const a = (i / 4) * Math.PI * 2;
+            const rail = box(0.1, 1.2, 3.6, C.wood, { roughness: 0.85 });
+            rail.position.set(Math.cos(a) * 2.2, 7.6, Math.sin(a) * 2.2);
+            rail.rotation.y = a;
+            rail.userData.isMapObject = true; g.add(rail);
+        }
+
+        // Roof
+        const twRoof = new THREE.Mesh(
+            new THREE.ConeGeometry(3.5, 2, 4),
+            mat(C.woodDark, { roughness: 0.9 })
+        );
+        twRoof.position.set(0, 8.6, 0);
+        twRoof.rotation.y = Math.PI / 4;
+        twRoof.userData.isMapObject = true; g.add(twRoof);
+
+        // Light on top
+        const twLight = new THREE.PointLight(0xffaa44, 3, 20);
+        twLight.position.set(0, 9.5, 0);
+        twLight.userData.isMapObject = true; g.add(twLight);
+    }
+
+    g.position.set(x, 0, z);
+    scene.add(g);
+}
+
+// --- Props: barrel ---
+function barrel(x, y, z, scene) {
+    const g = new THREE.Group();
+    const body = cyl(0.35, 0.35, 0.9, 8, C.woodDark, { roughness: 0.85 });
+    body.position.y = 0.45; body.userData.isMapObject = true; g.add(body);
+
+    // Metal bands
+    for (let i = 0; i < 2; i++) {
+        const band = new THREE.Mesh(
+            new THREE.TorusGeometry(0.36, 0.03, 6, 8),
+            mat(C.metal, { roughness: 0.5, metalness: 0.6 })
+        );
+        band.position.y = 0.25 + i * 0.45;
+        band.rotation.x = Math.PI / 2;
+        band.userData.isMapObject = true; g.add(band);
+    }
+
+    g.position.set(x, y, z);
+    scene.add(g);
+}
+
+// --- Props: crate ---
+function crate(x, y, z, scene, size = 1) {
+    const g = box(0.9 * size, 0.9 * size, 0.9 * size, C.wood, { roughness: 0.8 });
+    g.position.set(x, y + 0.45 * size, z);
+    g.userData.isMapObject = true; g.userData.isLoot = true;
+    scene.add(g);
+    addCollider(null, 'box', [g.position.x, g.position.y, g.position.z], [0.9 * size, 0.9 * size, 0.9 * size]);
+}
+
+// --- Props: fence post ---
+function fencePost(x, y, z, scene) {
+    const post = cyl(0.08, 0.1, 1.2, 5, C.woodDark, { roughness: 0.9 });
+    post.position.set(x, y + 0.6, z);
+    post.userData.isMapObject = true; scene.add(post);
+}
+
+// --- Props: campfire ---
+function campfire(x, y, z, scene) {
+    const g = new THREE.Group();
+    // Fire logs
+    for (let i = 0; i < 4; i++) {
+        const log = cyl(0.06, 0.06, 0.6, 5, C.woodDark, { roughness: 0.95 });
+        log.position.set(Math.cos(i * Math.PI / 2) * 0.15, 0.1, Math.sin(i * Math.PI / 2) * 0.15);
+        log.rotation.z = Math.PI / 2;
+        log.rotation.y = i * Math.PI / 2;
+        log.userData.isMapObject = true; g.add(log);
+    }
+    // Fire light
+    const fireLight = new THREE.PointLight(0xff6600, 3, 12);
+    fireLight.position.y = 0.5;
+    fireLight.userData.isMapObject = true; g.add(fireLight);
+    g.position.set(x, y, z);
+    scene.add(g);
+}
+
+// --- Props: road marker ---
+function roadMarker(x, y, z, scene) {
+    const g = new THREE.Group();
+    const pole = cyl(0.05, 0.06, 2, 6, C.metal, { roughness: 0.5, metalness: 0.6 });
+    pole.position.y = 1; pole.userData.isMapObject = true; g.add(pole);
+    const sign = box(0.8, 0.6, 0.1, C.white, { roughness: 0.7 });
+    sign.position.set(0, 2, 0);
+    sign.userData.isMapObject = true; g.add(sign);
+    g.position.set(x, y, z);
+    scene.add(g);
+}
+
+// --- Tree: proper low-poly tree ---
+function tree(x, y, z, scene, type = 'normal') {
+    const g = new THREE.Group();
+    const trunkH = 2 + Math.random() * 2;
+    const trunkR = 0.2 + Math.random() * 0.15;
+
+    // Trunk
+    const trunk = cyl(trunkR * 0.6, trunkR, trunkH, 6, C.woodDark, { roughness: 0.95 });
+    trunk.position.y = trunkH / 2;
+    trunk.userData.isMapObject = true; trunk.userData.isTree = true; g.add(trunk);
+
+    // Canopy layers
+    const canopyColors = type === 'ruined' ? C.stoneDark : type === 'crystal' ? C.cyan : C.grass;
+    for (let i = 0; i < 3; i++) {
+        const cr = 1.2 + (3 - i) * 0.5;
+        const ch = 1.5 + (3 - i) * 0.3;
+        const canopy = new THREE.Mesh(
+            new THREE.ConeGeometry(cr, ch, 6),
+            mat(canopyColors, { roughness: 0.9, metalness: type === 'crystal' ? 0.4 : 0 })
+        );
+        canopy.position.y = trunkH + 1 + i * 1;
+        canopy.rotation.y = i * Math.PI / 6;
+        canopy.userData.isMapObject = true; canopy.userData.isTree = true; g.add(canopy);
+    }
+
+    g.position.set(x, y, z);
+    scene.add(g);
+}
+
+// --- Cornucopia: proper horn of plenty ---
+function cornucopia(scene, gen) {
+    const g = new THREE.Group();
+    const metalMat = mat(C.gold, { roughness: 0.3, metalness: 0.8 });
+    const darkMat = mat(C.metalDark, { roughness: 0.5, metalness: 0.5 });
+
+    // Base platform (octagonal)
+    const base = new THREE.Mesh(
+        new THREE.CylinderGeometry(12, 14, 2, 8),
+        mat(C.metal, { roughness: 0.6, metalness: 0.4 })
+    );
+    base.position.y = 1; base.receiveShadow = true; base.userData.isMapObject = true; base.userData.isCornucopia = true;
+    g.add(base);
+    addCollider(gen, 'cylinder', [0, 1, 0], [14, 2]);
+
+    // Main body - two crossed horns
+    for (let side of [-1, 1]) {
+        const horn = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.6, 2.5, 14, 10),
+            metalMat
+        );
+        horn.position.set(side * 6, 10, 0);
+        horn.rotation.z = side * 0.4;
+        horn.userData.isMapObject = true; horn.userData.isCornucopia = true;
+        g.add(horn);
+    }
+
+    // Central structure
+    const central = new THREE.Mesh(
+        new THREE.CylinderGeometry(4, 6, 8, 8),
+        mat(C.metal, { roughness: 0.4, metalness: 0.6 })
+    );
+    central.position.y = 6; central.userData.isMapObject = true; central.userData.isCornucopia = true;
+    g.add(central);
+
+    // Spire
+    const spire = new THREE.Mesh(
+        new THREE.ConeGeometry(2.5, 10, 8),
+        metalMat
+    );
+    spire.position.y = 15; spire.userData.isMapObject = true; spire.userData.isCornucopia = true;
+    g.add(spire);
+
+    // Spire orb
+    const orb = new THREE.Mesh(
+        new THREE.SphereGeometry(1.2, 8, 6),
+        mat(C.cyan, { roughness: 0.1, metalness: 0.7, emissive: C.cyan, emissiveIntensity: 0.5, transparent: true, opacity: 0.7 })
+    );
+    orb.position.y = 21; orb.userData.isMapObject = true; g.add(orb);
+
+    // Glow
+    const cornLight = new THREE.PointLight(0xffcc44, 5, 40);
+    cornLight.position.y = 18; cornLight.userData.isMapObject = true; g.add(cornLight);
+    gen.animatedObjects.push({ type: 'glow', light: cornLight, baseIntensity: 5, pulse: true });
+
+    // Chains around base
+    for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        const chain = cyl(0.06, 0.06, 4, 5, metalMat, { roughness: 0.3 });
+        chain.position.set(Math.cos(a) * 12, 2, Math.sin(a) * 12);
+        chain.userData.isMapObject = true; g.add(chain);
+    }
+
+    // Corner pillars
+    for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        const pillar = cyl(0.4, 0.5, 6, 8, darkMat, { roughness: 0.5, metalness: 0.5 });
+        pillar.position.set(Math.cos(a) * 13, 3, Math.sin(a) * 13);
+        pillar.userData.isMapObject = true; g.add(pillar);
+
+        // Pillar top
+        const pTop = sphere(0.6, 8, 6, C.gold, { roughness: 0.3, metalness: 0.8 });
+        pTop.position.set(Math.cos(a) * 13, 6.6, Math.sin(a) * 13);
+        pTop.userData.isMapObject = true; g.add(pTop);
+
+        // Pillar lights
+        const pLight = new THREE.PointLight(0xffaa44, 1, 15);
+        pLight.position.set(Math.cos(a) * 13, 7.2, Math.sin(a) * 13);
+        pLight.userData.isMapObject = true; g.add(pLight);
+    }
+
+    // Supply crates around base
+    const cratePositions = [
+        [6, 2.2, 6], [-6, 2.2, 6], [6, 2.2, -6], [-6, 2.2, -6],
+        [10, 2.2, 0], [-10, 2.2, 0], [0, 2.2, 10], [0, 2.2, -10],
+    ];
+    for (const cp of cratePositions) {
+        const c = box(1, 1, 1, C.gold, { roughness: 0.4, metalness: 0.5 });
+        c.position.set(...cp);
+        c.userData.isMapObject = true; c.userData.isLoot = true; c.userData.isCornucopia = true;
+        g.add(c);
+        addCollider(gen, 'box', cp, [1, 1, 1]);
+    }
+
+    // Spawn pads
+    gen.spawnPads.push({ x: 0, y: 0.5, z: 0, radius: 4 });
+    for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
+        gen.spawnPads.push({ x: Math.cos(a) * 10, y: 0.5, z: Math.sin(a) * 10, radius: 2.5 });
+    }
+    for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * Math.PI * 2 - Math.PI / 2 + Math.PI / 5;
+        gen.spawnPads.push({ x: Math.cos(a) * 20, y: 0.5, z: Math.sin(a) * 20, radius: 2 });
+    }
+
+    // Spawn pad visual rings
+    for (const pad of gen.spawnPads) {
+        const ring = new THREE.Mesh(
+            new THREE.RingGeometry(pad.radius * 0.7, pad.radius, 32),
+            mat(0x4488ff, { transparent: true, opacity: 0.25, side: THREE.DoubleSide })
+        );
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.set(pad.x, 0.55, pad.z);
+        ring.userData.isMapObject = true;
+        g.add(ring);
+    }
+
+    scene.add(g);
+}
+
+// --- Lava pools ---
+function lavaPool(x, z, radius, scene, gen) {
+    const g = new THREE.Group();
+    const lavaMat = mat(C.lava, { roughness: 0.1, metalness: 0.8, emissive: 0xff3300, emissiveIntensity: 0.6 });
+
+    // Lava surface
+    const lava = new THREE.Mesh(
+        new THREE.CircleGeometry(radius, 16),
+        lavaMat
+    );
+    lava.rotation.x = -Math.PI / 2;
+    lava.position.y = 0.2;
+    lava.receiveShadow = true; lava.userData.isMapObject = true; lava.userData.isLava = true;
+    g.add(lava);
+
+    // Obsidian ring
+    const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(radius, 0.8, 6, 16),
+        mat(C.obsidian, { roughness: 0.6, metalness: 0.5 })
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.y = 0.3;
+    ring.userData.isMapObject = true; g.add(ring);
+    addCollider(gen, 'box', [x, 0.3, z], [radius * 2.2, 0.6, radius * 2.2]);
+
+    // Lava glow
+    const lLight = new THREE.PointLight(0xff4400, 4, 20);
+    lLight.position.y = 1; lLight.userData.isMapObject = true; g.add(light);
+
+    g.position.set(x, 0, z);
+    scene.add(g);
+    gen.waterMeshes.push({ type: 'lava', mesh: lava, material: lavaMat });
+}
+
+// --- Forest pond ---
+function forestPond(x, z, radius, scene) {
+    const g = new THREE.Group();
+    const waterMat = mat(C.green, { transparent: true, opacity: 0.6, roughness: 0.1 });
+
+    const water = new THREE.Mesh(
+        new THREE.CircleGeometry(radius, 16),
+        waterMat
+    );
+    water.rotation.x = -Math.PI / 2;
+    water.position.y = 0.15;
+    water.userData.isMapObject = true; water.userData.isWater = true; g.add(water);
+
+    // Stone rim
+    const rim = new THREE.Mesh(
+        new THREE.TorusGeometry(radius, 0.5, 6, 16),
+        mat(C.stone, { roughness: 0.85 })
+    );
+    rim.rotation.x = -Math.PI / 2;
+    rim.position.y = 0.1;
+    rim.userData.isMapObject = true; g.add(rim);
+
+    g.position.set(x, 0, z);
+    scene.add(g);
+}
+
+// --- Biome path ---
+function biomePath(x1, z1, x2, z2, scene) {
+    const dx = x2 - x1, dz = z2 - z1;
+    const len = Math.sqrt(dx * dx + dz * dz);
+    const angle = Math.atan2(dx, dz);
+
+    const path = box(3, 0.08, len, C.dirt, { roughness: 0.95 });
+    path.position.set((x1 + x2) / 2, 0.05, (z1 + z2) / 2);
+    path.rotation.y = angle;
+    path.receiveShadow = true; path.userData.isMapObject = true; path.userData.isPath = true;
+    scene.add(path);
+}
+
+// --- Bridge ---
+function bridge(x, z, length, rotation, scene) {
+    const g = new THREE.Group();
+
+    // Deck planks
+    for (let i = 0; i < Math.floor(length / 1.5); i++) {
+        const plank = box(3.5, 0.15, 1.4, C.wood, { roughness: 0.85 });
+        plank.position.set(0, 1.5, -length / 2 + i * 1.5 + 0.75);
+        plank.userData.isMapObject = true; g.add(plank);
+    }
+
+    // Ropes
+    for (let side of [-1, 1]) {
+        for (let i = 0; i < 5; i++) {
+            const rope = cyl(0.05, 0.05, 1.8, 5, C.woodDark, { roughness: 0.9 });
+            rope.position.set(side * 1.7, 2.5, -length / 2 + i * (length / 4));
+            rope.userData.isMapObject = true; g.add(rope);
+        }
+        // Top rope
+        const topRope = cyl(0.06, 0.06, length, 5, C.woodDark, { roughness: 0.9 });
+        topRope.position.set(side * 1.7, 3.4, 0);
+        topRope.rotation.x = Math.PI / 2;
+        topRope.userData.isMapObject = true; g.add(topRope);
+    }
+
+    // Support chains
+    for (let i = 0; i < 3; i++) {
+        const chain = cyl(0.08, 0.08, 2.5, 5, C.metal, { roughness: 0.5, metalness: 0.6 });
+        chain.position.set(0, 0.5, -length / 2 + i * (length / 2) + length / 4);
+        chain.userData.isMapObject = true; g.add(chain);
+    }
+
+    g.position.set(x, 0, z);
+    g.rotation.y = rotation;
+    scene.add(g);
+}
+
+// --- Smoke cloud ---
+function smokeCloud(x, y, z, scene) {
+    const g = new THREE.Group();
+    for (let i = 0; i < 5; i++) {
+        const cloud = sphere(1.5 + Math.random(), 8, 6, C.stoneDark, {
+            transparent: true, opacity: 0.35, roughness: 1
+        });
+        cloud.position.set(
+            (Math.random() - 0.5) * 3,
+            Math.random() * 2,
+            (Math.random() - 0.5) * 3
+        );
+        cloud.userData.isMapObject = true;
+        g.add(cloud);
+    }
+    g.position.set(x, y, z);
+    scene.add(g);
+    gen.animatedObjects.push({ type: 'smoke', group: g });
+}
+
+// --- Radiant cloud ---
+function radCloud(x, y, z, radius, damage, scene) {
+    const g = new THREE.Group();
+    const cloud = new THREE.Mesh(
+        new THREE.SphereGeometry(radius, 12, 8),
+        mat(0x88cc44, { transparent: true, opacity: 0.2, emissive: 0x88cc44, emissiveIntensity: 0.3 })
+    );
+    cloud.position.y = y; cloud.userData.isMapObject = true; g.add(cloud);
+
+    const glow = new THREE.PointLight(0x88cc44, 2, radius);
+    glow.position.y = y; glow.userData.isMapObject = true; g.add(glow);
+
+    g.position.set(x, 0, z);
+    scene.add(g);
+    gen.radiationZones.push({ position: new THREE.Vector3(x, 0, z), radius, damage });
+}
+
+// --- Trap: spike ---
+function spikeTrap(x, z, scene) {
+    const g = new THREE.Group();
+    // Base plate
+    const plate = box(1.2, 0.08, 1.2, C.metal, { roughness: 0.6, metalness: 0.5 });
+    plate.position.y = 0.04; plate.userData.isMapObject = true; g.add(plate);
+
+    // Spikes
+    for (let i = 0; i < 5; i++) {
+        const spike = new THREE.Mesh(
+            new THREE.ConeGeometry(0.1, 0.6, 4),
+            mat(C.metal, { roughness: 0.4, metalness: 0.7 })
+        );
+        spike.position.set(
+            (Math.random() - 0.5) * 0.8,
+            0.35,
+            (Math.random() - 0.5) * 0.8
+        );
+        spike.userData.isMapObject = true; g.add(spike);
+    }
+
+    g.position.set(x, 0, z);
+    scene.add(g);
+    gen.traps.push({ type: 'spike', position: new THREE.Vector3(x, 0, z), radius: 1.5, damage: 12 });
+    addCollider(null, 'box', [x, 0, z], [1.2, 0.6, 1.2]);
+}
+
+// --- Trap: bear trap ---
+function bearTrap(x, z, scene) {
+    const g = new THREE.Group();
+    // Two jaws
+    for (let i = 0; i < 2; i++) {
+        const jaw = new THREE.Mesh(
+            new THREE.BoxGeometry(0.8, 0.15, 0.12),
+            mat(C.metal, { roughness: 0.5, metalness: 0.7 })
+        );
+        jaw.position.set((i - 0.5) * 0.8, 0.08, 0);
+        jaw.rotation.z = (i - 0.5) * 0.3;
+        jaw.userData.isMapObject = true; g.add(jaw);
+    }
+
+    g.position.set(x, 0, z);
+    scene.add(g);
+    gen.traps.push({ type: 'bearTrap', position: new THREE.Vector3(x, 0, z), radius: 1, damage: 8 });
+}
+
+// ============ MAP GENERATOR CLASS ============
+const _yield = () => new Promise(r => setTimeout(r, 50));
 
 export class MapGenerator {
     constructor(scene) {
         this.scene = scene;
         this.arenaRadius = 220;
         this.spawnCourtyardRadius = 40;
-        this.halfSize = this.arenaRadius;
         this.waterLevel = 0;
         this.colliders = [];
         this.spawnPads = [];
@@ -153,336 +851,282 @@ export class MapGenerator {
         this.activeFogRing = null;
         this.onProgress = null;
         this.ready = new Promise(resolve => { this._resolveReady = resolve; });
-
-        // Shared geometries for batching
-        this._sharedGeo = new Map();
     }
 
-    reportProgress(ratio, status) {
-        this.onProgress?.(ratio, status);
-    }
+    reportProgress(ratio, status) { this.onProgress?.(ratio, status); }
 
-    // ---- Tracked PointLight helper ----
     _createPointLight(color, intensity, distance) {
         const light = new THREE.PointLight(color, intensity, distance);
         this._allPointLights.push(light);
         return light;
     }
 
-    // ---- Light culling: hide distant lights ----
     _cullPointLights(playerPos) {
         if (!playerPos || this._allPointLights.length === 0) return;
-        const maxDist = this._maxLightDistance;
-        const maxVisible = this._maxVisiblePointLights;
-
-        // Sort lights by distance to player
         const sorted = this._allPointLights.slice().sort((a, b) => {
             const da = a.position.distanceToSquared(playerPos);
             const db = b.position.distanceToSquared(playerPos);
             return da - db;
         });
-
-        // Show only the closest N lights
-        for (let i = 0; i < sorted.length; i++) {
-            sorted[i].visible = i < maxVisible;
-        }
-
-        // Also hide lights beyond max distance
+        for (let i = 0; i < sorted.length; i++) sorted[i].visible = i < this._maxVisiblePointLights;
         for (const light of this._allPointLights) {
-            if (light.visible && light.position.distanceToSquared(playerPos) > maxDist * maxDist) {
+            if (light.visible && light.position.distanceToSquared(playerPos) > this._maxLightDistance ** 2) {
                 light.visible = false;
             }
         }
     }
 
-    startGeneration() {
-        return this.generate();
+    startGeneration() { return this.generate(); }
+
+    // ===================== HEIGHT MAP =====================
+    generateHeightMap() {
+        const size = 512, res = 128, step = size / res;
+        this.heightMap = Array.from({ length: res + 1 }, () => new Float32Array(res + 1));
+        for (let i = 0; i <= res; i++)
+            for (let j = 0; j <= res; j++) {
+                const x = (i - res / 2) * step, z = (j - res / 2) * step;
+                this.heightMap[i][j] = this.noise.fbm(x * 0.01, z * 0.01, 4, 2.0, 0.5) * 15;
+            }
     }
 
-    // ---- Shared geometry helper ----
-    getSharedGeo(name, createFn) {
-        if (!this._sharedGeo.has(name)) {
-            this._sharedGeo.set(name, createFn());
-        }
-        return this._sharedGeo.get(name);
+    getHeightAt(x, z) {
+        const h1 = this.noise?.fbm?.(x * 0.01, z * 0.01, 2) ?? 0;
+        return Math.max(0, h1 * 3);
     }
 
-    // ===================== ZONE 0: ARENA FLOOR (Standard Materials) =====================
-    buildArenaFloor() {
+    getSurfaceHeightAt(x, z) { return this.getHeightAt(x, z); }
+
+    // ===================== GENERATION ORCHESTRATOR =====================
+    async generate() {
+        try {
+            this.generateHeightMap();
+            this.reportProgress(0.05, 'Создание ландшафта...');
+
+            await this._buildArena();
+            this.reportProgress(0.10, 'Ландшафт готов');
+
+            await _yield();
+            await this._buildForcefield();
+            this.reportProgress(0.15, 'Арена построена');
+
+            await _yield();
+            await this._buildCornucopia();
+            this.reportProgress(0.22, 'Корнукопия');
+
+            await _yield();
+            await this._buildInnerRing();
+            this.reportProgress(0.30, 'Внутреннее кольцо');
+
+            await this._buildBiomePaths();
+            this.reportProgress(0.35, 'Пути биомов');
+
+            await this._buildRuinedCitadel();
+            this.reportProgress(0.42, 'Руины Цитадели');
+
+            await this._buildCrystalGrotto();
+            this.reportProgress(0.50, 'Хрустальная гротовка');
+
+            await this._buildBurningWastes();
+            this.reportProgress(0.58, 'Пылающие пустоши');
+
+            await this._buildLuminousForest();
+            this.reportProgress(0.66, 'Светящийся лес');
+
+            this.reportProgress(0.70, 'Мосты и форпосты...');
+            await this._buildBridges();
+            await this._buildOuterOutposts();
+            await this._buildHazardZones();
+            this.reportProgress(0.76, 'Объекты размечены');
+
+            await this._buildLootClusters();
+            await this._buildFirePits();
+            this.reportProgress(0.80, 'Эффекты');
+
+            await this._buildDecorations();
+            this.reportProgress(0.86, 'Декорации');
+
+            await this._buildBiomeTrees();
+            this.reportProgress(0.92, 'Зоны обозначены');
+
+            await this._buildTraps();
+            this.reportProgress(0.94, 'Ловушки');
+
+            await this._buildFogZones();
+            await this._buildRadiationZones();
+            await this._buildLootData();
+            this.reportProgress(0.98, 'Мир готов');
+
+            this._resolveReady();
+        } catch (e) { this._resolveReady(); }
+    }
+
+    // ===================== ARENA FLOOR =====================
+    async _buildArena() {
         const halfSize = this.arenaRadius;
 
-        // Main terrain ground — 120 segments for height displacement
-        const groundMat = new THREE.MeshStandardMaterial({
-            color: COLOR.arenaGround,
-            roughness: 0.9,
-            metalness: 0.05
-        });
+        // Main terrain
+        const groundMat = mat(C.grass, { roughness: 0.9, metalness: 0.05 });
         const groundGeo = new THREE.PlaneGeometry(halfSize * 2, halfSize * 2, 120, 120);
         groundGeo.rotateX(-Math.PI / 2);
 
-        // Displace vertices using heightmap
         const pos = groundGeo.attributes.position;
         for (let i = 0; i <= pos.count; i++) {
-            const x = pos.getX(i);
-            const z = pos.getZ(i);
-            const h = this.getHeightAt(x, z);
-            pos.setY(i, h);
+            const x = pos.getX(i), z = pos.getZ(i);
+            pos.setY(i, this.getHeightAt(x, z));
         }
         groundGeo.computeVertexNormals();
 
         const ground = new THREE.Mesh(groundGeo, groundMat);
-        ground.rotation.set(0, 0, 0);
-        ground.position.set(0, 0, 0);
         ground.receiveShadow = true;
-        ground.castShadow = false;
-        ground.userData.isArena = true;
-        ground.userData.isFloor = true;
-        ground.userData.isGround = true;
+        ground.userData.isArena = true; ground.userData.isFloor = true; ground.userData.isGround = true;
         ground.userData.isMapObject = true;
         this.scene.add(ground);
 
-        // Collision box for the arena floor
         this.colliders.push({
-            type: 'box',
-            position: new THREE.Vector3(0, 0, 0),
-            size: new THREE.Vector3(halfSize * 2, 1, halfSize * 2),
-            walkable: true
+            type: 'box', position: new THREE.Vector3(0, 0, 0),
+            size: new THREE.Vector3(halfSize * 2, 1, halfSize * 2), walkable: true
         });
 
-       // Biome zone overlays — circular with terrain variation and edge blending
-        // Citadel: center (-80, 80), radius 70
-        // Crystal: center (80, 80), radius 70
-        // Wastes: center (-80, -80), radius 75
-        // Forest: center (80, -80), radius 75
+        // Biome overlays
         const biomeZones = [
-            { name: 'citadel',  color: COLOR.ruinFloor,   x: -80, z:  80, radius: 70 },
-            { name: 'crystal',  color: COLOR.crystalFloor, x:  80, z:  80, radius: 70 },
-            { name: 'wastes',   color: COLOR.wasteGround,  x: -80, z: -80, radius: 75 },
-            { name: 'forest',   color: COLOR.luminousFloor, x:  80, z: -80, radius: 75 },
+            { name: 'citadel',  color: C.red,     x: -80, z:  80, radius: 70 },
+            { name: 'crystal',  color: C.blue,    x:  80, z:  80, radius: 70 },
+            { name: 'wastes',   color: 0xcc4400,  x: -80, z: -80, radius: 75 },
+            { name: 'forest',   color: C.green,   x:  80, z: -80, radius: 75 },
         ];
 
         for (const bz of biomeZones) {
-            const biomeMat = new THREE.MeshStandardMaterial({
-                color: bz.color,
-                roughness: 0.85,
-                metalness: 0.05
-            });
-            // Circular biome with segments for height variation
             const biomeGeo = new THREE.CircleGeometry(bz.radius, 48, 24);
             biomeGeo.rotateX(-Math.PI / 2);
-
-            // Displace vertices for terrain variation
-            const pos = biomeGeo.attributes.position;
-            for (let i = 0; i <= pos.count; i++) {
-                const px = pos.getX(i);
-                const pz = pos.getZ(i);
+            const bp = biomeGeo.attributes.position;
+            for (let i = 0; i <= bp.count; i++) {
+                const px = bp.getX(i), pz = bp.getZ(i);
                 const dist = Math.sqrt(px * px + pz * pz);
                 if (dist <= bz.radius - 0.5) {
                     const h = this.noise.fbm(px * 0.03, pz * 0.03, 3, 2, 0.5) * 2.5;
-                    // Fade height near edges for blending
-                    const blendFactor = dist / (bz.radius - 1);
-                    const fade = Math.pow(1 - blendFactor, 2) * 0.15;
-                    pos.setY(i, h + fade);
+                    const blend = dist / (bz.radius - 1);
+                    bp.setY(i, h + Math.pow(1 - blend, 2) * 0.15);
                 }
             }
             biomeGeo.computeVertexNormals();
 
-            const biomeMesh = new THREE.Mesh(biomeGeo, biomeMat);
-            biomeMesh.position.set(bz.x, 0.015, bz.z);
+            const biomeMesh = new THREE.Mesh(biomeGeo, mat(bz.color, { roughness: 0.85, transparent: true, opacity: 0.35 }));
+            biomeMesh.position.set(bz.x, 0.02, bz.z);
             biomeMesh.receiveShadow = true;
-            biomeMesh.castShadow = false;
-            biomeMesh.userData.isArena = true;
-            biomeMesh.userData.isBiome = true;
+            biomeMesh.userData.isArena = true; biomeMesh.userData.isBiome = true;
             biomeMesh.userData.biomeName = bz.name;
             biomeMesh.userData.isMapObject = true;
             this.scene.add(biomeMesh);
         }
 
-        // === Clear zone separators (ground trenches + low walls with gaps) ===
-        const dividerMat = new THREE.MeshStandardMaterial({ color: 0x3a3a2a, roughness: 0.95 });
+        // Zone dividers
+        await this._buildDividers();
 
-      // Helper: build a segmented divider wall (with gate gaps)
-        function buildDividerAxis(segments) {
-            for (const seg of segments) {
-                const geo = new THREE.BoxGeometry(seg.w || 1, 0.5, seg.h || 1);
-                const wall = new THREE.Mesh(geo, dividerMat);
-                wall.position.set(seg.x, 0.25, seg.z);
-                wall.receiveShadow = true;
-                wall.userData.isDecoration = true;
-                wall.userData.decorationType = 'zoneDivider';
-                wall.userData.isMapObject = true;
-                this.scene.add(wall);
-                if (seg.collide) {
-                    this.colliders.push({
-                        type: 'box',
-                        position: new THREE.Vector3(seg.x, 0.25, seg.z),
-                        size: new THREE.Vector3(seg.w || 1, 0.5, seg.h || 1),
-                        enabled: true
-                    });
-                }
-            }
-        }
+        // Spawn courtyard
+        const spawnGeo = new THREE.CircleGeometry(this.spawnCourtyardRadius, 32);
+        spawnGeo.rotateX(-Math.PI / 2);
+        const spawnPad = new THREE.Mesh(spawnGeo, mat(C.metalLight || 0x9a9a9a, { roughness: 0.6, metalness: 0.2 }));
+        spawnPad.position.y = 0.02;
+        spawnPad.receiveShadow = true;
+        spawnPad.userData.isArena = true; spawnPad.userData.isSpawnPad = true;
+        spawnPad.userData.isMapObject = true;
+        this.scene.add(spawnPad);
 
-        // Gate post positions (4 cardinal gate openings)
+        // Terrain hills
+        await this._buildTerrainHills();
+    }
+
+    async _buildDividers() {
+        const dividerMat = mat(0x3a3a2a, { roughness: 0.95 });
+        const gateMat = mat(0x6a5a3a, { roughness: 0.8 });
+
+        // Gate positions
         const gatePositions = [
-            { x: 0, z: -25, axis: 'z' },  // gate north (between citadel and crystal)
-            { x: 0, z: 25, axis: 'z' },   // gate south (between wastes and forest)
-            { x: -25, z: 0, axis: 'x' },  // gate west (between citadel and wastes)
-            { x: 25, z: 0, axis: 'x' },   // gate east (between crystal and forest)
+            { x: 0, z: -25 }, { x: 0, z: 25 },
+            { x: -25, z: 0 }, { x: 25, z: 0 }
         ];
-        const gateMat = new THREE.MeshStandardMaterial({ color: 0x6a5a3a, roughness: 0.8 });
 
-        // Vertical axis divider (x=0) - gaps at gate z positions
-        const vSegments = [];
+        function isGate(z, x, gates) {
+            for (const gp of gates) {
+                if (gp.axis === 'z' && Math.abs(z - gp.z) < 5) return true;
+                if (gp.axis === 'x' && Math.abs(x - gp.x) < 5) return true;
+            }
+            return false;
+        }
+
+        // Vertical divider (x=0)
         for (let z = -200; z <= 200; z += 4) {
-            let inGate = false;
-            for (const gp of gatePositions) {
-                if (Math.abs(gp.z) < 5 && gp.axis === 'z') {
-                    if (Math.abs(z - gp.z) < 5) inGate = true;
+            if (Math.abs(z) < 25 && Math.abs(z) < 30) {
+                const inGate = gatePositions.some(gp => gp.axis === 'z' && Math.abs(z - gp.z) < 5);
+                if (!inGate) {
+                    const w = box(1.2, 0.5, 4, 0x3a3a2a, { roughness: 0.95 });
+                    w.position.set(0, 0.25, z);
+                    w.userData.isMapObject = true;
+                    this.scene.add(w);
+                    this.colliders.push({ type: 'box', position: new THREE.Vector3(0, 0.25, z), size: new THREE.Vector3(1.2, 0.5, 4), walkable: false });
                 }
             }
-            if (!inGate) {
-                vSegments.push({ x: 0, z: z, w: 1.2, h: 4, collide: true });
-            }
         }
-        buildDividerAxis.call(this, vSegments);
 
-        // Horizontal axis divider (z=0) - gaps at gate x positions
-        const hSegments = [];
+        // Horizontal divider (z=0)
         for (let x = -200; x <= 200; x += 4) {
-            let inGate = false;
-            for (const gp of gatePositions) {
-                if (Math.abs(gp.x) < 5 && gp.axis === 'x') {
-                    if (Math.abs(x - gp.x) < 5) inGate = true;
-                }
-            }
+            const inGate = gatePositions.some(gp => gp.axis === 'x' && Math.abs(x - gp.x) < 5);
             if (!inGate) {
-                hSegments.push({ x: x, z: 0, w: 4, h: 1.2, collide: true });
+                const w = box(4, 0.5, 1.2, 0x3a3a2a, { roughness: 0.95 });
+                w.position.set(x, 0.25, 0);
+                w.userData.isMapObject = true;
+                this.scene.add(w);
+                this.colliders.push({ type: 'box', position: new THREE.Vector3(x, 0.25, 0), size: new THREE.Vector3(4, 0.5, 1.2), walkable: false });
             }
         }
-        buildDividerAxis.call(this, hSegments);
 
-        // Corner diagonal fillers
-        const cornerPositions = [
-            { x: -30, z: 30, r: Math.PI * 0.25 },
-            { x: 30, z: 30, r: -Math.PI * 0.25 },
-            { x: -30, z: -30, r: -Math.PI * 0.75 },
-            { x: 30, z: -30, r: Math.PI * 0.75 },
-        ];
-        for (const cp of cornerPositions) {
-            const geo = new THREE.BoxGeometry(1, 0.5, 3);
-            const c = new THREE.Mesh(geo, dividerMat);
-            c.position.set(cp.x, 0.25, cp.z);
-            c.rotation.y = cp.r;
-            c.receiveShadow = true;
-            c.userData.isDecoration = true;
-            c.userData.decorationType = 'zoneDivider';
-            c.userData.isMapObject = true;
-            this.scene.add(c);
-        }
-
-        // === Gate structures (4 cardinal gates) ===
+        // Gate structures
         for (const gp of gatePositions) {
             const gatePostGeo = new THREE.CylinderGeometry(0.12, 0.15, 3.5, 6);
-
-            // Left/Right posts (relative to gate axis)
             const posts = [];
+
             if (gp.axis === 'z') {
                 for (let dx of [-2, 2]) {
                     const p = new THREE.Mesh(gatePostGeo, gateMat);
                     p.position.set(gp.x + dx, 1.75, gp.z);
-                    p.castShadow = true;
-                    posts.push(p);
+                    p.castShadow = true; posts.push(p);
                 }
+                const beam = box(4.5, 0.2, 0.5, C.wood, { roughness: 0.8 });
+                beam.position.set(gp.x, 3.5, gp.z);
+                beam.castShadow = true; beam.userData.isMapObject = true; this.scene.add(beam);
             } else {
                 for (let dz of [-2, 2]) {
                     const p = new THREE.Mesh(gatePostGeo, gateMat);
                     p.position.set(gp.x, 1.75, gp.z + dz);
-                    p.castShadow = true;
-                    posts.push(p);
+                    p.castShadow = true; posts.push(p);
                 }
-            }
-            posts.forEach(p => {
-                this.scene.add(p);
-                p.userData.isDecoration = true;
-                p.userData.isMapObject = true;
-                p.userData.isGatePost = true;
-            });
-
-            // Top beam
-            if (gp.axis === 'z') {
-                const beamGeo = new THREE.BoxGeometry(4.5, 0.2, 0.5);
-                const beam = new THREE.Mesh(beamGeo, gateMat);
+                const beam = box(0.5, 0.2, 4.5, C.wood, { roughness: 0.8 });
                 beam.position.set(gp.x, 3.5, gp.z);
-                beam.castShadow = true;
-                beam.userData.isDecoration = true;
-                beam.userData.isMapObject = true;
-                this.scene.add(beam);
-            } else {
-                const beamGeo = new THREE.BoxGeometry(0.5, 0.2, 4.5);
-                const beam = new THREE.Mesh(beamGeo, gateMat);
-                beam.position.set(gp.x, 3.5, gp.z);
-                beam.castShadow = true;
-                beam.userData.isDecoration = true;
-                beam.userData.isMapObject = true;
-                this.scene.add(beam);
+                beam.castShadow = true; beam.userData.isMapObject = true; this.scene.add(beam);
             }
 
-            // Gate light
-            const lightColor = gp.x < -10 ? 0xcc8844 : gp.x > 10 ? 0x44aacc :
-                              gp.z < -10 ? 0xcc4444 : 0x44cc44;
+            posts.forEach(p => { p.userData.isMapObject = true; p.userData.isGatePost = true; this.scene.add(p); });
+
+            const lightColor = gp.x < -10 ? 0xcc8844 : gp.x > 10 ? 0x44aacc : gp.z < -10 ? 0xcc4444 : 0x44cc44;
             const gateLight = this._createPointLight(lightColor, 0.5, 8);
             gateLight.position.set(gp.x, 4, gp.z);
             this.scene.add(gateLight);
             this.animatedObjects.push({ type: 'glow', light: gateLight, baseIntensity: 0.5 });
         }
-
-        // Spawn courtyard (flat pad in the center)
-        const spawnMat = new THREE.MeshStandardMaterial({
-            color: COLOR.metalLight,
-            roughness: 0.6,
-            metalness: 0.2
-        });
-        const spawnGeo = new THREE.CircleGeometry(this.spawnCourtyardRadius, 32);
-        spawnGeo.rotateX(-Math.PI / 2);
-        const spawnPad = new THREE.Mesh(spawnGeo, spawnMat);
-        spawnPad.position.set(0, 0.02, 0);
-        spawnPad.receiveShadow = true;
-        spawnPad.userData.isArena = true;
-        spawnPad.userData.isSpawnPad = true;
-        spawnPad.userData.isMapObject = true;
-        this.scene.add(spawnPad);
-
-        // Gentle terrain hills using InstancedMesh — now with proper terrain mounds
-        this._buildTerrainHills();
     }
 
-    _buildTerrainHills() {
-        const hillMat = new THREE.MeshStandardMaterial({
-            color: COLOR.terrain,
-            roughness: 1.0,
-            metalness: 0.0
-        });
-
-        // Terrain mounds using IcosahedronGeometry for natural look
+    async _buildTerrainHills() {
+        const hillMat = mat(C.grass, { roughness: 1.0 });
         const hillData = [];
+
         for (let i = 0; i < 50; i++) {
             const angle = Math.random() * Math.PI * 2;
             const r = 40 + Math.random() * (this.arenaRadius - 65);
-            const x = Math.cos(angle) * r;
-            const z = Math.sin(angle) * r;
+            const x = Math.cos(angle) * r, z = Math.sin(angle) * r;
             const h = this.noise.fbm(x * 0.008, z * 0.008, 3) * 4;
             if (Math.abs(h) < 0.3) continue;
-            const size = 5 + Math.abs(h) * 2.5;
-            hillData.push({
-                x,
-                y: Math.abs(h) * 0.4,
-                z,
-                scale: Math.max(0.6, Math.abs(h) * 0.6),
-                rotY: Math.random() * Math.PI,
-                castShadow: h > 0,
-                receiveShadow: true
-            });
+
+            hillData.push({ x, y: Math.abs(h) * 0.4, z, scale: Math.max(0.6, Math.abs(h) * 0.6), rotY: Math.random() * Math.PI });
         }
 
         if (hillData.length > 0) {
@@ -498,3495 +1142,481 @@ export class MapGenerator {
                 inst.setMatrixAt(i, dummy.matrix);
             }
             inst.instanceMatrix.needsUpdate = true;
-            inst.receiveShadow = true;
-            inst.castShadow = true;
-            inst.userData.isArena = true;
-            inst.userData.isTerrain = true;
-            inst.userData.isHill = true;
-            inst.userData.isCover = true;
-            inst.userData.isMapObject = true;
+            inst.receiveShadow = true; inst.castShadow = true;
+            inst.userData.isTerrain = true; inst.userData.isMapObject = true;
             this.scene.add(inst);
         }
     }
 
     // ===================== FORCEFIELD =====================
-    buildForcefield() {
-        const ffMat = new THREE.MeshBasicMaterial({
-            color: COLOR.forcefield,
-            transparent: true,
-            opacity: 0.15,
-            depthWrite: false,
-            side: THREE.DoubleSide
-        });
-
+    async _buildForcefield() {
+        const ffMat = mat(C.blue, { transparent: true, opacity: 0.15, depthWrite: false, side: THREE.DoubleSide });
         const ffGeo = new THREE.CylinderGeometry(this.arenaRadius, this.arenaRadius, 12, 64, 1, true);
         const forcefield = new THREE.Mesh(ffGeo, ffMat);
         forcefield.position.y = 6;
-        forcefield.userData.isArena = true;
-        forcefield.userData.isForcefield = true;
+        forcefield.userData.isArena = true; forcefield.userData.isForcefield = true;
         forcefield.userData.isMapObject = true;
         this.scene.add(forcefield);
-        this.animatedObjects.push({
-            type: 'forcefield',
-            mesh: forcefield,
-            material: ffMat,
-            baseOpacity: 0.15
-        });
 
-        // Top and bottom rings
-        const ringMat = new THREE.MeshBasicMaterial({
-            color: COLOR.forcefield,
-            transparent: true,
-            opacity: 0.5,
-            side: THREE.DoubleSide
-        });
+        this.animatedObjects.push({ type: 'forcefield', mesh: forcefield, material: ffMat, baseOpacity: 0.15 });
 
+        const ringMat = mat(C.blue, { transparent: true, opacity: 0.5, side: THREE.DoubleSide });
         const topRing = new THREE.Mesh(new THREE.TorusGeometry(this.arenaRadius, 0.3, 8, 64), ringMat);
-        topRing.position.y = 12;
-        topRing.rotation.x = Math.PI / 2;
-        topRing.userData.isMapObject = true;
-        this.scene.add(topRing);
+        topRing.position.y = 12; topRing.rotation.x = Math.PI / 2;
+        topRing.userData.isMapObject = true; this.scene.add(topRing);
 
         const bottomRing = new THREE.Mesh(new THREE.TorusGeometry(this.arenaRadius, 0.3, 8, 64), ringMat);
-        bottomRing.position.y = 0;
-        bottomRing.rotation.x = Math.PI / 2;
-        bottomRing.userData.isMapObject = true;
-        this.scene.add(bottomRing);
+        bottomRing.position.y = 0; bottomRing.rotation.x = Math.PI / 2;
+        bottomRing.userData.isMapObject = true; this.scene.add(bottomRing);
 
-        // Vertical support lines
         for (let i = 0; i < 48; i++) {
-            const angle = (i / 48) * Math.PI * 2;
-            const points = [
-                new THREE.Vector3(Math.cos(angle) * this.arenaRadius, 0, Math.sin(angle) * this.arenaRadius),
-                new THREE.Vector3(Math.cos(angle) * this.arenaRadius, 12, Math.sin(angle) * this.arenaRadius)
+            const a = (i / 48) * Math.PI * 2;
+            const pts = [
+                new THREE.Vector3(Math.cos(a) * this.arenaRadius, 0, Math.sin(a) * this.arenaRadius),
+                new THREE.Vector3(Math.cos(a) * this.arenaRadius, 12, Math.sin(a) * this.arenaRadius)
             ];
-            const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
-            const lineMat = new THREE.LineBasicMaterial({ color: COLOR.forcefield, transparent: true, opacity: 0.3 });
-            const line = new THREE.Line(lineGeo, lineMat);
+            const line = new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints(pts),
+                new THREE.LineBasicMaterial({ color: C.blue, transparent: true, opacity: 0.3 })
+            );
             line.userData.isMapObject = true;
             this.scene.add(line);
         }
     }
 
-    // ===================== CORNUOPIA =====================
-    async buildCornucopia() {
-        // Base platform
-        const baseGeo = this.getSharedGeo('cornBase', () =>
-            new THREE.CylinderGeometry(16, 18, 3, 8));
-        const base = new THREE.Mesh(baseGeo, new THREE.MeshStandardMaterial({
-            color: COLOR.metalDark, roughness: 0.6, metalness: 0.3
-        }));
-        base.position.set(0, 1.5, 0);
-        base.castShadow = true;
-        base.receiveShadow = true;
-        base.userData.isArena = true;
-        base.userData.isCornucopia = true;
-        base.userData.isMapObject = true;
-        this.scene.add(base);
-        this.colliders.push({
-            type: 'box',
-            position: new THREE.Vector3(0, 1.5, 0),
-            size: new THREE.Vector3(36, 3, 36),
-            walkable: true
-        });
-
-        // Hull
-        const hullGeo = this.getSharedGeo('cornHull', () =>
-            new THREE.BoxGeometry(10, 10, 10));
-        const hull = new THREE.Mesh(hullGeo, new THREE.MeshStandardMaterial({
-            color: COLOR.metalLight, roughness: 0.5, metalness: 0.4
-        }));
-        hull.position.set(0, 8, 0);
-        hull.rotation.y = Math.PI / 4;
-        hull.scale.set(1, 1, 0.6);
-        hull.castShadow = true;
-        hull.userData.isArena = true;
-        hull.userData.isCornucopia = true;
-        hull.userData.isMapObject = true;
-        this.scene.add(hull);
-
-        // Horns
-        const hornMat = new THREE.MeshStandardMaterial({
-            color: COLOR.metalGold, roughness: 0.3, metalness: 0.6
-        });
-        for (let side of [-1, 1]) {
-            const hornGeo = this.getSharedGeo('cornHorn', () =>
-                new THREE.CylinderGeometry(0.3, 1.2, 12, 10));
-            const horn = new THREE.Mesh(hornGeo, hornMat);
-            horn.position.set(side * 7, 14, 0);
-            horn.rotation.z = side * 0.3;
-            horn.castShadow = true;
-            horn.userData.isArena = true;
-            horn.userData.isCornucopia = true;
-            horn.userData.isMapObject = true;
-            this.scene.add(horn);
-        }
-
-        // Spire
-        const spireGeo = this.getSharedGeo('cornSpire', () =>
-            new THREE.CylinderGeometry(1.5, 3, 8, 8));
-        const spire = new THREE.Mesh(spireGeo, new THREE.MeshStandardMaterial({
-            color: COLOR.metalDark, roughness: 0.4, metalness: 0.5
-        }));
-        spire.position.set(0, 17, 0);
-        spire.castShadow = true;
-        spire.userData.isArena = true;
-        spire.userData.isCornucopia = true;
-        spire.userData.isMapObject = true;
-        this.scene.add(spire);
-
-        // Spire top
-        const spireTopGeo = this.getSharedGeo('cornSpireTop', () =>
-            new THREE.SphereGeometry(1.5, 8, 6));
-        const spireTop = new THREE.Mesh(spireTopGeo, hornMat);
-        spireTop.position.set(0, 22, 0);
-        spireTop.castShadow = true;
-        this.scene.add(spireTop);
-
-        // Chest at center
-        this._buildChest(0, 3.1, 0, 5);
-
-        // Observation platform
-        const obsGeo = this.getSharedGeo('cornObs', () =>
-            new THREE.CylinderGeometry(4.5, 4.5, 0.3, 8));
-        const obs = new THREE.Mesh(obsGeo, new THREE.MeshStandardMaterial({
-            color: COLOR.metalDark, roughness: 0.7, metalness: 0.3
-        }));
-        obs.position.set(0, 5, 14);
-        obs.receiveShadow = true;
-        obs.userData.isArena = true;
-        obs.userData.isCornucopia = true;
-        obs.userData.isMapObject = true;
-        this.scene.add(obs);
-
-        // Supply crates around cornucopia
-        const cratePositions = [
-            { x: 5, z: 5 }, { x: -5, z: 5 }, { x: 5, z: -5 }, { x: -5, z: -5 },
-            { x: 10, z: 0 }, { x: -10, z: 0 }, { x: 0, z: 10 }, { x: 0, z: -10 },
-            { x: 8, z: 8 }, { x: -8, z: 8 }, { x: 8, z: -8 }, { x: -8, z: -8 },
-            { x: 12, z: 6 }, { x: -12, z: 6 }
-        ];
-        for (const cp of cratePositions) {
-            const crateGeo = new THREE.BoxGeometry(1.2, 1, 1);
-            const crate = new THREE.Mesh(crateGeo, new THREE.MeshStandardMaterial({
-                color: COLOR.chestWood, roughness: 0.8, metalness: 0.05
-            }));
-            crate.position.set(cp.x, 0.5, cp.z);
-            crate.castShadow = true;
-            crate.receiveShadow = true;
-            crate.userData.isArena = true;
-            crate.userData.isCornucopia = true;
-            crate.userData.isMapObject = true;
-            this.scene.add(crate);
-            this.colliders.push({
-                type: 'box',
-                position: new THREE.Vector3(cp.x, 0.5, cp.z),
-                size: new THREE.Vector3(1.2, 1, 1),
-                walkable: false
-           });
-        }
+    // ===================== CORNUCOPIA =====================
+    async _buildCornucopia() {
+        cornucopia(this.scene, this);
         await _yield();
-
-        // 11 spawn pads
-        this.spawnPads.push({ x: 0, y: 0, z: 0, radius: 3.5 });
-
-        for (let i = 0; i < 5; i++) {
-            const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
-            this.spawnPads.push({
-                x: Math.cos(a) * 8,
-                y: 0,
-                z: Math.sin(a) * 8,
-                radius: 2
-            });
-        }
-
-        for (let i = 0; i < 5; i++) {
-            const a = (i / 5) * Math.PI * 2 - Math.PI / 2 + Math.PI / 5;
-            this.spawnPads.push({
-                x: Math.cos(a) * 16,
-                y: 0,
-                z: Math.sin(a) * 16,
-                radius: 1.8
-            });
-        }
-
-        // Spawn pad visual markers
-        const padMat = new THREE.MeshBasicMaterial({ color: 0x4488ff, transparent: true, opacity: 0.3 });
-        for (const pad of this.spawnPads) {
-            const ringGeo = new THREE.RingGeometry(pad.radius * 0.8, pad.radius, 24);
-            ringGeo.rotateX(-Math.PI / 2);
-            const ring = new THREE.Mesh(ringGeo, padMat);
-            ring.position.set(pad.x, 0.05, pad.z);
-            this.scene.add(ring);
-        }
-        await _yield();
-        await _yield();
-    }
-
-    _buildChest(x, y, z, tier) {
-        const chestGroup = new THREE.Group();
-        chestGroup.position.set(x, y, z);
-
-        const bodyGeo = new THREE.BoxGeometry(0.8, 0.6, 0.5);
-        const body = new THREE.Mesh(bodyGeo, new THREE.MeshStandardMaterial({
-            color: COLOR.chestWood, roughness: 0.7, metalness: 0.1
-        }));
-        body.position.y = 0.3;
-        body.castShadow = true;
-        chestGroup.add(body);
-
-        const lidGeo = new THREE.BoxGeometry(0.8, 0.15, 0.5);
-        const lid = new THREE.Mesh(lidGeo, new THREE.MeshStandardMaterial({
-            color: COLOR.chestWood, roughness: 0.7, metalness: 0.1
-        }));
-        lid.position.set(0, 0.67, 0);
-        lid.castShadow = true;
-        chestGroup.add(lid);
-
-        // Gold trim
-        const trimGeo = new THREE.BoxGeometry(0.82, 0.05, 0.52);
-        const trim = new THREE.Mesh(trimGeo, new THREE.MeshStandardMaterial({
-            color: COLOR.chestGold, roughness: 0.3, metalness: 0.7
-        }));
-        trim.position.y = 0.6;
-        chestGroup.add(trim);
-
-        // Lock
-        const lockGeo = new THREE.SphereGeometry(0.08, 6, 4);
-        const lock = new THREE.Mesh(lockGeo, new THREE.MeshStandardMaterial({
-            color: COLOR.chestGold, roughness: 0.2, metalness: 0.8
-        }));
-        lock.position.set(0, 0.3, 0.27);
-        chestGroup.add(lock);
-
-        this.scene.add(chestGroup);
-        this.colliders.push({
-            type: 'box',
-            position: new THREE.Vector3(x, y + 0.3, z),
-            size: new THREE.Vector3(0.8, 0.6, 0.5),
-            walkable: false
-        });
     }
 
     // ===================== INNER RING =====================
-    async buildInnerRing() {
-        // 8 outposts around the ring
+    async _buildInnerRing() {
+        // 8 outposts
         for (let i = 0; i < 8; i++) {
-            const angle = (i / 8) * Math.PI * 2;
-            const r = 110;
-            const x = Math.cos(angle) * r;
-            const z = Math.sin(angle) * r;
+            const a = (i / 8) * Math.PI * 2, r = 110;
+            const x = Math.cos(a) * r, z = Math.sin(a) * r;
 
             if (i % 2 === 0) {
-                // Stone outpost
-                this._buildStoneOutpost(x, z, angle);
+                stoneOutpost(x, z, a, this.scene, this);
             } else {
-                // Wooden barricade
-                this._buildWoodenBarricade(x, z, angle);
+                woodenBarricade(x, z, a, this.scene, this);
             }
 
-          // Loot glow
             const glowLight = this._createPointLight(0xffcc44, 0.5, 10);
             glowLight.position.set(x, 3, z);
             this.scene.add(glowLight);
-        }
-        await _yield();
-
-        // Scouting mounds (4 cardinal)
-        for (let i = 0; i < 4; i++) {
-            const angle = (i / 4) * Math.PI * 2 + Math.PI / 8;
-            const r = 130;
-            const x = Math.cos(angle) * r;
-            const z = Math.sin(angle) * r;
-
-            const moundGeo = new THREE.ConeGeometry(5, 6, 6);
-            const mound = new THREE.Mesh(moundGeo, new THREE.MeshStandardMaterial({
-                color: COLOR.stone, roughness: 0.9
-            }));
-            mound.position.set(x, 3, z);
-            mound.castShadow = true;
-            mound.userData.isArena = true;
-            mound.userData.isTerrain = true;
-            mound.userData.isMapObject = true;
-            this.scene.add(mound);
-
-            const platGeo = new THREE.CylinderGeometry(3, 3, 0.2, 8);
-            const plat = new THREE.Mesh(platGeo, new THREE.MeshStandardMaterial({
-                color: COLOR.ruinStone, roughness: 0.8
-            }));
-            plat.position.set(x, 6.1, z);
-            plat.receiveShadow = true;
-            plat.userData.isArena = true;
-            plat.userData.isMapObject = true;
-            this.scene.add(plat);
-        }
-        await _yield();
-
-        // Cover rocks
-        for (let i = 0; i < 30; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = 45 + Math.random() * 160;
-            const x = Math.cos(angle) * r;
-            const z = Math.sin(angle) * r;
-
-            const rockGeo = new THREE.DodecahedronGeometry(0.8 + Math.random() * 1.2, 0);
-            const rock = new THREE.Mesh(rockGeo, new THREE.MeshStandardMaterial({
-                color: COLOR.stone, roughness: 0.9, metalness: 0.05
-            }));
-            rock.position.set(x, 0.5, z);
-            rock.rotation.set(Math.random(), Math.random(), Math.random());
-            rock.scale.y = 0.6 + Math.random() * 0.4;
-            rock.castShadow = true;
-            rock.receiveShadow = true;
-            rock.userData.isArena = true;
-            rock.userData.isCover = true;
-            rock.userData.isTerrain = true;
-            rock.userData.isMapObject = true;
-            this.scene.add(rock);
-            this.colliders.push({
-                type: 'box',
-                position: new THREE.Vector3(x, 0.5, z),
-                size: new THREE.Vector3(1.6, 1.6, 1.6),
-                walkable: false
-            });
-        }
-        await _yield();
-    }
-
-    _buildStoneOutpost(x, z, angle) {
-        const wallMat = new THREE.MeshStandardMaterial({
-            color: COLOR.ruinStone, roughness: 0.8, metalness: 0.1
-        });
-        const darkMat = new THREE.MeshStandardMaterial({
-            color: COLOR.ruinDarkStone, roughness: 0.9, metalness: 0.05
-        });
-
-        // 4 walls with entrance gap
-        for (let w = 0; w < 4; w++) {
-            if (w === 1) continue; // Leave entrance gap
-            const wallGeo = new THREE.BoxGeometry(4, 3.5, 0.6);
-            const wall = new THREE.Mesh(wallGeo, wallMat);
-            const a = angle + (w - 1) * Math.PI / 2;
-            wall.position.set(
-                x + Math.cos(a) * 4,
-                1.75,
-                z + Math.sin(a) * 4
-            );
-            wall.rotation.y = a;
-            wall.castShadow = true;
-            wall.receiveShadow = true;
-            wall.userData.isArena = true;
-            wall.userData.isMapObject = true;
-            this.scene.add(wall);
-            this.colliders.push({
-                type: 'box',
-                position: new THREE.Vector3(
-                    x + Math.cos(a) * 4, 1.75,
-                    z + Math.sin(a) * 4
-                ),
-                size: new THREE.Vector3(4, 3.5, 0.6),
-                walkable: false
-            });
-        }
-
-        // Corner posts
-        for (let c = 0; c < 4; c++) {
-            const postGeo = new THREE.BoxGeometry(0.4, 4.5, 0.4);
-            const post = new THREE.Mesh(postGeo, darkMat);
-            const a = angle + c * Math.PI / 2;
-            post.position.set(
-                x + Math.cos(a) * 4.2,
-                2.25,
-                z + Math.sin(a) * 4.2
-            );
-            post.castShadow = true;
-            post.userData.isArena = true;
-            post.userData.isMapObject = true;
-            this.scene.add(post);
-        }
-
-        // Torus roof
-        const roofGeo = new THREE.TorusGeometry(3.5, 0.3, 6, 8);
-        const roof = new THREE.Mesh(roofGeo, new THREE.MeshStandardMaterial({
-            color: COLOR.wood, roughness: 0.9
-        }));
-        roof.position.set(x, 4.5, z);
-        roof.rotation.x = Math.PI / 2;
-        roof.castShadow = true;
-        roof.userData.isArena = true;
-        roof.userData.isMapObject = true;
-        this.scene.add(roof);
-
-        // Floor
-        const floorGeo = new THREE.CircleGeometry(4, 8);
-        floorGeo.rotateX(-Math.PI / 2);
-        const floor = new THREE.Mesh(floorGeo, new THREE.MeshStandardMaterial({
-            color: COLOR.ruinFloor, roughness: 0.9
-        }));
-        floor.position.set(x, 0.05, z);
-        floor.receiveShadow = true;
-        floor.userData.isArena = true;
-        floor.userData.isMapObject = true;
-        this.scene.add(floor);
-    }
-
-    _buildWoodenBarricade(x, z) {
-        const woodMat = new THREE.MeshStandardMaterial({
-            color: COLOR.wood, roughness: 0.85, metalness: 0.0
-        });
-
-        // 3 walls
-        for (let w = 0; w < 3; w++) {
-            const wallGeo = new THREE.BoxGeometry(5, 2, 0.4);
-            const wall = new THREE.Mesh(wallGeo, woodMat);
-            const a = w * Math.PI * 2 / 3;
-            wall.position.set(
-                x + Math.cos(a) * 3,
-                1,
-                z + Math.sin(a) * 3
-            );
-            wall.rotation.y = a;
-            wall.castShadow = true;
-            wall.receiveShadow = true;
-            wall.userData.isArena = true;
-            wall.userData.isCover = true;
-            wall.userData.isMapObject = true;
-            this.scene.add(wall);
-            this.colliders.push({
-                type: 'box',
-                position: new THREE.Vector3(
-                    x + Math.cos(a) * 3, 1,
-                    z + Math.sin(a) * 3
-                ),
-                size: new THREE.Vector3(5, 2, 0.4),
-                walkable: false
-            });
-        }
-
-        // Roof beam
-        const beamGeo = new THREE.BoxGeometry(6, 0.2, 0.2);
-        const beam = new THREE.Mesh(beamGeo, woodMat);
-        beam.position.set(x, 2.5, z);
-        beam.castShadow = true;
-        beam.userData.isArena = true;
-        beam.userData.isMapObject = true;
-        this.scene.add(beam);
-    }
-
-    // ===================== BIOME ZONES =====================
-    async buildBiomePaths() {
-        const pathMat = new THREE.MeshStandardMaterial({
-            color: COLOR.arenaPath,
-            roughness: 0.9,
-            metalness: 0.0
-        });
-
-        // 4 diagonal paths from center to biomes
-        for (let i = 0; i < 4; i++) {
-            const angle = (i / 4) * Math.PI * 2 + Math.PI / 4;
-            const cosA = Math.cos(angle);
-            const sinA = Math.sin(angle);
-
-            // Path tiles
-            for (let t = 0; t < 40; t++) {
-                const dist = 25 + t * 4.5;
-                const tileW = 1.5 + (1 - dist / 220) * 1;
-                const tileGeo = new THREE.PlaneGeometry(tileW, 3);
-                tileGeo.rotateX(-Math.PI / 2);
-                const tile = new THREE.Mesh(tileGeo, pathMat);
-                tile.position.set(
-                    cosA * dist,
-                    0.015,
-                    sinA * dist
-                );
-                tile.rotation.z = angle;
-                tile.receiveShadow = true;
-                tile.userData.isArena = true;
-                tile.userData.isPath = true;
-                tile.userData.isMapObject = true;
-                this.scene.add(tile);
-                if (t % 5 === 0) await _yield();
-            }
-
-            // Lantern posts
-            for (let l = 0; l < 4; l++) {
-                const dist = 30 + l * 12;
-                const lx = cosA * dist;
-                const lz = sinA * dist;
-
-                const postGeo = new THREE.CylinderGeometry(0.08, 0.1, 3, 6);
-                const post = new THREE.Mesh(postGeo, new THREE.MeshStandardMaterial({
-                    color: COLOR.metalDark, roughness: 0.6, metalness: 0.3
-                }));
-                post.position.set(lx, 1.5, lz);
-                post.castShadow = true;
-                post.userData.isArena = true;
-                post.userData.isPath = true;
-                post.userData.isMapObject = true;
-                this.scene.add(post);
-
-                const headGeo = new THREE.BoxGeometry(0.4, 0.3, 0.4);
-                const head = new THREE.Mesh(headGeo, post.material);
-                head.position.set(lx, 3.2, lz);
-                head.userData.isArena = true;
-                head.userData.isMapObject = true;
-                this.scene.add(head);
-
-                const glowGeo = new THREE.SphereGeometry(0.2, 6, 4);
-                const glow = new THREE.Mesh(glowGeo, new THREE.MeshBasicMaterial({
-                    color: 0xffcc66, transparent: true, opacity: 0.6
-                }));
-                glow.position.set(lx, 3.5, lz);
-                this.scene.add(glow);
-                this.animatedObjects.push({
-                    type: 'lantern',
-                    mesh: glow,
-                    baseOpacity: 0.6
-                });
-
-           const lanternLight = this._createPointLight(0xffcc66, 0.3, 8);
-               lanternLight.position.set(lx, 3.5, lz);
-                this.scene.add(lanternLight);
-            }
             await _yield();
         }
 
-        // === Biome atmospheric lighting ===
-        // Citadel — warm eerie red glow
-        const citadelLight = new THREE.PointLight(0xcc6644, 1.2, 100);
-        citadelLight.position.set(-80, 12, 80);
-        this.scene.add(citadelLight);
-
-        // Crystal — cool blue glow
-        const crystalLight = new THREE.PointLight(0x4488ff, 1.0, 90);
-        crystalLight.position.set(80, 10, 80);
-        this.scene.add(crystalLight);
-
-        // Wastes — intense orange/red glow
-        const wastesLight = new THREE.PointLight(0xff4400, 1.5, 85);
-        wastesLight.position.set(-80, 8, -80);
-        this.scene.add(wastesLight);
-
-        // Forest — green bioluminescent glow
-        const forestLight = new THREE.PointLight(0x44cc66, 1.0, 90);
-        forestLight.position.set(80, 10, -80);
-        this.scene.add(forestLight);
-
-        // Central hub — neutral warm light
-        const hubLight = new THREE.PointLight(0xffeedd, 0.8, 60);
-        hubLight.position.set(0, 15, 0);
-        this.scene.add(hubLight);
-
-        await _yield();
-    }
-
-    // ===================== RUINED CITADEL (NW) =====================
-    async buildRuinedCitadel() {
-        const cx = -80, cz = 80;
-
-        // Floor
-        const citFloorGeo = new THREE.CircleGeometry(70, 8);
-        citFloorGeo.rotateX(-Math.PI / 2);
-        const citFloor = new THREE.Mesh(citFloorGeo, new THREE.MeshStandardMaterial({
-            color: COLOR.ruinFloor, roughness: 0.85
-        }));
-        citFloor.position.set(cx, 0.01, cz);
-        citFloor.receiveShadow = true;
-        citFloor.userData.isArena = true;
-        citFloor.userData.isBiome = true;
-        citFloor.userData.biomeName = 'citadel';
-        citFloor.userData.isMapObject = true;
-        this.scene.add(citFloor);
-
-        // 4 main towers — tapered stone towers with architectural detail
+        // Scouting mounds
         for (let i = 0; i < 4; i++) {
-            const angle = (i / 4) * Math.PI * 2 + Math.PI / 4;
-            const r = 55;
-            const tx = cx + Math.cos(angle) * r;
-            const tz = cz + Math.sin(angle) * r;
+            const a = (i / 4) * Math.PI * 2 + Math.PI / 8;
+            const r = 130;
+            const x = Math.cos(a) * r, z = Math.sin(a) * r;
 
-            const towerMat = new THREE.MeshStandardMaterial({
-                color: i % 2 === 0 ? COLOR.ruinStone : COLOR.ruinDarkStone,
-                roughness: 0.88,
-                metalness: 0.08
-            });
+            const moundGeo = new THREE.ConeGeometry(5, 6, 6);
+            const mound = new THREE.Mesh(moundGeo, mat(C.stone, { roughness: 0.9 }));
+            mound.position.set(x, 3, z); mound.castShadow = true;
+            mound.userData.isMapObject = true; mound.userData.isTerrain = true;
+            this.scene.add(mound);
 
-            // Tower body — tapered (wider at base)
-            const towerGeo = new THREE.CylinderGeometry(2.2, 3.8, 14, 8);
-            const tower = new THREE.Mesh(towerGeo, towerMat);
-            tower.position.set(tx, 7, tz);
-            tower.castShadow = true;
-            tower.receiveShadow = true;
-            tower.userData.isArena = true;
-            tower.userData.isCitadel = true;
-            tower.userData.isMapObject = true;
-            this.scene.add(tower);
-
-            // Stone banding — horizontal stone layers
-            for (let band = 0; band < 3; band++) {
-                const bandMat = new THREE.MeshStandardMaterial({
-                    color: i % 2 === 0 ? 0xb8b2b0 : 0x8a8580,
-                    roughness: 0.92,
-                    metalness: 0.05
-                });
-                const bandGeo = new THREE.TorusGeometry(2.8 - band * 0.3, 0.15, 8, 8);
-                const bandMesh = new THREE.Mesh(bandGeo, bandMat);
-                bandMesh.position.set(tx, 3 + band * 4, tz);
-                bandMesh.rotation.x = Math.PI / 2;
-                bandMesh.castShadow = true;
-                this.scene.add(bandMesh);
-            }
-
-            // Battlements — 12 irregular merlons
-            for (let b = 0; b < 12; b++) {
-                const ba = (b / 12) * Math.PI * 2 + (b % 2) * 0.15;
-                const bx = tx + Math.cos(ba) * 3.5;
-                const bz = tz + Math.sin(ba) * 3.5;
-                const battH = 1.2 + Math.random() * 0.8;
-                const battGeo = new THREE.BoxGeometry(
-                    0.8 + Math.random() * 0.4,
-                    battH,
-                    0.5 + Math.random() * 0.2
-                );
-                const batt = new THREE.Mesh(battGeo, towerMat);
-                batt.position.set(bx, 14 + battH / 2, bz);
-                batt.rotation.y = -ba;
-                batt.castShadow = true;
-                batt.userData.isArena = true;
-                batt.userData.isCitadel = true;
-                batt.userData.isMapObject = true;
-                this.scene.add(batt);
-            }
-
-            // Tower top rim
-            const rimGeo = new THREE.TorusGeometry(2.1, 0.2, 8, 8);
-            const rimMat = new THREE.MeshStandardMaterial({
-                color: COLOR.metalDark,
-                roughness: 0.6,
-                metalness: 0.3
-            });
-            const rim = new THREE.Mesh(rimGeo, rimMat);
-            rim.position.set(tx, 13.8, tz);
-            rim.rotation.x = 0;
-            rim.castShadow = true;
-            this.scene.add(rim);
-
-            // Door arch
-            const archGeo = new THREE.TorusGeometry(1.5, 0.15, 8, 8, Math.PI);
-            const archMat = new THREE.MeshStandardMaterial({
-                color: COLOR.ruinDarkStone,
-                roughness: 0.9,
-                metalness: 0.05
-            });
-            const arch = new THREE.Mesh(archGeo, archMat);
-            arch.position.set(tx + Math.cos(angle) * 3.8, 2.5, tz + Math.sin(angle) * 3.8);
-            arch.rotation.y = -angle;
-            arch.rotation.z = Math.PI;
-            arch.castShadow = true;
-            this.scene.add(arch);
-            const doorGeo = new THREE.BoxGeometry(1.5, 3, 0.5);
-            const doorMat = new THREE.MeshStandardMaterial({
-                color: COLOR.wood, roughness: 0.9
-            });
-            const door = new THREE.Mesh(doorGeo, doorMat);
-            door.position.set(
-                tx + Math.cos(angle) * 3,
-                1.5,
-                tz + Math.sin(angle) * 3
-            );
-            door.userData.isArena = true;
-            door.userData.isCitadel = true;
-            door.userData.isMapObject = true;
-            this.scene.add(door);
-            this.colliders.push({
-                type: 'box',
-                position: new THREE.Vector3(
-                    tx + Math.cos(angle) * 3, 1.5,
-                    tz + Math.sin(angle) * 3
-                ),
-                size: new THREE.Vector3(1.5, 3, 0.5),
-                walkable: false
-            });
-
-            // Window gap
-            this.colliders.push({
-                type: 'box',
-                position: new THREE.Vector3(tx, 4, tz),
-                size: new THREE.Vector3(7, 8, 7),
-                walkable: true,
-                dynamic: true,
-               enabled: false
-            });
-            if ((i % 2) === 0) await _yield();
-        }
-        await _yield();
-
-        // Connecting walls
-        for (let i = 0; i < 4; i++) {
-            const a1 = (i / 4) * Math.PI * 2 + Math.PI / 4;
-            const a2 = ((i + 1) / 4) * Math.PI * 2 + Math.PI / 4;
-            const mx = (Math.cos(a1) + Math.cos(a2)) * 55 * 0.5;
-            const mz = (Math.sin(a1) + Math.sin(a2)) * 55 * 0.5;
-            const wallLen = Math.sqrt((Math.cos(a1) - Math.cos(a2)) ** 2 + (Math.sin(a1) - Math.sin(a2)) ** 2) * 55;
-            const wallAngle = Math.atan2(Math.sin(a2) - Math.sin(a1), Math.cos(a2) - Math.cos(a1));
-
-            const wallGeo = new THREE.BoxGeometry(wallLen, 6, 0.8);
-            const wall = new THREE.Mesh(wallGeo, new THREE.MeshStandardMaterial({
-                color: COLOR.ruinStone, roughness: 0.9
-            }));
-            wall.position.set(cx + mx, 3, cz + mz);
-            wall.rotation.y = wallAngle;
-            wall.castShadow = true;
-            wall.receiveShadow = true;
-            wall.userData.isArena = true;
-            wall.userData.isCitadel = true;
-            wall.userData.isMapObject = true;
-            this.scene.add(wall);
-            this.colliders.push({
-                type: 'box',
-                position: new THREE.Vector3(cx + mx, 3, cz + mz),
-                size: new THREE.Vector3(wallLen, 6, 0.8),
-                walkable: false
-           });
-        }
-        await _yield();
-
-        // Moss patches
-        for (let i = 0; i < 15; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = Math.random() * 60;
-            const mossGeo = new THREE.SphereGeometry(0.8 + Math.random() * 1.5, 6, 4);
-            const moss = new THREE.Mesh(mossGeo, new THREE.MeshStandardMaterial({
-                color: COLOR.ruinMoss, roughness: 1.0
-            }));
-            moss.position.set(
-                cx + Math.cos(angle) * r,
-                0.5,
-                cz + Math.sin(angle) * r
-            );
-            moss.scale.y = 0.4;
-            moss.receiveShadow = true;
-            moss.userData.isArena = true;
-            moss.userData.isCitadel = true;
-            moss.userData.isTerrain = true;
-            moss.userData.isMapObject = true;
-            this.scene.add(moss);
-        }
-        await _yield();
-
-        // Courtyard cover walls
-        for (let i = 0; i < 6; i++) {
-            const angle = (i / 6) * Math.PI * 2;
-            const r = 15 + Math.random() * 10;
-            const cwGeo = new THREE.BoxGeometry(3, 2, 0.5);
-            const cw = new THREE.Mesh(cwGeo, new THREE.MeshStandardMaterial({
-                color: COLOR.ruinDarkStone, roughness: 0.9
-            }));
-            cw.position.set(
-                cx + Math.cos(angle) * r,
-                1,
-                cz + Math.sin(angle) * r
-            );
-            cw.rotation.y = angle;
-            cw.castShadow = true;
-            cw.receiveShadow = true;
-            cw.userData.isArena = true;
-            cw.userData.isCitadel = true;
-            cw.userData.isCover = true;
-            cw.userData.isMapObject = true;
-            this.scene.add(cw);
-            this.colliders.push({
-                type: 'box',
-                position: new THREE.Vector3(
-                    cx + Math.cos(angle) * r, 1,
-                    cz + Math.sin(angle) * r
-                ),
-                size: new THREE.Vector3(3, 2, 0.5),
-                walkable: false
-            });
+            const platGeo = new THREE.CylinderGeometry(3, 3, 0.2, 8);
+            const plat = new THREE.Mesh(platGeo, mat(C.stone, { roughness: 0.8 }));
+            plat.position.set(x, 6.1, z); plat.receiveShadow = true;
+            plat.userData.isMapObject = true; this.scene.add(plat);
+            await _yield();
         }
 
-      // Citadel light
-        const citLight = this._createPointLight(0xffeedd, 1, 40);
-        citLight.position.set(cx, 8, cz);
-        this.scene.add(citLight);
-        await _yield();
-    }
+        // Cover rocks
+        for (let i = 0; i < 30; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const r = 45 + Math.random() * 160;
+            const x = Math.cos(a) * r, z = Math.sin(a) * r;
 
-    // ===================== CRYSTAL GROTTO (NE) =====================
-    async buildCrystalGrotto() {
-        const cx = 80, cz = 80;
-
-        // Floor
-        const cryFloorGeo = new THREE.CircleGeometry(70, 8);
-        cryFloorGeo.rotateX(-Math.PI / 2);
-        const cryFloor = new THREE.Mesh(cryFloorGeo, new THREE.MeshStandardMaterial({
-            color: COLOR.crystalFloor, roughness: 0.6, metalness: 0.2
-        }));
-        cryFloor.position.set(cx, 0.01, cz);
-        cryFloor.receiveShadow = true;
-        cryFloor.userData.isArena = true;
-        cryFloor.userData.isBiome = true;
-        cryFloor.userData.biomeName = 'crystal';
-        cryFloor.userData.isMapObject = true;
-        this.scene.add(cryFloor);
-
-        // Crystals
-        for (let i = 0; i < 50; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = 5 + Math.random() * 60;
-            const x = cx + Math.cos(angle) * r;
-            const z = cz + Math.sin(angle) * r;
-            const h = 2 + Math.random() * 6;
-
-            const sides = Math.random() > 0.5 ? 6 : 5;
-            const crystalGeo = new THREE.ConeGeometry(0.5 + Math.random() * 0.5, h, sides);
-            const isPurple = Math.random() > 0.6;
-            const crystal = new THREE.Mesh(crystalGeo, new THREE.MeshStandardMaterial({
-                color: isPurple ? COLOR.crystalPurple : COLOR.crystalBlue,
-                roughness: 0.2,
-                metalness: 0.4,
-                transparent: true,
-                opacity: 0.8
-            }));
-            crystal.position.set(x, h * 0.4, z);
-            crystal.rotation.set(
-                (Math.random() - 0.5) * 0.2,
-                Math.random() * Math.PI,
-                (Math.random() - 0.5) * 0.3
-            );
-            crystal.castShadow = true;
-            crystal.userData.isArena = true;
-            crystal.userData.isCrystal = true;
-            crystal.userData.isMapObject = true;
-            this.scene.add(crystal);
-
-            this.colliders.push({
-                type: 'box',
-                position: new THREE.Vector3(x, h * 0.4, z),
-                size: new THREE.Vector3(1.5, h, 1.5),
-                walkable: false
-            });
-            if (i % 10 === 0) await _yield();
-        }
-        await _yield();
-
-        // Crystal columns
-        for (let i = 0; i < 6; i++) {
-            const angle = (i / 6) * Math.PI * 2;
-            const r = 30;
-            const colGeo = new THREE.CylinderGeometry(0.8, 1.2, 8, 8);
-            const col = new THREE.Mesh(colGeo, new THREE.MeshStandardMaterial({
-                color: COLOR.crystalBlue, roughness: 0.3, metalness: 0.3,
-                transparent: true, opacity: 0.7
-            }));
-            col.position.set(cx + Math.cos(angle) * r, 4, cz + Math.sin(angle) * r);
-            col.castShadow = true;
-            col.userData.isArena = true;
-            col.userData.isCrystal = true;
-            col.userData.isMapObject = true;
-            this.scene.add(col);
-        }
-
-        // Water pools
-        for (let p = 0; p < 2; p++) {
-            const angle = (p / 2) * Math.PI + Math.PI / 4;
-            const r = 45;
-            const px = cx + Math.cos(angle) * r;
-            const pz = cz + Math.sin(angle) * r;
-
-            const poolGeo = new THREE.CylinderGeometry(4, 4, 0.15, 24);
-            const pool = new THREE.Mesh(poolGeo, new THREE.MeshStandardMaterial({
-                color: COLOR.crystalReflect,
-                roughness: 0.1,
-                metalness: 0.6,
-                transparent: true,
-                opacity: 0.6
-            }));
-            pool.position.set(px, 0.1, pz);
-            pool.userData.isArena = true;
-            pool.userData.isBiome = true;
-            pool.userData.isMapObject = true;
-            pool.userData.isWater = true;
-            this.waterMeshes.push(pool);
-            this.scene.add(pool);
-        }
-
-        // Cave systems
-        for (let c = 0; c < 3; c++) {
-            const angle = (c / 3) * Math.PI * 2 + Math.PI / 6;
-            const r = 50;
-            const cx2 = cx + Math.cos(angle) * r;
-            const cz2 = cz + Math.sin(angle) * r;
-
-            // Cave entrance sphere
-            const caveGeo = new THREE.SphereGeometry(3, 8, 6, 0, Math.PI * 2, Math.PI * 0.5, Math.PI * 0.5);
-            const cave = new THREE.Mesh(caveGeo, new THREE.MeshStandardMaterial({
-                color: COLOR.crystalPurple, roughness: 0.8, side: THREE.DoubleSide,
-                transparent: true, opacity: 0.3
-            }));
-            cave.position.set(cx2, 2.5, cz2);
-            cave.userData.isArena = true;
-            cave.userData.isCrystal = true;
-            cave.userData.isMapObject = true;
-            this.scene.add(cave);
-
-            // Stalactites
-            for (let s = 0; s < 6; s++) {
-                const stalGeo = new THREE.ConeGeometry(0.3, 1 + Math.random(), 5);
-                const stal = new THREE.Mesh(stalGeo, new THREE.MeshStandardMaterial({
-                    color: COLOR.crystalBlue, roughness: 0.5, metalness: 0.2
-                }));
-                stal.position.set(
-                    cx2 + (Math.random() - 0.5) * 4,
-                    2 + Math.random(),
-                    cz2 + (Math.random() - 0.5) * 4
-                );
-                stal.rotation.z = (Math.random() - 0.5) * 0.3;
-                stal.userData.isArena = true;
-                stal.userData.isCrystal = true;
-                stal.userData.isMapObject = true;
-                this.scene.add(stal);
-            }
-
-            // Cave light
-            const caveLight = this._createPointLight(COLOR.crystalGlow, 0.6, 12);
-            caveLight.position.set(cx2, 3, cz2);
-            this.scene.add(caveLight);
-            if ((c % 2) === 0) await _yield();
-        }
-
-        // Crystal glow
-        const cryLight = this._createPointLight(COLOR.crystalGlow, 1, 50);
-        cryLight.position.set(cx, 5, cz);
-        this.scene.add(cryLight);
-        await _yield();
-    }
-
-    // ===================== BURNING WASTES (SW) =====================
-    async buildBurningWastes() {
-        const cx = -80, cz = -80;
-
-        // Floor
-        const wastGeo = new THREE.CircleGeometry(75, 8);
-        wastGeo.rotateX(-Math.PI / 2);
-        const wastFloor = new THREE.Mesh(wastGeo, new THREE.MeshStandardMaterial({
-            color: COLOR.wasteGround, roughness: 1.0
-        }));
-        wastFloor.position.set(cx, 0.01, cz);
-        wastFloor.receiveShadow = true;
-        wastFloor.userData.isArena = true;
-        wastFloor.userData.isBiome = true;
-        wastFloor.userData.biomeName = 'wastes';
-        wastFloor.userData.isMapObject = true;
-        this.scene.add(wastFloor);
-
-        // Lava pools
-        for (let i = 0; i < 15; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = 10 + Math.random() * 60;
-            const lx = cx + Math.cos(angle) * r;
-            const lz = cz + Math.sin(angle) * r;
-            const lRadius = 1 + Math.random() * 2;
-
-            const lavaGeo = new THREE.CylinderGeometry(lRadius, lRadius, 0.12, 12);
-            const lava = new THREE.Mesh(lavaGeo, new THREE.MeshStandardMaterial({
-                color: COLOR.lava,
-                emissive: 0xff2200,
-                emissiveIntensity: 0.5,
-                roughness: 0.3
-            }));
-            lava.position.set(lx, 0.08, lz);
-            lava.userData.isArena = true;
-            lava.userData.isLava = true;
-            lava.userData.isMapObject = true;
-            this.scene.add(lava);
-            this.animatedObjects.push({ type: 'lava', mesh: lava, material: lava.material });
-        }
-        await _yield();
-
-        // Obsidian barriers
-        for (let i = 0; i < 15; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = 15 + Math.random() * 55;
-            const ox = cx + Math.cos(angle) * r;
-            const oz = cz + Math.sin(angle) * r;
-
-            const isWall = Math.random() > 0.5;
-            const obsGeo = new THREE.BoxGeometry(
-                isWall ? 4 : 1.5,
-                2 + Math.random() * 2,
-                isWall ? 0.6 : 1.5
-            );
-            const obs = new THREE.Mesh(obsGeo, new THREE.MeshStandardMaterial({
-                color: COLOR.obsidian, roughness: 0.7, metalness: 0.2
-            }));
-            obs.position.set(ox, 1.5, oz);
-            obs.rotation.y = Math.random() * Math.PI;
-            obs.castShadow = true;
-            obs.receiveShadow = true;
-            obs.userData.isArena = true;
-            obs.userData.isWaste = true;
-            obs.userData.isCover = true;
-            obs.userData.isMapObject = true;
-            this.scene.add(obs);
-            this.colliders.push({
-                type: 'box',
-                position: new THREE.Vector3(ox, 1.5, oz),
-                size: new THREE.Vector3(
-                    isWall ? 4 : 1.5,
-                    2 + Math.random() * 2,
-                    isWall ? 0.6 : 1.5
-                ),
-                walkable: false
-            });
-        }
-        await _yield();
-
-        // Rocks
-        for (let i = 0; i < 25; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = 10 + Math.random() * 60;
-            const rockGeo = new THREE.DodecahedronGeometry(0.6 + Math.random() * 1, 0);
-            const rock = new THREE.Mesh(rockGeo, new THREE.MeshStandardMaterial({
-                color: COLOR.scorchedRock, roughness: 1.0
-            }));
-            rock.position.set(
-                cx + Math.cos(angle) * r,
-                0.5,
-                cz + Math.sin(angle) * r
-            );
+            const rockGeo = new THREE.DodecahedronGeometry(0.8 + Math.random() * 1.2, 0);
+            const rock = new THREE.Mesh(rockGeo, mat(C.stone, { roughness: 0.9, metalness: 0.05 }));
+            rock.position.set(x, 0.5, z);
             rock.rotation.set(Math.random(), Math.random(), Math.random());
             rock.scale.y = 0.6 + Math.random() * 0.4;
-            rock.castShadow = true;
-            rock.receiveShadow = true;
-            rock.userData.isArena = true;
-            rock.userData.isTerrain = true;
-            rock.userData.isMapObject = true;
+            rock.castShadow = true; rock.receiveShadow = true;
+            rock.userData.isMapObject = true; rock.userData.isCover = true;
             this.scene.add(rock);
+            this.colliders.push({ type: 'box', position: new THREE.Vector3(x, 0.5, z), size: new THREE.Vector3(1.6, 1.6, 1.6), walkable: false });
         }
+    }
+
+    // ===================== BIOME PATHS =====================
+    async _buildBiomePaths() {
+        // Connect biome zones with paths
+        const paths = [
+            [-80, 80, 80, 80], // citadel to crystal
+            [-80, 80, -80, -80], // citadel to wastes
+            [-80, -80, 80, -80], // wastes to forest
+            [80, 80, 80, -80], // crystal to forest
+        ];
+        for (const [x1, z1, x2, z2] of paths) {
+            biomePath(x1, z1, x2, z2, this.scene);
+            await _yield();
+        }
+    }
+
+    // ===================== RUINED CITADEL =====================
+    async _buildRuinedCitadel() {
+        ruinedCitadel(-80, 80, this.scene, this);
         await _yield();
+    }
+
+    // ===================== CRYSTAL GROTTO =====================
+    async _buildCrystalGrotto() {
+        crystalGrotto(80, 80, this.scene, this);
+        await _yield();
+    }
+
+    // ===================== BURNING WASTES =====================
+    async _buildBurningWastes() {
+        // Lava pools
+        for (let i = 0; i < 12; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const r = 30 + Math.random() * 40;
+            const x = -80 + Math.cos(a) * r, z = -80 + Math.sin(a) * r;
+            lavaPool(x, z, 2 + Math.random() * 3, this.scene, this);
+            await _yield();
+        }
+
+        // Bunkers
+        for (let i = 0; i < 3; i++) {
+            const a = (i / 3) * Math.PI * 2;
+            const r = 60;
+            const x = -80 + Math.cos(a) * r, z = -80 + Math.sin(a) * r;
+            wasteStructure(x, z, 'bunker', this.scene, this);
+            await _yield();
+        }
+
+        // Watchtowers
+        for (let i = 0; i < 2; i++) {
+            const a = (i / 2) * Math.PI * 2 + Math.PI / 6;
+            const r = 70;
+            const x = -80 + Math.cos(a) * r, z = -80 + Math.sin(a) * r;
+            wasteStructure(x, z, 'watchtower', this.scene, this);
+            await _yield();
+        }
+
+        // Obsidian walls
+        for (let i = 0; i < 20; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const r = 20 + Math.random() * 50;
+            const x = -80 + Math.cos(a) * r, z = -80 + Math.sin(a) * r;
+            const h = 2 + Math.random() * 4;
+            const wall = box(2 + Math.random() * 3, h, 0.8, C.obsidian, { roughness: 0.5, metalness: 0.5 });
+            wall.position.set(x, h / 2, z);
+            wall.rotation.y = Math.random() * Math.PI;
+            wall.userData.isMapObject = true; this.scene.add(wall);
+        }
 
         // Smoke clouds
         for (let i = 0; i < 8; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = 20 + Math.random() * 40;
-            const smokeGeo = new THREE.SphereGeometry(2 + Math.random() * 2, 6, 4);
-            const smoke = new THREE.Mesh(smokeGeo, new THREE.MeshStandardMaterial({
-                color: COLOR.smoke,
-                transparent: true,
-                opacity: 0.2,
-                depthWrite: false
-            }));
-            smoke.position.set(
-                cx + Math.cos(angle) * r,
-                8 + Math.random() * 5,
-                cz + Math.sin(angle) * r
-            );
-            smoke.userData.isArena = true;
-            smoke.userData.isWaste = true;
-            smoke.userData.isMapObject = true;
-            this.scene.add(smoke);
-            this.animatedObjects.push({
-                type: 'smoke',
-                mesh: smoke,
-                baseOpacity: 0.2
-            });
+            const a = Math.random() * Math.PI * 2;
+            const r = 30 + Math.random() * 40;
+            const x = -80 + Math.cos(a) * r, z = -80 + Math.sin(a) * r;
+            smokeCloud(x, 6, z, this.scene, this);
         }
-        await _yield();
-
-        // Ruined bunkers
-        for (let i = 0; i < 3; i++) {
-            const angle = (i / 3) * Math.PI * 2;
-            const r = 40;
-            const bx = cx + Math.cos(angle) * r;
-            const bz = cz + Math.sin(angle) * r;
-
-            // 3 walls
-            for (let w = 0; w < 3; w++) {
-                if (w === 1) continue;
-                const bWallGeo = new THREE.BoxGeometry(4, 3, 0.5);
-                const bWall = new THREE.Mesh(bWallGeo, new THREE.MeshStandardMaterial({
-                    color: COLOR.obsidian, roughness: 0.9
-                }));
-                const wa = (w - 1) * Math.PI / 2;
-                bWall.position.set(
-                    bx + Math.cos(wa) * 3,
-                    1.5,
-                    bz + Math.sin(wa) * 3
-                );
-                bWall.rotation.y = wa;
-                bWall.castShadow = true;
-                bWall.userData.isArena = true;
-                bWall.userData.isWaste = true;
-                bWall.userData.isMapObject = true;
-                this.scene.add(bWall);
-                this.colliders.push({
-                    type: 'box',
-                    position: new THREE.Vector3(bx + Math.cos(wa) * 3, 1.5, bz + Math.sin(wa) * 3),
-                    size: new THREE.Vector3(4, 3, 0.5),
-                    walkable: false
-                });
-            }
-        }
-
-        // Volcanic craters
-        for (let i = 0; i < 5; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = 20 + Math.random() * 40;
-            const craterGeo = new THREE.TorusGeometry(2, 0.5, 6, 12);
-            craterGeo.rotateX(-Math.PI / 2);
-            const crater = new THREE.Mesh(craterGeo, new THREE.MeshStandardMaterial({
-                color: COLOR.scorchedRock, roughness: 1.0
-            }));
-            crater.position.set(cx + Math.cos(angle) * r, 0.1, cz + Math.sin(angle) * r);
-            crater.userData.isArena = true;
-            crater.userData.isWaste = true;
-            crater.userData.isMapObject = true;
-            this.scene.add(crater);
-        }
-
-        // Wastes light
-        const wastLight = this._createPointLight(0xff6633, 0.8, 50);
-        wastLight.position.set(cx, 5, cz);
-        this.scene.add(wastLight);
-        await _yield();
     }
 
-    // ===================== LUMINOUS FOREST (SE) =====================
-    async buildLuminousForest() {
-        const cx = 80, cz = -80;
-
-        // Floor
-        const foreGeo = new THREE.CircleGeometry(75, 8);
-        foreGeo.rotateX(-Math.PI / 2);
-        const foreFloor = new THREE.Mesh(foreGeo, new THREE.MeshStandardMaterial({
-            color: COLOR.luminousFloor, roughness: 0.9
-        }));
-        foreFloor.position.set(cx, 0.01, cz);
-        foreFloor.receiveShadow = true;
-        foreFloor.userData.isArena = true;
-        foreFloor.userData.isBiome = true;
-        foreFloor.userData.biomeName = 'forest';
-        foreFloor.userData.isMapObject = true;
-        this.scene.add(foreFloor);
-
-        // Trees
-        for (let i = 0; i < 50; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = 8 + Math.random() * 60;
-            const tx = cx + Math.cos(angle) * r;
-            const tz = cz + Math.sin(angle) * r;
-
-            const trunkGeo = new THREE.CylinderGeometry(0.2, 0.3, 4, 6);
-            const trunk = new THREE.Mesh(trunkGeo, new THREE.MeshStandardMaterial({
-                color: COLOR.luminousBark, roughness: 0.9
-            }));
-            trunk.position.set(tx, 2, tz);
-            trunk.castShadow = true;
-            trunk.userData.isArena = true;
-            trunk.userData.isForest = true;
-            trunk.userData.isMapObject = true;
-            this.scene.add(trunk);
-
-            // Canopy
-            const canopyGeo = new THREE.SphereGeometry(2 + Math.random(), 6, 4);
-            const canopy = new THREE.Mesh(canopyGeo, new THREE.MeshStandardMaterial({
-                color: COLOR.luminousLeaf, roughness: 0.8
-            }));
-            canopy.position.set(tx, 5 + Math.random(), tz);
-            canopy.castShadow = true;
-            canopy.userData.isArena = true;
-            canopy.userData.isForest = true;
-            canopy.userData.isCover = true;
-            canopy.userData.isMapObject = true;
-            this.scene.add(canopy);
-
-            // Glow particles in canopy
-            if (Math.random() > 0.5) {
-                const glowGeo = new THREE.SphereGeometry(0.3, 4, 3);
-                const glow = new THREE.Mesh(glowGeo, new THREE.MeshBasicMaterial({
-                    color: COLOR.luminousGlow,
-                    transparent: true,
-                    opacity: 0.4
-                }));
-                glow.position.set(tx, 5.5 + Math.random(), tz);
-                this.scene.add(glow);
-                this.animatedObjects.push({
-                    type: 'glow',
-                    mesh: glow,
-                    baseOpacity: 0.4
-                });
-            }
+    // ===================== LUMINOUS FOREST =====================
+    async _buildLuminousForest() {
+        // Forest ponds
+        for (let i = 0; i < 6; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const r = 20 + Math.random() * 40;
+            const x = 80 + Math.cos(a) * r, z = -80 + Math.sin(a) * r;
+            forestPond(x, z, 2 + Math.random() * 3, this.scene);
+            await _yield();
         }
-        await _yield();
 
-        // Mushrooms
+        // Glowing mushrooms
         for (let i = 0; i < 30; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = 10 + Math.random() * 55;
-            const mx = cx + Math.cos(angle) * r;
-            const mz = cz + Math.sin(angle) * r;
+            const a = Math.random() * Math.PI * 2;
+            const r = 15 + Math.random() * 50;
+            const x = 80 + Math.cos(a) * r, z = -80 + Math.sin(a) * r;
+            const mh = 0.3 + Math.random() * 0.5;
+            const stem = cyl(0.04, 0.05, mh, 5, C.white, { roughness: 0.8 });
+            stem.position.set(x, mh / 2, z);
+            stem.userData.isMapObject = true; this.scene.add(stem);
 
-            const stemGeo = new THREE.CylinderGeometry(0.15, 0.2, 0.8, 6);
-            const stem = new THREE.Mesh(stemGeo, new THREE.MeshStandardMaterial({
-                color: 0xddddbb, roughness: 0.8
-            }));
-            stem.position.set(mx, 0.4, mz);
-            stem.userData.isArena = true;
-            stem.userData.isForest = true;
-            stem.userData.isMapObject = true;
-            this.scene.add(stem);
-
-            const capGeo = new THREE.SphereGeometry(0.5, 6, 4, 0, Math.PI * 2, 0, Math.PI / 2);
-            const cap = new THREE.Mesh(capGeo, new THREE.MeshStandardMaterial({
-                color: COLOR.luminousMushroom, roughness: 0.5,
-                emissive: 0x4400aa, emissiveIntensity: 0.15
-            }));
-            cap.position.set(mx, 0.85, mz);
-            cap.userData.isArena = true;
-            cap.userData.isForest = true;
-            cap.userData.isMapObject = true;
-            this.scene.add(cap);
-        }
-        await _yield();
-
-        // Bushes
-        for (let i = 0; i < 20; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = 10 + Math.random() * 55;
-            const bushGeo = new THREE.SphereGeometry(0.6 + Math.random() * 0.5, 5, 3);
-            const bush = new THREE.Mesh(bushGeo, new THREE.MeshStandardMaterial({
-                color: COLOR.luminousLeaf, roughness: 0.9
-            }));
-            bush.position.set(
-                cx + Math.cos(angle) * r,
-                0.5,
-                cz + Math.sin(angle) * r
+            const cap = new THREE.Mesh(
+                new THREE.SphereGeometry(0.2 + Math.random() * 0.3, 6, 4),
+                mat(C.cyan, { roughness: 0.3, emissive: C.cyan, emissiveIntensity: 0.4, transparent: true, opacity: 0.7 })
             );
-            bush.scale.y = 0.7;
-            bush.castShadow = true;
-            bush.receiveShadow = true;
-            bush.userData.isArena = true;
-            bush.userData.isForest = true;
-            bush.userData.isCover = true;
-            bush.userData.isMapObject = true;
-            this.scene.add(bush);
+            cap.position.set(x, mh + 0.2, z);
+            cap.userData.isMapObject = true; this.scene.add(cap);
         }
-
-        // Ponds
-        for (let p = 0; p < 2; p++) {
-            const angle = (p / 2) * Math.PI + Math.PI / 3;
-            const r = 35;
-            const px = cx + Math.cos(angle) * r;
-            const pz = cz + Math.sin(angle) * r;
-
-            const pondGeo = new THREE.CylinderGeometry(3, 3, 0.12, 20);
-            const pond = new THREE.Mesh(pondGeo, new THREE.MeshStandardMaterial({
-                color: COLOR.luminousPond,
-                roughness: 0.1,
-                metalness: 0.5,
-                transparent: true,
-                opacity: 0.7
-            }));
-            pond.position.set(px, 0.08, pz);
-            pond.userData.isArena = true;
-            pond.userData.isBiome = true;
-            pond.userData.isMapObject = true;
-            pond.userData.isWater = true;
-            this.waterMeshes.push(pond);
-            this.scene.add(pond);
-        }
-
-        // Forest light
-        const foreLight = this._createPointLight(0x44ff88, 0.6, 50);
-        foreLight.position.set(cx, 5, cz);
-        this.scene.add(foreLight);
-        await _yield();
     }
 
-   // ===================== BRIDGES (radial arms to inner ring) =====================
-    async buildBridges() {
-        const bridgeMat = new THREE.MeshStandardMaterial({
-            color: COLOR.bridgeWood, roughness: 0.85
-        });
-        const railMat = new THREE.MeshStandardMaterial({
-            color: COLOR.metalDark, roughness: 0.6, metalness: 0.3
-        });
-
-        // 4 radial bridges from center to inner ring at r=110
-        // Positioned along the gap axes (cardinal directions)
-        for (let d = 0; d < 4; d++) {
-            const angle = (d / 4) * Math.PI * 2;
-            const dirX = Math.cos(angle);
-            const dirZ = Math.sin(angle);
-
-            // Bridge segments: from r=14 to r=110
-            for (let s = 0; s < 8; s++) {
-                const segStart = 14 + s * 12;
-                const segEnd = segStart + 12;
-                const segMid = (segStart + segEnd) / 2;
-                const bx = dirX * segMid;
-                const bz = dirZ * segMid;
-
-                // Deck planks (12 units long along the radial)
-                const deckGeo = new THREE.BoxGeometry(3, 0.15, 12);
-                const deck = new THREE.Mesh(deckGeo, bridgeMat);
-                deck.position.set(bx, 1.5, bz);
-                deck.castShadow = true;
-                deck.receiveShadow = true;
-                deck.userData.isArena = true;
-                deck.userData.isBridge = true;
-                deck.userData.isMapObject = true;
-                this.scene.add(deck);
-
-                // Side rails (along the bridge length)
-                for (let side = -1; side <= 1; side += 2) {
-                    const perpX = -dirZ * side * 1.4;
-                    const perpZ = dirX * side * 1.4;
-                    const railGeo = new THREE.CylinderGeometry(0.06, 0.06, 12, 4);
-                    const rail = new THREE.Mesh(railGeo, railMat);
-                    rail.position.set(bx + perpX, 3, bz + perpZ);
-                    rail.rotation.z = dirX * 0.15;
-                    rail.rotation.y = -dirZ * 0.15;
-                    rail.castShadow = true;
-                    rail.userData.isArena = true;
-                    rail.userData.isBridge = true;
-                    rail.userData.isMapObject = true;
-                    this.scene.add(rail);
-
-                    // Vertical posts
-                    const postGeo = new THREE.CylinderGeometry(0.05, 0.05, 1.5, 4);
-                    for (let p = -3; p <= 3; p += 3) {
-                        const post = new THREE.Mesh(postGeo, railMat);
-                        const postDist = segMid + dirX * p;
-                        const postSide = perpX * (p / 3);
-                        const postSideZ = perpZ * (p / 3);
-                        post.position.set(bx + postSide, 2.2, bz + postSideZ);
-                        post.castShadow = true;
-                        post.userData.isArena = true;
-                        post.userData.isBridge = true;
-                        post.userData.isMapObject = true;
-                        this.scene.add(post);
-                    }
-                }
-            }
-            await new Promise(r => setTimeout(r, 50));
+    // ===================== BRIDGES =====================
+    async _buildBridges() {
+        // Bridges across zone dividers
+        const bridges = [
+            { x: 0, z: -25, len: 6, rot: 0 },
+            { x: 0, z: 25, len: 6, rot: 0 },
+            { x: -25, z: 0, len: 6, rot: Math.PI / 2 },
+            { x: 25, z: 0, len: 6, rot: Math.PI / 2 },
+        ];
+        for (const b of bridges) {
+            bridge(b.x, b.z, b.len, b.rot, this.scene);
         }
-        await new Promise(r => setTimeout(r, 100));
     }
 
     // ===================== OUTER OUTPOSTS =====================
-    async buildOuterOutposts() {
+    async _buildOuterOutposts() {
         for (let i = 0; i < 6; i++) {
-            const angle = (i / 6) * Math.PI * 2;
-            const r = 185;
-            const x = Math.cos(angle) * r;
-            const z = Math.sin(angle) * r;
-
-            if (i % 2 === 0) {
-                // Stone shelter
-                const mat = new THREE.MeshStandardMaterial({
-                    color: COLOR.stone, roughness: 0.9
-                });
-                for (let w = 0; w < 3; w++) {
-                    const wa = (w / 3) * Math.PI * 2;
-                    const wg = new THREE.BoxGeometry(4, 2.5, 0.5);
-                    const wall = new THREE.Mesh(wg, mat);
-                    wall.position.set(x + Math.cos(wa) * 2.5, 1.25, z + Math.sin(wa) * 2.5);
-                    wall.rotation.y = wa;
-                    wall.castShadow = true;
-                    wall.userData.isArena = true;
-                    wall.userData.isOutpost = true;
-                    wall.userData.isMapObject = true;
-                    this.scene.add(wall);
-                    this.colliders.push({
-                        type: 'box',
-                        position: new THREE.Vector3(x + Math.cos(wa) * 2.5, 1.25, z + Math.sin(wa) * 2.5),
-                        size: new THREE.Vector3(4, 2.5, 0.5),
-                        walkable: false
-                    });
-                }
-
-                // Roof
-                const roofGeo = new THREE.ConeGeometry(3, 1.5, 4);
-                const roof = new THREE.Mesh(roofGeo, new THREE.MeshStandardMaterial({
-                    color: COLOR.wood, roughness: 0.9
-                }));
-                roof.position.set(x, 3, z);
-                roof.rotation.y = Math.PI / 4;
-                roof.castShadow = true;
-                roof.userData.isArena = true;
-                roof.userData.isOutpost = true;
-                roof.userData.isMapObject = true;
-                this.scene.add(roof);
-            } else {
-                // Wooden watch post
-                for (let p = 0; p < 4; p++) {
-                    const pa = (p / 4) * Math.PI * 2;
-                    const postGeo = new THREE.CylinderGeometry(0.15, 0.15, 5, 6);
-                    const post = new THREE.Mesh(postGeo, new THREE.MeshStandardMaterial({
-                        color: COLOR.wood, roughness: 0.9
-                    }));
-                    post.position.set(
-                        x + Math.cos(pa) * 2,
-                        2.5,
-                        z + Math.sin(pa) * 2
-                    );
-                    post.castShadow = true;
-                    post.userData.isArena = true;
-                    post.userData.isOutpost = true;
-                    post.userData.isMapObject = true;
-                    this.scene.add(post);
-                }
-
-                // Platform
-                const platGeo = new THREE.CylinderGeometry(2.5, 2.5, 0.2, 8);
-                const plat = new THREE.Mesh(platGeo, new THREE.MeshStandardMaterial({
-                    color: COLOR.wood, roughness: 0.9
-                }));
-                plat.position.set(x, 4.5, z);
-                plat.receiveShadow = true;
-                plat.userData.isArena = true;
-                plat.userData.isOutpost = true;
-                plat.userData.isMapObject = true;
-                this.scene.add(plat);
-
-                // Cone roof
-                const roofGeo = new THREE.ConeGeometry(2.8, 2, 8);
-                const roof = new THREE.Mesh(roofGeo, new THREE.MeshStandardMaterial({
-                    color: COLOR.wood, roughness: 0.95
-                }));
-                roof.position.set(x, 6.5, z);
-                roof.castShadow = true;
-                roof.userData.isArena = true;
-                roof.userData.isOutpost = true;
-                roof.userData.isMapObject = true;
-                this.scene.add(roof);
-          }
+            const a = (i / 6) * Math.PI * 2;
+            const r = 150 + Math.random() * 20;
+            const x = Math.cos(a) * r, z = Math.sin(a) * r;
+            wasteStructure(x, z, i % 2 === 0 ? 'bunker' : 'watchtower', this.scene, this);
+            await _yield();
         }
-        await _yield();
     }
 
-    // ===================== HAZARD ZONES =====================
-    async buildHazardZones() {
-        // Lava patches
-        for (let i = 0; i < 6; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = 60 + Math.random() * 140;
-            const hx = Math.cos(angle) * r;
-            const hz = Math.sin(angle) * r;
+    // ===================== HAZARDS =====================
+    async _buildHazardZones() {
+        // Explosive barrel zones
+        for (let i = 0; i < 4; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const r = 40 + Math.random() * 120;
+            const x = Math.cos(a) * r, z = Math.sin(a) * r;
 
-            const hazardGeo = new THREE.CylinderGeometry(3, 3, 0.2, 12);
-            const hazard = new THREE.Mesh(hazardGeo, new THREE.MeshStandardMaterial({
-                color: COLOR.lava,
-                emissive: 0xff2200,
-                emissiveIntensity: 0.8
-            }));
-            hazard.position.set(hx, 0.1, hz);
-            hazard.userData.isHazard = true;
-            hazard.userData.isLava = true;
-            hazard.userData.isMapObject = true;
-            this.scene.add(hazard);
-
-            this.hazards.push({
-                type: 'lava',
-                position: new THREE.Vector3(hx, 0.1, hz),
-                radius: 3,
-                damage: 10
-            });
+            // Cluster of explosive barrels
+            for (let j = 0; j < 3; j++) {
+                const bx = x + (Math.random() - 0.5) * 2;
+                const bz = z + (Math.random() - 0.5) * 2;
+                barrel(bx, 0, bz, this.scene);
+                this.hazards.push({ type: 'explosiveBarrel', position: new THREE.Vector3(bx, 0.5, bz), radius: 5, damage: 40 });
+            }
+            await _yield();
         }
-
-        // Shock zones
-        for (let i = 0; i < 3; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = 80 + Math.random() * 100;
-            const sx = Math.cos(angle) * r;
-            const sz = Math.sin(angle) * r;
-
-            const shockGeo = new THREE.CylinderGeometry(4, 4, 8, 16, 1, true);
-            const shock = new THREE.Mesh(shockGeo, new THREE.MeshBasicMaterial({
-                color: 0xff4444,
-                transparent: true,
-                opacity: 0.15,
-                side: THREE.DoubleSide,
-                depthWrite: false
-            }));
-            shock.position.set(sx, 4, sz);
-            shock.userData.isHazard = true;
-            shock.userData.isShock = true;
-            shock.userData.isMapObject = true;
-            this.scene.add(shock);
-
-            this.hazards.push({
-                type: 'shock',
-                position: new THREE.Vector3(sx, 4, sz),
-                radius: 4,
-                damage: 15
-         });
-        }
-        await _yield();
     }
 
     // ===================== LOOT CLUSTERS =====================
-    async buildLootClusters() {
-        for (let i = 0; i < 12; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = 30 + Math.random() * 160;
-            const lx = Math.cos(angle) * r;
-            const lz = Math.sin(angle) * r;
-
-            // Cover rocks
-            const rockMat = new THREE.MeshStandardMaterial({ color: COLOR.stone, roughness: 0.9 });
-            for (let j = 0; j < 3; j++) {
-                const rockGeo = new THREE.DodecahedronGeometry(0.8 + Math.random() * 0.5, 0);
-                const rock = new THREE.Mesh(rockGeo, rockMat);
-                rock.position.set(lx + (j - 1) * 1.5, 0.5, lz);
-                rock.castShadow = true;
-                rock.receiveShadow = true;
-                rock.userData.isArena = true;
-                rock.userData.isCover = true;
-                rock.userData.isMapObject = true;
-                this.scene.add(rock);
-            }
-
-            // Loot marker (octahedron)
-            const markerGeo = new THREE.OctahedronGeometry(0.5, 0);
-            const marker = new THREE.Mesh(markerGeo, new THREE.MeshStandardMaterial({
-                color: 0xffdd44,
-                emissive: 0xffcc00,
-                emissiveIntensity: 0.3
-            }));
-            marker.position.set(lx, 2, lz);
-            this.scene.add(marker);
-            this.animatedObjects.push({
-                type: 'lootMarker',
-                mesh: marker,
-                baseY: 2
-            });
-
-            // Loot glow light
-            const lootLight = this._createPointLight(0xffdd44, 0.4, 8);
-            lootLight.position.set(lx, 2, lz);
-            this.scene.add(lootLight);
+    async _buildLootClusters() {
+        for (let i = 0; i < 20; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const r = 30 + Math.random() * 150;
+            const x = Math.cos(a) * r, z = Math.sin(a) * r;
+            crate(x, 0, z, this.scene, 0.8 + Math.random() * 0.4);
+            await _yield();
         }
-        await _yield();
     }
 
     // ===================== FIRE PITS =====================
-    async buildFirePits() {
-        const stoneMat = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 1.0 });
-        const flameMat = new THREE.MeshBasicMaterial({ color: 0xff6622, transparent: true, opacity: 0.8 });
-
-        for (let i = 0; i < 16; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = 20 + Math.random() * 160;
-            const fx = Math.cos(angle) * r;
-            const fz = Math.sin(angle) * r;
-
-            // Stone ring
-            for (let s = 0; s < 6; s++) {
-                const sa = (s / 6) * Math.PI * 2;
-                const stoneGeo = new THREE.DodecahedronGeometry(0.3, 0);
-                const stone = new THREE.Mesh(stoneGeo, stoneMat);
-                stone.position.set(fx + Math.cos(sa) * 0.8, 0.3, fz + Math.sin(sa) * 0.8);
-                stone.castShadow = true;
-                stone.userData.isArena = true;
-                stone.userData.isFire = true;
-                stone.userData.isMapObject = true;
-                this.scene.add(stone);
-            }
-
-            // Flame
-            const flameGeo = new THREE.ConeGeometry(0.4, 1.2, 6);
-            const flame = new THREE.Mesh(flameGeo, flameMat);
-            flame.position.set(fx, 0.8, fz);
-            this.scene.add(flame);
-
-            // Fire light
-            const fireLight = this._createPointLight(0xff6622, 0.6, 12);
-            fireLight.position.set(fx, 2, fz);
-            this.scene.add(fireLight);
-
-            this.animatedObjects.push({
-                type: 'fire',
-                mesh: flame,
-                light: fireLight,
-                baseOpacity: 0.8,
-                baseLightIntensity: 0.6
-          });
+    async _buildFirePits() {
+        for (let i = 0; i < 10; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const r = 40 + Math.random() * 120;
+            const x = Math.cos(a) * r, z = Math.sin(a) * r;
+            campfire(x, 0, z, this.scene);
         }
-        await _yield();
     }
 
-    // ===================== PARTICLES =====================
-    async buildParticleSystems() {
-        // Spark particles around Cornucopia (center, elevated)
-        this._createSparkParticles(0, 4, 0, 100, 0xf8d840);
-
-        // Ash particles in Burning Wastes
-        this._createAshParticles(-80, -80, 60);
-
-        // Glow particles in Luminous Forest
-        this._createGlowParticles(80, -80, 40);
+    // ===================== PARTICLE SYSTEMS =====================
+    async _buildParticleSystems() {
+        // No-op: particles handled by Environment
     }
 
-    _createSparkParticles(cx, cy, cz, count, color) {
-        const geo = new THREE.BufferGeometry();
-        const positions = new Float32Array(count * 3);
-        const velocities = [];
-
-        for (let i = 0; i < count; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = 10 + Math.random() * 20;
-            positions[i * 3] = cx + Math.cos(angle) * r;
-            positions[i * 3 + 1] = cy + Math.random() * 5;
-            positions[i * 3 + 2] = cz + Math.sin(angle) * r;
-            velocities.push({
-                x: (Math.random() - 0.5) * 0.5,
-                y: 0.5 + Math.random() * 0.5,
-                z: (Math.random() - 0.5) * 0.5
-            });
+    // ===================== DECORATIONS =====================
+    async _buildDecorations() {
+        // Barrels scattered
+        for (let i = 0; i < 40; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const r = 30 + Math.random() * 150;
+            const x = Math.cos(a) * r, z = Math.sin(a) * r;
+            barrel(x, 0, z, this.scene);
         }
 
-        geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        const mat = new THREE.PointsMaterial({
-            color: color,
-            size: 0.2,
-            transparent: true,
-            opacity: 0.6,
-            blending: THREE.AdditiveBlending,
-            depthWrite: false
-        });
+        // Crates
+        for (let i = 0; i < 25; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const r = 20 + Math.random() * 140;
+            const x = Math.cos(a) * r, z = Math.sin(a) * r;
+            crate(x, 0, z, this.scene, 0.6 + Math.random() * 0.6);
+        }
 
-       const points = new THREE.Points(geo, mat);
-        points.userData.isParticle = true;
-        points.userData.velocities = velocities;
-        points.userData.type = 'spark';
-        points.userData.cx = cx;
-        points.userData.cz = cz;
-        this.scene.add(points);
-        this.particleSystems.push(points);
+        // Fence posts along paths
+        for (let i = 0; i < 30; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const r = 50 + Math.random() * 100;
+            const x = Math.cos(a) * r, z = Math.sin(a) * r;
+            fencePost(x, 0, z, this.scene);
+        }
+
+        // Road markers
+        for (let i = 0; i < 12; i++) {
+            const a = (i / 12) * Math.PI * 2;
+            const r = 60 + Math.random() * 80;
+            const x = Math.cos(a) * r, z = Math.sin(a) * r;
+            roadMarker(x, 0, z, this.scene);
+        }
     }
 
-    _createAshParticles(cx, cz, count) {
-        const geo = new THREE.BufferGeometry();
-        const positions = new Float32Array(count * 3);
-
-        for (let i = 0; i < count; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = Math.random() * 60;
-            positions[i * 3] = cx + Math.cos(angle) * r;
-            positions[i * 3 + 1] = 3 + Math.random() * 8;
-            positions[i * 3 + 2] = cz + Math.sin(angle) * r;
+    // ===================== BIOME TREES =====================
+    async _buildBiomeTrees() {
+        // Citadel: ruined trees
+        for (let i = 0; i < 25; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const r = 10 + Math.random() * 50;
+            const x = -80 + Math.cos(a) * r, z = 80 + Math.sin(a) * r;
+            tree(x, 0, z, this.scene, 'ruined');
         }
 
-        geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        const mat = new THREE.PointsMaterial({
-            color: 0x888888,
-            size: 0.15,
-            transparent: true,
-            opacity: 0.3,
-            depthWrite: false
-        });
-
-        const points = new THREE.Points(geo, mat);
-        points.userData.isParticle = true;
-        points.userData.type = 'ash';
-        points.userData.cx = cx;
-        points.userData.cz = cz;
-        this.scene.add(points);
-        this.particleSystems.push(points);
-    }
-
-    _createGlowParticles(cx, cz, count) {
-        const geo = new THREE.BufferGeometry();
-        const positions = new Float32Array(count * 3);
-
-        for (let i = 0; i < count; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = Math.random() * 50;
-            positions[i * 3] = cx + Math.cos(angle) * r;
-            positions[i * 3 + 1] = 2 + Math.random() * 5;
-            positions[i * 3 + 2] = cz + Math.sin(angle) * r;
+        // Crystal: crystal trees
+        for (let i = 0; i < 20; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const r = 10 + Math.random() * 50;
+            const x = 80 + Math.cos(a) * r, z = 80 + Math.sin(a) * r;
+            tree(x, 0, z, this.scene, 'crystal');
         }
 
-        geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        const mat = new THREE.PointsMaterial({
-            color: 0x44ff88,
-            size: 0.25,
-            transparent: true,
-            opacity: 0.4,
-            blending: THREE.AdditiveBlending,
-            depthWrite: false
-        });
+        // Forest: normal trees
+        for (let i = 0; i < 60; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const r = 15 + Math.random() * 55;
+            const x = 80 + Math.cos(a) * r, z = -80 + Math.sin(a) * r;
+            tree(x, 0, z, this.scene, 'normal');
+        }
 
-        const points = new THREE.Points(geo, mat);
-         points.userData.isParticle = true;
-        points.userData.type = 'glow';
-        points.userData.cx = cx;
-        points.userData.cz = cz;
-        this.scene.add(points);
-        this.particleSystems.push(points);
+        // Wastes: burnt trees
+        for (let i = 0; i < 15; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const r = 15 + Math.random() * 45;
+            const x = -80 + Math.cos(a) * r, z = -80 + Math.sin(a) * r;
+            const g = new THREE.Group();
+            const trunk = cyl(0.15, 0.2, 3, 5, C.obsidian, { roughness: 0.9 });
+            trunk.position.y = 1.5; trunk.userData.isMapObject = true; g.add(trunk);
+            const stump = new THREE.Mesh(
+                new THREE.ConeGeometry(0.8, 1.5, 5),
+                mat(C.obsidian, { roughness: 0.8 })
+            );
+            stump.position.y = 3.5; stump.userData.isMapObject = true; g.add(stump);
+            g.position.set(x, 0, z);
+            this.scene.add(g);
+        }
     }
 
     // ===================== TRAPS =====================
-    async buildTraps() {
+    async _buildTraps() {
         // Spike traps
-        for (let i = 0; i < 20; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = 30 + Math.random() * 150;
-            const tx = Math.cos(angle) * r;
-            const tz = Math.sin(angle) * r;
-
-            const spikeCount = 3 + Math.floor(Math.random() * 3);
-            const spikes = [];
-            for (let s = 0; s < spikeCount; s++) {
-                const sa = (s / spikeCount) * Math.PI * 2;
-                const spikeGeo = new THREE.ConeGeometry(0.1, 0.6, 4);
-                const spike = new THREE.Mesh(spikeGeo, new THREE.MeshStandardMaterial({
-                    color: 0x666666, roughness: 0.5, metalness: 0.5
-                }));
-                spike.position.set(tx + Math.cos(sa) * 0.6, 0.3, tz + Math.sin(sa) * 0.6);
-                spike.rotation.z = Math.PI / 2;
-                spike.userData.isTrap = true;
-                spike.userData.isMapObject = true;
-                this.scene.add(spike);
-                spikes.push(spike);
-            }
-
-            const plateGeo = new THREE.CylinderGeometry(1, 1, 0.05, 8);
-            const plate = new THREE.Mesh(plateGeo, new THREE.MeshStandardMaterial({
-                color: 0x555555, roughness: 0.7, metalness: 0.4
-            }));
-            plate.position.set(tx, 0.05, tz);
-            plate.userData.isTrap = true;
-            plate.userData.isTrapPlate = true;
-            plate.userData.isMapObject = true;
-            this.scene.add(plate);
-
-            this.traps.push({
-                type: 'spike',
-                position: new THREE.Vector3(tx, 0.05, tz),
-                radius: 1,
-                damage: 15,
-                cooldown: 3,
-                triggered: false,
-                triggerTime: 0,
-                spikes
-            });
-            await new Promise(r => setTimeout(r, 100));
+        for (let i = 0; i < 15; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const r = 30 + Math.random() * 130;
+            const x = Math.cos(a) * r, z = Math.sin(a) * r;
+            spikeTrap(x, z, this.scene);
+            await _yield();
         }
 
         // Bear traps
-        for (let i = 0; i < 10; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = 40 + Math.random() * 140;
-            const tx = Math.cos(angle) * r;
-            const tz = Math.sin(angle) * r;
-
-            const jawMat = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.6, metalness: 0.5 });
-            for (let j = 0; j < 2; j++) {
-                const jawGeo = new THREE.BoxGeometry(0.8, 0.15, 0.2);
-                const jaw = new THREE.Mesh(jawGeo, jawMat);
-                jaw.position.set(tx, 0.1, tz);
-                jaw.rotation.y = (j * Math.PI / 3) - Math.PI / 6;
-                jaw.userData.isTrap = true;
-                jaw.userData.isMapObject = true;
-                this.scene.add(jaw);
-            }
-
-            this.traps.push({
-                type: 'bear',
-                position: new THREE.Vector3(tx, 0.1, tz),
-                radius: 1.5,
-                damage: 12,
-                cooldown: 5,
-                triggered: false,
-                triggerTime: 0
-            });
-            await new Promise(r => setTimeout(r, 100));
+        for (let i = 0; i < 8; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const r = 30 + Math.random() * 130;
+            const x = Math.cos(a) * r, z = Math.sin(a) * r;
+            bearTrap(x, z, this.scene);
+            await _yield();
         }
     }
 
     // ===================== FOG ZONES =====================
-    async buildFogZones() {
+    async _buildFogZones() {
         const phases = [
-            { name: 'Внешняя', innerRadius: 180, outerRadius: 220, damage: 0.2 },
-            { name: 'Средняя', innerRadius: 130, outerRadius: 180, damage: 0.5 },
-            { name: 'Внутренняя', innerRadius: 80, outerRadius: 130, damage: 1.0 },
-            { name: 'Центральная', innerRadius: 40, outerRadius: 80, damage: 2.0 }
+            { radius: 160, damage: 0.3, color: 0x888888 },
+            { radius: 120, damage: 0.6, color: 0x666666 },
+            { radius: 80, damage: 1.0, color: 0x444444 },
+            { radius: 40, damage: 2.0, color: 0x222222 }
         ];
-
-        for (let i = 0; i < phases.length; i++) {
-            const p = phases[i];
-
-            // Ring boundary
-            const ringGeo = new THREE.RingGeometry(p.outerRadius - 0.2, p.outerRadius + 0.2, 64);
-            ringGeo.rotateX(-Math.PI / 2);
-            const ringMat = new THREE.MeshBasicMaterial({
-                color: 0x4488ff,
-                transparent: true,
-                opacity: 0.4,
-                side: THREE.DoubleSide,
-                depthWrite: false
-            });
-            const ring = new THREE.Mesh(ringGeo, ringMat);
-            ring.position.y = 0.05;
-            this.scene.add(ring);
-
-            // Wall
-            const wallGeo = new THREE.CylinderGeometry(p.outerRadius, p.outerRadius, 12, 64, 1, true);
-            const wallMat = new THREE.MeshBasicMaterial({
-                color: 0x4488ff,
-                transparent: true,
-                opacity: 0.08,
-                side: THREE.DoubleSide,
-                depthWrite: false
-            });
-            const wall = new THREE.Mesh(wallGeo, wallMat);
-            wall.position.y = 6;
-            this.scene.add(wall);
-
-            // Light
-            const light = this._createPointLight(0x4488ff, 0.3, p.outerRadius);
-            this.scene.add(light);
-
+        for (let i = 1; i < phases.length; i++) {
             this.fogZones.push({
-                name: p.name,
-                outerRadius: p.outerRadius,
-                innerRadius: p.innerRadius,
-                damage: p.damage,
-                active: false,
-                phase: i,
-                mesh: wall,
-                _wallMat: wallMat,
-                _ringMat: ringMat,
-                light
+                position: new THREE.Vector3(0, 0, 0),
+                radius: phases[i].radius,
+                damage: phases[i].damage,
+                color: phases[i].color
             });
-            await _yield();
         }
     }
 
     // ===================== RADIATION ZONES =====================
-    async buildRadiationZones() {
-       const zones = [
-            { type: 'high', cx: -80, cz: -80, radius: 50, damage: 0.3, color: 0xff4444 },    // Wastes
-            { type: 'medium', cx: -80, cz: 80, radius: 35, damage: 0.15, color: 0xff8844 },  // Citadel
-            { type: 'low', cx: 80, cz: -80, radius: 30, damage: 0.1, color: 0xffaa44 },      // Forest
-            { type: 'low', cx: 80, cz: 80, radius: 25, damage: 0.08, color: 0xffcc44 }       // Crystal
+    async _buildRadiationZones() {
+        const radPositions = [
+            [-80, 80], [80, 80], [-80, -80], [80, -80]
         ];
-
-        for (const z of zones) {
-            // Gas cloud (semi-transparent sphere)
-            const gasGeo = new THREE.SphereGeometry(z.radius, 16, 12);
-            const gasMat = new THREE.MeshBasicMaterial({
-                color: z.color,
-                transparent: true,
-                opacity: 0.08,
-                depthWrite: false
-            });
-            const gas = new THREE.Mesh(gasGeo, gasMat);
-            gas.position.set(z.cx, z.radius * 0.3, z.cz);
-            this.scene.add(gas);
-
-            // Ground glow
-            const groundGeo = new THREE.CircleGeometry(z.radius, 32);
-            groundGeo.rotateX(-Math.PI / 2);
-            const groundMat = new THREE.MeshBasicMaterial({
-                color: z.color,
-                transparent: true,
-                opacity: 0.1,
-                depthWrite: false
-            });
-            const ground = new THREE.Mesh(groundGeo, groundMat);
-            ground.position.set(z.cx, 0.02, z.cz);
-            this.scene.add(ground);
-
-            // Light
-            const light = this._createPointLight(z.color, 0.3, z.radius);
-            light.position.set(z.cx, 5, z.cz);
-            this.scene.add(light);
-
-            this.radiationZones.push({
-                type: z.type,
-                position: new THREE.Vector3(z.cx, 0, z.cz),
-                radius: z.radius,
-                damage: z.damage,
-                visual: gas,
-                _gasMat: gasMat,
-                _groundGlow: ground,
-                light
-           });
+        for (const [rx, rz] of radPositions) {
+            radCloud(rx, 8, rz, 12, 0.5, this.scene); // high
+            radCloud(rx + 30, 6, rz + 20, 10, 0.3, this.scene); // medium
+            radCloud(rx - 20, 4, rz - 15, 8, 0.1, this.scene); // low
+            await _yield();
         }
-        await _yield();
     }
 
     // ===================== LOOT DATA =====================
-    async buildLootData() {
-        // Cornucopia chest (tier 5)
-        this.lootData.push({
-            type: 'chest',
-            position: new THREE.Vector3(0, 3.1, 0),
-            radius: 2,
-            tier: 5,
-            items: []
-        });
-
-        // Outpost clusters
-        for (let i = 0; i < 8; i++) {
-            const angle = (i / 8) * Math.PI * 2;
-            const r = 110;
+    async _buildLootData() {
+        this.lootData = [];
+        const lootTypes = ['weapon', 'ammo', 'health', 'armor', 'scope', 'magazine'];
+        for (let i = 0; i < 80; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const r = 20 + Math.random() * 150;
             this.lootData.push({
-                type: 'outpost',
-                position: new THREE.Vector3(Math.cos(angle) * r, 0, Math.sin(angle) * r),
-                radius: 5,
-                tier: 3 + (i % 2),
-                items: []
+                x: Math.cos(a) * r,
+                z: Math.sin(a) * r,
+                type: lootTypes[Math.floor(Math.random() * lootTypes.length)],
+                tier: Math.random() > 0.6 ? 2 : 1
             });
-        }
-
-        // Biome loot zones — matched to actual biome positions & tiers
-        // Citadel (NW, -80, 80) — high-tier ruins, tier 4
-        this.lootData.push(
-            { type: 'biome', position: new THREE.Vector3(-80, 0, 80), radius: 55, tier: 4, items: [] }
-        );
-        // Crystal (NE, 80, 80) — mid-tier crystal cave, tier 3
-        this.lootData.push(
-            { type: 'biome', position: new THREE.Vector3(80, 0, 80), radius: 50, tier: 3, items: [] }
-        );
-        // Wastes (SW, -80, -80) — hazardous but rich loot, tier 4
-        this.lootData.push(
-            { type: 'biome', position: new THREE.Vector3(-80, 0, -80), radius: 55, tier: 4, items: [] }
-        );
-        // Forest (SE, 80, -80) — basic supplies, tier 2
-        this.lootData.push(
-            { type: 'biome', position: new THREE.Vector3(80, 0, -80), radius: 50, tier: 2, items: [] }
-        );
-
-        // Random clusters
-        for (let i = 0; i < 12; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = 30 + Math.random() * 150;
-            this.lootData.push({
-                type: 'cluster',
-                position: new THREE.Vector3(Math.cos(angle) * r, 0, Math.sin(angle) * r),
-                radius: 3,
-                tier: 1 + Math.floor(Math.random() * 3),
-                items: []
-            });
-        }
-        await _yield();
-    }
-
-    // ===================== ANIMATIONS =====================
-    setupAnimations() {
-        this.scene.traverse(obj => {
-            if (obj.isMesh || obj.isGroup || obj.isInstancedMesh) {
-                obj.userData.mapGenerated = true;
-                obj.frustumCulled = false;
-            }
-        });
-    }
-
-    // ===================== HEIGHT MAP =====================
-    worldToGrid(x, z) {
-        return {
-            x: Math.round(x / this.tileSize + this.gridWidth / 2),
-            y: Math.round(z / this.tileSize + this.gridHeight / 2)
-        };
-    }
-
-    getHeightAt(x, z) {
-        if (!this.heightMap) return 0.4;
-        const grid = this.worldToGrid(x, z);
-        const gx = Math.max(0, Math.min(this.gridWidth - 1, grid.x));
-        const gy = Math.max(0, Math.min(this.gridHeight - 1, grid.y));
-        const base = this.heightMap?.[gy]?.[gx] ?? 0;
-        return base + 0.4;
-    }
-
-    getSurfaceHeightAt(x, z) {
-        let top = this.getHeightAt(x, z);
-        for (const box of this.colliders || []) {
-            if (!box?.min || !box?.max) continue;
-            if (x < box.min.x || x > box.max.x) continue;
-            if (z < box.min.z || z > box.max.z) continue;
-            if (box.max.y > top) top = box.max.y;
-        }
-        return top;
-    }
-
-    // ===================== DECORATIONS & VISUAL INDICATORS =====================
-
-    // ---- Generic rock generation ----
-    _createRock(x, y, z, scale, color = 0x8a8a8a) {
-        const geo = new THREE.DodecahedronGeometry(scale, 1);
-        // Deform vertices for natural look
-        const pos = geo.attributes.position;
-        for (let i = 0; i < pos.count; i++) {
-            const vx = pos.getX(i), vy = pos.getY(i), vz = pos.getZ(i);
-            const noise = this.noise.noise2D(vx * 0.5, vz * 0.5) * scale * 0.3;
-            pos.setXYZ(i, vx + noise * 0.3, vy + noise, vz + noise * 0.3);
-        }
-            geo.computeVertexNormals();
-        const mat = getMat(color, { roughness: 0.9, metalness: 0.05 });
-        const mesh = new THREE.Mesh(geo, mat);
-        mesh.position.set(x, y + scale * 0.4, z);
-        mesh.rotation.set(Math.random() * 0.3, Math.random() * Math.PI * 2, Math.random() * 0.3);
-        const s = scale * (0.7 + Math.random() * 0.6);
-        mesh.scale.set(s * (0.7 + Math.random() * 0.6), s * (0.6 + Math.random() * 0.5), s * (0.7 + Math.random() * 0.6));
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        mesh.userData.isArena = true;
-        mesh.userData.isDecoration = true;
-        mesh.userData.decorationType = 'rock';
-        mesh.userData.isMapObject = true;
-        this.scene.add(mesh);
-        this.colliders.push({
-            type: 'box',
-            position: new THREE.Vector3(x, y + scale * 0.3, z),
-            size: new THREE.Vector3(scale * 1.2, scale * 0.8, scale * 1.2),
-            enabled: true
-        });
-    }
-
-    // ---- Decorative trees per biome ----
-    _createTree(x, y, z, type = 'normal') {
-        const height = 4 + Math.random() * 4;
-        const trunkRadius = 0.15 + Math.random() * 0.1;
-
-        // Trunk
-        let trunkColor, leafColor;
-        switch (type) {
-            case 'ruined':
-                trunkColor = 0x5a4a3a;
-                leafColor = 0x4a6a2a;
-                break;
-            case 'crystal':
-                trunkColor = 0x6a6a8a;
-                leafColor = 0x44aacc;
-                break;
-            case 'burnt':
-                trunkColor = 0x3a2a1a;
-                leafColor = null; // No leaves
-                break;
-            case 'glowing':
-                trunkColor = 0x4a3a2a;
-                leafColor = 0x22cc66;
-                break;
-            default:
-                trunkColor = 0x8b6236;
-                leafColor = 0x228b22;
-        }
-
-        // Trunk
-        const trunkGeo = new THREE.CylinderGeometry(trunkRadius * 0.6, trunkRadius, height, 6);
-        const trunkMat = getMat(trunkColor, { roughness: 0.9 });
-        const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-        trunk.position.set(x, y + height / 2, z);
-        trunk.castShadow = true;
-        trunk.userData.isArena = true;
-        trunk.userData.isDecoration = true;
-        trunk.userData.decorationType = 'tree';
-        trunk.userData.treeType = type;
-        trunk.userData.isMapObject = true;
-        this.scene.add(trunk);
-
-        // Branches
-        const branchCount = 3 + Math.floor(Math.random() * 3);
-        for (let b = 0; b < branchCount; b++) {
-            const bAngle = Math.random() * Math.PI * 2;
-            const bHeight = height * 0.4 + Math.random() * height * 0.5;
-            const bLength = 0.8 + Math.random() * 1.5;
-            const branchGeo = new THREE.CylinderGeometry(0.03, trunkRadius * 0.5, bLength, 4);
-            const branch = new THREE.Mesh(branchGeo, trunkMat);
-            branch.position.set(
-                x + Math.cos(bAngle) * bLength * 0.4,
-                y + bHeight,
-                z + Math.sin(bAngle) * bLength * 0.4
-            );
-            branch.rotation.z = Math.cos(bAngle) * 0.8;
-            branch.rotation.x = Math.sin(bAngle) * 0.8;
-            branch.castShadow = true;
-            branch.userData.isDecoration = true;
-            branch.userData.isMapObject = true;
-            this.scene.add(branch);
-        }
-
-        // Canopy
-        if (leafColor) {
-            const canopyRadius = 1.5 + Math.random() * 1.5;
-            const canopyGeo = new THREE.SphereGeometry(canopyRadius, 6, 5);
-            const canopyMat = getMat(leafColor, { roughness: 0.8 });
-            const canopy = new THREE.Mesh(canopyGeo, canopyMat);
-            canopy.position.set(x, y + height + canopyRadius * 0.5, z);
-            canopy.scale.set(1 + Math.random() * 0.3, 0.7 + Math.random() * 0.3, 1 + Math.random() * 0.3);
-            canopy.castShadow = true;
-            canopy.receiveShadow = true;
-            canopy.userData.isDecoration = true;
-            canopy.userData.decorationType = 'canopy';
-            canopy.userData.treeType = type;
-            canopy.userData.isMapObject = true;
-            this.scene.add(canopy);
-
-            // Extra canopy lumps
-            for (let c = 0; c < 2; c++) {
-                const clGeo = new THREE.SphereGeometry(canopyRadius * 0.6, 5, 4);
-                const cl = new THREE.Mesh(clGeo, canopyMat);
-                const clAngle = Math.random() * Math.PI * 2;
-                cl.position.set(
-                    x + Math.cos(clAngle) * canopyRadius * 0.5,
-                    y + height + canopyRadius * 0.2 + Math.random() * canopyRadius * 0.5,
-                    z + Math.sin(clAngle) * canopyRadius * 0.5
-                );
-                cl.castShadow = true;
-                cl.userData.isDecoration = true;
-                cl.userData.isMapObject = true;
-                this.scene.add(cl);
-            }
-        }
-
-        // Crystal glow tree gets point light
-        if (type === 'glowing') {
-            const glow = this._createPointLight(0x44ff88, 0.5, 8);
-            glow.position.set(x, y + height, z);
-            this.scene.add(glow);
-            this.animatedObjects.push({ type: 'glow', light: glow, baseIntensity: 0.5 });
-        }
-        if (type === 'crystal') {
-            const glow = this._createPointLight(0x44aacc, 0.4, 6);
-            glow.position.set(x, y + height, z);
-            this.scene.add(glow);
-            this.animatedObjects.push({ type: 'glow', light: glow, baseIntensity: 0.4 });
-        }
-    }
-
-    // ---- Barrels ----
-    _createBarrel(x, y, z) {
-        const group = new THREE.Group();
-        const barrelMat = getMat(0x7a5a2a, { roughness: 0.85 });
-        const bandMat = getMat(0x4a4a4a, { roughness: 0.7, metalness: 0.5 });
-
-        // Barrel body (8 segments)
-        const bodyGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.8, 8);
-        const body = new THREE.Mesh(bodyGeo, barrelMat);
-        body.position.y = 0.4;
-        group.add(body);
-
-        // Metal bands
-        const bandGeo = new THREE.TorusGeometry(0.36, 0.04, 4, 8);
-        const band1 = new THREE.Mesh(bandGeo, bandMat);
-        band1.position.y = 0.6;
-        band1.rotation.x = Math.PI / 2;
-        group.add(band1);
-        const band2 = new THREE.Mesh(bandGeo, bandMat);
-        band2.position.y = 0.2;
-        band2.rotation.x = Math.PI / 2;
-        group.add(band2);
-
-        group.position.set(x, y, z);
-        group.rotation.set(0, Math.random() * Math.PI * 2, (Math.random() - 0.5) * 0.1);
-        group.castShadow = true;
-        group.userData.isArena = true;
-        group.userData.isDecoration = true;
-        group.userData.decorationType = 'barrel';
-        group.userData.isMapObject = true;
-        this.scene.add(group);
-
-        this.colliders.push({
-            type: 'box',
-            position: new THREE.Vector3(x, y + 0.4, z),
-            size: new THREE.Vector3(0.7, 0.8, 0.7),
-            enabled: true
-        });
-    }
-
-    // ---- Crates ----
-    _createCrate(x, y, z, size = 0.8) {
-        const crateMat = getMat(0x9b7236, { roughness: 0.8 });
-        const darkMat = getMat(0x7a5a2a, { roughness: 0.85 });
-
-        const group = new THREE.Group();
-
-        // Box
-        const boxGeo = new THREE.BoxGeometry(size, size, size);
-        const box = new THREE.Mesh(boxGeo, crateMat);
-        box.position.y = size / 2;
-        box.castShadow = true;
-        group.add(box);
-
-        // Plank lines
-        const plankGeo = new THREE.BoxGeometry(size * 0.98, 0.02, size * 0.02);
-        for (let p = 0; p < 3; p++) {
-            const plank = new THREE.Mesh(plankGeo, darkMat);
-            plank.position.y = size * 0.2 + p * size * 0.3;
-            plank.position.z = size / 2 + 0.005;
-            group.add(plank);
-        }
-
-        // Corner brackets
-        const bracketGeo = new THREE.BoxGeometry(0.05, size, 0.05);
-        const bracketMat = getMat(0x6a6a6a, { roughness: 0.7, metalness: 0.5 });
-        [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([dx, dz]) => {
-            const bracket = new THREE.Mesh(bracketGeo, bracketMat);
-            bracket.position.set(dx * size / 2, size / 2, dz * (size / 2 + 0.005));
-            group.add(bracket);
-        });
-
-        group.position.set(x, y, z);
-        group.rotation.y = Math.random() * Math.PI * 2;
-        group.castShadow = true;
-        group.userData.isArena = true;
-        group.userData.isDecoration = true;
-        group.userData.decorationType = 'crate';
-        group.userData.isMapObject = true;
-        this.scene.add(group);
-
-        this.colliders.push({
-            type: 'box',
-            position: new THREE.Vector3(x, y + size / 2, z),
-            size: new THREE.Vector3(size, size, size),
-            enabled: true
-        });
-    }
-
-    // ---- Benches ----
-    _createBench(x, y, z, rotation = 0) {
-        const woodMat = getMat(0x8b6236, { roughness: 0.85 });
-        const metalMat = getMat(0x5a5a5a, { roughness: 0.7, metalness: 0.5 });
-
-        const group = new THREE.Group();
-
-        // Seat
-        const seatGeo = new THREE.BoxGeometry(1.6, 0.08, 0.5);
-        const seat = new THREE.Mesh(seatGeo, woodMat);
-        seat.position.set(0, 0.5, 0);
-        seat.castShadow = true;
-        group.add(seat);
-
-        // Back
-        const backGeo = new THREE.BoxGeometry(1.6, 0.6, 0.06);
-        const back = new THREE.Mesh(backGeo, woodMat);
-        back.position.set(0, 0.85, -0.22);
-        back.rotation.x = -0.1;
-        back.castShadow = true;
-        group.add(back);
-
-        // Legs
-        const legGeo = new THREE.BoxGeometry(0.06, 0.5, 0.06);
-        [[-0.65, -0.15], [0.65, -0.15], [-0.65, 0.15], [0.65, 0.15]].forEach(([dx, dz]) => {
-            const leg = new THREE.Mesh(legGeo, metalMat);
-            leg.position.set(dx, 0.25, dz);
-            leg.castShadow = true;
-            group.add(leg);
-        });
-
-        group.position.set(x, y, z);
-        group.rotation.y = rotation;
-        group.castShadow = true;
-        group.userData.isArena = true;
-        group.userData.isDecoration = true;
-        group.userData.decorationType = 'bench';
-        group.userData.isMapObject = true;
-        this.scene.add(group);
-    }
-
-    // ---- Wooden signs ----
-    _createSign(x, y, z, text = '', rotation = 0) {
-        const group = new THREE.Group();
-        const postMat = getMat(0x7a5a3a, { roughness: 0.9 });
-        const signMat = getMat(0x9b7236, { roughness: 0.85 });
-
-        // Post
-        const postGeo = new THREE.CylinderGeometry(0.06, 0.08, 2.0, 6);
-        const post = new THREE.Mesh(postGeo, postMat);
-        post.position.set(0, 1.0, 0);
-        post.castShadow = true;
-        group.add(post);
-
-        // Sign board
-        const boardGeo = new THREE.BoxGeometry(1.0, 0.5, 0.06);
-        const board = new THREE.Mesh(boardGeo, signMat);
-        board.position.set(0, 1.8, 0.05);
-        board.castShadow = true;
-        group.add(board);
-
-        // Frame
-        const frameMat = getMat(0x6a4a2a, { roughness: 0.85 });
-        const topGeo = new THREE.BoxGeometry(1.05, 0.04, 0.07);
-        const top = new THREE.Mesh(topGeo, frameMat);
-        top.position.set(0, 2.07, 0.05);
-        group.add(top);
-        const bottom = new THREE.Mesh(topGeo, frameMat);
-        bottom.position.set(0, 1.53, 0.05);
-        group.add(bottom);
-
-        group.position.set(x, y, z);
-        group.rotation.y = rotation;
-        group.userData.isDecoration = true;
-        group.userData.decorationType = 'sign';
-        group.userData.isMapObject = true;
-        this.scene.add(group);
-    }
-
-    // ---- Fences ----
-    _createFenceSegment(x, z, length, rotation = 0) {
-        const postMat = getMat(0x7a5a3a, { roughness: 0.9 });
-        const railMat = getMat(0x8b6a4a, { roughness: 0.85 });
-
-        const group = new THREE.Group();
-        const posts = Math.floor(length / 2);
-
-        for (let i = 0; i <= posts; i++) {
-            const postGeo = new THREE.BoxGeometry(0.1, 1.2, 0.1);
-            const post = new THREE.Mesh(postGeo, postMat);
-            post.position.set(i * 2 - length / 2, 0.6, 0);
-            post.castShadow = true;
-            group.add(post);
-        }
-
-        // Rails
-        for (let r = 0; r < 2; r++) {
-            const railGeo = new THREE.BoxGeometry(length, 0.06, 0.06);
-            const rail = new THREE.Mesh(railGeo, railMat);
-            rail.position.set(0, 0.8 + r * 0.4, 0);
-            group.add(rail);
-        }
-
-        group.position.set(x, 0, z);
-        group.rotation.y = rotation;
-        group.castShadow = true;
-        group.userData.isArena = true;
-        group.userData.isDecoration = true;
-        group.userData.decorationType = 'fence';
-        group.userData.isMapObject = true;
-        this.scene.add(group);
-    }
-
-    // ---- Debris / scattered items ----
-    _createDebris(x, y, z) {
-        const group = new THREE.Group();
-        const items = [];
-        const debrisCount = 2 + Math.floor(Math.random() * 4);
-
-        for (let i = 0; i < debrisCount; i++) {
-            const type = Math.random();
-            let geo, mat, mesh;
-
-            if (type < 0.3) {
-                // Broken wood plank
-                geo = new THREE.BoxGeometry(0.3 + Math.random() * 0.5, 0.05, 0.08 + Math.random() * 0.05);
-                mat = getMat(0x8b7236, { roughness: 0.9 });
-                mesh = new THREE.Mesh(geo, mat);
-            } else if (type < 0.5) {
-                // Small rock
-                geo = new THREE.DodecahedronGeometry(0.08 + Math.random() * 0.1, 0);
-                mat = getMat(0x9a9a9a, { roughness: 0.9 });
-                mesh = new THREE.Mesh(geo, mat);
-            } else if (type < 0.7) {
-                // Metal scrap
-                geo = new THREE.BoxGeometry(0.15, 0.03, 0.1);
-                mat = getMat(0x7a7a7a, { roughness: 0.6, metalness: 0.5 });
-                mesh = new THREE.Mesh(geo, mat);
-            } else {
-                // Pipe
-                geo = new THREE.CylinderGeometry(0.03, 0.03, 0.3 + Math.random() * 0.4, 5);
-                mat = getMat(0x6a6a6a, { roughness: 0.7, metalness: 0.5 });
-                mesh = new THREE.Mesh(geo, mat);
-            }
-
-            mesh.position.set(
-                (Math.random() - 0.5) * 1.5,
-                0.05 + Math.random() * 0.05,
-                (Math.random() - 0.5) * 1.5
-            );
-            mesh.rotation.set(Math.random() * 0.5, Math.random() * Math.PI * 2, Math.random() * 0.5);
-            mesh.castShadow = true;
-            items.push(mesh);
-        }
-
-        items.forEach(item => group.add(item));
-        group.position.set(x, y, z);
-        group.userData.isDecoration = true;
-        group.userData.decorationType = 'debris';
-        group.userData.isMapObject = true;
-        this.scene.add(group);
-    }
-
-    // ---- Glowing mushrooms (forest) ----
-    _createMushroom(x, y, z, count = 3) {
-        for (let i = 0; i < count; i++) {
-            const group = new THREE.Group();
-            const mSize = 0.1 + Math.random() * 0.2;
-
-            // Stem
-            const stemGeo = new THREE.CylinderGeometry(mSize * 0.3, mSize * 0.4, mSize * 2, 5);
-            const stemMat = getMat(0xccccaa, { roughness: 0.8 });
-            const stem = new THREE.Mesh(stemGeo, stemMat);
-            stem.position.y = mSize;
-            group.add(stem);
-
-            // Cap
-            const capGeo = new THREE.SphereGeometry(mSize * 1.2, 6, 4, 0, Math.PI * 2, 0, Math.PI / 2);
-            const capColor = Math.random() > 0.5 ? 0x8844ff : 0x44ff88;
-            const capMat = getMat(capColor, {
-                roughness: 0.5,
-                emissive: capColor,
-                emissiveIntensity: 0.3
-            });
-            const cap = new THREE.Mesh(capGeo, capMat);
-            cap.position.y = mSize * 2;
-            group.add(cap);
-
-            // Glow light
-            if (Math.random() > 0.5) {
-                const glow = this._createPointLight(capColor, 0.2, 3);
-                glow.position.y = mSize * 2.5;
-                group.add(glow);
-                this.animatedObjects.push({ type: 'glow', light: glow, baseIntensity: 0.2 });
-            }
-
-            group.position.set(
-                x + (Math.random() - 0.5) * 1.5,
-                y,
-                z + (Math.random() - 0.5) * 1.5
-            );
-            group.rotation.y = Math.random() * Math.PI * 2;
-            group.userData.isDecoration = true;
-            group.userData.decorationType = 'mushroom';
-            group.userData.isMapObject = true;
-            this.scene.add(group);
-        }
-    }
-
-    // ---- Crystal formations (crystal grotto) ----
-    _createCrystalFormation(x, y, z, count = 5) {
-        for (let i = 0; i < count; i++) {
-            const cHeight = 1 + Math.random() * 2.5;
-            const cRadius = 0.15 + Math.random() * 0.3;
-            const cAngle = Math.random() * Math.PI * 2;
-
-            const crystalGeo = new THREE.ConeGeometry(cRadius, cHeight, 5);
-            const crystalColor = Math.random() > 0.5 ? 0x44aacc : 0x8844aa;
-            const crystalMat = getMat(crystalColor, {
-                roughness: 0.2,
-                metalness: 0.3,
-                transparent: true,
-                opacity: 0.85
-            });
-            const crystal = new THREE.Mesh(crystalGeo, crystalMat);
-            crystal.position.set(
-                x + Math.cos(cAngle) * i * 0.5,
-                y + cHeight / 2,
-                z + Math.sin(cAngle) * i * 0.5
-            );
-            crystal.rotation.z = (Math.random() - 0.5) * 0.3;
-            crystal.rotation.x = (Math.random() - 0.5) * 0.3;
-            crystal.castShadow = true;
-            crystal.userData.isDecoration = true;
-            crystal.userData.decorationType = 'crystal';
-            crystal.userData.isMapObject = true;
-            this.scene.add(crystal);
-
-            // Small glow
-            if (Math.random() > 0.6) {
-                const glow = this._createPointLight(crystalColor, 0.3, 5);
-                glow.position.copy(crystal.position);
-                glow.position.y += cHeight * 0.3;
-                this.scene.add(glow);
-                this.animatedObjects.push({ type: 'glow', light: glow, baseIntensity: 0.3 });
-            }
-        }
-    }
-
-    // ---- Smoke vents (burning wastes) ----
-    _createSmokeVent(x, y, z) {
-        const group = new THREE.Group();
-
-        // Pipe sticking out
-        const pipeGeo = new THREE.CylinderGeometry(0.1, 0.12, 0.8, 6);
-        const pipeMat = getMat(0x4a4a4a, { roughness: 0.7, metalness: 0.6 });
-        const pipe = new THREE.Mesh(pipeGeo, pipeMat);
-        pipe.position.y = 0.4;
-        pipe.rotation.z = 0.3;
-        pipe.castShadow = true;
-        group.add(pipe);
-
-        // Steam particle system
-        this._createSmokeVentParticles(x, y + 0.8, z);
-
-        group.position.set(x, y, z);
-        group.userData.isDecoration = true;
-        group.userData.decorationType = 'smokeVent';
-        group.userData.isMapObject = true;
-        this.scene.add(group);
-
-        this.colliders.push({
-            type: 'box',
-            position: new THREE.Vector3(x, y + 0.4, z),
-            size: new THREE.Vector3(0.4, 0.8, 0.4),
-            enabled: true
-        });
-    }
-
-    _createSmokeVentParticles(x, y, z) {
-        const count = 30;
-        const geo = new THREE.BufferGeometry();
-        const positions = new Float32Array(count * 3);
-        const velocities = [];
-
-        for (let i = 0; i < count; i++) {
-            positions[i * 3] = x + (Math.random() - 0.5) * 0.5;
-            positions[i * 3 + 1] = y + Math.random() * 4;
-            positions[i * 3 + 2] = z + (Math.random() - 0.5) * 0.5;
-            velocities.push({
-                x: (Math.random() - 0.5) * 0.2,
-                y: 0.3 + Math.random() * 0.3,
-                z: (Math.random() - 0.5) * 0.2
-            });
-        }
-
-        geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        const mat = new THREE.PointsMaterial({
-            color: 0x888888,
-            size: 0.3,
-            transparent: true,
-            opacity: 0.2,
-            depthWrite: false
-        });
-
-        const points = new THREE.Points(geo, mat);
-        points.userData.isParticle = true;
-        points.userData.velocities = velocities;
-        points.userData.type = 'smokeVent';
-        points.userData.origin = { x, y, z };
-        this.scene.add(points);
-        this.particleSystems.push(points);
-    }
-
-    // ---- Zone boundary markers ----
-    _buildZoneBoundaryMarkers(radius, center, color, label) {
-        const markerCount = 24;
-        const markerMat = getMat(color, {
-            emissive: color,
-            emissiveIntensity: 0.15
-        });
-
-        for (let i = 0; i < markerCount; i++) {
-            const angle = (i / markerCount) * Math.PI * 2;
-            const mx = center.x + Math.cos(angle) * radius;
-            const mz = center.z + Math.sin(angle) * radius;
-
-            // Pillar
-            const pillarGeo = new THREE.CylinderGeometry(0.08, 0.1, 2.5, 6);
-            const pillar = new THREE.Mesh(pillarGeo, markerMat);
-            pillar.position.set(mx, 1.25, mz);
-            pillar.castShadow = true;
-            pillar.userData.isDecoration = true;
-            pillar.userData.decorationType = 'zoneMarker';
-            pillar.userData.zoneLabel = label;
-            pillar.userData.isMapObject = true;
-            this.scene.add(pillar);
-
-            // Top orb
-            const orbGeo = new THREE.SphereGeometry(0.15, 6, 4);
-            const orb = new THREE.Mesh(orbGeo, markerMat);
-            orb.position.set(mx, 2.65, mz);
-            orb.userData.isDecoration = true;
-            orb.userData.decorationType = 'zoneMarker';
-            orb.userData.isMapObject = true;
-            this.scene.add(orb);
-
-            // Glow light
-            const glow = this._createPointLight(color, 0.3, 6);
-            glow.position.set(mx, 2.8, mz);
-            this.scene.add(glow);
-            this.animatedObjects.push({ type: 'glow', light: glow, baseIntensity: 0.3 });
-        }
-
-        // Zone boundary ring (transparent cylinder)
-        const ringGeo = new THREE.CylinderGeometry(radius, radius, 6, 32, 1, true);
-        const ringMat = new THREE.MeshBasicMaterial({
-            color: color,
-            transparent: true,
-            opacity: 0.08,
-            side: THREE.DoubleSide,
-            depthWrite: false
-        });
-        const ring = new THREE.Mesh(ringGeo, ringMat);
-        ring.position.set(center.x, 3, center.z);
-        ring.userData.isDecoration = true;
-        ring.userData.decorationType = 'zoneBoundary';
-        ring.userData.zoneLabel = label;
-        ring.userData.isMapObject = true;
-        this.scene.add(ring);
-    }
-
-    // ---- Loot zone indicators ----
-    _createLootIndicator(x, z, color = 0xf8d840) {
-        const pillarGeo = new THREE.CylinderGeometry(0.06, 0.08, 1.5, 6);
-        const pillarMat = getMat(0x6a6a6a, { roughness: 0.6, metalness: 0.5 });
-        const pillar = new THREE.Mesh(pillarGeo, pillarMat);
-        pillar.position.set(x, 0.75, z);
-        pillar.castShadow = true;
-        pillar.userData.isDecoration = true;
-        pillar.userData.decorationType = 'lootIndicator';
-        pillar.userData.isMapObject = true;
-        this.scene.add(pillar);
-
-        // Glowing top
-        const orbGeo = new THREE.SphereGeometry(0.12, 6, 4);
-        const orbMat = getMat(color, {
-            emissive: color,
-            emissiveIntensity: 0.4,
-            transparent: true,
-            opacity: 0.8
-        });
-        const orb = new THREE.Mesh(orbGeo, orbMat);
-        orb.position.set(x, 1.65, z);
-        orb.userData.isDecoration = true;
-        orb.userData.decorationType = 'lootIndicator';
-        orb.userData.isMapObject = true;
-        this.scene.add(orb);
-
-        // Light
-        const glow = this._createPointLight(color, 0.4, 5);
-        glow.position.set(x, 1.8, z);
-        this.scene.add(glow);
-        this.animatedObjects.push({ type: 'glow', light: glow, baseIntensity: 0.4 });
-    }
-
-    // ---- Small ponds/water features ----
-    _createPond(x, z, radius, color = 0x2266aa) {
-        const pondGeo = new THREE.CircleGeometry(radius, 16);
-        pondGeo.rotateX(-Math.PI / 2);
-        const pondMat = new THREE.MeshBasicMaterial({
-            color: color,
-            transparent: true,
-            opacity: 0.6
-        });
-        const pond = new THREE.Mesh(pondGeo, pondMat);
-        pond.position.set(x, 0.03, z);
-        pond.userData.isDecoration = true;
-        pond.userData.decorationType = 'pond';
-        pond.userData.isMapObject = true;
-        pond.userData.isWater = true;
-        this.scene.add(pond);
-        this.waterMeshes.push(pond);
-
-        // Edge rocks
-        for (let i = 0; i < Math.floor(radius * 3); i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = radius - 0.1 + (Math.random() - 0.5) * 0.3;
-            this._createRock(x + Math.cos(angle) * r, 0, z + Math.sin(angle) * r, 0.15 + Math.random() * 0.15, 0x7a7a6a);
-        }
-    }
-
-    // ---- Ruined wall segments ----
-    _createRuinedWall(x, z, length, height, rotation = 0, color = 0xb0aaa5) {
-        const wallGeo = new THREE.BoxGeometry(length, height, 0.5);
-        const wallMat = getMat(color, { roughness: 0.9 });
-        const wall = new THREE.Mesh(wallGeo, wallMat);
-        wall.position.set(x, height / 2, z);
-        wall.rotation.y = rotation;
-        wall.castShadow = true;
-        wall.receiveShadow = true;
-        wall.userData.isDecoration = true;
-        wall.userData.decorationType = 'ruinedWall';
-        wall.userData.isMapObject = true;
-        this.scene.add(wall);
-
-        this.colliders.push({
-            type: 'box',
-            position: new THREE.Vector3(x, height / 2, z),
-            size: new THREE.Vector3(length, height, 0.5),
-            enabled: true
-        });
-    }
-
-    // ---- Main decoration method ----
-    async buildDecorations() {
-        // === Scatter rocks everywhere ===
-        for (let i = 0; i < 120; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = 10 + Math.random() * 180;
-            const x = Math.cos(angle) * r;
-            const z = Math.sin(angle) * r;
-            const s = 0.3 + Math.random() * 1.5;
-            this._createRock(x, 0, z, s, Math.random() > 0.5 ? 0x8a8a8a : 0x9a9a90);
-            if (i % 15 === 0) await _yield();
-        }
-
-       // === Scatter debris clusters ===
-        for (let i = 0; i < 40; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = 15 + Math.random() * 170;
-            this._createDebris(Math.cos(angle) * r, 0, Math.sin(angle) * r);
-            if (i % 5 === 0) await _yield();
-        }
-
-        // === Barrels and crates ===
-        for (let i = 0; i < 25; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = 20 + Math.random() * 160;
-            this._createBarrel(Math.cos(angle) * r, 0, Math.sin(angle) * r);
-            if (i % 5 === 0) await _yield();
-        }
-        for (let i = 0; i < 30; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = 20 + Math.random() * 160;
-            this._createCrate(Math.cos(angle) * r, 0, Math.sin(angle) * r, 0.6 + Math.random() * 0.6);
-            if (i % 5 === 0) await _yield();
-        }
-
-       // === Benches ===
-        for (let i = 0; i < 15; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = 30 + Math.random() * 120;
-            this._createBench(Math.cos(angle) * r, 0, Math.sin(angle) * r, angle);
-            if (i % 5 === 0) await _yield();
-        }
-
-        // === Signs ===
-        const signPositions = [
-            { x: -50, z: 50, rot: Math.PI / 4, text: 'Citadel' },
-            { x: 50, z: 50, rot: -Math.PI / 4, text: 'Crystal' },
-            { x: -50, z: -50, rot: Math.PI * 0.75, text: 'Wastes' },
-            { x: 50, z: -50, rot: Math.PI / 4, text: 'Forest' },
-        ];
-        for (let i = 0; i < signPositions.length; i++) {
-            const sp = signPositions[i];
-            this._createSign(sp.x, 0, sp.z, sp.text, sp.rot);
-            if (i % 3 === 0) await _yield();
-        }
-
-        // === Fences around spawn courtyard ===
-        for (let i = 0; i < 8; i++) {
-            const angle = (i / 8) * Math.PI * 2;
-            const r = 42;
-            this._createFenceSegment(
-                Math.cos(angle) * r,
-                Math.sin(angle) * r,
-                6,
-                angle + Math.PI / 2
-            );
-        }
-
-        // === Fences near citadel ===
-        for (let i = 0; i < 6; i++) {
-            this._createFenceSegment(
-                -80 + (Math.random() - 0.5) * 40,
-                80 + (Math.random() > 0.5 ? 20 : -20),
-                8 + Math.random() * 6,
-                Math.random() * Math.PI
-            );
-        }
-
-        // === Signage near cornucopia ===
-        this._createSign(8, 0, 8, 'START', 0);
-        this._createSign(-8, 0, 8, 'ARENA', Math.PI / 2);
-
-        // === Zone boundary markers ===
-        this._buildZoneBoundaryMarkers(180, { x: 0, z: 0 }, 0xff6622, 'outer');
-        this._buildZoneBoundaryMarkers(120, { x: 0, z: 0 }, 0xffaa44, 'inner');
-
-        await _yield();
-    }
-
-    // ---- Biome-specific trees ----
-    async buildBiomeTrees() {
-
-        // Ruined Citadel: dead/partially dead trees
-        for (let i = 0; i < 25; i++) {
-            const x = -80 + (Math.random() - 0.5) * 60;
-            const z = 80 + (Math.random() - 0.5) * 60;
-            this._createTree(x, 0, z, 'ruined');
-            if (i % 5 === 0) await _yield();
-        }
-
-        // Crystal Grotto: crystal-leaf trees
-        for (let i = 0; i < 20; i++) {
-            const x = 80 + (Math.random() - 0.5) * 50;
-            const z = 80 + (Math.random() - 0.5) * 50;
-            this._createTree(x, 0, z, 'crystal');
-            if (i % 5 === 0) await _yield();
-        }
-
-        // Burning Wastes: burnt trunks, no leaves
-        for (let i = 0; i < 20; i++) {
-            const x = -80 + (Math.random() - 0.5) * 60;
-            const z = -80 + (Math.random() - 0.5) * 60;
-            this._createTree(x, 0, z, 'burnt');
-            if (i % 5 === 0) await _yield();
-        }
-
-        // Luminous Forest: glowing trees
-        for (let i = 0; i < 30; i++) {
-            const x = 80 + (Math.random() - 0.5) * 60;
-            const z = -80 + (Math.random() - 0.5) * 60;
-            this._createTree(x, 0, z, 'glowing');
-            if (i % 5 === 0) await _yield();
-        }
-
-        // Regular trees along connector paths (between gates, not in biome zones)
-        for (let i = 0; i < 30; i++) {
-            const side = Math.floor(Math.random() * 4);
-            let x, z;
-            if (side === 0) {
-                // North path (center to citadel-crystal gate)
-                x = (Math.random() - 0.5) * 6;
-                z = 10 + Math.random() * 50;
-            } else if (side === 1) {
-                // South path
-                x = (Math.random() - 0.5) * 6;
-                z = -10 - Math.random() * 50;
-            } else if (side === 2) {
-                // West path
-                x = -10 - Math.random() * 50;
-                z = (Math.random() - 0.5) * 6;
-            } else {
-                // East path
-                x = 10 + Math.random() * 50;
-                z = (Math.random() - 0.5) * 6;
-            }
-            this._createTree(x, 0, z, 'normal');
-            if (i % 8 === 0) await _yield();
-        }
-
-        // === Mushrooms in forest ===
-        for (let i = 0; i < 30; i++) {
-            const x = 80 + (Math.random() - 0.5) * 70;
-            const z = -80 + (Math.random() - 0.5) * 70;
-            this._createMushroom(x, 0, z, 2 + Math.floor(Math.random() * 4));
-            if (i % 5 === 0) await _yield();
-        }
-
-        // === Crystal formations in grotto ===
-        for (let i = 0; i < 15; i++) {
-            const x = 80 + (Math.random() - 0.5) * 50;
-            const z = 80 + (Math.random() - 0.5) * 50;
-            this._createCrystalFormation(x, 0, z, 3 + Math.floor(Math.random() * 5));
-            if (i % 3 === 0) await _yield();
-        }
-
-      // === Smoke vents in wastes ===
-        for (let i = 0; i < 12; i++) {
-            const x = -80 + (Math.random() - 0.5) * 60;
-            const z = -80 + (Math.random() - 0.5) * 60;
-            this._createSmokeVent(x, 0, z);
-            if (i % 3 === 0) await _yield();
-        }
-
-        // === Ponds in forest ===
-        for (let i = 0; i < 6; i++) {
-            const x = 80 + (Math.random() - 0.5) * 50;
-            const z = -80 + (Math.random() - 0.5) * 50;
-            this._createPond(x, z, 2 + Math.random() * 3, 0x22aa66);
-            if (i % 2 === 0) await _yield();
-        }
-
-        // === Ruined walls near citadel ===
-        for (let i = 0; i < 8; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = 50 + Math.random() * 30;
-            const x = -80 + Math.cos(angle) * r * 0.5;
-            const z = 80 + Math.sin(angle) * r * 0.5;
-            const len = 3 + Math.random() * 8;
-            const h = 1 + Math.random() * 3;
-            this._createRuinedWall(x, z, len, h, angle, 0xb0aaa5);
-            if (i % 2 === 0) await _yield();
-        }
-
-        // === Loot indicators scattered around map ===
-        for (let i = 0; i < 20; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = 30 + Math.random() * 150;
-            const x = Math.cos(angle) * r;
-            const z = Math.sin(angle) * r;
-            const colors = [0xf8d840, 0x44ff44, 0x4488ff, 0xff4488];
-            this._createLootIndicator(x, z, colors[Math.floor(Math.random() * colors.length)]);
-            if (i % 5 === 0) await _yield();
-        }
-
-        this.reportProgress(0.88, 'Декорации и указатели');
-        await _yield();
-    }
-
-    generateHeightMap() {
-        const size = 512, res = 128, step = size / res;
-        this.heightMap = Array.from({ length: res + 1 }, () => new Float32Array(res + 1));
-        for (let i = 0; i <= res; i++)
-            for (let j = 0; j <= res; j++) {
-                const x = (i - res / 2) * step, z = (j - res / 2) * step;
-                this.heightMap[i][j] = this.noise.fbm(x * 0.01, z * 0.01, 4, 2.0, 0.5) * 15;
-            }
-    }
-
-    // ===================== GENERATION ORCHESTRATOR =====================
-    async generate() {
-        try {
-            this.generateHeightMap();
-            this.reportProgress(0.05, 'Создание ландшафта...');
-
-            this.buildArenaFloor();
-            this.reportProgress(0.10, 'Ландшафт готов');
-
-            this.buildForcefield();
-            this.reportProgress(0.15, 'Арена построена');
-
-            await new Promise(r => setTimeout(r, 100));
-            await this.buildCornucopia();
-            this.reportProgress(0.22, 'Корнукопия');
-
-            await new Promise(r => setTimeout(r, 100));
-            await this.buildInnerRing();
-            this.reportProgress(0.30, 'Внутреннее кольцо');
-
-            await this.buildBiomePaths();
-            this.reportProgress(0.35, 'Пути биомов');
-            await new Promise(r => setTimeout(r, 100));
-
-            await this.buildRuinedCitadel();
-            this.reportProgress(0.42, 'Руины Цитадели');
-
-            await this.buildCrystalGrotto();
-            this.reportProgress(0.50, 'Хрустальная гротовка');
-            await new Promise(r => setTimeout(r, 100));
-
-            await this.buildBurningWastes();
-            this.reportProgress(0.58, 'Пылающие пустоши');
-
-            await this.buildLuminousForest();
-            this.reportProgress(0.66, 'Светящийся лес');
-            await new Promise(r => setTimeout(r, 100));
-
-            this.reportProgress(0.70, 'Мосты и форпосты...');
-            await this.buildBridges();
-            await this.buildOuterOutposts();
-            await this.buildHazardZones();
-            this.reportProgress(0.76, 'Объекты размещены');
-            await new Promise(r => setTimeout(r, 100));
-
-            await this.buildLootClusters();
-            await this.buildFirePits();
-            this.reportProgress(0.80, 'Частицы');
-            await this.buildParticleSystems();
-            await new Promise(r => setTimeout(r, 100));
-
-            await this.buildDecorations();
-            this.reportProgress(0.86, 'Декорации');
-            await this.buildBiomeTrees();
-            this.reportProgress(0.92, 'Зоны обозначены');
-            await new Promise(r => setTimeout(r, 100));
-
-            await this.buildTraps();
-            this.reportProgress(0.94, 'Ловушки');
-            await this.buildFogZones();
-            await new Promise(r => setTimeout(r, 200));
-
-            await this.buildRadiationZones();
-            await this.buildLootData();
-            this.reportProgress(0.98, 'Мир готов');
-
-            this._resolveReady();
-        } catch (e) {
-            this._resolveReady();
         }
     }
 
     // ===================== ANIMATION UPDATES =====================
     updateZoneAnimations(deltaTime) {
-        // Light culling to prevent MAX_FRAGMENT_UNIFORM_V
-        const camPos = this.scene?.userData?.camera?.position;
-        if (camPos) {
-            this._cullPointLights(camPos);
-        }
         for (const obj of this.animatedObjects) {
-            switch (obj.type) {
-                case 'forcefield':
-                    if (obj.material && obj.material.opacity !== undefined) {
-                        const pulse = 0.12 + Math.sin(deltaTime * 2) * 0.04;
-                        obj.material.opacity = Math.max(0.08, pulse);
-                    }
-                    break;
-                case 'lantern':
-                    if (obj.mesh) {
-                        const flicker = 0.4 + Math.sin(deltaTime * 5 + Math.random()) * 0.2;
-                        obj.mesh.material.opacity = Math.max(0.2, flicker);
-                    }
-                    break;
-                case 'fire':
-                    if (obj.mesh) {
-                        const s = 0.8 + Math.sin(deltaTime * 8) * 0.2;
-                        obj.mesh.scale.set(s, 1 + Math.sin(deltaTime * 6) * 0.3, s);
-                    }
-                    if (obj.light) {
-                        obj.light.intensity = (obj.baseLightIntensity || 0.6) * (0.8 + Math.sin(deltaTime * 7) * 0.2);
-                    }
-                    break;
-                case 'lava':
-                    if (obj.mesh && obj.mesh.material.emissiveIntensity !== undefined) {
-                        obj.mesh.material.emissiveIntensity = 0.4 + Math.sin(deltaTime * 3) * 0.2;
-                    }
-                    break;
-                case 'glow':
-                    if (obj.light) {
-                        obj.light.intensity = (obj.baseIntensity || 0.3) * (0.7 + Math.sin(deltaTime * 2.5) * 0.3);
-                    }
-                    if (obj.mesh && obj.mesh.material.opacity !== undefined) {
-                        const pulse = 0.3 + Math.sin(deltaTime * 2 + Math.random()) * 0.15;
-                        obj.mesh.material.opacity = Math.max(0.2, pulse);
-                    }
-                    break;
-                case 'lootMarker':
-                    if (obj.mesh) {
-                        obj.mesh.position.y = obj.baseY + Math.sin(deltaTime * 3) * 0.3;
-                        obj.mesh.rotation.y = deltaTime * 2;
-                    }
-                    break;
-            }
-        }
-
-        // Update particles
-        for (const ps of this.particleSystems) {
-            const pos = ps.geometry.getAttribute('position');
-            if (!pos || !ps.userData.velocities) continue;
-            const vels = ps.userData.velocities;
-            for (let i = 0; i < pos.count; i++) {
-                pos.array[i * 3 + 1] += vels[i]?.y * deltaTime * 0.5 || 0;
-                pos.array[i * 3] += (vels[i]?.x || 0) * deltaTime;
-                pos.array[i * 3 + 2] += (vels[i]?.z || 0) * deltaTime;
-
-                // Reset if too high
-                if (pos.array[i * 3 + 1] > 15) {
-                    pos.array[i * 3 + 1] = 0;
-                    const origin = ps.userData.origin;
-                    const cx = origin ? origin.x : (ps.userData.cx || 0);
-                    const cz = origin ? origin.z : (ps.userData.cz || 0);
-                    const angle = Math.random() * Math.PI * 2;
-                    const r = Math.random() * 5;
-                    pos.array[i * 3] = cx + Math.cos(angle) * r;
-                    pos.array[i * 3 + 2] = cz + Math.sin(angle) * r;
+            if (obj.type === 'glow' && obj.light) {
+                if (obj.pulse) {
+                    obj.light.intensity = obj.baseIntensity * (0.8 + Math.sin(performance.now() * 0.003) * 0.2);
+                } else if (obj.baseIntensity) {
+                    obj.light.intensity = obj.baseIntensity * (0.85 + Math.sin(performance.now() * 0.005) * 0.15);
                 }
             }
-            pos.needsUpdate = true;
-        }
-
-        // Update fog zones based on active phase
-        for (const fz of this.fogZones) {
-            if (fz.active && fz._wallMat) {
-                fz._wallMat.opacity = 0.06 + Math.sin(deltaTime * 1.5) * 0.02;
-            }
-        }
-
-        // Update radiation zones
-        for (const rz of this.radiationZones) {
-            if (rz._gasMat) {
-                rz._gasMat.opacity = 0.06 + Math.sin(deltaTime * 1.2) * 0.02;
+            if (obj.type === 'forcefield' && obj.material) {
+                obj.material.opacity = obj.baseOpacity * (0.7 + Math.sin(performance.now() * 0.002) * 0.3);
             }
         }
     }
 
-    // ===================== QUERY METHODS =====================
-    getSpawnPads() {
-        return this.spawnPads;
-    }
-
-    setCourtyardGateOpen(open) {
-        this._courtyardGateOpen = open;
-        // Update gate meshes if they exist
-        this.oneWayGates?.forEach(g => {
-            if (g.mesh) {
-                g.mesh.visible = open;
-            }
-        });
-    }
-
-   getCourtyardExitPosition() {
-        return new THREE.Vector3(0, 10, 0);
-    }
-
-    isInsideCourtyard(pos) {
-        return pos && Math.abs(pos.x) < 30 && Math.abs(pos.z) < 30;
-    }
-
-    getColliders() {
-        return this.colliders;
-    }
-
-    getHazards() {
-        return this.hazards;
-    }
-
-    getTraps() {
-        return this.traps;
-    }
-
-    getFogZones() {
-        return this.fogZones;
-    }
-
-    getRadiationZones() {
-        return this.radiationZones;
-    }
-
-    getLootData() {
-        return this.lootData;
-    }
-
-    getAnimatedObjects() {
-        return this.animatedObjects;
-    }
-
-    isLavaAt(x, z, y) {
-        for (const h of this.hazards) {
-            if (h.type !== 'lava') continue;
-            const dx = x - h.position.x;
-            const dz = z - h.position.z;
-            if (dx * dx + dz * dz < h.radius * h.radius && y < 0.5) return true;
-        }
-        return false;
-    }
-
-    isWaterAt(x, z) {
-        for (const wm of this.waterMeshes) {
-            if (!wm.position) continue;
-            const dx = x - wm.position.x;
-            const dz = z - wm.position.z;
-            const r = wm.geometry?.parameters?.radius ?? 4;
-            if (dx * dx + dz * dz < r * r) return true;
-        }
-        return false;
-    }
-
-    getSlowFactorAt(x, z) {
-        if (this.isWaterAt(x, z)) return 0.68;
-        for (const h of this.hazards) {
-            if (h.type === 'shock') {
-                const dx = x - h.position.x;
-                const dz = z - h.position.z;
-                if (dx * dx + dz * dz < h.radius * h.radius) return 0.8;
-            }
-        }
-        return 1;
-    }
-
-    activateFogPhase(phaseIndex) {
-        for (let i = 0; i <= phaseIndex; i++) {
-            if (this.fogZones[i]) {
-                this.fogZones[i].active = true;
-            }
-        }
-        return this.fogZones[phaseIndex]?.innerRadius ?? 0;
-    }
-
-    getActiveSafeRadius() {
-        let minR = Infinity;
-        for (const fz of this.fogZones) {
-            if (fz.active && fz.innerRadius < minR) {
-                minR = fz.innerRadius;
-            }
-        }
-        return minR === Infinity ? this.arenaRadius : minR;
-    }
-
-    isPositionSafe(x, z) {
-        const safeRadius = this.getActiveSafeRadius();
-        return Math.sqrt(x * x + z * z) <= safeRadius;
-    }
-
-    getFogDamageAt(x, z) {
-        const dist = Math.sqrt(x * x + z * z);
-        for (const fz of this.fogZones) {
-            if (!fz.active) continue;
-            if (dist > fz.innerRadius && dist < fz.outerRadius) {
-                return fz.damage;
-            }
-        }
-        return 0;
-    }
-
-    getRadiationDamageAt(x, z) {
-        let total = 0;
-        for (const rz of this.radiationZones) {
-            const dx = x - rz.position.x;
-            const dz = z - rz.position.z;
-            const dist = Math.sqrt(dx * dx + dz * dz);
-            if (dist < rz.radius) {
-                const factor = 1 - dist / rz.radius;
-                total += rz.damage * factor;
-            }
-        }
-        return total;
-    }
-
-    getClosestRadiationZone(x, z) {
-        let closest = null;
-        let closestDist = Infinity;
-        for (const rz of this.radiationZones) {
-            const dx = x - rz.position.x;
-            const dz = z - rz.position.z;
-            const dist = Math.sqrt(dx * dx + dz * dz);
-            if (dist < closestDist) {
-                closestDist = dist;
-                closest = { zone: rz, distance: dist };
-            }
-        }
-        return closestDist < 100 ? closest : null;
-    }
-
-    getTimeUntilNextPhase(currentPhase) {
-        const phases = [60, 120, 180, Infinity];
-        return phases[Math.min(currentPhase, 3)] ?? Infinity;
-    }
-
-    activateTrapsNearEntity(entity) {
-        const radius = entity.physics?.radius || 0.6;
-        const pos = entity.position;
-        for (const trap of this.traps) {
-            if (trap.triggered) continue;
-            const dx = pos.x - trap.position.x;
-            const dz = pos.z - trap.position.z;
-            const dist = Math.sqrt(dx * dx + dz * dz);
-            if (dist < trap.radius + radius) {
-                trap.triggered = true;
-                trap.triggerTime = performance.now();
-                // Apply damage
-                if (typeof entity.takeDamage === 'function') {
-                    entity.takeDamage(trap.damage);
-                }
-            }
-        }
-    }
-
-    // Cleanup for scene transitions
-    dispose() {
-        this.scene.traverse(obj => {
-            if (obj.isMesh) {
-                obj.geometry?.dispose();
-                if (obj.material) {
-                    if (Array.isArray(obj.material)) {
-                        obj.material.forEach(m => m.dispose());
-                    } else {
-                        obj.material.dispose();
-                    }
-                }
-            }
-        });
-        this._sharedGeo.clear();
-        this.colliders.length = 0;
-        this.spawnPads.length = 0;
-        this.hazards.length = 0;
-        this.traps.length = 0;
-        this.fogZones.length = 0;
-        this.radiationZones.length = 0;
-        this.lootData.length = 0;
-        this.animatedObjects.length = 0;
-        this.waterMeshes.length = 0;
-        this.particleSystems.length = 0;
-    }
-
-    // ===================== PERFORMANCE METHODS =====================
-
-    /**
-     * Setup LOD: disable frustum culling and set render priorities
-     * @param {boolean} isMobile - whether on mobile device
-     */
-    setupLOD(isMobile) {
-        const maxDist = isMobile ? 180 : 350;
-        const shadowOff = isMobile;
-
-        this.scene.traverse(obj => {
-            if (obj.isMesh) {
-                // Frustum culling for distant objects
-                if (!obj.userData.isMapObject) {
-                    obj.frustumCulled = true;
-                }
-
-                // Disable shadow casting on mobile or for far objects
-                if (shadowOff && obj.castShadow) {
-                    obj.castShadow = false;
-                }
-            }
-        });
-
-        // Reduce fog for better performance on mobile
-        if (isMobile && this.scene.fog) {
-            this.scene.fog.density = Math.max(0.002, this.scene.fog.density - 0.001);
-        }
-    }
-
-   /**
-     * Enable optimized frustum culling based on camera distance
-     */
-    enableOptimizedCulling() {
-        this._lastCullTime = performance.now();
-        this._cullInterval = 1.5; // seconds
-        this._cameraPos = new THREE.Vector3();
-        this._mapObjects = [];
-
-        // Collect all map objects
-        this.scene.traverse(obj => {
-            if (obj.isMesh && obj.userData.isMapObject) {
-                this._mapObjects.push(obj);
-                obj.userData._originalVisible = obj.visible;
-            }
-        });
-    }
-
-    /**
-     * Update visibility of props/decorations based on player position
-     * @param {THREE.Vector3} playerPos
-     */
     updatePropVisibility(playerPos) {
-        if (!playerPos || !this._mapObjects?.length) return;
-
-        if (performance.now() - this._lastCullTime < this._cullInterval * 1000) return;
-        this._lastCullTime = performance.now();
-
-        const visibleRadius = 120;
-        const maxObjects = 500;
-        const maxObjectsMobile = 250;
-
-        const sorted = this._mapObjects.slice().sort((a, b) => {
-            const da = a.position.distanceToSquared(playerPos);
-            const db = b.position.distanceToSquared(playerPos);
-            return da - db;
-        });
-
-        const limit = this.scene.userData?.mobileMode ? maxObjectsMobile : maxObjects;
-        const limitSq = visibleRadius * visibleRadius;
-
-        for (let i = 0; i < sorted.length; i++) {
-            const obj = sorted[i];
-            const dSq = obj.position.distanceToSquared(playerPos);
-            obj.visible = i < limit && dSq < limitSq;
-        }
-    }
-
-    /**
-     * Update particle systems position
-     */
-    updateParticles(delta) {
-        for (const ps of this.particleSystems) {
-            const pos = ps.geometry?.getAttribute('position');
-            if (!pos || !ps.userData.velocities) continue;
-            const vels = ps.userData.velocities;
-            const type = ps.userData.type;
-
-            for (let i = 0; i < pos.count; i++) {
-                pos.array[i * 3 + 1] += (vels[i]?.y || 0) * delta * 0.5;
-                pos.array[i * 3] += (vels[i]?.x || 0) * delta;
-                pos.array[i * 3 + 2] += (vels[i]?.z || 0) * delta;
-
-                // Reset particles that go out of bounds
-                const cx = ps.userData.cx || 0;
-                const cz = ps.userData.cz || 0;
-                const maxR = type === 'ash' ? 60 : type === 'glow' ? 50 : 30;
-                const dx = pos.array[i * 3] - cx;
-                const dz = pos.array[i * 3 + 2] - cz;
-                if (dx * dx + dz * dz > maxR * maxR || pos.array[i * 3 + 1] > 15 || pos.array[i * 3 + 1] < -2) {
-                    const angle = Math.random() * Math.PI * 2;
-                    const r = Math.random() * Math.min(maxR, 10);
-                    pos.array[i * 3] = cx + Math.cos(angle) * r;
-                    pos.array[i * 3 + 1] = type === 'ash' ? 3 + Math.random() * 8 : 2 + Math.random() * 5;
-                    pos.array[i * 3 + 2] = cz + Math.sin(angle) * r;
-                }
-            }
-            pos.needsUpdate = true;
-        }
-    }
-
-    /**
-     * Update emissive intensity of floor materials based on night/day
-     */
-    setNightEmissive(isNight) {
-        this.scene.traverse(obj => {
-            if (obj.isMesh && obj.userData.isFloor && obj.material) {
-                const mat = Array.isArray(obj.material) ? obj.material[0] : obj.material;
-                if (mat && mat.emissiveIntensity !== undefined) {
-                    mat.emissiveIntensity = isNight ? 0.3 : 0;
-                    if (isNight && !mat.emissive) {
-                        mat.emissive = new THREE.Color(0x111122);
-                    }
-                }
-            }
-        });
-    }
-
-    /**
-     * Get the biome material type at a given position
-     */
-    getTerrainMaterialAt(x, z) {
-        // Simple biome classification based on position
-        const dist = Math.sqrt(x * x + z * z);
-        if (dist < 40) return 'spawn';
-        if (x < -40 && z < -40) return 'waste';
-        if (x > 40 && z > 40) return 'crystal';
-        if (x < -40 && z > 40) return 'forest';
-        return 'arena';
+        this._cullPointLights(playerPos);
     }
 
     // ===================== GAMEPLAY INTERFACES =====================
-
     getFloorTiles() {
-        // Return spawn area center positions for supply drops
         const tiles = [];
         const r = this.spawnCourtyardRadius - 10;
         for (let i = 0; i < 20; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const dist = Math.random() * r;
+            const angle = Math.random() * Math.PI * 2, dist = Math.random() * r;
             tiles.push({ x: Math.cos(angle) * dist, z: Math.sin(angle) * dist });
         }
         return tiles;
     }
 
-    getHouseSpots() {
-        // No houses currently — return empty array
-        return [];
-    }
+    getHouseSpots() { return []; }
+    getHangarSpots() { return []; }
+    getStoryNotes() { return []; }
+    getExplosiveBarrelSpots() { return this.hazards || []; }
+    getTraps() { return this.traps || []; }
+    getFogZones() { return this.fogZones || []; }
+    getSpawnPads() { return this.spawnPads || []; }
 
-    getHangarSpots() {
-        // No hangars currently — return empty array
-        return [];
-    }
-
-    getStoryNotes() {
-        // No story notes currently — return empty array
-        return [];
-    }
-
-    getExplosiveBarrelSpots() {
-        return this.hazards || [];
-    }
-
-    getTraps() {
-        return this.traps || [];
-    }
-
-    getFogZones() {
-        return this.fogZones || [];
-    }
-
-    getSpawnPads() {
-        return this.spawnPads || [];
-    }
-
-    getCourtyardExitPosition() {
-        // Return a safe position outside the courtyard
-        return new THREE.Vector3(60, 0, 0);
-    }
+    getCourtyardExitPosition() { return new THREE.Vector3(60, 0, 0); }
 
     isInsideCourtyard(pos) {
         const dist = Math.sqrt(pos.x * pos.x + pos.z * pos.z);
         return dist < this.spawnCourtyardRadius;
     }
 
-    setCourtyardGateOpen(open) {
-        // No actual gate mesh — just a flag for game logic
-        this.courtyardGateOpen = open;
-    }
+    setCourtyardGateOpen(open) { this.courtyardGateOpen = open; }
 
     activateFogPhase(phase) {
         this.currentFogPhase = phase;
@@ -3996,93 +1626,66 @@ export class MapGenerator {
         return this.zoneTargetRadius;
     }
 
-    getActiveSafeRadius() {
-        return this.zoneTargetRadius || this.spawnCourtyardRadius || 220;
-    }
+    getActiveSafeRadius() { return this.zoneTargetRadius || this.spawnCourtyardRadius || 220; }
 
     getClosestRadiationZone(x, z) {
-        let closest = null;
-        let closestDist = Infinity;
+        let closest = null, closestDist = Infinity;
         for (const rz of this.radiationZones) {
-            const dx = x - rz.position.x;
-            const dz = z - rz.position.z;
+            const dx = x - rz.position.x, dz = z - rz.position.z;
             const dist = Math.sqrt(dx * dx + dz * dz);
-            if (dist < closestDist) {
-                closestDist = dist;
-                closest = { zone: rz, distance: dist };
-            }
+            if (dist < closestDist) { closestDist = dist; closest = { zone: rz, distance: dist }; }
         }
         return closestDist < 100 ? closest : null;
     }
 
     getRadiationDamageAt(x, z) {
         for (const rz of this.radiationZones) {
-            const dx = x - rz.position.x;
-            const dz = z - rz.position.z;
+            const dx = x - rz.position.x, dz = z - rz.position.z;
             const dist = Math.sqrt(dx * dx + dz * dz);
-            if (dist < rz.radius) {
-                const intensity = 1 - dist / rz.radius;
-                return rz.damage * intensity;
-            }
+            if (dist < rz.radius) { const intensity = 1 - dist / rz.radius; return rz.damage * intensity; }
         }
         return 0;
     }
 
-    getStructureAtPoint(x, z, radius) {
-        // Check if near any major structure
-        return null;
-    }
-
-    findStructureInteriorPoint(point, type) {
-        return null;
-    }
-
-    getStructureEntryPoint(point, type, playerPos) {
-        return null;
-    }
-
-    findStructureGuardPoint(point, type) {
-        return null;
-    }
+    getStructureAtPoint(x, z, radius) { return null; }
+    findStructureInteriorPoint(point, type) { return null; }
+    getStructureEntryPoint(point, type, playerPos) { return null; }
+    findStructureGuardPoint(point, type) { return null; }
 
     isWalkableAt(x, z) {
-        // Default: walkable everywhere on the arena
         const dist = Math.sqrt(x * x + z * z);
         return dist < (this.arenaRadius || 220);
     }
 
-    raycastGroundY(x, z, radius) {
-        // Return ground Y at position
-        return 0;
-    }
-
-    getSurfaceHeightAt(x, z) {
-        // Simple terrain height approximation
-        const h1 = this.noise?.fbm?.(x * 0.01, z * 0.01, 2) ?? 0;
-        return Math.max(0, h1 * 3);
-    }
-
-    getHeightAt(x, z) {
-        return this.getSurfaceHeightAt(x, z);
-    }
+    raycastGroundY(x, z) { return 0; }
 
     update(delta, playerPos) {
-        if (playerPos) {
-            this.updatePropVisibility(playerPos);
-        }
+        if (playerPos) { this.updatePropVisibility(playerPos); }
+        this.updateZoneAnimations(delta);
     }
 
-    setWetTerrain(wet) {
-        // Could modify materials for wet look
-        // Currently a no-op
+    setNightEmissive(isNight) {
+        this.scene.traverse(obj => {
+            if (obj.isMesh && obj.userData.isFloor && obj.material) {
+                const mat2 = Array.isArray(obj.material) ? obj.material[0] : obj.material;
+                if (mat2 && mat2.emissiveIntensity !== undefined) {
+                    mat2.emissiveIntensity = isNight ? 0.3 : 0;
+                    if (isNight && !mat2.emissive) mat2.emissive = new THREE.Color(0x111122);
+                }
+            }
+        });
     }
 
-    setRainPuddles(active, center) {
-        // Could spawn puddle meshes
-        // Currently a no-op
+    getTerrainMaterialAt(x, z) {
+        const dist = Math.sqrt(x * x + z * z);
+        if (dist < 40) return 'spawn';
+        if (x < -40 && z < -40) return 'waste';
+        if (x > 40 && z > 40) return 'crystal';
+        if (x < -40 && z > 40) return 'forest';
+        return 'arena';
     }
 
-    getOneWayGates() {
-        return [];
-    }
+    setWetTerrain(wet) {}
+    setRainPuddles(active, center) {}
+    getOneWayGates() { return []; }
 }
