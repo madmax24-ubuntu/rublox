@@ -278,7 +278,7 @@ function getViewPoseForType(rawType) {
         base.scale = 0.78;
     } else if (type === 'shotgun') {
         base.position.set(0.22, -0.42, -0.9);
-        base.rotation.set(0.05, 0, -0.04);
+        base.rotation.set(0.05, -Math.PI / 2, -0.04);
         base.scale = 0.7;
     } else if (type === 'flamethrower') {
         base.position.set(0.22, -0.44, -0.92);
@@ -306,7 +306,7 @@ function getViewPoseForType(rawType) {
         base.scale = 0.64;
     } else if (type === 'smg') {
         base.position.set(0.22, -0.43, -0.9);
-        base.rotation.set(0.05, 0, -0.04);
+        base.rotation.set(0.05, -Math.PI / 2, -0.04);
         base.scale = 0.68;
     } else if (type === 'crossbow') {
         base.position.set(0.24, -0.38, -0.96);
