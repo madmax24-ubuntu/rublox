@@ -211,18 +211,30 @@ export class MapGenerator {
     buildArenaFloor() {
         const halfSize = this.arenaRadius;
 
-        // Main terrain ground
+        // Main terrain ground — 120 segments for height displacement
         const groundMat = new THREE.MeshStandardMaterial({
             color: COLOR.arenaGround,
             roughness: 0.9,
             metalness: 0.05
         });
-        const groundGeo = new THREE.PlaneGeometry(halfSize * 2, halfSize * 2, 1, 1);
+        const groundGeo = new THREE.PlaneGeometry(halfSize * 2, halfSize * 2, 120, 120);
         groundGeo.rotateX(-Math.PI / 2);
+
+        // Displace vertices using heightmap
+        const pos = groundGeo.attributes.position;
+        for (let i = 0; i <= pos.count; i++) {
+            const x = pos.getX(i);
+            const z = pos.getZ(i);
+            const h = this.getHeightAt(x, z);
+            pos.setY(i, h);
+        }
+        groundGeo.computeVertexNormals();
+
         const ground = new THREE.Mesh(groundGeo, groundMat);
         ground.rotation.set(0, 0, 0);
         ground.position.set(0, 0, 0);
         ground.receiveShadow = true;
+        ground.castShadow = false;
         ground.userData.isArena = true;
         ground.userData.isFloor = true;
         ground.userData.isGround = true;
