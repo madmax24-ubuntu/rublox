@@ -203,7 +203,7 @@ async function buildBeach(scene, gen) {
 
     // Beach loot crates
     for (let i = 0; i < 6; i++) {
-        const a = -Math.PI * 0.7 + Math.random() * Math.PI * 0.5;
+        const a = Math.random() * Math.PI * 0.6 - Math.PI * 0.3 - Math.PI;
         const r = RADIUS * 0.72 + Math.random() * RADIUS * 0.15;
         const x = Math.cos(a) * r, z = Math.sin(a) * r;
         const c = box(0.8, 0.8, 0.8, C.gold, { roughness: 0.4, metalness: 0.5 });
