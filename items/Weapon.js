@@ -274,7 +274,7 @@ function getViewPoseForType(rawType) {
         base.scale = 0.98;
     } else if (type === 'bow') {
         base.position.set(0.24, -0.3, -0.98);
-        base.rotation.set(0.1, -Math.PI / 2, Math.PI / 2.08);
+        base.rotation.set(0.1, 0, 0);
         base.scale = 0.78;
     } else if (type === 'shotgun') {
         base.position.set(0.22, -0.42, -0.9);
