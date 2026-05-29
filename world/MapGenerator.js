@@ -1140,101 +1140,77 @@ export class MapGenerator {
     startGeneration() { return this.generate(); }
 
     getHeightAt(x, z) {
+        // Hunger Games map uses flat terrain (y=0)
         const dist = Math.sqrt(x * x + z * z) / RADIUS;
-        if (dist < 0.85) return this.noise.fbm(x * 0.005, z * 0.005, 4, 2, 0.5) * 12 + 3 * (1 - dist);
-        return 0;
+        return dist < 1 ? 0 : -1;
     }
 
     getSurfaceHeightAt(x, z) { return this.getHeightAt(x, z); }
 
-    // ===================== GENERATION ORCHESTRATOR =====================
+    // ===================== GENERATION ORCHESTRATOR (Hunger Games Map) =====================
     async generate() {
         try {
-            this.reportProgress(0.05, 'Создание острова...');
+            this.reportProgress(0.05, 'Загрузка карты...');
             await _yield();
 
-            await buildIslandTerrain(this.scene, this);
-            this.reportProgress(0.10, 'Остров создан');
+            // Build Hunger Games arena
+            buildHungerGamesMap(this.scene);
+            this.reportProgress(0.30, 'Карта загружена');
 
-            await _yield();
-            await buildSpawnCamp(this.scene, this);
-            this.reportProgress(0.15, 'Лагерь спавна');
+            // Set up spawn pads (24 cornucopia platforms at r=12)
+            this.spawnPads = [];
+            for (let i = 0; i < 24; i++) {
+                const angle = (i / 24) * Math.PI * 2;
+                this.spawnPads.push({
+                    x: Math.cos(angle) * 12,
+                    z: Math.sin(angle) * 12,
+                    radius: 0.75,
+                    id: i
+                });
+            }
+            this.reportProgress(0.40, 'Точки спавна');
 
-            await _yield();
-            await buildBeach(this.scene, this);
-            this.reportProgress(0.20, 'Пляж');
+            // Set up fog zones (BR style)
+            this._buildFogZones();
+            this.reportProgress(0.60, 'Зоны тумана');
 
-            await _yield();
-            await buildVillage(this.scene, this);
-            this.reportProgress(0.25, 'Деревня');
-
-            await _yield();
-            await buildRiver(this.scene, this);
-            this.reportProgress(0.30, 'Река и мосты');
-
-            await _yield();
-            await buildJungle(this.scene, this);
-            this.reportProgress(0.35, 'Джунгли');
-
-            await _yield();
-            await buildVolcano(this.scene, this);
-            this.reportProgress(0.45, 'Вулкан');
-
-            await _yield();
-            await buildLighthouse(this.scene, this);
-            this.reportProgress(0.50, 'Маяк');
-
-            await _yield();
-            await buildCaves(this.scene, this);
-            this.reportProgress(0.55, 'Пещеры');
-
-            await _yield();
-            await buildBunker(this.scene, this);
-            this.reportProgress(0.60, 'Бункер');
-
-            await _yield();
-            await buildOutposts(this.scene, this);
-            this.reportProgress(0.65, 'Аванпосты');
-
-            await _yield();
-            buildTrees(this.scene, this);
-            this.reportProgress(0.70, 'Деревья');
-
-            await _yield();
-            buildDecorations(this.scene, this);
-            this.reportProgress(0.75, 'Декорации');
-
-            await _yield();
-            buildTraps(this.scene, this);
-            this.reportProgress(0.80, 'Ловушки');
-
-            await _yield();
-            buildRadiation(this.scene, this);
-            this.reportProgress(0.85, 'Радиация');
-
-            await _yield();
-            buildFogZones(this);
-            this.reportProgress(0.90, 'Зоны обозначены');
-
+            // Set up loot data
             await this._buildLootData();
-            this.reportProgress(0.95, 'Мир готов');
+            this.reportProgress(0.90, 'Лут расставлен');
 
+            this.reportProgress(1.0, 'Карта готова');
             this._resolveReady();
-        } catch (e) { this._resolveReady(); }
+        } catch (e) {
+            console.error('Map generation failed:', e);
+            this._resolveReady();
+        }
     }
 
     async _buildLootData() {
         this.lootData = [];
         const lootTypes = ['weapon', 'ammo', 'health', 'armor', 'scope', 'magazine'];
-        for (let i = 0; i < 80; i++) {
+        for (let i = 0; i < 120; i++) {
             const a = Math.random() * Math.PI * 2;
-            const r = 20 + Math.random() * 150;
+            const r = 15 + Math.random() * 160;
             this.lootData.push({
                 x: Math.cos(a) * r, z: Math.sin(a) * r,
                 type: lootTypes[Math.floor(Math.random() * lootTypes.length)],
                 tier: Math.random() > 0.6 ? 2 : 1
             });
         }
+    }
+
+    _buildFogZones() {
+        // BR-style shrinking fog zones
+        this.fogZones = [
+            { radius: RADIUS, duration: 90, damage: 0, center: new THREE.Vector3(0, 0, 0) },
+            { radius: 160, duration: 60, damage: 2, center: new THREE.Vector3(0, 0, 0) },
+            { radius: 100, duration: 45, damage: 5, center: new THREE.Vector3(0, 0, 0) },
+            { radius: 50, duration: 30, damage: 10, center: new THREE.Vector3(0, 0, 0) },
+        ];
+        this.currentFogPhase = 0;
+        this.zoneTargetRadius = RADIUS;
+        this.radiationZones = [];
     }
 
     // ===================== ANIMATION UPDATES =====================
