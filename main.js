@@ -747,12 +747,11 @@ class Game {
         const spawnPads = this.map?.getSpawnPads?.() || [];
         const pad = spawnPads[0];
         if (pad && Number.isFinite(pad.x) && Number.isFinite(pad.y) && Number.isFinite(pad.z)) {
-            const y = this.map?.getHeightAt?.(pad.x, pad.z) ?? pad.y;
-            return new THREE.Vector3(pad.x, (Number.isFinite(y) ? y : pad.y) + this.player.physics.height, pad.z);
+            const surfaceY = (pad.y ?? 1.54) || 1.54;
+            return new THREE.Vector3(pad.x, surfaceY + this.player.physics.height, pad.z);
         }
         const center = this.map?.getSpawnWorld?.() || { x: 0, z: 0 };
-        const y = this.map?.getHeightAt?.(center.x, center.z) ?? 0.4;
-        return new THREE.Vector3(center.x, (Number.isFinite(y) ? y : 0.4) + this.player.physics.height, center.z);
+        return new THREE.Vector3(center.x, 1.54 + this.player.physics.height, center.z);
     }
 
     resetInvalidPlayerState() {
