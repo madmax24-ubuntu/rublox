@@ -273,11 +273,14 @@ export class BotBrain {
        // Боевая фаза: атакуем — с учётом личности и одиночного стиля
         if (ctx.nearestEnemy) {
             const isPlayer = ctx.nearestEnemy.constructor?.name === 'Player';
+            // Lone wolves: атакуем только игрока или если близко к зомби
+            if (isPlayer && !armed) return STATES.IDLE;
             if (isPlayer && ctx.nearestEnemyDist < 60 * this.aggression) return STATES.ENGAGE;
+            // БОТ НЕ АТАКУЕТ ДРУГИХ БОТОВ — они лутаются и избегают конфликтов
+            if (ctx.nearestEnemy.constructor?.name === 'Bot') return STATES.IDLE;
             const engageDist = 30 * this.aggression;
             // Lone wolves: only engage if armed AND no crowd nearby
             if (!armed) return STATES.IDLE;
-            if (this.personality === 'reckless' && ctx.nearestEnemyDist < 70) return STATES.ENGAGE;
             if (this.willFlank && this.avoidsOthers && ctx.nearestEnemyDist < engageDist * 0.4) return STATES.ENGAGE;
             if (ctx.nearestEnemyDist < engageDist && ctx.crowdNear < 2) return STATES.ENGAGE;
             // Otherwise avoid the fight — lone wolf doesn't join crowds
