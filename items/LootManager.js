@@ -64,19 +64,22 @@ export class LootManager {
 
     async generateChests() {
         const floorTiles = this.mapGenerator.getFloorTiles?.() || [];
-        const targetByMapSize = Math.floor(Math.max(140, floorTiles.length * (this.isMobile ? 0.08 : 0.12)));
-        const chestCount = Math.max(this.isMobile ? 150 : 220, Math.floor(targetByMapSize * this.lootDensity));
-        const spots = this.mapGenerator.getChestSpots?.() || [];
-  
+        // Significantly reduced chest count: 50 for desktop, 35 for mobile
+        const chestCount = this.isMobile ? 35 : 50;
+        const spots = this.mapGenerator.getHouseSpots?.() || this.mapGenerator.getHangarSpots?.() || [];
+
         if (spots.length > 0) {
             const shuffled = [...spots].sort(() => Math.random() - 0.5);
             const limit = Math.min(chestCount, shuffled.length);
 
             for (let i = 0; i < limit; i++) {
                 const spot = shuffled[i];
-                const y = this.getChestPlacementY(spot.x, spot.z);
+                const jitter = 12;
+                const x = spot.x + (Math.random() - 0.5) * jitter;
+                const z = spot.z + (Math.random() - 0.5) * jitter;
+                const y = this.getChestPlacementY(x, z);
                 if (y < this.mapGenerator.waterLevel + 1) continue;
-                const chest = this.createChest(spot.x, y, spot.z, spot.grade || 'house');
+                const chest = this.createChest(x, y, z, spot.grade || spot.type || 'house');
                 this.chests.push(chest);
                 this.addChestToIndex(chest);
                 if (i % 2 === 0) await new Promise(r => setTimeout(r, 200));
