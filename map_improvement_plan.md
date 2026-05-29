@@ -243,12 +243,18 @@ Existing `MapGenerator.js` has: 4 biomes, building shells (open walls + roof), t
 - [x] Ammo boxes in hangars (4 per hangar)
 - [x] Interior lighting (point light + visible fixture)
 - [x] Mezzanine floor for hangars (with support pillars)
+- [x] Interior partition walls (main divider + secondary for large buildings)
+- [x] Breakable walls (15-25% of interior, marked userData.breakable)
+- [x] Staircases for 2-story buildings (central, 10+ steps, with railing)
+- [x] Roof ladder access (climbable ladder on back wall, with top platform)
+- [x] Sandbag stacks (near entrances, solid cover 0.6m tall)
+- [x] Concrete barriers (scattered, partial cover 0.6m tall)
 
-### Remaining P0 items:
-- [ ] Interior partition walls (2-3 rooms)
-- [ ] Staircases for 2-story buildings
-- [ ] Roof ladder access for all buildings
-- [ ] Sandbag stacks + concrete barriers
+### Remaining P1 items:
+- [ ] Watchtowers (4-6 in open areas, 6-8m high)
+- [ ] Water towers (3-4 near buildings, 5m high)
+- [ ] Wrecked vehicles (2-3 per hot zone)
+- [ ] Barbed wire decoration
 
 ---
 
