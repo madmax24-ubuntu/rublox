@@ -1899,7 +1899,10 @@ class Game {
                 const kickOut = (entity) => {
                     if (this.map.isInsideCourtyard(entity.position)) {
                         const exitPos = this.map.getCourtyardExitPosition();
-                        entity.position.set(exitPos.x, exitPos.y + entity.physics.height, exitPos.z);
+                        const exitHeight = this.map.getHeightAt?.(exitPos.x, exitPos.z) ?? 0;
+                        const baseGroundY = 1.54;
+                        const surfaceY = Math.max(baseGroundY + Math.max(0, exitHeight), baseGroundY);
+                        entity.position.set(exitPos.x, surfaceY + entity.physics.height, exitPos.z);
                         entity.physics.velocity.set(0, 0, 0);
                     }
                 };
