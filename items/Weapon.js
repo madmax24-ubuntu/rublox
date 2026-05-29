@@ -310,7 +310,7 @@ function getViewPoseForType(rawType) {
         base.scale = 0.68;
     } else if (type === 'crossbow') {
         base.position.set(0.24, -0.38, -0.96);
-        base.rotation.set(0.08, -Math.PI / 2, Math.PI / 2.1);
+        base.rotation.set(0.08, 0, 0);
         base.scale = 0.74;
     }
 
