@@ -265,7 +265,7 @@ function getViewPoseForType(rawType) {
     const base = {
         scale: 0.82,
         position: new THREE.Vector3(0.2, -0.4, -0.78),
-        rotation: new THREE.Euler(0.04, 0, 0.04)
+        rotation: new THREE.Euler(0.04, -Math.PI / 2, 0.04)
     };
 
     if (type === 'knife') {
