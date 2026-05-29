@@ -302,7 +302,7 @@ function getViewPoseForType(rawType) {
         base.scale = 0.67;
     } else if (type === 'sniper') {
         base.position.set(0.22, -0.46, -1.05);
-        base.rotation.set(0.05, -Math.PI / 2, -0.06);
+        base.rotation.set(0.05, 0, -0.06);
         base.scale = 0.64;
     } else if (type === 'smg') {
         base.position.set(0.22, -0.43, -0.9);
