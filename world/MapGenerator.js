@@ -86,7 +86,12 @@ export class MapGenerator {
         // Детерминированный seed для воспроизводимой карты
         this.seed = 42;
         this.biomeColors = this.generateBiomePalette();
-        this._generatePromise = this.generate();
+
+        // Promise для main.js (ожидает завершения генерации)
+        this.ready = new Promise((resolve) => { this._resolveReady = resolve; });
+        this._generatePromise = this.generate().then(() => {
+            this._resolveReady();
+        });
     }
 
     startGeneration() {
