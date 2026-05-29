@@ -214,7 +214,7 @@ async function buildBeach(scene, gen) {
 
     // Driftwood / rocks for cover
     for (let i = 0; i < 20; i++) {
-        const a = Math.random() * Math.PI * 0.5 - Math.PI * 0.75;
+        const a = Math.random() * Math.PI * 0.6 - Math.PI * 0.3 - Math.PI;
         const r = RADIUS * 0.6 + Math.random() * RADIUS * 0.25;
         const x = Math.cos(a) * r, z = Math.sin(a) * r;
 
