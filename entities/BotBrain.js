@@ -657,7 +657,7 @@ export class BotBrain {
             const crowd = this.countBotsNearPoint(entityManager, chest.position, 6.5);
             const reserved = this.getLootReservationCount(chest, bot);
             const claimPenalty = chest.userData?.claimedBy && chest.userData.claimedBy !== bot.id ? 0.8 : 0;
-            const score = (1 / Math.max(2, d)) - crowd * 0.28 - reserved * 0.75 - claimPenalty + (chest.userData?.isSupplyDrop ? 0.8 : 0);
+                const score = (1 / Math.max(2, d)) - crowd * 1.2 - reserved * 1.5 - claimPenalty * 1.5 - (crowd > 1 ? 3 : 0) + (chest.userData?.isSupplyDrop ? 0.8 : 0);
             if (score > bestScore) {
                 bestScore = score;
                 best = chest;
