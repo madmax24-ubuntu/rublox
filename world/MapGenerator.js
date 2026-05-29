@@ -136,7 +136,7 @@ export class MapGenerator {
         return palette;
     }
 
-    generate() {
+    async generate() {
         const sizeBase = 151;
         this.biomeSectors = this.getBiomeSectorsByMapSize(sizeBase);
         const width = sizeBase;
@@ -158,6 +158,9 @@ export class MapGenerator {
         this.buildSpawnPads();
         this.buildStoryPOIs();
         this.buildChests();
+
+        // Resolve the promise when generation is complete
+        await null; // Yield to allow async operations
     }
 
     // Декорация леса
