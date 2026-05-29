@@ -864,12 +864,6 @@ async function main() {
         addError(`PageError: ${err.message}`);
     });
 
-     // Enable test mode before navigating (localStorage works in normal page context)
-    await page.goto('about:blank', { waitUntil: 'load' });
-    await page.evaluate(() => {
-        localStorage.setItem('testMode', 'true');
-    });
-
     // Run phases sequentially
     try {
         const p1 = await phase1StartScreen();
