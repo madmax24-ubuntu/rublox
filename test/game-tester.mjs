@@ -452,32 +452,33 @@ async function phase4Gameplay() {
     const initialCamera = initialGame.cameraPos || 'unknown';
     log(`Initial camera: ${initialCamera}`);
 
-    // Test WASD movement
+    // Test WASD movement (hold keys to allow game movement frames)
     try {
-        // Simulate W key (forward)
-        await simulateKeyPress('w');
-        await page.waitForTimeout(200);
-        await simulateKeyPress('w');
-        await page.waitForTimeout(200);
+        // Hold W for 2s
+        await page.keyboard.down('w');
+        await page.waitForTimeout(2000);
+        await page.keyboard.up('w');
 
-        const afterW = await checkGameInstance();
-        if (afterW.exists) {
-            log('W key press registered');
-        }
+        const posW = await page.evaluate(() => {
+            const g = window.getGameInstance();
+            return g?.camera ? { x: g.camera.position.x.toFixed(2), y: g.camera.position.y.toFixed(2), z: g.camera.position.z.toFixed(2) } : null;
+        });
+        log(`After W (2s): camera=${posW ? JSON.stringify(posW) : 'null'}`);
 
-        // Simulate A key (left)
-        await simulateKeyPress('a');
-        await page.waitForTimeout(200);
-        await simulateKeyPress('a');
-        await page.waitForTimeout(200);
+        // Hold A for 1s
+        await page.keyboard.down('a');
+        await page.waitForTimeout(1000);
+        await page.keyboard.up('a');
 
-        // Simulate S key (back)
-        await simulateKeyPress('s');
-        await page.waitForTimeout(200);
+        // Hold S for 1s
+        await page.keyboard.down('s');
+        await page.waitForTimeout(1000);
+        await page.keyboard.up('s');
 
-        // Simulate D key (right)
-        await simulateKeyPress('d');
-        await page.waitForTimeout(200);
+        // Hold D for 1s
+        await page.keyboard.down('d');
+        await page.waitForTimeout(1000);
+        await page.keyboard.up('d');
 
         log('WASD keys tested');
     } catch (e) {
@@ -485,7 +486,7 @@ async function phase4Gameplay() {
         details.push('wasd_error');
     }
 
-    // Test mouse look (camera rotation)
+    // Test mouse look (camera rotation) via pointer lock
     try {
         const rect = await page.evaluate(() => {
             const c = document.querySelector('canvas');
@@ -494,28 +495,36 @@ async function phase4Gameplay() {
             return { x: r.width / 2, y: r.height / 2 };
         });
         if (rect) {
-            await simulateMouseMove(rect.x, rect.y);
-            await simulateClick(rect.x, rect.y, 'left');
-            await page.waitForTimeout(100);
-            await simulateMouseMove(rect.x + 50, rect.y);
-            await page.waitForTimeout(100);
-            const camAfterMove = await checkGameInstance();
-            if (camAfterMove.exists) {
-                log(`Mouse look: camera position changed`);
-            }
+            // Request pointer lock on canvas for mouse look
+            await page.mouse.click(rect.x, rect.y, { button: 'left' });
+            await page.waitForTimeout(200);
+            // Move mouse - the game's pointer lock should capture it
+            await page.mouse.move(rect.x + 100, rect.y);
+            await page.waitForTimeout(500);
+            await page.mouse.move(rect.x, rect.y);
+            await page.waitForTimeout(500);
+            // Release pointer lock
+            await page.keyboard.press('Escape');
+            await page.waitForTimeout(200);
+            log('Mouse look tested (pointer lock)');
         }
-        log('Mouse look tested');
     } catch (e) {
         addError(`Mouse look test error: ${e.message}`);
         details.push('mouse_look_error');
     }
 
-    // Test jump (space key)
+    // Test jump (space key) - hold briefly to allow physics frame
     try {
-        await simulateKeyPress(' ');
-        await page.waitForTimeout(200);
-        await simulateKeyPress(' ');
-        await page.waitForTimeout(200);
+        await page.keyboard.down(' ');
+        await page.waitForTimeout(500);
+        await page.keyboard.up(' ');
+        await page.waitForTimeout(500);
+
+        const camAfterJump = await page.evaluate(() => {
+            const g = window.getGameInstance();
+            return g?.camera ? { y: g.camera.position.y.toFixed(2) } : null;
+        });
+        log(`Jump tested, camera Y: ${camAfterJump ? camAfterJump.y : 'null'}`);
         log('Jump (space) tested');
     } catch (e) {
         addError(`Jump test error: ${e.message}`);
