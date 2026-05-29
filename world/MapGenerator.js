@@ -4039,5 +4039,184 @@ decorateWar(center, arenaRadius, data) {
         this.addToMapObjects(barrier);
     });
 }
+
+    // Генерация деревьев, скал и построек по всей карте
+    generateDioramaMap() {
+        const rand = (min, max) => min + Math.random() * (max - min);
+        const rng = (seed) => {
+            let s = seed;
+            return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 0x100000000; };
+        };
+        const r = rng(this.seed);
+
+        // Материалы
+        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.9 });
+        const leafMat = new THREE.MeshStandardMaterial({ color: 0x2e7d32, roughness: 0.85 });
+        const rockMat = new THREE.MeshStandardMaterial({ color: 0x757575, roughness: 0.95, flatShading: true });
+        const buildingMat = new THREE.MeshStandardMaterial({ color: 0x6d6d6d, roughness: 0.8, flatShading: true });
+        const roofMat = new THREE.MeshStandardMaterial({ color: 0x8d6e63, roughness: 0.85 });
+        const metalMat = new THREE.MeshStandardMaterial({ color: 0x90a4ae, roughness: 0.6, metalness: 0.3 });
+
+        // Деревья (300+ по всей карте, кроме центра)
+        for (let i = 0; i < 320; i++) {
+            const dist = 30 + r() * 180;
+            const angle = r() * Math.PI * 2;
+            const x = Math.cos(angle) * dist;
+            const z = Math.sin(angle) * dist;
+            if (Math.hypot(x, z) > 190) continue; // Не за пределами карты
+
+            const h = 12 + r() * 10;
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.6, h, 6), trunkMat);
+            const groundY = this.raycastGroundY(x, z, 0.3);
+            trunk.position.set(x, groundY + h / 2, z);
+            trunk.userData.mapGenerated = true;
+            trunk.userData.physicsType = 'STATIC';
+            trunk.userData.collisionBounds = 'BOX';
+            this.scene.add(trunk);
+            this.addColliderBox(trunk.position.clone(), 1.2, h, 1.2, false);
+
+            // Крона
+            const crownH = 6 + r() * 6;
+            const crownW = 4 + r() * 3;
+            const crown = new THREE.Mesh(new THREE.ConeGeometry(crownW, crownH, 6), leafMat);
+            crown.position.set(x, groundY + h + crownH / 2 - 2, z);
+            crown.userData.mapGenerated = true;
+            crown.userData.physicsType = 'STATIC';
+            this.scene.add(crown);
+        }
+
+        // Маленькие деревья (100)
+        for (let i = 0; i < 100; i++) {
+            const dist = 20 + r() * 150;
+            const angle = r() * Math.PI * 2;
+            const x = Math.cos(angle) * dist;
+            const z = Math.sin(angle) * dist;
+            if (Math.hypot(x, z) > 190) continue;
+
+            const h = 5 + r() * 4;
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.3, h, 5), trunkMat);
+            const groundY = this.raycastGroundY(x, z, 0.3);
+            trunk.position.set(x, groundY + h / 2, z);
+            trunk.userData.mapGenerated = true;
+            trunk.userData.physicsType = 'STATIC';
+            this.scene.add(trunk);
+
+            const crown = new THREE.Mesh(new THREE.SphereGeometry(2 + r(), 5, 4), leafMat);
+            crown.position.set(x, groundY + h + 1.5, z);
+            crown.userData.mapGenerated = true;
+            crown.userData.physicsType = 'STATIC';
+            this.scene.add(crown);
+        }
+
+        // Скалы (50)
+        for (let i = 0; i < 50; i++) {
+            const dist = 25 + r() * 170;
+            const angle = r() * Math.PI * 2;
+            const x = Math.cos(angle) * dist;
+            const z = Math.sin(angle) * dist;
+            if (Math.hypot(x, z) > 190) continue;
+
+            const rock = new THREE.Mesh(
+                new THREE.DodecahedronGeometry(2 + r() * 4, 0),
+                rockMat
+            );
+            const groundY = this.raycastGroundY(x, z, 0.3);
+            rock.position.set(x, groundY + 2, z);
+            rock.rotation.set(r() * Math.PI, r() * Math.PI, r() * Math.PI);
+            rock.userData.mapGenerated = true;
+            rock.userData.physicsType = 'STATIC';
+            rock.userData.rockLike = true;
+            this.scene.add(rock);
+            this.addColliderBox(rock.position.clone(), 6, 6, 6, false, true, false, 'CONVEX_HULL');
+        }
+
+        // Небольшие постройки (15)
+        for (let i = 0; i < 15; i++) {
+            const dist = 30 + r() * 160;
+            const angle = r() * Math.PI * 2;
+            const x = Math.cos(angle) * dist;
+            const z = Math.sin(angle) * dist;
+            if (Math.hypot(x, z) > 190) continue;
+
+            const w = 4 + r() * 6;
+            const d = 4 + r() * 6;
+            const h = 3 + r() * 4;
+
+            // Стены
+            const walls = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), buildingMat);
+            const groundY = this.raycastGroundY(x, z, 0.3);
+            walls.position.set(x, groundY + h / 2, z);
+            walls.userData.mapGenerated = true;
+            walls.userData.physicsType = 'STATIC';
+            walls.userData.architecture = true;
+            this.scene.add(walls);
+            this.addColliderBox(walls.position.clone(), w, h, d, true, true);
+
+            // Крыша
+            const roof = new THREE.Mesh(new THREE.BoxGeometry(w + 1, 0.3, d + 1), roofMat);
+            roof.position.set(x, groundY + h + 0.15, z);
+            roof.userData.mapGenerated = true;
+            roof.userData.physicsType = 'STATIC';
+            this.scene.add(roof);
+        }
+
+        // Металлические ящики и бочки (80)
+        for (let i = 0; i < 60; i++) {
+            const dist = 15 + r() * 170;
+            const angle = r() * Math.PI * 2;
+            const x = Math.cos(angle) * dist;
+            const z = Math.sin(angle) * dist;
+            if (Math.hypot(x, z) > 190) continue;
+
+            const box = new THREE.Mesh(
+                new THREE.BoxGeometry(rand(0.8, 2), rand(0.8, 2), rand(0.8, 2)),
+                metalMat
+            );
+            const groundY = this.raycastGroundY(x, z, 0.3);
+            box.position.set(x, groundY + (box.geometry.parameters.height || 1) / 2, z);
+            box.userData.mapGenerated = true;
+            box.userData.physicsType = 'STATIC';
+            this.scene.add(box);
+        }
+
+        // Бочки (20)
+        for (let i = 0; i < 20; i++) {
+            const dist = 15 + r() * 170;
+            const angle = r() * Math.PI * 2;
+            const x = Math.cos(angle) * dist;
+            const z = Math.sin(angle) * dist;
+            if (Math.hypot(x, z) > 190) continue;
+
+            const barrel = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.6, 0.6, 1.5, 8),
+                new THREE.MeshStandardMaterial({ color: 0x4e342e, roughness: 0.95 })
+            );
+            const groundY = this.raycastGroundY(x, z, 0.3);
+            barrel.position.set(x, groundY + 0.75, z);
+            barrel.userData.mapGenerated = true;
+            barrel.userData.physicsType = 'STATIC';
+            this.scene.add(barrel);
+        }
+
+        // Забор (40)
+        for (let i = 0; i < 40; i++) {
+            const dist = 20 + r() * 150;
+            const angle = r() * Math.PI * 2;
+            const x = Math.cos(angle) * dist;
+            const z = Math.sin(angle) * dist;
+            if (Math.hypot(x, z) > 190) continue;
+
+            const post = new THREE.Mesh(
+                new THREE.BoxGeometry(0.2, 2, 0.2),
+                new THREE.MeshStandardMaterial({ color: 0x795548, roughness: 0.9 })
+            );
+            const groundY = this.raycastGroundY(x, z, 0.3);
+            post.position.set(x, groundY + 1, z);
+            post.userData.mapGenerated = true;
+            post.userData.physicsType = 'STATIC';
+            this.scene.add(post);
+        }
+    }
+
 }
 
