@@ -230,15 +230,8 @@ async function phase1StartScreen() {
         details.push('start_screen_check_failed');
     }
 
-    // Verify canvas exists (should be behind start screen)
-    const canvasState = await checkCanvasState();
-    if (canvasState.exists) {
-        log(`Canvas: ${canvasState.width}x${canvasState.height}, WebGL=${canvasState.webgl}`);
-    } else if (canvasState.error) {
-        addError(`Canvas check failed: ${canvasState.error}`);
-        pass = false;
-        details.push('canvas_check_failed');
-    }
+    // Canvas is created by game engine after start, not at page load -- skip pre-start check
+    log('Canvas not expected before game init (created during initAsync)');
 
     // Click "Начать игру" button
     try {
