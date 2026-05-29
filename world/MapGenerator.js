@@ -158,7 +158,7 @@ async function buildIslandTerrain(scene, gen) {
 async function buildBeach(scene, gen) {
     // Beach camp (light loot)
     for (let i = 0; i < 8; i++) {
-        const a = -Math.PI * 0.7 + (i / 7) * Math.PI * 0.5; // arc on west side
+        const a = (i / 7) * Math.PI * 0.8 - Math.PI * 0.4; // arc on west side
         const r = RADIUS * 0.7 + Math.random() * RADIUS * 0.15;
         const x = Math.cos(a) * r, z = Math.sin(a) * r;
 
