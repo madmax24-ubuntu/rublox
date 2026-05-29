@@ -1,11 +1,11 @@
 ═══════════════════════════════════════════════════════
   Rubo Arena - Game Test Report
-  Generated: 2026-05-29T17:08:15.474Z
+  Generated: 2026-05-29T17:11:36.559Z
 ═══════════════════════════════════════════════════════
 
   URL: http://localhost:3001
-  Duration: 55.0s
-  Verdict: SOME TESTS FAILED
+  Duration: 91.8s
+  Verdict: ALL TESTS PASSED
 
 ───────────────────────────────────────────────────────
   Phase Results
@@ -14,17 +14,12 @@
   [PASS] Phase 2: Loading Phase
   [PASS] Phase 3: Pre-Game
   [PASS] Phase 4: Gameplay
-  [FAIL] Phase 5: Error Detection
-        - typeErrors:2
+  [PASS] Phase 5: Error Detection
 
 ───────────────────────────────────────────────────────
-  Errors Found (1)
+  Errors Found (0)
 ───────────────────────────────────────────────────────
-  1. [2026-05-29T17:08:14.364Z] Found 2 TypeError(s): [Game] initAsync error: TypeError: this.map.startGeneration is not a function | TypeError: this.map.startGeneration is not a function
-    at Game.initializeGame (http://localhost:3001/main.js:421:18)
-    at async Game.initAsync (http://localhost:3001/main.js:162:13)
-    at async Game.startGame (http://localhost:3001/main.js:2579:13)
-    at async HTMLButtonElement.handleStart (http://localhost:3001/main.js:3041:17)
+  No errors detected
 
 ───────────────────────────────────────────────────────
   Screenshots (12)
