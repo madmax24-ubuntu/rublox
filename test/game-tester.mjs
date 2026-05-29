@@ -864,7 +864,8 @@ async function main() {
         addError(`PageError: ${err.message}`);
     });
 
-    // Enable test mode via localStorage (set before page load so it's available when main.js runs)
+     // Enable test mode before navigating (localStorage works in normal page context)
+    await page.goto('about:blank', { waitUntil: 'load' });
     await page.evaluate(() => {
         localStorage.setItem('testMode', 'true');
     });
