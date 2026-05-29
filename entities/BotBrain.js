@@ -282,7 +282,9 @@ export class BotBrain {
             // Reckless bots always engage if armed
             if (this.personality === 'reckless' && armed && ctx.nearestEnemyDist < 100) return STATES.ENGAGE;
             if (!armed && ctx.lootTarget) return STATES.LOOT;
-            if (ctx.gear >= 0.25) return STATES.ENGAGE;
+            // Lone wolves only engage if they have decent gear
+            if (!armed) return STATES.IDLE;
+            if (ctx.gear >= 0.35) return STATES.ENGAGE;
         }
 
         // Зомби вблизи
