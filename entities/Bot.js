@@ -219,6 +219,13 @@ export class Bot {
             this._tmpWeaponRot.x = -0.03;
         } else if (this.currentWeapon.type === 'shotgun' || this.currentWeapon.type === 'rifle' || this.currentWeapon.type === 'machinegun' || this.currentWeapon.type === 'flamethrower' || this.currentWeapon.type === 'laser') {
             this._tmpWeaponRot.x = -0.06;
+        } else if (this.currentWeapon.type === 'sniper') {
+            this._tmpWeaponRot.x = -0.06;
+        } else if (this.currentWeapon.type === 'smg') {
+            this._tmpWeaponRot.x = -0.06;
+        } else if (this.currentWeapon.type === 'crossbow') {
+            this._tmpWeaponRot.x = -0.12;
+            this._tmpWeaponRot.z = 0.05;
         }
         mesh.rotation.set(this._tmpWeaponRot.x, this._tmpWeaponRot.y + Math.PI / 2, this._tmpWeaponRot.z);
     }
