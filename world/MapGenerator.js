@@ -598,10 +598,10 @@ export class MapGenerator {
         const half = radius * 0.5;
         const planeGeo = new THREE.PlaneGeometry(radius, radius);
         const quadrants = [
-            { x: half, z: half, color: 0xff2a2a },
-            { x: -half, z: half, color: 0x2aff2a },
-            { x: -half, z: -half, color: 0x2a6dff },
-            { x: half, z: -half, color: 0xffffff }
+            { x: half, z: half, color: 0xc4a35a },    // NE — desert/sand
+            { x: -half, z: half, color: 0x3a5a2a },   // NW — swamp/green
+            { x: -half, z: -half, color: 0x8a9a8a },  // SW — tundra/grey
+            { x: half, z: -half, color: 0x2a4a1a }    // SE — forest/dark green
         ];
         for (let i = 0; i < quadrants.length; i++) {
             const q = quadrants[i];
