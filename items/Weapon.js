@@ -282,11 +282,11 @@ function getViewPoseForType(rawType) {
         base.scale = 0.7;
     } else if (type === 'flamethrower') {
         base.position.set(0.22, -0.44, -0.92);
-        base.rotation.set(0.04, 0, -0.05);
+        base.rotation.set(0.04, -Math.PI / 2, -0.05);
         base.scale = 0.68;
     } else if (type === 'laser') {
         base.position.set(0.22, -0.44, -0.92);
-        base.rotation.set(0.04, 0, -0.05);
+        base.rotation.set(0.04, -Math.PI / 2, -0.05);
         base.scale = 0.68;
     } else if (type === 'pistol') {
         base.position.set(0.2, -0.42, -0.82);
