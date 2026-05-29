@@ -368,6 +368,12 @@ export class BotBrain {
             this.actRetreat(bot, ctx);
             return;
         }
+        // Hesitation — sometimes bots delay engagement
+        if (this.hesitationChance > 0.1 && Math.random() < this.hesitationChance && ctx.nearestEnemyDist > 20) {
+            bot.patrolTarget = this.pickSpreadTarget(bot, 8, 24);
+            this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 0.6);
+            return;
+        }
         const nowSec = performance.now() / 1000;
         if (!bot._engageWindowUntil || nowSec >= bot._engageWindowUntil) {
             bot._engageWindowUntil = nowSec + 5 + Math.random() * 2;
