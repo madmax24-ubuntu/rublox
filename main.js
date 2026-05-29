@@ -1902,8 +1902,8 @@ class Game {
                 const kickOut = (entity) => {
                     if (this.map.isInsideCourtyard(entity.position)) {
                         const exitPos = this.map.getCourtyardExitPosition();
-                        // Use the actual ground Y of the map, not getHeightAt which may return noise
-                        const groundY = Math.min(exitPos.y, 0);
+                        // Map ground is at Y=0 (PlaneGeometry), min terrain ~Y=0.5
+                        const groundY = 0.5;
                         entity.position.set(exitPos.x, groundY + entity.physics.height, exitPos.z);
                         entity.physics.velocity.set(0, 0, 0);
                     }
