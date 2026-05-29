@@ -148,7 +148,7 @@ export class MapGenerator {
 
         this.clearSpawnZone();
         this.buildMeshes();
-        this.generateDioramaMap();
+        // this.generateDioramaMap(); // Stub — not needed for old map
         this.buildExplosiveBarrelSpots();
         this.buildSpawnPads();
         this.buildStoryPOIs();
