@@ -864,11 +864,8 @@ async function main() {
         addError(`PageError: ${err.message}`);
     });
 
-    // Enable test mode before loading game (runs before any page scripts)
-    await page.addInitScript(() => {
-        window['testModeEnabled'] = true;
-        window['testMode'] = true;
-        window['setTestMode'](true);
+    // Enable test mode via localStorage (set before page load so it's available when main.js runs)
+    await page.evaluate(() => {
         localStorage.setItem('testMode', 'true');
     });
 
