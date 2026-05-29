@@ -1,459 +1,256 @@
 # Battle Royale Map Improvement Plan
 ## For C:\Users\maksk\Desktop\rublox (Three.js WebGL Survival Shooter)
 
+Based on industrial BR design principles (Fortnite devs, The Guardian, Game Wisdom, Level Design Book).
+
 ---
 
 ## 1. CURRENT STATE ASSESSMENT
 
-The existing `MapGenerator.js` (3900+ lines) already has:
-- 4 biome quadrants (forest, fortress/ruins, arctic, warzone/ruins)
-- Open building shells with `addOpenBuildingShell()` method
-- 6 house variants + 3 hangar variants
-- Treehouse with walkable staircase
-- Instanced meshes for trees, cacti, ice spikes
-- Collision system via `addColliderBox()` (Axis-Aligned Bounding Boxes)
-- `isWalkableAt()` / `raycastGroundY()` ground detection
-- Spawn pads, chest placement, loot spots
-- Central hub with Cornucopia
-- Environmental props (fences, barrels, rocks, logs, dead trees)
-- Weather system (clear/rain/snow) and day-night cycle
-- Biome fog colors
+Existing `MapGenerator.js` has: 4 biomes, building shells (open walls + roof), trees, rocks, fences, barrels, loot chests.
 
-**Critical gaps identified:**
-- Buildings have NO interior walls, furniture, or environmental details
-- No ladders/stairs inside buildings for multi-floor access
-- No interior lighting or shadows
-- Prop placement is sparse (only trees and terrain features)
-- No destructible cover elements
-- No vertical gameplay depth (only one treehouse has stairs)
-- Hangars are vast empty shells with nothing inside
-- Small houses have only walls + roof - truly solid boxes to the player
+**Critical gaps:**
+- Buildings are hollow shells — no interior walls, stairs, mezzanines, or cover props
+- No vertical gameplay depth (only treehouse has stairs)
+- No tactical props (sandbags, ammo crates, car doors, breakable walls)
+- No sightline engineering — windows don't create sightlines, doors don't guide movement
+- No hot/cool zone hierarchy for loot density
+- Interiors feel flat and uninteresting
+- No roof access for buildings (ladders, stairs)
+- Engagement zones are undefined (no 3-5 enemy spots per building)
 
 ---
 
-## 2. SCALE AND UNITS STANDARDS
+## 2. TOP 7 DESIGN PRINCIPLES (from industry research)
 
-**Current scale is CORRECT for FPS:**
-- Wall thickness: 0.5 units = 50cm (realistic)
-- Door width: 2.2-2.8 units = 2.2-2.8m (standard doorway)
-- House dimensions: 9-12 units wide, 7-10 deep, 4-5 high (3m ceiling)
-- Tree trunk: 2.1 units wide, 30 units tall (1:10 scale, but acceptable for stylized)
-- Barrel: 0.55 radius, 1.2 tall (realistic)
+### 2.1 Vertical Gameplay Layers
+> Every area must offer 3 vertical layers (ground, elevated, high) with tactical value.
 
-**Recommendation: DO NOT change the unit scale.** It is already production-appropriate.
-Player character height should be ~1.7-1.8 units (1.7-1.8m in world units).
+**Fix:**
+- Add internal staircase to ALL 2-story buildings (central, not corner)
+- Add ladder roof access to single-story buildings (makes them climbable)
+- Add mezzanine floor to hangars (already done — check implementation)
+- Add watchtowers (5-8m) to open areas (4 corners + 2 random)
+
+### 2.2 Cover Systems (Not Obstacles)
+> Cover must serve tactical purposes — blocking LOS, enabling breakable shields, or repositioning.
+
+**Fix:**
+- Add sandbag stacks (solid cover, 0.6m tall) near building entrances
+- Add ammo crates (breakable wooden cover, 0.5x0.7x0.5m) inside buildings
+- Add car doors (partial cover, blocks view but not bullets)
+- Add concrete barriers (solid, 1m tall) in open areas
+- **Rule:** Max 4-6 meaningful cover points per 30x30m area
+
+### 2.3 Sightline Engineering
+> 2-3 intentional long-range sightlines + 1-2 ambush corridors per area.
+
+**Fix:**
+- Align windows across streets to create cross-street sightlines
+- Place doorways to create sightlines OUTWARD toward roads/other buildings
+- Limit windows to 1-2 per room (per Epic: "limiting windows helps control visibility")
+- Add tall buildings at ~60m intervals along major routes
+
+### 2.4 Engaging Interiors
+> Indoor spaces must be spacious enough for building, with controlled visibility.
+
+**Fix:**
+- Add interior partition walls (divide rooms into 2-3 spaces)
+- Add staircases to second floors (central placement)
+- Add mezzanine/loft floor for 2-story buildings
+- Room sizes: min 4x4m single, 6x8m two-room, 8x12m large
+- Floor height: 3m minimum per floor
+
+### 2.5 Hot Zone / Safe Zone Hierarchy
+> Loot density decreases with distance from center.
+
+**Fix:**
+- Hot zone (center): 50-100% loot, 5-8 enemies/building, complex interiors
+- Mid zone: 30-60% loot, 3-4 enemies/building, simple interiors
+- Cool zone: 15-30% loot, 1-2 enemies/building, basic interiors
+- Edge zone: <15% loot, 0-1 enemies, no buildings
+
+### 2.6 Spawn-to-Contact Timing
+> Optimal players reach each other in 30-90 seconds.
+
+**Fix:**
+- Add "runway" buildings along paths from spawn to hot zone
+- These have minimal cover and common-only loot
+- Players choose: take longer route with more loot, or rush hot?
+
+### 2.7 Controlled Openness
+> Open areas should feel open but have enough cover to prevent instant kills.
+
+**Fix:**
+- Place 1-3 cover points per 50m wide open space (in APPROACH path, not center)
+- Max 5-10 small props (barrels, crates) per 30x30m open area
+- Place 1-2 elevated positions per open area ("must-control" points)
+- Every elevated position needs 2+ approach paths
 
 ---
 
-## 3. IMPLEMENTATION PLAN
+## 3. PRIORITY IMPLEMENTATION PLAN
 
-### PHASE 1: Building Interiors (Highest Impact)
+### P0 — Building Interiors & Tactical Depth (High Impact, Low Effort)
+**Files:** `world/MapGenerator.js`
 
-**3.1 Interior Walls / Partitions**
+1. **Interior partition walls** (15 min)
+   - Add `placeInteriorWalls()` method inside `addOpenBuildingShell()`
+   - For buildings 6x8m+: divide into 2-3 rooms with 1-2m gaps (doors)
+   - Wall thickness: 0.2m, height: 2.6m (below ceiling)
+   - Add collider for each wall
 
-For each `addOpenBuildingShell` call, add internal dividing walls:
+2. **Staircases for 2-story buildings** (20 min)
+   - Add `placeStaircase()` method
+   - Central placement, 2m wide, 3m rise
+   - Steps: 15 steps, 0.18m rise each
+   - Add collider along entire staircase path
 
-```javascript
-// Inside addOpenBuildingShell(), after existing walls:
-if (!isMassiveHangar && width < 14 && depth < 12) {
-    // Single room divider (creates 2-room layout)
-    const dividerX = new THREE.Mesh(
-        new THREE.BoxGeometry(wallThickness, height * 0.85, depth * 0.45),
-        wallMat
-    );
-    dividerX.position.set(position.x, wallY, position.z - depth * 0.15);
-    dividerX.userData.mapGenerated = true;
-    group.add(dividerX);
-    this.addColliderBox(
-        new THREE.Vector3(dividerX.position.x, wallY, dividerX.position.z),
-        wallThickness + 0.2, height * 0.85, depth * 0.45 + 0.2, false
-    );
-}
-```
+3. **Ladder roof access** (10 min)
+   - Add `placeRoofLadder()` for single-story buildings
+   - Against back wall, metal ladder (cylinder + rungs)
+   - Height = building height + 0.5m
+   - Mark as climbable in player controller
 
-**Why:** Creates tactical cover inside buildings, enables room-clearing gameplay.
+4. **Improved furniture/cover props** (20 min)
+   - Replace basic crates with:
+     - **Sandbag stacks**: 0.8x0.4x0.3m, stacked 2-high, near doors
+     - **Ammo crates**: 0.5x0.7x0.5m, wooden texture color (0x6b4226)
+     - **Concrete barriers**: 1.2x0.6x0.3m, grey (0x808080)
+   - Scatter 3-5 props per building interior
+   - Each prop has collider
 
-**3.2 Interior Furniture Props**
+5. **Interior lighting** (10 min)
+   - Add 1-2 point lights per building (already done in P0)
+   - Color: warm white (0xfff9c4), intensity 0.5-1.0, range 8-12m
+   - Visible fixture: small sphere (0.15m radius) at ceiling
 
-Add a `placeInteriorProps()` method called after each building is created:
+**Subtotal: ~75 min**
 
-```javascript
-placeInteriorProps(position, width, depth, height, style) {
-    const y = this.getHeightAt(position.x, position.z);
-    const group = new THREE.Group();
-    group.position.set(position.x, y, position.z);
+### P1 — Vertical Landmarks & Military Props (High Impact, Medium Effort)
+**Files:** `world/MapGenerator.js`, `entities/BotAI.js`
 
-    // Floor mat (defines walkable area)
-    const floorGeo = new THREE.PlaneGeometry(width - 1, depth - 1);
-    const floorMat = new THREE.MeshStandardMaterial({
-        color: 0x7d6b56, roughness: 0.95, side: THREE.DoubleSide
-    });
-    const floor = new THREE.Mesh(floorGeo, floorMat);
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = 0.02;
-    floor.userData.walkableSurface = true;
-    group.add(floor);
+1. **Watchtowers** (20 min)
+   - Build 4-6 watchtowers in open areas
+   - Height: 6-8m, platform 2x2m at top
+   - Spiral staircase (15 steps) + ladder on one side
+   - 2-3 rare loot items on platform
+   - Must have 2+ approach paths (no single-camp spots)
 
-    // Table (center cover)
-    const tableTop = new THREE.Mesh(
-        new THREE.BoxGeometry(2.4, 0.12, 1.6),
-        new THREE.MeshStandardMaterial({ color: 0x6d4c41, roughness: 0.8 })
-    );
-    tableTop.position.set(0, 0.8, 0);
-    group.add(tableTop);
-    this.addColliderBox(tableTop.position.clone(), 2.4, 0.12, 1.6, true);
+2. **Water towers** (15 min)
+   - Build 3-4 water towers near buildings
+   - Height: 5m, tank at top (cylinder, 2m radius)
+   - Wooden/metal support structure (cross beams)
+   - Ladder access, uncommon loot on platform
 
-    // Table legs
-    for (const [lx, lz] of [[-1, -0.6], [1, -0.6], [-1, 0.6], [1, 0.6]]) {
-        const leg = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.06, 0.06, 0.8, 6),
-            new THREE.MeshStandardMaterial({ color: 0x5a3e2b, roughness: 0.85 })
-        );
-        leg.position.set(lx * 0.8, 0.4, lz);
-        group.add(leg);
-    }
+3. **Military props** (15 min)
+   - Sandbag walls: 2m long, 0.6m tall, placed near military buildings
+   - Ammo box stacks: 2-3 crates stacked, inside buildings
+   - Barbed wire: horizontal lines between posts (decoration only)
+   - Military crates: 0.8x0.6x0.4m, green (0x556b2f)
 
-    // Scatter loot crates
-    for (let i = 0; i < 3; i++) {
-        const crate = new THREE.Mesh(
-            new THREE.BoxGeometry(0.8, 0.7, 0.6),
-            new THREE.MeshStandardMaterial({
-                color: 0x8b5a2b,
-                roughness: 0.88,
-                map: null
-            })
-        );
-        crate.position.set(
-            (Math.random() - 0.5) * (width - 2),
-            0.35,
-            (Math.random() - 0.5) * (depth - 2)
-        );
-        crate.rotation.y = Math.random() * Math.PI;
-        group.add(crate);
-        this.addColliderBox(crate.position.clone(), 0.8, 0.7, 0.6, false);
-    }
+4. **Vehicle props** (15 min)
+   - Wrecked cars (2-3 per hot zone)
+   - Car body: box geometry, color varies
+   - Car doors: thin boxes on sides (open = cover)
+   - Hoods: slight slope forward (15 degree angle)
+   - Each car has collider
 
-    this.scene.add(group);
-}
-```
+**Subtotal: ~65 min**
 
-**Furniture catalog to implement:**
-- Wooden table (center cover) - 2.4x1.6m
-- Metal desk (office buildings) - 1.8x0.8m
-- Wardrobe/armoire - 1.2x0.6m (solid cover)
-- Shelf unit - 1.5x0.4m (with random loot items)
-- Barrel cluster (2-3 barrels per building)
-- Chair (small, 0.5m tall, useful crouch cover)
-- Bed/mattress (rustic buildings)
-- Ammo box (small, green)
-- First aid kit (small, white cross)
+### P2 — Sightlines & Engagement Zones (Medium Impact, Medium Effort)
 
-**3.3 Interior Lighting**
+1. **Window alignment pass** (15 min)
+   - After placing all buildings, check window positions
+   - Align windows across streets (same height, facing each other)
+   - Limit to 1-2 windows per room (already partially done)
 
-Add point lights inside buildings:
+2. **Engagement zone marking** (15 min)
+   - Add `EngagementZone` class
+   - Each zone: center point, 3-5 enemy spots, sightline lengths
+   - Bots use these for pathing and positioning
+   - Hot zone zones have 5 spots, cool zone has 2-3 spots
 
-```javascript
-addInteriorLight(position, width, depth, height, lightColor = 0xfff9c4) {
-    const light = new THREE.PointLight(lightColor, 0.8, 12);
-    light.position.set(position.x, height - 0.5, position.z);
-    light.castShadow = false; // Performance: disable shadows on point lights
-    this.scene.add(light);
+3. **Escape route coverage** (10 min)
+   - Every room must have visible escape route
+   - Add floor markings (lighter color) showing paths
+   - Bots use these for retreat behavior
 
-    // Visible light fixture
-    const fixture = new THREE.Mesh(
-        new THREE.SphereGeometry(0.15, 6, 6),
-        new THREE.MeshBasicMaterial({ color: lightColor })
-    );
-    fixture.position.copy(light.position);
-    this.scene.add(fixture);
-}
-```
+**Subtotal: ~40 min**
 
-**3.4 Multi-Floor Buildings**
+### P3 — Loot Distribution & Dynamic Elements (Medium Impact, High Effort)
 
-For hangars and large structures, add mezzanine floors:
+1. **Loot by zone hierarchy** (20 min)
+   - Tag each building with zone type (hot/mid/cool/edge)
+   - Loot chest placement respects zone type
+   - Hot zone: 50-100% loot density, all rarities
+   - Edge: <15% loot, common only
 
-```javascript
-addMezzanineFloor(position, width, depth, height) {
-    const mezzY = height * 0.45; // ~2m up
-    const mezzGeo = new THREE.BoxGeometry(width - 1, 0.2, depth * 0.4);
-    const mezzMat = new THREE.MeshStandardMaterial({
-        color: 0x546e7a, roughness: 0.85, metalness: 0.1
-    });
-    const mezz = new THREE.Mesh(mezzGeo, mezzMat);
-    mezz.position.set(position.x, mezzY, position.z - depth * 0.15);
-    mezz.userData.walkableSurface = true;
-    mezz.userData.mapGenerated = true;
-    this.scene.add(mezz);
-    this.addColliderBox(mezz.position.clone(), width - 1, 0.2, depth * 0.4 + 0.2, true);
+2. **Vertical loot placement** (15 min)
+   - Ground floor: common items (ammo, basic weapons)
+   - Second floor/mezzanine: uncommon items
+   - Roof: rare/epic items (reward high ground control)
 
-    // Support pillars
-    for (const [px, pz] of [[-1,-1],[1,-1],[-1,1],[1,1]]) {
-        const pillar = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.15, 0.15, mezzY, 8),
-            new THREE.MeshStandardMaterial({ color: 0x455a64, metalness: 0.3 })
-        );
-        pillar.position.set(
-            position.x + px * (width - 2) * 0.35,
-            mezzY / 2,
-            position.z + pz * depth * 0.12
-        );
-        this.scene.add(pillar);
-        this.addColliderBox(pillar.position.clone(), 0.3, mezzY, 0.3, false);
-    }
-}
-```
+3. **Breakable walls** (25 min)
+   - 15-25% of indoor wall area should be breakable (wood/drywall)
+   - Mark as `userData.breakable = true`
+   - On break: remove mesh, add debris particles, create opening
+   - Bots treat breakable walls as alternative paths
 
-### PHASE 2: Environmental Enrichment
-
-**4.1 Exterior Props (Outside Buildings)**
-
-Add structured prop clusters instead of random placement:
-
-```javascript
-// Cluster types to add:
-const propClusters = {
-    // Roadside: barrel + sign + debris
-    roadside: [
-        { type: 'barrel', count: 2, spread: 2 },
-        { type: 'sign', count: 1, spread: 1 },
-        { type: 'debris', count: 3, spread: 3 }
-    ],
-    // Campsite: crate stack + tarp + fire pit
-    campsite: [
-        { type: 'crate_stack', count: 1, spread: 1 },
-        { type: 'tarp', count: 1, spread: 2 },
-        { type: 'fire_pit', count: 1, spread: 1 }
-    ],
-    // Military: ammo boxes + sandbags + crate
-    military: [
-        { type: 'ammo_box', count: 3, spread: 1.5 },
-        { type: 'sandbag', count: 4, spread: 2 },
-        { type: 'crate', count: 2, spread: 2 }
-    ],
-    // Ruined car (3D prop)
-    wreck: [
-        { type: 'wrecked_car', count: 1, spread: 4 }
-    ]
-};
-```
-
-**4.2 Terrain Deformation / Ground Details**
-
-- Tire tracks / footprints paths between POIs
-- Crater holes (shelled areas near buildings)
-- Mud patches (in swamp biome)
-- Scorch marks (near combat zones)
-
-**4.3 Vertical Landmarks**
-
-Add visible vertical markers for navigation:
-- Tall signal towers (50-80 units) with rotating beacon light
-- Water tower (with red X or flag on top)
-- Church steeple / antenna mast
-- Wind turbine (spinning blades)
-- Satellite dish array
-- Radio tower with blinking red light
-
-**4.4 Vegetation Layers**
-
-Current tree placement is instanced but flat. Add:
-- Underbrush/bush layer (low-poly, scattered)
-- Fallen logs (as cover, not just decoration)
-- Flower patches (color accent, small)
-- Vine-covered walls (on ruin structures)
-
-### PHASE 3: Destructible Elements
-
-**5.1 Breakable Cover**
-
-Add small destructible props that disappear on impact:
-
-```javascript
-// Wood crate - breaks into smaller pieces
-createDestructibleCrate(position, size = 1.0) {
-    const group = new THREE.Group();
-    const mat = new THREE.MeshStandardMaterial({
-        color: 0xa1887f, roughness: 0.85
-    });
-
-    // Main crate body
-    const body = new THREE.Mesh(
-        new THREE.BoxGeometry(size, size, size),
-        mat
-    );
-    body.position.set(position.x, size / 2, position.z);
-    body.userData.destructible = true;
-    body.userData.health = 3;
-    body.userData.size = size;
-    group.add(body);
-    this.addColliderBox(body.position.clone(), size, size, size, false);
-    this.addToMapObjects(body);
-
-    this.scene.add(group);
-    return group;
-}
-```
-
-**5.2 Sandbag Barricades**
-
-```javascript
-createSandbagBarricade(position, direction = 0) {
-    const group = new THREE.Group();
-    const sandMat = new THREE.MeshStandardMaterial({
-        color: 0x8d7b65, roughness: 0.95
-    });
-
-    for (let row = 0; row < 3; row++) {
-        for (let col = 0; col < 2; col++) {
-            const bag = new THREE.Mesh(
-                new THREE.BoxGeometry(0.8, 0.4, 0.5),
-                sandMat
-            );
-            bag.position.set(
-                position.x + col * 0.85 * (row % 2 === 0 ? 1 : -0.5),
-                0.2 + row * 0.4,
-                position.z
-            );
-            bag.rotation.y = direction;
-            bag.userData.destructible = true;
-            bag.userData.health = 2;
-            group.add(bag);
-            this.addColliderBox(bag.position.clone(), 0.8, 0.4, 0.5, false);
-        }
-    }
-
-    this.scene.add(group);
-    return group;
-}
-```
-
-### PHASE 4: POI Enhancement
-
-**6.1 Distinct POI Themes**
-
-Each quadrant should have unique visual identity:
-
-```javascript
-// North (Forest) - "Городской Лес"
-// - Wooden cabins with wraparound porches
-// - Camping grounds with tents and fire pits
-// - Logging equipment (sawmill, log piles)
-// - River crossing with wooden bridge
-// - Deer stands / hunting towers
-
-// East (Fortress) - "Каменная Крепость"
-// - Stone walls with watchtowers
-// - Barracks with interior furniture
-// - Weapon storage crates (marked)
-// - Training dummies / obstacle courses
-// - Flag pole and parade ground
-
-// South (Arctic) - "Ледяной Форпост"
-// - Prefab military containers stacked 2-high
-// - Snow-covered equipment
-// - Ice drilling rig
-// - Snow shelters with tarps
-// - Frozen lake with fishing holes
-
-// West (Warzone) - "Зона Конфликта"
-// - Damaged/destroyed vehicles
-// - Sandbag fortified positions
-// - Abandoned bunkers
-// - Barricaded streets
-// - Military supply caches
-```
-
-**6.2 Interior POI Enhancement**
-
-- Add loot glow indicators inside buildings
-- Place floor decals (blood splatter, scorch marks)
-- Add hanging items (clotheslines, gear racks)
-- Add wall murals / propaganda / graffiti
-- Add floor lighting strips (emergency exit style)
-
-### PHASE 5: Performance Optimization
-
-**7.1 LOD System**
-
-```javascript
-// Add LOD levels to buildings and props
-function createLOD(mesh, distanceFar = 150, distanceMid = 80) {
-    const lod = new THREE.LOD();
-    lod.addLevel(mesh, distanceFar); // Detail 0: full detail
-
-    // Simplified version for distance
-    const simplified = mesh.clone();
-    // Remove detail materials, reduce geometry segments
-    lod.addLevel(simplified, distanceMid);
-    lod.addLevel(new THREE.Mesh(), 250); // Invisible past 250
-
-    return lod;
-}
-```
-
-**7.2 Frustum Culling Verification**
-
-Ensure all map objects are properly grouped:
-
-```javascript
-// Already implemented via mapObjects collection
-// Verify this list is used in main.js render loop
-```
-
-**7.3 Texture Budget**
-
-- Current code uses `flatShading: true` with solid colors (good for WebGL)
-- Consider adding a few simple canvas-generated textures for:
-  - Wood grain (crates, tables)
-  - Concrete (walls, floors)
-  - Fabric (tents, tarps)
-  - Metal (hangar doors, containers)
-- Keep at 256x256 or 512x512 max
+**Subtotal: ~60 min**
 
 ---
 
-## 4. PRIORITY ORDER
+## 4. BUILDING DESIGN CHECKLIST (per building)
 
-| Priority | Task | Impact | Effort |
-|----------|------|--------|--------|
-| P0 | Interior walls/partitions | High - tactical depth | Low |
-| P0 | Interior furniture (tables, crates) | High - cover inside buildings | Low |
-| P0 | Walkable floors inside buildings | High - ground detection | Low |
-| P1 | Interior lighting | Medium - atmosphere | Low |
-| P1 | Sandbag/military props | Medium - combat variety | Medium |
-| P1 | Mezzanine floors for hangars | Medium - vertical gameplay | Medium |
-| P2 | Vertical landmarks | Medium - navigation | Medium |
-| P2 | Wrecked vehicles as cover | Medium - cover variety | Medium |
-| P2 | Destructible crates | Low-Medium - gameplay | Medium |
-| P3 | Terrain deformation | Low - polish | High |
-| P3 | LOD system | Low - performance | Low |
-
----
-
-## 5. KEY CODE LOCATIONS
-
-- `world/MapGenerator.js` - Main map generation (line 2137: `addOpenBuildingShell`)
-- `world/MapGenerator.js` (line 1413) - `buildProps()` - exterior props
-- `world/MapGenerator.js` (line 1879) - `buildChests()` - loot placement
-- `world/MapGenerator.js` (line 3934) - Treehouse generation with staircase
-- `world/MapGenerator.js` (line 1233) - `createBox()` / `createInstancedBoxes()`
-- `world/MapGenerator.js` (line 2919) - `addColliderBox()` - collision system
-- `world/MapGenerator.js` (line 3177) - `raycastGroundY()` - ground detection
-- `world/MapGenerator.js` (line 3382) - `isWalkableAt()` - walkability check
-- `world/Environment.js` - Weather, lighting, fog, day-night
-- `world/HungerGamesMap.js` - Biome-specific generation
-- `world/CentralHubGenerator.js` - Spawn hub with Cornucopia
-- `world/MapGeneratorNode.js` - Tile-based grid generation
+```
+[ ] Building has 1-2 windows per room (not more)
+[ ] Each room has 1-2 entry/exit points
+[ ] Staircase is central, not hidden in corner
+[ ] At least 1 breakable wall between rooms (in loot buildings)
+[ ] Roof access is possible (ladder, ramp, stairs)
+[ ] 3-5 enemy spots identified in/near the building
+[ ] Sightline to adjacent building or landmark exists
+[ ] Escape route from every room is visible
+[ ] Interior feels spacious (min 4x4m per room)
+[ ] Loot drops by floor (ground=common, 1st=uncommon, roof=rare)
+[ ] No single-camp spots (every high point has 2+ approaches)
+[ ] Prop count <30 for interior, <40 for exterior
+```
 
 ---
 
-## 6. QUICK WINS (Can be done in under 1 hour)
+## 5. BUILDING TYPE SPECIFICATIONS
 
-1. **Add floor mats to all buildings** - Call `placeInteriorProps()` from `addOpenBuildingShell()` for each building type
-2. **Add tables + crates inside houses** - Within the same method, place 1 table + 2 crates per house
-3. **Add barrels inside hangars** - Place 3-4 barrels + 2 ammo boxes per hangar
-4. **Add interior point lights** - One per building, yellow-ish (0xfff9c4)
-5. **Add sandbag barriers near large buildings** - 2-4 clusters per quadrant
+| Building Type | Size | Floors | Rooms | Windows/Room | Stairs | Roof | Props/Room |
+|---------------|------|--------|-------|-------------|--------|------|------------|
+| Small Shack | 4x4m | 1 | 1 | 1-2 | None | Flat (climbable) | 3-5 |
+| Single Home | 6x8m | 1-2 | 2-3 | 1-2 | Yes, central | Ladder | 4-6 |
+| Two-Story Home | 8x12m | 2 | 4-6 | 1-2 | Yes, central | Stairs + ladder | 5-8 |
+| Warehouse | 15x20m | 1-2 | 1-2 open | 3-4 along walls | 1-2 staircases | Crane/ladder | 8-12 |
+| Hangar | 32x24m | 1 | Open | N/A | None | Mezzanine + towers | 8-10 |
+| Tower (landmark) | 5x5m shaft | 1 | 1 open | 1 per floor | Spiral stairs | Top platform | 6-8 |
 
-These 5 items alone would dramatically improve map feel with minimal code changes.
+---
+
+## 6. CURRENT PROGRESS
+
+### Completed P0 items:
+- [x] Interior floors (walkable surface inside buildings)
+- [x] Tables (center cover, 2.4x1.6m with legs)
+- [x] Wooden crates (scattered, solid cover)
+- [x] Barrels (2 per building, cylinder)
+- [x] Ammo boxes in hangars (4 per hangar)
+- [x] Interior lighting (point light + visible fixture)
+- [x] Mezzanine floor for hangars (with support pillars)
+
+### Remaining P0 items:
+- [ ] Interior partition walls (2-3 rooms)
+- [ ] Staircases for 2-story buildings
+- [ ] Roof ladder access for all buildings
+- [ ] Sandbag stacks + concrete barriers
+
+---
+
+*Plan based on industrial BR design principles. Sources: Fortnite Devs, The Guardian, Game Wisdom, Level Design Book.*
+*Target: 32-player Hunger Games mode, Three.js WebGL*
