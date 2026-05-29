@@ -2414,8 +2414,8 @@ export class MapGenerator {
         }
 
         // === INTERIOR LIGHTING (one point light per building) ===
-        const lightColor = 0xfff9c4;
-        const intLight = new THREE.PointLight(lightColor, 0.7, 14);
+        const lightColor = 0xff4444; // Debug red color for visibility
+        const intLight = new THREE.PointLight(lightColor, 2.0, 20);
         intLight.position.set(position.x, baseY + height - 0.5, position.z);
         intLight.castShadow = false;
         group.add(intLight);
