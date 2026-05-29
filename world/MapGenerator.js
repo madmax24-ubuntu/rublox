@@ -740,7 +740,7 @@ function bridge(x, z, length, rotation, scene) {
 }
 
 // --- Smoke cloud ---
-function smokeCloud(x, y, z, scene) {
+function smokeCloud(x, y, z, scene, gen) {
     const g = new THREE.Group();
     for (let i = 0; i < 5; i++) {
         const cloud = sphere(1.5 + Math.random(), 8, 6, C.stoneDark, {
