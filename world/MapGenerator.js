@@ -453,7 +453,7 @@ export class MapGenerator {
         spawnPad.userData.isMapObject = true;
         this.scene.add(spawnPad);
 
-        // Gentle terrain hills using InstancedMesh
+        // Gentle terrain hills using InstancedMesh — now with proper terrain mounds
         this._buildTerrainHills();
     }
 
@@ -464,24 +464,21 @@ export class MapGenerator {
             metalness: 0.0
         });
 
-        // Simple box hills for terrain interest
+        // Terrain mounds using IcosahedronGeometry for natural look
         const hillData = [];
-        for (let i = 0; i < 60; i++) {
+        for (let i = 0; i < 50; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const r = 35 + Math.random() * (this.arenaRadius - 60);
+            const r = 40 + Math.random() * (this.arenaRadius - 65);
             const x = Math.cos(angle) * r;
             const z = Math.sin(angle) * r;
             const h = this.noise.fbm(x * 0.008, z * 0.008, 3) * 4;
-            if (Math.abs(h) < 0.5) continue;
-            const size = 4 + Math.abs(h) * 2;
-            const hillH = Math.abs(h) * 1.2;
+            if (Math.abs(h) < 0.3) continue;
+            const size = 5 + Math.abs(h) * 2.5;
             hillData.push({
                 x,
-                y: hillH * 0.3,
+                y: Math.abs(h) * 0.4,
                 z,
-                sx: size,
-                sy: hillH,
-                sz: size * 0.8,
+                scale: Math.max(0.6, Math.abs(h) * 0.6),
                 rotY: Math.random() * Math.PI,
                 castShadow: h > 0,
                 receiveShadow: true
@@ -489,14 +486,14 @@ export class MapGenerator {
         }
 
         if (hillData.length > 0) {
-            const geo = new THREE.BoxGeometry(1, 1, 0.8);
+            const geo = new THREE.IcosahedronGeometry(1, 2);
             const inst = new THREE.InstancedMesh(geo, hillMat, hillData.length);
             const dummy = new THREE.Object3D();
             for (let i = 0; i < hillData.length; i++) {
                 const d = hillData[i];
                 dummy.position.set(d.x, d.y, d.z);
                 dummy.rotation.set(0, d.rotY, 0);
-                dummy.scale.set(d.sx, d.sy, d.sz);
+                dummy.scale.set(d.scale * 1.3, d.scale * 0.6, d.scale * 1.3);
                 dummy.updateMatrix();
                 inst.setMatrixAt(i, dummy.matrix);
             }
