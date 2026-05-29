@@ -40,7 +40,7 @@ export class BotBrain {
         this._tmpMoveRight = new THREE.Vector3();
         this._tmpMoveTarget = new THREE.Vector3();
         this._rngShift = Math.random() * 1000;
-        this.baseVisionRange = 80;   // увеличен радиус зрения
+        this.baseVisionRange = 45;   // уменьшен радиус зрения для одиночного стиля
         this.hearingRange = 40;
         this.shotHearingRange = 90;
         this.losMemorySeconds = 2.0;
