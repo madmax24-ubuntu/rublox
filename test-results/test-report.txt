@@ -1,10 +1,10 @@
 ═══════════════════════════════════════════════════════
   Rubo Arena - Game Test Report
-  Generated: 2026-05-29T20:41:20.261Z
+  Generated: 2026-05-29T20:43:00.451Z
 ═══════════════════════════════════════════════════════
 
   URL: http://localhost:3001
-  Duration: 114.7s
+  Duration: 75.1s
   Verdict: SOME TESTS FAILED
 
 ───────────────────────────────────────────────────────
@@ -14,16 +14,18 @@
   [PASS] Phase 2: Loading Phase
   [FAIL] Phase 3: Pre-Game
         - player_count_mismatch:50
-  [PASS] Phase 4: Gameplay
-  [PASS] Phase 5: Error Detection
+  [FAIL] Phase 4: Gameplay
+        - canvas_disappeared
 
 ───────────────────────────────────────────────────────
-  Errors Found (1)
+  Errors Found (3)
 ───────────────────────────────────────────────────────
-  1. [2026-05-29T20:39:48.793Z] Player count is 50, expected 32
+  1. [2026-05-29T20:42:10.322Z] Player count is 50, expected 32
+  2. [2026-05-29T20:43:00.448Z] Canvas disappeared during gameplay!
+  3. [2026-05-29T20:43:00.450Z] Fatal phase error: page.waitForTimeout: Target page, context or browser has been closed
 
 ───────────────────────────────────────────────────────
-  Screenshots (20)
+  Screenshots (13)
 ───────────────────────────────────────────────────────
   p1_after_start_click: C:\Users\maksk\Desktop\rublox\test-results\screenshots\p1_after_start_click.png
   p1_after_2s: C:\Users\maksk\Desktop\rublox\test-results\screenshots\p1_after_2s.png
@@ -38,12 +40,5 @@
   interior_1: C:\Users\maksk\Desktop\rublox\test-results\screenshots\interior_1.png
   interior_2: C:\Users\maksk\Desktop\rublox\test-results\screenshots\interior_2.png
   interior_3: C:\Users\maksk\Desktop\rublox\test-results\screenshots\interior_3.png
-  p4_gameplay_1s: C:\Users\maksk\Desktop\rublox\test-results\screenshots\p4_gameplay_1s.png
-  p4_gameplay_2s: C:\Users\maksk\Desktop\rublox\test-results\screenshots\p4_gameplay_2s.png
-  p4_gameplay_3s: C:\Users\maksk\Desktop\rublox\test-results\screenshots\p4_gameplay_3s.png
-  p4_gameplay_4s: C:\Users\maksk\Desktop\rublox\test-results\screenshots\p4_gameplay_4s.png
-  p4_gameplay_5s: C:\Users\maksk\Desktop\rublox\test-results\screenshots\p4_gameplay_5s.png
-  p5_error_detection: C:\Users\maksk\Desktop\rublox\test-results\screenshots\p5_error_detection.png
-  final_state: C:\Users\maksk\Desktop\rublox\test-results\screenshots\final_state.png
 
 ═══════════════════════════════════════════════════════
