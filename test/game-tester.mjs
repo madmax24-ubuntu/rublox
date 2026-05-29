@@ -70,6 +70,28 @@ async function countObjectsByType(type) {
     }
 }
 
+async function countInteriorObjects() {
+    try {
+        return await page.evaluate(() => {
+            const g = window.getGameInstance?.();
+            if (!g || !g.scene) return { total: 0, meshes: 0, groups: 0, box: 0, cylinder: 0 };
+            let total = 0, meshes = 0, groups = 0, box = 0, cylinder = 0;
+            g.scene.traverse((obj) => {
+                if (obj.userData?.mapGenerated) {
+                    total++;
+                    if (obj.type === 'Mesh') meshes++;
+                    if (obj.type === 'Group') groups++;
+                    if (obj.geometry?.type === 'BoxGeometry') box++;
+                    if (obj.geometry?.type === 'CylinderGeometry') cylinder++;
+                }
+            });
+            return { total, meshes, groups, box, cylinder };
+        });
+    } catch {
+        return { total: 0, meshes: 0, groups: 0, box: 0, cylinder: 0 };
+    }
+}
+
 async function captureBuildingInteriors() {
     const g = await page.evaluate(() => {
         const gi = window.getGameInstance?.();
