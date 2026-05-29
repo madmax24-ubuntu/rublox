@@ -7,9 +7,9 @@ async function main() {
     const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
 
     await page.goto('http://localhost:3001/');
-    await page.waitForSelector('.start-screen');
+    await page.waitForSelector('#startScreen');
     await page.click('button');
-    await page.waitForSelector('.loading-screen');
+    await page.waitForSelector('#loadingOverlay');
 
     // Wait for map generation
     await new Promise(r => setTimeout(r, 30000));
