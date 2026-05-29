@@ -1,25 +1,26 @@
 ═══════════════════════════════════════════════════════
   Rubo Arena - Game Test Report
-  Generated: 2026-05-29T20:27:30.157Z
+  Generated: 2026-05-29T20:30:21.560Z
 ═══════════════════════════════════════════════════════
 
   URL: http://localhost:3001
-  Duration: 115.8s
-  Verdict: ALL TESTS PASSED
+  Duration: 102.5s
+  Verdict: SOME TESTS FAILED
 
 ───────────────────────────────────────────────────────
   Phase Results
 ───────────────────────────────────────────────────────
   [PASS] Phase 1: Start Screen
   [PASS] Phase 2: Loading Phase
-  [PASS] Phase 3: Pre-Game
+  [FAIL] Phase 3: Pre-Game
+        - player_count_mismatch:50
   [PASS] Phase 4: Gameplay
   [PASS] Phase 5: Error Detection
 
 ───────────────────────────────────────────────────────
   Errors Found (1)
 ───────────────────────────────────────────────────────
-  1. [2026-05-29T20:25:34.871Z] PageError: window.setTestMode is not a function
+  1. [2026-05-29T20:29:00.725Z] Player count is 50, expected 32
 
 ───────────────────────────────────────────────────────
   Screenshots (17)
