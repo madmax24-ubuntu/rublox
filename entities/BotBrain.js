@@ -382,6 +382,12 @@ export class BotBrain {
             this.actRetreat(bot, ctx);
             return;
         }
+       // Lone wolf: flee if too many bots nearby (avoid crowds)
+        if (this.avoidsOthers && ctx.crowdNear >= 3) {
+            bot.patrolTarget = this.pickSpreadTarget(bot, 30, 80);
+            this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 1.1);
+            return;
+        }
         // Hesitation — sometimes bots delay engagement
         if (this.hesitationChance > 0.1 && Math.random() < this.hesitationChance && ctx.nearestEnemyDist > 20) {
             bot.patrolTarget = this.pickSpreadTarget(bot, 8, 24);
