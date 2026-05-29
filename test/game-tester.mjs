@@ -864,6 +864,11 @@ async function main() {
         addError(`PageError: ${err.message}`);
     });
 
+    // Enable test mode before loading game (runs before any page scripts)
+    await page.addInitScript(() => {
+        window['testMode'] = true;
+    });
+
     // Run phases sequentially
     try {
         const p1 = await phase1StartScreen();
