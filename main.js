@@ -2260,6 +2260,21 @@ class Game {
         }
 
         this.env.update(delta);
+
+        // Biome-aware fog/sky transition based on player position
+        if (this.player?.position) {
+            const px = this.player.position.x;
+            const pz = this.player.position.z;
+            let biome = 'default';
+            if (px < -10 && pz > 10) biome = 'citadel';
+            else if (px > 10 && pz > 10) biome = 'crystal';
+            else if (px < -10 && pz < -10) biome = 'wastes';
+            else if (px > 10 && pz < -10) biome = 'forest';
+            if (this.env.currentBiome !== biome) {
+                this.env.setBiome(biome);
+            }
+        }
+
         this.map?.updateZoneAnimations?.(delta);
         this.map?.updateParticles?.(delta);
         if ((this.env?.getWeatherType?.() || 'clear') === 'rain') {
