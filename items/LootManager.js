@@ -93,10 +93,20 @@ export class LootManager {
         if (floorTiles.length) {
             const shuffled = [...floorTiles].sort(() => Math.random() - 0.5);
             const limit = Math.min(chestCount, shuffled.length);
-            for (let i = 0; i < limit; i++) {
+            const MIN_CHEST_DIST = 30; // Minimum distance between chests
+            for (let i = 0; i < limit && this.chests.length < chestCount; i++) {
                 const tile = shuffled[i];
-                const y = this.getChestPlacementY(tile.x, tile.z);
-                const chest = this.createChest(tile.x, y, tile.z);
+                const jitter = 8;
+                const x = tile.x + (Math.random() - 0.5) * jitter;
+                const z = tile.z + (Math.random() - 0.5) * jitter;
+                const y = this.getChestPlacementY(x, z);
+
+                // Check minimum distance from existing chests
+                const tooClose = this.chests.some(c => Math.hypot(c.position.x - x, c.position.z - z) < MIN_CHEST_DIST);
+                if (tooClose) continue;
+
+                if (y < this.mapGenerator.waterLevel + 1) continue;
+                const chest = this.createChest(x, y, z);
                 this.chests.push(chest);
                 this.addChestToIndex(chest);
                 if (i % 2 === 0) await new Promise(r => setTimeout(r, 200));
@@ -106,9 +116,10 @@ export class LootManager {
         }
 
         let failCount = 0;
-        for (let i = 0; i < chestCount && failCount < chestCount * 3; i++) {
+        const MIN_CHEST_DIST = 30; // Minimum distance between chests
+        for (let i = 0; i < chestCount && failCount < chestCount * 5; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const distance = 40 + Math.random() * 150;
+            const distance = 80 + Math.random() * 140; // Wider spread, starting further out
             const x = Math.cos(angle) * distance;
             const z = Math.sin(angle) * distance;
             const y = this.getChestPlacementY(x, z);
@@ -117,6 +128,10 @@ export class LootManager {
                 failCount++;
                 continue;
             }
+
+            // Check minimum distance from existing chests
+            const tooClose = this.chests.some(c => Math.hypot(c.position.x - x, c.position.z - z) < MIN_CHEST_DIST);
+            if (tooClose) { failCount++; continue; }
 
             const chest = this.createChest(x, y, z);
             this.chests.push(chest);
