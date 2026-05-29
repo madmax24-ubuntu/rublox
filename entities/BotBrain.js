@@ -270,21 +270,18 @@ export class BotBrain {
         // Отступаем если очень мало HP без аптечки
         if (hp < 0.15) return STATES.RETREAT;
 
-        // Боевая фаза: атакуем — с учётом личности
+       // Боевая фаза: атакуем — с учётом личности и одиночного стиля
         if (ctx.nearestEnemy) {
             const isPlayer = ctx.nearestEnemy.constructor?.name === 'Player';
-            if (isPlayer && ctx.nearestEnemyDist < 80 * this.aggression) return STATES.ENGAGE;
-            const engageDist = 42 * this.aggression;
-            // Cautious bots wait for better position; reckless engage at any range
-            if (this.cautious && ctx.nearestEnemyDist < engageDist * 0.7) return STATES.ENGAGE;
-            if (!this.cautious && ctx.nearestEnemyDist < engageDist) return STATES.ENGAGE;
-            if (this.willFlank && ctx.nearestEnemyDist < engageDist * 0.5) return STATES.ENGAGE; // flanking opportunity
-            // Reckless bots always engage if armed
-            if (this.personality === 'reckless' && armed && ctx.nearestEnemyDist < 100) return STATES.ENGAGE;
-            if (!armed && ctx.lootTarget) return STATES.LOOT;
-            // Lone wolves only engage if they have decent gear
+            if (isPlayer && ctx.nearestEnemyDist < 60 * this.aggression) return STATES.ENGAGE;
+            const engageDist = 30 * this.aggression;
+            // Lone wolves: only engage if armed AND no crowd nearby
             if (!armed) return STATES.IDLE;
-            if (ctx.gear >= 0.35) return STATES.ENGAGE;
+            if (this.personality === 'reckless' && ctx.nearestEnemyDist < 70) return STATES.ENGAGE;
+            if (this.willFlank && this.avoidsOthers && ctx.nearestEnemyDist < engageDist * 0.4) return STATES.ENGAGE;
+            if (ctx.nearestEnemyDist < engageDist && ctx.crowdNear < 2) return STATES.ENGAGE;
+            // Otherwise avoid the fight — lone wolf doesn't join crowds
+            return STATES.IDLE;
         }
 
         // Зомби вблизи
