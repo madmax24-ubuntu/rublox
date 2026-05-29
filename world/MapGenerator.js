@@ -183,7 +183,7 @@ async function buildBeach(scene, gen) {
 
     // Beached boats (decoration + cover)
     for (let i = 0; i < 4; i++) {
-        const a = -Math.PI * 0.6 + (i / 3) * Math.PI * 0.4;
+        const a = (i / 3) * Math.PI * 0.6 - Math.PI * 0.3 - Math.PI;
         const r = RADIUS * 0.8 + Math.random() * 10;
         const x = Math.cos(a) * r, z = Math.sin(a) * r;
 
