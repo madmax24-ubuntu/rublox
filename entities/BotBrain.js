@@ -56,6 +56,9 @@ export class BotBrain {
         this.willFlank = personality === 'tactical' || personality === 'aggressive';
         this.reactionDelay = personality === 'cautious' ? 0.5 : personality === 'reckless' ? 0.05 : this.reactionMin + Math.random() * (this.reactionMax - this.reactionMin);
         this.hesitationChance = personality === 'cautious' ? 0.25 : personality === 'reckless' ? 0.02 : 0.08;
+        // Each bot is a lone wolf — avoids other bots, prefers solo play
+        this.avoidsOthers = true;
+        this.homeSector = ['NW', 'NE', 'SW', 'SE'][Math.floor(Math.random() * 4)];
     }
 
     getMatchAge() {
