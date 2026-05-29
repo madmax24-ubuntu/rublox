@@ -812,7 +812,7 @@ class Game {
     }
 
     spawnBots() {
-        const totalParticipants = 100;
+        const totalParticipants = 50;
         const botCount = Math.max(0, totalParticipants - 1);
         const center = this.map?.getSpawnWorld?.() || { x: 0, z: 0 };
         const plazaRadius = 60;
