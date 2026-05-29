@@ -267,12 +267,17 @@ export class BotBrain {
         // Отступаем если очень мало HP без аптечки
         if (hp < 0.15) return STATES.RETREAT;
 
-        // Боевая фаза: атакуем
+        // Боевая фаза: атакуем — с учётом личности
         if (ctx.nearestEnemy) {
             const isPlayer = ctx.nearestEnemy.constructor?.name === 'Player';
-            // Приоритет игроку-человеку
-            if (isPlayer && ctx.nearestEnemyDist < 80) return STATES.ENGAGE;
-            if (ctx.nearestEnemyDist < 42) return STATES.ENGAGE;
+            if (isPlayer && ctx.nearestEnemyDist < 80 * this.aggression) return STATES.ENGAGE;
+            const engageDist = 42 * this.aggression;
+            // Cautious bots wait for better position; reckless engage at any range
+            if (this.cautious && ctx.nearestEnemyDist < engageDist * 0.7) return STATES.ENGAGE;
+            if (!this.cautious && ctx.nearestEnemyDist < engageDist) return STATES.ENGAGE;
+            if (this.willFlank && ctx.nearestEnemyDist < engageDist * 0.5) return STATES.ENGAGE; // flanking opportunity
+            // Reckless bots always engage if armed
+            if (this.personality === 'reckless' && armed && ctx.nearestEnemyDist < 100) return STATES.ENGAGE;
             if (!armed && ctx.lootTarget) return STATES.LOOT;
             if (ctx.gear >= 0.25) return STATES.ENGAGE;
         }
