@@ -815,6 +815,8 @@ async function main() {
     await page.addInitScript(() => {
         window['testModeEnabled'] = true;
         window['testMode'] = true;
+        window['setTestMode'](true);
+        localStorage.setItem('testMode', 'true');
     });
 
     // Run phases sequentially
