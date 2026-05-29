@@ -290,7 +290,7 @@ function getViewPoseForType(rawType) {
         base.scale = 0.68;
     } else if (type === 'pistol') {
         base.position.set(0.2, -0.42, -0.82);
-        base.rotation.set(0.05, 0, -0.02);
+        base.rotation.set(0.05, -Math.PI / 2, -0.02);
         base.scale = 0.76;
     } else if (type === 'rifle') {
         base.position.set(0.22, -0.44, -0.95);
