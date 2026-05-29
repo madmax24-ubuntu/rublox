@@ -837,24 +837,27 @@ class Game {
             return true;
         };
 
-        const ringStep = 10;
-        for (let ring = 0; ring < 10 && slots.length < botCount; ring++) {
-            const radius = Math.min(plazaRadius - 2.5, 10 + ring * ringStep);
-            const circumference = Math.max(12, Math.PI * 2 * radius);
-            const count = Math.max(10, Math.floor(circumference / minDistance));
-            const phase = Math.random() * Math.PI * 2;
-            for (let i = 0; i < count && slots.length < botCount; i++) {
-                const angle = phase + (i / count) * Math.PI * 2;
-                tryAddSlot(center.x + Math.cos(angle) * radius, center.z + Math.sin(angle) * radius);
+        // Use map-wide tiles spread across the ENTIRE map, not just the courtyard
+        const mapTiles = this.map.getFloorTiles?.() || [];
+        if (mapTiles.length) {
+            for (const tile of mapTiles) {
+                if (slots.length >= botCount) break;
+                const jitterX = (Math.random() - 0.5) * 12;
+                const jitterZ = (Math.random() - 0.5) * 12;
+                tryAddSlot(tile.x + jitterX, tile.z + jitterZ);
             }
         }
-        let attempts = 0;
-        while (slots.length < botCount && attempts++ < 12000) {
-            const angle = Math.random() * Math.PI * 2;
-            const radius = 8 + Math.random() * (plazaRadius - 10);
-            const x = center.x + Math.cos(angle) * radius;
-            const z = center.z + Math.sin(angle) * radius;
-            tryAddSlot(x, z);
+
+        // Fill remaining bots with random positions across the entire map
+        if (slots.length < botCount) {
+            let attempts = 0;
+            while (slots.length < botCount && attempts++ < 8000) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = 60 + Math.random() * (this.map?.size || 440 - 60);
+                const x = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
+                tryAddSlot(x, z);
+            }
         }
 
         // Tactical loadout pool - distributes weapons across 60 bots
