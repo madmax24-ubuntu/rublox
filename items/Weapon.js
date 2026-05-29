@@ -294,11 +294,11 @@ function getViewPoseForType(rawType) {
         base.scale = 0.76;
     } else if (type === 'rifle') {
         base.position.set(0.22, -0.44, -0.95);
-        base.rotation.set(0.05, 0, -0.05);
+        base.rotation.set(0.05, -Math.PI / 2, -0.05);
         base.scale = 0.66;
     } else if (type === 'machinegun') {
         base.position.set(0.22, -0.45, -0.98);
-        base.rotation.set(0.05, 0, -0.05);
+        base.rotation.set(0.05, -Math.PI / 2, -0.05);
         base.scale = 0.67;
     } else if (type === 'sniper') {
         base.position.set(0.22, -0.46, -1.05);
