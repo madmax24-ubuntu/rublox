@@ -254,10 +254,10 @@ function createArrowProjectileMesh() {
 }
 
 function getRotationOffsets(type) {
-    if (type === 'knife') return { pitch: -Math.PI / 2, yaw: 0, roll: 0 };
-    if (type === 'bow' || type === 'crossbow') return { pitch: 0.04, yaw: Math.PI / 2, roll: -0.04 };
-    // Third-person alignment for character forward (+Z in our actor space).
-    return { pitch: 0, yaw: Math.PI / 2, roll: 0 };
+    if (type === 'knife') return { pitch: 0.08, yaw: 0, roll: 0.08 };
+    if (type === 'bow' || type === 'crossbow') return { pitch: 0.04, yaw: 0, roll: 0 };
+    // No Y offset — view pose aligns weapon; model +Z = forward direction.
+    return { pitch: 0, yaw: 0, roll: 0 };
 }
 
 function getViewPoseForType(rawType) {
