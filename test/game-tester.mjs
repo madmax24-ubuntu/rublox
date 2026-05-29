@@ -70,6 +70,45 @@ async function countObjectsByType(type) {
     }
 }
 
+async function captureBuildingInteriors() {
+    const g = await page.evaluate(() => {
+        const gi = window.getGameInstance?.();
+        if (!gi || !gi.map) return null;
+        // Find a building with mapGenerated children
+        const buildings = [];
+        gi.scene.traverse((obj) => {
+            if (obj.parent?.userData?.mapGenerated || obj.children?.length > 5) {
+                const pos = { x: Math.round(obj.position.x), y: Math.round(obj.position.y), z: Math.round(obj.position.z) };
+                if (!buildings.some(b => Math.abs(b.x - pos.x) < 10 && Math.abs(b.z - pos.z) < 10)) {
+                    buildings.push(pos);
+                }
+            }
+        });
+        return buildings.slice(0, 3); // 3 buildings
+    });
+
+    if (!g?.length) {
+        log('No buildings found for interior capture');
+        return;
+    }
+
+    log(`Capturing interior views for ${g.length} buildings`);
+    for (let i = 0; i < g.length; i++) {
+        const b = g[i];
+        const camX = b.x;
+        const camZ = b.z;
+        const camY = Math.max(b.y + 3, 2);
+        const lookY = Math.max(b.y + 1, 1);
+
+        await setCameraPosition(camX, camY, camZ, b.x, lookY, b.z, 60);
+        await page.waitForTimeout(300);
+        await screenshot(`interior_${i + 1}`);
+        log(`Interior view ${i + 1}: cam(${camX},${camY},${camZ})`);
+    }
+    // Restore top-down
+    await setCameraPosition(0, 500, 0, 0, 0, 0, 60);
+}
+
 async function captureTopViews() {
     const positions = [
         { name: 'north', x: 0, y: 300, z: -50, fov: 90 },
