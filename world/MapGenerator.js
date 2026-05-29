@@ -1044,12 +1044,39 @@ export class MapGenerator {
                     baseOpacity: 0.6
                 });
 
-                const lanternLight = this._createPointLight(0xffcc66, 0.3, 8);
+           const lanternLight = this._createPointLight(0xffcc66, 0.3, 8);
                lanternLight.position.set(lx, 3.5, lz);
                 this.scene.add(lanternLight);
             }
             await _yield();
         }
+
+        // === Biome atmospheric lighting ===
+        // Citadel — warm eerie red glow
+        const citadelLight = new THREE.PointLight(0xcc6644, 1.2, 100);
+        citadelLight.position.set(-80, 12, 80);
+        this.scene.add(citadelLight);
+
+        // Crystal — cool blue glow
+        const crystalLight = new THREE.PointLight(0x4488ff, 1.0, 90);
+        crystalLight.position.set(80, 10, 80);
+        this.scene.add(crystalLight);
+
+        // Wastes — intense orange/red glow
+        const wastesLight = new THREE.PointLight(0xff4400, 1.5, 85);
+        wastesLight.position.set(-80, 8, -80);
+        this.scene.add(wastesLight);
+
+        // Forest — green bioluminescent glow
+        const forestLight = new THREE.PointLight(0x44cc66, 1.0, 90);
+        forestLight.position.set(80, 10, -80);
+        this.scene.add(forestLight);
+
+        // Central hub — neutral warm light
+        const hubLight = new THREE.PointLight(0xffeedd, 0.8, 60);
+        hubLight.position.set(0, 15, 0);
+        this.scene.add(hubLight);
+
         await _yield();
     }
 
