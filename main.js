@@ -820,7 +820,7 @@ class Game {
         const slots = [];
         const spawnPads = this.map?.getSpawnPads?.() || [];
 
-        const surfaceY = Math.max(1.54, 1.54 + (this.map?.getHeightAt?.(center.x, center.z) ?? 0.3));
+        const surfaceY = 1.54; // Default ground level for all maps
         const padPositions = spawnPads.map(p => ({ x: p.x, y: surfaceY, z: p.z }));
         for (let i = 0; i < padPositions.length && slots.length < botCount; i++) {
             slots.push(padPositions[i]);
