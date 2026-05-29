@@ -255,10 +255,12 @@ export class BotBrain {
         const armed = !!bot.currentWeapon && bot.currentWeapon.type !== 'fists';
         const hasMedkit = (bot.medkits || 0) > 0;
 
-        // Паза лута: разбегаемся и лутаемся, атакуем ТОЛЬКО если стреляют в упор
+       // Паза лута: разбегаемся и лутаемся, атакуем ТОЛЬКО если стреляют в упор
         if (lootPhase) {
             if (ctx.lootTarget) return STATES.LOOT;
-            if (ctx.nearestEnemy && ctx.nearestEnemyDist < 8) return STATES.ENGAGE; // самооборона
+            // Боты не атакуют друг друга в фазе лута
+            if (ctx.nearestEnemy?.constructor?.name === 'Bot') return STATES.IDLE;
+            if (ctx.nearestEnemy && ctx.nearestEnemyDist < 5) return STATES.ENGAGE; // самооборона в упор
             return STATES.IDLE; // разбегаемся по карте
         }
 
