@@ -1,10 +1,10 @@
 ═══════════════════════════════════════════════════════
   Rubo Arena - Game Test Report
-  Generated: 2026-05-29T20:30:21.560Z
+  Generated: 2026-05-29T20:33:20.354Z
 ═══════════════════════════════════════════════════════
 
   URL: http://localhost:3001
-  Duration: 102.5s
+  Duration: 111.1s
   Verdict: SOME TESTS FAILED
 
 ───────────────────────────────────────────────────────
@@ -20,10 +20,10 @@
 ───────────────────────────────────────────────────────
   Errors Found (1)
 ───────────────────────────────────────────────────────
-  1. [2026-05-29T20:29:00.725Z] Player count is 50, expected 32
+  1. [2026-05-29T20:31:50.514Z] Player count is 50, expected 32
 
 ───────────────────────────────────────────────────────
-  Screenshots (17)
+  Screenshots (20)
 ───────────────────────────────────────────────────────
   p1_after_start_click: C:\Users\maksk\Desktop\rublox\test-results\screenshots\p1_after_start_click.png
   p1_after_2s: C:\Users\maksk\Desktop\rublox\test-results\screenshots\p1_after_2s.png
@@ -35,6 +35,9 @@
   top_south: C:\Users\maksk\Desktop\rublox\test-results\screenshots\top_south.png
   top_west: C:\Users\maksk\Desktop\rublox\test-results\screenshots\top_west.png
   top_center_45: C:\Users\maksk\Desktop\rublox\test-results\screenshots\top_center_45.png
+  interior_1: C:\Users\maksk\Desktop\rublox\test-results\screenshots\interior_1.png
+  interior_2: C:\Users\maksk\Desktop\rublox\test-results\screenshots\interior_2.png
+  interior_3: C:\Users\maksk\Desktop\rublox\test-results\screenshots\interior_3.png
   p4_gameplay_1s: C:\Users\maksk\Desktop\rublox\test-results\screenshots\p4_gameplay_1s.png
   p4_gameplay_2s: C:\Users\maksk\Desktop\rublox\test-results\screenshots\p4_gameplay_2s.png
   p4_gameplay_3s: C:\Users\maksk\Desktop\rublox\test-results\screenshots\p4_gameplay_3s.png
