@@ -398,6 +398,7 @@ export class BotBrain {
         if (updatedType === 'shotgun') effectiveRange *= 0.88;
 
         bot.lookAt(target.position);
+        const strafeDir = ((bot.id + Math.floor(nowSec * 4)) % 2 === 0) ? 1 : -1;
         if (dist <= effectiveRange) {
             const targetKey = this.getObjectKey(target) || `${Math.round(target.position.x)}:${Math.round(target.position.z)}`;
             if (bot._reactionTargetKey !== targetKey) {
