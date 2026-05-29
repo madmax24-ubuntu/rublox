@@ -209,7 +209,7 @@ export class Bot {
             grip.forward * gripMul + 0.12
         );
         this._tmpWeaponRot.set(0, 0, 0);
-        // Weapon model +Z = forward. Rotate Y by π/2 so it points forward from the bot's perspective.
+        // Weapon model +X = forward (barrel direction). Rotate Y by π/2 so it aligns to character forward.
         this._tmpWeaponRot.y = Math.PI / 2;
         if (this.currentWeapon.type === 'bow') {
             this._tmpWeaponRot.x = -0.12;
