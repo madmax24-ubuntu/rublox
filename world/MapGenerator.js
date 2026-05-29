@@ -2423,6 +2423,215 @@ export class MapGenerator {
         fixture.position.copy(intLight.position);
         fixture.userData.mapGenerated = true;
         group.add(fixture);
+
+        // === INTERIOR PARTITION WALLS (for buildings 6x8m+ to create 2-3 rooms) ===
+        if (!isMassiveHangar && width >= 6 && depth >= 8) {
+            const partMat = new THREE.MeshStandardMaterial({
+                color: options.wallColor ?? 0xc4b098, roughness: 0.92, flatShading: true
+            });
+            const partThickness = 0.15;
+            const partHeight = height * 0.75;
+
+            // Main divider wall (perpendicular to front wall, creates 2 rooms)
+            const dividerX = position.x - (width * 0.08);
+            const mainWall = new THREE.Mesh(
+                new THREE.BoxGeometry(partThickness, partHeight, depth * 0.6),
+                partMat
+            );
+            mainWall.position.set(dividerX, wallY, position.z + depth * 0.05);
+            mainWall.userData.mapGenerated = true;
+            group.add(mainWall);
+            this.addColliderBox(
+                new THREE.Vector3(dividerX, wallY, mainWall.position.z),
+                partThickness + 0.2, partHeight + 0.2, depth * 0.6 + 0.2, false
+            );
+
+            // Secondary divider for larger buildings (creates 3 rooms)
+            if (width >= 8 && depth >= 10) {
+                const sideWall = new THREE.Mesh(
+                    new THREE.BoxGeometry(width * 0.3, partHeight, partThickness),
+                    partMat
+                );
+                sideWall.position.set(position.x + width * 0.15, wallY, position.z - depth * 0.25);
+                sideWall.userData.mapGenerated = true;
+                group.add(sideWall);
+                this.addColliderBox(
+                    new THREE.Vector3(sideWall.position.x, wallY, sideWall.position.z),
+                    width * 0.3 + 0.2, partHeight + 0.2, partThickness + 0.2, false
+                );
+            }
+
+            // Breakable wall (thin, between rooms - for dynamic repositioning)
+            if (width >= 8) {
+                const breakMat = new THREE.MeshStandardMaterial({
+                    color: 0xd4c4a8, roughness: 0.95, flatShading: true
+                });
+                const breakWall = new THREE.Mesh(
+                    new THREE.BoxGeometry(width * 0.25, partHeight * 0.6, partThickness),
+                    breakMat
+                );
+                breakWall.position.set(position.x + width * 0.22, wallY + 0.3, position.z);
+                breakWall.userData.mapGenerated = true;
+                breakWall.userData.breakable = true;
+                breakWall.userData.brokeSound = 'wood';
+                group.add(breakWall);
+                this.addColliderBox(
+                    new THREE.Vector3(breakWall.position.x, wallY + 0.3, breakWall.position.z),
+                    width * 0.25 + 0.2, partHeight * 0.6 + 0.2, partThickness + 0.2, false
+                );
+            }
+        }
+
+        // === STAIRCASE for 2-story buildings (central staircase) ===
+        if (!isMassiveHangar && height >= 5) {
+            const stairMat = new THREE.MeshStandardMaterial({
+                color: 0x8b7355, roughness: 0.8, metalness: 0.1, flatShading: true
+            });
+            const stairWidth = 2.0;
+            const stairDepth = depth * 0.35;
+            const numSteps = Math.max(10, Math.floor(height / 0.2));
+            const stepHeight = height / numSteps;
+
+            // Staircase platform (starts near center, goes up-right)
+            const stairStartX = position.x + width * 0.05;
+            const stairStartZ = position.z;
+
+            for (let i = 0; i < numSteps; i++) {
+                const step = new THREE.Mesh(
+                    new THREE.BoxGeometry(stairWidth, 0.12, 0.25),
+                    stairMat
+                );
+                step.position.set(
+                    stairStartX + i * 0.15,
+                    baseY + (i + 0.5) * stepHeight,
+                    stairStartZ + (i - numSteps * 0.3) * 0.25
+                );
+                step.userData.mapGenerated = true;
+                step.userData.walkableSurface = true;
+                group.add(step);
+            }
+
+            // Staircase railing (left side)
+            const railMat = new THREE.MeshStandardMaterial({
+                color: 0x6b5b4f, roughness: 0.85, metalness: 0.2, flatShading: true
+            });
+            for (let i = 0; i < numSteps; i += 2) {
+                const post = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.03, 0.03, 0.9, 6),
+                    railMat
+                );
+                post.position.set(
+                    stairStartX - stairWidth * 0.5,
+                    baseY + i * stepHeight + 0.55,
+                    stairStartZ + (i - numSteps * 0.3) * 0.25
+                );
+                post.userData.mapGenerated = true;
+                group.add(post);
+            }
+            // Top rail bar
+            const railBar = new THREE.Mesh(
+                new THREE.BoxGeometry(stairWidth * 0.6, 0.04, 0.04),
+                railMat
+            );
+            railBar.position.set(
+                stairStartX + numSteps * 0.075,
+                baseY + height - 0.4,
+                stairStartZ - numSteps * 0.05
+            );
+            railBar.userData.mapGenerated = true;
+            group.add(railBar);
+        }
+
+        // === ROOF LADDER ACCESS (climbable ladder on back wall) ===
+        if (!isMassiveHangar && height >= 3) {
+            const ladderMat = new THREE.MeshStandardMaterial({
+                color: 0x666666, roughness: 0.7, metalness: 0.4, flatShading: true
+            });
+            const ladderWidth = 0.6;
+            const ladderHeight = height + 0.5;
+            const rungSpacing = 0.45;
+            const numRungs = Math.floor(ladderHeight / rungSpacing);
+
+            // Side rails
+            for (const side of [-1, 1]) {
+                const rail = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.025, 0.025, ladderHeight, 6),
+                    ladderMat
+                );
+                rail.position.set(
+                    position.x + side * ladderWidth * 0.5,
+                    baseY + ladderHeight * 0.5,
+                    position.z + depth * 0.45
+                );
+                rail.userData.mapGenerated = true;
+                group.add(rail);
+            }
+
+            // Rungs
+            for (let i = 0; i < numRungs; i++) {
+                const rung = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.02, 0.02, ladderWidth, 6),
+                    ladderMat
+                );
+                rung.rotation.x = Math.PI / 2;
+                rung.position.set(
+                    position.x,
+                    baseY + (i + 0.5) * rungSpacing,
+                    position.z + depth * 0.45
+                );
+                rung.userData.mapGenerated = true;
+                rung.userData.climbable = true;
+                group.add(rung);
+            }
+
+            // Ladder platform at top
+            const platform = new THREE.Mesh(
+                new THREE.BoxGeometry(ladderWidth + 0.3, 0.08, 0.6),
+                new THREE.MeshStandardMaterial({ color: 0x777777, roughness: 0.8, metalness: 0.3, flatShading: true })
+            );
+            platform.position.set(position.x, baseY + height + 0.05, position.z + depth * 0.45);
+            platform.userData.walkableSurface = true;
+            platform.userData.mapGenerated = true;
+            group.add(platform);
+        }
+
+        // === MILITARY TACTICAL PROPS ===
+
+        // Sandbag stacks (near building entrances, solid cover 0.6m tall)
+        const sandMat = new THREE.MeshStandardMaterial({ color: 0x8b7d5b, roughness: 0.95, flatShading: true });
+        for (const side of [-1, 1]) {
+            const sandStack = new THREE.Mesh(
+                new THREE.BoxGeometry(0.8, 0.6, 0.35),
+                sandMat
+            );
+            sandStack.position.set(
+                position.x + side * (width * 0.45),
+                baseY + 0.3,
+                position.z + depth * 0.4
+            );
+            sandStack.userData.mapGenerated = true;
+            sandStack.userData.solidCover = true;
+            group.add(sandStack);
+            this.addColliderBox(sandStack.position.clone(), 0.85, 0.65, 0.4, false);
+        }
+
+        // Concrete barriers (along walls, partial cover 0.6m tall)
+        const concreteMat = new THREE.MeshStandardMaterial({ color: 0x9e9e9e, roughness: 0.85, flatShading: true });
+        const barrierCount = Math.max(1, Math.floor(Math.min(width, depth) / 4));
+        for (let i = 0; i < barrierCount; i++) {
+            const barrier = new THREE.Mesh(
+                new THREE.BoxGeometry(1.2, 0.6, 0.3),
+                concreteMat
+            );
+            const bx = position.x + (Math.random() - 0.5) * width * 0.5;
+            const bz = position.z + (Math.random() - 0.5) * depth * 0.3;
+            barrier.position.set(bx, baseY + 0.3, bz);
+            barrier.rotation.y = Math.random() * 0.3;
+            barrier.userData.mapGenerated = true;
+            barrier.userData.solidCover = true;
+            group.add(barrier);
+            this.addColliderBox(barrier.position.clone(), 1.25, 0.65, 0.35, false);
+        }
     }
 
     buildMassiveStructures() {
