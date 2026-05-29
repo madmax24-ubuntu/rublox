@@ -199,4 +199,16 @@ export class Environment {
     getWeatherType() {
         return this.currentWeather || this.weatherType || 'clear';
     }
+
+    setBiome(biomeName) {
+        if (this.biomeFogColors[biomeName]) {
+            this.currentBiome = biomeName;
+            // Adjust fog density per biome
+            if (biomeName === 'wastes') this.targetFog = 0.005;
+            else if (biomeName === 'crystal') this.targetFog = 0.004;
+            else if (biomeName === 'forest') this.targetFog = 0.0045;
+            else if (biomeName === 'citadel') this.targetFog = 0.0042;
+            else this.targetFog = 0.0028;
+        }
+    }
 }
