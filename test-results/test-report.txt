@@ -1,17 +1,16 @@
 ═══════════════════════════════════════════════════════
   Rubo Arena - Game Test Report
-  Generated: 2026-05-29T17:06:37.538Z
+  Generated: 2026-05-29T17:08:15.474Z
 ═══════════════════════════════════════════════════════
 
   URL: http://localhost:3001
-  Duration: 50.2s
+  Duration: 55.0s
   Verdict: SOME TESTS FAILED
 
 ───────────────────────────────────────────────────────
   Phase Results
 ───────────────────────────────────────────────────────
-  [FAIL] Phase 1: Start Screen
-        - canvas_check_failed
+  [PASS] Phase 1: Start Screen
   [PASS] Phase 2: Loading Phase
   [PASS] Phase 3: Pre-Game
   [PASS] Phase 4: Gameplay
@@ -19,10 +18,9 @@
         - typeErrors:2
 
 ───────────────────────────────────────────────────────
-  Errors Found (2)
+  Errors Found (1)
 ───────────────────────────────────────────────────────
-  1. [2026-05-29T17:05:48.973Z] Canvas check failed: no canvas element
-  2. [2026-05-29T17:06:36.415Z] Found 2 TypeError(s): [Game] initAsync error: TypeError: this.map.startGeneration is not a function | TypeError: this.map.startGeneration is not a function
+  1. [2026-05-29T17:08:14.364Z] Found 2 TypeError(s): [Game] initAsync error: TypeError: this.map.startGeneration is not a function | TypeError: this.map.startGeneration is not a function
     at Game.initializeGame (http://localhost:3001/main.js:421:18)
     at async Game.initAsync (http://localhost:3001/main.js:162:13)
     at async Game.startGame (http://localhost:3001/main.js:2579:13)
