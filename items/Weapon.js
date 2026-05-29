@@ -196,7 +196,7 @@ function createGunModel(style) {
         group.add(createPart(getGeom('smg_glow', () => new THREE.BoxGeometry(0.06, 0.06, 0.06)), blueGlow, 0.14, 0.13, 0));
     }
 
-    group.rotation.y = 0;
+    // Parts are positioned in model space (forward = +Z). No rotation needed.
     return group;
 }
 
