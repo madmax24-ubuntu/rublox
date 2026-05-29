@@ -528,6 +528,11 @@ async function phase3PreGame() {
     await captureTopViews();
     log('Top-down views captured');
 
+    // Capture building interior views
+    log('=== Capturing Building Interior Views ===');
+    await captureBuildingInteriors();
+    log('Interior views captured');
+
     recordPhaseResult('phase3', pass ? 'PASS' : 'FAIL', details);
     return pass;
 }
