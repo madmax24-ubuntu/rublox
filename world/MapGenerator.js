@@ -1090,7 +1090,7 @@ export class MapGenerator {
     constructor(scene) {
         this.scene = scene;
         this.arenaRadius = RADIUS;
-        this.spawnCourtyardRadius = 30;
+        this.spawnCourtyardRadius = 15; // Cornucopia radius
         this.waterLevel = 0;
         this.colliders = [];
         this.spawnPads = [];
