@@ -84,6 +84,11 @@ export class Environment {
         const skyColor = new THREE.Color(0x050510);
         const daySky = new THREE.Color(0x8fd3ff);
         const duskSky = new THREE.Color(0xffb574);
+
+        // Blend sky/fog color with current biome
+        const biomeColor = this.biomeFogColors[this.currentBiome] || this.biomeFogColors.default;
+        const biomeBlendAmount = 0.25; // How much biome color affects the sky
+        daySky.lerp(biomeColor, biomeBlendAmount);
         const sunHeight = Math.sin(angle);
         // Polyfill for THREE.MathUtils.smoothstep (removed in newer Three.js)
         const smoothstep = (value, edge0, edge1) => {
