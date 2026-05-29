@@ -2336,75 +2336,80 @@ export class MapGenerator {
             const furnColor = 0x6d4c41;
             const furnMat = new THREE.MeshStandardMaterial({ color: furnColor, roughness: 0.85, flatShading: true });
 
-            // Table (center cover)
+            // Table (center cover) — larger for visibility
             const tableTop = new THREE.Mesh(
-                new THREE.BoxGeometry(2.4, 0.12, 1.6),
+                new THREE.BoxGeometry(2.8, 0.15, 2.0),
                 furnMat
             );
-            tableTop.position.set(position.x, baseY + 0.82, position.z);
+            tableTop.position.set(position.x, baseY + 0.9, position.z);
             tableTop.userData.mapGenerated = true;
+            tableTop.userData.interiorProp = true;
             group.add(tableTop);
-            this.addColliderBox(new THREE.Vector3(tableTop.position.x, baseY + 0.82, tableTop.position.z), 2.4, 0.25, 1.6, true);
+            this.addColliderBox(new THREE.Vector3(tableTop.position.x, baseY + 0.9, tableTop.position.z), 2.8, 0.3, 2.0, false);
 
             // Table legs
             const legMat = new THREE.MeshStandardMaterial({ color: 0x5a3e2b, roughness: 0.85, flatShading: true });
-            for (const [lx, lz] of [[-1, -0.6], [1, -0.6], [-1, 0.6], [1, 0.6]]) {
+            for (const [lx, lz] of [[-1, -0.8], [1, -0.8], [-1, 0.8], [1, 0.8]]) {
                 const leg = new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.06, 0.06, 0.82, 6),
+                    new THREE.CylinderGeometry(0.08, 0.08, 0.9, 6),
                     legMat
                 );
-                leg.position.set(position.x + lx * 0.8, baseY + 0.41, position.z + lz * 0.8);
+                leg.position.set(position.x + lx * 1.0, baseY + 0.45, position.z + lz * 0.9);
                 leg.userData.mapGenerated = true;
+                leg.userData.interiorProp = true;
                 group.add(leg);
             }
 
-            // Wooden crates (random scatter, solid cover)
+            // Wooden crates (larger, more visible)
             const crateMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.88, flatShading: true });
-            const crateCount = Math.max(1, Math.floor(Math.min(width, depth) / 4));
+            const crateCount = Math.max(2, Math.floor(Math.min(width, depth) / 3));
             for (let i = 0; i < crateCount; i++) {
-                const s = 0.5 + Math.random() * 0.5; // 0.5-1.0
+                const s = 0.7 + Math.random() * 0.6; // 0.7-1.3
                 const crate = new THREE.Mesh(
-                    new THREE.BoxGeometry(s * 0.8, s * 0.7, s * 0.6),
+                    new THREE.BoxGeometry(s, s * 0.8, s * 0.7),
                     crateMat
                 );
-                const cx = position.x + (Math.random() - 0.5) * (width * 0.6);
-                const cz = position.z + (Math.random() - 0.5) * (depth * 0.6);
-                crate.position.set(cx, baseY + s * 0.35, cz);
+                const cx = position.x + (Math.random() - 0.5) * (width * 0.5);
+                const cz = position.z + (Math.random() - 0.5) * (depth * 0.5);
+                crate.position.set(cx, baseY + s * 0.4, cz);
                 crate.rotation.y = Math.random() * Math.PI;
                 crate.userData.mapGenerated = true;
+                crate.userData.interiorProp = true;
                 group.add(crate);
-                this.addColliderBox(crate.position.clone(), s * 0.85, s * 0.75, s * 0.65, false);
+                this.addColliderBox(crate.position.clone(), s * 1.1, s * 0.9, s * 0.8, false);
             }
 
-            // Barrel cluster (2-3 barrels)
+            // Barrel cluster (2 barrels, larger)
             const barrelMat = new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.9, flatShading: true });
             for (let i = 0; i < 2; i++) {
                 const barrel = new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.35, 0.4, 1.1, 8),
+                    new THREE.CylinderGeometry(0.4, 0.45, 1.3, 8),
                     barrelMat
                 );
-                const bx = position.x + (width / 2) * 0.6 * (i === 0 ? 1 : -1);
-                const bz = position.z + (depth / 2) * 0.5;
-                barrel.position.set(bx, baseY + 0.55, bz);
+                const bx = position.x + (width / 2) * 0.4 * (i === 0 ? 1 : -1);
+                const bz = position.z + (depth / 2) * 0.3;
+                barrel.position.set(bx, baseY + 0.65, bz);
                 barrel.rotation.z = (Math.random() - 0.5) * 0.2;
                 barrel.userData.mapGenerated = true;
+                barrel.userData.interiorProp = true;
                 group.add(barrel);
-                this.addColliderBox(barrel.position.clone(), 0.45, 1.1, 0.45, false);
+                this.addColliderBox(barrel.position.clone(), 0.5, 1.3, 0.5, false);
             }
         } else {
-            // Hangar: ammo boxes + crate stacks instead of tables
+            // Hangar: ammo boxes + crate stacks
             const ammoMat = new THREE.MeshStandardMaterial({ color: 0x556b2f, roughness: 0.85, flatShading: true });
-            for (let i = 0; i < 4; i++) {
+            for (let i = 0; i < 6; i++) {
                 const box = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.6, 0.5, 0.4),
+                    new THREE.BoxGeometry(0.8, 0.6, 0.5),
                     ammoMat
                 );
-                const bx = position.x + (Math.random() - 0.5) * width * 0.7;
-                const bz = position.z + (Math.random() - 0.5) * depth * 0.5;
-                box.position.set(bx, baseY + 0.25, bz);
+                const bx = position.x + (Math.random() - 0.5) * width * 0.6;
+                const bz = position.z + (Math.random() - 0.5) * depth * 0.4;
+                box.position.set(bx, baseY + 0.3, bz);
                 box.userData.mapGenerated = true;
+                box.userData.interiorProp = true;
                 group.add(box);
-                this.addColliderBox(box.position.clone(), 0.65, 0.55, 0.45, false);
+                this.addColliderBox(box.position.clone(), 0.85, 0.65, 0.55, false);
             }
         }
 
