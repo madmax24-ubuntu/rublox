@@ -809,10 +809,10 @@ async function main() {
         addError(`PageError: ${err.message}`);
     });
 
-    // Enable test mode before loading game
-    await page.evaluate(() => {
-        localStorage.setItem('testMode', 'true');
-        window.setTestMode(true);
+    // Enable test mode before loading game (runs before any page scripts)
+    await page.addInitScript(() => {
+        window['testModeEnabled'] = true;
+        window['testMode'] = true;
     });
 
     // Run phases sequentially
