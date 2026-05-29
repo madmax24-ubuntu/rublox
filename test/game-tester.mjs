@@ -74,8 +74,8 @@ async function countInteriorObjects() {
     try {
         return await page.evaluate(() => {
             const g = window.getGameInstance?.();
-            if (!g || !g.scene) return { total: 0, meshes: 0, groups: 0, box: 0, cylinder: 0 };
-            let total = 0, meshes = 0, groups = 0, box = 0, cylinder = 0;
+            if (!g || !g.scene) return { total: 0, meshes: 0, groups: 0, box: 0, cylinder: 0, interiorProp: 0, redLight: 0 };
+            let total = 0, meshes = 0, groups = 0, box = 0, cylinder = 0, interiorProp = 0, redLight = 0;
             g.scene.traverse((obj) => {
                 if (obj.userData?.mapGenerated) {
                     total++;
@@ -83,12 +83,14 @@ async function countInteriorObjects() {
                     if (obj.type === 'Group') groups++;
                     if (obj.geometry?.type === 'BoxGeometry') box++;
                     if (obj.geometry?.type === 'CylinderGeometry') cylinder++;
+                    if (obj.userData?.interiorProp) interiorProp++;
+                    if (obj.type === 'PointLight' && obj.color?.r > 0.9 && obj.color?.g < 0.5) redLight++;
                 }
             });
-            return { total, meshes, groups, box, cylinder };
+            return { total, meshes, groups, box, cylinder, interiorProp, redLight };
         });
     } catch {
-        return { total: 0, meshes: 0, groups: 0, box: 0, cylinder: 0 };
+        return { total: 0, meshes: 0, groups: 0, box: 0, cylinder: 0, interiorProp: 0, redLight: 0 };
     }
 }
 
