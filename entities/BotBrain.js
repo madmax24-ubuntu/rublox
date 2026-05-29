@@ -303,6 +303,12 @@ export class BotBrain {
             bot.patrolTarget = this.pickSpreadTarget(bot, 24, 120);
         }
         if (bot.patrolTarget) {
+            // Cautious bots occasionally pause to scan for threats
+            if (this.cautious && Math.random() < 0.12) {
+                bot.physics.velocity.x *= 0.3;
+                bot.physics.velocity.z *= 0.3;
+                return;
+            }
             this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 0.95);
         }
     }
