@@ -454,6 +454,10 @@ async function phase2Loading() {
         log(`Post-load: loadingVisible=${postLoad.loadingVisible}`);
     }
 
+    // Count interior objects (tables, crates, barrels, stairs)
+    const interiorCounts = await countInteriorObjects();
+    log(`Interior objects: total=${interiorCounts.total} meshes=${interiorCounts.meshes} boxes=${interiorCounts.box} cylinders=${interiorCounts.cylinder}`);
+
     recordPhaseResult('phase2', pass ? 'PASS' : 'FAIL', details);
     return pass;
 }
