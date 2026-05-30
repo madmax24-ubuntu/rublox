@@ -2860,11 +2860,16 @@ window.addEventListener('DOMContentLoaded', () => {
             frameCount++;
             frameTime += (performance.now() - lastFrame);
             lastFrame = performance.now();
-            
+
             if (frameTime >= 1000) {
                 document.getElementById('dbgFps').textContent = Math.round(frameCount * 1000 / frameTime);
                 frameCount = 0;
                 frameTime = 0;
+            }
+
+            // Update DebugOverlay (bounding boxes, sector info)
+            if (window.debugOverlay) {
+                window.debugOverlay.update(delta, game.player?.position || null);
             }
 
             // Test camera mode - automatically switch between cameras
