@@ -2783,6 +2783,13 @@ window.addEventListener('DOMContentLoaded', () => {
 
         window.addEventListener('keyup', (e) => { keysDown[e.code] = false; });
 
+        // Initialize DebugOverlay for bounding boxes and sector visualization
+        if (game.map && game.camera) {
+            window.debugOverlay = new DebugOverlay(game.scene, game.map, game.renderer, game.camera, null);
+            window.debugOverlay.enable();
+            console.log('📦 DebugOverlay: bounding boxes + sectors enabled');
+        }
+
         // Mouse wheel for zoom
         window.addEventListener('wheel', (e) => {
             if (!game.camera || !game.scene) return;
