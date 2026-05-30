@@ -700,7 +700,7 @@ async function phase4Gameplay() {
         // Check game still running
         const g = await checkGameInstance();
         if (g.exists) {
-            log(`Gameplay check ${i + 1}: camera=${g.cameraPos}, paused=${g.paused}`);
+            log(`Gameplay check ${i + 1}: player=${g.playerPos}, paused=${g.paused}`);
         } else {
             addError('Game instance unavailable during gameplay');
             details.push('game_instance_gone');
