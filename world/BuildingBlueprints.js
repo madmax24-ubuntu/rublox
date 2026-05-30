@@ -7,18 +7,18 @@ export const BUILDING_TEMPLATES = [
     // Forest: log_cabin
     {
         type: "log_cabin", biome: ["forest"],
-        width: 4, depth: 4, height: 3, floors: 1,
-        rooms: [{ x: 0, z: 0, w: 3.6, d: 3.6, type: "main" }],
-        windows: [{ dx: 0, dz: 2.0, width: 1.0, height: 0.8, side: "front" },
-                  { dx: 0, dz: -2.0, width: 1.0, height: 0.8, side: "back" }],
-        doors: [{ dx: 0, dz: 2.0, width: 1.2 }],
+        width: 6, depth: 6, height: 4.5, floors: 1.5,
+        rooms: [{ x: 0, z: 0, w: 5.4, d: 5.4, type: "main" }],
+        windows: [{ dx: 0, dz: 3.0, width: 1.5, height: 1.2, side: "front" },
+                  { dx: 0, dz: -3.0, width: 1.5, height: 1.2, side: "back" }],
+        doors: [{ dx: 0, dz: 3.0, width: 1.8 }],
         props: [
-            { type: "table", dx: 0, dz: 0, w: 1.6, d: 1.2, h: 0.75 },
-            { type: "crate", dx: 1.2, dz: 1.2, w: 0.5, d: 0.5, h: 0.5 },
-            { type: "crate", dx: -1.2, dz: 1.2, w: 0.5, d: 0.5, h: 0.5 },
-            { type: "barrel", dx: 1.5, dz: 0, w: 0.4, d: 0.4, h: 0.8 },
-            { type: "sandbag", dx: 0.8, dz: 1.7, w: 0.8, d: 0.4, h: 0.6 },
-            { type: "sandbag", dx: -0.8, dz: 1.7, w: 0.8, d: 0.4, h: 0.6 }
+            { type: "table", dx: 0, dz: 0, w: 2.4, d: 1.8, h: 1.125 },
+            { type: "crate", dx: 1.8, dz: 1.8, w: 0.75, d: 0.75, h: 0.75 },
+            { type: "crate", dx: -1.8, dz: 1.8, w: 0.75, d: 0.75, h: 0.75 },
+            { type: "barrel", dx: 2.25, dz: 0, w: 0.6, d: 0.6, h: 1.2 },
+            { type: "sandbag", dx: 1.2, dz: 2.55, w: 1.2, d: 0.6, h: 0.9 },
+            { type: "sandbag", dx: -1.2, dz: 2.55, w: 1.2, d: 0.6, h: 0.9 }
         ],
         lootFloor: { ground: 3, first: 0, roof: 0 },
         wallColor: 0x5d4037, roofColor: 0x3e2723,
