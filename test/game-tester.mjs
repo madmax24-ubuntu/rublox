@@ -646,11 +646,11 @@ async function phase4Gameplay() {
         await page.keyboard.up(' ');
         await page.waitForTimeout(500);
 
-        const camAfterJump = await page.evaluate(() => {
+        const jumpPos = await page.evaluate(() => {
             const g = window.getGameInstance();
-            return g?.camera ? { y: g.camera.position.y.toFixed(2) } : null;
+            return g?.player?.position ? { y: g.player.position.y.toFixed(2) } : null;
         });
-        log(`Jump tested, camera Y: ${camAfterJump ? camAfterJump.y : 'null'}`);
+        log(`Jump tested, player Y: ${jumpPos ? jumpPos.y : 'null'}`);
         log('Jump (space) tested');
     } catch (e) {
         addError(`Jump test error: ${e.message}`);
