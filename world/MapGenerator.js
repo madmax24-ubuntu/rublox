@@ -696,16 +696,22 @@ export class MapGenerator {
         const padMat = new THREE.MeshStandardMaterial({ color: 0xb0bec5, roughness: 0.8, flatShading: true });
         const padGeo = new THREE.BoxGeometry(2.2, 0.3, 2.2);
         const pads = [];
-        const radius = 11;
 
-        // 64 pads in circle around map center (0, 0)
-        for (let i = 0; i < 64; i++) {
-            const angle = (i / 64) * Math.PI * 2;
-            const wx = Math.round(Math.cos(angle) * radius);
-            const wz = Math.round(Math.sin(angle) * radius);
-            const floorY = this.getSurfaceHeightAt(wx, wz);
+        // Distribute spawn pads across sectors (~12 pads per sector)
+        const padsPerSector = 12;
+        for (const sector of this.voronoi.sectors) {
+            const cx = sector.center.x;
+            const cz = sector.center.z;
+            const radius = 15; // ~15m radius per sector
 
-            pads.push({ x: wx, z: wz });
+            for (let i = 0; i < padsPerSector; i++) {
+                const angle = (i / padsPerSector) * Math.PI * 2;
+                const r = radius * Math.sqrt(Math.random());
+                const wx = Math.round(cx + Math.cos(angle) * r);
+                const wz = Math.round(cz + Math.sin(angle) * r);
+
+                pads.push({ x: wx, z: wz });
+            }
         }
 
         // Instanced mesh for pads
