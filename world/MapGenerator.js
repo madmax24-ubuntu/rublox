@@ -3,6 +3,7 @@ import { VoronoiSectors } from "./VoronoiSectors.js";
 import { getTemplatesForBiome, getTemplateByType } from "./BuildingBlueprints.js";
 import { InteriorGenerator } from "./InteriorGenerator.js";
 import { AABBGrid } from "./AABBGrid.js";
+import { DebugOverlay } from "./DebugOverlay.js";
 
 // ============================================================================
 // NEW MAP GENERATOR — Voronoi Sectors + Poisson Disk Building Placement
