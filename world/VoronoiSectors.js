@@ -168,7 +168,8 @@ export class VoronoiSectors {
                 minX: bounds.minX,
                 minZ: bounds.minZ,
                 maxX: bounds.maxX,
-                maxZ: bounds.maxZ
+                maxZ: bounds.maxZ,
+                radius: bounds.radius
             });
         }
 
