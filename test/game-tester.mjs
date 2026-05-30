@@ -586,9 +586,10 @@ async function phase4Gameplay() {
 
         const posW = await page.evaluate(() => {
             const g = window.getGameInstance();
-            return g?.camera ? { x: g.camera.position.x.toFixed(2), y: g.camera.position.y.toFixed(2), z: g.camera.position.z.toFixed(2) } : null;
+            const p = g?.player?.position;
+            return p ? { x: p.x.toFixed(2), y: p.y.toFixed(2), z: p.z.toFixed(2) } : null;
         });
-        log(`After W (2s): camera=${posW ? JSON.stringify(posW) : 'null'}`);
+        log(`After W (2s): player=${posW ? JSON.stringify(posW) : 'null'}`);
 
         // Hold A for 1s
         await page.keyboard.down('a');
