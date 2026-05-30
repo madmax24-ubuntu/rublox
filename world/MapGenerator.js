@@ -694,17 +694,14 @@ export class MapGenerator {
         const pads = [];
         const radius = 11;
 
-        // 64 pads in circle
+        // 64 pads in circle around map center (0, 0)
         for (let i = 0; i < 64; i++) {
             const angle = (i / 64) * Math.PI * 2;
-            let px = Math.round(Math.cos(angle) * radius);
-            let pz = Math.round(Math.sin(angle) * radius);
+            const wx = Math.round(Math.cos(angle) * radius);
+            const wz = Math.round(Math.sin(angle) * radius);
+            const floorY = this.getSurfaceHeightAt(wx, wz);
 
-            // Check if walkable
-            const world = this.toWorld(px, pz);
-            const floorY = this.getSurfaceHeightAt(world.x, world.z);
-
-            pads.push({ x: world.x, z: world.z });
+            pads.push({ x: wx, z: wz });
         }
 
         // Instanced mesh for pads
