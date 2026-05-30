@@ -1,31 +1,31 @@
 ═══════════════════════════════════════════════════════
   Rubo Arena - Game Test Report
-  Generated: 2026-05-30T07:26:03.700Z
+  Generated: 2026-05-30T10:18:46.544Z
 ═══════════════════════════════════════════════════════
 
   URL: http://localhost:3001
-  Duration: 570.4s
-  Verdict: SOME TESTS FAILED
+  Duration: 559.1s
+  Verdict: ALL TESTS PASSED
 
 ───────────────────────────────────────────────────────
   Phase Results
 ───────────────────────────────────────────────────────
   [PASS] Phase 1: Start Screen
   [PASS] Phase 2: Loading Phase
-  [FAIL] Phase 3: Pre-Game
-        - player_count_mismatch:50
+  [PASS] Phase 3: Pre-Game
   [PASS] Phase 4: Gameplay
   [PASS] Phase 5: Error Detection
 
 ───────────────────────────────────────────────────────
-  Errors Found (1)
+  Errors Found (0)
 ───────────────────────────────────────────────────────
-  1. [2026-05-30T07:18:07.125Z] Player count is 50, expected 32
+  No errors detected
 
 ───────────────────────────────────────────────────────
-  Screenshots (19)
+  Screenshots (20)
 ───────────────────────────────────────────────────────
   p1_after_start_click: C:\Users\maksk\Desktop\rublox\test-results\screenshots\p1_after_start_click.png
+  p1_after_2s: C:\Users\maksk\Desktop\rublox\test-results\screenshots\p1_after_2s.png
   p2_loading_at_3s: C:\Users\maksk\Desktop\rublox\test-results\screenshots\p2_loading_at_3s.png
   p2_loading_complete: C:\Users\maksk\Desktop\rublox\test-results\screenshots\p2_loading_complete.png
   p3_pre_game_hud: C:\Users\maksk\Desktop\rublox\test-results\screenshots\p3_pre_game_hud.png
