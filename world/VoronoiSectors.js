@@ -155,7 +155,7 @@ export class VoronoiSectors {
                 id: def.id,
                 name: def.name,
                 biome: def.biome,
-                center: new THREE.Vector2(seed.x, seed.z),
+                center: { x: seed.x, z: seed.z },
                 seedPoint: seed,
                 bounds,
                 terrainColor: def.terrainColor,
