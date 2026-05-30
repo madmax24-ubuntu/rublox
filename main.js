@@ -2787,6 +2787,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (game.map && game.camera) {
             window.debugOverlay = new DebugOverlay(game.scene, game.map, game.renderer, game.camera, null);
             window.debugOverlay.enable();
+            window.debugOverlay.setVoronoi(game.map.voronoi);
             console.log('📦 DebugOverlay: bounding boxes + sectors enabled');
         }
 
