@@ -256,12 +256,15 @@ async function checkGameInstance() {
         return await page.evaluate(() => {
             const g = window.getGameInstance();
             if (!g) return { exists: false };
+            const p = g.player?.position;
+            const pos = p ? `${p.x.toFixed(1)},${p.y.toFixed(1)},${p.z.toFixed(1)}` : 'unknown';
             return {
                 exists: true,
                 paused: g.isPaused ?? 'unknown',
                 gameStarted: g.gameStarted ?? 'unknown',
                 sceneVisible: g.scene ? (g.scene.children.length > 0) : false,
                 cameraPos: g.camera ? `${g.camera.position.x.toFixed(1)},${g.camera.position.y.toFixed(1)},${g.camera.position.z.toFixed(1)}` : 'unknown',
+                playerPos: pos,
                 playerCount: g.players ? g.players.length : (g.playerCount ?? 'unknown'),
             };
         });
