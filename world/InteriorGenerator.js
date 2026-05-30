@@ -6,15 +6,17 @@ export class InteriorGenerator {
     // Generate all interior elements for a building
     static generate(buildingData, scene, addCollider) {
         const { type, position, width, depth, height, floors, template } = buildingData;
-        const baseY = position.y || 0; // Already on ground
+        const baseY = position.y || 0;
         const elements = { colliders: [], meshes: [], lights: [] };
 
-        // Partition walls
-        const walls = this.generatePartitionWalls(buildingData, scene, addCollider);
-        elements.colliders.push(...walls.colliders);
-        elements.meshes.push(...walls.meshes);
+        // Partition walls — only 2-story buildings
+        if (template && template.floors >= 2) {
+            const walls = this.generatePartitionWalls(buildingData, scene, addCollider);
+            elements.colliders.push(...walls.colliders);
+            elements.meshes.push(...walls.meshes);
+        }
 
-        // Furniture
+        // Furniture — reduced: only keep meaningful props (2-3 per building)
         const furniture = this.generateFurniture(buildingData, scene, addCollider);
         elements.colliders.push(...furniture.colliders);
         elements.meshes.push(...furniture.meshes);
@@ -26,27 +28,6 @@ export class InteriorGenerator {
             elements.meshes.push(...stairs.meshes);
         }
 
-        // Mezzanine for large buildings
-        if (template && template.hasMezzanine) {
-            const mezzanine = this.generateMezzanine(buildingData, scene, addCollider);
-            elements.colliders.push(...mezzanine.colliders);
-            elements.meshes.push(...mezzanine.meshes);
-        }
-
-        // Roof ladder
-        if (template && template.hasLadder) {
-            const ladder = this.generateRoofLadder(buildingData, scene, addCollider);
-            elements.colliders.push(...ladder.colliders);
-            elements.meshes.push(...ladder.meshes);
-        }
-
-        // Roof platform (watchtower, silo)
-        if (template && template.hasRoofPlatform) {
-            const platform = this.generateRoofPlatform(buildingData, scene, addCollider);
-            elements.colliders.push(...platform.colliders);
-            elements.meshes.push(...platform.meshes);
-        }
-
         // Lighting
         const lights = this.generateLighting(buildingData, scene);
         elements.lights.push(...lights);
@@ -54,9 +35,9 @@ export class InteriorGenerator {
         return elements;
     }
 
-    // Generate interior partition walls
+    // Generate interior partition walls — only for large 2-story buildings
     static generatePartitionWalls(data, scene, addCollider) {
-        const { width, depth, template } = data;
+        const { width, depth } = data;
         const colliders = [];
         const meshes = [];
         const wallHeight = 2.6;
@@ -64,42 +45,24 @@ export class InteriorGenerator {
         const halfW = width / 2;
         const halfD = depth / 2;
 
-        // Main divider wall (with door gap)
-        if (width >= 6 && depth >= 6) {
+        // Main divider wall (with door gap) — only for large buildings
+        if (width >= 8 && depth >= 6) {
             const mainZ = 0;
-            const gapWidth = 1.2;
-            const halfGap = gapWidth / 2;
 
             // Left section
-            const lw1 = halfW - halfGap;
+            const lw1 = halfW - 0.6;
             if (lw1 > 0.5) {
                 this._addWall(data, scene, addCollider, colliders, meshes,
-                    { x: 0, z: mainZ },
+                    { x: -0.5, z: mainZ },
                     lw1 * 2, wallHeight, wallThickness
                 );
             }
-            // Right section
-            const lw2 = halfGap;
-            if (lw2 > 0.3) {
+            // Right section (gap for door)
+            const lw2 = halfW - 0.6;
+            if (lw2 > 0.5) {
                 this._addWall(data, scene, addCollider, colliders, meshes,
-                    { x: halfW - halfGap - 0.5, z: mainZ },
-                    0.5, wallHeight, wallThickness
-                );
-                this._addWall(data, scene, addCollider, colliders, meshes,
-                    { x: -halfW + halfGap + 0.5, z: mainZ },
-                    0.5, wallHeight, wallThickness
-                );
-            }
-        }
-
-        // Secondary divider for large buildings (width >= 10 or depth >= 12)
-        if (width >= 10 || depth >= 12) {
-            const secZ = -halfD * 0.3;
-            const secW = width * 0.5;
-            if (secW > 3) {
-                this._addWall(data, scene, addCollider, colliders, meshes,
-                    { x: width * 0.15, z: secZ },
-                    secW, wallHeight, wallThickness, true
+                    { x: 0.5, z: mainZ },
+                    lw2 * 2, wallHeight, wallThickness
                 );
             }
         }
@@ -108,7 +71,7 @@ export class InteriorGenerator {
     }
 
     static _addWall(data, scene, addCollider, colliders, meshes,
-        center, width, height, depth, breakable = false) {
+        center, width, height, depth) {
         const geo = new THREE.BoxGeometry(width, height, depth);
         const color = data.template?.wallColor || 0xbcaaa4;
         const mat = new THREE.MeshStandardMaterial({
@@ -121,14 +84,9 @@ export class InteriorGenerator {
         meshes.push(mesh);
 
         addCollider(center, width, height, depth, false);
-
-        // Mark some walls as breakable
-        if (breakable) {
-            mesh.userData.breakable = true;
-        }
     }
 
-    // Generate furniture from template props
+    // Generate furniture — only keep meaningful props, filter out tiny ones
     static generateFurniture(data, scene, addCollider) {
         const { width, depth, template, position } = data;
         const colliders = [];
@@ -136,7 +94,17 @@ export class InteriorGenerator {
 
         if (!template?.props) return { colliders, meshes };
 
-        for (const prop of template.props) {
+        // Filter: remove tiny crates/boxes (< 0.6m), keep only meaningful furniture
+        const meaningfulProps = template.props.filter(p => {
+            if (p.type === 'crate' && (p.w || 0.5) < 0.6) return false;
+            if (p.type === 'ammo_box' && (p.w || 0.5) < 0.6) return false;
+            return true;
+        });
+
+        // Limit to max 3 furniture items per building
+        const props = meaningfulProps.slice(0, 3);
+
+        for (const prop of props) {
             const px = position.x + prop.dx;
             const pz = position.z + prop.dz;
             const py = this._getSurfaceHeight(position, prop.dx, prop.dz) || (position.y || 0);
@@ -201,7 +169,7 @@ export class InteriorGenerator {
     }
 
     static _addCrate(data, scene, addCollider, colliders, meshes, x, y, z, prop) {
-        const size = prop.w || 0.5;
+        const size = prop.w || 0.75;
         const geo = new THREE.BoxGeometry(size, size, size);
         const mat = new THREE.MeshStandardMaterial({ color: 0xa1887f, roughness: 0.9, flatShading: true });
         const mesh = new THREE.Mesh(geo, mat);
@@ -213,9 +181,9 @@ export class InteriorGenerator {
     }
 
     static _addAmmoBox(data, scene, addCollider, colliders, meshes, x, y, z, prop) {
-        const w = prop.w || 0.5;
-        const d = prop.d || 0.7;
-        const h = prop.h || 0.5;
+        const w = prop.w || 0.7;
+        const d = prop.d || 0.9;
+        const h = prop.h || 0.75;
         const geo = new THREE.BoxGeometry(w, h, d);
         const mat = new THREE.MeshStandardMaterial({ color: 0x6b4226, roughness: 0.85 });
         const mesh = new THREE.Mesh(geo, mat);
@@ -227,8 +195,8 @@ export class InteriorGenerator {
     }
 
     static _addBarrel(data, scene, addCollider, colliders, meshes, x, y, z, prop) {
-        const radius = prop.w || 0.4;
-        const height = prop.h || 0.8;
+        const radius = prop.w || 0.6;
+        const height = prop.h || 1.2;
         const geo = new THREE.CylinderGeometry(radius, radius, height, 12);
         const mat = new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.9 });
         const mesh = new THREE.Mesh(geo, mat);
@@ -240,9 +208,9 @@ export class InteriorGenerator {
     }
 
     static _addSandbag(data, scene, addCollider, colliders, meshes, x, y, z, prop) {
-        const w = prop.w || 0.8;
-        const d = prop.d || 0.4;
-        const h = prop.h || 0.6;
+        const w = prop.w || 1.2;
+        const d = prop.d || 0.6;
+        const h = prop.h || 0.9;
         const geo = new THREE.BoxGeometry(w, h, d);
         const mat = new THREE.MeshStandardMaterial({ color: 0x8d7b63, roughness: 0.95 });
         const mesh = new THREE.Mesh(geo, mat);
@@ -274,10 +242,10 @@ export class InteriorGenerator {
         const meshes = [];
         const baseY = position.y || 0;
         const stairWidth = 2;
-        const totalRise = 2.8; // Floor height minus ceiling
-        const stepCount = 14;
+        const totalRise = 2.8;
+        const stepCount = 10; // Reduced from 14
         const stepRise = totalRise / stepCount;
-        const stepDepth = 0.25;
+        const stepDepth = 0.28;
 
         // Central staircase position
         const startX = position.x;
@@ -309,112 +277,6 @@ export class InteriorGenerator {
             scene.add(rail);
             meshes.push(rail);
         }
-
-        return { colliders, meshes };
-    }
-
-    // Generate mezzanine floor for large buildings (warehouses, hangars)
-    static generateMezzanine(data, scene, addCollider) {
-        const { width, depth, position } = data;
-        const colliders = [];
-        const meshes = [];
-        const baseY = position.y || 0;
-        const mezzY = 3.5; // Mezzanine height
-        const pillarSize = 0.35;
-
-        // Partial mezzanine floor (only covers half the building)
-        const mezzW = width * 0.5;
-        const mezzD = depth * 0.5;
-
-        // Floor
-        const floorGeo = new THREE.BoxGeometry(mezzW, 0.2, mezzD);
-        const floorMat = new THREE.MeshStandardMaterial({ color: 0x9e9e9e, roughness: 0.8 });
-        const floor = new THREE.Mesh(floorGeo, floorMat);
-        floor.position.set(position.x + width * 0.25, baseY + mezzY, position.z);
-        floor.userData.mapGenerated = true;
-        floor.userData.walkableSurface = true;
-        scene.add(floor);
-        meshes.push(floor);
-
-        addCollider(new THREE.Vector3(position.x + width * 0.25, baseY + mezzY, position.z), mezzW + 0.3, 0.3, mezzD + 0.3, true);
-
-        // Support pillars
-        const pillarGeo = new THREE.BoxGeometry(pillarSize, mezzY, pillarSize);
-        const pillarMat = new THREE.MeshStandardMaterial({ color: 0x616161, roughness: 0.85 });
-        const pillarPositions = [
-            [position.x + width * 0.45, baseY + mezzY / 2, position.z - mezzD * 0.4],
-            [position.x + width * 0.45, baseY + mezzY / 2, position.z + mezzD * 0.4],
-            [position.x - width * 0.1, baseY + mezzY / 2, position.z - mezzD * 0.4],
-            [position.x - width * 0.1, baseY + mezzY / 2, position.z + mezzD * 0.4]
-        ];
-        for (const pp of pillarPositions) {
-            const pillar = new THREE.Mesh(pillarGeo, pillarMat);
-            pillar.position.set(pp[0], pp[1], pp[2]);
-            pillar.userData.mapGenerated = true;
-            scene.add(pillar);
-            meshes.push(pillar);
-            addCollider(new THREE.Vector3(pp[0], pp[1], pp[2]), pillarSize, mezzY, pillarSize, false);
-        }
-
-        return { colliders, meshes };
-    }
-
-    // Generate ladder for roof access
-    static generateRoofLadder(data, scene, addCollider) {
-        const { width, depth, position, height } = data;
-        const colliders = [];
-        const meshes = [];
-        const baseY = position.y || 0;
-        const ladderHeight = height + 0.5;
-        const side = 1; // Against the side wall
-        const ladderX = position.x + side * (width / 2 + 0.1);
-
-        // Vertical rails
-        const railMat = new THREE.MeshStandardMaterial({ color: 0x757575, metalness: 0.6, roughness: 0.5 });
-        const railGeo = new THREE.CylinderGeometry(0.025, 0.025, ladderHeight, 6);
-
-        for (let offset = -0.3; offset <= 0.3; offset += 0.6) {
-            const rail = new THREE.Mesh(railGeo, railMat);
-            rail.position.set(ladderX, baseY + ladderHeight / 2, position.z + offset);
-            rail.userData.mapGenerated = true;
-            scene.add(rail);
-            meshes.push(rail);
-        }
-
-        // Rungs
-        const rungCount = Math.floor(ladderHeight / 0.3);
-        const rungGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.6, 6);
-        for (let i = 0; i < rungCount; i++) {
-            const rung = new THREE.Mesh(rungGeo, railMat);
-            rung.rotation.x = Math.PI / 2;
-            rung.position.set(ladderX, baseY + 0.3 + (ladderHeight / rungCount) * i, position.z);
-            rung.userData.mapGenerated = true;
-            scene.add(rung);
-            meshes.push(rung);
-        }
-
-        return { colliders, meshes };
-    }
-
-    // Generate roof platform (for watchtower, silo)
-    static generateRoofPlatform(data, scene, addCollider) {
-        const { width, position, height } = data;
-        const colliders = [];
-        const meshes = [];
-        const baseY = position.y || 0;
-        const platformY = baseY + height;
-
-        // Platform floor
-        const platGeo = new THREE.CylinderGeometry(width / 2 + 0.5, width / 2 + 0.5, 0.15, 12);
-        const platMat = new THREE.MeshStandardMaterial({ color: 0x757575, roughness: 0.8 });
-        const platform = new THREE.Mesh(platGeo, platMat);
-        platform.position.set(position.x, platformY, position.z);
-        platform.userData.mapGenerated = true;
-        platform.userData.walkableSurface = true;
-        scene.add(platform);
-        meshes.push(platform);
-
-        addCollider(new THREE.Vector3(position.x, platformY, position.z), width + 1, 0.3, width + 1, true);
 
         return { colliders, meshes };
     }
