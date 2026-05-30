@@ -745,7 +745,7 @@ export class MapGenerator {
     addColliderBox(center, width, height, depth, walkable = false, enabled = true, dynamic = false, collisionBounds = 'BOX') {
         if (!center || !Number.isFinite(center.x) || !Number.isFinite(center.y) || !Number.isFinite(center.z)) return null;
         if (!Number.isFinite(width) || !Number.isFinite(height) || !Number.isFinite(depth)) return null;
-        if (width < 2 || height < 2 || depth < 2) return null;
+        if (width < 0.3 || height < 0.3 || depth < 0.3) return null;
         const min = new THREE.Vector3(
             center.x - width / 2,
             center.y - height / 2,
