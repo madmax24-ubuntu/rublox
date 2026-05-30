@@ -775,7 +775,8 @@ export class MapGenerator {
     }
 
     getSpawnWorld() {
-        return this.toWorld(this.playerSpawn.x, this.playerSpawn.y);
+        // Return map center in world coordinates
+        return { x: 0, z: 0 };
     }
 
     // --- Debug helper ---
