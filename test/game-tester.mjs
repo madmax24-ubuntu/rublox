@@ -575,10 +575,10 @@ async function phase4Gameplay() {
     let pass = true;
     let details = [];
 
-    // Record initial camera position
+    // Record initial player position
     const initialGame = await checkGameInstance();
-    const initialCamera = initialGame.cameraPos || 'unknown';
-    log(`Initial camera: ${initialCamera}`);
+    const initialPlayer = initialGame.playerPos || 'unknown';
+    log(`Initial player: ${initialPlayer}`);
 
     // Test WASD movement (hold keys to allow game movement frames)
     try {
