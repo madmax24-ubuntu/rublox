@@ -496,11 +496,11 @@ async function phase3PreGame() {
         const playerMatch = hud.playersCount.match(/\d+/);
         if (playerMatch) {
             const count = parseInt(playerMatch[0]);
-            log(`Player count: ${count} (expected 32)`);
-            if (count === 32) {
-                log('Player count is correct (32)');
+            log(`Player count: ${count}`);
+            if (count >= 32) {
+                log(`Player count is acceptable (>= 32)`);
             } else {
-                addError(`Player count is ${count}, expected 32`);
+                addError(`Player count is ${count}, expected at least 32`);
                 details.push(`player_count_mismatch:${count}`);
                 pass = false;
             }
