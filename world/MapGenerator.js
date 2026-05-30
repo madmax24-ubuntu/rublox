@@ -294,34 +294,41 @@ export class MapGenerator {
             sectorBuildings.set(s.id, []);
         }
 
-        // Per-sector building placement
+        // Per-sector building placement — spread across FULL sector bounds
         for (const sector of this.voronoi.sectors) {
             const templates = getTemplatesForBiome(sector.biome);
             const density = sector.buildingDensity;
-            const numBuildings = Math.floor(5 + density * 15); // 5-20 buildings per sector
+            const numBuildings = Math.floor(8 + density * 20); // 8-28 buildings per sector
 
-            // Poisson disk sampling within sector bounds
-            const minDist = 12; // Minimum distance between buildings
+            // Use full sector bounds for placement (not just center)
+            const bx = sector.bounds.minX;
+            const bz = sector.bounds.minZ;
+            const bw = sector.bounds.maxX - sector.bounds.minX;
+            const bd = sector.bounds.maxZ - sector.bounds.minZ;
+
+            // Build bounding box adjusted by minDist to stay inside bounds
+            const pad = 8; // Stay at least 8m from sector edge
+            const minX = bx + pad;
+            const minZ = bz + pad;
+            const maxX = sector.bounds.maxX - pad;
+            const maxZ = sector.bounds.maxZ - pad;
+
+            // Poisson disk sampling within adjusted bounds
+            const minDist = 12;
             const placed = [];
-            const radius = sector.bounds.radius || 50;
-            const cx = sector.center.x;
-            const cz = sector.center.z;
 
-            // Golden angle initial points
-            const goldenAngle = 2.3983789851923124;
-
-            for (let attempt = 0; attempt < numBuildings * 5 && placed.length < numBuildings; attempt++) {
-                // Use golden angle for initial distribution
+            for (let attempt = 0; attempt < numBuildings * 6 && placed.length < numBuildings; attempt++) {
                 let px, pz;
-                if (attempt < numBuildings * 2) {
-                    const angle = attempt * goldenAngle;
-                    const r = radius * Math.sqrt(this._rand() * 0.9) * (0.6 + density * 0.4);
-                    px = cx + Math.cos(angle) * r;
-                    pz = cz + Math.sin(angle) * r;
+                if (attempt < numBuildings * 3) {
+                    // Spread across entire bounding box
+                    const rx = Math.random();
+                    const rz = Math.random();
+                    px = minX + rx * (maxX - minX);
+                    pz = minZ + rz * (maxZ - minZ);
                 } else {
                     // Random retry within bounds
-                    px = cx + (this._rand() - 0.5) * 2 * radius;
-                    pz = cz + (this._rand() - 0.5) * 2 * radius;
+                    px = minX + Math.random() * (maxX - minX);
+                    pz = minZ + Math.random() * (maxZ - minZ);
                 }
 
                 // Check distance from existing placements
@@ -336,11 +343,8 @@ export class MapGenerator {
                 }
                 if (tooClose) continue;
 
-                // Check sector bounds
-                if (px < sector.bounds.minX || px > sector.bounds.maxX ||
-                    pz < sector.bounds.minZ || pz > sector.bounds.maxZ) {
-                    continue;
-                }
+                // Check bounds
+                if (px < minX || px > maxX || pz < minZ || pz > maxZ) continue;
 
                 // Pick a template
                 const template = templates[Math.floor(this._rand() * templates.length)];
