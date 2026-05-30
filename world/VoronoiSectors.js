@@ -123,6 +123,10 @@ export class VoronoiSectors {
         this.sectors = [];
         this.sectorBounds = []; // {sectorId, minX, minZ, maxX, maxZ}
         this._randState = seed;
+
+        // Patch: store center as plain {x, z} object instead of THREE.Vector2
+        // because Vector2 only has .x/.y, losing .z
+        this._getCenter = (sector) => ({ x: sector.seedPoint.x, z: sector.seedPoint.z });
     }
 
     _rand() {
