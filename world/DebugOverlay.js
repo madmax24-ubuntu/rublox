@@ -1,6 +1,7 @@
 import * as THREE from "three";
 
-// Debug overlay with camera modes, FPS counter, bounding boxes, sector visualization
+// Debug overlay: FPS counter, bounding boxes, sector visualization
+// IMPORTANT: Does NOT control camera — camera stays in main.js hands
 export class DebugOverlay {
     constructor(scene, map, renderer, camera, controls) {
         this.scene = scene;
@@ -9,22 +10,12 @@ export class DebugOverlay {
         this.camera = camera;
         this.controls = controls;
         this.enabled = false;
-        this.modeIndex = 0;
-        this.modes = ["orbit", "topDown", "playerFollow"];
-        this.lastSwitch = 0;
-        this.switchInterval = 8000; // Auto-switch every 8 seconds
         this.fps = 60;
         this.frameCount = 0;
         this.lastFpsTime = performance.now();
         this.overlay = null;
         this.bboxHelper = null;
-        this._prevCameraPos = null;
-
-        // Camera state
-        this.cameraPos = new THREE.Vector3(0, 150, 200);
-        this.cameraTarget = new THREE.Vector3(0, 0, 0);
-        this._viewMatrix = new THREE.Matrix4();
-        this._projMatrix = new THREE.Matrix4();
+        this._sectorLines = null;
     }
 
     enable() {
@@ -32,6 +23,7 @@ export class DebugOverlay {
         this.enabled = true;
         this._createOverlay();
         this._createBoundingHelpers();
+        this._drawSectorBoundaries();
     }
 
     disable() {
@@ -41,6 +33,7 @@ export class DebugOverlay {
             this.overlay = null;
         }
         this._removeBoundingHelpers();
+        this._clearSectorBoundaries();
     }
 
     toggle() {
@@ -51,50 +44,40 @@ export class DebugOverlay {
         }
     }
 
-    switchMode() {
-        this.modeIndex = (this.modeIndex + 1) % this.modes.length;
-        if (this.overlay) {
-            const modeEl = this.overlay.querySelector(".mode-label");
-            if (modeEl) modeEl.textContent = this.modes[this.modeIndex];
-        }
-    }
-
     _createOverlay() {
         const div = document.createElement("div");
+        div.id = "debug-overlay";
         div.style.cssText = `
-            position: fixed; top: 0; left: 0; z-index: 99999;
+            position: fixed; top: 10px; right: 10px; z-index: 99999;
             font-family: 'Courier New', monospace; font-size: 13px;
             color: #0f0; background: rgba(0,0,0,0.7); padding: 10px 14px;
             border: 1px solid #0f0; border-radius: 4px;
             user-select: none; pointer-events: none; line-height: 1.6;
         `;
         div.innerHTML = `
-            <div style="font-weight:bold; font-size:15px; color:#f00; text-shadow: 0 0 4px #f00;">TEST MODE</div>
-            <div>📷 <span class="mode-label">orbit</span></div>
-            <div>⚡ FPS: <span class="fps-counter">60</span></div>
-            <div>🏗️ Buildings: <span class="building-count">0</span></div>
-            <div>📡 Sectors: <span class="sector-count">0</span></div>
+            <div style="font-weight:bold; font-size:15px; color:#f00; text-shadow: 0 0 4px #f00; margin-bottom:6px;">TEST MODE</div>
+            <div>📡 Sectors: <span class="sector-count">8</span></div>
             <div>📦 Colliders: <span class="collider-count">0</span></div>
-            <div>👥 Players: <span class="player-count">0</span></div>
+            <div>🏗️ Spawn pads: <span class="pad-count">0</span></div>
+            <div>👥 Player: <span class="player-count">0</span></div>
         `;
         document.body.appendChild(div);
         this.overlay = div;
     }
 
     _createBoundingHelpers() {
-        // Wireframe bounding boxes around all buildings
         const boxGeo = new THREE.BoxGeometry(1, 1, 1);
-        const boxMat = new THREE.LineBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.4 });
+        const boxMat = new THREE.LineBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.35 });
 
         const bbox = new THREE.Group();
         bbox.name = "debug_bounding_boxes";
 
-        // Get building data from map (spawn pads and colliders)
+        // Spawn pad markers
         const pads = this.map.getSpawnPads?.() || [];
         for (const pad of pads) {
             const box = new THREE.LineSegments(
                 new THREE.EdgesGeometry(boxGeo),
-                new THREE.LineBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.3 })
+                new THREE.LineBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.4 })
             );
             box.position.set(pad.x, 0.5, pad.z);
             box.scale.set(2.2, 1, 2.2);
@@ -102,14 +85,14 @@ export class DebugOverlay {
             bbox.add(box);
         }
 
-        // Building bounding boxes from colliders
+        // Building bounding boxes (filter out tiny props)
         const colliders = this.map.getColliders?.() || [];
         for (const col of colliders) {
             if (!col?.min || !col?.max) continue;
             const w = col.max.x - col.min.x;
             const h = col.max.y - col.min.y;
             const d = col.max.z - col.min.z;
-            if (w < 3 && h < 3 && d < 3) continue; // Skip small props
+            if (w < 2 && h < 2 && d < 2) continue; // Skip tiny props
 
             const box = new THREE.LineSegments(
                 new THREE.EdgesGeometry(boxGeo),
@@ -146,21 +129,52 @@ export class DebugOverlay {
         }
     }
 
+    _drawSectorBoundaries() {
+        if (!this.voronoi?.sectors) return;
+        const sectors = this.voronoi.sectors;
+        const positions = [];
+        const colors = [];
+
+        for (const sector of sectors) {
+            const b = sector.bounds;
+            const c = new THREE.Color(sector.terrainColor);
+            // Draw bounding box edges
+            positions.push(
+                b.minX, 0, b.minZ,  b.maxX, 0, b.minZ,
+                b.maxX, 0, b.minZ,  b.maxX, 0, b.maxZ,
+                b.maxX, 0, b.maxZ,  b.minX, 0, b.maxZ,
+                b.minX, 0, b.maxZ,  b.minX, 0, b.minZ
+            );
+            for (let i = 0; i < 8; i++) {
+                colors.push(c.r, c.g, c.b);
+            }
+        }
+
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+        const mat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.5 });
+        const lines = new THREE.LineSegments(geo, mat);
+        lines.userData.mapGenerated = true;
+        this.scene.add(lines);
+        this._sectorLines = lines;
+    }
+
+    _clearSectorBoundaries() {
+        if (this._sectorLines) {
+            this.scene.remove(this._sectorLines);
+            this._sectorLines.geometry.dispose();
+            this._sectorLines.material.dispose();
+            this._sectorLines = null;
+        }
+    }
+
     update(delta, playerPosition) {
         if (!this.enabled) return;
 
-        // Auto-switch camera
-        const now = performance.now();
-        if (now - this.lastSwitch > this.switchInterval) {
-            this.switchMode();
-            this.lastSwitch = now;
-        }
-
-        // Update camera position based on mode
-        this._updateCameraMode();
-
         // FPS counter
         this.frameCount++;
+        const now = performance.now();
         if (now - this.lastFpsTime > 500) {
             this.fps = Math.round(this.frameCount / ((now - this.lastFpsTime) / 1000) * 2);
             this.frameCount = 0;
@@ -175,69 +189,26 @@ export class DebugOverlay {
             }
         }
 
-        // Update overlay info
-        this._updateOverlayInfo(playerPosition);
-    }
+        // Update overlay info (every ~1 second)
+        if (this.overlay && now - this.lastFpsTime > 400) {
+            const pads = this.map.getSpawnPads?.() || [];
+            const colliders = this.map.getColliders?.() || [];
+            const buildingEl = this.overlay.querySelector(".pad-count");
+            const colliderEl = this.overlay.querySelector(".collider-count");
+            const playerEl = this.overlay.querySelector(".player-count");
 
-    _updateCameraMode() {
-        const mode = this.modes[this.modeIndex];
-        const mapCenter = new THREE.Vector3(0, 0, 0);
-
-        switch (mode) {
-            case "orbit":
-                if (this.controls) {
-                    this.controls.enabled = true;
-                }
-                break;
-            case "topDown":
-                if (this.controls) this.controls.enabled = false;
-                this.camera.position.set(
-                    this.cameraTarget.x,
-                    180,
-                    this.cameraTarget.z + 150
-                );
-                this.camera.lookAt(this.cameraTarget);
-                if (this.controls) {
-                    this.controls.target.copy(this.cameraTarget);
-                    this.controls.update();
-                }
-                break;
-            case "playerFollow":
-                if (this.controls) this.controls.enabled = false;
-                if (playerPosition) {
-                    this.camera.position.set(
-                        playerPosition.x + 20,
-                        playerPosition.y + 30,
-                        playerPosition.z + 20
-                    );
-                    this.camera.lookAt(playerPosition);
-                }
-                break;
+            if (buildingEl) buildingEl.textContent = pads.length;
+            if (colliderEl) colliderEl.textContent = colliders.length;
+            if (playerEl) playerEl.textContent = playerPosition ? "1" : "0";
         }
     }
 
-    _updateOverlayInfo(playerPosition) {
-        if (!this.overlay) return;
-
-        const pads = this.map.getSpawnPads?.() || [];
-        const colliders = this.map.getColliders?.() || [];
-
-        const buildingEl = this.overlay.querySelector(".building-count");
-        const sectorEl = this.overlay.querySelector(".sector-count");
-        const colliderEl = this.overlay.querySelector(".collider-count");
-        const playerEl = this.overlay.querySelector(".player-count");
-
-        if (buildingEl) buildingEl.textContent = pads.length;
-        if (sectorEl) sectorEl.textContent = "8";
-        if (colliderEl) colliderEl.textContent = colliders.length;
-        if (playerEl) playerEl.textContent = playerPosition ? "1" : "0";
-    }
-
-    // Key handler
-    onKeyDown(event) {
-        if (!this.enabled) return;
-        if (event.key === "c" || event.key === "C" || event.key === "ф" || event.key === "Ф") {
-            this.switchMode();
+    // Set reference to voronoi for sector boundary drawing
+    setVoronoi(voronoi) {
+        this.voronoi = voronoi;
+        if (this.enabled) {
+            this._clearSectorBoundaries();
+            this._drawSectorBoundaries();
         }
     }
 }
