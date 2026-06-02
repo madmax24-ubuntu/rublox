@@ -416,6 +416,235 @@ export const BUILDING_TEMPLATES = [
     }
 ];
 
+// --- NEW SURVIVAL MAP BUILDING TYPES ---
+{
+    type: "big_house", biome: ["plains", "forest"],
+    width: 12, depth: 10, height: 7, floors: 2,
+    rooms: [
+        { x: -2.5, z: -1.5, w: 4.8, d: 3.8, type: "kitchen" },
+        { x: 2.5, z: -1.5, w: 4.8, d: 3.8, type: "living" },
+        { x: -2.5, z: 2.5, w: 4.8, d: 3.8, type: "bedroom_a" },
+        { x: 2.5, z: 2.5, w: 4.8, d: 3.8, type: "bedroom_b" }
+    ],
+    windows: [
+        { dx: -2.5, dz: 5.0, width: 1.2, height: 1.2, side: "front" },
+        { dx: 2.5, dz: 5.0, width: 1.2, height: 1.2, side: "front" },
+        { dx: -2.5, dz: -5.0, width: 1.0, height: 1.0, side: "back" },
+        { dx: 2.5, dz: -5.0, width: 1.0, height: 1.0, side: "back" }
+    ],
+    doors: [
+        { dx: 0, dz: 5.0, width: 1.8 },
+        { dx: -2.5, dz: 5.0, width: 1.0 }
+    ],
+    props: [
+        { type: "table", dx: -2.5, dz: -1.5, w: 1.8, d: 1.2, h: 0.75 },
+        { type: "table", dx: 2.5, dz: -1.5, w: 1.6, d: 1.0, h: 0.75 },
+        { type: "crate", dx: 5.5, dz: 0, w: 0.8, d: 0.8, h: 0.8 },
+        { type: "ammo_box", dx: -5.5, dz: 0, w: 0.5, d: 0.7, h: 0.5 },
+        { type: "barrel", dx: 0, dz: -4, w: 0.4, d: 0.4, h: 0.8 },
+        { type: "sandbag", dx: 3.0, dz: 4.5, w: 1.2, d: 0.6, h: 0.9 },
+        { type: "concrete_barrier", dx: -3.0, dz: 4.5, w: 1.2, d: 0.6, h: 0.6 }
+    ],
+    lootFloor: { ground: 3, first: 3, roof: 2 },
+    wallColor: 0xe8d5b7, roofColor: 0x5d4037,
+    hasRoof: true, hasStairs: true, hasMezzanine: false
+},
+{
+    type: "hangar", biome: ["industrial"],
+    width: 20, depth: 12, height: 8, floors: 1,
+    rooms: [{ x: 0, z: 0, w: 18, d: 10, type: "main_bay" }],
+    windows: [
+        { dx: -5, dz: 6.0, width: 1.5, height: 2.0, side: "front" },
+        { dx: 5, dz: 6.0, width: 1.5, height: 2.0, side: "front" },
+        { dx: -8, dz: -6.0, width: 1.2, height: 1.5, side: "back" }
+    ],
+    doors: [
+        { dx: 0, dz: 6.0, width: 4.0 },
+        { dx: -8, dz: -6.0, width: 3.0 }
+    ],
+    props: [
+        { type: "table", dx: -5, dz: 0, w: 2.4, d: 1.6, h: 0.8 },
+        { type: "crate", dx: 8, dz: 4, w: 1.0, d: 1.0, h: 1.0 },
+        { type: "crate", dx: -8, dz: 4, w: 1.0, d: 1.0, h: 1.0 },
+        { type: "ammo_box", dx: 5, dz: -4, w: 0.5, d: 0.7, h: 0.5 },
+        { type: "ammo_box", dx: -5, dz: -4, w: 0.5, d: 0.7, h: 0.5 },
+        { type: "barrel", dx: 0, dz: 5, w: 0.5, d: 0.5, h: 1.0 },
+        { type: "sandbag", dx: 6, dz: 5.5, w: 1.2, d: 0.6, h: 0.9 },
+        { type: "concrete_barrier", dx: -6, dz: 5.5, w: 1.2, d: 0.6, h: 0.6 }
+    ],
+    lootFloor: { ground: 5, first: 0, roof: 2 },
+    wallColor: 0x90a4ae, roofColor: 0x546e7a,
+    hasRoof: true, hasStairs: false, hasMezzanine: false
+},
+{
+    type: "industrial_shed", biome: ["industrial"],
+    width: 16, depth: 10, height: 6, floors: 1,
+    rooms: [{ x: 0, z: 0, w: 14, d: 8, type: "storage" }],
+    windows: [
+        { dx: -4, dz: 5.0, width: 1.0, height: 1.5, side: "front" },
+        { dx: 4, dz: 5.0, width: 1.0, height: 1.5, side: "front" }
+    ],
+    doors: [
+        { dx: 0, dz: 5.0, width: 3.5 }
+    ],
+    props: [
+        { type: "ammo_box", dx: 5, dz: 0, w: 0.5, d: 0.7, h: 0.5 },
+        { type: "ammo_box", dx: -5, dz: 0, w: 0.5, d: 0.7, h: 0.5 },
+        { type: "crate", dx: 0, dz: 4, w: 0.8, d: 0.8, h: 0.8 },
+        { type: "barrel", dx: -8, dz: -3, w: 0.5, d: 0.5, h: 1.0 },
+        { type: "sandbag", dx: 4, dz: 4.5, w: 1.2, d: 0.6, h: 0.9 },
+        { type: "concrete_barrier", dx: -4, dz: 4.5, w: 1.2, d: 0.6, h: 0.6 }
+    ],
+    lootFloor: { ground: 4, first: 0, roof: 1 },
+    wallColor: 0x78909c, roofColor: 0x455a64,
+    hasRoof: true, hasStairs: false, hasMezzanine: false
+},
+{
+    type: "barracks", biome: ["industrial", "ruins"],
+    width: 14, depth: 8, height: 5, floors: 1,
+    rooms: [
+        { x: -3.5, z: -1.5, w: 4.0, d: 3.0, type: "quarters_a" },
+        { x: 0, z: -1.5, w: 4.0, d: 3.0, type: "quarters_b" },
+        { x: 3.5, z: -1.5, w: 4.0, d: 3.0, type: "quarters_c" }
+    ],
+    windows: [
+        { dx: -3.5, dz: 4.0, width: 0.8, height: 0.8, side: "front" },
+        { dx: 0, dz: 4.0, width: 0.8, height: 0.8, side: "front" },
+        { dx: 3.5, dz: 4.0, width: 0.8, height: 0.8, side: "front" }
+    ],
+    doors: [
+        { dx: 0, dz: 4.0, width: 1.4 }
+    ],
+    props: [
+        { type: "table", dx: -3.5, dz: 0, w: 1.2, d: 0.8, h: 0.6 },
+        { type: "table", dx: 3.5, dz: 0, w: 1.2, d: 0.8, h: 0.6 },
+        { type: "crate", dx: 0, dz: 3.0, w: 0.6, d: 0.6, h: 0.6 },
+        { type: "ammo_box", dx: -6, dz: -3, w: 0.5, d: 0.7, h: 0.5 },
+        { type: "ammo_box", dx: 6, dz: -3, w: 0.5, d: 0.7, h: 0.5 },
+        { type: "sandbag", dx: 4, dz: 3.5, w: 1.2, d: 0.6, h: 0.9 },
+        { type: "sandbag", dx: -4, dz: 3.5, w: 1.2, d: 0.6, h: 0.9 },
+        { type: "concrete_barrier", dx: 0, dz: 3.5, w: 1.2, d: 0.6, h: 0.6 }
+    ],
+    lootFloor: { ground: 3, first: 0, roof: 1 },
+    wallColor: 0xb0bec5, roofColor: 0x78909c,
+    hasRoof: true, hasStairs: false, hasMezzanine: false
+},
+{
+    type: "farm_barn", biome: ["plains"],
+    width: 14, depth: 10, height: 6, floors: 1,
+    rooms: [{ x: 0, z: 0, w: 13, d: 9, type: "barn" }],
+    windows: [
+        { dx: -4, dz: 5.0, width: 1.2, height: 1.5, side: "front" },
+        { dx: 4, dz: 5.0, width: 1.2, height: 1.5, side: "front" }
+    ],
+    doors: [
+        { dx: 0, dz: 5.0, width: 3.5 }
+    ],
+    props: [
+        { type: "crate", dx: 5, dz: 3, w: 0.8, d: 0.8, h: 0.8 },
+        { type: "crate", dx: -5, dz: 3, w: 0.8, d: 0.8, h: 0.8 },
+        { type: "ammo_box", dx: 0, dz: -3, w: 0.5, d: 0.7, h: 0.5 },
+        { type: "barrel", dx: -8, dz: -3, w: 0.5, d: 0.5, h: 1.0 },
+        { type: "barrel", dx: 8, dz: -3, w: 0.5, d: 0.5, h: 1.0 },
+        { type: "sandbag", dx: 6, dz: 4.5, w: 1.2, d: 0.6, h: 0.9 }
+    ],
+    lootFloor: { ground: 4, first: 0, roof: 2 },
+    wallColor: 0xa1887f, roofColor: 0x5d4037,
+    hasRoof: true, hasStairs: false, hasMezzanine: false
+},
+{
+    type: "fortified_outpost", biome: ["desert", "ruins"],
+    width: 10, depth: 10, height: 6, floors: 2,
+    rooms: [
+        { x: -2, z: -2, w: 3.8, d: 3.8, type: "watch" },
+        { x: 2, z: -2, w: 3.8, d: 3.8, type: "storage" }
+    ],
+    windows: [
+        { dx: -2, dz: 5.0, width: 0.8, height: 0.8, side: "front" },
+        { dx: 2, dz: 5.0, width: 0.8, height: 0.8, side: "front" },
+        { dx: -2, dz: -5.0, width: 0.8, height: 0.8, side: "back" },
+        { dx: 2, dz: -5.0, width: 0.8, height: 0.8, side: "back" }
+    ],
+    doors: [
+        { dx: 0, dz: 5.0, width: 1.5 }
+    ],
+    props: [
+        { type: "ammo_box", dx: -3.5, dz: 0, w: 0.5, d: 0.7, h: 0.5 },
+        { type: "ammo_box", dx: 3.5, dz: 0, w: 0.5, d: 0.7, h: 0.5 },
+        { type: "crate", dx: 0, dz: 3.5, w: 0.8, d: 0.8, h: 0.8 },
+        { type: "sandbag", dx: 4, dz: 4.5, w: 1.2, d: 0.6, h: 0.9 },
+        { type: "sandbag", dx: -4, dz: 4.5, w: 1.2, d: 0.6, h: 0.9 },
+        { type: "sandbag", dx: 4, dz: -4.5, w: 1.2, d: 0.6, h: 0.9 },
+        { type: "sandbag", dx: -4, dz: -4.5, w: 1.2, d: 0.6, h: 0.9 },
+        { type: "concrete_barrier", dx: 0, dz: 4.5, w: 1.2, d: 0.6, h: 0.6 },
+        { type: "concrete_barrier", dx: 0, dz: -4.5, w: 1.2, d: 0.6, h: 0.6 }
+    ],
+    lootFloor: { ground: 3, first: 3, roof: 3 },
+    wallColor: 0x9e9e9e, roofColor: 0x616161,
+    hasRoof: true, hasStairs: true, hasMezzanine: false,
+    hasRoofPlatform: true, hasLadder: true
+},
+{
+    type: "warehouse_large", biome: ["industrial"],
+    width: 18, depth: 16, height: 8, floors: 1,
+    rooms: [
+        { x: -4, z: -3, w: 8, d: 7, type: "storage_a" },
+        { x: 4, z: 3, w: 8, d: 7, type: "storage_b" }
+    ],
+    windows: [
+        { dx: 0, dz: 8.0, width: 1.5, height: 1.5, side: "front" },
+        { dx: -6, dz: 8.0, width: 1.0, height: 1.0, side: "front" },
+        { dx: 6, dz: -8.0, width: 1.5, height: 1.5, side: "back" }
+    ],
+    doors: [
+        { dx: 0, dz: 8.0, width: 3.5 },
+        { dx: -6, dz: -8.0, width: 2.5 }
+    ],
+    props: [
+        { type: "ammo_box", dx: 0, dz: 0, w: 0.5, d: 0.7, h: 0.5 },
+        { type: "ammo_box", dx: 4, dz: 0, w: 0.5, d: 0.7, h: 0.5 },
+        { type: "ammo_box", dx: -4, dz: 0, w: 0.5, d: 0.7, h: 0.5 },
+        { type: "ammo_box", dx: 0, dz: 4, w: 0.5, d: 0.7, h: 0.5 },
+        { type: "crate", dx: 8, dz: 5, w: 1.0, d: 1.0, h: 1.0 },
+        { type: "crate", dx: -8, dz: -5, w: 1.0, d: 1.0, h: 1.0 },
+        { type: "barrel", dx: -6, dz: 5, w: 0.5, d: 0.5, h: 1.0 },
+        { type: "concrete_barrier", dx: 0, dz: 7, w: 1.2, d: 0.6, h: 0.6 },
+        { type: "sandbag", dx: 4, dz: 7, w: 1.2, d: 0.6, h: 0.9 },
+        { type: "sandbag", dx: -4, dz: 7, w: 1.2, d: 0.6, h: 0.9 }
+    ],
+    lootFloor: { ground: 6, first: 0, roof: 3 },
+    wallColor: 0x607d8b, roofColor: 0x455a64,
+    hasRoof: true, hasStairs: false, hasMezzanine: true
+},
+{
+    type: "ruined_factory", biome: ["ruins", "industrial"],
+    width: 16, depth: 12, height: 7, floors: 2,
+    rooms: [
+        { x: -3, z: -2, w: 7, d: 5, type: "machine_a" },
+        { x: 3, z: 2, w: 7, d: 5, type: "machine_b" }
+    ],
+    windows: [
+        { dx: -3, dz: 6.0, width: 1.2, height: 1.5, side: "front" },
+        { dx: 3, dz: 6.0, width: 1.2, height: 1.5, side: "front" }
+    ],
+    doors: [
+        { dx: 0, dz: 6.0, width: 2.5 }
+    ],
+    props: [
+        { type: "crate", dx: 5, dz: 4, w: 1.0, d: 1.0, h: 1.0 },
+        { type: "crate", dx: -5, dz: 4, w: 1.0, d: 1.0, h: 1.0 },
+        { type: "ammo_box", dx: 0, dz: -4, w: 0.5, d: 0.7, h: 0.5 },
+        { type: "barrel", dx: -6, dz: -3, w: 0.5, d: 0.5, h: 1.0 },
+        { type: "sandbag", dx: 5, dz: 5.5, w: 1.2, d: 0.6, h: 0.9 },
+        { type: "concrete_barrier", dx: -5, dz: 5.5, w: 1.2, d: 0.6, h: 0.6 }
+    ],
+    lootFloor: { ground: 4, first: 3, roof: 3 },
+    wallColor: 0x6d4c41, roofColor: 0x3e2723,
+    hasRoof: true, hasStairs: true, hasMezzanine: false,
+    isRuined: true
+}
+];
+
 // Get templates for a given biome
 export function getTemplatesForBiome(biome) {
     return BUILDING_TEMPLATES.filter(t => t.biome.includes(biome));
