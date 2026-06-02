@@ -413,11 +413,9 @@ export const BUILDING_TEMPLATES = [
         lootFloor: { ground: 3, first: 0, roof: 2 },
         wallColor: 0xb0bec5, roofColor: 0x78909c,
         hasRoof: true, hasStairs: false, hasMezzanine: false
-    }
-];
-
-// --- NEW SURVIVAL MAP BUILDING TYPES ---
-{
+    },
+    // --- NEW SURVIVAL MAP BUILDING TYPES ---
+    {
     type: "big_house", biome: ["plains", "forest"],
     width: 12, depth: 10, height: 7, floors: 2,
     rooms: [
