@@ -1,10 +1,10 @@
 ═══════════════════════════════════════════════════════
   Rubo Arena - Game Test Report
-  Generated: 2026-05-30T10:18:46.544Z
+  Generated: 2026-05-30T12:09:37.829Z
 ═══════════════════════════════════════════════════════
 
   URL: http://localhost:3001
-  Duration: 559.1s
+  Duration: 875.9s
   Verdict: ALL TESTS PASSED
 
 ───────────────────────────────────────────────────────
@@ -17,18 +17,16 @@
   [PASS] Phase 5: Error Detection
 
 ───────────────────────────────────────────────────────
-  Errors Found (0)
+  Errors Found (2)
 ───────────────────────────────────────────────────────
-  No errors detected
+  1. [2026-05-30T12:03:19.236Z] PageError: The root document of this element is not valid for pointer lock.
+  2. [2026-05-30T12:04:18.060Z] PageError: The root document of this element is not valid for pointer lock.
 
 ───────────────────────────────────────────────────────
-  Screenshots (20)
+  Screenshots (17)
 ───────────────────────────────────────────────────────
   p1_after_start_click: C:\Users\maksk\Desktop\rublox\test-results\screenshots\p1_after_start_click.png
   p1_after_2s: C:\Users\maksk\Desktop\rublox\test-results\screenshots\p1_after_2s.png
-  p2_loading_at_3s: C:\Users\maksk\Desktop\rublox\test-results\screenshots\p2_loading_at_3s.png
-  p2_loading_complete: C:\Users\maksk\Desktop\rublox\test-results\screenshots\p2_loading_complete.png
-  p3_pre_game_hud: C:\Users\maksk\Desktop\rublox\test-results\screenshots\p3_pre_game_hud.png
   top_north: C:\Users\maksk\Desktop\rublox\test-results\screenshots\top_north.png
   top_east: C:\Users\maksk\Desktop\rublox\test-results\screenshots\top_east.png
   top_south: C:\Users\maksk\Desktop\rublox\test-results\screenshots\top_south.png
