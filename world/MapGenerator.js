@@ -291,76 +291,81 @@ export class MapGenerator {
     // ========================================================================
     _placeBuildings() {
         const placements = [];
-        const sectorBuildings = new Map(); // sectorId → []
+        const sectorBuildings = new Map();
         for (const s of this.voronoi.sectors) {
             sectorBuildings.set(s.id, []);
         }
 
-        // Per-sector building placement — spread across FULL sector bounds
         for (const sector of this.voronoi.sectors) {
             const templates = getTemplatesForBiome(sector.biome);
-            const density = sector.buildingDensity;
-            const numBuildings = Math.floor(8 + density * 20); // 8-28 buildings per sector
+            const numBuildings = Math.floor(20 + sector.buildingDensity * 30); // 20-50 per sector
 
-            // Use full sector bounds for placement (not just center)
             const bx = sector.bounds.minX;
             const bz = sector.bounds.minZ;
             const bw = sector.bounds.maxX - sector.bounds.minX;
             const bd = sector.bounds.maxZ - sector.bounds.minZ;
 
-            // Build bounding box adjusted by minDist to stay inside bounds
-            const pad = 8; // Stay at least 8m from sector edge
-            const minX = bx + pad;
-            const minZ = bz + pad;
-            const maxX = sector.bounds.maxX - pad;
-            const maxZ = sector.bounds.maxZ - pad;
+            // Grid-based placement: 24m cells
+            const gridSize = 24;
+            const cols = Math.ceil(bw / gridSize);
+            const rows = Math.ceil(bd / gridSize);
 
-            // Poisson disk sampling within adjusted bounds
-            const minDist = 12;
-            const placed = [];
-
-            for (let attempt = 0; attempt < numBuildings * 6 && placed.length < numBuildings; attempt++) {
-                let px, pz;
-                if (attempt < numBuildings * 3) {
-                    // Spread across entire bounding box
-                    const rx = Math.random();
-                    const rz = Math.random();
-                    px = minX + rx * (maxX - minX);
-                    pz = minZ + rz * (maxZ - minZ);
-                } else {
-                    // Random retry within bounds
-                    px = minX + Math.random() * (maxX - minX);
-                    pz = minZ + Math.random() * (maxZ - minZ);
+            // Which cells get buildings (70% filled, edges always filled)
+            const cellOccupied = [];
+            for (let r = 0; r < rows; r++) {
+                cellOccupied[r] = [];
+                for (let c = 0; c < cols; c++) {
+                    const isEdge = (r === 0 || r === rows - 1 || c === 0 || c === cols - 1);
+                    cellOccupied[r][c] = isEdge || (this._rand() < 0.70);
                 }
-
-                // Check distance from existing placements
-                let tooClose = false;
-                for (const p of placed) {
-                    const dx = px - p.x;
-                    const dz = pz - p.z;
-                    if (dx * dx + dz * dz < minDist * minDist) {
-                        tooClose = true;
-                        break;
-                    }
-                }
-                if (tooClose) continue;
-
-                // Check bounds
-                if (px < minX || px > maxX || pz < minZ || pz > maxZ) continue;
-
-                // Pick a template
-                const template = templates[Math.floor(this._rand() * templates.length)];
-                if (!template) continue;
-
-                placed.push({
-                    x: px, z: pz,
-                    template,
-                    sectorId: sector.id
-                });
             }
 
-            sectorBuildings.set(sector.id, placed);
-            placements.push(...placed);
+            // Place buildings in occupied cells
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if (!cellOccupied[r]?.[c]) continue;
+
+                    const template = templates[Math.floor(this._rand() * templates.length)];
+                    if (!template) continue;
+
+                    const cellCenterX = bx + c * gridSize + gridSize / 2;
+                    const cellCenterZ = bz + r * gridSize + gridSize / 2;
+
+                    const halfW = template.width / 2;
+                    const halfD = template.depth / 2;
+                    const offsetX = (this._rand() - 0.5) * Math.max(1, gridSize - template.width);
+                    const offsetZ = (this._rand() - 0.5) * Math.max(1, gridSize - template.depth);
+
+                    const px = Math.max(bx + halfW, Math.min(bx + bw - halfW, cellCenterX + offsetX));
+                    const pz = Math.max(bz + halfD, Math.min(bz + bd - halfD, cellCenterZ + offsetZ));
+
+                    sectorBuildings.get(sector.id).push({
+                        x: px, z: pz,
+                        template,
+                        sectorId: sector.id
+                    });
+                }
+            }
+
+            // Extra scattered buildings in open areas
+            const extraBuildings = Math.floor(sector.buildingDensity * 15);
+            for (let i = 0; i < extraBuildings; i++) {
+                const tx = bx + this._rand() * bw;
+                const tz = bz + this._rand() * bd;
+                const template = templates[Math.floor(this._rand() * templates.length)];
+                if (template) {
+                    sectorBuildings.get(sector.id).push({
+                        x: tx, z: tz,
+                        template,
+                        sectorId: sector.id
+                    });
+                }
+            }
+        }
+
+        // Flatten
+        for (const [sectorId, buildings] of sectorBuildings) {
+            placements.push(...buildings.map(b => ({ ...b, sectorId })));
         }
 
         return placements;
