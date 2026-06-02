@@ -82,6 +82,10 @@ export class MapGenerator {
         this._logProgress(55);
         this._buildBuildings(placements);
 
+        // Phase 4b: Place cover/shelter objects
+        this._logProgress(60);
+        this._placeCoverObjects(placements);
+
         // Phase 5: Environment props (trees, rocks, fences)
         this._logProgress(75);
         this._generateEnvironment();
