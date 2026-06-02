@@ -483,6 +483,226 @@ export class MapGenerator {
         }
     }
 
+    // ========================================================================
+    // COVER OBJECTS (Phase 4b) — Sandbags, concrete barriers, fences, pallets, tires
+    // ========================================================================
+    _placeCoverObjects(buildingPositions) {
+        const coverTypes = [
+            { type: 'sandbag_wall_straight', count: 40 },
+            { type: 'sandbag_wall_l', count: 20 },
+            { type: 'concrete_barrier_wall', count: 30 },
+            { type: 'concrete_barrier_t', count: 10 },
+            { type: 'wood_fence_straight', count: 30 },
+            { type: 'wood_fence_corner', count: 15 },
+            { type: 'pallet_stack', count: 25 },
+            { type: 'tire_stack', count: 15 }
+        ];
+
+        for (const cover of coverTypes) {
+            for (let i = 0; i < cover.count; i++) {
+                const x = -this.halfSize + this._rand() * this.size;
+                const z = -this.halfSize + this._rand() * this.size;
+                const y = this.getHeightAt(x, z);
+
+                // Find nearest building
+                let closestDist = Infinity;
+                let nearestBp = buildingPositions[0];
+                for (const bp of buildingPositions) {
+                    const dx = x - bp.x;
+                    const dz = z - bp.z;
+                    const dist = Math.sqrt(dx * dx + dz * dz);
+                    if (dist < closestDist) { closestDist = dist; nearestBp = bp; }
+                }
+
+                // Prefer placing 4-12m from buildings
+                if (closestDist < 3 || closestDist > 20) {
+                    const angle = this._rand() * Math.PI * 2;
+                    const dist = 5 + this._rand() * 8;
+                    this._placeCoverItem(
+                        nearestBp.x + Math.cos(angle) * dist,
+                        nearestBp.z + Math.sin(angle) * dist,
+                        cover.type
+                    );
+                } else {
+                    this._placeCoverItem(x, z, cover.type);
+                }
+            }
+        }
+
+        // Extra props around sector centers
+        for (const sector of this.voronoi.sectors) {
+            const cx = sector.center.x;
+            const cz = sector.center.z;
+            for (let i = 0; i < 8; i++) {
+                const angle = this._rand() * Math.PI * 2;
+                const dist = 5 + this._rand() * 15;
+                this._placeCoverItem(
+                    cx + Math.cos(angle) * dist,
+                    cz + Math.sin(angle) * dist,
+                    ['pallet_stack', 'tire_stack', 'sandbag_wall_straight'][Math.floor(this._rand() * 3)]
+                );
+            }
+        }
+    }
+
+    _placeCoverItem(x, z, type) {
+        const baseY = this.getHeightAt(x, z);
+
+        switch (type) {
+            case 'sandbag_wall_straight': {
+                const segments = 3 + Math.floor(this._rand() * 3);
+                for (let i = 0; i < segments; i++) {
+                    const seg = new THREE.Mesh(
+                        new THREE.BoxGeometry(0.6, 0.4, 0.35),
+                        new THREE.MeshStandardMaterial({ color: 0x9e9e9e, roughness: 0.95, flatShading: true })
+                    );
+                    seg.position.set(x + i * 0.65, baseY + 0.2, z);
+                    seg.userData.mapGenerated = true;
+                    seg.userData.physicsType = 'STATIC';
+                    this.scene.add(seg);
+                    this.addColliderBox(new THREE.Vector3(x + i * 0.65, baseY + 0.2, z), 0.6, 0.4, 0.35, false);
+                }
+                break;
+            }
+            case 'sandbag_wall_l': {
+                for (let i = 0; i < 3; i++) {
+                    const mat = new THREE.MeshStandardMaterial({ color: 0x9e9e9e, roughness: 0.95, flatShading: true });
+                    const segX = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.4, 0.35), mat);
+                    segX.position.set(x + i * 0.65, baseY + 0.2, z);
+                    segX.userData.mapGenerated = true;
+                    segX.userData.physicsType = 'STATIC';
+                    this.scene.add(segX);
+                    this.addColliderBox(new THREE.Vector3(x + i * 0.65, baseY + 0.2, z), 0.6, 0.4, 0.35, false);
+                    const segZ = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.4, 0.35), mat);
+                    segZ.position.set(x, baseY + 0.2, z + i * 0.65);
+                    segZ.userData.mapGenerated = true;
+                    segZ.userData.physicsType = 'STATIC';
+                    this.scene.add(segZ);
+                    this.addColliderBox(new THREE.Vector3(x, baseY + 0.2, z + i * 0.65), 0.6, 0.4, 0.35, false);
+                }
+                break;
+            }
+            case 'concrete_barrier_wall': {
+                const segments = 3 + Math.floor(this._rand() * 4);
+                for (let i = 0; i < segments; i++) {
+                    const cb = new THREE.Mesh(
+                        new THREE.BoxGeometry(1.2, 0.6, 0.6),
+                        new THREE.MeshStandardMaterial({ color: 0xb0bec5, roughness: 0.95, flatShading: true })
+                    );
+                    cb.position.set(x + i * 1.3, baseY + 0.3, z);
+                    cb.userData.mapGenerated = true;
+                    cb.userData.physicsType = 'STATIC';
+                    this.scene.add(cb);
+                    this.addColliderBox(new THREE.Vector3(x + i * 1.3, baseY + 0.3, z), 1.2, 0.6, 0.6, false);
+                }
+                break;
+            }
+            case 'concrete_barrier_t': {
+                for (let i = 0; i < 3; i++) {
+                    const cb = new THREE.Mesh(
+                        new THREE.BoxGeometry(1.2, 0.6, 0.6),
+                        new THREE.MeshStandardMaterial({ color: 0xb0bec5, roughness: 0.95, flatShading: true })
+                    );
+                    cb.position.set(x + (i - 1) * 1.3, baseY + 0.3, z);
+                    cb.userData.mapGenerated = true;
+                    cb.userData.physicsType = 'STATIC';
+                    this.scene.add(cb);
+                    this.addColliderBox(new THREE.Vector3(x + (i - 1) * 1.3, baseY + 0.3, z), 1.2, 0.6, 0.6, false);
+                }
+                const cap = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.6, 0.6, 1.2),
+                    new THREE.MeshStandardMaterial({ color: 0x90a4ae, roughness: 0.95, flatShading: true })
+                );
+                cap.position.set(x, baseY + 0.3, z);
+                cap.userData.mapGenerated = true;
+                cap.userData.physicsType = 'STATIC';
+                this.scene.add(cap);
+                this.addColliderBox(new THREE.Vector3(x, baseY + 0.3, z), 0.6, 0.6, 1.2, false);
+                break;
+            }
+            case 'wood_fence_straight': {
+                const postMat = new THREE.MeshStandardMaterial({ color: 0x8d6e63, roughness: 0.9 });
+                const railMat = new THREE.MeshStandardMaterial({ color: 0xa1887f, roughness: 0.85 });
+                for (let i = 0; i < 3; i++) {
+                    const post = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.0, 0.15), postMat);
+                    post.position.set(x + i * 0.7, baseY + 0.5, z);
+                    post.userData.mapGenerated = true;
+                    post.userData.physicsType = 'STATIC';
+                    this.scene.add(post);
+                    this.addColliderBox(new THREE.Vector3(x + i * 0.7, baseY + 0.5, z), 0.15, 1.0, 0.15, false);
+                    if (i < 2) {
+                        const rail = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.08, 0.06), railMat);
+                        rail.position.set(x + i * 0.7 + 0.35, baseY + 0.75, z);
+                        rail.userData.mapGenerated = true;
+                        rail.userData.physicsType = 'STATIC';
+                        this.scene.add(rail);
+                    }
+                }
+                break;
+            }
+            case 'wood_fence_corner': {
+                const postMat = new THREE.MeshStandardMaterial({ color: 0x8d6e63, roughness: 0.9 });
+                for (let i = 0; i < 2; i++) {
+                    const post = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.0, 0.15), postMat);
+                    post.position.set(x + i * 0.7, baseY + 0.5, z);
+                    post.userData.mapGenerated = true;
+                    post.userData.physicsType = 'STATIC';
+                    this.scene.add(post);
+                    this.addColliderBox(new THREE.Vector3(x + i * 0.7, baseY + 0.5, z), 0.15, 1.0, 0.15, false);
+                    const postZ = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.0, 0.15), postMat);
+                    postZ.position.set(x, baseY + 0.5, z + i * 0.7);
+                    postZ.userData.mapGenerated = true;
+                    postZ.userData.physicsType = 'STATIC';
+                    this.scene.add(postZ);
+                    this.addColliderBox(new THREE.Vector3(x, baseY + 0.5, z + i * 0.7), 0.15, 1.0, 0.15, false);
+                }
+                break;
+            }
+            case 'pallet_stack': {
+                const palletMat = new THREE.MeshStandardMaterial({ color: 0xd7ccc8, roughness: 0.85 });
+                const numStacks = 2 + Math.floor(this._rand() * 2);
+                for (let i = 0; i < numStacks; i++) {
+                    const pallet = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.12, 0.8), palletMat);
+                    pallet.position.set(x, baseY + 0.06 + i * 0.14, z);
+                    pallet.userData.mapGenerated = true;
+                    pallet.userData.physicsType = 'STATIC';
+                    this.scene.add(pallet);
+                    this.addColliderBox(new THREE.Vector3(x, baseY + 0.06 + i * 0.14, z), 1.2, 0.12, 0.8, false);
+                }
+                if (this._rand() > 0.3) {
+                    const crate = new THREE.Mesh(
+                        new THREE.BoxGeometry(0.5, 0.5, 0.5),
+                        new THREE.MeshStandardMaterial({ color: 0xa1887f, roughness: 0.9 })
+                    );
+                    crate.position.set(x, baseY + 0.14 * numStacks + 0.25, z);
+                    crate.userData.mapGenerated = true;
+                    crate.userData.physicsType = 'STATIC';
+                    this.scene.add(crate);
+                    this.addColliderBox(new THREE.Vector3(x, baseY + 0.14 * numStacks + 0.25, z), 0.5, 0.5, 0.5, false);
+                }
+                break;
+            }
+            case 'tire_stack': {
+                const tireMat = new THREE.MeshStandardMaterial({ color: 0x424242, roughness: 0.9 });
+                const numTires = 3 + Math.floor(this._rand() * 2);
+                for (let i = 0; i < numTires; i++) {
+                    const tire = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.35, 0.5), tireMat);
+                    if (i % 2 === 0) {
+                        tire.position.set(x, baseY + 0.175 + i * 0.37, z);
+                    } else {
+                        tire.rotation.y = Math.PI / 2;
+                        tire.position.set(x, baseY + 0.175 + i * 0.37, z);
+                    }
+                    tire.userData.mapGenerated = true;
+                    tire.userData.physicsType = 'STATIC';
+                    this.scene.add(tire);
+                    this.addColliderBox(new THREE.Vector3(x, baseY + 0.175 + i * 0.37, z), 0.5, 0.35, 0.5, false);
+                }
+                break;
+            }
+        }
+    }
+
     // Build walls with window/door openings
     _buildWall(cx, cz, w, d, h, wallThickness, template, wallMat, buildingY, sectorId) {
         const wallH = h;
