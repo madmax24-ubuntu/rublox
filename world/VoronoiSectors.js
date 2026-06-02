@@ -130,47 +130,63 @@ export class VoronoiSectors {
         return this._randState / 0x100000000;
     }
 
-    generate(count = 8) {
-        const radius = 250; // Working radius for sector placement
-        const minDist = 55; // Minimum distance between sector centers
+    generate(count = 12) {
+        const cols = 3;
+        const rows = 4;
+        const sectorW = this.size / cols;
+        const sectorH = this.size / rows;
 
-        // Poisson disk sample seed points
-        const seeds = poissonDiskSample(0, 0, radius, minDist, this._rand.bind(this));
+        // Biome pattern for logical groupings
+        const biomePattern = [
+            ['forest', 'forest', 'mountain'],
+            ['plains', 'plains', 'desert'],
+            ['industrial', 'ruins', 'swamp'],
+            ['snow', 'forest', 'plains']
+        ];
 
-        // Assign sectors to seeds
         this.sectors = [];
-        for (let i = 0; i < Math.min(count, seeds.length); i++) {
-            const def = SECTOR_DEFS[i % SECTOR_DEFS.length];
-            const seed = seeds[i];
-            const hull = convexHull(seeds); // Simplified: use all seeds for bounding
+        this.sectorBounds = [];
 
-            // Bounding box for this sector
-            const bounds = this._computeSectorBounds(seed, seeds);
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                const biomeName = biomePattern[r]?.[c] || 'forest';
+                // Find SECTOR_DEFS entry matching this biome
+                const def = SECTOR_DEFS.find(d => d.biome === biomeName) || SECTOR_DEFS[0];
 
-            this.sectors.push({
-                id: def.id,
-                name: def.name,
-                biome: def.biome,
-                center: { x: seed.x, z: seed.z },
-                seedPoint: seed,
-                bounds,
-                terrainColor: def.terrainColor,
-                buildingDensity: def.buildingDensity,
-                lootDensity: def.lootDensity,
-                buildingTypes: def.buildingTypes,
-                treeDensity: def.treeDensity,
-                rockDensity: def.rockDensity,
-                hull
-            });
+                const centerX = -this.halfSize + sectorW * (c + 0.5);
+                const centerZ = -this.halfSize + sectorH * (r + 0.5);
+                const radius = Math.min(sectorW, sectorH) / 2;
 
-            this.sectorBounds.push({
-                sectorId: def.id,
-                minX: bounds.minX,
-                minZ: bounds.minZ,
-                maxX: bounds.maxX,
-                maxZ: bounds.maxZ,
-                radius: bounds.radius
-            });
+                this.sectors.push({
+                    id: def.id,
+                    name: def.name,
+                    biome: biomeName,
+                    center: { x: centerX, z: centerZ },
+                    bounds: {
+                        minX: -this.halfSize + sectorW * c,
+                        minZ: -this.halfSize + sectorH * r,
+                        maxX: -this.halfSize + sectorW * (c + 1),
+                        maxZ: -this.halfSize + sectorH * (r + 1),
+                        radius
+                    },
+                    terrainColor: def.terrainColor,
+                    buildingDensity: def.buildingDensity,
+                    lootDensity: def.lootDensity,
+                    buildingTypes: def.buildingTypes,
+                    treeDensity: def.treeDensity,
+                    rockDensity: def.rockDensity,
+                    hull: null
+                });
+
+                this.sectorBounds.push({
+                    sectorId: def.id,
+                    minX: -this.halfSize + sectorW * c,
+                    minZ: -this.halfSize + sectorH * r,
+                    maxX: -this.halfSize + sectorW * (c + 1),
+                    maxZ: -this.halfSize + sectorH * (r + 1),
+                    radius
+                });
+            }
         }
 
         return this.sectors;
