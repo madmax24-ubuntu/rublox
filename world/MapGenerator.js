@@ -13,12 +13,12 @@ export class MapGenerator {
         this.scene = scene;
         this.seed = 42;
 
-        // Coordinate system
+        // Coordinate system — 512x512 map
         this.tileSize = 4;
-        this.gridWidth = 151;
-        this.gridHeight = 151;
-        this.size = this.gridWidth * this.tileSize; // 604
-        this.halfSize = this.size / 2; // 302
+        this.gridWidth = 128;
+        this.gridHeight = 128;
+        this.size = this.gridWidth * this.tileSize; // 512
+        this.halfSize = this.size / 2; // 256
 
         // Data
         this.colliders = [];
