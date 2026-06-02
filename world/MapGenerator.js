@@ -807,36 +807,46 @@ export class MapGenerator {
     }
 
     // ========================================================================
-    // ENVIRONMENT PROPS (Phase 5) — Trees, rocks, fences
+    // ENVIRONMENT PROPS (Phase 5) — Trees, bushes, grass, rocks, props
     // ========================================================================
     _generateEnvironment() {
-        // Trees per sector
         for (const sector of this.voronoi.sectors) {
-            const numTrees = Math.floor(sector.treeDensity * 30);
-            const radius = sector.bounds.radius || 50;
+            const radius = sector.bounds.radius || 64;
             const cx = sector.center.x;
             const cz = sector.center.z;
 
+            // --- Trees: 60-120 per sector ---
+            const numTrees = 60 + Math.floor(sector.treeDensity * 100);
             for (let i = 0; i < numTrees; i++) {
                 const angle = this._rand() * Math.PI * 2;
-                const dist = 15 + this._rand() * radius * 0.7;
+                const dist = 10 + this._rand() * radius * 0.85;
                 const tx = cx + Math.cos(angle) * dist;
                 const tz = cz + Math.sin(angle) * dist;
-
-                // Check distance from buildings
-                let tooClose = false;
-                for (const pad of this.spawnPads) {
-                    const dx = tx - pad.x;
-                    const dz = tz - pad.z;
-                    if (dx * dx + dz * dz < 8) { tooClose = true; break; }
-                }
-                if (tooClose) continue;
-
                 this._addTree(tx, tz, sector);
             }
 
-            // Rocks
-            const numRocks = Math.floor(sector.rockDensity * 15);
+            // --- Bushes: 15-25 per sector ---
+            const numBushes = 15 + Math.floor(sector.buildingDensity * 10);
+            for (let i = 0; i < numBushes; i++) {
+                const angle = this._rand() * Math.PI * 2;
+                const dist = 5 + this._rand() * radius * 0.7;
+                const bx = cx + Math.cos(angle) * dist;
+                const bz = cz + Math.sin(angle) * dist;
+                this._addBush(bx, bz);
+            }
+
+            // --- Grass patches: 20-35 per sector ---
+            const numGrass = 20 + Math.floor(sector.buildingDensity * 15);
+            for (let i = 0; i < numGrass; i++) {
+                const angle = this._rand() * Math.PI * 2;
+                const dist = 5 + this._rand() * radius * 0.8;
+                const gx = cx + Math.cos(angle) * dist;
+                const gz = cz + Math.sin(angle) * dist;
+                this._addGrassPatch(gx, gz);
+            }
+
+            // --- Rocks: 15-30 per sector ---
+            const numRocks = Math.floor(15 + sector.rockDensity * 15);
             for (let i = 0; i < numRocks; i++) {
                 const angle = this._rand() * Math.PI * 2;
                 const dist = 10 + this._rand() * radius * 0.6;
@@ -851,15 +861,21 @@ export class MapGenerator {
                 const rock = new THREE.Mesh(geo, mat);
                 const baseY = this.getHeightAt(rx, rz);
                 rock.position.set(rx, baseY + size / 6, rz);
-                rock.rotation.set(this._rand() * Math.PI, this._rand() * Math.PI, this._rand() * Math.PI);
+                rock.rotation.set(
+                    this._rand() * Math.PI,
+                    this._rand() * Math.PI,
+                    this._rand() * Math.PI
+                );
                 rock.userData.mapGenerated = true;
                 rock.userData.physicsType = 'STATIC';
                 this.scene.add(rock);
-                this.addColliderBox(rock.position.clone(), size, size, size, false, true, false, 'CONVEX_HULL');
+                this.addColliderBox(
+                    rock.position.clone(), size, size, size, false, true, false, 'CONVEX_HULL'
+                );
             }
 
-            // Scattered barrels and crates
-            const numProps = Math.floor(5 + sector.buildingDensity * 5);
+            // --- Scattered props: 8-15 per sector ---
+            const numProps = Math.floor(8 + sector.buildingDensity * 7);
             for (let i = 0; i < numProps; i++) {
                 const angle = this._rand() * Math.PI * 2;
                 const dist = 8 + this._rand() * radius * 0.5;
@@ -868,7 +884,6 @@ export class MapGenerator {
                 const baseY = this.getHeightAt(px, pz);
 
                 if (this._rand() < 0.5) {
-                    // Barrel
                     const bGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.8, 8);
                     const bMat = new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.9 });
                     const barrel = new THREE.Mesh(bGeo, bMat);
@@ -878,7 +893,6 @@ export class MapGenerator {
                     this.scene.add(barrel);
                     this.addColliderBox(barrel.position.clone(), 0.8, 0.8, 0.8, false);
                 } else {
-                    // Crate
                     const s = 0.4 + this._rand() * 0.4;
                     const cGeo = new THREE.BoxGeometry(s, s, s);
                     const cMat = new THREE.MeshStandardMaterial({ color: 0xa1887f, roughness: 0.9, flatShading: true });
@@ -900,8 +914,7 @@ export class MapGenerator {
         const baseY = this.getHeightAt(x, z);
 
         const trunkGeo = new THREE.CylinderGeometry(trunkR * 0.6, trunkR, trunkH, 6);
-        const trunkColor = 0x5d4037;
-        const trunkMat = new THREE.MeshStandardMaterial({ color: trunkColor, roughness: 0.9 });
+        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.9 });
         const trunk = new THREE.Mesh(trunkGeo, trunkMat);
         trunk.position.set(x, baseY + trunkH / 2, z);
         trunk.userData.mapGenerated = true;
@@ -909,7 +922,6 @@ export class MapGenerator {
         this.scene.add(trunk);
         this.addColliderBox(trunk.position.clone(), trunkR * 2, trunkH, trunkR * 2, false);
 
-        // Crown
         const crownGeo = new THREE.DodecahedronGeometry(crownR, 0);
         const crownColor = sector.terrainColor || 0x2e7d32;
         const crownMat = new THREE.MeshStandardMaterial({ color: crownColor, roughness: 0.95, flatShading: true });
@@ -917,6 +929,39 @@ export class MapGenerator {
         crown.position.set(x, baseY + trunkH + crownR * 0.5, z);
         crown.userData.mapGenerated = true;
         this.scene.add(crown);
+    }
+
+    _addBush(x, z) {
+        const baseY = this.getHeightAt(x, z);
+        const size = 0.4 + this._rand() * 0.6;
+        const geo = new THREE.IcosahedronGeometry(size, 0);
+        const color = 0x2e7d32 + Math.floor(this._rand() * 0x1a1a1a - 0xa0a0a0);
+        const mat = new THREE.MeshStandardMaterial({
+            color: color, roughness: 0.95, flatShading: true
+        });
+        const bush = new THREE.Mesh(geo, mat);
+        bush.position.set(x, baseY + size * 0.6, z);
+        bush.userData.mapGenerated = true;
+        bush.userData.physicsType = 'STATIC';
+        this.scene.add(bush);
+        this.addColliderBox(
+            new THREE.Vector3(x, baseY + size * 0.6, z),
+            size * 2, size * 1.2, size * 2, false
+        );
+    }
+
+    _addGrassPatch(x, z) {
+        const baseY = this.getHeightAt(x, z);
+        const w = 1 + this._rand() * 2;
+        const d = 1 + this._rand() * 2;
+        const geo = new THREE.BoxGeometry(w, 0.08, d);
+        const mat = new THREE.MeshStandardMaterial({
+            color: 0x4caf50, roughness: 1.0, flatShading: true, transparent: true, opacity: 0.9
+        });
+        const patch = new THREE.Mesh(geo, mat);
+        patch.position.set(x, baseY + 0.04, z);
+        patch.userData.mapGenerated = true;
+        this.scene.add(patch);
     }
 
     // ========================================================================
