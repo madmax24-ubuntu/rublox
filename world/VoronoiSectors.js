@@ -1,23 +1,23 @@
 import * as THREE from "three";
 
-// Sector definitions for the 8 biomes
+// Sector definitions for the survival map biomes
 export const SECTOR_DEFS = [
-    { id: 0, name: "Forest", biome: "forest", terrainColor: 0x2e7d32, buildingDensity: 0.7, lootDensity: 0.8,
-      buildingTypes: ["log_cabin", "hunting_lodge", "watchtower"], treeDensity: 0.8, rockDensity: 0.3 },
-    { id: 1, name: "Swamp", biome: "swamp", terrainColor: 0x2f6b4f, buildingDensity: 0.4, lootDensity: 0.6,
-      buildingTypes: ["stilt_house", "swamp_shack", "observation_deck"], treeDensity: 0.5, rockDensity: 0.4 },
-    { id: 2, name: "Desert", biome: "desert", terrainColor: 0xc2b280, buildingDensity: 0.5, lootDensity: 0.7,
-      buildingTypes: ["mud_hut", "desert_outpost", "sand_fort"], treeDensity: 0.1, rockDensity: 0.6 },
-    { id: 3, name: "Snow", biome: "snow", terrainColor: 0xe8e8e8, buildingDensity: 0.35, lootDensity: 0.65,
-      buildingTypes: ["igloo", "snow_shelter", "mountain_cache"], treeDensity: 0.05, rockDensity: 0.5 },
-    { id: 4, name: "Industrial", biome: "industrial", terrainColor: 0x666666, buildingDensity: 0.8, lootDensity: 0.9,
-      buildingTypes: ["warehouse", "factory", "storage_unit"], treeDensity: 0.05, rockDensity: 0.2 },
-    { id: 5, name: "Ruins", biome: "ruins", terrainColor: 0x8b7355, buildingDensity: 0.6, lootDensity: 0.85,
-      buildingTypes: ["ruined_house", "ancient_temple", "crumbling_walls"], treeDensity: 0.2, rockDensity: 0.4 },
-    { id: 6, name: "Mountain", biome: "mountain", terrainColor: 0x7d7d7d, buildingDensity: 0.45, lootDensity: 0.75,
-      buildingTypes: ["mountain_lodge", "cliff_shelter", "supply_drop"], treeDensity: 0.1, rockDensity: 0.7 },
-    { id: 7, name: "Plain", biome: "plains", terrainColor: 0x4a7c3f, buildingDensity: 0.75, lootDensity: 0.7,
-      buildingTypes: ["farmhouse", "barn", "silo"], treeDensity: 0.3, rockDensity: 0.2 }
+    { id: 0, name: "Forest", biome: "forest", terrainColor: 0x2e7d32, buildingDensity: 0.85, lootDensity: 0.8,
+      buildingTypes: ["big_house", "hunting_lodge", "watchtower", "farm_barn"], treeDensity: 0.9, rockDensity: 0.3 },
+    { id: 1, name: "Swamp", biome: "swamp", terrainColor: 0x2f6b4f, buildingDensity: 0.6, lootDensity: 0.6,
+      buildingTypes: ["stilt_house", "swamp_shack", "fortified_outpost"], treeDensity: 0.4, rockDensity: 0.5 },
+    { id: 2, name: "Desert", biome: "desert", terrainColor: 0xc2b280, buildingDensity: 0.7, lootDensity: 0.7,
+      buildingTypes: ["mud_hut", "desert_outpost", "fortified_outpost", "farm_barn"], treeDensity: 0.05, rockDensity: 0.7 },
+    { id: 3, name: "Snow", biome: "snow", terrainColor: 0xe8e8e8, buildingDensity: 0.55, lootDensity: 0.65,
+      buildingTypes: ["igloo", "snow_shelter", "mountain_cache"], treeDensity: 0.15, rockDensity: 0.6 },
+    { id: 4, name: "Industrial", biome: "industrial", terrainColor: 0x666666, buildingDensity: 0.95, lootDensity: 0.9,
+      buildingTypes: ["warehouse", "factory", "storage_unit", "hangar", "industrial_shed", "warehouse_large", "ruined_factory"], treeDensity: 0.05, rockDensity: 0.2 },
+    { id: 5, name: "Ruins", biome: "ruins", terrainColor: 0x8b7355, buildingDensity: 0.75, lootDensity: 0.85,
+      buildingTypes: ["ruined_house", "ancient_temple", "fortified_outpost", "barracks", "ruined_factory"], treeDensity: 0.15, rockDensity: 0.5 },
+    { id: 6, name: "Mountain", biome: "mountain", terrainColor: 0x7d7d7d, buildingDensity: 0.65, lootDensity: 0.75,
+      buildingTypes: ["mountain_lodge", "barracks", "big_house"], treeDensity: 0.1, rockDensity: 0.8 },
+    { id: 7, name: "Plain", biome: "plains", terrainColor: 0x4a7c3f, buildingDensity: 0.8, lootDensity: 0.7,
+      buildingTypes: ["farmhouse", "barn", "silo", "big_house", "farm_barn"], treeDensity: 0.5, rockDensity: 0.3 }
 ];
 
 // Poisson disk sampling for sector seed points
