@@ -1983,6 +1983,7 @@ class Game {
         this.map?.activateTrapsNearEntity?.(this.player);
         this.syncCameraToPlayer();
         this.map.update?.(delta, this.player.position);
+        this.tileMapGenerator?.update?.(delta);
         this.updateRadiationRainEffect(delta);
         this.updateWeatherRainEffect(delta);
         this.propVisibilityTimer -= delta;
