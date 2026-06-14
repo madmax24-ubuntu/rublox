@@ -429,6 +429,10 @@ class Game {
         await mapReady;
         clearTimeout(timeoutId);
 
+        // Центральный спавн (Roblox-style)
+                this.tileMapGenerator = new MapGeneratorNode(this.scene);
+        this.tileMapGenerator.init();
+
         // Performance: setup LOD and frustum culling
         this.map.setupLOD?.(this.isMobile());
         this.map.enableOptimizedCulling?.();
