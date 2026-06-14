@@ -1065,6 +1065,22 @@ export class MapGenerator {
         return { x: 0, z: 0 };
     }
 
+    getTraps() {
+        return [];
+    }
+
+    getOneWayGates() {
+        return [];
+    }
+
+    getStoryNotes() {
+        return [];
+    }
+
+    getFogZones() {
+        return [];
+    }
+
     // --- Debug helper ---
     enableDebug() {
         if (!this.debugOverlay) {
