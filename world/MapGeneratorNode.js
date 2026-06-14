@@ -1,381 +1,305 @@
-// Procedural map generator for a Roblox-like grid-based game.
-// Node.js / ES6 module, no external dependencies.
+// Roblox-style tile textures
+const TILE_SIZE = 4;
 
-export class MapGenerator {
-    constructor() {
-        this.seed = 1;
-        this.rng = null;
-        this.biomeNames = [
-            'forest',
-            'jungle',
-            'plains',
-            'savanna',
-            'swamp',
-            'taiga',
-            'rock',
-            'mesa',
-            'sand',
-            'snow',
-            'ice',
-            'lava',
-            'tundra',
-            'redwood',
-            'badlands',
-            'volcanic',
-            'mushroom'
-        ];
-        const step = 1 / this.biomeNames.length;
-        this.biomes = this.biomeNames.map((name, idx) => ({
-            name,
-            max: Math.min(1, (idx + 1) * step)
-        }));
+// Центральный спавн
+const SPAWN_PLATFORM_RADIUS = 32;
+const SPAWN_PLATFORM_COUNT = 50;
+const SPAWN_PLATFORM_SIZE = 5;
+
+// Дороги
+const ROAD_WIDTH = 6;
+const ROAD_NORTH_OFFSET = 16;
+const ROAD_SOUTH_OFFSET = 32;
+const ROAD_WEST_OFFSET = 16;
+const ROAD_EAST_OFFSET = 32;
+
+// Материалы
+const TILE_COLORS = {
+    spawnPlatform: 0xC2B280,      // Бежевый камень
+    roadDirt: 0x8B7355,           // Земля (север, запад)
+    roadStone: 0x757575,          // Серый камень (юг, восток)
+    fountain: 0x4DA6FF,           // Синяя кристальная вода
+    fountainColumn: 0xFFD700,     // Золотой столб
+    fountainBase: 0xB8A888        // Бежевая база
+};
+
+// Треугольные узоры
+const TRIANGLE_COLOR = 0xFF4500; // Огненно-красный
+const TRIANGLE_COUNT = 36;
+
+export class MapGeneratorNode {
+    constructor(scene) {
+        this.scene = scene;
+        this.tiles = new Map(); // key: "x,y" -> tileMesh
     }
 
-    // Linear Congruential Generator (LCG) for repeatable randomness.
-    initRng(seed) {
-        this.seed = (seed >>> 0) || 1;
-        let state = this.seed;
-        this.rng = () => {
-            // LCG parameters (Numerical Recipes)
-            state = (state * 1664525 + 1013904223) >>> 0;
-            return state / 0x100000000;
-        };
-        this.shuffleBiomes();
-        this.tempScale = 28 + this.rand() * 24;
-        this.moistScale = 28 + this.rand() * 24;
-        this.detailScale = 9 + this.rand() * 7;
-        this.microScale = 5 + this.rand() * 4;
-        this.microBiomeChance = 0.18 + this.rand() * 0.12;
+    // Загрузка текстуры тайла
+    loadTexture(type) {
+        // Для Roblox-style используем процедурные материалы
+        return null; // Пока без текстур, используем цвета
     }
 
-    rand() {
-        return this.rng ? this.rng() : Math.random();
+    // Загрузка модели тайла
+    loadModel(type, position) {
+        // Пока без моделей, используем примитивы
+        return null;
     }
 
-    // Deterministic hash for biome noise.
-    biomeNoise(x, y) {
-        let h = (x * 374761393 + y * 668265263 + this.seed * 1442695041) >>> 0;
-        h ^= h >>> 13;
-        h = Math.imul(h, 1274126177) >>> 0;
-        h ^= h >>> 16;
-        return h / 0x100000000;
+    // Создать бежевый каменный тайл
+    createStoneTile(color) {
+        const geometry = new THREE.BoxGeometry(TILE_SIZE, 0.2, TILE_SIZE);
+        const material = new THREE.MeshStandardMaterial({
+            color: color,
+            roughness: 0.8,
+            flatShading: true
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.y = 0.1;
+        mesh.castShadow = false;
+        mesh.receiveShadow = false;
+        mesh.frustumCulled = false;
+        return mesh;
     }
 
-    clamp01(value) {
-        return Math.min(1, Math.max(0, value));
+    // Создать треугольный узор
+    createTriangle(x, y, z) {
+        const geometry = new THREE.ConeGeometry(0.3, 0.6, 3);
+        const material = new THREE.MeshStandardMaterial({
+            color: TRIANGLE_COLOR,
+            emissive: 0x8B0000,
+            emissiveIntensity: 0.3,
+            roughness: 0.6,
+            metalness: 0.3,
+            flatShading: true
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.set(x + TILE_SIZE / 2 - 0.15, 0.3, y + TILE_SIZE / 2 - 0.15);
+        mesh.rotation.x = Math.PI / 2;
+        mesh.castShadow = false;
+        mesh.receiveShadow = false;
+        mesh.frustumCulled = false;
+        return mesh;
     }
 
-    getClimate(x, y) {
-        const t1 = this.biomeNoise(x / this.tempScale, y / this.tempScale);
-        const t2 = this.biomeNoise(x / this.detailScale + 19.2, y / this.detailScale - 11.3);
-        const m1 = this.biomeNoise(x / this.moistScale + 51.4, y / this.moistScale + 7.7);
-        const m2 = this.biomeNoise(x / this.microScale - 33.1, y / this.microScale + 41.8);
-        const temp = this.clamp01(t1 * 0.72 + t2 * 0.28);
-        const moist = this.clamp01(m1 * 0.7 + m2 * 0.3);
-        return { temp, moist };
+    // Создать спавн-платформу
+    createSpawnPlatform(x, y) {
+        const platform = new THREE.Group();
+        const size = SPAWN_PLATFORM_SIZE;
+
+        // Основание
+        const baseGeometry = new THREE.BoxGeometry(size, 0.1, size);
+        const baseMaterial = new THREE.MeshStandardMaterial({
+            color: TILE_COLORS.spawnPlatform,
+            roughness: 0.8,
+            flatShading: true
+        });
+        const base = new THREE.Mesh(baseGeometry, baseMaterial);
+        base.position.y = 0.05;
+        platform.add(base);
+
+        // Круглая платформа сверху
+        const ringGeometry = new THREE.TorusGeometry(size / 2 - 0.3, 0.08, 8, 24);
+        const ringMaterial = new THREE.MeshStandardMaterial({
+            color: TILE_COLORS.spawnPlatform,
+            roughness: 0.8,
+            flatShading: true
+        });
+        const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+        ring.rotation.x = Math.PI / 2;
+        ring.position.y = 0.35;
+        platform.add(ring);
+
+        // Центральный круг
+        const centerGeometry = new THREE.CircleGeometry(size / 2 - 0.5, 12);
+        const centerMaterial = new THREE.MeshStandardMaterial({
+            color: 0xD2B48C, // Светло-бежевый
+            roughness: 0.8,
+            flatShading: true
+        });
+        const center = new THREE.Mesh(centerGeometry, centerMaterial);
+        center.rotation.x = Math.PI / 2;
+        center.position.y = 0.35;
+        platform.add(center);
+
+        // Позиция
+        platform.position.set(x, 0, y);
+        platform.userData.isSpawnPlatform = true;
+
+        this.scene.add(platform);
+        return platform;
     }
 
-    pickBiomeFromClimate(temp, moist) {
-        if (moist > 0.88 && temp > 0.35 && temp < 0.75) return 'mushroom';
-        if (temp < 0.16) return moist < 0.45 ? 'ice' : 'snow';
-        if (temp < 0.28) return moist < 0.35 ? 'tundra' : 'taiga';
-        if (temp < 0.42) {
-            if (moist < 0.2) return 'rock';
-            if (moist < 0.55) return 'forest';
-            return 'swamp';
-        }
-        if (temp < 0.58) {
-            if (moist < 0.22) return 'plains';
-            if (moist < 0.52) return 'forest';
-            return 'jungle';
-        }
-        if (temp < 0.7) {
-            if (moist < 0.25) return 'savanna';
-            if (moist < 0.55) return 'redwood';
-            return 'jungle';
-        }
-        if (temp < 0.82) {
-            if (moist < 0.22) return 'sand';
-            if (moist < 0.5) return 'mesa';
-            return 'badlands';
-        }
-        if (temp < 0.92) {
-            if (moist < 0.4) return 'volcanic';
-            return 'mesa';
-        }
-        return moist < 0.6 ? 'lava' : 'volcanic';
+    // Создать фонтан
+    createFountain() {
+        const fountain = new THREE.Group();
+
+        // База
+        const baseGeometry = new THREE.CylinderGeometry(4, 4, 0.3, 12);
+        const baseMaterial = new THREE.MeshStandardMaterial({
+            color: TILE_COLORS.fountainBase,
+            roughness: 0.8,
+            flatShading: true
+        });
+        const base = new THREE.Mesh(baseGeometry, baseMaterial);
+        base.position.y = 0.15;
+        fountain.add(base);
+
+        // Столб
+        const columnGeometry = new THREE.CylinderGeometry(0.8, 0.8, 8, 12);
+        const columnMaterial = new THREE.MeshStandardMaterial({
+            color: TILE_COLORS.fountainColumn,
+            emissive: 0xFFD700,
+            emissiveIntensity: 0.2,
+            roughness: 0.6,
+            metalness: 0.4,
+            flatShading: true
+        });
+        const column = new THREE.Mesh(columnGeometry, columnMaterial);
+        column.position.y = 4.15;
+        fountain.add(column);
+
+        // Водная чаша
+        const basinGeometry = new THREE.CylinderGeometry(3.5, 3.5, 0.5, 16);
+        const basinMaterial = new THREE.MeshStandardMaterial({
+            color: 0x4DA6FF,
+            emissive: 0x4DA6FF,
+            emissiveIntensity: 0.3,
+            roughness: 0.3,
+            metalness: 0.5,
+            flatShading: true
+        });
+        const basin = new THREE.Mesh(basinGeometry, basinMaterial);
+        basin.position.y = 8.3;
+        fountain.add(basin);
+
+        // Анимация воды
+        fountain.userData.animateWater = true;
+        fountain.userData.waterTime = 0;
+
+        fountain.position.set(0, 0, 0);
+        fountain.userData.isFountain = true;
+
+        this.scene.add(fountain);
+        return fountain;
     }
 
-    pickBiome(x, y) {
-        const climate = this.getClimate(x, y);
-        let biome = this.pickBiomeFromClimate(climate.temp, climate.moist);
-        if (this.biomeGrid && this.biomeCellSize && this.rand() < this.microBiomeChance) {
-            const cx = Math.floor(x / this.biomeCellSize);
-            const cy = Math.floor(y / this.biomeCellSize);
-            const row = this.biomeGrid[cy];
-            if (row && row[cx]) biome = row[cx];
-        }
-        return biome;
-    }
+    // Создать дорожку
+    createRoad(x1, y1, x2, y2, roadType) {
+        const dx = Math.abs(x2 - x1);
+        const dy = Math.abs(y2 - y1);
+        const steps = Math.max(dx, dy);
+        const sx = (x2 - x1) / steps;
+        const sy = (y2 - y1) / steps;
 
-    shuffleBiomes() {
-        // Shuffle biome thresholds per seed to keep variety while staying deterministic.
-        const names = [...this.biomeNames];
-        for (let i = names.length - 1; i > 0; i--) {
-            const j = Math.floor(this.rand() * (i + 1));
-            [names[i], names[j]] = [names[j], names[i]];
-        }
-        const step = 1 / names.length;
-        this.biomes = names.map((name, idx) => ({
-            name,
-            max: Math.min(1, (idx + 1) * step)
-        }));
-    }
+        const isDirt = roadType === 'n' || roadType === 'w';
 
-    // Generate a map with caves/glades using cellular automata.
-    generate(width, height, seed = 1) {
-        this.initRng(seed);
-        const w = Math.max(16, Math.floor(width));
-        const h = Math.max(16, Math.floor(height));
-        const biomeCellSize = 12 + Math.floor(this.rand() * 14);
-        this.biomeGrid = this.buildBiomeGrid(w, h, biomeCellSize);
-        this.biomeCellSize = biomeCellSize;
+        for (let i = 0; i <= steps; i++) {
+            const x = x1 + sx * i;
+            const y = y1 + sy * i;
 
-        // 0 = floor, 1 = wall
-        let grid = Array.from({ length: h }, () => Array(w).fill(1));
+            // Округляем до тайлов
+            const tx = Math.floor(x + 0.5);
+            const ty = Math.floor(y + 0.5);
+            const key = `${tx},${ty}`;
 
-        // Initial noise carve (keep borders as walls).
-        for (let y = 1; y < h - 1; y++) {
-            for (let x = 1; x < w - 1; x++) {
-                const biome = this.pickBiome(x, y);
-                const base = biome === 'forest' ? 0.46
-                    : biome === 'jungle' ? 0.45
-                    : biome === 'plains' ? 0.4
-                    : biome === 'savanna' ? 0.38
-                    : biome === 'swamp' ? 0.47
-                    : biome === 'taiga' ? 0.44
-                    : biome === 'rock' ? 0.52
-                    : biome === 'mesa' ? 0.45
-                    : biome === 'snow' ? 0.45
-                    : biome === 'ice' ? 0.44
-                    : biome === 'sand' ? 0.34
-                    : biome === 'lava' ? 0.56
-                    : biome === 'tundra' ? 0.42
-                    : biome === 'redwood' ? 0.46
-                    : biome === 'badlands' ? 0.48
-                    : biome === 'volcanic' ? 0.55
-                    : biome === 'mushroom' ? 0.43
-                        : 0.42;
-                const noise = this.biomeNoise(x * 2, y * 2) - 0.5;
-                const threshold = Math.min(0.68, Math.max(0.28, base + noise * 0.25));
-                grid[y][x] = this.rand() < threshold ? 1 : 0;
-            }
-        }
-
-        // Cellular automata smoothing.
-        const iterations = 4 + Math.floor(this.rand() * 3);
-        for (let i = 0; i < iterations; i++) {
-            grid = this.smoothGrid(grid, w, h);
-        }
-
-        // Carve a few glades for variety.
-        const gladeCount = 4 + Math.floor(this.rand() * 4);
-        for (let g = 0; g < gladeCount; g++) {
-            const cx = 8 + Math.floor(this.rand() * (w - 16));
-            const cy = 8 + Math.floor(this.rand() * (h - 16));
-            const radius = 4 + Math.floor(this.rand() * 6);
-            this.clearRadius(grid, w, h, cx, cy, radius);
-        }
-
-        // Ensure a safe spawn area in the center.
-        const spawn = { x: Math.floor(w / 2), y: Math.floor(h / 2) };
-        const spawnRadius = 6;
-        this.clearRadius(grid, w, h, spawn.x, spawn.y, spawnRadius);
-        this.carveMainCorridors(grid, w, h, spawn);
-
-        // Convert to tile objects and place props.
-        const tiles = [];
-        const enemySpawns = [];
-        const floorTiles = [];
-        for (let y = 0; y < h; y++) {
-            const row = [];
-            for (let x = 0; x < w; x++) {
-                const isWall = grid[y][x] === 1;
-                const biome = !isWall ? this.pickBiome(x, y) : null;
-                const tile = {
-                    x,
-                    y,
-                    type: isWall ? 'wall' : 'floor',
-                    rot: 0,
-                    biome
-                };
-
-                if (!isWall) {
-                    floorTiles.push(tile);
-                    const dx = x - spawn.x;
-                    const dy = y - spawn.y;
-                    const inSpawn = Math.sqrt(dx * dx + dy * dy) <= spawnRadius;
-                    if (!inSpawn) {
-                        const roll = this.rand();
-                        const baseBiome = this.getBaseBiome(biome);
-                        if (baseBiome === 'forest') {
-                            if (roll < 0.13) tile.prop = 'tree';
-                        } else if (baseBiome === 'jungle') {
-                            if (roll < 0.13) tile.prop = 'jungleTree';
-                        } else if (baseBiome === 'rock') {
-                            if (roll < 0.08) tile.prop = 'enemySpawn';
-                        } else if (baseBiome === 'snow') {
-                            if (roll < 0.13) tile.prop = 'ice';
-                        } else if (baseBiome === 'sand') {
-                            if (roll < 0.13) tile.prop = 'cactus';
-                        } else if (baseBiome === 'plains') {
-                            if (roll < 0.1) tile.prop = 'tree';
-                        }
-
-                        if (!tile.prop) {
-                            if (roll < 0.05) tile.prop = 'crate';
-                        }
-
-                        if (!tile.prop && roll < 0.105) {
-                            tile.prop = 'enemySpawn';
-                            enemySpawns.push({ x, y });
-                        }
-                    }
-                }
-
-                row.push(tile);
-            }
-            tiles.push(row);
-        }
-
-        return {
-            width: w,
-            height: h,
-            seed: this.seed,
-            playerSpawn: spawn,
-            enemySpawns,
-            grid: tiles
-        };
-    }
-
-    // Count wall neighbors around a cell.
-    countWalls(grid, w, h, x, y) {
-        let count = 0;
-        for (let dy = -1; dy <= 1; dy++) {
-            for (let dx = -1; dx <= 1; dx++) {
-                if (dx === 0 && dy === 0) continue;
-                const nx = x + dx;
-                const ny = y + dy;
-                if (nx < 0 || ny < 0 || nx >= w || ny >= h) {
-                    count++;
-                } else if (grid[ny][nx] === 1) {
-                    count++;
-                }
-            }
-        }
-        return count;
-    }
-
-    smoothGrid(grid, w, h) {
-        const next = Array.from({ length: h }, () => Array(w).fill(1));
-        for (let y = 0; y < h; y++) {
-            for (let x = 0; x < w; x++) {
-                const walls = this.countWalls(grid, w, h, x, y);
-                if (walls > 4) next[y][x] = 1;
-                else if (walls < 4) next[y][x] = 0;
-                else next[y][x] = grid[y][x];
-            }
-        }
-        return next;
-    }
-
-    clearRadius(grid, w, h, cx, cy, r) {
-        for (let y = -r; y <= r; y++) {
-            for (let x = -r; x <= r; x++) {
-                const nx = cx + x;
-                const ny = cy + y;
-                if (nx < 1 || ny < 1 || nx >= w - 1 || ny >= h - 1) continue;
-                grid[ny][nx] = 0;
+            if (!this.tiles.has(key)) {
+                const color = isDirt ? TILE_COLORS.roadDirt : TILE_COLORS.roadStone;
+                const mesh = this.createStoneTile(color);
+                mesh.position.set(tx, 0, ty);
+                this.tiles.set(key, mesh);
             }
         }
     }
 
-    carveMainCorridors(grid, w, h, spawn) {
-        const dirs = [
-            { dx: 1, dy: 0 },
-            { dx: -1, dy: 0 },
-            { dx: 0, dy: 1 },
-            { dx: 0, dy: -1 }
-        ];
-        const baseLen = Math.floor(Math.min(w, h) * (0.28 + this.rand() * 0.12));
-        const thickness = 2 + Math.floor(this.rand() * 2);
-        for (const d of dirs) {
-            const len = baseLen + Math.floor(this.rand() * 8);
-            this.carveLine(grid, w, h, spawn.x, spawn.y, d.dx, d.dy, len, thickness);
+    // Заполнить спавн-платформы по кругу
+    createSpawnPlatforms() {
+        const angleStep = (2 * Math.PI) / SPAWN_PLATFORM_COUNT;
+        const radius = SPAWN_PLATFORM_RADIUS;
+
+        for (let i = 0; i < SPAWN_PLATFORM_COUNT; i++) {
+            const angle = i * angleStep;
+            const x = Math.cos(angle) * radius;
+            const y = Math.sin(angle) * radius;
+            this.createSpawnPlatform(x, y);
         }
     }
 
-    carveLine(grid, w, h, x0, y0, dx, dy, len, thickness) {
-        for (let i = 0; i < len; i++) {
-            const cx = x0 + dx * i;
-            const cy = y0 + dy * i;
-            for (let oy = -thickness; oy <= thickness; oy++) {
-                for (let ox = -thickness; ox <= thickness; ox++) {
-                    const nx = cx + ox;
-                    const ny = cy + oy;
-                    if (nx < 1 || ny < 1 || nx >= w - 1 || ny >= h - 1) continue;
-                    grid[ny][nx] = 0;
-                }
+    // Заполнить дорожки
+    createRoads() {
+        // Север (n)
+        this.createRoad(0, -ROAD_NORTH_OFFSET, 0, -ROAD_NORTH_OFFSET - 16, 'n');
+        // Юг (s)
+        this.createRoad(0, ROAD_SOUTH_OFFSET, 0, ROAD_SOUTH_OFFSET + 16, 's');
+        // Запад (w)
+        this.createRoad(-ROAD_WEST_OFFSET, 0, -ROAD_WEST_OFFSET - 16, 0, 'w');
+        // Восток (e)
+        this.createRoad(ROAD_EAST_OFFSET, 0, ROAD_EAST_OFFSET + 16, 0, 'e');
+    }
+
+    // Заполнить треугольные узоры на платформе
+    createTriangles() {
+        const centerX = 0;
+        const centerY = 0;
+        const platformRadius = 32;
+        const angleStep = (2 * Math.PI) / TRIANGLE_COUNT;
+
+        for (let i = 0; i < TRIANGLE_COUNT; i++) {
+            const angle = i * angleStep;
+            const x = Math.cos(angle) * (platformRadius - 2);
+            const y = Math.sin(angle) * (platformRadius - 2);
+            this.createTriangle(x, y, 0);
+        }
+    }
+
+    // Инициализация центра
+    init() {
+        // Заполнить дорожки
+        this.createRoads();
+
+        // Заполнить спавн-платформы
+        this.createSpawnPlatforms();
+
+        // Заполнить треугольные узоры
+        this.createTriangles();
+
+        // Заполнить фонтан
+        this.createFountain();
+    }
+
+    // Обновление анимации фонтана
+    update(delta) {
+        const fountain = this.scene.userData.fountain;
+        if (!fountain) return;
+
+        fountain.userData.waterTime += delta;
+        const waterScale = 1 + Math.sin(fountain.userData.waterTime * 3) * 0.05;
+        const basin = fountain.children[2];
+        if (basin) {
+            basin.scale.setScalar(waterScale);
+        }
+    }
+
+    // Удаление всех тайлов
+    dispose() {
+        this.tiles.forEach((mesh) => {
+            if (mesh.geometry) mesh.geometry.dispose();
+            if (mesh.material) mesh.material.dispose();
+        });
+        this.tiles.clear();
+
+        // Удалить спавн-платформы
+        this.scene.traverse((child) => {
+            if (child.userData.isSpawnPlatform) {
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) child.material.dispose();
             }
-        }
-    }
+        });
 
-    getBaseBiome(biome) {
-        if (!biome) return 'plains';
-        if (biome === 'savanna' || biome === 'plains') return 'plains';
-        if (biome === 'swamp' || biome === 'jungle') return 'jungle';
-        if (biome === 'taiga' || biome === 'forest') return 'forest';
-        if (biome === 'redwood') return 'forest';
-        if (biome === 'mesa' || biome === 'rock' || biome === 'badlands') return 'rock';
-        if (biome === 'ice' || biome === 'snow' || biome === 'tundra') return 'snow';
-        if (biome === 'sand') return 'sand';
-        if (biome === 'lava' || biome === 'volcanic') return 'lava';
-        if (biome === 'mushroom') return 'forest';
-        return 'plains';
-    }
-
-    buildBiomeGrid(w, h, cellSize) {
-        const cols = Math.ceil(w / cellSize);
-        const rows = Math.ceil(h / cellSize);
-        const grid = [];
-        for (let y = 0; y < rows; y++) {
-            const row = [];
-            for (let x = 0; x < cols; x++) {
-                const worldX = x * cellSize;
-                const worldY = y * cellSize;
-                const climate = this.getClimate(worldX, worldY);
-                row.push(this.pickBiomeFromClimate(climate.temp, climate.moist));
-            }
-            grid.push(row);
-        }
-        this.ensureBiomeVarietyGrid(grid);
-        return grid;
-    }
-
-    ensureBiomeVarietyGrid(grid) {
-        const wanted = ['jungle', 'sand', 'snow', 'rock', 'tundra', 'volcanic'];
-        const counts = {};
-        for (const row of grid) {
-            for (const biome of row) {
-                counts[biome] = (counts[biome] || 0) + 1;
-            }
-        }
-        const missing = wanted.filter(b => !counts[b]);
-        if (!missing.length) return;
-        for (const biome of missing) {
-            const y = Math.floor(this.rand() * grid.length);
-            const x = Math.floor(this.rand() * grid[0].length);
-            grid[y][x] = biome;
+        // Удалить фонтан
+        const fountain = this.scene.userData.fountain;
+        if (fountain) {
+            if (fountain.geometry) fountain.geometry.dispose();
+            if (fountain.material) fountain.material.dispose();
         }
     }
 }
