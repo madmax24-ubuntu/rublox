@@ -754,15 +754,20 @@ class Game {
     }
 
     getSafePlayerSpawn() {
-        const spawnPads = this.map?.getSpawnPads?.() || [];
-        const pad = spawnPads[0];
-        if (pad && Number.isFinite(pad.x) && Number.isFinite(pad.y) && Number.isFinite(pad.z)) {
-            const surfaceY = (pad.y ?? 1.54) || 1.54;
-            return new THREE.Vector3(pad.x, surfaceY + this.player.physics.height, pad.z);
-        }
-        const center = this.map?.getSpawnWorld?.() || { x: 0, z: 0 };
-        return new THREE.Vector3(center.x, 1.54 + this.player.physics.height, center.z);
+        // Центр карты — надёжный спавн
+        const surfaceY = 2;
+        return new THREE.Vector3(0, surfaceY + this.player.physics.height, 0);
     }
+
+    resetInvalidPlayerState() {
+        if (!this.player?.position) return;
+        const p = this.player.position;
+        const invalidPos = !Number.isFinite(p.x) || !Number.isFinite(p.y) || !Number.isFinite(p.z) || Math.abs(p.x) > 5000 || Math.abs(p.z) > 5000 || p.y < -120 || p.y > 1200;
+        if (!invalidPos) return;
+        const safe = this.getSafePlayerSpawn();
+        this.player.position.copy(safe);
+        this.player.physics?.velocity?.set?.(0, 0, 0);
+        this.player.physics.onGround = true;
 
     resetInvalidPlayerState() {
         if (!this.player?.position) return;
