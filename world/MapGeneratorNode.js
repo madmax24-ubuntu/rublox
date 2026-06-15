@@ -229,7 +229,7 @@ export class MapGeneratorNode {
     createSpawnPlatforms() {
         const radius = SPAWN_PLATFORM_RADIUS;
         for (let i = 0; i < SPAWN_PLATFORM_COUNT; i++) {
-            const angleStep = Math.PI * 2 / SPWAN_PLATFORM_COUNT;
+            const angleStep = Math.PI * 2 / SPAWN_PLATFORM_COUNT;
             const x = Math.cos(i * angleStep) * radius;
             const y = Math.sin(i * angleStep) * radius;
             this.createSpawnPlatform(x, -y); // negate Y for Roblox coordinate system
