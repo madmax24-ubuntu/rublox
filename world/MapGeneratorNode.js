@@ -31,10 +31,10 @@ export class MapGeneratorNode {
     constructor(scene) {
         this.scene = scene;
         this.tiles = new Map(); // key: "x,y" -> tileMesh
-        this._spawnPads = []; // Store spawn pad positions from map generation
+        this.spawnPads = []; // Public array for main.js to access spawn pads
     }
 
-    getSpawnPads() {
+    _buildSpawnPads(mapGenRef) {
         return [...this._spawnPads];
     }
 
