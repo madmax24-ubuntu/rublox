@@ -485,7 +485,7 @@ class Game {
         this.player = new Player(this.scene, this.camera, this.input);
         this.player.setHUD(this.hud);
         this.player.mapRef = this.map;
-        if (!this.player.parent) this.scene.add(this.player);
+        if (!this.player.parent) {
             // Use pad Y or default ground level — not getHeightAt which returns noise
             const surfaceY = (pad.y ?? 0) || 1.54;
             this.player.position.set(pad.x, surfaceY + this.player.physics.height, pad.z);
