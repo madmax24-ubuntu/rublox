@@ -34,8 +34,8 @@ export class MapGeneratorNode {
         this.spawnPads = []; // Public array for main.js to access spawn pads
     }
 
-    _buildSpawnPads(mapGenRef) {
-        return [...this._spawnPads];
+    getSpawnPads() {
+        return [...this.spawnPads];
     }
 
     _addSpawnPad(x, y) {
