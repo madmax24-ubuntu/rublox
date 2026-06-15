@@ -1,0 +1,27 @@
+Debug Map Test - Full Log
+════════════════════════════════════════════════════════════
+Время: 15.06.2026, 15:43:51
+Время генерации: 0с
+
+Успешных камер: 20 из 20
+Ошибок камер: 0
+
+Сцена:
+null
+
+Логи:
+════════════════════════════════════════════════════════════
+[15:43:38] [LOG] DEBUG: Checking game object properties...
+[15:43:38] [LOG]   camera: true object
+[15:43:38] [LOG]   scene: true object
+[15:43:38] [LOG]   camera.position: 0 0 0
+[15:43:47] [LOG] [THREE.WebGLRenderer.render #1]
+[15:43:48] [LOG] [THREE.WebGLRenderer.render #2]
+[15:43:48] [LOG] [THREE.WebGLRenderer.render #3]
+[15:43:48] [LOG] [THREE.WebGLRenderer.render #4]
+[15:43:48] [LOG] [THREE.WebGLRenderer.render #5]
+[15:43:48] [LOG] [THREE.WebGLRenderer.render #6]
+[15:43:48] [LOG] [THREE.WebGLRenderer.render #7]
+[15:43:48] [LOG] [THREE.WebGLRenderer.render #8]
+[15:43:49] [LOG] [THREE.WebGLRenderer.render #9]
+[15:43:49] [LOG] [THREE.WebGLRenderer.render #10]
