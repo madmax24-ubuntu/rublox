@@ -1140,6 +1140,186 @@ export class MapGenerator {
 
     spawnCourtyardRadius = 40;
 
+    // --- Explosive barrel spots (near cover objects) ---
+    getExplosiveBarrelSpots() {
+        const spots = [];
+        const numSpots = 40;
+        for (let i = 0; i < numSpots; i++) {
+            const x = -this.halfSize + this._rand() * this.size;
+            const z = -this.halfSize + this._rand() * this.size;
+            spots.push({ x, z });
+        }
+        return spots;
+    }
+
+    // --- House spots (near buildings) ---
+    getHouseSpots() {
+        const spots = [];
+        for (const placement of this._buildings || []) {
+            // Spot in front of the building
+            const angle = this._rand() * Math.PI * 2;
+            const dist = 8 + this._rand() * 16;
+            spots.push({
+                x: placement.x + Math.cos(angle) * dist,
+                z: placement.z + Math.sin(angle) * dist
+            });
+        }
+        return spots;
+    }
+
+    // --- Hangar spots (near large buildings) ---
+    getHangarSpots() {
+        const spots = [];
+        for (const placement of this._buildings || []) {
+            if (placement.template.width > 12 && placement.template.depth > 12) {
+                const angle = this._rand() * Math.PI * 2;
+                const dist = 12 + this._rand() * 20;
+                spots.push({
+                    x: placement.x + Math.cos(angle) * dist,
+                    z: placement.z + Math.sin(angle) * dist
+                });
+            }
+        }
+        return spots;
+    }
+
+    // --- Floor tiles (walkable surfaces) ---
+    getFloorTiles() {
+        const tiles = [];
+        const gridW = this.gridWidth;
+        const gridH = this.gridHeight;
+        for (let gy = 0; gy < gridH; gy++) {
+            for (let gx = 0; gx < gridW; gx++) {
+                const wx = (gx - gridW / 2) * this.tileSize;
+                const wz = (gy - gridH / 2) * this.tileSize;
+                if (this.isWalkableAt(wx, wz)) {
+                    tiles.push({ x: wx, z: wz });
+                }
+            }
+        }
+        return tiles;
+    }
+
+    // --- Courtyard system ---
+    isInsideCourtyard() {
+        return false;
+    }
+
+    getCourtyardExitPosition() {
+        return null;
+    }
+
+    setCourtyardGateOpen(open) {
+        // Stub for courtyard gate control
+    }
+
+    // --- Walkability check ---
+    isWalkableAt(x, z) {
+        const grid = this.worldToGrid(x, z);
+        const gx = Math.max(0, Math.min(this.gridWidth - 1, grid.x));
+        const gy = Math.max(0, Math.min(this.gridHeight - 1, grid.y));
+        // Check against colliders
+        for (const box of this.colliders || []) {
+            if (!box.walkable && box.enabled !== false) {
+                const min = box.min;
+                const max = box.max;
+                if (x >= min.x - 0.5 && x <= max.x + 0.5 &&
+                    z >= min.z - 0.5 && z <= max.z + 0.5) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    // --- Structure queries ---
+    _buildings = [];
+
+    addBuilding(placement) {
+        this._buildings.push(placement);
+    }
+
+    getStructureAtPoint(x, z, margin = 0.2) {
+        for (const bp of this._buildings || []) {
+            const dx = x - bp.x;
+            const dz = z - bp.z;
+            const dist = Math.sqrt(dx * dx + dz * dz);
+            if (dist < (bp.w + bp.d) / 2 + margin) {
+                return {
+                    type: bp.template.type,
+                    x: bp.x, z: bp.z,
+                    width: bp.w, depth: bp.d
+                };
+            }
+        }
+        return null;
+    }
+
+    findStructureGuardPoint(structure, type = 'house') {
+        if (!structure || !structure.x || !structure.z) return null;
+        // Guard point ~12m in front of the structure
+        const angle = this._rand() * Math.PI * 2;
+        const dist = 8 + this._rand() * 8;
+        return {
+            x: structure.x + Math.cos(angle) * dist,
+            z: structure.z + Math.sin(angle) * dist,
+            structure
+        };
+    }
+
+    findStructureInteriorPoint(structure, type = 'house', padding = 1.2, attempts = 28) {
+        if (!structure || !structure.x || !structure.z) return null;
+        const halfW = structure.width / 2;
+        const halfD = structure.depth / 2;
+        const side = this._rand() > 0.5 ? 1 : -1;
+        const interiorX = structure.x + (halfW - padding) * side;
+        const interiorZ = structure.z + (halfD - padding) * side;
+        // Check if walkable
+        if (this.isWalkableAt(interiorX, interiorZ)) {
+            return { x: interiorX, z: interiorZ };
+        }
+        // Try random offset
+        for (let i = 0; i < attempts; i++) {
+            const angle = this._rand() * Math.PI * 2;
+            const dist = padding * 0.5 + this._rand() * padding * 0.5;
+            const tx = structure.x + Math.cos(angle) * dist;
+            const tz = structure.z + Math.sin(angle) * dist;
+            if (this.isWalkableAt(tx, tz)) {
+                return { x: tx, z: tz };
+            }
+        }
+        return null;
+    }
+
+    getStructureEntryPoint(structure, type, playerPos) {
+        // Return a point near the structure for the player to move to
+        if (!structure || !structure.x || !structure.z) return null;
+        const dx = playerPos.x - structure.x;
+        const dz = playerPos.z - structure.z;
+        const angle = Math.atan2(dz, dx);
+        const dist = Math.sqrt(dx * dx + dz * dz) > 5 ? 5 : 2;
+        return {
+            x: structure.x + Math.cos(angle) * dist,
+            z: structure.z + Math.sin(angle) * dist
+        };
+    }
+
+    // --- Radiation zones ---
+    getClosestRadiationZone(x, z) {
+        // No radiation zones in this map
+        return null;
+    }
+
+    getRadiationDamageAt(x, z) {
+        // No radiation in this map
+        return 0;
+    }
+
+    // --- Safe radius ---
+    getActiveSafeRadius() {
+        return 0;
+    }
+
     // --- Debug helper ---
     enableDebug() {
         if (!this.debugOverlay) {
