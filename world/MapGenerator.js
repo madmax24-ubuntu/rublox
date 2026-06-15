@@ -917,13 +917,6 @@ export class MapGenerator {
     // --- Store building references for API queries ---
     _buildings = [];
 
-    _buildBuildings(placements) {
-        super._buildBuildings(placements);
-        for (const placement of placements) {
-            this.addBuilding(placement);
-        }
-    }
-
     getSurfaceHeightAt(x, z) {
         let top = this.getHeightAt(x, z);
         for (const box of this.colliders || []) {
