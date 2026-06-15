@@ -1540,11 +1540,10 @@ class Game {
                 if (this.activeEvent.type === "night" && this.env?.forceNightTimer !== undefined) {
                     this.env.forceNightTimer = 0;
                 }
-                if (this.activeEvent.type === "radiationRain") {
-                    this.setRadiationRainActive(false);
+                else if (!fogActive && !blurryVis && this.scene?.fog) {
+                    const fogBase = sceneFogData.base; // read from this.scene.fog or config
+                    this.scene.fog.density = (this.activeEvent.type === "night") ? 0.15 : Math.max(0.02, fogBase * 1);
                 }
-                this.activeEvent = { type: null, timer: 0, prevFog: null };
-                this.hud.showGameMessage("Событие завершено");
             }
         }
 
