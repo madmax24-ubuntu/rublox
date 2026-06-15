@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { MapGeneratorNode } from "./MapGeneratorNode.js";
 import { VoronoiSectors } from "./VoronoiSectors.js";
 import { getTemplatesForBiome, getTemplateByType } from "./BuildingBlueprints.js";
 import { InteriorGenerator } from "./InteriorGenerator.js";
