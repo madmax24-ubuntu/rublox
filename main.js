@@ -828,13 +828,9 @@ class Game {
     spawnBots() {
         const totalParticipants = 50;
         const botCount = Math.max(0, totalParticipants - 1);
+
         // Центр карты — надёжный спавн для всех ботов
-        const centerSpawn = new THREE.Vector3(0, 2, 0);
-
-        if (!this.map?.isWalkableAt?.(centerSpawn.x, centerSpawn.z)) {
-            const slots = [];
-        } else {
-
+        const surfaceY = 2;
         const canUsePoint = (x, z) => {
             if (!this.map?.isWalkableAt?.(x, z)) return false;
             return !slots.some(s => Math.hypot(s.x - x, s.z - z) < minDistance);
