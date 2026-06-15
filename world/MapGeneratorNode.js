@@ -31,6 +31,17 @@ export class MapGeneratorNode {
     constructor(scene) {
         this.scene = scene;
         this.tiles = new Map(); // key: "x,y" -> tileMesh
+        this._spawnPads = []; // Store spawn pad positions from map generation
+    }
+
+    getSpawnPads() {
+        return [...this._spawnPads];
+    }
+
+    _addSpawnPad(x, y) {
+        if (Math.abs(y - 0.34) < 0.1) {
+            this._spawnPads.push({ x: parseFloat(x.toFixed(2)), y });
+        }
     }
 
     // Загрузка текстуры тайла
