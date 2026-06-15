@@ -768,16 +768,6 @@ class Game {
         this.player.position.copy(safe);
         this.player.physics?.velocity?.set?.(0, 0, 0);
         this.player.physics.onGround = true;
-
-    resetInvalidPlayerState() {
-        if (!this.player?.position) return;
-        const p = this.player.position;
-        const invalidPos = !Number.isFinite(p.x) || !Number.isFinite(p.y) || !Number.isFinite(p.z) || Math.abs(p.x) > 5000 || Math.abs(p.z) > 5000 || p.y < -120 || p.y > 1200;
-        if (!invalidPos) return;
-        const safe = this.getSafePlayerSpawn();
-        this.player.position.copy(safe);
-        this.player.physics?.velocity?.set?.(0, 0, 0);
-        this.player.physics.onGround = true;
         this.syncCameraToPlayer();
     }
 
