@@ -533,6 +533,8 @@ class Game {
         this.minimapTimer = 0;
         this.noBugCheckTimer = 0;
         this.poiZombieSeeded = false;
+        this.fogActive = false;
+        this.blurryVis = false;
         this.isPaused = false;
         this.autoPausedByVisibility = false;
 
