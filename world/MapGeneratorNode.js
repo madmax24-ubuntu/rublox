@@ -272,11 +272,12 @@ export class MapGeneratorNode {
         this.createTriangles();
 
         // Заполнить фонтан
-        this.createFountain();
-    }
+        this.spawnPads.push({ x: 0, z: 0 }); // Center spawn pad for main.js to use
 
-    // Обновление анимации фонтана
-    update(delta) {
+        // Заполнить спавн-платформы по кругу
+        this.createSpawnPlatforms();
+
+        // Обновление анимации фонтана
         const fountain = this.scene.userData.fountain;
         if (!fountain) return;
 
