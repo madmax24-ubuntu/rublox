@@ -1099,55 +1099,6 @@ export class MapGenerator {
         return [];
     }
 
-    getFloorTiles() {
-        return [];
-    }
-
-    isInsideCourtyard() {
-        return false;
-    }
-
-    getCourtyardExitPosition() {
-        return null;
-    }
-
-    isWalkableAt(x, z) {
-        return true;
-    }
-
-    getStructureAtPoint(x, z, margin = 0.2) {
-        return null;
-    }
-
-    findStructureGuardPoint(structure, type = 'house') {
-        return null;
-    }
-
-    findStructureInteriorPoint(structure, type = 'house', padding = 1.2, attempts = 28) {
-        return null;
-    }
-
-    getActiveSafeRadius() {
-        return 0;
-    }
-
-    getClosestRadiationZone(x, z) {
-        return null;
-    }
-
-    getRadiationDamageAt(x, z) {
-        return 0;
-    }
-
-    getSurfaceHeightAt(x, z) {
-        return this.getHeightAt(x, z);
-    }
-
-    raycastGroundY(x, z, fallbackY = null, walkableOnly = true) {
-        const fallback = (fallbackY ?? this.getSurfaceHeightAt(x, z)) + 0.01;
-        return fallback;
-    }
-
     spawnCourtyardRadius = 40;
 
     // --- Explosive barrel spots (near cover objects) ---
