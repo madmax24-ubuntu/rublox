@@ -829,15 +829,11 @@ class Game {
         const totalParticipants = 50;
         const botCount = Math.max(0, totalParticipants - 1);
         // Центр карты — надёжный спавн для всех ботов
-        const centerSpawn = { x: 0, y: 2, z: 0 };
-        const plazaRadius = 60;
-        const minDistance = 8.2;
-        const slots = [];
+        const centerSpawn = new THREE.Vector3(0, 2, 0);
 
-        const surfaceY = 1.54; // Default ground level for all maps
-        for (let i = 0; i < padPositions.length && slots.length < botCount; i++) {
-            slots.push(padPositions[i]);
-        }
+        if (!this.map?.isWalkableAt?.(centerSpawn.x, centerSpawn.z)) {
+            const slots = [];
+        } else {
 
         const canUsePoint = (x, z) => {
             if (!this.map?.isWalkableAt?.(x, z)) return false;
