@@ -828,14 +828,13 @@ class Game {
     spawnBots() {
         const totalParticipants = 50;
         const botCount = Math.max(0, totalParticipants - 1);
-        const center = this.map?.getSpawnWorld?.() || { x: 0, z: 0 };
+        // Центр карты — надёжный спавн для всех ботов
+        const centerSpawn = { x: 0, y: 2, z: 0 };
         const plazaRadius = 60;
         const minDistance = 8.2;
         const slots = [];
-        const spawnPads = this.map?.getSpawnPads?.() || [];
 
         const surfaceY = 1.54; // Default ground level for all maps
-        const padPositions = spawnPads.map(p => ({ x: p.x, y: surfaceY, z: p.z }));
         for (let i = 0; i < padPositions.length && slots.length < botCount; i++) {
             slots.push(padPositions[i]);
         }
