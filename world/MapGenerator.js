@@ -379,7 +379,6 @@ export class MapGenerator {
     // BUILDING GENERATION (Phase 4)
     // ========================================================================
     _buildBuildings(placements) {
-        super._buildBuildings(placements);
         for (const placement of placements) {
             this.addBuilding(placement);
         }
