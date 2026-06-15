@@ -905,6 +905,7 @@ export class MapGenerator {
 
             this.addColliderBox(new THREE.Vector3(p.x, padY, p.z), 2.2, 0.3, 2.2, true);
             this.spawnPads.push(new THREE.Vector3(p.x, floorY + 0.34, p.z));
+            console.log('Spawn pad:', p.x, floorY, floorY + 0.34);
         }
 
         inst.userData.mapGenerated = true;
