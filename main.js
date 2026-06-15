@@ -480,13 +480,12 @@ class Game {
         this.entityManager.physicsRef = this.physics;
         this.scene.userData.entityManager = this.entityManager;
 
-        const spawnPads = this.map.getSpawnPads?.() || [];
+        // Центр карты — надёжный спавн для игрока и ботов
+        const centerSpawn = { x: 0, y: 2, z: 0 };
         this.player = new Player(this.scene, this.camera, this.input);
         this.player.setHUD(this.hud);
         this.player.mapRef = this.map;
         if (!this.player.parent) this.scene.add(this.player);
-        if (spawnPads.length) {
-            const pad = spawnPads[0];
             // Use pad Y or default ground level — not getHeightAt which returns noise
             const surfaceY = (pad.y ?? 0) || 1.54;
             this.player.position.set(pad.x, surfaceY + this.player.physics.height, pad.z);
