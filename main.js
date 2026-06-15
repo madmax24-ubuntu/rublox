@@ -3003,9 +3003,9 @@ window.addEventListener('DOMContentLoaded', () => {
         startDebugLoop();
 
         console.log('🗺️ Debug controls: WASD move | Q/E up-down | Scroll zoom | R reset view | T top-down');
-    }
+            });
 
-    yandex.init().catch((err) => {
+    yandex?.init()?.catch((err) => {
         console.warn('Yandex init fallback:', err);
     });
     if (game.isMobile()) {
