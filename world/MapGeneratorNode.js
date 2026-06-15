@@ -211,10 +211,8 @@ export class MapGeneratorNode {
         }
     }
 
-    // Заполнить спавн-платформы по кругу
-    createSpawnPlatforms() {
-        const angleStep = (2 * Math.PI) / SPAWN_PLATFORM_COUNT;
-        const radius = SPAWN_PLATFORM_RADIUS;
+    getSpawnPads()
+        return this._spawnPads || []
 
         for (let i = 0; i < SPAWN_PLATFORM_COUNT; i++) {
             const angle = i * angleStep;
