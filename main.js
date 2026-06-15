@@ -513,8 +513,8 @@ class Game {
         this.zombieSpawnCandidates = [];
         this.zombieSpawnCursor = 0;
         this.poiSpawnCandidates = [];
-       this.poiSpawnCursor = 0;
-        this.spawnBots();
+      this.poiSpawnCursor = 0;
+    this.spawnBots();
         this.rebuildSpawnCaches();
         this.spawnEnvironmentEntities();
         this.gateClosed = false;
