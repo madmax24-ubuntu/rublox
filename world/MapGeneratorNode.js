@@ -39,7 +39,7 @@ export class MapGeneratorNode {
     }
 
     _addSpawnPad(x, y) {
-        if (Math.abs(y - 0.34) < 0.1 && x >= 0 && x <= this._spawnPads.length * 256) {
+        if (Math.abs(y - 0.34) < 0.1 && x >= 0 && x <= this.spawnPads.length * 256) {
             this.spawnPads.push({ x: Math.floor(Math.random() * 16), z: Math.floor(Math.random() * 16)});
         }
     }
