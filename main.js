@@ -1754,6 +1754,26 @@ class Game {
 
         if (this.isVisible === false) return;
         if (this.activeEvent.type === 'radiation_rain') {
+            fogActiveCount++;
+            if (!this.radiationRainGraceTimer) {
+                this.radiationRainGraceTimer = 6.0;
+            }
+            else {
+                this.radiationRainGraceTimer -= delta;
+                if (this.radiationRainGraceTimer <= 0) fogActiveCount--;
+            }
+        }
+
+        // Event resolution & state reset
+        if (!fogActive || !blurryVis && event === "blindness" && fogActiveCount > 0) {}
+        else {
+            fogActive = false;
+            blurryVis = false;
+            this.scene.fog.density = sceneFogData.base; // restore base
+            prevRadiation = undefined;
+        }
+
+        if (this.activeEvent.type === 'radiation_rain') {
             this.updateRadiationRainDamage(delta);
         }
         if (this.resumeGraceTimer > 0) {
