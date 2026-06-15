@@ -3003,9 +3003,15 @@ window.addEventListener('DOMContentLoaded', () => {
         startDebugLoop();
 
         console.log('🗺️ Debug controls: WASD move | Q/E up-down | Scroll zoom | R reset view | T top-down');
-            });
+                } else {
+                    if (!game || !document.getElementById('loading')) return;
+                    setLoadingProgress(0.9);
+                     window.updateDebugOverlay?.();
+            };
+    yandex.init() ?? this.hud.showGameMessage('\u042f\u0437\u0435\u0418\u043D \u0442\u0435\u043B\u0435');
 
-    yandex?.init()?.catch((err) => {
+        console.warn('Yandex init fallback:', err);
+    });
         console.warn('Yandex init fallback:', err);
     });
     if (game.isMobile()) {
