@@ -60,7 +60,7 @@ const animateLoading = () => {
 
     if (_loadingCurrent < _loadingTarget) {
         _loadingAnimId = requestAnimationFrame(animateLoading);
-    } else {
+    {if (!this.initialized) return;} else {
         _loadingAnimId = null;
     }
 };
@@ -357,7 +357,7 @@ class Game {
         const gameRoot = document.getElementById('gameRoot');
         if (gameRoot) {
             gameRoot.appendChild(this.renderer.domElement);
-        } else {
+        {if (!this.initialized) return;} else {
             document.body.appendChild(this.renderer.domElement);
         }
 
@@ -445,7 +445,7 @@ class Game {
                 this.camera.lookAt(0, -50, 0);
                 this.camera.fov = 90;
                 this.camera.updateProjectionMatrix();
-            } else {
+            {if (!this.initialized) return;} else {
                 this.camera.position.set(0, 500, 0);
                 this.camera.lookAt(0, 0, 0);
                 this.camera.fov = 60;
@@ -490,7 +490,7 @@ class Game {
             const surfaceY = (pad.y ?? 0) || 1.54;
             this.player.position.set(pad.x, surfaceY + this.player.physics.height, pad.z);
             this.player.physics.onGround = true;
-        } else {
+        {if (!this.initialized) return;} else {
             const angle = Math.random() * Math.PI * 2;
             this.player.position.set(Math.cos(angle) * 16, 2, Math.sin(angle) * 16);
             this.player.physics.onGround = true;
@@ -885,7 +885,7 @@ class Game {
                 weaponRoles.push('flamethrower');
             } else if (i < 62) {
                 weaponRoles.push('pistol');
-            } else {
+            {if (!this.initialized) return;} else {
                 weaponRoles.push('knife');
             }
         }
@@ -1183,7 +1183,7 @@ class Game {
         if (active) {
             this.radiationRainGraceTimer = GAME_CONFIG.events.radiation.graceSeconds;
             this.radiationRainDamageActive = false;
-        } else {
+        {if (!this.initialized) return;} else {
             this.radiationRainGraceTimer = 0;
             this.radiationRainDamageActive = false;
         }
@@ -1200,7 +1200,7 @@ class Game {
         this.hud?.setStormActive?.(!!active, active ? 'radiation' : 'storm');
         if (active) {
             this.audioSynth?.startRadiationRain?.();
-        } else {
+        {if (!this.initialized) return;} else {
             this.audioSynth?.stopRadiationRain?.();
         }
     }
@@ -1505,7 +1505,7 @@ class Game {
                     this.audioSynth?.playRadiationWarning?.(intensity);
                 }
                 this.hud?.showRadiationWarning?.(intensity, Math.round(radInfo.distance));
-            } else {
+            {if (!this.initialized) return;} else {
                 if (this.lastRadiationLevel !== null) {
                     this.lastRadiationLevel = null;
                     this.hud?.clearRadiationWarning?.();
@@ -1644,7 +1644,7 @@ class Game {
         if (!floorTiles.length) {
             this.zombieSpawnCandidates = [];
             this.zombieSpawnCursor = 0;
-        } else {
+        {if (!this.initialized) return;} else {
             const scored = floorTiles.map((tile) => {
                 let houseBoost = 0;
                 for (const h of houseSpots) {
@@ -1735,7 +1735,7 @@ class Game {
             this.menuKeyLatch.e = ePressed;
             document.exitPointerLock?.();
             perkMenuBlocking = true;
-        } else {
+        {if (!this.initialized) return;} else {
             this.menuKeyLatch.w = false;
             this.menuKeyLatch.s = false;
             this.menuKeyLatch.e = false;
@@ -1774,7 +1774,7 @@ class Game {
                 this.setPaused(!this.isPaused);
                 this.pauseKeyLatch = true;
             }
-        } else {
+        {if (!this.initialized) return;} else {
             this.pauseKeyLatch = false;
         }
 
@@ -1819,7 +1819,7 @@ class Game {
 
         if (perkMenuBlocking) {
             // Perk menu is open — skip player/bot logic below
-        } else {
+        {if (!this.initialized) return;} else {
         const canSelectPerk = this.gameState === 'countdown' && !this.perkLocked;
         if (this.input.isKeyPressed('KeyP') && canSelectPerk) {
             if (!this.perkKeyLatch) {
@@ -1832,7 +1832,7 @@ class Game {
                 }
                 this.perkKeyLatch = true;
             }
-        } else {
+        {if (!this.initialized) return;} else {
             this.perkKeyLatch = false;
         }
 
@@ -1886,7 +1886,7 @@ class Game {
                         const jitterX = (Math.random() - 0.5) * 8;
                         const jitterZ = (Math.random() - 0.5) * 8;
                         bot.patrolTarget = new THREE.Vector3(scatter.x + jitterX, 0, scatter.z + jitterZ);
-                    } else {
+                    {if (!this.initialized) return;} else {
                         const angle = (i / Math.max(1, this.bots.length)) * Math.PI * 2;
                         const distance = this.zone.getCurrentRadius() * 0.32 + (i % 5) * 3.5;
                         bot.patrolTarget = new THREE.Vector3(
@@ -1928,7 +1928,7 @@ class Game {
                 };
                 kickOut(this.player);
                 this.bots.forEach(kickOut);
-            } else {
+            {if (!this.initialized) return;} else {
                 this.player.setInvulnerable(true);
                 this.bots.forEach(bot => bot.setInvulnerable(true));
             }
@@ -1970,7 +1970,7 @@ class Game {
                 const safeRadius = this.map.getActiveSafeRadius();
                 const arenaRadius = this.map?.halfSize || this.zone.getCurrentRadius();
                 this.hud.updateFogPhase(this.zonePhaseIndex, safeRadius, arenaRadius);
-            } else {
+            {if (!this.initialized) return;} else {
                 this.hud.updateZoneInfo(`\u0417\u043e\u043d\u0430: R=${Math.round(this.zone.getCurrentRadius())}`, false);
             }
 
@@ -1982,7 +1982,7 @@ class Game {
             const blindnessBoost = this.activeEvent?.type === 'blindness' ? 0.55 : 0;
             const radiationBoost = this.activeEvent?.type === 'radiationRain' && this.radiationRainDamageActive && !this.isShelteredFromRadiation(this.player.position) ? 0.08 : 0;
             this.hud.setVisionIntensity?.(0.12 + nightBoost + shrinkBoost + outsideBoost + fogBoost + blindnessBoost + radiationBoost);
-        } else {
+        {if (!this.initialized) return;} else {
             this.hud.setVisionIntensity?.(0);
         }
 
@@ -2034,7 +2034,7 @@ class Game {
                         this.hud.showGameMessage(`Ночь наступила. Заражённых прибыло: ${spawned}`);
                     }
                     this.nightWaveBurstDone = true;
-                } else {
+                {if (!this.initialized) return;} else {
                     this.nightWaveTimer -= delta;
                     if (this.nightWaveTimer <= 0) {
                         this.queueZombieBurst(false, 4.2, 260, 20, this.isMobile() ? 5 : 7);
@@ -2054,7 +2054,7 @@ class Game {
                         this.showMvpBoard();
                     }
                 }
-            } else {
+            {if (!this.initialized) return;} else {
                 this.nightNotified = false;
                 this.nightWaveBurstDone = false;
                 this.nightWaveTimer = 0;
@@ -2324,7 +2324,7 @@ class Game {
                         this.hud.showGameMessage('Погода: Дождь');
                     } else if (weatherType === 'snow') {
                         this.hud.showGameMessage('Погода: Снег');
-                    } else {
+                    {if (!this.initialized) return;} else {
                         this.hud.showGameMessage('Погода: Ясно');
                     }
                 }
@@ -2973,7 +2973,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 game.camera.lookAt(0, 0, 0);
                 
                 requestAnimationFrame(window.updateDebugOverlay);
-            } else {
+            {if (!this.initialized) return;} else {
                 if (game && !game.isStarted) {
                     // Auto-start the game in debug mode so scene/camera get initialized  
                     console.log('🚀 Auto-starting game for debug mode...');
