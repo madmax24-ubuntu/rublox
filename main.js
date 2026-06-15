@@ -830,9 +830,7 @@ class Game {
         const botCount = Math.max(0, totalParticipants - 1);
 
         // Центр карты — надёжный спавн для всех ботов
-        if (!this.map?.isWalkableAt?.(0, centerSpawnPos.z)) {
-
-
+        const surfaceY = 2;
         const canUsePoint = (x, z) => {
             if (!this.map?.isWalkableAt?.(x, z)) return false;
             return !slots.some(s => Math.hypot(s.x - x, s.z - z) < minDistance);
