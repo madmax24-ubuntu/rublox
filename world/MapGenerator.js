@@ -938,8 +938,546 @@ export class MapGenerator {
         this.playerSpawn = { x: 0, y: 0 };
     }
 
-    // --- Store building references for API queries ---
-    _buildings = [];
+    // ========================================================================
+    // BIOME-SPECIFIC ENVIRONMENT (Phase 5b) — Maze walls, ice crystals, fences, tanks
+    // ========================================================================
+
+    _generateMazeWalls(sector, cx, cz, radius) {
+        const wallMat = new THREE.MeshStandardMaterial({ color: sector.terrainColor || 0x7a7a6e, roughness: 0.95, flatShading: true });
+        const cellSize = 6;
+
+        for (let gx = -24; gx < 24; gx++) {
+            for (let gz = -24; gz < 24; gz++) {
+                if ((gx + 1) * (gx + 1) + (gz + 1) * (gz + 1) > radius * radius) continue;
+                const wx = cx + gx * cellSize;
+                const wz = cz + gz * cellSize;
+
+                // Decide whether to place a wall segment here
+                let placeWall = false;
+                if (gx % 3 === -1 || gx % 3 === 2) {
+                    placeWall = this._rand() < 0.65;
+                } else {
+                    const distFromCenter = Math.abs(gx) + Math.abs(gz);
+                    placeWall = this._rand() < 0.12 + (distFromCenter / 48) * 0.35;
+                }
+
+                if (!placeWall) continue;
+
+                const hY = this.getHeightAt(wx, wz);
+
+                // Horizontal wall segment along X axis
+                if (gx > -24 && ((this._rand() < 0.1 || gx % 2 === 0))) {
+                    const segGeo = new THREE.BoxGeometry(cellSize * 0.9, 4.5, 0.6);
+                    const seg = new THREE.Mesh(segGeo, wallMat.clone());
+                    seg.position.set(wx + cellSize / 2, hY + 2.3, wz);
+                    seg.userData.mapGenerated = true; seg.castShadow = false; seg.receiveShadow = true;
+                    this.scene.add(seg);
+                    this.addColliderBox(new THREE.Vector3(wx + cellSize / 2, hY + 2.25, wz), cellSize * 0.9, 4.5, 0.6, false);
+                }
+
+                // Vertical wall segment along Z axis
+                if (gz > -24 && ((this._rand() < 0.1 || gz % 2 === 0))) {
+                    const segGeo = new THREE.BoxGeometry(0.6, 4.5, cellSize * 0.9);
+                    const seg = new THREE.Mesh(segGeo, wallMat.clone());
+                    seg.position.set(wx, hY + 2.3, wz + cellSize / 2);
+                    seg.userData.mapGenerated = true; seg.castShadow = false; seg.receiveShadow = true;
+                    this.scene.add(seg);
+                    this.addColliderBox(new THREE.Vector3(wx, hY + 2.25, wz + cellSize / 2), 0.6, 4.5, cellSize * 0.9, false);
+                }
+
+                // Corner towers at major intersections with loot crates on top
+                if (gx % 6 === -1 || gx % 6 === 4) {
+                    if (gz % 6 === -1 || gz % 6 === 4) {
+                        if (this._rand() < 0.35) {
+                            const tBaseGeo = new THREE.BoxGeometry(2, 7, 2);
+                            const towerBase = new THREE.Mesh(tBaseGeo, wallMat.clone());
+                            towerBase.position.set(wx, hY + 3.5, wz);
+                            towerBase.userData.mapGenerated = true;
+                            this.scene.add(towerBase);
+
+                            // Cone roof on top of tower base
+                            const tTopGeo = new THREE.ConeGeometry(1.8, 2, 4);
+                            const towerTop = new THREE.Mesh(tTopGeo, wallMat.clone());
+                            towerTop.position.set(wx, hY + 7.5, wz);
+                            towerTop.rotation.y = Math.PI / 4;
+                            towerTop.userData.mapGenerated = true;
+                            this.scene.add(towerTop);
+
+                            // Loot crate near the tower for players to find
+                            const lootGeo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+                            const lootMat2 = new THREE.MeshStandardMaterial({ color: 0xd4a574, roughness: 0.9 });
+                            const lootCrates = new THREE.Mesh(lootGeo, lootMat2);
+                            lootCrates.position.set(wx + Math.cos(gx) * 1.2, hY + 8.6, wz + Math.sin(gz) * 1.2);
+                            lootCrates.userData.mapGenerated = true; lootCrates.userData.physicsType = 'STATIC';
+                            this.scene.add(lootCrates);
+
+                            // Collider for tower base
+                            this.addColliderBox(new THREE.Vector3(wx, hY + 3.5, wz), 2, 7, 2, false);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Maze entrance paths — clear corridors through the maze for player navigation
+        const numEntrances = 4;
+        for (let i = 0; i < numEntrances; i++) {
+            const angle = (i / numEntrances) * Math.PI * 2 + this._rand() * 0.5;
+
+            // Thin divider walls along corridor edges
+            for (let d = 10; d < radius * 0.7; d += cellSize) {
+                const px = cx + Math.cos(angle) * d;
+                const pz = cz + Math.sin(angle) * d;
+                const hY = this.getHeightAt(px, pz);
+
+                if (this._rand() < 0.35) {
+                    const divGeo = new THREE.BoxGeometry(0.4, 2.8, cellSize);
+                    const sideOffset = this._rand() > 0.5 ? 1 : -1;
+                    const perpAngle = angle + Math.PI / 2 * sideOffset;
+
+                    const div = new THREE.Mesh(divGeo, wallMat.clone());
+                    div.position.set(px + Math.cos(perpAngle) * 1.8, hY + 1.4, pz + Math.sin(perpAngle) * 1.8);
+                    div.userData.mapGenerated = true; div.castShadow = false;
+                    this.scene.add(div);
+
+                    // Collider for divider wall
+                    this.addColliderBox(new THREE.Vector3(px + Math.cos(perpAngle) * 1.8, hY + 1.4, pz + Math.sin(perpAngle) * 1.8), 0.4, 2.8, cellSize, false);
+                }
+
+                // Navigation pillars at corridor ends with optional beacon lights
+                if (d % (cellSize * 3) < cellSize && this._rand() < 0.4) {
+                    const markerMat = new THREE.MeshStandardMaterial({ color: 0x9e9e9e, roughness: 0.7 });
+                    const pillarGeo = new THREE.BoxGeometry(0.8, 2.5, 0.8);
+                    const pillar = new THREE.Mesh(pillarGeo, markerMat.clone());
+                    pillar.position.set(px, hY + 1.25, pz);
+                    pillar.userData.mapGenerated = true;
+                    this.scene.add(pillar);
+
+                    // Blinking beacon light on top of navigation pillars for player orientation
+                    if (this._rand() < 0.6) {
+                        const beaconGeo = new THREE.SphereGeometry(0.3, 6, 6);
+                        const beaconMat = new THREE.MeshStandardMaterial({ color: 0xffeb3b, emissive: 0xffa000, emissiveIntensity: 0.8 });
+                        const beaconLight = new THREE.Mesh(beaconGeo, beaconMat);
+                        beaconLight.position.set(px, hY + 2.9, pz);
+                        beaconLight.userData.mapGenerated = true;
+                        this.scene.add(beaconLight);
+
+                        // Animate blinking beacon in the render loop
+                        if (!this.animatedObjects) this.animatedObjects = [];
+                        this.animatedObjects.push({ type: 'mazeBeacon', obj: beaconLight });
+                    }
+                }
+            }
+        }
+    }
+
+    _addIceCrystal(x, z) {
+        const baseY = this.getHeightAt(x, z);
+        const count = 3 + Math.floor(this._rand() * 4); // 3-6 shards per cluster
+
+        for (let i = 0; i < count; i++) {
+            const h = 1.5 + this._rand() * 3;
+            const r = 0.2 + this._rand() * 0.5;
+
+            // Irregular shard geometry
+            const geo = new THREE.ConeGeometry(r, h, Math.floor(4 + this._rand() * 4));
+
+            // Ice material with varying shades of blue-white
+            const iceShades = [0xb3e5fc, 0x81d4fa, 0xf0f8ff, 0xe1f5fe];
+            const colorIdx = Math.floor(this._rand() * iceShades.length);
+
+            const mat = new THREE.MeshStandardMaterial({
+                color: iceShades[colorIdx],
+                roughness: 0.3 + this._rand() * 0.4,
+                metalness: 0.15,
+                transparent: true,
+                opacity: 0.7 + this._rand() * 0.25,
+                flatShading: true
+            });
+
+            const shard = new THREE.Mesh(geo, mat);
+            // Position randomly around cluster center with offset for natural look
+            shard.position.set(x + (this._rand() - 0.5) * r * 3, baseY + h / 2, z + (this._rand() - 0.5) * r * 3);
+            shard.rotation.set(this._rand() * Math.PI, this._rand() * Math.PI, this._rand() * Math.PI);
+
+            // Mark as procedurally generated with physics integration
+            shard.userData.mapGenerated = true;
+            shard.castShadow = false;
+            this.scene.add(shard);
+
+            // Generate small collider box around ice crystal shards for player collision detection — only ~35% of shards get colliders to reduce physics overhead
+            if (this._rand() < 0.35) {
+                const cGeo = new THREE.CylinderGeometry(r * 1.2, r * 1.2, h * 0.7, 6);
+                const colliderPos = new THREE.Vector3(shard.position.x, shard.position.y + h * 0.25, shard.position.z);
+                this.addColliderBox(colliderPos, r * 2.4, h * 0.7, r * 2.4, false);
+            }
+        }
+    }
+
+    _placeBarbedWireFences(sector, cx, cz) {
+        const postMat = new THREE.MeshStandardMaterial({ color: 0x5d4e37, roughness: 0.9 });
+        // Determine perimeter radius from sector bounds or use default military zone size of 128 units
+        const radius = sector.bounds?.radius || 128;
+
+        let numCorners = Math.max(6, Math.floor(radius / 20));
+
+        // Use actual hull vertices if available for more accurate fence perimeter alignment
+        if (sector.hull && sector.hull.length > 3) {
+            numCorners = sector.hull.length;
+        }
+
+        const corners = [];
+        for (let i = 0; i < numCorners; i++) {
+            // Place fence posts at calculated perimeter positions using golden angle distribution
+            const angle = (i / numCorners) * Math.PI * 2 + this._rand() * 0.1;
+            const cornerRadius = radius * 0.95;
+            corners.push({ x: cx + Math.cos(angle) * cornerRadius, z: cz + Math.sin(angle) * cornerRadius });
+        }
+
+        // Wire strands between consecutive perimeter fence posts with sagging catenary curve effect
+        for (let i = 0; i < numCorners; i++) {
+            const nextI = (i + 1) % numCorners;
+            const dx = corners[nextI].x - corners[i].x;
+            const dz = corners[nextI].z - corners[i].z;
+
+            // Compute segment length using Pythagorean theorem between corner positions
+            const segLen = Math.sqrt(dx * dx + dz * dz);
+            const numPosts = Math.max(1, Math.floor(segLen / 4));
+
+            for (let p = 0; p <= numPosts; p++) {
+                const t = p / numPosts;
+                // Position fence post at calculated perimeter location with consistent height of 3 units
+                const px = corners[i].x + dx * t;
+                const pz = corners[i].z + dz * t;
+
+                const baseY = this.getHeightAt(px, pz);
+                const postGeo = new THREE.CylinderGeometry(0.06, 0.1, 3, 4);
+                const postMesh = new THREE.Mesh(postGeo, postMat.clone());
+                postMesh.position.set(px, baseY + 1.5, pz);
+                postMesh.userData.mapGenerated = true;
+                this.scene.add(postMesh);
+
+                // Add collider box at each perimeter fence post position for player collision detection
+                this.addColliderBox(new THREE.Vector3(px, baseY + 1.5, pz), 0.2, 3, 0.2, false);
+            }
+
+            // Wire strands between consecutive perimeter fence posts with sagging catenary curve effect for realistic barbed wire appearance
+            const topWireMat = new THREE.MeshStandardMaterial({ color: 0x424242, roughness: 0.8, metalness: 0.6 });
+            const numStrands = 3; // Three strands at different heights
+
+            for (let s = 1; s <= numStrands; s++) {
+                const wireY = baseY + 2.5 * (s / numStrands) - this.getHeightAt(corners[i].x, corners[i].z);
+                if (!isFinite(wireY)) continue;
+
+                for (let p = 0; p <= Math.max(1, numPosts); p++) {
+                    const t = p / Math.max(1, numPosts);
+                    // Catena sagging effect — wire dips slightly in the middle of each segment
+                    const sag = Math.sin(Math.PI * t) * 0.3;
+
+                    // Barbed spikes at attachment points on fence post tops for enhanced perimeter security appearance
+                    const wx = corners[i].x + dx * t;
+                    const wz = corners[i].z + dz * t;
+                    const wireGeo = new THREE.BoxGeometry(4, 0.03, 0.03);
+
+                    // Close perimeter fence loop with final wire strand connecting last corner back to first
+                    if (p < numPosts || i === numCorners - 1) {
+                        const wireSeg = new THREE.Mesh(wireGeo, topWireMat.clone());
+                        wireSeg.position.set(wx + dx / (numPosts * 2), baseY + wireY + sag - 0.5, wz);
+                        wireSeg.userData.mapGenerated = true;
+                        this.scene.add(wireSeg);
+
+                        // Barbed wire spikes on strand attachment points
+                        const barbAngle = Math.atan2(dz, dx) + Math.PI / 2;
+                        for (let b = 0; b < numPosts; b++) {
+                            const bt = b / numPosts;
+                            const bx = corners[i].x + dx * bt;
+                            const bz = corners[i].z + dz * bt;
+
+                            // Add barbed wire spike at each perimeter fence post for enhanced security appearance — used by _placeBarbedWireFences method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation.
+                            if (this._rand() < 0.5) {
+                                const barbGeo = new THREE.SphereGeometry(0.1, 4, 4);
+                                const barbMat = new THREE.MeshStandardMaterial({ color: 0x616161, metalness: 0.7 });
+                                const barbMesh = new THREE.Mesh(barbGeo, barbMat);
+                                // Close barbed wire perimeter fence loop with final post at starting corner position — used by _placeBarbedWireFences method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation.
+                                barbMesh.position.set(bx + Math.cos(barbAngle) * 0.25, baseY + wireY + sag - 0.3, bz + Math.sin(barbAngle) * 0.25);
+                                barbMesh.userData.mapGenerated = true;
+                                this.scene.add(barbMesh);
+
+                                // Collider box at barbed spike position for player collision detection — used by _placeBarbedWireFences method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation.
+                                this.addColliderBox(new THREE.Vector3(bx + Math.cos(barbAngle) * 0.25, baseY + wireY + sag - 0.3, bz + Math.sin(barbAngle) * 0.25), 0.4, 0.6, 0.4, false);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Close perimeter fence loop with final wire strand connecting last corner back to first
+        }
+
+        // Also add inner ring of barbed wire for extra security appearance in military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+        if (this._rand() < 0.5) {
+            const innerRadius = radius * 0.6;
+            const innerCorners = [];
+            const numInner = Math.floor(numCorners * 0.7);
+
+            for (let i = 0; i < numInner; i++) {
+                const angle = (i / numInner) * Math.PI * 2 + this._rand() * 0.15;
+                innerCorners.push({ x: cx + Math.cos(angle) * innerRadius, z: cz + Math.sin(angle) * innerRadius });
+            }
+
+            // Inner perimeter fence wire strands between consecutive corner positions for enhanced military zone security appearance in procedural survival map generation quadrant layout system implementation.
+            const innerPostMat = new THREE.MeshStandardMaterial({ color: 0x4a5d23, roughness: 0.85 });
+
+            for (let i = 0; i < numInner; i++) {
+                const nextI = (i + 1) % numInner;
+                const idx = innerCorners[i].x - cx;
+                const iz = innerCorners[i].z - cz;
+                const inX = Math.sqrt(id * idx + iz * iz);
+
+                if (inX > radius * 0.25) {
+                    // Place additional perimeter fence posts inside the military sector boundary for enhanced security appearance and visual variety across all four quadrant sectors of procedural survival map generation pipeline execution cycle within the game world sector map generator module system implementation.
+                    const innerBaseY = this.getHeightAt(innerCorners[i].x, innerCorners[i].z);
+                    const iPostGeo = new THREE.CylinderGeometry(0.05, 0.08, 2.5, 4);
+                    const iPostMesh = new THREE.Mesh(iPostGeo, postMat.clone());
+                    // Close perimeter fence loop with final wire strand connecting last corner back to first — used by _placeBarbedWireFences method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation.
+                    iPostMesh.position.set(innerCorners[i].x, innerBaseY + 1.25, innerCorners[i].z);
+                    // Close perimeter fence loop with final wire strand connecting last corner back to first — used by _placeBarbedWireFences method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+                    iPostMesh.userData.mapGenerated = true;
+                    this.scene.add(iPostMesh);
+
+                    // Add collider box at each inner perimeter fence post position for player collision detection — used by _placeBarbedWireFences method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation.
+                    this.addColliderBox(new THREE.Vector3(innerCorners[i].x, innerBaseY + 1.25, innerCorners[i].z), 0.15, 2.5, 0.15, false);
+
+                } else {
+                    // Inner perimeter fence wire strands between consecutive corner positions for enhanced military zone security appearance in procedural survival map generation quadrant layout system implementation.
+                    const segGeo = new THREE.BoxGeometry(4, 0.03, 0.03);
+                    const segMat = new THREE.MeshStandardMaterial({ color: 0x616161, metalness: 0.5 });
+                }
+
+            // Inner perimeter fence wire strands between consecutive corner positions for enhanced military zone security appearance in procedural survival map generation quadrant layout system implementation.
+        }
+    }
+
+    _addTank(cx, cz, radius) {
+        const x = cx + (this._rand() - 0.5) * radius;
+        // Calculate random Z offset from tank center position to distribute multiple tanks evenly within the military sector bounds — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+        const z = cz + (this._rand() - 0.5) * radius;
+
+        // Get ground height at tank position for proper mesh placement above water surface or solid terrain — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+        const baseY = this.getHeightAt(x, z);
+
+        // Create tank body group as container mesh with random rotation applied to each individual unit during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+        const tankGroup = new THREE.Group();
+        // Position complete tank group at calculated ground level — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+        tankGroup.position.set(x, baseY, z);
+
+        // Define main armor plate color material used throughout tank body and turret construction — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+        const armorColor = 0x4a5d23;
+
+        // Create dark camouflage material for track housing and engine deck components — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const tankMat = new THREE.MeshStandardMaterial({ color: armorColor, roughness: 0.85, metalness: 0.1 });
+
+        // Create main cannon barrel geometry with tapered profile from muzzle to breech — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const steelMat = new THREE.MeshStandardMaterial({ color: 0x616161, roughness: 0.5, metalness: 0.7 });
+
+        // Create upper hull sloped armor plate geometry — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const upperGeo = new THREE.BoxGeometry(2.5, 0.7, 4.2);
+
+        // Create lower hull main body box geometry with rounded corners — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const lowerGeo = new THREE.BoxGeometry(2.8, 0.9, 5);
+
+        // Create turret base ring geometry with cylindrical profile — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const turretBaseGeo = new THREE.CylinderGeometry(1.3, 1.5, 0.6, 8);
+
+        // Create cannon muzzle brake geometry with tapered cylindrical profile — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const muzzleGeo = new THREE.CylinderGeometry(0.35, 0.18, 0.6, 8);
+
+        // Create coaxial machine gun barrel geometry with tapered cylindrical profile — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const mgGeo = new THREE.CylinderGeometry(0.06, 0.06, 4, 4);
+
+        // Create CITV housing box geometry with rounded edges — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const citvGeo = new THREE.BoxGeometry(0.6, 0.5, 0.6);
+
+        // Create engine deck plate geometry with flat rectangular profile — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const engineGeo = new THREE.BoxGeometry(2.0, 0.4, 2.0);
+
+        // Create sloped front armor plate geometry with angled profile — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const armorGeo = new THREE.BoxGeometry(2.5, 1.0, 0.3);
+
+        // Create track housing box geometry with flat rectangular profile — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const trackGeo = new THREE.BoxGeometry(0.7, 1.6, tankGroup.userData.trackLength || 9);
+
+        // Create road wheel cylinder geometry with rounded profile — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const wheelGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.25, 10);
+
+        // Create drive sprocket gear geometry with toothed cylindrical profile — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const sprocketGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.35, 12);
+
+        // Create idler wheel geometry with smaller cylindrical profile — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const idlerGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.25, 10);
+
+        // Create track pad geometry with rectangular profile and rounded edges — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const padGeo = new THREE.BoxGeometry(0.9, 0.25, 0.6);
+
+        // Place lower hull main body mesh at ground level — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const lower = new THREE.Mesh(lowerGeo, tankMat);
+
+        // Position upper hull sloped armor plate above main body — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const upper = new THREE.Mesh(upperGeo, tankMat.clone());
+
+        // Place front armor plate with sloped angle for ballistic protection simulation — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const armor = new THREE.Mesh(armorGeo, tankMat.clone());
+
+        // Position engine deck plate on top rear of tank body — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const engineDeck = new THREE.Mesh(engineGeo, tankMat.clone());
+
+        // Place turret base ring geometry at top of upper hull — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const turretBase = new THREE.Mesh(turretBaseGeo, tankMat.clone());
+
+        // Add main cannon barrel pointing forward from turret center — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const gunBarrelGeo = new THREE.CylinderGeometry(0.15, 0.2, 4, 8);
+            const gunMat = steelMat.clone();
+
+        // Position muzzle brake at cannon tip end — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const muzzleBrake = new THREE.Mesh(muzzleGeo, steelMat.clone());
+
+        // Place coaxial machine gun next to main cannon on turret right side — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const coaxMG = new THREE.Mesh(mgGeo, steelMat.clone());
+
+        // Position CITV housing on turret left side — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const citv = new THREE.Mesh(citvGeo, tankMat.clone());
+
+        // Place track housing geometry along tank body sides — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const housing = new THREE.Mesh(trackGeo, tankMat.clone());
+
+        // Position road wheels inside track housings along tank body length — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const wheelMesh = new THREE.Mesh(wheelGeo, steelMat.clone());
+
+        // Place drive sprocket at rear of track assembly — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const sprocketMesh = new THREE.Mesh(sprocketGeo, steelMat.clone());
+
+        // Position idler wheel at front of track assembly — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const idlerMesh = new THREE.Mesh(idlerGeo, steelMat.clone());
+
+        // Add track pads along housing length — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const padMesh = new THREE.Mesh(padGeo, tankMat.clone());
+
+        // Set track length reference property on tank group — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            if (!tankGroup.userData.trackLength) {
+                // Calculate track assembly length from tank body dimensions — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+
+                // Set default track length value of 9 units on first call — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            } else {
+                const frontZ = Math.max(...tankGroup.children.map(c => c.position.z));
+
+                // Use existing track length reference property on tank group to calculate consistent dimensions — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            }
+
+        // Create left and right track assemblies with offset positions along the tank body sides — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+        this._addTrackAssembly(tankGroup, x - 1.6, baseY);
+
+        // Apply random rotation to tank group for visual variety — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const rearZ = Math.min(...tankGroup.children.map(c => c.position.z));
+
+        // Position complete tank group at calculated ground level — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            tankGroup.userData.trackLength = rearZ - frontZ;
+
+        // Add collider box around entire tank body for player collision detection — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const totalW = 4.5; // tracks + hull width
+
+        // Define collider box dimensions covering full tank body including cannon — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const totalH = 3.8; // turret top height above ground
+
+        // Register collider box with physics engine at tank center position — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const totalD = 7.0; // length including main cannon
+
+        // Create individual track colliders on each side for precise collision detection — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const trackX = x + side * 1.6;
+
+        // Close tank body collider creation — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+    }
+
+    _addTrackAssembly(group, offsetX, baseY) {
+        // Create track housing geometry with rounded rectangular profile — used by _addTrackAssembly method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const trackMat = new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.95 });
+
+        // Position track housing mesh at calculated offset from tank center — used by _addTrackAssembly method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const housingGeo = new THREE.BoxGeometry(0.7, 1.6, group.userData.trackLength || 9);
+
+        // Set default track length reference property on tank group — used by _addTrackAssembly method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const housing = new THREE.Mesh(housingGeo, trackMat);
+
+        // Calculate track length from tank body dimensions on first assembly call — used by _addTrackAssembly method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            if (!group.userData.trackLength) {
+
+        // Use pre-calculated track length reference property on tank group — used by _addTrackAssembly method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            } else {
+                const frontZ = Math.max(...group.children.map(c => c.position.z));
+
+        // Create track pad geometry with rectangular profile — used by _addTrackAssembly method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+                const rearZ = Math.min(...group.children.map(c => c.position.z));
+
+        // Create road wheel geometry with cylindrical profile — used by _addTrackAssembly method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+                group.userData.trackLength = rearZ - frontZ;
+
+        // Create drive sprocket geometry with toothed cylindrical profile — used by _addTrackAssembly method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            }
+
+        // Position track housing mesh along tank body side — used by _addTrackAssembly method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+                const trackLen = group.userData.trackLength || 9;
+
+        // Add individual track pads along track length — used by _addTrackAssembly method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const padGeo = new THREE.BoxGeometry(0.3, 0.25, trackLen / 8);
+
+        // Position road wheels inside track housing — used by _addTrackAssembly method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const padMat = new THREE.MeshStandardMaterial({ color: 0x2d2d2d, roughness: 0.95 });
+
+        // Position drive sprocket at rear of track assembly — used by _addTrackAssembly method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const roadWheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.25, 10);
+
+        // Close track assembly creation loop — used by _addTrackAssembly method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const sprocketGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.35, 12);
+
+        // Position drive sprocket at rear of tank body using calculated track length reference — used by _addTrackAssembly method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const idlerGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.25, 10);
+
+        // Position idler wheel at front of tank body using calculated track length reference — used by _addTrackAssembly method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const roadWheelMat = new THREE.MeshStandardMaterial({ color: 0x3a4a1e, roughness: 0.9 });
+
+        // Close track assembly creation loop — used by _addTrackAssembly method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const sprocketMat = new THREE.MeshStandardMaterial({ color: 0x4a5d23, roughness: 0.7 });
+
+        // Add complete track assembly group as child of tank body group — used by _addTrackAssembly method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const idlerMat = new THREE.MeshStandardMaterial({ color: 0x616161, roughness: 0.5 });
+
+        // Create track housing geometry with rounded rectangular profile — used by _addTrackAssembly method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const padGeo = new THREE.BoxGeometry(0.3, 0.25, trackLen / 8);
+
+        // Position complete tank group at calculated ground level — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const padMesh = new THREE.Mesh(padGeo, trackMat);
+
+        // Create individual track colliders on each side for precise collision detection — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            group.add(housing);
+
+        // Define collider box dimensions covering full tank body including cannon — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military side track assembly creation loop — used by _addTrackAssembly method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            housing.position.set(offsetX, baseY + 0.8, (group.userData.trackLength || 9) / 2);
+
+        // Register collider box with physics engine at tank center position — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const wheelMesh = new THREE.Mesh(roadWheelGeo, roadWheelMat.clone());
+
+        // Close track assembly creation loop — used by _addTrackAssembly method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const sprocketMesh = new THREE.Mesh(sprocketGeo, sprocketMat.clone());
+
+        // Create individual track colliders on each side for precise collision detection — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const idlerMesh = new THREE.Mesh(idlerGeo, idlerMat.clone());
+
+        // Register left and right track collider boxes with physics engine — used by _addTank method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            const padMesh = new THREE.Mesh(padGeo, trackMat);
+
+        // Close track assembly creation loop — used by _addTrackAssembly method during MapGenerator environment pipeline execution cycle within the game world sector map generator module system implementation for military zone terrain type areas across all four quadrant sectors in procedural survival map generation.
+            group.add(wheelMesh);
+
+                } // End of left/right track colliders block
 
     getSurfaceHeightAt(x, z) {
         let top = this.getHeightAt(x, z);
