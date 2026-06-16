@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import { MapGeneratorNode } from "./MapGeneratorNode.js";
 import { VoronoiSectors } from "./VoronoiSectors.js";
 import { getTemplatesForBiome, getTemplateByType } from "./BuildingBlueprints.js";
 import { InteriorGenerator } from "./InteriorGenerator.js";
@@ -717,118 +716,67 @@ export class MapGenerator {
             const cx = sector.center.x;
             const cz = sector.center.z;
 
-            // === SPECIAL BIOME HANDLING ===
-            const isStoneMaze = (sector.biome === 'stone_maze');
-            const isMilitary = (sector.biome === 'military' || sector.id === 4);
-            const isIceLake = (sector.biome === 'ice_lake');
+            // --- Trees: 60-120 per sector ---
+            const numTrees = 60 + Math.floor(sector.treeDensity * 100);
+            for (let i = 0; i < numTrees; i++) {
+                const angle = this._rand() * Math.PI * 2;
+                const dist = 10 + this._rand() * radius * 0.85;
+                const tx = cx + Math.cos(angle) * dist;
+                const tz = cz + Math.sin(angle) * dist;
+                this._addTree(tx, tz, sector);
+            }
 
-            if (isStoneMaze) {
-                // Stone maze: corridor walls instead of trees/rocks
-                this._generateMazeWalls(sector, cx, cz, radius);
-            } else if (isMilitary) {
-                // Military zone: tanks + barbed wire fences instead of standard props
-                const numTanks = 6 + Math.floor(this._rand() * 4);
-                for (let i = 0; i < numTanks; i++) this._addTank(cx, cz, sector.bounds.radius || 128);
-                this._placeBarbedWireFences(sector, cx, cz);
-            } else if (isIceLake) {
-                // Ice lake: frozen surface + ice crystals + radio tower
-                const numCrystals = Math.floor(12 * sector.rockDensity);
+            // --- Bushes: 15-25 per sector ---
+            const numBushes = 15 + Math.floor(sector.buildingDensity * 10);
+            for (let i = 0; i < numBushes; i++) {
+                const angle = this._rand() * Math.PI * 2;
+                const dist = 5 + this._rand() * radius * 0.7;
+                const bx = cx + Math.cos(angle) * dist;
+                const bz = cz + Math.sin(angle) * dist;
+                this._addBush(bx, bz);
+            }
 
-                // Frozen water plane at center of sector
-                const surfY = this.getHeightAt(cx, cz);
-                const surfGeo = new THREE.CircleGeometry(radius * 0.95, 32);
-                const surfMat = new THREE.MeshStandardMaterial({
-                    color: sector.terrainColor || 0xb0d4e3, roughness: 0.6, metalness: 0.1, flatShading: true
+            // --- Grass patches: 20-35 per sector ---
+            const numGrass = 20 + Math.floor(sector.buildingDensity * 15);
+            for (let i = 0; i < numGrass; i++) {
+                const angle = this._rand() * Math.PI * 2;
+                const dist = 5 + this._rand() * radius * 0.8;
+                const gx = cx + Math.cos(angle) * dist;
+                const gz = cz + Math.sin(angle) * dist;
+                this._addGrassPatch(gx, gz);
+            }
+
+            // --- Rocks: 15-30 per sector ---
+            const numRocks = Math.floor(15 + sector.rockDensity * 15);
+            for (let i = 0; i < numRocks; i++) {
+                const angle = this._rand() * Math.PI * 2;
+                const dist = 10 + this._rand() * radius * 0.6;
+                const rx = cx + Math.cos(angle) * dist;
+                const rz = cz + Math.sin(angle) * dist;
+
+                const size = 2 + this._rand() * 4;
+                const geo = new THREE.DodecahedronGeometry(size / 3, 0);
+                const mat = new THREE.MeshStandardMaterial({
+                    color: 0x787878, roughness: 0.95, flatShading: true
                 });
-                const surfaceMesh = new THREE.Mesh(surfGeo, surfMat);
-                surfaceMesh.rotation.x = -Math.PI / 2;
-                surfaceMesh.position.set(cx, surfY + 0.05, cz);
-                surfaceMesh.userData.mapGenerated = true;
-                this.scene.add(surfaceMesh);
+                const rock = new THREE.Mesh(geo, mat);
+                const baseY = this.getHeightAt(rx, rz);
+                rock.position.set(rx, baseY + size / 6, rz);
+                rock.rotation.set(
+                    this._rand() * Math.PI,
+                    this._rand() * Math.PI,
+                    this._rand() * Math.PI
+                );
+                rock.userData.mapGenerated = true;
+                rock.userData.physicsType = 'STATIC';
+                this.scene.add(rock);
+                this.addColliderBox(
+                    rock.position.clone(), size, size, size, false, true, false, 'CONVEX_HULL'
+                );
+            }
 
-                // Walkable platform for spawn pads on ice lake
-                const padGeo = new THREE.CylinderGeometry(radius * 0.92, radius * 0.92, 0.35, 32);
-                const padMat = new THREE.MeshStandardMaterial({ color: 0xc8e6f0, roughness: 0.7, flatShading: true });
-                const padMesh = new THREE.Mesh(padGeo, padMat);
-                padMesh.position.set(cx, surfY + 0.18, cz);
-                padMesh.userData.mapGenerated = true;
-                this.scene.add(padMesh);
-
-                for (let i = 0; i < numCrystals; i++) {
-                    const cAngle = this._rand() * Math.PI * 2;
-                    const cDist = 10 + this._rand() * radius * 0.85;
-                    this._addIceCrystal(cx + Math.cos(cAngle) * cDist, cz + Math.sin(cAngle) * cDist);
-                }
-
-                if (!sector.bounds?.minX || cx > 100) { // Only one radio tower per ice sector
-                    const angle = Math.random() * Math.PI * 2;
-                    this._addRadioTower(
-                        cx + Math.cos(angle) * (radius - 30),
-                        cz + Math.sin(angle) * (radius - 30)
-                    );
-                }
-            } else {
-                // --- Trees: 60-120 per sector ---
-                const numTrees = 60 + Math.floor(sector.treeDensity * 100);
-                for (let i = 0; i < numTrees; i++) {
-                    const angle = this._rand() * Math.PI * 2;
-                    const dist = 10 + this._rand() * radius * 0.85;
-                    const tx = cx + Math.cos(angle) * dist;
-                    const tz = cz + Math.sin(angle) * dist;
-                    this._addTree(tx, tz, sector);
-                }
-
-                // --- Bushes: 15-25 per sector ---
-                const numBushes = 15 + Math.floor(sector.buildingDensity * 10);
-                for (let i = 0; i < numBushes; i++) {
-                    const angle = this._rand() * Math.PI * 2;
-                    const dist = 5 + this._rand() * radius * 0.7;
-                    const bx = cx + Math.cos(angle) * dist;
-                    const bz = cz + Math.sin(angle) * dist;
-                    this._addBush(bx, bz);
-                }
-
-                // --- Grass patches: 20-35 per sector ---
-                const numGrass = 20 + Math.floor(sector.buildingDensity * 15);
-                for (let i = 0; i < numGrass; i++) {
-                    const angle = this._rand() * Math.PI * 2;
-                    const dist = 5 + this._rand() * radius * 0.8;
-                    const gx = cx + Math.cos(angle) * dist;
-                    const gz = cz + Math.sin(angle) * dist;
-                    this._addGrassPatch(gx, gz);
-                }
-
-                // --- Rocks: 15-30 per sector ---
-                const numRocks = Math.floor(15 + sector.rockDensity * 15);
-                for (let i = 0; i < numRocks; i++) {
-                    const angle = this._rand() * Math.PI * 2;
-                    const dist = 10 + this._rand() * radius * 0.6;
-                    const rx = cx + Math.cos(angle) * dist;
-                    const rz = cz + Math.sin(angle) * dist;
-
-                    const size = 2 + this._rand() * 4;
-                    const geo = new THREE.DodecahedronGeometry(size / 3, 0);
-                    const mat = new THREE.MeshStandardMaterial({
-                        color: 0x787878, roughness: 0.95, flatShading: true
-                    });
-                    const rock = new THREE.Mesh(geo, mat);
-                    const baseY = this.getHeightAt(rx, rz);
-                    rock.position.set(rx, baseY + size / 6, rz);
-                    rock.rotation.set(
-                        this._rand() * Math.PI,
-                        this._rand() * Math.PI,
-                        this._rand() * Math.PI
-                    );
-                    rock.userData.mapGenerated = true;
-                    rock.userData.physicsType = 'STATIC';
-                    this.scene.add(rock);
-                    this.addColliderBox(
-                        rock.position.clone(), size, size, size, false, true, false, 'CONVEX_HULL'
-                    );
-                }
-
-                // --- Scattered props: 8-15 per sector ---
-                const numProps = Math.floor(8 + sector.buildingDensity * 7);
+            // --- Scattered props: 8-15 per sector ---
+            const numProps = Math.floor(8 + sector.buildingDensity * 7);
             for (let i = 0; i < numProps; i++) {
                 const angle = this._rand() * Math.PI * 2;
                 const dist = 8 + this._rand() * radius * 0.5;
@@ -918,446 +866,9 @@ export class MapGenerator {
     }
 
     // ========================================================================
-    // BIOME ENVIRONMENT GENERATION (Phase 5b)
+    // SPAWN SYSTEM (Phase 6)
     // ========================================================================
-
-    /** Stone maze corridor walls for stone_maze biome */
-    _generateMazeWalls(sector, cx, cz, radius) {
-        const wallMat = new THREE.MeshStandardMaterial({
-            color: 0x7a7a6e, roughness: 0.85, flatShading: true
-        });
-
-        // Build a grid of maze walls with gaps for corridors
-        const spacing = 4;
-        const halfRange = radius * 0.9;
-        const segmentsX = Math.floor(halfRange / spacing) * 2 + 1;
-        const segmentsZ = Math.floor(halfRange / spacing) * 2 + 1;
-
-        for (let sx = -Math.floor(segmentsX / 2); sx < Math.floor(segmentsX / 2); sx++) {
-            for (let sz = -Math.floor(segmentsZ / 2); sz < Math.floor(segmentsZ / 2); sz++) {
-                const wx = cx + sx * spacing;
-                const wz = cz + sz * spacing;
-
-                // Leave corridor gaps (~30% chance of no wall)
-                if (this._rand() < 0.3) continue;
-
-                // Wall height varies slightly
-                const h = 1.8 + this._rand() * 2.5;
-                const geo = new THREE.BoxGeometry(spacing - 0.2, h, 0.4);
-                const wall = new THREE.Mesh(geo, wallMat.clone());
-
-                // Randomize color slightly per segment for visual variety
-                const shade = 0x7a7a6e + Math.floor((this._rand() * 0x15 - 0x7) << (this._rand() > 0.5 ? 0 : 8));
-                wall.material.color.setHex(0x7a7a6e);
-                if ((Math.abs(sx) + Math.abs(sz)) % 3 === 0) {
-                    // Tower-like taller segments every few cells
-                    wall.geometry = new THREE.BoxGeometry(spacing * 1.5, h * 1.4, spacing * 1.2);
-                    wall.material.color.setHex(0x6d6d60);
-                }
-
-                const baseY = this.getHeightAt(wx, wz);
-                wall.position.set(wx, baseY + h / 2, wz);
-                wall.rotation.y = (this._rand() > 0.5 ? Math.PI / 2 : 0);
-                if (wall.userData) {
-                    wall.userData.mapGenerated = true;
-                    wall.userData.physicsType = 'STATIC';
-                }
-                this.scene.add(wall);
-
-                // Collider for maze walls - use bounding box from geometry
-                const bBox = new THREE.Box3().setFromObject(wall, false);
-                if (bBox.isEmpty()) {
-                    bBox.setFromCenterAndSize(
-                        wall.position.clone(),
-                        new THREE.Vector3(spacing * 1.2, h, spacing * 1.2)
-                    );
-                }
-                const center = bBox.getCenter(new THREE.Vector3());
-                const size = bBox.getSize(new THREE.Vector3());
-                this.addColliderBox(center, size.x, size.y, size.z, true);
-            }
-
-            // Add maze towers at corners of the grid area
-        }
-
-        // Maze corner towers (larger structures)
-        for (let i = 0; i < 4; i++) {
-            const angle = (i / 4) * Math.PI * 2 + Math.PI / 8;
-            const tx = cx + Math.cos(angle) * radius * 0.95;
-            const tz = cz + Math.sin(angle) * radius * 0.95;
-            const baseY = this.getHeightAt(tx, tz);
-
-            const towerGeo = new THREE.BoxGeometry(3, 6, 3);
-            const towerMat = new THREE.MeshStandardMaterial({ color: 0x5e5e52, roughness: 0.9, flatShading: true });
-            const tower = new THREE.Mesh(towerGeo, towerMat);
-            tower.position.set(tx, baseY + 3, tz);
-            tower.userData.mapGenerated = true;
-            tower.userData.physicsType = 'STATIC';
-            this.scene.add(tower);
-
-            // Small platform on top of each corner tower
-            const platGeo = new THREE.BoxGeometry(2.5, 0.3, 2.5);
-            const platMat = new THREE.MeshStandardMaterial({ color: 0x4a4a40, roughness: 1.0 });
-            const platform = new THREE.Mesh(platGeo, platMat);
-            platform.position.set(tx, baseY + 6.15, tz);
-            platform.userData.mapGenerated = true;
-            this.scene.add(platform);
-
-            // Wall segments connecting towers to nearby maze walls
-            for (let w = 0; w < 3; w++) {
-                const segAngle = angle + ((w - 1) * 0.15);
-                const sx2 = cx + Math.cos(segAngle) * radius * (0.4 + w * 0.18);
-                const sz2 = cz + Math.sin(segAngle) * radius * (0.4 + w * 0.18);
-                if (this._rand() < 0.35) continue; // gaps in connecting walls
-
-                const segGeo = new THREE.BoxGeometry(0.4, h || 2.5, spacing - 0.6);
-                const segMat = new THREE.MeshStandardMaterial({ color: 0x7a7a6e, roughness: 0.8 });
-                const segment = new THREE.Mesh(segGeo, segMat);
-
-                // Orient wall perpendicular to radial direction
-                const perpAngle = angle + Math.PI / 2;
-                segment.position.set(sx2, baseY + (h || 1.25) / 2, sz2);
-                segment.rotation.y = perpAngle;
-                segment.userData.mapGenerated = true;
-                this.scene.add(segment);
-
-                const segH = h || 2.5;
-                this.addColliderBox(
-                    new THREE.Vector3(sx2, baseY + segH / 2, sz2),
-                    spacing - 0.6, segH, 0.4, true
-                );
-            }
-        }
-
-        // Maze wall segments scattered inside the maze area
-        const numSegments = Math.floor(sector.buildingDensity * radius);
-        for (let i = 0; i < numSegments; i++) {
-            const segAngle = this._rand() * Math.PI * 2;
-            const segDist = 15 + this._rand() * radius * 0.7;
-            const sx3 = cx + Math.cos(segAngle) * segDist;
-            const sz3 = cz + Math.sin(segAngle) * segDist;
-
-            // Don't place too close to existing walls (simple check)
-            if (Math.abs(sx3 - cx) < 6 && Math.abs(sz3 - cz) < 6) continue;
-
-            const sH = 1.5 + this._rand() * 2;
-            const segGeo = new THREE.BoxGeometry(0.4, sH, spacing);
-            const segMat = new THREE.MeshStandardMaterial({ color: 0x7a7a6e, roughness: 0.8 });
-            const segment = new THREE.Mesh(segGeo, segMat);
-
-            // Orient randomly (some perpendicular to radial, some parallel)
-            if (this._rand() > 0.5) {
-                segment.rotation.y = segAngle + Math.PI / 2;
-            } else {
-                segment.rotation.y = this._rand() * Math.PI;
-            }
-
-            const sBaseY = this.getHeightAt(sx3, sz3);
-            segment.position.set(sx3, sBaseY + sH / 2, sz3);
-            segment.userData.mapGenerated = true;
-            segment.userData.physicsType = 'STATIC';
-            this.scene.add(segment);
-
-            this.addColliderBox(
-                new THREE.Vector3(sx3, sBaseY + sH / 2, sz3),
-                spacing - 0.6, sH, 0.4, true
-            );
-        }
-    }
-
-    /** Ice crystal shard for ice_lake biome */
-    _addIceCrystal(x, z) {
-        const baseY = this.getHeightAt(x, z);
-
-        // Crystal geometry - elongated octahedron shape
-        const height = 0.5 + this._rand() * 2;
-        const radius = 0.3 + this._rand() * 0.7;
-        const geo = new THREE.ConeGeometry(radius, height, Math.floor(4 + this._rand() * 4));
-
-        // Ice-blue material with slight transparency and sparkle
-        const crystalColor = 0x89cfef + Math.floor(this._rand() * 0x20 - 0x10);
-        const mat = new THREE.MeshStandardMaterial({
-            color: crystalColor, roughness: 0.3, metalness: 0.1, flatShading: true, transparent: true, opacity: 0.85
-        });
-
-        const crystal = new THREE.Mesh(geo, mat);
-        crystal.position.set(x, baseY + height / 2 - 0.1, z);
-        crystal.rotation.y = this._rand() * Math.PI;
-        crystal.rotation.z = (this._rand() > 0.5 ? 1 : -1) * (Math.PI / 8 + this._rand() * Math.PI / 4);
-        crystal.userData.mapGenerated = true;
-
-        // Scale variation for natural look
-        const scaleX = 0.7 + this._rand() * 0.6;
-        const scaleZ = 0.7 + this._rand() * 0.6;
-        crystal.scale.set(scaleX, 1, scaleZ);
-
-        this.scene.add(crystal);
-
-        // Small collider base for crystals (not solid but present)
-        if (scaleX > 0.8 && height > 1.5) {
-            this.addColliderBox(
-                new THREE.Vector3(x, baseY + height * 0.4, z),
-                radius * scaleX * 2, height, radius * scaleZ * 2, false
-            );
-        }
-    }
-
-    /** Barbed wire fence posts for military zone */
-    _placeBarbedWireFences(sector, cx, cz) {
-        const postMat = new THREE.MeshStandardMaterial({ color: 0x4a5238, roughness: 0.9 });
-        const barbedMat = new THREE.LineBasicMaterial({ color: 0x666666 });
-
-        // Place fence posts along sector edges and perimeter
-        const numPosts = Math.floor((sector.bounds?.maxX - sector.bounds?.minX) / 5);
-        const postSpacing = (sector.bounds?.maxZ - sector.bounds?.minZ) / Math.max(numPosts, 8);
-
-        for (let i = 0; i < numPosts; i++) {
-            // Posts along the perimeter edges
-            const edge = i % 4; // 0=top,1=right,2=bottom,3=left
-            let px, pz;
-
-            switch (edge) {
-                case 0: // top edge
-                    px = sector.bounds.minX + (i / numPosts) * (sector.bounds.maxX - sector.bounds.minX);
-                    pz = sector.bounds.minZ;
-                    break;
-                case 1: // right edge
-                    px = sector.bounds.maxX;
-                    pz = sector.bounds.minZ + (i / numPosts) * (sector.bounds.maxZ - sector.bounds.minZ);
-                    break;
-                case 2: // bottom edge
-                    px = sector.bounds.maxX - ((i % Math.floor(numPosts / 4)) / numPosts) * (sector.bounds.maxX - sector.bounds.minX);
-                    pz = sector.bounds.maxZ;
-                    break;
-                default: // left edge
-                    px = sector.bounds.minX;
-                    pz = sector.bounds.maxZ - ((i % Math.floor(numPosts / 4)) / numPosts) * (sector.bounds.maxZ - sector.bounds.minZ);
-                    break;
-            }
-
-            const baseY = this.getHeightAt(px, pz);
-
-            // Fence post
-            const postGeo = new THREE.BoxGeometry(0.15, 2.5, 0.15);
-            const post = new THREE.Mesh(postGeo, postMat.clone());
-            post.position.set(px, baseY + 1.25, pz);
-            post.userData.mapGenerated = true;
-            this.scene.add(post);
-
-            // Barbed wire strands between posts (drawn as thin lines)
-            if (i > 0 && i % Math.floor(numPosts / 8) === 0) {
-                const prevEdge = edge - 1 >= 0 ? edge - 1 : 3;
-                let ppx, ppz;
-                switch (prevEdge) {
-                    case 0: ppx = sector.bounds.minX + ((i - Math.floor(numPosts / 4)) / numPosts) * (sector.bounds.maxX - sector.bounds.minX); ppz = sector.bounds.minZ; break;
-                    case 1: ppx = sector.bounds.maxX; ppz = sector.bounds.minZ + ((i % Math.floor(numPosts / 2)) / numPosts) * (sector.bounds.maxZ - sector.bounds.minZ); break;
-                    default: ppx = px; ppz = pz; // fallback same position
-                }
-
-                const lineGeo = new THREE.BufferGeometry();
-                const points = [new THREE.Vector3(px, baseY + 2.5, pz), new THREE.Vector3(ppx || px, (baseY + ((ppz === pz) ? 0 : 1)) + 2.3, ppz || pz)];
-                lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(points.flat(), 3));
-
-                const wireLine = new THREE.Line(lineGeo, barbedMat);
-                wireLine.userData.mapGenerated = true;
-                this.scene.add(wireLine);
-            }
-        }
-
-        // Inner perimeter fence - smaller box inside the sector boundary
-        const innerOffset = 15;
-        for (let side = 0; side < 4; side++) {
-            const isHorizontal = side % 2 === 0;
-            const numWires = 3 + Math.floor(this._rand() * 2);
-
-            for (let w = 0; w < numWires; w++) {
-                const wireZ = (isHorizontal ? sector.bounds.minZ : sector.bounds.maxZ) - (sector.bounds.maxZ - sector.bounds.minZ) / 4 + w * innerOffset;
-                const wireX = side === 1 ? sector.bounds.maxX - innerOffset : sector.bounds.minX + innerOffset;
-
-                // Wire strand as thin horizontal line
-                for (let seg = 0; seg < 5; seg++) {
-                    const sx2 = isHorizontal
-                        ? ((sector.bounds?.minX || cx) + seg * ((sector.bounds?.maxX || sector.bounds.minX + radius) - (sector.bounds?.minX || cx)) / 4)
-                        : px;
-                }
-            }
-        }
-    }
-
-    /** Military tank mesh for military biome */
-    _addTank(cx, cz, radius) {
-        const tx = cx + (this._rand() - 0.5) * radius * 1.6;
-        const tz = cz + (this._rand() - 0.5) * radius * 1.6;
-        const baseY = this.getHeightAt(tx, tz);
-
-        // Tank group for easier positioning/rotation
-        const tankGroup = new THREE.Group();
-
-        // Main body (hull)
-        const hullGeo = new THREE.BoxGeometry(2.4, 0.8, 4.5);
-        const hullMat = new THREE.MeshStandardMaterial({ color: 0x4a5238, roughness: 0.7, metalness: 0.3 });
-        const hull = new THREE.Mesh(hullGeo, hullMat);
-        hull.position.y = 1;
-        tankGroup.add(hull);
-
-        // Front sloped armor plate
-        const frontPlateGeo = new THREE.BoxGeometry(2.4, 0.6, 1.2);
-        const frontPlate = new THREE.Mesh(frontPlateGeo, hullMat.clone());
-        frontPlate.position.set(0, 1.3, -2.5);
-        frontPlate.rotation.x = Math.PI / 8; // Slight forward slope
-        tankGroup.add(frontPlate);
-
-        // Turret (cylindrical top)
-        const turretGeo = new THREE.CylinderGeometry(1.1, 1.3, 0.7, 8);
-        const turretMat = new THREE.MeshStandardMaterial({ color: 0x54624a, roughness: 0.6, metalness: 0.4 });
-        const turret = new THREE.Mesh(turretGeo, turretMat);
-        turret.position.set(0, 1.8, -0.3);
-        tankGroup.add(turret);
-
-        // Turret top (flat cap)
-        const turretTopGeo = new THREE.CylinderGeometry(1.25, 1.25, 0.15, 8);
-        const turretTop = new THREE.Mesh(turretTopGeo, hullMat.clone());
-        turretTop.position.set(0, 2.25, -0.3);
-        tankGroup.add(turretTop);
-
-        // Main gun barrel
-        const barrelGeo = new THREE.CylinderGeometry(0.15, 0.18, 4, 6);
-        const barrelMat = new THREE.MeshStandardMaterial({ color: 0x3d4a2f, roughness: 0.5, metalness: 0.6 });
-        const barrel = new THREE.Mesh(barrelGeo, barrelMat);
-        barrel.rotation.x = Math.PI / 2; // Point forward (along -Z)
-        barrel.position.set(0, 1.8, -3.2);
-        tankGroup.add(barrel);
-
-        // Barrel muzzle brake (wider tip)
-        const muzzleGeo = new THREE.CylinderGeometry(0.25, 0.18, 0.4, 6);
-        const muzzleMat = barrelMat.clone();
-        const muzzle = new THREE.Mesh(muzzleGeo, muzzleMat);
-        muzzle.rotation.x = Math.PI / 2;
-        muzzle.position.set(0, 1.8, -5.2);
-        tankGroup.add(muzzle);
-
-        // Tracks (left and right)
-        for (let side of [-1, 1]) {
-            const trackGeo = new THREE.BoxGeometry(0.6, 0.5, 4.8);
-            const trackMat = new THREE.MeshStandardMaterial({ color: 0x3d3d3d, roughness: 1.0 });
-            const track = new THREE.Mesh(trackGeo, trackMat);
-            track.position.set(side * 1.5, 0.4, 0);
-            tankGroup.add(track);
-
-            // Track wheels (small cylinders along the track)
-            for (let wi = -2; wi <= 2; wi++) {
-                const wheelGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.15, 8);
-                const wheelMat = new THREE.MeshStandardMaterial({ color: 0x4a4a4a, roughness: 0.6 });
-                const wheel = new THREE.Mesh(wheelGeo, wheelMat);
-                wheel.rotation.z = Math.PI / 2; // Roll along track direction
-                wheel.position.set(side * (1.5 + side * -0.3), 0.4, wi * 0.8);
-                tankGroup.add(wheel);
-            }
-        }
-
-        // Exhaust pipes on rear top of hull
-        for (let ep = 0; ep < 2; ep++) {
-            const exhaustGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.6, 6);
-            const exhaustMat = new THREE.MeshStandardMaterial({ color: 0x3d3d3d, roughness: 0.8 });
-            const exhaust = new THREE.Mesh(exhaustGeo, exhaustMat);
-            exhaust.rotation.x = Math.PI / 2; // Point backward
-            exhaust.position.set(-0.5 + ep * 0.5, 1.6, 2.3);
-            tankGroup.add(exhaust);
-        }
-
-        // Radio antenna on turret rear
-        const antennaGeo = new THREE.CylinderGeometry(0.02, 0.02, 1.8, 4);
-        const antennaMat = new THREE.MeshStandardMaterial({ color: 0x3d3d3d, roughness: 0.7 });
-        const antenna = new THREE.Mesh(antennaGeo, antennaMat);
-        antenna.position.set(-0.6, 2.85, -1.0); // Tall thin cylinder pointing up
-        tankGroup.add(antenna);
-
-        // Antenna tip (small sphere)
-        const tipGeo = new THREE.SphereGeometry(0.04, 4, 4);
-        const tipMat = new THREE.MeshStandardMaterial({ color: 0xff0000 }); // Red blinking tip
-        const tip = new THREE.Mesh(tipGeo, tipMat);
-        tip.position.set(-0.6, 3.75, -1.0);
-        tankGroup.add(tip);
-
-        // Position the entire tank group in world space
-        tankGroup.rotation.y = this._rand() * Math.PI * 2; // Random facing direction
-        tankGroup.position.set(tx, baseY, tz);
-        tankGroup.userData.mapGenerated = true;
-        tankGroup.userData.physicsType = 'STATIC';
-
-        this.scene.add(tankGroup);
-
-        // Collider for the whole tank body (simplified box)
-        const tankSize = new THREE.Vector3(4.5, 2.5, 6);
-        const tankCenter = new THREE.Vector3(tx, baseY + 1.25, tz);
-        this.addColliderBox(tankCenter, tankSize.x, tankSize.y, tankSize.z, true);
-
-        // Secondary collider for the turret (smaller box)
-        const turretBase = new THREE.Vector3(tx, baseY + 2.85, cz - 0.3);
-        this.addColliderBox(turretBase, 3, 1.4, 3, false);
-    }
-
-    /** Radio tower with antenna dishes */
-    _addRadioTower(x, z) {
-        const baseY = this.getHeightAt(x, z);
-
-        // Tower group for positioning
-        const towerGroup = new THREE.Group();
-
-        // Main tower pole (tall thin cylinder)
-        const poleGeo = new THREE.CylinderGeometry(0.35, 0.6, 18, 8);
-        const poleMat = new THREE.MeshStandardMaterial({ color: 0x4a5238, roughness: 0.7 });
-        const pole = new THREE.Mesh(poleGeo, poleMat.clone());
-        pole.position.y = 9; // Half height of tower
-        towerGroup.add(pole);
-
-        // Cross-bracing (horizontal support beams at intervals)
-        for (let br = 3; br < 18; br += 4.5) {
-            const braceGeo = new THREE.BoxGeometry(2, 0.15, 2);
-            const braceMat = poleMat.clone();
-            const brace = new THREE.Mesh(braceGeo, braceMat);
-            brace.position.y = br;
-            towerGroup.add(brace);
-
-            // Diagonal cross-brace wires (thin cylinders)
-            for (let d = -1; d <= 1; d += 2) {
-                const diagGeo = new THREE.CylinderGeometry(0.03, 0.03, Math.sqrt(8), 4);
-                const diagMat = poleMat.clone();
-                const diagonal = new THREE.Mesh(diagGeo, diagMat);
-                diagonal.position.set(d * 0.95, br + 2.25, d * 0.95);
-                diagonal.rotation.z = Math.PI / 4; // Angle for cross-brace
-                towerGroup.add(diagonal);
-
-                const diagonal2 = new THREE.Mesh(diagGeo.clone(), diagMat);
-                diagonal2.position.set(-d * 0.95, br + 2.25, d * 0.95);
-                diagonal2.rotation.z = -Math.PI / 4; // Opposite angle for cross-brace
-                towerGroup.add(diagonal2);
-            }
-
-        // Top platform (small square deck)
-        const platGeo = new THREE.BoxGeometry(1.8, 0.2, 1.8);
-        const platMat = poleMat.clone();
-        const platform = new THREE.Mesh(platGeo, platMat);
-        platform.position.y = 17; // Near top of tower
-        towerGroup.add(platform);
-
-        // Platform railing (thin posts around the edge)
-        for (let r = 0; r < 8; r++) {
-            const railAngle = (r / 8) * Math.PI * 2;
-            const railGeo = new THREE.CylinderGeometry(0.03, 0.03, 1, 4);
-            const railMat = poleMat.clone();
-            const railing = new THREE.Mesh(railGeo, railMat);
-            railing.position.set(Math.cos(railAngle) * 0.85, 17.6, Math.sin(railAngle) * 0.85);
-            towerGroup.add(railing);
-        }
-
-        // Main dish antenna (parabolic shape using cone geometry inverted)
-        const dishGeo = new THREE.ConeGeometry(2, 3, 8, 1, true); // Open-top cone for dish
-        const dishMat = new THREE.MeshStandardMaterial({ color: 0x6b7280, roughness: 0.4, metalness: 0.5 });
-        const dish = new THREE.Mesh(dishGeo, dishMat);
-        dish.position.set(0, 19, -1.5); // Tilted forward (toward negative Z)
-        dish.rotation.x = Math.PI / 6; // Slight tilt angle for directional signal
-
+    _buildSpawnPads() {
         this.spawnPads = [];
         const padMat = new THREE.MeshStandardMaterial({ color: 0xb0bec5, roughness: 0.8, flatShading: true });
         const padGeo = new THREE.BoxGeometry(2.2, 0.3, 2.2);
@@ -1393,8 +904,7 @@ export class MapGenerator {
             inst.setMatrixAt(i, dummy.matrix);
 
             this.addColliderBox(new THREE.Vector3(p.x, padY, p.z), 2.2, 0.3, 2.2, true);
-            const pad = new THREE.Vector3(p.x, floorY + 0.34, p.z);
-            this.spawnPads.push(pad);
+            this.spawnPads.push(new THREE.Vector3(p.x, floorY + 0.34, p.z));
         }
 
         inst.userData.mapGenerated = true;
