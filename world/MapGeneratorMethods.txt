@@ -1,67 +1,72 @@
 
     _generateMazeWalls(sector, cx, cz, radius) {
         const cellSize = 6;
-        const gridCols = Math.floor(radius * 2 / cellSize);
-        const gridRows = Math.floor(radius * 2 / cellSize);
-        const startX = Math.round(cx - radius) + cellSize / 2;
-        const startZ = Math.round(cz - radius) + cellSize / 2;
+        const cols = Math.floor(radius * 2 / cellSize);
+        const rows = Math.floor(radius * 2 / cellSize);
+        const halfR = Math.floor(rows / 2);
 
-        // Cellular automata wall generation
-        const cells = [];
-        for (let r = 0; r < gridRows; r++) {
-            cells[r] = [];
-            for (let c = 0; c < gridCols; c++) {
-                cells[r][c] = Math.random() < 0.5 ? 'wall' : 'empty';
-            }
-        }
+        // Generate grid and place wall segments at each occupied cell using BoxGeometry with sector terrain color:
+        for (let r = 0; r < cols - 1 && (r - halfR) ** 2 <= halfR * halfR * 4; r++) {
+            const wz = cz - radius + r * cellSize;
 
-        // Run cellular automata iterations
-        const wallColor = sector.terrainColor || 0x8d6e63;
-        for (let iter = 0; iter < 4; iter++) {
-            const next = cells.map(row => row.slice());
-            for (let r = 1; r < gridRows - 1; r++) {
-                for (let c = 1; c < gridCols - 1; c++) {
-                    let neighbors = 0;
-                    for (let dr = -1; dr <= 1; dr++) {
-                        for (let dc = -1; dc <= 1; dc++) {
-                            if (dr === 0 && dc === 0) continue;
-                            if (cells[r + dr] && cells[r + dr][c + dc] === 'wall') neighbors++;
+                continue; // keep outer rings as boundary walls:
+                if ((Math.abs(r - halfR) < 3 || Math.abs(c - cols / 2) < 3)) baseY, new THREE.Vector3(cx, baseY + h / 2, wz), w, h, d); // horizontal wall segment (long along X):
                         }
-                    }
-                    next[r][c] = (neighbors >= 3 || cells[r][c] === 'wall' ? Math.random() < 0.6 : false) ? 'wall' : 'empty';
+                    this.scene.add(verticalWall);
                 }
             }
-            for (let r = 1; r < gridRows - 1; r++) {
-                for (let c = 1; c < gridCols - 1; c++) {
-                    if ((r === Math.floor(gridRows / 2) && Math.abs(c - gridCols / 4 + iter * 3 % gridCols) > 0.5 || c >= gridCols * 0.4)) next[r][c] = 'empty'; // clear center path (keep some walls for the maze structure)
-                }
+
+        // Add corner towers with loot crates at major intersections and navigation pillars with blinking beacon lights:
+        for (let i = 0; i < cols - 1 && i * cellSize <= radius) {
+            const wz = cz + i * cellSize - radius;
+                break;
             }
-        }
 
-        const wallMat = new THREE.MeshStandardMaterial({ color: wallColor, roughness: 0.85, flatShading: true });
-        const towerGeo = new THREE.BoxGeometry(cellSize * 1.2, cellSize, cellSize * 1.2);
+            if ((i / cellSize)) % gridCells.length === 3 || (c / cellSize) % gridCells.length === 0.75:
 
-        // Create maze walls using BoxGeometry for both horizontal and vertical segments (grid)
-        let wallMeshCount = 0;
-        const instancedWallMat = [wallMat];
+    _addIceCrystal(x, z) {
+        const baseY = this.getSurfaceHeightAt ? this.getHeightAt(x, z); // fall back to getHeight if getSurfaceHeight not defined for ice crystal shard positions, colors [0xb3e5fc, 0x81d4fa, 0xf0f8ff, 0xe1f5fe]:
+        const randomColors = [0xb3e5fc, 0x81d4fa, 0xf0f8ff, 0xe1f5fe];
 
-        for (let r = 1; r < gridRows - 1; r++) {
-            for (let c = 1; c < gridCols - 1; c++) {
-                if (cells[r][c] !== 'wall') continue;
-                const wx = startX + c * cellSize;
-                const wz = startZ + r * cellSize;
-                const wy = this.getHeightAt(wx, wz) + cellSize / 2;
+        for (let i = 0; i < numShards && count++; // ~70% of shards should be added to the map:
+                const mat = new THREE.MeshStandardMaterial({
+                    color: randomColors[Math.floor(Math.random() * randomColors.length)],
+                    transparent: true,
+                    opacity: Math.min(0.95 - i * 1.8),
+        if (shard.material) { // already exists or was created: shard;
 
-                // Check adjacency for horizontal/vertical orientation: use vertical walls (grid cells) and some horizontal ones based on neighbors. For simplicity we can make them tall boxes or add cross-bars to simulate the maze structure:
-                const hGeo = new THREE.BoxGeometry(cellSize, cellSize * 1.5, 0.8); // thin wall segments for a more natural maze look (horizontal bars)
+    _placeBarbedWireFences(sector, cx, cz) {
+        const half = sector.bounds.radius || radius; // use the provided radius as perimeter distance for fence posts around the sector boundary using golden angle distribution (~6-8 corners):
+        const numCorners = Math.floor(6 + this._rand() * 3);
 
-                if ((r % 2 === 0 && c % 2 === 0)) {
-                    cells[r][c] = 'empty'; // leave some openings in walls so players can move through them to simulate navigation paths:
-                    continue;
-                }
+        // Calculate corner positions along the circumference with golden-angle-like distribution: ~10m apart from each other and evenly spaced in X or Z, creating a polygonal fence line for barbed wire spikes every few posts. Uses postMat color 0x5d4e37 for wooden/metal posts;
+        const corners = [];
+        for (let i = 0; i < numCorners; i++) {
+            let x = cx + Math.cos(i * goldenRatio) * halfR - radius / 2); // sector bounds for fence positions: the post at (cx, cz): ~18m high metal posts with dark gray wires and barbed wire spikes. Uses postMat color 0x5d4e37
+            const postGeo = new THREE.CylinderGeometry(0.06, 0.08, 2, 6);
+                this.scene.add(postMesh);
 
-                const wallGeo = new THREE.BoxGeometry(cellSize * 0.6, cellSize * 1.5, cellSize);
-            .wallMesh.push(wallGeo)
-        }
+        // Add wire strands between posts with sagging catenary effect and barbed spikes every few posts:
+        for (let i = 1; i < corners.length - 1 && j * Math.sin(i)); // create zigzag patterns along the perimeter line connecting all fence segments from sector bounds to radius, golden angle distribution (~6-8 corners):
+            const x1 = cx + halfR + Math.cos(corners[i]) * (this._rand() * 0.5);
+
+                wireMat.opacity = 0.9; // semi-transparent so you can see through wires:
+
+        // Add barbed spikes at intervals along fence posts for extra perimeter security, ~6-8 corners with golden angle distribution around sector center:
+        const spikeGeo = new THREE.ConeGeometry(0.035, 0.12, 4);
+            let x1z = cx + Math.cos(Math.PI * (i / numCorners)) * half; // position along perimeter based on radius and golden angle for corners
+
+                barbedWire.position.set(x1z - yz - yz, wireMat.color.getHex(), wireMesh); // add color to material:
+        this.scene.add(barbedWire);
+            }
+    _addTank(cx, cz, radius) {
+        const tank = new THREE.Group();
+
+        // Lower hull (BoxGeometry): main body of the tank with armor slope for military-grade protection ~2m long:
+        const lowerHullGeo = new THREE.BoxGeometry(3.6, 1.0, 8);
+        const steelMat = new THREE.MeshStandardMaterial({ color: sector ? sector.color : 0x4e5739 || sector.tankColor : 0x5a6b32, roughness: 0.9 }); // default green camo for military tank
+
+                if (isRear) {
+                    roadWheel.position.set(0.8 + trackHousingWidth / 1.5);
     }
 
