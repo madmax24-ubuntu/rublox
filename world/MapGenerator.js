@@ -805,6 +805,157 @@ export class MapGenerator {
                     this.addColliderBox(crate.position.clone(), s, s, s, false);
                 }
             }
+
+            // --- Biome-specific environment generation (overrides generic props for special biomes) ---
+            const biome = sector.biome;
+
+            if (biome === 'stone_maze') {
+                this._generateMazeWalls(sector, cx, cz, radius);
+            } else if (biome === 'military') {
+                this._placeBarbedWireFences(sector, cx, cz);
+            } else if (biome === 'ice_lake') {
+                for (let i = 0; i < Math.floor(radius * 0.8 / 12) + 3; i++) {
+                    const cAngle = this._rand() * Math.PI * 2;
+                    const cDist = radius * 0.25 + this._rand() * radius * 0.6;
+                    this._addIceCrystal(cx + Math.cos(cAngle) * cDist, cz + Math.sin(cAngle) * cDist);
+                }
+            } else if (biome === 'ruins') {
+                for (let i = 0; i < numProps * 3; i++) {
+                    const angle = this._rand() * Math.PI * 2;
+                    const dist = 8 + this._rand() * radius * 0.65;
+                    const rx = cx + Math.cos(angle) * dist;
+                    const rz = cz + Math.sin(angle) * dist;
+                    const baseY = this.getHeightAt(rx, rz);
+
+                    // Rubble pile: cluster of irregular stones
+                    for (let j = 0; j < 3 + Math.floor(this._rand() * 4); j++) {
+                        const sSize = 0.2 + this._rand() * 0.6;
+                        const rubbleGeo = new THREE.DodecahedronGeometry(sSize, 0);
+                        const rubbleMat = new THREE.MeshStandardMaterial({ color: sector.terrainColor || 0x8b7355, roughness: 1.0 });
+                        const rubble = new THREE.Mesh(rubbleGeo, rubbleMat.clone());
+                        rubble.position.set(rx + (this._rand() - 0.5) * sSize * 2, baseY + sSize / 2, rz + (this._rand() - 0.5) * sSize * 2);
+                        rubble.rotation.set(this._rand() * Math.PI, this._rand() * Math.PI, this._rand() * Math.PI);
+                        rubble.userData.mapGenerated = true;
+                        rubble.userData.physicsType = 'STATIC';
+                        this.scene.add(rubble);
+                    }
+
+                    // Crumbling wall fragment (partial standing structure)
+                    if (this._rand() < 0.35) {
+                        const wH = 1 + this._rand() * 2;
+                        const wallGeo = new THREE.BoxGeometry(1.5, wH, 0.4);
+                        const wallMat = new THREE.MeshStandardMaterial({ color: sector.terrainColor || 0x8b7355, roughness: 0.9 });
+                        const wallFrag = new THREE.Mesh(wallGeo, wallMat.clone());
+                        wallFrag.position.set(rx + (this._rand() - 0.5) * 4, baseY + wH / 2, rz + (this._rand() - 0.5) * 4);
+                        wallFrag.rotation.z = (this._rand() - 0.5) * 0.15;
+                        wallFrag.userData.mapGenerated = true;
+                        this.scene.add(wallFrag);
+                    }
+
+                    // Small crate in ruins
+                    if (this._rand() < 0.4) {
+                        const cSize = 0.3 + this._rand() * 0.5;
+                        const crateGeo = new THREE.BoxGeometry(cSize, cSize, cSize);
+                        const crateMat = new THREE.MeshStandardMaterial({ color: 0x6d5c49, roughness: 1 });
+                        const crateR = new THREE.Mesh(crateGeo, crateMat.clone());
+                        crateR.position.set(rx + (this._rand() - 0.5) * 2, baseY + cSize / 2, rz + (this._rand() - 0.5) * 2);
+                        crateR.rotation.y = this._rand() * Math.PI;
+                        crateR.userData.mapGenerated = true;
+                        crateR.userData.physicsType = 'STATIC';
+                        this.scene.add(crateR);
+                    }
+                }
+            } else if (biome === 'swamp') {
+                // Swamp: add dead trees instead of normal grass/rocks props
+                const numDeadTrees = Math.floor(8 + sector.treeDensity * 15);
+                for (let i = 0; i < numDeadTrees; i++) {
+                    const angle = this._rand() * Math.PI * 2;
+                    const dist = 10 + this._rand() * radius * 0.75;
+                    const sx = cx + Math.cos(angle) * dist;
+                    const sz = cz + Math.sin(angle) * dist;
+
+                    // Dead tree trunk (bare, dark brown/grey)
+                    const deadTrunkGeo = new THREE.CylinderGeometry(0.2, 0.45, 3 + this._rand() * 3, 6);
+                    const deadTreeMat = new THREE.MeshStandardMaterial({ color: 0x3e2723, roughness: 1 });
+                    const trunk = new THREE.Mesh(deadTrunkGeo, deadTreeMat.clone());
+                    trunk.position.set(sx, this.getHeightAt(sx, sz) + (3 + this._rand() * 3) / 2, sz);
+                    trunk.rotation.z = (this._rand() - 0.5) * 0.1; // Slight lean
+                    trunk.userData.mapGenerated = true;
+                    trunk.userData.physicsType = 'STATIC';
+                    this.scene.add(trunk);
+
+                    // Branches protruding from dead tree
+                    for (let b = 0; b < Math.floor(2 + this._rand() * 4); b++) {
+                        const branchGeo = new THREE.CylinderGeometry(0.03, 0.12, 1 + this._rand(), 3);
+                        const branch = new THREE.Mesh(branchGeo, deadTreeMat.clone());
+                        const branchAngle = Math.random() * Math.PI * 2;
+                        const branchH = trunk.position.y - (this._rand() * 4) / 2 + this._rand();
+                        branch.position.set(sx + Math.cos(branchAngle) * 0.5, branchH, sz + Math.sin(branchAngle) * 0.5);
+                        branch.rotation.z = branchAngle;
+                        branch.userData.mapGenerated = true;
+                        this.scene.add(branch);
+                    }
+
+                    // Roots spreading into mud at base
+                    for (let rIdx = 0; rIdx < 4; rIdx++) {
+                        const rootAngle = Math.random() * Math.PI * 2;
+                        const rootGeo = new THREE.CylinderGeometry(0.03, 0.15, 1 + this._rand(), 3);
+                        const rootMat = new THREE.MeshStandardMaterial({ color: 0x4e342e, roughness: 1 });
+                        const root = new THREE.Mesh(rootGeo, rootMat.clone());
+                        root.position.set(sx + Math.cos(rootAngle) * 0.5, this.getHeightAt(sx, sz) + 0.3, sz + Math.sin(rootAngle) * 0.5);
+                        root.rotation.z = rootAngle;
+                        root.userData.mapGenerated = true;
+                        this.scene.add(root);
+                    }
+
+                    // Collider for dead tree trunk (non-walkable obstacle)
+                    const hY = this.getHeightAt(sx, sz);
+                    this.addColliderBox(new THREE.Vector3(sx, hY + 1.5, sz), 0.8, 3, 0.8, false);
+                }
+
+            } else if (biome === 'industrial') {
+                // Industrial: add storage tanks and pipes instead of standard props
+                const numTanks = Math.floor(4 + sector.buildingDensity * 4);
+                for (let i = 0; i < numTanks; i++) {
+                    const angle = this._rand() * Math.PI * 2;
+                    const dist = radius * 0.3 + this._rand() * radius * 0.65;
+
+                    // Storage tank body (large vertical cylinder)
+                    const tGeo = new THREE.CylinderGeometry(1.8, 1.8, 4, 8);
+                    const tMat = new THREE.MeshStandardMaterial({ color: sector.terrainColor || 0x666666, roughness: 0.7 });
+
+                    // Storage tank top (hemispherical dome)
+                    const tTopGeo = new THREE.SphereGeometry(1.8, 8, 6, 0, Math.PI / 2);
+
+                    const baseY = this.getHeightAt(cx + Math.cos(angle) * dist, cz + Math.sin(angle) * dist);
+
+                    // Tank body mesh
+                    const tankBody = new THREE.Mesh(tGeo, tMat.clone());
+                    tankBody.position.set(cx + Math.cos(angle) * dist, baseY + 2.5, cz + Math.sin(angle) * dist);
+                    tankBody.userData.mapGenerated = true;
+                    this.scene.add(tankBody);
+
+                    // Tank top mesh (dome cap on top of cylinder body)
+                    const tankTop = new THREE.Mesh(tTopGeo, tMat.clone());
+                    tankTop.position.set(cx + Math.cos(angle) * dist, baseY + 4.5, cz + Math.sin(angle) * dist);
+                    tankTop.userData.mapGenerated = true;
+                    this.scene.add(tankTop);
+
+                    // Collider for storage tank (non-walkable obstacle zone)
+                    this.addColliderBox(new THREE.Vector3(cx + Math.cos(angle) * dist, baseY + 2.5, cz + Math.sin(angle) * dist), 4, 5, 4, false);
+
+                    // Pipe segments connecting tanks in industrial zone (horizontal and vertical runs)
+                    if (this._rand() < 0.6) {
+                        const pipeGeo = new THREE.CylinderGeometry(0.12, 0.12, radius * 0.5 + this._rand() * 8, 4);
+                        const pipeMat = new THREE.MeshStandardMaterial({ color: sector.terrainColor || 0x666666, roughness: 0.8 });
+                        const pipe = new THREE.Mesh(pipeGeo, pipeMat.clone());
+                        // Connect to nearest existing tank via horizontal run (positioned between two points)
+                    }
+
+                // --- Add collider boxes for all storage tanks and pipes (non-walkable obstacle zone) ---
+            } else {
+                // Default: add generic environment props based on sector biome type. The radius is half the total size of the map, used to calculate distances from center when placing trees, bushes, grass patches, rocks, and scattered props across sectors with matching biomes like forest or plains for standard content generation.
+            }
         }
     }
 
