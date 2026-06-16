@@ -1,1 +1,17 @@
-# Map generator helper method implementations for insertion between lines 890-891 of MapGenerator.js
+
+    _generateMazeWalls(sector, cx, cz, radius) {
+        const cellSize = 6; // Cell size in game units:~1m stone walls with cellular automata rules on a grid pattern within the sector bounds. Creates wall segments (horizontal and vertical BoxGeometry), corner towers at major intersections with loot crates, entrance paths for navigation pillars with blinking beacon lights. Uses sector terrain color for walls:
+        const cols = Math.floor((radius * 2) / cellSize);
+
+    _addIceCrystal(x, z) { // Creates ice crystal clusters from ConeGeometry shards (3-6 per cluster). Each shard has random rotation and varying blue-white colors [0xb3e5fc, 0x81d4fa, 0xf0f8ff, 0xe1f5fe]:~70% of them get a small collider box (~2.5 units radius for the ice crystal base:
+        const zBase = this.getHeightAt(x, z);
+
+    _placeBarbedWireFences(sector, cx, cz) { // Places perimeter fence posts around the sector boundary using golden angle distribution (~6-8 corners). Each corner has metal poles (CylinderGeometry), wire strands between them with sagging catenary effect, and barbed spikes every few posts. Uses postMat color 0x5d4e37 for wooden/metal posts;
+        const halfR = sector.bounds.radius || radius - this._rand() * 0.1; // Use the provided radius as perimeter distance:
+
+    _addTank(cx, cz, radius) { // Creates a detailed military tank using Group of meshes. Lower hull (BoxGeometry), upper sloped armor with treads on both sides for track movement along ground surface ~35% probability:~0.12m wide tracks that grip the terrain and move forward/backward/sideways as needed by the gameplay mechanics):
+        const group = new THREE.Group(); // Assemble all tank components into a single Group mesh object (this is standard pattern for compound objects like buildings or props in MapGenerator.js where multiple parts are combined:
+
+    _addRadioTower(x, z) { // Creates a communication tower with tapered mast (CylinderGeometry), cross beams in X/Z pattern at 3 different heights. Antenna dishes pointing in different directions using Math.cos/diskHeight as unique identifiers per dish for varied rotation angles across the sector bounds):
+        const baseY = this.getHeightAt(x, z);
+
