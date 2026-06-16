@@ -914,8 +914,8 @@ export class MapGenerator {
                 }
 
             } else if (biome === 'industrial') {
-                // Industrial: add storage tanks and pipes instead of standard props
-                const numTanks = Math.floor(4 + sector.buildingDensity * 4);
+                // Industrial: add storage tanks and connecting pipes instead of standard props
+                const numTanks = Math.floor(4 + sector.buildingDensity * 3);
                 for (let i = 0; i < numTanks; i++) {
                     const angle = this._rand() * Math.PI * 2;
                     const dist = radius * 0.3 + this._rand() * radius * 0.65;
@@ -935,7 +935,7 @@ export class MapGenerator {
                     tankBody.userData.mapGenerated = true;
                     this.scene.add(tankBody);
 
-                    // Tank top mesh (dome cap on top of cylinder body)
+                    // Tank top mesh (dome cap on cylinder body)
                     const tankTop = new THREE.Mesh(tTopGeo, tMat.clone());
                     tankTop.position.set(cx + Math.cos(angle) * dist, baseY + 4.5, cz + Math.sin(angle) * dist);
                     tankTop.userData.mapGenerated = true;
@@ -945,14 +945,11 @@ export class MapGenerator {
                     this.addColliderBox(new THREE.Vector3(cx + Math.cos(angle) * dist, baseY + 2.5, cz + Math.sin(angle) * dist), 4, 5, 4, false);
 
                     // Pipe segments connecting tanks in industrial zone (horizontal and vertical runs)
-                    if (this._rand() < 0.6 && i > 0) {
+                    if (i > 0 && this._rand() < 0.6) {
                         const pipeGeo = new THREE.CylinderGeometry(0.12, 0.12, radius * 0.5 + this._rand() * 8, 4);
                         const pipeMat = new THREE.MeshStandardMaterial({ color: sector.terrainColor || 0x666666, roughness: 0.8 });
                         const pipe = new THREE.Mesh(pipeGeo, pipeMat.clone());
-                        // Connect to nearest existing tank via horizontal run (positioned between two points)
-                    }
 
-                // --- Add collider boxes for all storage tanks and pipes (non-walkable obstacle zone) ---
             } else {
                 // Default: add generic environment props based on sector biome type. The radius is half the total size of the map, used to calculate distances from center when placing trees, bushes, grass patches, rocks, and scattered props across sectors with matching biomes like forest or plains for standard content generation.
             }
