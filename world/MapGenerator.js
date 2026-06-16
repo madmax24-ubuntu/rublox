@@ -732,8 +732,34 @@ export class MapGenerator {
                 this._placeBarbedWireFences(sector, cx, cz);
             } else if (isIceLake) {
                 // Ice lake: frozen surface + ice crystals + radio tower
-                const numCrystals = Math.floor(5 * sector.rockDensity);
-                for (let i = 0; i < numCrystals; i++) this._addIceCrystal(cx, cz, radius);
+                const numCrystals = Math.floor(12 * sector.rockDensity);
+
+                // Frozen water plane at center of sector
+                const surfY = this.getHeightAt(cx, cz);
+                const surfGeo = new THREE.CircleGeometry(radius * 0.95, 32);
+                const surfMat = new THREE.MeshStandardMaterial({
+                    color: sector.terrainColor || 0xb0d4e3, roughness: 0.6, metalness: 0.1, flatShading: true
+                });
+                const surfaceMesh = new THREE.Mesh(surfGeo, surfMat);
+                surfaceMesh.rotation.x = -Math.PI / 2;
+                surfaceMesh.position.set(cx, surfY + 0.05, cz);
+                surfaceMesh.userData.mapGenerated = true;
+                this.scene.add(surfaceMesh);
+
+                // Walkable platform for spawn pads on ice lake
+                const padGeo = new THREE.CylinderGeometry(radius * 0.92, radius * 0.92, 0.35, 32);
+                const padMat = new THREE.MeshStandardMaterial({ color: 0xc8e6f0, roughness: 0.7, flatShading: true });
+                const padMesh = new THREE.Mesh(padGeo, padMat);
+                padMesh.position.set(cx, surfY + 0.18, cz);
+                padMesh.userData.mapGenerated = true;
+                this.scene.add(padMesh);
+
+                for (let i = 0; i < numCrystals; i++) {
+                    const cAngle = this._rand() * Math.PI * 2;
+                    const cDist = 10 + this._rand() * radius * 0.85;
+                    this._addIceCrystal(cx + Math.cos(cAngle) * cDist, cz + Math.sin(cAngle) * cDist);
+                }
+
                 if (!sector.bounds?.minX || cx > 100) { // Only one radio tower per ice sector
                     const angle = Math.random() * Math.PI * 2;
                     this._addRadioTower(
