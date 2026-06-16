@@ -141,7 +141,7 @@ export class VoronoiSectors {
     }
 
     generate(count = 12) {
-        const cols = 3;
+        const cols = 4;
         const rows = 4;
         const sectorW = this.size / cols;
         const sectorH = this.size / rows;
