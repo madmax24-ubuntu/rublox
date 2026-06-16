@@ -155,7 +155,7 @@ export class VoronoiSectors {
             ['forest', 'plains',   'stone_maze'],  // row 0 - NW forest, center NE plains, far-NE maze
             ['swamp',  'industrial','military'],    // row 1 - swamp left, industrial mid, military SW right
             ['ruins',  'snow',     'desert'],       // row 2 - ruins left, snow mid-right, desert far-SW
-            ['ice_lake','forest',  'plains']        // row 3 (bottom)
+['ice_lake','forest',   'military',        'ice_lake']       // row 3 - SE ice lake
         ];
 
         this.sectors = [];
