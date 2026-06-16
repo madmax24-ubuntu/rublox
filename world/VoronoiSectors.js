@@ -3,21 +3,29 @@ import * as THREE from "three";
 // Sector definitions for the survival map biomes
 export const SECTOR_DEFS = [
     { id: 0, name: "Forest", biome: "forest", terrainColor: 0x2e7d32, buildingDensity: 0.85, lootDensity: 0.8,
-      buildingTypes: ["big_house", "hunting_lodge", "watchtower", "farm_barn"], treeDensity: 0.9, rockDensity: 0.3 },
+      buildingTypes: ["big_house", "hunting_lodge", "watchtower"], treeDensity: 0.9, rockDensity: 0.3 },
     { id: 1, name: "Swamp", biome: "swamp", terrainColor: 0x2f6b4f, buildingDensity: 0.6, lootDensity: 0.6,
-      buildingTypes: ["stilt_house", "swamp_shack", "fortified_outpost"], treeDensity: 0.4, rockDensity: 0.5 },
+      buildingTypes: ["stilt_house", "swamp_shack"], treeDensity: 0.35, rockDensity: 0.5 },
     { id: 2, name: "Desert", biome: "desert", terrainColor: 0xc2b280, buildingDensity: 0.7, lootDensity: 0.7,
-      buildingTypes: ["mud_hut", "desert_outpost", "fortified_outpost", "farm_barn"], treeDensity: 0.05, rockDensity: 0.7 },
+      buildingTypes: ["mud_hut", "fortified_outpost"], treeDensity: 0.05, rockDensity: 0.7 },
     { id: 3, name: "Snow", biome: "snow", terrainColor: 0xe8e8e8, buildingDensity: 0.55, lootDensity: 0.65,
-      buildingTypes: ["igloo", "snow_shelter", "mountain_cache"], treeDensity: 0.15, rockDensity: 0.6 },
+      buildingTypes: ["igloo", "snow_shelter"], treeDensity: 0.15, rockDensity: 0.4 },
     { id: 4, name: "Industrial", biome: "industrial", terrainColor: 0x666666, buildingDensity: 0.95, lootDensity: 0.9,
-      buildingTypes: ["warehouse", "factory", "storage_unit", "hangar", "industrial_shed", "warehouse_large", "ruined_factory"], treeDensity: 0.05, rockDensity: 0.2 },
+      buildingTypes: ["warehouse", "factory"], treeDensity: 0.05, rockDensity: 0.2 },
     { id: 5, name: "Ruins", biome: "ruins", terrainColor: 0x8b7355, buildingDensity: 0.75, lootDensity: 0.85,
-      buildingTypes: ["ruined_house", "ancient_temple", "fortified_outpost", "barracks", "ruined_factory"], treeDensity: 0.15, rockDensity: 0.5 },
-    { id: 6, name: "Mountain", biome: "mountain", terrainColor: 0x7d7d7d, buildingDensity: 0.65, lootDensity: 0.75,
-      buildingTypes: ["mountain_lodge", "barracks", "big_house"], treeDensity: 0.1, rockDensity: 0.8 },
+      buildingTypes: ["ruined_house"], treeDensity: 0.1, rockDensity: 0.4 },
+    { id: 6, name: "Mountain", biome: "mountain", terrainColor: 0x7d7d7d, buildingDensity: 0.5, lootDensity: 0.6,
+      buildingTypes: ["big_house"], treeDensity: 0.1, rockDensity: 0.8 },
     { id: 7, name: "Plain", biome: "plains", terrainColor: 0x4a7c3f, buildingDensity: 0.8, lootDensity: 0.7,
-      buildingTypes: ["farmhouse", "barn", "silo", "big_house", "farm_barn"], treeDensity: 0.5, rockDensity: 0.3 }
+      buildingTypes: ["big_house"], treeDensity: 0.5, rockDensity: 0.2 },
+
+    // New biomes for the quadrants matching the reference screenshot
+    { id: 8, name: "Stone Maze", biome: "stone_maze", terrainColor: 0x7a7a6e, buildingDensity: 0.35, lootDensity: 0.45,
+      buildingTypes: ["maze_wall", "maze_tower"], treeDensity: 0, rockDensity: 0 },
+    { id: 9, name: "Military Zone", biome: "military", terrainColor: 0x4a5238, buildingDensity: 0.7, lootDensity: 0.85,
+      buildingTypes: ["bunker", "tank_hangar"], treeDensity: 0.1, rockDensity: 0 },
+    { id: 10, name: "Ice Lake", biome: "ice_lake", terrainColor: 0xb0d4e3, buildingDensity: 0.25, lootDensity: 0.5,
+      buildingTypes: ["igloo"], treeDensity: 0.08, rockDensity: 0 },
 ];
 
 // Poisson disk sampling for sector seed points
