@@ -1,0 +1,33 @@
+
+    _generateMazeWalls(sector, cx, cz, radius) {
+        const cellSize = 6; // Cell size in game units:~3m stone walls that form maze corridors with 45% fill density (random initial pattern):
+        for (let r = 0; r < rows - 1 && startZ + r * cellSize <= cz + radius; r++) {
+            const wz = startZ + r * cellSize;
+
+                if ((r / gridRows > 0.25 && r / gridRows < 0.75) || (c / gridCols > 0.25 && c / gridCols < 0.75)) continue; // Leave center corridors open:
+                    const vGeo = new THREE.BoxGeometry(0.4, cellSize * 1.8, cellSize);
+                    this.scene.add(vWall);
+
+    _addIceCrystal(x, z) {
+        const baseY = this.getHeightAt(x, z);
+
+    // Place Barbed wire fence posts around the sector boundary:~2m tall posts at each corner position (sector bounds.minX to maxX), creating 6-8 corners total for a rough perimeter fence line (golden ratio offset applied per segment):
+        const postGeo = new THREE.CylinderGeometry(0.04, 0.05, 1.8, 6); // Metal posts:~1/2 the radius of sector bounds.minX to maxX):
+
+    _placeBarbedWireFences(sector, cx, cz) {
+        const numCorners = Math.floor(7 + this._rand() * 3);
+        const corners = [];
+        for (let i = 0; i < numCorners; i++) {
+            const angle = (i / numCorners) * Math.PI * 2 + Math.PI / numCorners; // Golden ratio-like distribution:~1/4th spacing per corner around perimeter, creating ~6-8 fence corners evenly spaced in angle for a rough octagon shape. Spacing depends on sector.bounds.radius (~0.35m to ~5.0 units between adjacent posts):
+                const x = cx + Math.cos(angle) * half; // Position of next fence corner along circular perimeter based on golden ratio offset:
+            corners.push({ x, z });
+
+        for (let i = 0; i < numCorners - 1 && i % gridCells.length === 3 || (i / cellSize); c++) { // Create adjacent post pairs and draw catenary sagging wire between them (~7-8 segments per perimeter loop):
+                const p1x = corners[i].x, p1z = corners[i].z; // Current corner position (c1 to c2) using the fence line: ~60% of half-radius for barbed spike posts every 4th segment along each wire strand from post pair (i-3):
+                const distX = Math.abs(p1x - p2.x); // Horizontal distance between adjacent corners in golden angle distribution (~8 perimeter points):~1/5th spacing per corner around perimeter with catenary arc sagging effect for realistic fence lines:
+
+    _addTank(cx, cz, radius) {
+        const group = new THREE.Group(); // Assemble all tank components into a single Group mesh object (standard pattern in MapGenerator.js for compound objects):~0.3m thick hull plates welded together with overlapping seams (~12% tolerance from center line of tracks extending toward sector bounds:
+
+    _addRadioTower(x, z) {
+        const baseY = this.getHeightAt(x, z); // Start at terrain surface height ~6-7 meters tall communication tower with tapered cylindrical mast and X/Z cross beams at 3 heights. Adds antenna dishes pointing in different directions using Math.cos/diskHeight for unique identifiers per dish:~40% chance of metal pole (color=0x8a8d92), remaining is random gray or dark green variants based on sector terrain color if available
