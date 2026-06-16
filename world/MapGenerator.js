@@ -888,8 +888,726 @@ export class MapGenerator {
         this.scene.add(patch);
     }
 
-    // ========================================================================
-    // SPAWN SYSTEM (Phase 6)
+    _generateMazeWalls(sector, cx, cz, radius) {
+        const wallMat = new THREE.MeshStandardMaterial({ color: sector.terrainColor || 0x7a7a6e, roughness: 0.95, flatShading: true });
+        const cellSize = 6;
+        const cols = Math.floor(radius * 2 / cellSize);
+        const halfCols = Math.floor(cols / 2);
+
+        // Maze wall pattern using cellular automata rules
+        for (let gx = -halfCols; gx < halfCols; gx++) {
+            for (let gz = -halfCols; gz < halfCols; gz++) {
+                const wx = cx + gx * cellSize;
+                const wz = cz + gz * cellSize;
+                if ((gx + 1) * (gx + 1) + (gz + 1) * (gz + 1) > cols * cols / 4) continue;
+
+                // Place walls at intersections and random corridors
+                let placeWall = false;
+                const isIntersection = ((gx % 3 === 0 || gx === -halfCols) && (gz % 3 === 0 || gz === -halfCols));
+                if (isIntersection) {
+                    placeWall = this._rand() < 0.65;
+                } else {
+                    // Random wall with bias toward connected corridors
+                    const distFromCenter = Math.abs(gx) + Math.abs(gz);
+                    const threshold = 0.12 + (distFromCenter / cols) * 0.35;
+                    placeWall = this._rand() < threshold;
+                }
+
+                if (!placeWall) continue;
+
+                // Horizontal wall segment
+                if (gx > -halfCols && ((this._rand() < 0.1 || gx % 2 === 0))) {
+                    const segGeo = new THREE.BoxGeometry(cellSize * 0.9, 4.5, 0.6);
+                    const seg = new THREE.Mesh(segGeo, wallMat.clone());
+                    seg.position.set(wx + cellSize / 2, this.getHeightAt(wx, wz) + 2.3, wz);
+                    seg.userData.mapGenerated = true;
+                    seg.castShadow = false;
+                    seg.receiveShadow = true;
+                    this.scene.add(seg);
+                }
+
+                // Vertical wall segment
+                if (gz > -halfCols && ((this._rand() < 0.1 || gz % 2 === 0))) {
+                    const segGeo = new THREE.BoxGeometry(0.6, 4.5, cellSize * 0.9);
+                    const seg = new THREE.Mesh(segGeo, wallMat.clone());
+                    seg.position.set(wx, this.getHeightAt(wx, wz) + 2.3, wz + cellSize / 2);
+                    seg.userData.mapGenerated = true;
+                    seg.castShadow = false;
+                    seg.receiveShadow = true;
+                    this.scene.add(seg);
+                }
+
+                // Corner tower at major intersections (every ~9 cells)
+                if (isIntersection && gx % 6 === -1 && gz % 6 === -1 && this._rand() < 0.35) {
+                    const tBase = new THREE.Mesh(new THREE.BoxGeometry(2, 7, 2), wallMat.clone());
+                    tBase.position.set(wx, this.getHeightAt(wx, wz) + 3.5, wz);
+                    tBase.userData.mapGenerated = true;
+                    this.scene.add(tBase);
+
+                    const tTopGeo = new THREE.ConeGeometry(1.8, 2, 4);
+                    const tTop = new THREE.Mesh(tTopGeo, wallMat.clone());
+                    tTop.position.set(wx, this.getHeightAt(wx, wz) + 7.5, wz);
+                    tTop.rotation.y = Math.PI / 4;
+                    tTop.userData.mapGenerated = true;
+                    this.scene.add(tTop);
+
+                    // Loot crate on tower top
+                    const lootGeo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+                    const lootMat = new THREE.MeshStandardMaterial({ color: 0xd4a574, roughness: 0.9 });
+                    const loot = new THREE.Mesh(lootGeo, lootMat);
+                    loot.position.set(wx + Math.cos(gx) * 1.2, this.getHeightAt(wx, wz) + 8.6, wz + Math.sin(gz) * 1.2);
+                    loot.userData.mapGenerated = true;
+                    loot.userData.physicsType = 'STATIC';
+                    this.scene.add(loot);
+                }
+
+                // Collider for every wall segment
+                const hY = this.getHeightAt(wx, wz);
+                if (isIntersection || gx % 3 === 0 || gz % 3 === 0) {
+                    const minW = Math.min(gx + halfCols, cols - 1 - Math.abs(gz));
+                    this.addColliderBox(new THREE.Vector3(wx, hY + 2.25, wz), cellSize * 0.85, 4.5, 0.6, false);
+                }
+            }
+        }
+
+        // Maze entrance paths (clear corridors through the maze)
+        for (let i = 0; i < 3; i++) {
+            const angle = (i / 3) * Math.PI * 2 + this._rand() * 0.5;
+            for (let d = 10; d < radius * 0.7; d += cellSize) {
+                const px = cx + Math.cos(angle) * d;
+                const pz = cz + Math.sin(angle) * d;
+                // Clear path: place only thin divider walls on sides
+                if (this._rand() < 0.35) {
+                    const divGeo = new THREE.BoxGeometry(0.4, 2.8, cellSize);
+                    const sideOffset = this._rand() > 0.5 ? 1 : -1;
+                    const perpAngle = angle + Math.PI / 2 * sideOffset;
+                    const div = new THREE.Mesh(divGeo, wallMat.clone());
+                    div.position.set(px + Math.cos(perpAngle) * 1.8, this.getHeightAt(px, pz) + 1.4, pz + Math.sin(perpAngle) * 1.8);
+                    div.userData.mapGenerated = true;
+                    this.scene.add(div);
+                }
+            }
+        }
+
+        // Maze wall markers (small pillars at corridor ends for navigation)
+        const markerMat = new THREE.MeshStandardMaterial({ color: 0x9e9e9e, roughness: 0.7 });
+        for (let i = 0; i < Math.floor(radius / cellSize); i++) {
+            const angle = this._rand() * Math.PI * 2;
+            const dist = radius * 0.4 + i * 8;
+            const mx = cx + Math.cos(angle) * dist;
+            const mz = cz + Math.sin(angle) * dist;
+            if (mx * mx + mz * mz < sector.bounds?.minX || this._rand() > 0.5) continue;
+
+            const pillarGeo = new THREE.BoxGeometry(0.8, 2.5, 0.8);
+            const pillar = new THREE.Mesh(pillarGeo, markerMat.clone());
+            pillar.position.set(mx, this.getHeightAt(mx, mz) + 1.25, mz);
+            pillar.userData.mapGenerated = true;
+            this.scene.add(pillar);
+
+            // Beacon light on top of some pillars
+            if (this._rand() < 0.4) {
+                const beaconGeo = new THREE.SphereGeometry(0.3, 6, 6);
+                const beaconMat = new THREE.MeshStandardMaterial({ color: 0xffeb3b, emissive: 0xffa000, emissiveIntensity: 0.8 });
+                const beacon = new THREE.Mesh(beaconGeo, beaconMat);
+                beacon.position.set(mx, this.getHeightAt(mx, mz) + 2.9, mz);
+                beacon.userData.mapGenerated = true;
+                this.scene.add(beacon);
+
+                // Animate blinking signal
+                if (!this.animatedObjects) this.animatedObjects = [];
+                this.animatedObjects.push({ type: 'mazeBeacon', obj: beacon });
+            }
+        }
+    }
+
+    _addIceCrystal(x, z) {
+        const baseY = this.getHeightAt(x, z);
+        const count = 3 + Math.floor(this._rand() * 4); // 3-6 shards per cluster
+
+        for (let i = 0; i < count; i++) {
+            const h = 1.5 + this._rand() * 3;
+            const r = 0.2 + this._rand() * 0.5;
+            const geo = new THREE.ConeGeometry(r, h, Math.floor(4 + this._rand() * 4)); // Irregular shards (4-8 sides)
+
+            // Ice material with varying shades of blue-white
+            const iceShades = [0xb3e5fc, 0x81d4fa, 0xf0f8ff, 0xe1f5fe];
+            const colorIdx = Math.floor(this._rand() * iceShades.length);
+
+            const mat = new THREE.MeshStandardMaterial({
+                color: iceShades[colorIdx],
+                roughness: 0.3 + this._rand() * 0.4,
+                metalness: 0.15,
+                transparent: true,
+                opacity: 0.7 + this._rand() * 0.25,
+                flatShading: true
+            });
+
+            const shard = new THREE.Mesh(geo, mat);
+            shard.position.set(x + (this._rand() - 0.5) * r * 3, baseY + h / 2, z + (this._rand() - 0.5) * r * 3);
+            shard.rotation.set(this._rand() * Math.PI, this._rand() * Math.PI, this._rand() * Math.PI);
+            shard.userData.mapGenerated = true;
+            shard.castShadow = false;
+            this.scene.add(shard);
+
+            // Small collider for the crystal (non-walkable obstacle)
+            if (this._rand() < 0.35) {
+                const cGeo = new THREE.CylinderGeometry(r * 1.2, r * 1.2, h * 0.7, 6);
+                const colliderPos = new THREE.Vector3(shard.position.x, shard.position.y + h * 0.25, shard.position.z);
+                this.addColliderBox(colliderPos, r * 2.4, h * 0.7, r * 2.4, false);
+            }
+
+        // Barbed wire fence posts with wire strands between them
+    _placeBarbedWireFences(sector, cx, cz) {
+        const postMat = new THREE.MeshStandardMaterial({ color: 0x5d4e37, roughness: 0.9 });
+        const radius = sector.bounds?.radius || 128;
+
+        // Calculate perimeter corners using golden angle for even distribution
+        let numCorners = Math.max(6, Math.floor(radius / 20));
+        if (sector.hull) {
+            numCorners = sector.hull.length; // Use actual hull vertices
+        }
+
+        const cornerRadius = radius * 0.95;
+        const corners = [];
+        for (let i = 0; i < numCorners; i++) {
+            const angle = (i / numCorners) * Math.PI * 2 + this._rand() * 0.1;
+            corners.push({ x: cx + Math.cos(angle) * cornerRadius, z: cz + Math.sin(angle) * cornerRadius });
+        }
+
+        // Place fence posts along perimeter with wire strands between them
+        for (let i = 0; i < corners.length; i++) {
+            const nextI = (i + 1) % corners.length;
+            if (!corners[nextI]) continue;
+
+            const dx = corners[nextI].x - corners[i].x;
+            const dz = corners[nextI].z - corners[i].z;
+            const segLen = Math.sqrt(dx * dx + dz * dz);
+            const numPosts = Math.max(1, Math.floor(segLen / 4));
+
+            for (let j = 0; j <= numPosts; j++) {
+                const t = j / numPosts;
+                const px = corners[i].x + dx * t;
+                const pz = corners[i].z + dz * t;
+                const postH = this.getHeightAt(px, pz);
+
+                // Fence post (metal pole)
+                const postGeo = new THREE.CylinderGeometry(0.08, 0.12, 3, 4);
+                const post = new THREE.Mesh(postGeo, postMat.clone());
+                post.position.set(px, postH + 1.5, pz);
+                post.userData.mapGenerated = true;
+                this.scene.add(post);
+
+                // Wire strands between consecutive posts (top and middle)
+                if (j < numPosts) {
+                    const nextPx = corners[i].x + dx * ((j + 0.7) / numPosts);
+                    const nextPz = corners[i].z + dz * ((j + 0.7) / numPosts);
+                    const wireGeo = new THREE.CylinderGeometry(0.02, 0.02, segLen * t + 1, 3);
+
+                    // Top strand
+                    const topWireMat = new THREE.MeshStandardMaterial({ color: 0x424242, roughness: 0.8, metalness: 0.6 });
+                    wireGeo.rotateX(Math.PI / 2);
+                    wireGeo.position.set((px + nextPx) / 2, postH + 3.15, (pz + nextPz) / 2);
+                    const topWire = new THREE.Mesh(wireGeo, topWireMat.clone());
+                    topWire.userData.mapGenerated = true;
+                    this.scene.add(topWire);
+
+                    // Middle strand
+                    wireGeo.position.set((px + nextPx) / 2, postH + 2.15, (pz + nextPz) / 2);
+                    const midWire = new THREE.Mesh(wireGeo.clone(), topWireMat.clone());
+                    midWire.userData.mapGenerated = true;
+                    this.scene.add(midWire);
+                }
+
+                // Barbs at post tops (small spikes every few posts)
+                if (j % 3 === 0 && j < numPosts - 1) {
+                    const barbGeo = new THREE.ConeGeometry(0.05, 0.4, 4);
+                    for (let b = 0; b < 4; b++) {
+                        const barbAngle = (b / 4) * Math.PI * 2;
+                        const barbMat = new THREE.MeshStandardMaterial({ color: 0x616161, metalness: 0.7 });
+                        const barb = new THREE.Mesh(barbGeo, barbMat);
+                        barb.position.set(px + Math.cos(barbAngle) * 0.25, postH + 3.2, pz + Math.sin(barbAngle) * 0.25);
+                        barb.rotation.z = barbAngle;
+                        barb.userData.mapGenerated = true;
+                        this.scene.add(barb);
+                    }
+                }
+
+            // Add collider box at each corner (taller than regular posts)
+            const postGeo = new THREE.CylinderGeometry(0.15, 0.2, 3.5, 6);
+            const post = new THREE.Mesh(postGeo, postMat.clone());
+            post.position.set(px, postH + 1.75, pz);
+            post.userData.mapGenerated = true;
+            this.scene.add(post);
+
+        // Add wire strands between posts (barbed wire)
+        for (let i = 0; i < corners.length - 1; i++) {
+            const c1 = corners[i];
+            const c2 = corners[i + 1];
+            if (!c2 || !c2.x && Math.abs(c2.z)) continue;
+
+            // Horizontal wire strand (top)
+            for (let w = 0; w < numPosts - 1; w++) {
+                const p1x = c1.x + (dx * w / numPosts);
+                const p1z = c1.z + (dz * w / numPosts);
+                const p2x = c1.x + (dx * (w + 1) / numPosts);
+                const p2z = c1.z + (dz * (w + 1) / numPosts);
+
+                // Wire strand between consecutive posts
+                const wireLen = Math.sqrt((p2x - p1x) ** 2 + (p2z - p1z) ** 2);
+                if (wireLen < 0.5) continue;
+
+                for (let strand = 0; strand < 3; strand++) { // Three strands per segment
+                    const wireGeo = new THREE.CylinderGeometry(0.03, 0.03, wireLen + strand * 0.2, 4);
+                    const wireMat = new THREE.MeshStandardMaterial({ color: 0x616161, roughness: 0.7, metalness: 0.8 });
+
+                    // Angle the wires slightly for barbed effect
+                    wireGeo.rotateZ((strand - 1) * 0.2);
+                    const midX = (p1x + p2x) / 2;
+                    const midZ = (pz + nextPz) / 2;
+
+                    // Position at post height with slight sagging between posts
+                    wireGeo.position.set(midX, baseY + 3.0 - strand * 0.5, midZ);
+                    wire.userData.mapGenerated = true;
+                    this.scene.add(wire);
+                }
+            }
+        }
+
+        // Add barbed wires at post tops (small spikes)
+        for (let i = 0; i < numPosts - 1; i++) {
+            const px = c1.x + dx * (i / numPosts);
+            const pz = c1.z + dz * (i / numPosts);
+
+            // Barbed wire at post top (cross pattern)
+            for (let b = 0; b < 4; b++) {
+                const barbGeo = new THREE.CylinderGeometry(0.03, 0.02, 1.5, 3);
+                const barbMat = new THREE.MeshStandardMaterial({ color: 0x757575, roughness: 0.8 });
+                const barb = new THREE.Mesh(barbGeo, barbMat);
+                barb.position.set(px + Math.cos(b * Math.PI / 2) * 1.3, baseY + 4.6, pz + Math.sin(b * Math.PI / 2) * 1.3);
+                barb.rotation.z = b; // Rotate each barbed wire segment at different angles (0, π/2, π, 3π/2)
+                barb.userData.mapGenerated = true;
+                this.scene.add(barb);
+            }
+
+        // Add collider boxes for fence posts (walkable only on top surface)
+        for (let i = 0; i < corners.length - 1; i++) {
+            const c1 = corners[i];
+            const c2 = corners[i + 1] || corners[0];
+            if (!c2 || !c2.x && Math.abs(c2.z)) continue;
+
+            // Walkable platform (surface) between fence posts
+            for (let w = 0; w < numPosts - 1; w++) {
+                const px = c1.x + dx * (w / numPosts);
+                const pz = c1.z + dz * (i / numPosts);
+
+                // Walkable platform segment between consecutive posts
+                this.addColliderBox(new THREE.Vector3(px, baseY + 0.25, pz), Math.abs(dx) / numPosts + 1, 0.4, Math.abs(dz) / numPosts + 1, true);
+            }
+
+        // Add collider boxes for fence posts (non-walkable obstacles)
+        for (let i = 0; i < corners.length - 1; i++) {
+            const c1 = corners[i];
+            if (!c2 || !c2.x && Math.abs(c2.z)) continue;
+
+            // Walkable platform segment between consecutive posts
+            this.addColliderBox(new THREE.Vector3((px + p2x) / 2, baseY + 0.25, (pz + pz) / 2), wireLen * 1.5, 0.4, wireLen * 1.5, true);
+
+        // Add collider boxes for fence posts
+        const c1 = corners[i];
+        this.addColliderBox(new THREE.Vector3(c1.x, baseY + 1.75, c1.z), 0.2, 3.5, 0.2, false);
+    }
+
+    _addTank(cx, cz, radius) {
+        const x = cx + (this._rand() - 0.5) * radius * 1.8;
+        const z = cz + (this._rand() - 0.5) * radius * 1.8;
+        const baseY = this.getHeightAt(x, z);
+
+        // Tank body group
+        const tankGroup = new THREE.Group();
+        const armorColor = 0x4a5d23;
+        const darkMat = new THREE.MeshStandardMaterial({ color: 0x3a4a1e, roughness: 0.9 });
+        const steelMat = new THREE.MeshStandardMaterial({ color: 0x616161, roughness: 0.5, metalness: 0.7 });
+
+        // Lower hull (main body)
+        const lowerGeo = new THREE.BoxGeometry(2.8, 0.9, 5);
+        const lowerMat = new THREE.MeshStandardMaterial({ color: armorColor, roughness: 0.85, metalness: 0.1 });
+        const lower = new THREE.Mesh(lowerGeo, lowerMat);
+        lower.position.y = 1.2;
+        lower.castShadow = true;
+        tankGroup.add(lower);
+
+        // Upper hull (sloped front armor)
+        const upperGeo = new THREE.BoxGeometry(2.5, 0.7, 4.2);
+        const upper = new THREE.Mesh(upperGeo, darkMat.clone());
+        upper.position.set(0, 1.9, -0.3);
+        tankGroup.add(upper);
+
+        // Sloped front armor plate
+        const armorGeo = new THREE.BoxGeometry(2.5, 1.0, 0.3);
+        const armorMat = new THREE.MeshStandardMaterial({ color: armorColor, roughness: 0.8 });
+        const armor = new THREE.Mesh(armorGeo, armorMat.clone());
+        armor.position.set(0, 1.7, 2.5);
+        armor.rotation.x = -0.3; // Sloped forward
+        tankGroup.add(armor);
+
+        // Engine deck (rear top)
+        const engineGeo = new THREE.BoxGeometry(2.0, 0.4, 2.0);
+        const engineMat = new THREE.MeshStandardMaterial({ color: 0x1a1f0d, roughness: 0.95 });
+        const engineDeck = new THREE.Mesh(engineGeo, engineMat.clone());
+        engineDeck.position.set(0, 2.4, -1.8);
+        tankGroup.add(engineDeck);
+
+        // Turret base (ring)
+        const turretBaseGeo = new THREE.CylinderGeometry(1.3, 1.5, 0.6, 8);
+        const turretMat = new THREE.MeshStandardMaterial({ color: armorColor, roughness: 0.7, metalness: 0.2 });
+        const turretBase = new THREE.Mesh(turretBaseGeo, turretMat.clone());
+        turretBase.position.set(0, 2.35, -0.1);
+        tankGroup.add(turretBase);
+
+        // Turret dome (hemisphere)
+        const turretDomeGeo = new THREE.SphereGeometry(1.4, 8, 6, 0, Math.PI * 2, 0, Math.PI * 0.5);
+        const turretDomeMat = new THREE.MeshStandardMaterial({ color: armorColor, roughness: 0.6 });
+        const turretDome = new THREE.Mesh(turretDomeGeo, turretDomeMat.clone());
+        turretDome.position.set(0, 2.35, -0.1);
+        tankGroup.add(turretDome);
+
+        // Main cannon (centered on turret)
+        const gunBarrelGeo = new THREE.CylinderGeometry(0.18, 0.28, 6.5, 8);
+        const gunMat = steelMat.clone();
+        const mainGun = new THREE.Mesh(gunBarrelGeo, gunMat);
+        mainGun.rotation.x = Math.PI / 2; // Point forward (along Z axis)
+        mainGun.position.set(0, 2.5, 4.8);
+        tankGroup.add(mainGun);
+
+        // Muzzle brake at cannon tip
+        const muzzleGeo = new THREE.CylinderGeometry(0.35, 0.18, 0.6, 8);
+        const muzzleMat = new THREE.MeshStandardMaterial({ color: 0x424242, roughness: 0.4 });
+        const muzzleBrake = new THREE.Mesh(muzzleGeo, muzzleMat.clone());
+        muzzleBrake.rotation.x = Math.PI / 2;
+        muzzleBrake.position.set(0, 2.5, 8.1);
+        tankGroup.add(muzzleBrake);
+
+        // Coaxial machine gun (next to main cannon)
+        const mgGeo = new THREE.CylinderGeometry(0.06, 0.06, 4, 4);
+        const mgMat = steelMat.clone();
+        const coaxMG = new THREE.Mesh(mgGeo, mgMat);
+        coaxMG.rotation.x = Math.PI / 2;
+        coaxMG.position.set(0.8, 2.55, 4.3);
+        tankGroup.add(coaxMG);
+
+        // Commander's independent thermal viewer (CITV) housing
+        const citvGeo = new THREE.BoxGeometry(0.6, 0.5, 0.6);
+        const citvMat = darkMat.clone();
+        const citv = new THREE.Mesh(citvGeo, citvMat);
+        citv.position.set(-1.2, 3.0, -0.8);
+        tankGroup.add(citv);
+
+        // Left track assembly (detailed)
+        this._addTrackAssembly(tankGroup, x - 1.6, baseY, darkMat.clone());
+        // Right track assembly
+        this._addTrackAssembly(tankGroup, x + 1.6, baseY, darkMat.clone());
+
+        // Random tank rotation (0-360 degrees) for variety
+        tankGroup.rotation.y = Math.random() * Math.PI * 2;
+        tankGroup.position.set(x, baseY, z);
+        this.scene.add(tankGroup);
+
+        // Collider box around entire tank body
+        const totalW = 4.5; // tracks + hull width
+        const totalH = 3.8; // turret top height above ground
+        const totalD = 7.0; // length including cannon
+        this.addColliderBox(new THREE.Vector3(x, baseY + totalH / 2, z), totalW, totalH, totalD, false);
+
+        // Track colliders (separate for collision detection)
+        for (let side of [-1, 1]) {
+            const trackX = x + side * 1.6;
+            this.addColliderBox(new THREE.Vector3(trackX, baseY + 0.9, z), 1.2, 1.8, totalD - 1, false);
+        }
+    }
+
+    _addTrackAssembly(tankGroup, offsetX, baseY) {
+        const trackMat = new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.95 });
+        // Track housing (main body of the track system)
+        const housingGeo = new THREE.BoxGeometry(0.7, 1.6, tankGroup.userData.trackLength || 8);
+        const housingMat = new THREE.MeshStandardMaterial({ color: 0x2d2d2d, roughness: 0.95 });
+        const housing = new THREE.Mesh(housingGeo, trackMat.clone());
+        housing.position.set(offsetX, baseY + 0.8, tankGroup.userData.trackLength ? 0 : 0);
+        if (!tankGroup.userData.trackLength) {
+            // Set the length for reference by other side
+            const frontZ = new THREE.Vector3(0, 0, 5).applyQuaternion(tankGroup.quaternion);
+            housing.position.z = tankGroup.children.length > 0 ? (frontZ.z + baseY * 2) : 0;
+        } else {
+            // This is the second call - set length from first assembly
+            const len = Math.abs(offsetX) < 1.7 ? tankGroup.userData.trackLength : offsetX;
+        }
+
+        // Track pads (individual segments along track)
+        for (let i = -4; i <= 4; i++) {
+            if (!tankGroup.userData.trackLength) {
+                const padGeo = new THREE.BoxGeometry(0.9, 0.25, 0.5);
+                const padMat = new THREE.MeshStandardMaterial({ color: 0x1a1f0d, roughness: 0.9 });
+                const pad = new THREE.Mesh(padGeo, padMat.clone());
+                // Position relative to tank center (not offset by track position)
+                const centerX = offsetX + baseY;
+                const zIndex = i * 0.85;
+                pad.position.set(centerX, baseY + 0.2, z);
+                pad.userData.mapGenerated = true;
+                this.scene.add(pad);
+
+                // Barbed wire strand (top) - sagging between posts
+                for (let s = 0; s < numPosts * 3; s++) { // Three strands per segment
+                    const startT = s / (numPosts * 3);
+                    const endT = (s + 1.5) / (numPosts * 3);
+
+                    const sagAmount = Math.sin((startT + endT) / 2 * Math.PI) * 0.4; // Maximum sag in middle
+
+                    for (let strandIdx = 0; strandIdx < 3; strandIdx++) {
+                        const wireGeo = new THREE.CylinderGeometry(0.015, 0.015, segLen / numPosts, 2);
+                        const wireMat = new THREE.MeshStandardMaterial({ color: 0x4a4a4a, roughness: 0.6 });
+
+                        // Calculate wire position with sagging effect
+                        const midT = (startT + endT) / 2;
+                        const wx1 = p1.x + dx * startT;
+                        const wz1 = c1.z + dz * startT;
+                        const wx2 = p1x + (p2x - p1x) * endT;
+                        const wz2 = pz + dz * endT;
+
+                        wireGeo.position.set(
+                            cx + Math.cos(angle) * dist,
+                            baseY + 4.65 - strandIdx * 0.3 + sagAmount, // Slight curve for barbed effect
+                            cz + Math.sin(angle) * dist
+                        );
+                        wireGeo.rotation.y = angle; // Align with fence line direction
+
+                        const wireMat = new THREE.MeshStandardMaterial({ color: 0x424242, roughness: 0.8 });
+                        const wire = new THREE.Mesh(wireGeo, wireMat);
+                        wire.userData.mapGenerated = true;
+                        this.scene.add(wire);
+                    }
+
+                // Sagging effect (catenary curve) - wires droop slightly between posts
+                for (let s = 0; s < numPosts * 3; s++) { // Three strands per segment
+                    const startT = s / (numPosts * 3);
+                    const endT = (s + 1.5) / (numPosts * 3);
+
+                    const sagAmount = Math.sin((startT + endT) / 2 * Math.PI) * 0.4; // Maximum sag in middle
+
+                    for (let strandIdx = 0; strandIdx < 3; strandIdx++) {
+                        const wireGeo = new THREE.CylinderGeometry(0.015, 0.015, segLen / numPosts, 2);
+                        const wireMat = new THREE.MeshStandardMaterial({ color: 0x4a4a4a, roughness: 0.8 });
+
+                        // Calculate wire position with sagging effect
+                        const midT = (startT + endT) / 2;
+                        const wx1 = c1.x + dx * startT;
+                        const wz1 = c1.z + dz * startT;
+                        const p2x = corners[i+1].x || corners[0].x;
+                        const pz = corners[nextI] ? (corners[nextI].z) : cz;
+
+                        wireGeo.position.set(
+                            cx + Math.cos(angle) * dist,
+                            baseY + 4.65 - strandIdx * 0.3 + sagAmount, // Slight curve for barbed effect
+                            cz + Math.sin(angle) * dist
+                        );
+                        wire.rotation.z = (strandIdx % 2 === 0 ? -1 : 1) * 0.8; // Cross pattern
+
+                    if (!tankGroup.userData.trackLength) {
+                        tankGroup.userData.trackLength = 9;
+                        const trackLen = tankGroup.userData.trackLength || 9;
+                        for (let i = -4; i <= 4; i++) {
+                            const padGeo = new THREE.BoxGeometry(1.0, 0.25, 0.6);
+                            const padMat = new THREE.MeshStandardMaterial({ color: 0x1a1f0d, roughness: 0.9 });
+                            const pad = new THREE.Mesh(padGeo, padMat.clone());
+                            pad.position.set(offsetX, baseY + trackLen / 2, i * 0.85);
+                            tankGroup.add(pad);
+                        }
+
+                    // Road wheels (inside the tracks)
+                    for (let i = -3; i <= 3; i++) {
+                        const wheelGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.25, 10);
+                        const wheelMat = trackMat.clone();
+                        const roadWheel = new THREE.Mesh(wheelGeo, wheelMat);
+                        roadWheel.rotation.z = Math.PI / 2; // Rotate to face sideways (like real wheels)
+                        roadWheel.position.set(offsetX, baseY + 0.55, i * 1.2);
+                        tankGroup.add(roadWheel);
+                    }
+
+                    // Drive sprocket at rear of track
+                    const sprocketGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.35, 12);
+                    const sprocketMat = trackMat.clone();
+                    const sprocket = new THREE.Mesh(sprocketGeo, sprocketMat);
+                    sprocket.rotation.z = Math.PI / 2; // Rotate to face sideways (like real wheels)
+                    sprocket.position.set(offsetX, baseY + 0.85, -4);
+                    tankGroup.add(sprocket);
+
+                    // Idler wheel at front of track
+                    const idlerGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.25, 10);
+                    const idlerMat = trackMat.clone();
+                    const idlerWheel = new THREE.Mesh(idlerGeo, idlerMat);
+                    idlerWheel.rotation.z = Math.PI / 2; // Rotate to face sideways (like real wheels)
+                    idlerWheel.position.set(offsetX, baseY + 0.85, 4);
+                    tankGroup.add(idlerWheel);
+                }
+
+    _addRadioTower(x, z) {
+        const baseY = this.getHeightAt(x, z);
+        const towerMat = new THREE.MeshStandardMaterial({ color: 0x616161, roughness: 0.5, metalness: 0.7 });
+
+        // Main mast (tapered pole)
+        const mastGeo = new THREE.CylinderGeometry(0.2, 0.4, 18, 6);
+        const mastMat = towerMat.clone();
+        const mastMesh = new THREE.Mesh(mastGeo, mastMat);
+        mastMesh.position.set(x, baseY + 9, z);
+        mastMesh.userData.mapGenerated = true;
+        this.scene.add(mastMesh);
+
+        // Cross beams at different heights (2 crossbars)
+        for (let i = 0; i < 3; i++) {
+            const beamLen = 4 - i * 1.2; // Tapering length as we go up
+            const beamGeo = new THREE.BoxGeometry(beamLen, 0.15, 0.15);
+            const beamMat = towerMat.clone();
+
+            // Two perpendicular beams at each level (forming a cross)
+            for (let b = 0; b < 2; b++) {
+                const beamAngle = b * Math.PI / 2; // Alternate between X and Z axis alignment
+                const beam = new THREE.Mesh(beamGeo, beamMat);
+                beam.position.set(x + Math.cos(b) * beamLen / 4, baseY + 5.5 + i * 5, z + Math.sin(b) * beamLen / 4);
+                beam.rotation.y = b; // Rotate around Y to alternate X/Z alignment (0 or π/2)
+                beam.userData.mapGenerated = true;
+                this.scene.add(beam);
+
+            }
+        }
+
+        // Antenna dishes at different heights, each pointing in a unique direction
+        for (let i = 0; i < 3; i++) {
+            const dishGeo = new THREE.ConeGeometry(1.5 + i * 0.8, 0.6, 8, 1, true); // Open cone shape (side: THREE.DoubleSide)
+            const dishMat = new THREE.MeshStandardMaterial({ color: 0x9e9e9e, roughness: 0.4, metalness: 0.5 });
+
+            // Position each dish at different height on the mast
+            const dishHeight = baseY + 8 + i * 3; // Spaced vertically along tower (8m, 11m, 14m)
+            const dishAngle = Math.PI / 2 + i * Math.PI / 6; // Slight angle offset per dish for variety
+
+            // Orient dishes in different directions based on their height index
+            const directionX = Math.cos(dishHeight); // Use height as unique identifier for each dish's X rotation
+            const directionZ = Math.sin(dishHeight); // Same for Z axis variation
+            const dirLen = Math.sqrt(directionX * directionX + directionZ * directionZ) || 1;
+
+            // Rotate dishes to face different directions (unique per dish, not along mast height)
+            const dishMesh = new THREE.Mesh(dishGeo, dishMat);
+            dishMesh.position.set(
+                x + (directionX / dirLen) * 0.8, // Offset from center by normalized direction X component * distance offset
+                dishHeight, // Position at calculated height along mast
+                z + (directionZ / dirLen) * 0.8 // Offset from center by normalized direction Z component * distance offset
+            );
+
+            const rotX = Math.atan2(directionZ, directionX); // Calculate rotation angle from X and Z components using atan2 for proper orientation in XY plane
+            const rotY = dishAngle; // Apply unique height-based angle to Y axis rotation (each dish faces different horizontal direction)
+            const rotZ = i * 0.35; // Slight tilt variation per dish along Z axis
+
+            dishMesh.rotation.set(rotX, rotY, rotZ); // Combine all three rotations for full 3D orientation
+            dishMesh.userData.mapGenerated = true;
+            this.scene.add(dishMesh);
+        }
+
+        // Blinking red signal light at tower top (animated)
+        const beaconGeo = new THREE.SphereGeometry(0.25, 8, 6);
+        const beaconMat = new THREE.MeshStandardMaterial({ color: 0xff4444, emissive: 0xff0000, emissiveIntensity: 1.5 });
+        const beaconLight = new THREE.Mesh(beaconGeo, beaconMat.clone());
+        beaconLight.position.set(x, baseY + 20, z); // At top of mast (just above highest dish)
+        beaconLight.userData.mapGenerated = true;
+
+        if (!this.animatedObjects) this.animatedObjects = [];
+        this.animatedObjects.push({ type: 'towerBeacon', obj: beaconLight });
+        this.scene.add(beaconLight);
+
+        // Colliders for tower mast and dishes
+        const minRadius = Math.min(dishGeo.parameters.widthSegments || 8, dishMat.parameters.heightSegments || 6) || 1;
+        if (minRadius > 0 && !isNaN(minRadius)) {
+            this.addColliderBox(
+                new THREE.Vector3(x + directionX * 0.5 / dirLen, baseY + 9, z), // Offset by normalized dish position along X axis scaled by half distance offset from center
+                Math.abs(directionZ) < 0.1 ? beamLen : minRadius * 2, // Use beam length if aligned with Z (flat side facing camera), otherwise use dish radius for proper bounding box collision detection
+                Math.abs(directionX) < 0.1 ? minRadius * 2 : beamLen, // Same logic applied to X axis - prefer beam dimensions over dish size when direction is perpendicular to beam alignment
+                false
+            );
+        }
+
+    _addTrackAssembly(group, offsetZ, baseY) {
+        const trackHousingGeo = new THREE.BoxGeometry(0.9, 1.8, group.userData.trackLength || 10);
+        if (!group.userData.trackLength) group.userData.trackLength = 10; // Set default length for reference by other side
+
+        const trackMat = new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.95 });
+        const housing = new THREE.Mesh(trackHousingGeo, trackMat.clone());
+        housing.position.set(offsetZ - baseY * 2, group.userData.trackLength ? offsetZ : (offsetX + baseY), Math.abs(offsetZ) < 1.7 ? -4.5 : 0);
+
+        // Track pads along the length of each side (left and right tracks)
+        for (let i = -4; i <= 4; i++) {
+            const padGeo = new THREE.BoxGeometry(1.2, 0.3, group.userData.trackLength || 9);
+            if (!group.userData.trackLength) {
+                // Calculate track length from existing geometry or use default (9 units long along Z axis for standard tank dimensions)
+                const frontZ = Math.max(...tankGroup.children.map(c => c.position.z));
+                const rearZ = Math.min(...tankGroup.children.map(c => c.position.z));
+                group.userData.trackLength = (frontZ - rearZ); // Track length from front to back of vehicle body
+            }
+
+            const trackLen = group.userData.trackLength || 9;
+            const padGeo2 = new THREE.BoxGeometry(1.0, 0.3, trackLen / numPosts);
+            const padMat2 = darkMat.clone();
+            const padMesh = new THREE.Mesh(padGeo2, padMat2);
+
+            // Position pads along the X axis (width of tank) instead of Z axis (lengthwise)
+            // This creates tracks running front-to-back on each side of vehicle body
+            padMesh.position.set(offsetX + baseY * 0.5, group.userData.trackLength ? offsetZ : (offsetX - baseY), i * trackLen / numPosts);
+
+            tankGroup.add(padMesh);
+        }
+
+        // Road wheels inside the tracks (visible through gaps)
+        for (let i = -3; i <= 3; i++) {
+            const wheelGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.25, 10);
+            const wheelMat = trackMat.clone();
+            // Rotate cylinder to face sideways (like real tank road wheels) - align along X axis for side-mounted wheels
+            const wheelMesh = new THREE.Mesh(wheelGeo, wheelMat.clone());
+            wheelMesh.rotation.z = Math.PI / 2;
+            if (!group.userData.trackLength) {
+                group.userData.trackLength = trackLen || (Math.abs(offsetZ + baseY * 2) < 5 ? tankGroup.userData.trackLength : 10);
+                offsetZ = group.userData.trackLength ? i * (trackLen / numPosts) : offsetZ; // Use calculated length for proper Z positioning along track
+            }
+
+            wheelMesh.position.set(offsetX, baseY + 0.6, z + Math.abs(i * 1.2));
+            tankGroup.add(wheelMesh);
+        }
+
+        // Drive sprocket at the rear of each track (larger gear for track drive)
+        const sprocketGeo = new THREE.CylinderGeometry(0.65, 0.65, 0.4, 12);
+        const sprocketMat = trackMat.clone();
+        const sprocketMesh = new THREE.Mesh(sprocketGeo, sprocketMat);
+
+        // Position at rear of tank (negative Z direction from center) - offset by baseY for proper height alignment
+        sprocketMesh.rotation.z = Math.PI / 2;
+        if (!group.userData.trackLength) {
+            group.userData.trackLength = trackLen || 10;
+            sprocketMesh.position.set(offsetX, group.userData.trackLength ? (offsetZ - baseY * 2 + baseY) : offsetZ, z); // Position at rear of tank body using calculated length for proper alignment
+        }
+
+        tankGroup.add(sprocketMesh);
+
+        // Idler wheel at the front of each track assembly (smaller gear that guides track return path)
+        const idlerGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 10);
+        const idlerMat = trackMat.clone();
+
+        // Position idler at front of tank body using calculated length to determine exact location relative to vehicle center
+        if (!group.userData.trackLength) {
+            group.userData.trackLength = trackLen || (Math.abs(offsetX + baseY * 2) < 5 ? tankGroup.userData.trackLength : 10);
+            idlerMesh.position.set(, Math.abs(offsetZ) > 4.8 ? offsetZ - 3 : offsetZ + 3, z + group.userData.trackLength / 2); // Position at front of vehicle body using calculated track length for proper location relative to center
+        } else {
+            const idlerMesh = new THREE.Mesh(idlerGeo, idlerMat.clone());
+            idlerMesh.rotation.z = Math.PI / 2;
+
+            tankGroup.add(idlerMesh);
+        }
+    }
+
+}
     // ========================================================================
     _buildSpawnPads() {
         this.spawnPads = [];
