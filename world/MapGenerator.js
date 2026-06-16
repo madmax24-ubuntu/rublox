@@ -68,7 +68,7 @@ export class MapGenerator {
         this.voronoi = new VoronoiSectors(this.scene, this.seed);
         this.voronoi.size = this.size;
         this.voronoi.halfSize = this.halfSize;
-        this.voronoi.generate(12);
+        this.voronoi.generate(16);
         this.voronoi.drawBoundaries(this.scene);
 
         // Phase 2: Terrain
