@@ -150,7 +150,7 @@ export class VoronoiSectors {
         //   NW(top-left, z<0,x<0)    NE(top-right, z<0,x>0)
         //   SW(bottom-left,z>0,x<0) SE(bottom-right,z>0,x>0)
         const biomePattern = [
-            ['forest', 'plains',   'stone_maze'],  // row 0 - NW forest, center NE plains, far-NE maze
+            ['forest', 'plains',    'stone_maze',  'stone_maze'],  // row 0 - NW forest | NE stone maze
             ['swamp',  'industrial','military'],    // row 1 - swamp left, industrial mid, military SW right
             ['ruins',  'snow',     'desert'],       // row 2 - ruins left, snow mid-right, desert far-SW
             ['ice_lake','forest',  'plains']        // row 3 (bottom)
