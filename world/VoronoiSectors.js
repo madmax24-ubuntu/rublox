@@ -140,23 +140,20 @@ export class VoronoiSectors {
         return this._randState / 0x100000000;
     }
 
-    generate(count = 12) {
-        const cols = 3;
+        generate(count = 16) {
+                const cols = 4;
         const rows = 4;
         const sectorW = this.size / cols;
         const sectorH = this.size / rows;
 
-        // 4 rows x 3 cols grid matching the screenshot layout:
-        // Row0 (top, z=-256..-128): Forest | Plains(NE)     | Stone Maze
-        // Row1: Swamp      | Industrial(MW)    | Military(SW)
-        // Row2: Ruins      | Snow             | Desert
-        // Row3 (bottom,z=+128..+512): Ice Lake | Forest       | Plains
+                // 4x4 grid — clean quadrant layout:
+        //   NW(top-left, z<0,x<0)    NE(top-right, z<0,x>0)
+        //   SW(bottom-left,z>0,x<0) SE(bottom-right,z>0,x>0)
         const biomePattern = [
-            ['forest', 'plains',   'stone_maze'],  // row 0 - NW forest, center NE plains, far-NE maze
-            ['swamp',  'industrial','military'],    // row 1 - swamp left, industrial mid, military SW right
-            ['ruins',  'snow',     'desert'],       // row 2 - ruins left, snow mid-right, desert far-SW
-['ice_lake','forest',   'military',        'ice_lake']       // row 3 - SE ice lake
-        ];
+            ['forest', 'plains',     'stone_maze',  'stone_maze'],    // row 0 - NW forest | NE stone maze
+            ['forest', 'industrial','military',      'stone_maze'],   // row 1 - transition to SW military
+            ['swamp',  'ruins',       'ice_lake',     'plains'],       // row 2
+            ['ice_lake','forest',    'military',       'ice_lake']    // row 3 - SE ice lake, SW military right        ];
 
         this.sectors = [];
         this.sectorBounds = [];
