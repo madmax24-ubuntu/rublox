@@ -799,7 +799,36 @@ export class MapGenerator {
                 }
 
                 // --- Rocks: 15-30 per sector ---
-            const numProps = Math.floor(8 + sector.buildingDensity * 7);
+                const numRocks = Math.floor(15 + sector.rockDensity * 15);
+                for (let i = 0; i < numRocks; i++) {
+                    const angle = this._rand() * Math.PI * 2;
+                    const dist = 10 + this._rand() * radius * 0.6;
+                    const rx = cx + Math.cos(angle) * dist;
+                    const rz = cz + Math.sin(angle) * dist;
+
+                    const size = 2 + this._rand() * 4;
+                    const geo = new THREE.DodecahedronGeometry(size / 3, 0);
+                    const mat = new THREE.MeshStandardMaterial({
+                        color: 0x787878, roughness: 0.95, flatShading: true
+                    });
+                    const rock = new THREE.Mesh(geo, mat);
+                    const baseY = this.getHeightAt(rx, rz);
+                    rock.position.set(rx, baseY + size / 6, rz);
+                    rock.rotation.set(
+                        this._rand() * Math.PI,
+                        this._rand() * Math.PI,
+                        this._rand() * Math.PI
+                    );
+                    rock.userData.mapGenerated = true;
+                    rock.userData.physicsType = 'STATIC';
+                    this.scene.add(rock);
+                    this.addColliderBox(
+                        rock.position.clone(), size, size, size, false, true, false, 'CONVEX_HULL'
+                    );
+                }
+
+                // --- Scattered props: 8-15 per sector ---
+                const numProps = Math.floor(8 + sector.buildingDensity * 7);
             for (let i = 0; i < numProps; i++) {
                 const angle = this._rand() * Math.PI * 2;
                 const dist = 8 + this._rand() * radius * 0.5;
