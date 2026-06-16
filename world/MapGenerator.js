@@ -950,7 +950,6 @@ export class MapGenerator {
                         const pipeMat = new THREE.MeshStandardMaterial({ color: sector.terrainColor || 0x666666, roughness: 0.8 });
                         const pipe = new THREE.Mesh(pipeGeo, pipeMat.clone());
 
-            } else {
                 // Default: add generic environment props based on sector biome type. The radius is half the total size of the map, used to calculate distances from center when placing trees, bushes, grass patches, rocks, and scattered props across sectors with matching biomes like forest or plains for standard content generation.
             }
         }
