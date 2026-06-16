@@ -950,12 +950,56 @@ export class MapGenerator {
                         const pipeMat = new THREE.MeshStandardMaterial({ color: sector.terrainColor || 0x666666, roughness: 0.8 });
                         const pipe = new THREE.Mesh(pipeGeo, pipeMat.clone());
 
-                // Default: add generic environment props based on sector biome type. The radius is half the total size of the map, used to calculate distances from center when placing trees, bushes, grass patches, rocks, and scattered props across sectors with matching biomes like forest or plains for standard content generation.
-            }
-        }
-    }
+                    // Add collider boxes for all storage tanks and pipes (non-walkable obstacle zone)
+                }
+            } else if (biome === 'desert') {
+                // Desert: add cacti instead of normal trees — thick trunk with few branches
+                const numCactus = Math.floor(5 + sector.treeDensity * 8);
+                for (let i = 0; i < numCactus; i++) {
+                    const angle = this._rand() * Math.PI * 2;
+                    const dist = 15 + this._rand() * radius * 0.75;
 
-    _addTree(x, z, sector) {
+                    // Cactus body (thick vertical cylinder with rounded top)
+                    const cGeo = new THREE.CylinderGeometry(0.6, 0.8, 3 + this._rand() * 2, 8);
+                    const cMat = new THREE.MeshStandardMaterial({ color: sector.terrainColor || 0xc2b280, roughness: 1 });
+
+                    // Cactus top (hemispherical dome cap)
+                    const cTopGeo = new THREE.SphereGeometry(0.6, 8, 4, 0, Math.PI / 2);
+
+                } else if (biome === 'snow') {
+                    // Snow: add snow shelters instead of normal trees — low profile igloo-like structures
+                    const numShelters = Math.floor(3 + sector.buildingDensity * 5);
+                    for (let i = 0; i < numShelters; i++) {
+                        const angle = this._rand() * Math.PI * 2;
+                        const dist = radius * 0.4 + this._rand() * radius * 0.5;
+
+                        // Snow shelter dome (hemispherical igloo shape)
+                        const sGeo = new THREE.SphereGeometry(1.5, 8, 6, 0, Math.PI / 2);
+                        const sMat = new THREE.MeshStandardMaterial({ color: sector.terrainColor || 0xe8e8e8, roughness: 0.9 });
+
+                    } else if (biome === 'mountain') {
+                        // Mountain: add large rock formations instead of trees — boulder clusters on slopes
+                        const numBoulders = Math.floor(10 + sector.rockDensity * 25);
+                        for (let i = 0; i < numBoulders; i++) {
+                            const angle = this._rand() * Math.PI * 2;
+                            const dist = radius * 0.3 + this._rand() * radius * 0.7;
+
+                            // Boulder cluster (irregular dodecahedron shapes)
+                        } else if (biome === 'forest' || biome === 'plains') {
+                            // Forest and plains: standard trees/bushes handled by generic section above
+                        }
+
+                    // --- Add collider boxes for all storage tanks and pipes (non-walkable obstacle zone) ---
+                }
+            } else if (sector.biome === 'stone_maze') {
+                this._generateMazeWalls(sector, cx, cz, radius);
+            } else if (sector.biome === 'military') {
+                // Spawn military tanks at key positions within the sector bounds
+                const numTanks = Math.floor(2 + sector.buildingDensity * 3);
+                for (let t = 0; t < numTanks; t++) {
+                    const tankAngle = this._rand() * Math.PI * 2;
+                    const tankDist = radius * 0.4 + this._rand() * radius * 0.5;
+
         const trunkH = 6 + this._rand() * 6;
         const trunkR = 0.8 + this._rand() * 0.8;
         const crownR = 2.5 + this._rand() * 3;
