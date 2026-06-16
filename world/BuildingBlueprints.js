@@ -640,6 +640,100 @@ export const BUILDING_TEMPLATES = [
     wallColor: 0x6d4c41, roofColor: 0x3e2723,
     hasRoof: true, hasStairs: true, hasMezzanine: false,
     isRuined: true
+},
+// === Stone Maze biomes (NE quadrant) ===
+{
+    type: "maze_wall", biome: ["stone_maze"],
+    width: 12, depth: 12, height: 4.5, floors: 0,
+    rooms: [{ x: 0, z: 0, w: 8, d: 8, type: "corridor" }],
+    windows: [], // No windows in maze walls — solid structure
+    doors: [
+        { dx: -3, dz: 6.0, width: 2.0 },   // corridor entrance left
+        { dx: 3, dz: -6.0, width: 2.0 }     // exit opposite side
+    ],
+    props: [],
+    lootFloor: { ground: 5, first: 0, roof: 0 },
+    wallColor: 0x7a7a6e, roofColor: 0x8b8b7d,
+    hasRoof: false, hasStairs: false, isMazeWall: true
+},
+{
+    type: "maze_tower", biome: ["stone_maze"],
+    width: 5, depth: 5, height: 10, floors: 2,
+    rooms: [{ x: 0, z: 0, w: 4.6, d: 4.6, type: "tower" }],
+    windows: [
+        { dx: 0, dz: 2.5, width: 1.0, height: 1.5, side: "front", type: "archer_loophole" },
+        { dx: -2.3, dz: 0, width: 1.0, height: 1.5, side: "left", type: "archer_loophole" }
+    ],
+    doors: [{ dx: 0, dz: 2.5, width: 1.8 }],
+    props: [
+        { type: "ammo_box", dx: 0, dz: 0, w: 0.6, d: 0.4, h: 0.6 },
+        { type: "crate", dx: 2, dz: 1, w: 0.8, d: 0.8, h: 0.8 }
+    ],
+    lootFloor: { ground: 3, first: 0, roof: 4 },
+    wallColor: 0x696960, roofColor: 0x5a5a52,
+    hasRoof: true, hasStairs: false, isMazeTower: true
+},
+
+// === Military Zone biomes (SW quadrant) ===
+{
+    type: "bunker", biome: ["military"],
+    width: 10, depth: 8, height: 5.5, floors: 1,
+    rooms: [{ x: 0, z: 0, w: 9.6, d: 7.6, type: "bunker" }],
+    windows: [
+        { dx: -2, dz: 4.0, width: 0.8, height: 0.8, side: "front", type: "observation_port" },
+        { dx: 2, dz: 4.0, width: 0.8, height: 0.8, side: "front", type: "observation_port" }
+    ],
+    doors: [{ dx: 0, dz: 4.0, width: 1.5 }],
+    props: [
+        { type: "ammo_box", dx: -3, dz: 2, w: 0.6, d: 0.8, h: 0.7 },
+        { type: "ammo_box", dx: 3, dz: 2, w: 0.6, d: 0.8, h: 0.7 },
+        { type: "crate", dx: -4, dz: -3, w: 1.0, d: 1.0, h: 1.0 },
+        { type: "sandbag", dx: 5, dz: 2, w: 1.2, d: 0.6, h: 0.9 }
+    ],
+    lootFloor: { ground: 8, first: 2, roof: 4 },
+    wallColor: 0x3a4f2e, roofColor: 0x2d3b1f,
+    hasRoof: true, hasStairs: false, isBunker: true
+},
+{
+    type: "tank_hangar", biome: ["military"],
+    width: 18, depth: 14, height: 6.5, floors: 0,
+    rooms: [{ x: 0, z: 0, w: 17.6, d: 13.6, type: "hangar" }],
+    windows: [], // Open front for vehicle access
+    doors: [
+        { dx: -4, dz: 7.0, width: 5.0 },   // large bay door left
+        { dx: 4, dz: 7.0, width: 5.0 }     // large bay door right
+    ],
+    props: [], // Tanks occupy interior space — handled separately by map generator
+    lootFloor: { ground: 12, first: 0, roof: 0 },
+    wallColor: 0x4a5e38, roofColor: 0x3d4f2f,
+    hasRoof: true, hasStairs: false, isTankHangar: true
+},
+
+// === Ice Lake biome (SE quadrant) ===
+{
+    type: "ice_crystal", biome: ["ice_lake"],
+    width: 6, depth: 6, height: 4.5, floors: 0,
+    rooms: [{ x: 0, z: 0, w: 5.6, d: 5.6, type: "crystal" }],
+    windows: [],
+    doors: [], // Ice crystals have no entrance — decorative/cover only
+    props: [],
+    lootFloor: { ground: 2, first: 0, roof: 0 },
+    wallColor: 0x87ceeb, roofColor: 0xb0e0e6,
+    hasRoof: false, isIceCrystal: true
+},
+{
+    type: "radio_tower", biome: ["ice_lake"],
+    width: 4, depth: 4, height: 12.5, floors: 0,
+    rooms: [{ x: 0, z: 0, w: 3.6, d: 3.6, type: "tower_base" }],
+    windows: [],
+    doors: [{ dx: 0, dz: 1.8, width: 1.2 }],
+    props: [
+        { type: "ammo_box", dx: -1.5, dz: 0, w: 0.4, d: 0.4, h: 0.6 },
+        { type: "crate", dx: 1.5, dz: 0, w: 0.5, d: 0.5, h: 0.8 }
+    ],
+    lootFloor: { ground: 3, first: 2, roof: 6 },
+    wallColor: 0x4a5e7d, roofColor: 0x3a4f6d,
+    hasRoof: false, isRadioTower: true
 }
 ];
 
