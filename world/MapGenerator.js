@@ -945,7 +945,7 @@ export class MapGenerator {
                     this.addColliderBox(new THREE.Vector3(cx + Math.cos(angle) * dist, baseY + 2.5, cz + Math.sin(angle) * dist), 4, 5, 4, false);
 
                     // Pipe segments connecting tanks in industrial zone (horizontal and vertical runs)
-                    if (this._rand() < 0.6) {
+                    if (this._rand() < 0.6 && i > 0) {
                         const pipeGeo = new THREE.CylinderGeometry(0.12, 0.12, radius * 0.5 + this._rand() * 8, 4);
                         const pipeMat = new THREE.MeshStandardMaterial({ color: sector.terrainColor || 0x666666, roughness: 0.8 });
                         const pipe = new THREE.Mesh(pipeGeo, pipeMat.clone());
