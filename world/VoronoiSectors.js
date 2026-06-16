@@ -140,7 +140,7 @@ export class VoronoiSectors {
         return this._randState / 0x100000000;
     }
 
-    generate(count = 12) {
+    generate(count = 16) {
         const cols = 4;
         const rows = 4;
         const sectorW = this.size / cols;
