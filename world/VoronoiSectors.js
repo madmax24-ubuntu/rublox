@@ -152,7 +152,9 @@ export class VoronoiSectors {
         const biomePattern = [
             ['forest', 'plains',    'stone_maze',  'stone_maze'],  // row 0 - NW forest | NE stone maze
             ['forest', 'industrial','military',     'stone_maze'],    // row 1 - transition | NE stone maze  
-            ['swamp',  'ruins',     'ice_lake',        'plains'],        // row 2
+['swamp',  'ruins',     'military',       'military']
+            ['ice_lake','forest',   'military',       'ice_lake'][1]// row 3 - SE ice lake
+
 ['ice_lake','forest',   'military',        'ice_lake']       // row 3 - SE ice lake
         ];
 
