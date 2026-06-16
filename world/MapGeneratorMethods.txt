@@ -1,0 +1,67 @@
+
+    _generateMazeWalls(sector, cx, cz, radius) {
+        const cellSize = 6;
+        const gridCols = Math.floor(radius * 2 / cellSize);
+        const gridRows = Math.floor(radius * 2 / cellSize);
+        const startX = Math.round(cx - radius) + cellSize / 2;
+        const startZ = Math.round(cz - radius) + cellSize / 2;
+
+        // Cellular automata wall generation
+        const cells = [];
+        for (let r = 0; r < gridRows; r++) {
+            cells[r] = [];
+            for (let c = 0; c < gridCols; c++) {
+                cells[r][c] = Math.random() < 0.5 ? 'wall' : 'empty';
+            }
+        }
+
+        // Run cellular automata iterations
+        const wallColor = sector.terrainColor || 0x8d6e63;
+        for (let iter = 0; iter < 4; iter++) {
+            const next = cells.map(row => row.slice());
+            for (let r = 1; r < gridRows - 1; r++) {
+                for (let c = 1; c < gridCols - 1; c++) {
+                    let neighbors = 0;
+                    for (let dr = -1; dr <= 1; dr++) {
+                        for (let dc = -1; dc <= 1; dc++) {
+                            if (dr === 0 && dc === 0) continue;
+                            if (cells[r + dr] && cells[r + dr][c + dc] === 'wall') neighbors++;
+                        }
+                    }
+                    next[r][c] = (neighbors >= 3 || cells[r][c] === 'wall' ? Math.random() < 0.6 : false) ? 'wall' : 'empty';
+                }
+            }
+            for (let r = 1; r < gridRows - 1; r++) {
+                for (let c = 1; c < gridCols - 1; c++) {
+                    if ((r === Math.floor(gridRows / 2) && Math.abs(c - gridCols / 4 + iter * 3 % gridCols) > 0.5 || c >= gridCols * 0.4)) next[r][c] = 'empty'; // clear center path (keep some walls for the maze structure)
+                }
+            }
+        }
+
+        const wallMat = new THREE.MeshStandardMaterial({ color: wallColor, roughness: 0.85, flatShading: true });
+        const towerGeo = new THREE.BoxGeometry(cellSize * 1.2, cellSize, cellSize * 1.2);
+
+        // Create maze walls using BoxGeometry for both horizontal and vertical segments (grid)
+        let wallMeshCount = 0;
+        const instancedWallMat = [wallMat];
+
+        for (let r = 1; r < gridRows - 1; r++) {
+            for (let c = 1; c < gridCols - 1; c++) {
+                if (cells[r][c] !== 'wall') continue;
+                const wx = startX + c * cellSize;
+                const wz = startZ + r * cellSize;
+                const wy = this.getHeightAt(wx, wz) + cellSize / 2;
+
+                // Check adjacency for horizontal/vertical orientation: use vertical walls (grid cells) and some horizontal ones based on neighbors. For simplicity we can make them tall boxes or add cross-bars to simulate the maze structure:
+                const hGeo = new THREE.BoxGeometry(cellSize, cellSize * 1.5, 0.8); // thin wall segments for a more natural maze look (horizontal bars)
+
+                if ((r % 2 === 0 && c % 2 === 0)) {
+                    cells[r][c] = 'empty'; // leave some openings in walls so players can move through them to simulate navigation paths:
+                    continue;
+                }
+
+                const wallGeo = new THREE.BoxGeometry(cellSize * 0.6, cellSize * 1.5, cellSize);
+            .wallMesh.push(wallGeo)
+        }
+    }
+
