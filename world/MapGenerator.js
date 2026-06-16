@@ -717,66 +717,62 @@ export class MapGenerator {
             const cx = sector.center.x;
             const cz = sector.center.z;
 
-            // --- Trees: 60-120 per sector ---
-            const numTrees = 60 + Math.floor(sector.treeDensity * 100);
-            for (let i = 0; i < numTrees; i++) {
-                const angle = this._rand() * Math.PI * 2;
-                const dist = 10 + this._rand() * radius * 0.85;
-                const tx = cx + Math.cos(angle) * dist;
-                const tz = cz + Math.sin(angle) * dist;
-                this._addTree(tx, tz, sector);
-            }
+            // === SPECIAL BIOME HANDLING ===
+            const isStoneMaze = (sector.biome === 'stone_maze');
+            const isMilitary = (sector.biome === 'military' || sector.id === 4);
+            const isIceLake = (sector.biome === 'ice_lake');
 
-            // --- Bushes: 15-25 per sector ---
-            const numBushes = 15 + Math.floor(sector.buildingDensity * 10);
-            for (let i = 0; i < numBushes; i++) {
-                const angle = this._rand() * Math.PI * 2;
-                const dist = 5 + this._rand() * radius * 0.7;
-                const bx = cx + Math.cos(angle) * dist;
-                const bz = cz + Math.sin(angle) * dist;
-                this._addBush(bx, bz);
-            }
+            if (isStoneMaze) {
+                // Stone maze: corridor walls instead of trees/rocks
+                this._generateMazeWalls(sector, cx, cz, radius);
+            } else if (isMilitary) {
+                // Military zone: tanks + barbed wire fences instead of standard props
+                const numTanks = 6 + Math.floor(this._rand() * 4);
+                for (let i = 0; i < numTanks; i++) this._addTank(cx, cz, sector.bounds.radius || 128);
+                this._placeBarbedWireFences(sector, cx, cz);
+            } else if (isIceLake) {
+                // Ice lake: frozen surface + ice crystals + radio tower
+                const numCrystals = Math.floor(5 * sector.rockDensity);
+                for (let i = 0; i < numCrystals; i++) this._addIceCrystal(cx, cz, radius);
+                if (!sector.bounds?.minX || cx > 100) { // Only one radio tower per ice sector
+                    const angle = Math.random() * Math.PI * 2;
+                    this._addRadioTower(
+                        cx + Math.cos(angle) * (radius - 30),
+                        cz + Math.sin(angle) * (radius - 30)
+                    );
+                }
+            } else {
+                // --- Trees: 60-120 per sector ---
+                const numTrees = 60 + Math.floor(sector.treeDensity * 100);
+                for (let i = 0; i < numTrees; i++) {
+                    const angle = this._rand() * Math.PI * 2;
+                    const dist = 10 + this._rand() * radius * 0.85;
+                    const tx = cx + Math.cos(angle) * dist;
+                    const tz = cz + Math.sin(angle) * dist;
+                    this._addTree(tx, tz, sector);
+                }
 
-            // --- Grass patches: 20-35 per sector ---
-            const numGrass = 20 + Math.floor(sector.buildingDensity * 15);
-            for (let i = 0; i < numGrass; i++) {
-                const angle = this._rand() * Math.PI * 2;
-                const dist = 5 + this._rand() * radius * 0.8;
-                const gx = cx + Math.cos(angle) * dist;
-                const gz = cz + Math.sin(angle) * dist;
-                this._addGrassPatch(gx, gz);
-            }
+                // --- Bushes: 15-25 per sector ---
+                const numBushes = 15 + Math.floor(sector.buildingDensity * 10);
+                for (let i = 0; i < numBushes; i++) {
+                    const angle = this._rand() * Math.PI * 2;
+                    const dist = 5 + this._rand() * radius * 0.7;
+                    const bx = cx + Math.cos(angle) * dist;
+                    const bz = cz + Math.sin(angle) * dist;
+                    this._addBush(bx, bz);
+                }
 
-            // --- Rocks: 15-30 per sector ---
-            const numRocks = Math.floor(15 + sector.rockDensity * 15);
-            for (let i = 0; i < numRocks; i++) {
-                const angle = this._rand() * Math.PI * 2;
-                const dist = 10 + this._rand() * radius * 0.6;
-                const rx = cx + Math.cos(angle) * dist;
-                const rz = cz + Math.sin(angle) * dist;
+                // --- Grass patches: 20-35 per sector ---
+                const numGrass = 20 + Math.floor(sector.buildingDensity * 15);
+                for (let i = 0; i < numGrass; i++) {
+                    const angle = this._rand() * Math.PI * 2;
+                    const dist = 5 + this._rand() * radius * 0.8;
+                    const gx = cx + Math.cos(angle) * dist;
+                    const gz = cz + Math.sin(angle) * dist;
+                    this._addGrassPatch(gx, gz);
+                }
 
-                const size = 2 + this._rand() * 4;
-                const geo = new THREE.DodecahedronGeometry(size / 3, 0);
-                const mat = new THREE.MeshStandardMaterial({
-                    color: 0x787878, roughness: 0.95, flatShading: true
-                });
-                const rock = new THREE.Mesh(geo, mat);
-                const baseY = this.getHeightAt(rx, rz);
-                rock.position.set(rx, baseY + size / 6, rz);
-                rock.rotation.set(
-                    this._rand() * Math.PI,
-                    this._rand() * Math.PI,
-                    this._rand() * Math.PI
-                );
-                rock.userData.mapGenerated = true;
-                rock.userData.physicsType = 'STATIC';
-                this.scene.add(rock);
-                this.addColliderBox(
-                    rock.position.clone(), size, size, size, false, true, false, 'CONVEX_HULL'
-                );
-            }
-
-            // --- Scattered props: 8-15 per sector ---
+                // --- Rocks: 15-30 per sector ---
             const numProps = Math.floor(8 + sector.buildingDensity * 7);
             for (let i = 0; i < numProps; i++) {
                 const angle = this._rand() * Math.PI * 2;
