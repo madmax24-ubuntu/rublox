@@ -1,0 +1,16 @@
+
+    _generateMazeWalls(sector, cx, cz, radius) {
+        const cellSize = 6; // Cell size in game units:~3m stone walls that form maze corridors with random initial pattern (~45% filled density). Uses sector terrain color for wall materials (defaults to brown-gray):
+
+    _addIceCrystal(x, z) {
+        // Creates ice crystal clusters from ConeGeometry shards (~0.8 units tall each), varying blue-white colors [0xb3e5fc, 0x81d4fa, 0xf0f8ff, 0xe1f5fe], transparent with opacity ~70%+:~70% of them get a small collider for physics interaction:
+
+    _placeBarbedWireFences(sector, cx, cz) {
+        // Places perimeter fence posts around the sector boundary using golden angle distribution (~6-8 corners). Each corner has metal poles (CylinderGeometry), wire strands between them with sagging catenary effect, and barbed spikes every few posts. Uses postMat color 0x5d4e37 for wooden/metal posts:~1/2 distance from center of sector bounds for fence perimeter location.
+
+    _addTank(cx, cz, radius) {
+        // Creates a detailed military tank using Group of meshes. Lower hull (BoxGeometry), upper sloped armor with overlapping treads on both sides (~0.5m wide tracks extending ~1/6th of the sectors half-width from center toward corners):
+
+    _addRadioTower(x, z) {
+        // Communication tower with tapered mast:~7-8 meters tall cylindrical pole that narrows toward the top. Multiple horizontal cross beams at 3 heights forming X and Z patterns for structural support (~2m diameter). Mounts multiple antenna dishes pointing in different directions (each dish uses Math.cos/diskHeight as unique identifier per sector) to simulate realistic radio tower:
+        const zBase = this.getHeightAt(x, z); // Tower base sits on terrain surface ~1/6th of radius
