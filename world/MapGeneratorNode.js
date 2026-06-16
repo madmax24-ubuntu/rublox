@@ -263,56 +263,107 @@ export class MapGeneratorNode {
         }
     }
 
-    // Инициализация центра
+    // Инициализация центра — raised mosaic hub with fountain and 50 spawn pads
     init() {
-        // Заполнить дорожки
-        this.createRoads();
+        const mat = new THREE.MeshStandardMaterial({
+            color: TILE_COLORS.spawnPlatform, roughness: 0.7, flatShading: true });
 
-        // Заполнить спавн-платформы
-        this.createSpawnPlatforms();
+        // Raised circular mosaic platform (y=2 top surface)
+        const baseGeo = new THREE.CylinderGeometry(45, 48, 2, 32);
+        const baseMesh = new THREE.Mesh(baseGeo, mat.clone());
+        baseMesh.position.set(0, 1, 0);
+        baseMesh.userData.mapGenerated = true;
+        this.scene.add(baseMesh);
 
-        // Заполнить треугольные узоры
-        this.createTriangles();
+        // Decorative mosaic rings on platform surface
+        for (let r = 8; r <= 40; r += 6) {
+            const ringGeo = new THREE.TorusGeometry(r, 0.3, 8, 48);
+            const isGold = r % 12 === 0;
+            const ringMat = new THREE.MeshStandardMaterial({
+                color: isGold ? 0xFFD700 : TILE_COLORS.spawnPlatform,
+                roughness: isGold ? 0.6 : 0.75, flatShading: true });
+            const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+            ringMesh.rotation.x = Math.PI / 2;
+            ringMesh.position.set(0, 2.18, 0);
+            ringMesh.userData.mapGenerated = true;
+            this.scene.add(ringMesh);
+        }
 
-        // Заполнить фонтан
-        this.spawnPads.push({ x: 0, z: 0 }); // Center spawn pad for main.js to use
+        // Sunburst decorative lines from center (every 30 degrees)
+        for (let i = 0; i < 12; i++) {
+            const angle = (i / 12) * Math.PI * 2;
+            const lineGeo = new THREE.BoxGeometry(0.4, 0.15, 38);
+            const lineMat = new THREE.MeshStandardMaterial({
+                color: 0xFFA500, roughness: 0.7, flatShading: true });
+            const lineMesh = new THREE.Mesh(lineGeo, lineMat);
+            lineMesh.position.set(0, 2.18, 0);
+            lineMesh.rotation.y = angle;
+            lineMesh.userData.mapGenerated = true;
+            this.scene.add(lineMesh);
+        }
 
-        // Заполнить спавн-платформы по кругу
-        this.createSpawnPlatforms();
+        // Golden fountain sitting on the platform
+        const fountain = this.createFountain();
+        if (fountain) {
+            fountain.position.set(0, 2.5, 0);
+            fountain.userData.mapGenerated = true;
+            this.scene.add(fountain);
+            this.spawnPads.push({ x: 0, z: 0 });
+        }
 
-        // Обновление анимации фонтана
-        const fountain = this.scene.userData.fountain;
-        if (!fountain) return;
+        // 50 spawn platforms arranged around the circle on top of raised base (y=2.18)
+        for (let i = 0; i < SPAWN_PLATFORM_COUNT; i++) {
+            const angleStep = Math.PI * 2 / SPAWN_PLATFORM_COUNT;
+            const x = Math.cos(i * angleStep) * SPAWN_PLATFORM_RADIUS;
+            const z = -Math.sin(i * angleStep) * SPAWN_PLATFORM_RADIUS;
 
-        fountain.userData.waterTime += delta;
-        const waterScale = 1 + Math.sin(fountain.userData.waterTime * 3) * 0.05;
-        const basin = fountain.children[2];
-        if (basin) {
-            basin.scale.setScalar(waterScale);
+            // Circular pad at platform level
+            const padGeo = new THREE.CylinderGeometry(1.2, 1.4, 0.3, 8);
+            const padMat = new THREE.MeshStandardMaterial({
+                color: TILE_COLORS.spawnPlatform, roughness: 0.75, flatShading: true });
+            const padMesh = new THREE.Mesh(padGeo, padMat);
+            padMesh.position.set(x, 2.18, z);
+            padMesh.userData.isSpawnPlatform = true;
+            this.scene.add(padMesh);
+
+            // Tiny golden ring around each spawn pad
+            const padRingGeo = new THREE.TorusGeometry(1.3, 0.05, 8, 24);
+            const padRingMat = new THREE.MeshStandardMaterial({
+                color: 0xFFD700, roughness: 0.5, metalness: 0.3, flatShading: true });
+            const padRing = new THREE.Mesh(padRingGeo, padRingMat);
+            padRing.rotation.x = Math.PI / 2;
+            padRing.position.set(x, 2.18, z);
+            padRing.userData.isSpawnPlatform = true;
+            this.scene.add(padRing);
+
+            // Register for game loop
+            this.spawnPads.push({ x, z });
         }
     }
 
-    // Удаление всех тайлов
     dispose() {
-        this.tiles.forEach((mesh) => {
+        for (const [, mesh] of this.tiles) {
             if (mesh.geometry) mesh.geometry.dispose();
             if (mesh.material) mesh.material.dispose();
-        });
+        }
         this.tiles.clear();
 
-        // Удалить спавн-платформы
+        const fountain = Array.from(this.scene.children).find(
+            c => c.userData && c.userData.isFountain
+        );
+        if (fountain) {
+            fountain.traverse((child) => {
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) child.material.dispose();
+            });
+        }
+
         this.scene.traverse((child) => {
-            if (child.userData.isSpawnPlatform) {
+            if (child.userData.isSpawnPlatform && !this.tiles.has(`${Math.round(child.position.x)},${Math.round(child.position.z)}`)) {
                 if (child.geometry) child.geometry.dispose();
                 if (child.material) child.material.dispose();
             }
         });
-
-        // Удалить фонтан
-        const fountain = this.scene.userData.fountain;
-        if (fountain) {
-            if (fountain.geometry) fountain.geometry.dispose();
-            if (fountain.material) fountain.material.dispose();
-        }
     }
+
 }
