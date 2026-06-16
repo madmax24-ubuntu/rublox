@@ -146,11 +146,9 @@ export class VoronoiSectors {
         const sectorW = this.size / cols;
         const sectorH = this.size / rows;
 
-        // 4 rows x 3 cols grid matching the screenshot layout:
-        // Row0 (top, z=-256..-128): Forest | Plains(NE)     | Stone Maze
-        // Row1: Swamp      | Industrial(MW)    | Military(SW)
-        // Row2: Ruins      | Snow             | Desert
-        // Row3 (bottom,z=+128..+512): Ice Lake | Forest       | Plains
+        // 4x4 grid — clean quadrant layout:
+        //   NW(top-left, z<0,x<0)    NE(top-right, z<0,x>0)
+        //   SW(bottom-left,z>0,x<0) SE(bottom-right,z>0,x>0)
         const biomePattern = [
             ['forest', 'plains',   'stone_maze'],  // row 0 - NW forest, center NE plains, far-NE maze
             ['swamp',  'industrial','military'],    // row 1 - swamp left, industrial mid, military SW right
