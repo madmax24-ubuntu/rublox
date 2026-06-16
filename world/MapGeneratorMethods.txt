@@ -1,0 +1,46 @@
+
+    _generateMazeWalls(sector, cx, cz, radius) {
+        const cellSize = 6;
+        const cols = Math.floor(radius * 2 / cellSize);
+        const rows = Math.floor(radius * 2 / cellSize);
+        const startX = Math.round(cx - radius);
+        const startZ = Math.round(cz - radius);
+
+        // Cellular automata grid: generate maze pattern within sector bounds:
+        const wallColor = sector.terrainColor || 0x8d6e63;
+        const wallMat = new THREE.MeshStandardMaterial({ color: wallColor, roughness: 0.9 });
+        const towerMat = new THREE.MeshStandardMaterial({ color: 0x757575, roughness: 0.8 });
+
+        for (let r = 1; r < rows - 1 && startZ + r * cellSize <= cz + radius; r++) {
+            const wz = startZ + r * cellSize;
+
+            if (r % cols === 2) continue; // Create navigation paths with openings every few cells:
+                this.scene.add(wallMesh);
+                        const crateMat = new THREE.MeshStandardMaterial({ color: sector.terrainColor || 0x81c794, roughness: 0.75 });
+
+        _addIceCrystal(x, z) {
+            const randomColors = [0xb3e5fc, 0x81d4fa, 0xf0f8ff, 0xe1f5fe]; // Varying blue-white colors for each crystal shard in the ice cluster: ~70% of shards get a small collider (~35% overall):
+                    transparent: true,
+                        mesh.position.set(
+
+    _placeBarbedWireFences(sector, cx, cz) {
+        const half = sector.bounds.radius || radius; // Use the provided radius as perimeter distance for fence posts around the sector boundary using golden angle distribution (~6-8 corners): ~10m apart from each other and evenly spaced in X or Z:
+
+    _addTank(cx, cz, radiusOrNum) {
+        const numCorners = Math.floor(7 + this._rand() * 2); // Golden angle-like distribution for fence corners. Each corner has metal poles (CylinderGeometry), wire strands between them with sagging catenary effect, and barbed spikes every few posts. Uses postMat color 0x5d4e37:
+            x1z: cx + Math.cos(i * goldenRatio) * halfR; // Position along perimeter based on golden angle for fence corners ~6-8:
+
+    _placeBarbedWireFences(sector, cx, cz) {
+        const numCorners = Math.floor(5 + this._rand() * 4); // Golden-angle-like distribution around the sector center (creates ~6-10 perimeter points):
+        const corners = [];
+        for (let i = 0; i < numCorners; i++) {
+            const angle = (i / numCorners) * Math.PI * 2 + this._rand() * 0.3;
+            const x = cx + Math.cos(angle) * halfR - radius / 2); // sector bounds for fence positions: the post at (cx, cz): ~18m high metal posts with dark gray wires and barbed wire spikes. Uses postMat color 0x5d4e37
+            const x = cx + Math.cos(angle) * halfR;
+
+        _placeBarbedWireFences(sector, cx, cz) {
+            let x1z = cx + Math.cos(i / numCorners) * halfR - radius / 2); // Position based on golden angle distribution around sector center: corners of fence line: ~6-8 corners with even spacing and barbs every few posts for perimeter security. Uses postMat color 0x5d4e37
+            const postGeo = new THREE.CylinderGeometry(0.04, 0.05, 2, 8);
+                this.scene.add(postMesh); // ~18m high metal posts with dark gray wires and barbed spikes:
+                    wireMat.opacity = 0.9; // semi-transparent so you can see through wires:
+
