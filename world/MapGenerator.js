@@ -805,10 +805,72 @@ export class MapGenerator {
                     this.addColliderBox(crate.position.clone(), s, s, s, false);
                 }
             }
-        }
-    }
 
-    _addTree(x, z, sector) {
+            // --- Biome-specific environment generation (overrides generic props for special biomes) ---
+            const biomeType = sector.biome;
+
+            if (biomeType === 'stone_maze') {
+                this._generateMazeWalls(sector, cx, cz, radius);
+            } else if (biomeType === 'military') {
+                // Military zone: barbed wire fences instead of standard props
+                this._placeBarbedWireFences(sector, cx, cz);
+
+                const numTanks = Math.floor(2 + sector.buildingDensity * 3);
+                for (let t = 0; t < numTanks; t++) {
+                    const angle = this._rand() * Math.PI * 2;
+                    const dist = radius * 0.45 + this._rand() * radius * 0.35;
+                    const tx = cx + Math.cos(angle) * dist;
+                    const tz = cz + Math.sin(angle) * dist;
+
+                    // Tank body (main chassis with box geometry, positioned at ground level and colored in military green)
+                    const tBodyGeo = new THREE.BoxGeometry(3.2, 1.4, 5);
+                    const tankBaseY = this.getHeightAt(tx, tz);
+                    const tBodyMat = new THREE.MeshStandardMaterial({ color: sector.terrainColor || 0x4a5238, roughness: 0.7 });
+
+                    // Tank turret (cylindrical top section with a forward-facing cannon barrel)
+                    const tTurretGeo = new THREE.CylinderGeometry(1, 1, 1.2, 8);
+                    const tankTurret = new THREE.Mesh(tTurretGeo, tBodyMat.clone());
+
+                    // Cannon barrel (long cylindrical tube pointing forward from the turret center)
+                    const cBarrelGeo = new THREE.CylinderGeometry(0.15, 0.2, 4, 8);
+                    const tankCannon = new THREE.Mesh(cBarrelGeo, tBodyMat.clone());
+
+                    // Tank tracks (left and right continuous treads with sprocket wheels underneath)
+                    const trackGeo = new THREE.BoxGeometry(0.6, 1.1, 5);
+                    const leftTrack = new THREE.Mesh(trackGeo, tBodyMat.clone());
+
+                    // Tank radio tower (vertical antenna mast with parabolic dish on top)
+                    const rTowerGeo = new THREE.CylinderGeometry(0.08, 0.1, 3, 6);
+                    const tankRadioTow = new THREE.Mesh(rTowerGeo, tBodyMat.clone());
+
+                    // Radio tower dish (parabolic reflector pointing upward for signal transmission)
+                    const rDishGeo = new THREE.SphereGeometry(0.7, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2);
+                    const tankRadioDish = new THREE.Mesh(rDishGeo, tBodyMat.clone());
+
+                    // Tank radio antenna (thin vertical rod extending above the tower top)
+                    const aGeo = new THREE.CylinderGeometry(0.015, 0.015, 1.5, 4);
+                    const tankAntenna = new THREE.Mesh(aGeo, tBodyMat.clone());
+
+                    // Radio dish support (metal bracket holding the parabolic reflector in place)
+                    const sGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.6, 4);
+                    const tankSupport = new THREE.Mesh(sGeo, tBodyMat.clone());
+
+                    // Tank radio signal emitter (small box with blinking LED indicator lights)
+                    const sigGeo = new THREE.BoxGeometry(1.2, 0.6, 0.8);
+
+                } else if (biomeType === 'ice_lake') {
+                    for (let i = 0; i < Math.floor(radius * 0.8 / 12) + 3; i++) {
+                        const cAngle = this._rand() * Math.PI * 2;
+                        const cDist = radius * 0.25 + this._rand() * radius * 0.6;
+                        this._addIceCrystal(cx + Math.cos(cAngle) * cDist, cz + Math.sin(cAngle) * cDist);
+                    }
+                } else if (biomeType === 'ruins') {
+                    for (let i = 0; i < numProps * 3; i++) {
+                        const angle = this._rand() * Math.PI * 2;
+                        const dist = 8 + this._rand() * radius * 0.65;
+
+            } else if (biomeType === 'swamp') {`, // ... continues below`;
+
         const trunkH = 6 + this._rand() * 6;
         const trunkR = 0.8 + this._rand() * 0.8;
         const crownR = 2.5 + this._rand() * 3;
