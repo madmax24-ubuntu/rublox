@@ -11,7 +11,7 @@ mkdir(SCREENSHOT_DIR);
 async function main() {
     console.log('[MAP DEBUG] Starting Playwright test...');
 
-    const browser = await chromium.launch({ headless: false });
+    const browser = await chromium.launch({ headless: true });
     const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 
     // Collect console errors and warnings
