@@ -1,9 +1,10 @@
 import fs from 'fs';
 
-const code = fs.readFileSync('world/MapGenerator.js', 'utf8');
+const filePath = 'world/MapGenerator.js';
+let code = fs.readFileSync(filePath, 'utf8');
 
 // =====================================================================
-// METHOD 1: _generateMazeWalls (stone_maze biome)
+// METHOD 1: _generateMazeWalls (stone_maze) — corridor walls + towers
 // =====================================================================
 const mazeMethod = `    _generateMazeWalls(sector, cx, cz, radius) {
         const wallMat = new THREE.MeshStandardMaterial({ color: sector.terrainColor || 0x7a7a6e, roughness: 0.95, flatShading: true });
@@ -65,7 +66,6 @@ const mazeMethod = `    _generateMazeWalls(sector, cx, cz, radius) {
                     tTop.userData.mapGenerated = true;
                     this.scene.add(tTop);
 
-                    // Loot crate on tower top
                     const lootGeo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
                     const lootMat = new THREE.MeshStandardMaterial({ color: 0xd4a574, roughness: 0.9 });
                     const loot = new THREE.Mesh(lootGeo, lootMat);
@@ -75,7 +75,6 @@ const mazeMethod = `    _generateMazeWalls(sector, cx, cz, radius) {
                     this.scene.add(loot);
                 }
 
-                // Collider for wall segments
                 const hY = this.getHeightAt(wx, wz);
                 if (isIntersection || gx % 3 === 0 || gz % 3 === 0) {
                     this.addColliderBox(new THREE.Vector3(wx, hY + 2.25, wz), cellSize * 0.85, 4.5, 0.6, false);
@@ -130,7 +129,7 @@ const mazeMethod = `    _generateMazeWalls(sector, cx, cz, radius) {
     },`;
 
 // =====================================================================
-// METHOD 2: _addIceCrystal (ice_lake biome)
+// METHOD 2: _addIceCrystal (ice_lake biome) — ice shard formations
 // =====================================================================
 const iceMethod = `
     _addIceCrystal(x, z) {
@@ -172,7 +171,7 @@ const iceMethod = `
     },`;
 
 // =====================================================================
-// METHOD 3: _placeBarbedWireFences (military biome)
+// METHOD 3: _placeBarbedWireFences (military biome) — perimeter wire + posts
 // =====================================================================
 const fenceMethod = `
     _placeBarbedWireFences(sector, cx, cz) {
@@ -258,91 +257,126 @@ const fenceMethod = `
     },`;
 
 // =====================================================================
-// METHOD 4: _spawnTank (military biome)
+// INSERTION POINT 1: After _addGrassPatch closing brace (before SPAWN SYSTEM)
 // =====================================================================
-const tankMethod = `
-    _spawnTank(sector, cx, cz, radius) {
-        const numTanks = Math.floor(2 + sector.buildingDensity * 3);
-        for (let t = 0; t < numTanks; t++) {
-            const angle = this._rand() * Math.PI * 2;
-            const dist = radius * 0.35 + this._rand() * radius * 0.45;
-            const tx = cx + Math.cos(angle) * dist;
-            const tz = cz + Math.sin(angle) * dist;
+const grassEndMarker = `        this.scene.add(patch);
+    }
 
-            // Tank body (main chassis with box geometry, positioned at ground level and colored in military green)
-            const tBodyGeo = new THREE.BoxGeometry(3.2, 1.4, 5);
-            const tBodyMat = new THREE.MeshStandardMaterial({ color: sector.terrainColor || 0x4a5238, roughness: 0.7 });
+    // ========================================================================`;
 
-            // Tank turret (cylindrical top section with a forward-facing cannon barrel)
-            const tTurretGeo = new THREE.CylinderGeometry(1, 1, 1.2, 8);
-            const tTurretMat = new THREE.MeshStandardMaterial({ color: sector.terrainColor || 0x4a5238, roughness: 0.7 });
-
-            // Cannon barrel (long cylindrical tube pointing forward from the turret center)
-            const cBarrelGeo = new THREE.CylinderGeometry(0.15, 0.2, 4, 8);
-            const cBarrelMat = new THREE.MeshStandardMaterial({ color: sector.terrainColor || 0x4a5238, roughness: 0.6 });
-
-            // Tank tracks (left and right continuous treads with sprocket wheels underneath)
-            const trackGeo = new THREE.BoxGeometry(0.6, 1.1, 5);
-
-            // Tank radio tower (vertical antenna mast with parabolic dish on top)
-            const rTowerGeo = new THREE.CylinderGeometry(0.08, 0.1, 3, 6);
-            const rDishGeo = new THREE.SphereGeometry(0.7, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2);
-
-            // Radio tower dish (parabolic reflector pointing upward for signal transmission)
-            const rDishMat = new THREE.MeshStandardMaterial({ color: sector.terrainColor || 0x4a5238, roughness: 0.6 });
-
-            // Tank radio antenna (thin vertical rod extending above the tower top)
-            const aGeo = new THREE.CylinderGeometry(0.015, 0.015, 1.5, 4);
-            const aMat = new THREE.MeshStandardMaterial({ color: sector.terrainColor || 0x4a5238 });
-
-            // Radio dish support (metal bracket holding the parabolic reflector in place)
-            const sGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.6, 4);
-            const sMat = new THREE.MeshStandardMaterial({ color: sector.terrainColor || 0x4a5238 });
-
-            // Tank radio signal emitter (small box with blinking LED indicator lights)
-            const sigGeo = new THREE.BoxGeometry(1.2, 0.6, 0.8);
-            const sigMat = new THREE.MeshStandardMaterial({ color: sector.terrainColor || 0x4a5238 });
-
-            // Radio signal box (enclosure for electronic equipment and power supply)
-            const rBoxGeo = new THREE.BoxGeometry(1, 0.7, 0.6);
-            const rBoxMat = new THREE.MeshStandardMaterial({ color: sector.terrainColor || 0x4a5238 });
-
-            // Signal indicator lights on radio tower (red/green LED array)
-            const ledMatRed = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xff4444 });
-            const ledMatGreen = new THREE.MeshStandardMaterial({ color: 0x00ff00, emissive: 0x44ff44 });
-
-            // Animated radio signal pulses (oscillating between red and green LED states)
-                if (!this.animatedObjects) this.animatedObjects = [];
-        }
-    },`;
-
-// =====================================================================
-// INSERT methods after _addGrassPatch closing brace
-// =====================================================================
-const grassEndMarker = '        patch.userData.mapGenerated = true;\n        this.scene.add(patch);\n    }';
-const insertIdx = code.indexOf(grassEndMarker);
-
-if (insertIdx < 0) {
+if (!code.includes(grassEndMarker)) {
     console.error('Could not find _addGrassPatch insertion point');
     process.exit(1);
 }
 
-const insertAt = insertIdx + grassEndMarker.length;
-let newCode = code.slice(0, insertAt) + mazeMethod + iceMethod + fenceMethod + tankMethod + '\n' + code.slice(insertAt);
+const insertPos1 = code.indexOf(grassEndMarker) + `        this.scene.add(patch);\n    }`.length;
+let newCode = code.slice(0, insertPos1) + '\n\n' + mazeMethod.trim() + iceMethod.trim() + fenceMethod.trim() + '\n' + code.slice(insertPos1);
 
 // =====================================================================
-// MODIFICATION: Make Scattered props section skip for special biomes
-// and add biome-specific environment generation at end of each sector loop
+// INSERTION POINT 2: Biome-specific branching in _generateEnvironment
+// Insert after line that closes scattered props (this.addColliderBox(crate...))
+// and before the sector loop close
 // =====================================================================
-const scatterEndMarker = `                this.addColliderBox(crate.position.clone(), s, s, s, false);
+
+const biomeInsertMarker = `                    this.addColliderBox(crate.position.clone(), s, s, s, false);
+                }
             }
-        }`;
+        }
+    }`;
 
-const biomeInsertionCode = `\n\n            // --- Biome-specific props/environment after generic placement ---\n            if (sector.biome === 'stone_maze') {\n                numRocks = 0; // No rocks in maze - walls replace them\n            }\n        }`;
+if (!code.includes(biomeInsertMarker)) {
+    console.error('Could not find biome insertion point in _generateEnvironment');
+    process.exit(1);
+}
 
-// Replace the scattered props closing pattern
-newCode = newCode.replace(scatterEndMarker, biomeInsertionCode.trim() + '\n' + scatterEndMarker);
+const biomeCode = `
 
-fs.writeFileSync('world/MapGenerator.js', newCode);
+            // --- Biome-specific environment generation (overrides generic props for special biomes) ---
+            const biomeType = sector.biome;
 
-console.log('Injected 4 methods into MapGenerator.js');
+            if (biomeType === 'stone_maze') {
+                this._generateMazeWalls(sector, cx, cz, radius);
+            } else if (biomeType === 'military') {
+                // Military zone: barbed wire fences instead of standard props
+                this._placeBarbedWireFences(sector, cx, cz);
+
+                const numTanks = Math.floor(2 + sector.buildingDensity * 3);
+                for (let t = 0; t < numTanks; t++) {
+                    const angle = this._rand() * Math.PI * 2;
+                    const dist = radius * 0.45 + this._rand() * radius * 0.35;
+                    const tx = cx + Math.cos(angle) * dist;
+                    const tz = cz + Math.sin(angle) * dist;
+
+                    // Tank body (main chassis with box geometry, positioned at ground level and colored in military green)
+                    const tBodyGeo = new THREE.BoxGeometry(3.2, 1.4, 5);
+                    const tankBaseY = this.getHeightAt(tx, tz);
+                    const tBodyMat = new THREE.MeshStandardMaterial({ color: sector.terrainColor || 0x4a5238, roughness: 0.7 });
+
+                    // Tank turret (cylindrical top section with a forward-facing cannon barrel)
+                    const tTurretGeo = new THREE.CylinderGeometry(1, 1, 1.2, 8);
+                    const tankTurret = new THREE.Mesh(tTurretGeo, tBodyMat.clone());
+
+                    // Cannon barrel (long cylindrical tube pointing forward from the turret center)
+                    const cBarrelGeo = new THREE.CylinderGeometry(0.15, 0.2, 4, 8);
+                    const tankCannon = new THREE.Mesh(cBarrelGeo, tBodyMat.clone());
+
+                    // Tank tracks (left and right continuous treads with sprocket wheels underneath)
+                    const trackGeo = new THREE.BoxGeometry(0.6, 1.1, 5);
+                    const leftTrack = new THREE.Mesh(trackGeo, tBodyMat.clone());
+
+                    // Tank tracks (right side) - mirror of the left track with sprocket wheel underneath
+                    const rightTrackGeo = new THREE.BoxGeometry(0.6, 1.1, 5);
+                    const rightTrack = new THREE.Mesh(rightTrackGeo, tBodyMat.clone());
+
+                    // Tank radio tower (vertical antenna mast with parabolic dish on top)
+                    const rTowerGeo = new THREE.CylinderGeometry(0.08, 0.1, 3, 6);
+                    const tankRadioTow = new THREE.Mesh(rTowerGeo, tBodyMat.clone());
+
+                    // Radio tower dish (parabolic reflector pointing upward for signal transmission)
+                    const rDishGeo = new THREE.SphereGeometry(0.7, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2);
+                    const tankRadioDish = new THREE.Mesh(rDishGeo, tBodyMat.clone());
+
+                    // Tank radio antenna (thin vertical rod extending above the tower top)
+                    const aGeo = new THREE.CylinderGeometry(0.015, 0.015, 1.5, 4);
+                    const tankAntenna = new THREE.Mesh(aGeo, tBodyMat.clone());
+
+                    // Radio dish support (metal bracket holding the parabolic reflector in place)
+                    const sGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.6, 4);
+                    const tankSupport = new THREE.Mesh(sGeo, tBodyMat.clone());
+
+                    // Tank radio signal emitter (small box with blinking LED indicator lights)
+                    const sigGeo = new THREE.BoxGeometry(1.2, 0.6, 0.8);
+
+                    // Radio signal box (enclosure for electronic equipment and power supply)
+                    const sBoxGeo = new THREE.BoxGeometry(0.6, 0.8, 0.6);
+
+                    // Signal indicator lights on radio tower (red/green LED array)
+                    const ledMatRed = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xff4444 });
+                    const ledMatGreen = new THREE.MeshStandardMaterial({ color: 0x00ff00, emissive: 0x44ff44 });
+
+                    // Animated radio signal pulses (oscillating between red and green LED states)
+                        if (!this.animatedObjects) this.animatedObjects = [];
+            } else if (biomeType === 'ice_lake') {
+                for (let i = 0; i < Math.floor(radius * 0.8 / 12) + 3; i++) {
+                    const cAngle = this._rand() * Math.PI * 2;
+                    const cDist = radius * 0.25 + this._rand() * radius * 0.6;
+                    this._addIceCrystal(cx + Math.cos(cAngle) * cDist, cz + Math.sin(cAngle) * cDist);
+                }
+            } else if (biomeType === 'ruins') {
+                for (let i = 0; i < numProps * 3; i++) {
+                    const angle = this._rand() * Math.PI * 2;
+                    const dist = 8 + this._rand() * radius * 0.65;
+                    const rx = cx + Math.cos(angle) * dist;
+                    const rz = cz + Math.sin(angle) * dist;
+
+                    for (let j = 0; j < 3 + Math.floor(this._rand() * 4); j++) {
+                        const sSize = 0.2 + this._rand() * 0.6;
+                        const rubbleGeo = new THREE.DodecahedronGeometry(sSize, 0);
+                        const rubbleMat = new THREE.MeshStandardMaterial({ color: sector.terrainColor || 0x8b7355, roughness: 1 });
+
+            } else if (biomeType === 'swamp') {`, // <-- swamp code continues below...` ;
+
+// Hmm this is getting too complex with string manipulation in a script.
+// Let me just do the edits directly using precise Edit tool calls instead.`;
+
+console.log('Script approach abandoned — switching to direct Edit tool');
