@@ -33,15 +33,11 @@ async function main() {
     const hasLoadingOverlay = await page.$('#loadingOverlay') !== null;
     console.log(`[MAP DEBUG] Start screen: ${hasStartScreen}, Loading: ${hasLoadingOverlay}`);
 
-    // Click start button if it exists
-    if (hasStartScreen) {
-        const btn = await page.$('button');
-        if (btn) await btn.click();
-        console.log('[MAP DEBUG] Clicked start button');
-        await page.waitForSelector('#loadingOverlay', { timeout: 10000 });
-    }
+    // Wait for game instance to initialize (skip loading overlay)
+    console.log('[MAP DEBUG] Waiting for game initialization...');
+    await page.waitForFunction(() => window.game !== undefined, { timeout: 30000 });
 
-    // Enable test mode to skip UI and speed up generation
+    // Enable test mode if not already set
     await page.evaluate(() => { window.testMode = true; localStorage.setItem('testMode', 'true'); });
 
     console.log('[MAP DEBUG] Map generation in progress... waiting for completion');
