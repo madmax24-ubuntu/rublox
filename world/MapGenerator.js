@@ -1,53 +1,81 @@
 import * as THREE from "three";
 import { MapGeneratorNode } from "./MapGeneratorNode.js";
-import { VoronoiSectors } from "./VoronoiSectors.js";
-import { getTemplatesForBiome, getTemplateByType } from "./BuildingBlueprints.js";
-import { InteriorGenerator } from "./InteriorGenerator.js";
 import { AABBGrid } from "./AABBGrid.js";
 import { DebugOverlay } from "./DebugOverlay.js";
 
 // ============================================================================
-// NEW MAP GENERATOR — Voronoi Sectors + Poisson Disk Building Placement
+// QUADRANT-BASED MAP GENERATOR — Matches reference screenshot layout
 // ============================================================================
+// Quadrants:
+//   NW (top-left)  = Forest (зелёный, деревья, хижинки, тропы, грибы)
+//   NE (top-right) = Stone Maze (серый лабиринт из стен)
+//   SW (bottom-left) = Military Ruins (разрушенные здания, танки, баррикады)
+//   SE (bottom-right) = Ice/Snow (лёд, иглу, сосульки, радиовышка)
+//   Center         = Golden Cornucopia (золотой рог + круглая платформа спавна)
+// ============================================================================
+
+const MAP_SIZE = 512;
+const TILE_SIZE = 4;
+const GRID_W = MAP_SIZE / TILE_SIZE; // 128
+const GRID_H = MAP_SIZE / TILE_SIZE; // 128
+const HALF = MAP_SIZE / 2; // 256
+
+// Biome colors matching reference image
+const COLORS = {
+    forestTerrain: 0x4caf50,
+    forestPath: 0x8d6e63,
+    forestTree: 0x2e7d32,
+    forestTrunk: 0x5d4037,
+    forestMushroom: 0xff5252,
+    forestMushroomSpot: 0xfff9c4,
+    mazeTerrain: 0x9e9e9e,
+    mazeWall: 0x757575,
+    mazeTower: 0x616161,
+    militaryTerrain: 0x795548,
+    militaryGround: 0x607d8b,
+    militaryBuilding: 0x455a64,
+    militaryRuined: 0x78909c,
+    militaryTank: 0x4a5238,
+    militaryTread: 0x37474f,
+    iceTerrain: 0xe0f7fa,
+    iceLake: 0x4dd0e1,
+    iceCrystal: 0x80deea,
+    iceIgloo: 0xffffff,
+    iceTower: 0x4a5238,
+    cornucopia: 0xffd700,
+    cornucopiaInner: 0xdaa549,
+    spawnPad: 0xd7ccc8,
+    river: 0x29b6f6,
+    bridge: 0x8d6e63,
+    mapBoundary: 0x37474f,
+    textLabel: 0xffffff,
+};
+
 export class MapGenerator {
     constructor(scene) {
         this.scene = scene;
         this.seed = 42;
+        this.tileSize = TILE_SIZE;
+        this.gridWidth = GRID_W;
+        this.gridHeight = GRID_H;
+        this.size = MAP_SIZE;
+        this.halfSize = HALF;
 
-        // Coordinate system — 512x512 map
-        this.tileSize = 4;
-        this.gridWidth = 128;
-        this.gridHeight = 128;
-        this.size = this.gridWidth * this.tileSize; // 512
-        this.halfSize = this.size / 2; // 256
-
-        // Data
         this.colliders = [];
         this.spawnPads = [];
         this.heightMap = null;
-        this.playerSpawn = { x: 0, y: 0 };
-        this.voronoi = null;
-        this.aabbGrid = null;
-        this.debugOverlay = null;
-
-        // Materials cache
         this._terrainMaterial = null;
         this._tmpMatrix = new THREE.Matrix4();
         this._tmpPos = new THREE.Vector3();
-
-        // RNG state
         this._randState = this.seed;
-
-        // Promise for main.js
         this._resolveReady = null;
         this.ready = new Promise((resolve) => { this._resolveReady = resolve; });
         this._generatePromise = null;
-
-        // onProgress callback from main.js
         this.onProgress = null;
+        this._buildings = [];
+        this._floorTiles = [];
     }
 
-    // --- Entry point (called by main.js) ---
     startGeneration() {
         if (!this._generatePromise) {
             this._generatePromise = this._generate();
@@ -55,63 +83,54 @@ export class MapGenerator {
         return this._generatePromise;
     }
 
-    // ========================================================================
-    // MAIN GENERATION PIPELINE
-    // ========================================================================
     async _generate() {
         this._reset();
-
         this._logProgress(0);
+        this._logProgress(0.15);
 
-        // Phase 1: Voronoi sectors
-        this._logProgress(5);
-        this.voronoi = new VoronoiSectors(this.scene, this.seed);
-        this.voronoi.size = this.size;
-        this.voronoi.halfSize = this.halfSize;
-        this.voronoi.generate(12);
-        this.voronoi.drawBoundaries(this.scene);
-
-        // Phase 2: Terrain
-        this._logProgress(15);
+        // Phase 1: Terrain base
         this._generateTerrain();
 
-        // Phase 3: Place buildings via Poisson sampling per sector
-        this._logProgress(35);
-        const placements = this._placeBuildings();
+        // Phase 2: Central cornucopia + spawn courtyard
+        this._generateCornucopia();
 
-        // Phase 4: Generate building meshes
-        this._logProgress(55);
-        this._buildBuildings(placements);
+        // Phase 3: River + bridges
+        this._generateRiver();
 
-        // Phase 4b: Place cover/shelter objects
-        this._logProgress(60);
-        this._placeCoverObjects(placements);
+        // Phase 4: Forest quadrant (NW)
+        this._generateForestQuadrant();
 
-        // Phase 5: Environment props (trees, rocks, fences)
-        this._logProgress(75);
-        this._generateEnvironment();
+        // Phase 5: Stone maze quadrant (NE)
+        this._generateMazeQuadrant();
 
-        // Phase 6: Spawn system
-        this._logProgress(85);
+        // Phase 6: Military ruins quadrant (SW)
+        this._generateMilitaryQuadrant();
+
+        // Phase 7: Ice quadrant (SE)
+        this._generateIceQuadrant();
+
+        // Phase 8: Cover objects
+        this._placeCoverObjects();
+
+        // Phase 9: Spawn pads
         this._buildSpawnPads();
 
-        // Phase 7: Debug
-        this._logProgress(95);
+        // Phase 10: Finalize
+        this._logProgress(0.95);
         this.aabbGrid = new AABBGrid(2.0);
         this.aabbGrid.buildFromColliders(this.colliders);
-
-        this._logProgress(100);
+        this._logProgress(1.0);
         this._resolveReady?.();
     }
 
-    // --- Reset state ---
     _reset() {
         this.colliders = [];
         this.spawnPads = [];
         this.heightMap = null;
         this._terrainMaterial = null;
+        this._floorTiles = [];
+        this._buildings = [];
 
-        // Remove old map objects
         const toRemove = [];
         for (const child of this.scene.children) {
             if (child.userData?.mapGenerated) toRemove.push(child);
@@ -131,1316 +150,1325 @@ export class MapGenerator {
         }
     }
 
-    // --- Progress callback ---
     _logProgress(pct) {
-        if (this.onProgress) this.onProgress(pct / 100);
+        if (this.onProgress) this.onProgress(pct);
     }
 
-    // --- Simple RNG ---
     _rand() {
         this._randState = (this._randState * 1664525 + 1013904223) >>> 0;
         return this._randState / 0x100000000;
     }
 
-    // --- Noise helpers (same as original) ---
-    hashNoise(x, y, scale = 1) {
-        const sx = Math.floor(x * scale);
-        const sy = Math.floor(y * scale);
-        let h = (sx * 374761393 + sy * 668265263 + this.seed * 1442695041) >>> 0;
-        h ^= h >>> 13;
-        h = Math.imul(h, 1274126177) >>> 0;
-        h ^= h >>> 16;
-        return h / 0x100000000;
-    }
+    lerp(a, b, t) { return a + (b - a) * t; }
 
-    smoothstep01(t) {
-        return t * t * (3 - 2 * t);
-    }
-
-    lerp(a, b, t) {
-        return a + (b - a) * t;
-    }
-
-    valueNoise2D(x, y, salt = 0) {
-        const x0 = Math.floor(x);
-        const y0 = Math.floor(y);
-        const x1 = x0 + 1;
-        const y1 = y0 + 1;
-        const tx = this.smoothstep01(x - x0);
-        const ty = this.smoothstep01(y - y0);
-        const v00 = this.hashNoise(x0, y0, 1) + salt;
-        const v10 = this.hashNoise(x1, y0, 1) + salt;
-        const v01 = this.hashNoise(x0, y1, 1) + salt;
-        const v11 = this.hashNoise(x1, y1, 1) + salt;
-        const top = this.lerp(v00, v10, tx);
-        const bot = this.lerp(v01, v11, tx);
-        return this.lerp(top, bot, ty);
-    }
-
-    // --- Coordinate conversion ---
-    toWorld(x, y) {
-        return {
-            x: (x - this.gridWidth / 2) * this.tileSize,
-            z: (y - this.gridHeight / 2) * this.tileSize
-        };
-    }
-
-    worldToGrid(x, z) {
-        return {
-            x: Math.round(x / this.tileSize + this.gridWidth / 2),
-            y: Math.round(z / this.tileSize + this.gridHeight / 2)
-        };
-    }
-
-    // ========================================================================
-    // TERRAIN GENERATION (Phases 2)
-    // ========================================================================
+    // =========================================================================
+    // TERRAIN — Circular map with quadrant-based vertex colors
+    // =========================================================================
     _generateTerrain() {
-        const gridW = this.gridWidth;
-        const gridH = this.gridHeight;
+        // Create circular terrain with quadrant-based vertex colors
+        const geo = new THREE.CircleGeometry(HALF - 10, 64);
+        geo.rotateX(-Math.PI / 2);
 
-        // Per-sector terrain color grid
-        const terrainGrid = new Float32Array(gridW * gridH * 3);
-
-        // Generate base terrain per sector using Voronoi nearest
-        for (let gy = 0; gy < gridH; gy++) {
-            for (let gx = 0; gx < gridW; gx++) {
-                const wx = (gx - gridW / 2) * this.tileSize;
-                const wz = (gy - gridH / 2) * this.tileSize;
-                const sector = this.voronoi.getSectorDefAt(wx, wz);
-
-                // Sector base color
-                const c = new THREE.Color(sector.terrainColor);
-
-                // Blend near sector boundaries
-                const nearestId = this.voronoi.getSectorAt(wx, wz);
-                let blend = 1.0;
-                const sectors = this.voronoi.sectors;
-                for (const s of sectors) {
-                    const dx = Math.abs(wx - s.center.x);
-                    const dz = Math.abs(wz - s.center.z);
-                    const dist = Math.sqrt(dx * dx + dz * dz);
-                    if (dist < s.bounds.radius * 0.7 && s.id !== nearestId) {
-                        blend = 0.3;
-                        const other = sectors.find(sec => sec.id === s.id);
-                        if (other) {
-                            const oc = new THREE.Color(other.terrainColor);
-                            c.r = this.lerp(c.r, oc.r, blend);
-                            c.g = this.lerp(c.g, oc.g, blend);
-                            c.b = this.lerp(c.b, oc.b, blend);
-                        }
-                        break;
-                    }
-                }
-
-                // Store in terrain grid
-                const idx = (gy * gridW + gx) * 3;
-                terrainGrid[idx] = c.r;
-                terrainGrid[idx + 1] = c.g;
-                terrainGrid[idx + 2] = c.b;
-            }
-        }
-
-        // Build terrain mesh
-        const terrainGeo = new THREE.PlaneGeometry(this.size, this.size, gridW - 1, gridH - 1);
-        terrainGeo.rotateX(-Math.PI / 2);
-
-        // Vertex colors
         const colors = [];
-        for (let i = 0; i < gridW * gridH; i++) {
-            const r = terrainGrid[i * 3];
-            const g = terrainGrid[i * 3 + 1];
-            const b = terrainGrid[i * 3 + 2];
-            colors.push(r, g, b);
+        const posAttr = geo.getAttribute('position');
+        for (let i = 0; i < posAttr.count; i++) {
+            const x = posAttr.getX(i);
+            const z = posAttr.getZ(i);
+            const color = this._getTerrainColor(x, z);
+            colors.push(color.r, color.g, color.b);
         }
-        terrainGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+        geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 
-        const terrainMat = new THREE.MeshStandardMaterial({
+        const mat = new THREE.MeshStandardMaterial({
             vertexColors: true,
             roughness: 0.9,
             flatShading: true
         });
-        this._terrainMaterial = terrainMat;
+        this._terrainMaterial = mat;
 
-        const terrain = new THREE.Mesh(terrainGeo, terrainMat);
+        const terrain = new THREE.Mesh(geo, mat);
         terrain.position.set(0, 0, 0);
         terrain.userData.mapGenerated = true;
+        terrain.userData.walkable = true;
         this.scene.add(terrain);
 
-        // Build height map (flat terrain with slight noise)
+        // Dark circular boundary ring
+        const boundaryGeo = new THREE.RingGeometry(HALF - 12, HALF - 8, 64);
+        boundaryGeo.rotateX(-Math.PI / 2);
+        const boundaryMat = new THREE.MeshStandardMaterial({
+            color: COLORS.mapBoundary,
+            roughness: 0.95,
+            flatShading: true,
+            side: THREE.DoubleSide
+        });
+        const boundary = new THREE.Mesh(boundaryGeo, boundaryMat);
+        boundary.position.set(0, 0.02, 0);
+        boundary.userData.mapGenerated = true;
+        this.scene.add(boundary);
+
+        // Height map (flat = 0)
         this.heightMap = [];
-        for (let gy = 0; gy < gridH; gy++) {
+        for (let gy = 0; gy < GRID_H; gy++) {
             this.heightMap[gy] = [];
-            for (let gx = 0; gx < gridW; gx++) {
-                const wx = (gx - gridW / 2) * this.tileSize;
-                const wz = (gy - gridH / 2) * this.tileSize;
-                // Slight height variation for interest
-                const noise = this.valueNoise2D(wx * 0.01, wz * 0.01) * 0.5;
-                this.heightMap[gy][gx] = noise;
+            for (let gx = 0; gx < GRID_W; gx++) {
+                this.heightMap[gy][gx] = 0;
             }
         }
     }
 
-    // --- Get terrain height at world position ---
+    _getTerrainColor(x, z) {
+        const distFromCenter = Math.sqrt(x * x + z * z);
+
+        // Cornucopia center area
+        if (distFromCenter < 40) {
+            return new THREE.Color(0xc8b88a);
+        }
+
+        // River (vertical line between NW and NE, SW and SE)
+        if (Math.abs(x) < 4 && distFromCenter > 45) {
+            return new THREE.Color(COLORS.river);
+        }
+
+        // Quadrant colors — matching reference screenshot
+        if (x < 0 && z < 0) {
+            // NW = Forest — bright green
+            return new THREE.Color(COLORS.forestTerrain);
+        } else if (x >= 0 && z < 0) {
+            // NE = Stone Maze — light gray
+            return new THREE.Color(COLORS.mazeTerrain);
+        } else if (x < 0 && z >= 0) {
+            // SW = Military Ruins — brownish-gray
+            return new THREE.Color(COLORS.militaryTerrain);
+        } else {
+            // SE = Ice/Snow — white/light blue
+            return new THREE.Color(COLORS.iceTerrain);
+        }
+    }
+
     getHeightAt(x, z) {
-        if (!this.heightMap) return 0.4;
-        const grid = this.worldToGrid(x, z);
-        const gx = Math.max(0, Math.min(this.gridWidth - 1, grid.x));
-        const gy = Math.max(0, Math.min(this.gridHeight - 1, grid.y));
-        const base = this.heightMap?.[gy]?.[gx] ?? 0;
-        return base + 0.4;
-    }
-
-    // ========================================================================
-    // BUILDING PLACEMENT (Phase 3) — Poisson Disk Sampling
-    // ========================================================================
-    _placeBuildings() {
-        const placements = [];
-        const sectorBuildings = new Map();
-        for (const s of this.voronoi.sectors) {
-            sectorBuildings.set(s.id, []);
-        }
-
-        for (const sector of this.voronoi.sectors) {
-            const templates = getTemplatesForBiome(sector.biome);
-            const numBuildings = Math.floor(20 + sector.buildingDensity * 30); // 20-50 per sector
-
-            const bx = sector.bounds.minX;
-            const bz = sector.bounds.minZ;
-            const bw = sector.bounds.maxX - sector.bounds.minX;
-            const bd = sector.bounds.maxZ - sector.bounds.minZ;
-
-            // Grid-based placement: 24m cells
-            const gridSize = 24;
-            const cols = Math.ceil(bw / gridSize);
-            const rows = Math.ceil(bd / gridSize);
-
-            // Which cells get buildings (70% filled, edges always filled)
-            const cellOccupied = [];
-            for (let r = 0; r < rows; r++) {
-                cellOccupied[r] = [];
-                for (let c = 0; c < cols; c++) {
-                    const isEdge = (r === 0 || r === rows - 1 || c === 0 || c === cols - 1);
-                    cellOccupied[r][c] = isEdge || (this._rand() < 0.70);
-                }
-            }
-
-            // Place buildings in occupied cells
-            for (let r = 0; r < rows; r++) {
-                for (let c = 0; c < cols; c++) {
-                    if (!cellOccupied[r]?.[c]) continue;
-
-                    const template = templates[Math.floor(this._rand() * templates.length)];
-                    if (!template) continue;
-
-                    const cellCenterX = bx + c * gridSize + gridSize / 2;
-                    const cellCenterZ = bz + r * gridSize + gridSize / 2;
-
-                    const halfW = template.width / 2;
-                    const halfD = template.depth / 2;
-                    const offsetX = (this._rand() - 0.5) * Math.max(1, gridSize - template.width);
-                    const offsetZ = (this._rand() - 0.5) * Math.max(1, gridSize - template.depth);
-
-                    const px = Math.max(bx + halfW, Math.min(bx + bw - halfW, cellCenterX + offsetX));
-                    const pz = Math.max(bz + halfD, Math.min(bz + bd - halfD, cellCenterZ + offsetZ));
-
-                    sectorBuildings.get(sector.id).push({
-                        x: px, z: pz,
-                        template,
-                        sectorId: sector.id
-                    });
-                }
-            }
-
-            // Extra scattered buildings in open areas
-            const extraBuildings = Math.floor(sector.buildingDensity * 15);
-            for (let i = 0; i < extraBuildings; i++) {
-                const tx = bx + this._rand() * bw;
-                const tz = bz + this._rand() * bd;
-                const template = templates[Math.floor(this._rand() * templates.length)];
-                if (template) {
-                    sectorBuildings.get(sector.id).push({
-                        x: tx, z: tz,
-                        template,
-                        sectorId: sector.id
-                    });
-                }
-            }
-        }
-
-        // Flatten
-        for (const [sectorId, buildings] of sectorBuildings) {
-            placements.push(...buildings.map(b => ({ ...b, sectorId })));
-        }
-
-        return placements;
-    }
-
-    // ========================================================================
-    // BUILDING GENERATION (Phase 4)
-    // ========================================================================
-    _buildBuildings(placements) {
-        for (const placement of placements) {
-            this.addBuilding(placement);
-        }
-    }
-
-    // ========================================================================
-    // COVER OBJECTS (Phase 4b) — Sandbags, concrete barriers, fences, pallets, tires
-    // ========================================================================
-    _placeCoverObjects(buildingPositions) {
-        const coverTypes = [
-            { type: 'sandbag_wall_straight', count: 40 },
-            { type: 'sandbag_wall_l', count: 20 },
-            { type: 'concrete_barrier_wall', count: 30 },
-            { type: 'concrete_barrier_t', count: 10 },
-            { type: 'wood_fence_straight', count: 30 },
-            { type: 'wood_fence_corner', count: 15 },
-            { type: 'pallet_stack', count: 25 },
-            { type: 'tire_stack', count: 15 }
-        ];
-
-        for (const cover of coverTypes) {
-            for (let i = 0; i < cover.count; i++) {
-                const x = -this.halfSize + this._rand() * this.size;
-                const z = -this.halfSize + this._rand() * this.size;
-                const y = this.getHeightAt(x, z);
-
-                // Find nearest building
-                let closestDist = Infinity;
-                let nearestBp = buildingPositions[0];
-                for (const bp of buildingPositions) {
-                    const dx = x - bp.x;
-                    const dz = z - bp.z;
-                    const dist = Math.sqrt(dx * dx + dz * dz);
-                    if (dist < closestDist) { closestDist = dist; nearestBp = bp; }
-                }
-
-                // Prefer placing 4-12m from buildings
-                if (closestDist < 3 || closestDist > 20) {
-                    const angle = this._rand() * Math.PI * 2;
-                    const dist = 5 + this._rand() * 8;
-                    this._placeCoverItem(
-                        nearestBp.x + Math.cos(angle) * dist,
-                        nearestBp.z + Math.sin(angle) * dist,
-                        cover.type
-                    );
-                } else {
-                    this._placeCoverItem(x, z, cover.type);
-                }
-            }
-        }
-
-        // Extra props around sector centers
-        for (const sector of this.voronoi.sectors) {
-            const cx = sector.center.x;
-            const cz = sector.center.z;
-            for (let i = 0; i < 8; i++) {
-                const angle = this._rand() * Math.PI * 2;
-                const dist = 5 + this._rand() * 15;
-                this._placeCoverItem(
-                    cx + Math.cos(angle) * dist,
-                    cz + Math.sin(angle) * dist,
-                    ['pallet_stack', 'tire_stack', 'sandbag_wall_straight'][Math.floor(this._rand() * 3)]
-                );
-            }
-        }
-    }
-
-    _placeCoverItem(x, z, type) {
-        const baseY = this.getHeightAt(x, z);
-
-        switch (type) {
-            case 'sandbag_wall_straight': {
-                const segments = 3 + Math.floor(this._rand() * 3);
-                for (let i = 0; i < segments; i++) {
-                    const seg = new THREE.Mesh(
-                        new THREE.BoxGeometry(0.6, 0.4, 0.35),
-                        new THREE.MeshStandardMaterial({ color: 0x9e9e9e, roughness: 0.95, flatShading: true })
-                    );
-                    seg.position.set(x + i * 0.65, baseY + 0.2, z);
-                    seg.userData.mapGenerated = true;
-                    seg.userData.physicsType = 'STATIC';
-                    this.scene.add(seg);
-                    this.addColliderBox(new THREE.Vector3(x + i * 0.65, baseY + 0.2, z), 0.6, 0.4, 0.35, false);
-                }
-                break;
-            }
-            case 'sandbag_wall_l': {
-                for (let i = 0; i < 3; i++) {
-                    const mat = new THREE.MeshStandardMaterial({ color: 0x9e9e9e, roughness: 0.95, flatShading: true });
-                    const segX = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.4, 0.35), mat);
-                    segX.position.set(x + i * 0.65, baseY + 0.2, z);
-                    segX.userData.mapGenerated = true;
-                    segX.userData.physicsType = 'STATIC';
-                    this.scene.add(segX);
-                    this.addColliderBox(new THREE.Vector3(x + i * 0.65, baseY + 0.2, z), 0.6, 0.4, 0.35, false);
-                    const segZ = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.4, 0.35), mat);
-                    segZ.position.set(x, baseY + 0.2, z + i * 0.65);
-                    segZ.userData.mapGenerated = true;
-                    segZ.userData.physicsType = 'STATIC';
-                    this.scene.add(segZ);
-                    this.addColliderBox(new THREE.Vector3(x, baseY + 0.2, z + i * 0.65), 0.6, 0.4, 0.35, false);
-                }
-                break;
-            }
-            case 'concrete_barrier_wall': {
-                const segments = 3 + Math.floor(this._rand() * 4);
-                for (let i = 0; i < segments; i++) {
-                    const cb = new THREE.Mesh(
-                        new THREE.BoxGeometry(1.2, 0.6, 0.6),
-                        new THREE.MeshStandardMaterial({ color: 0xb0bec5, roughness: 0.95, flatShading: true })
-                    );
-                    cb.position.set(x + i * 1.3, baseY + 0.3, z);
-                    cb.userData.mapGenerated = true;
-                    cb.userData.physicsType = 'STATIC';
-                    this.scene.add(cb);
-                    this.addColliderBox(new THREE.Vector3(x + i * 1.3, baseY + 0.3, z), 1.2, 0.6, 0.6, false);
-                }
-                break;
-            }
-            case 'concrete_barrier_t': {
-                for (let i = 0; i < 3; i++) {
-                    const cb = new THREE.Mesh(
-                        new THREE.BoxGeometry(1.2, 0.6, 0.6),
-                        new THREE.MeshStandardMaterial({ color: 0xb0bec5, roughness: 0.95, flatShading: true })
-                    );
-                    cb.position.set(x + (i - 1) * 1.3, baseY + 0.3, z);
-                    cb.userData.mapGenerated = true;
-                    cb.userData.physicsType = 'STATIC';
-                    this.scene.add(cb);
-                    this.addColliderBox(new THREE.Vector3(x + (i - 1) * 1.3, baseY + 0.3, z), 1.2, 0.6, 0.6, false);
-                }
-                const cap = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.6, 0.6, 1.2),
-                    new THREE.MeshStandardMaterial({ color: 0x90a4ae, roughness: 0.95, flatShading: true })
-                );
-                cap.position.set(x, baseY + 0.3, z);
-                cap.userData.mapGenerated = true;
-                cap.userData.physicsType = 'STATIC';
-                this.scene.add(cap);
-                this.addColliderBox(new THREE.Vector3(x, baseY + 0.3, z), 0.6, 0.6, 1.2, false);
-                break;
-            }
-            case 'wood_fence_straight': {
-                const postMat = new THREE.MeshStandardMaterial({ color: 0x8d6e63, roughness: 0.9 });
-                const railMat = new THREE.MeshStandardMaterial({ color: 0xa1887f, roughness: 0.85 });
-                for (let i = 0; i < 3; i++) {
-                    const post = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.0, 0.15), postMat);
-                    post.position.set(x + i * 0.7, baseY + 0.5, z);
-                    post.userData.mapGenerated = true;
-                    post.userData.physicsType = 'STATIC';
-                    this.scene.add(post);
-                    this.addColliderBox(new THREE.Vector3(x + i * 0.7, baseY + 0.5, z), 0.15, 1.0, 0.15, false);
-                    if (i < 2) {
-                        const rail = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.08, 0.06), railMat);
-                        rail.position.set(x + i * 0.7 + 0.35, baseY + 0.75, z);
-                        rail.userData.mapGenerated = true;
-                        rail.userData.physicsType = 'STATIC';
-                        this.scene.add(rail);
-                    }
-                }
-                break;
-            }
-            case 'wood_fence_corner': {
-                const postMat = new THREE.MeshStandardMaterial({ color: 0x8d6e63, roughness: 0.9 });
-                for (let i = 0; i < 2; i++) {
-                    const post = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.0, 0.15), postMat);
-                    post.position.set(x + i * 0.7, baseY + 0.5, z);
-                    post.userData.mapGenerated = true;
-                    post.userData.physicsType = 'STATIC';
-                    this.scene.add(post);
-                    this.addColliderBox(new THREE.Vector3(x + i * 0.7, baseY + 0.5, z), 0.15, 1.0, 0.15, false);
-                    const postZ = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.0, 0.15), postMat);
-                    postZ.position.set(x, baseY + 0.5, z + i * 0.7);
-                    postZ.userData.mapGenerated = true;
-                    postZ.userData.physicsType = 'STATIC';
-                    this.scene.add(postZ);
-                    this.addColliderBox(new THREE.Vector3(x, baseY + 0.5, z + i * 0.7), 0.15, 1.0, 0.15, false);
-                }
-                break;
-            }
-            case 'pallet_stack': {
-                const palletMat = new THREE.MeshStandardMaterial({ color: 0xd7ccc8, roughness: 0.85 });
-                const numStacks = 2 + Math.floor(this._rand() * 2);
-                for (let i = 0; i < numStacks; i++) {
-                    const pallet = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.12, 0.8), palletMat);
-                    pallet.position.set(x, baseY + 0.06 + i * 0.14, z);
-                    pallet.userData.mapGenerated = true;
-                    pallet.userData.physicsType = 'STATIC';
-                    this.scene.add(pallet);
-                    this.addColliderBox(new THREE.Vector3(x, baseY + 0.06 + i * 0.14, z), 1.2, 0.12, 0.8, false);
-                }
-                if (this._rand() > 0.3) {
-                    const crate = new THREE.Mesh(
-                        new THREE.BoxGeometry(0.5, 0.5, 0.5),
-                        new THREE.MeshStandardMaterial({ color: 0xa1887f, roughness: 0.9 })
-                    );
-                    crate.position.set(x, baseY + 0.14 * numStacks + 0.25, z);
-                    crate.userData.mapGenerated = true;
-                    crate.userData.physicsType = 'STATIC';
-                    this.scene.add(crate);
-                    this.addColliderBox(new THREE.Vector3(x, baseY + 0.14 * numStacks + 0.25, z), 0.5, 0.5, 0.5, false);
-                }
-                break;
-            }
-            case 'tire_stack': {
-                const tireMat = new THREE.MeshStandardMaterial({ color: 0x424242, roughness: 0.9 });
-                const numTires = 3 + Math.floor(this._rand() * 2);
-                for (let i = 0; i < numTires; i++) {
-                    const tire = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.35, 0.5), tireMat);
-                    if (i % 2 === 0) {
-                        tire.position.set(x, baseY + 0.175 + i * 0.37, z);
-                    } else {
-                        tire.rotation.y = Math.PI / 2;
-                        tire.position.set(x, baseY + 0.175 + i * 0.37, z);
-                    }
-                    tire.userData.mapGenerated = true;
-                    tire.userData.physicsType = 'STATIC';
-                    this.scene.add(tire);
-                    this.addColliderBox(new THREE.Vector3(x, baseY + 0.175 + i * 0.37, z), 0.5, 0.35, 0.5, false);
-                }
-                break;
-            }
-        }
-    }
-
-    // Build walls with window/door openings
-    _buildWall(cx, cz, w, d, h, wallThickness, template, wallMat, buildingY, sectorId) {
-        const wallH = h;
-        const halfW = w / 2;
-        const halfD = d / 2;
-
-        // 4 walls: front (+Z), back (-Z), left (-X), right (+X)
-        const walls = [
-            { axis: 'z', sign: 1, len: w, pos: { dx: 0, dz: halfD }, doors: [], windows: [] },
-            { axis: 'z', sign: -1, len: w, pos: { dx: 0, dz: -halfD }, doors: [], windows: [] },
-            { axis: 'x', sign: -1, len: d, pos: { dx: -halfW, dz: 0 }, doors: [], windows: [] },
-            { axis: 'x', sign: 1, len: d, pos: { dx: halfW, dz: 0 }, doors: [], windows: [] }
-        ];
-
-        // Populate doors and windows for each wall from template
-        for (const door of template.doors || []) {
-            const wallIdx = this._findWallForDoor(walls, door, cx, cz, halfW, halfD);
-            if (wallIdx >= 0) {
-                walls[wallIdx].doors.push(door);
-            }
-        }
-
-        for (const win of template.windows || []) {
-            const wallIdx = this._findWallForWindow(walls, win, cx, cz, halfW, halfD);
-            if (wallIdx >= 0) {
-                walls[wallIdx].windows.push(win);
-            }
-        }
-
-        // Build each wall
-        for (let wi = 0; wi < walls.length; wi++) {
-            const wall = walls[wi];
-            const { len, pos, doors, windows } = wall;
-
-            // Sort doors and windows by position
-            const openings = [...doors.map(d => ({ pos: d.dx || 0, size: d.width || 1.2, type: 'door' })),
-                              ...windows.map(w => ({ pos: w.dx || 0, size: w.width || 0.8, type: 'window' }))];
-            openings.sort((a, b) => a.pos - b.pos);
-
-            // Build wall segments between openings
-            let lastEnd = -len / 2;
-            for (const op of openings) {
-                const segStart = lastEnd;
-                const segEnd = op.pos - op.size / 2;
-                if (segEnd > segStart + 0.3) {
-                    const segW = segEnd - segStart;
-                    this._addWallSegment(cx, cz, wall, pos, wallThickness, wallH, wallMat, buildingY, segStart, segEnd, segW, len);
-                }
-                lastEnd = op.pos + op.size / 2;
-            }
-            // Final segment
-            const finalStart = lastEnd;
-            if (len / 2 > finalStart + 0.3) {
-                const segW = len / 2 - finalStart;
-                this._addWallSegment(cx, cz, wall, pos, wallThickness, wallH, wallMat, buildingY, finalStart, len / 2, segW, len);
-            }
-        }
-    }
-
-    _addWallSegment(cx, cz, wall, pos, thickness, wallH, wallMat, buildingY, start, end, segW, wallLen) {
-        const segH = wallH;
-        const segGeo = new THREE.BoxGeometry(
-            wall.axis === 'z' ? segW : thickness,
-            segH,
-            wall.axis === 'z' ? thickness : segW
-        );
-        const seg = new THREE.Mesh(segGeo, wallMat);
-        seg.position.set(
-            cx + pos.dx + (wall.axis === 'x' ? (start + end) / 2 : 0),
-            buildingY + segH / 2,
-            cz + pos.dz + (wall.axis === 'z' ? (start + end) / 2 : 0)
-        );
-        if (wall.axis === 'x') {
-            seg.rotation.y = Math.PI / 2;
-        }
-        seg.userData.mapGenerated = true;
-        seg.userData.physicsType = 'STATIC';
-        this.scene.add(seg);
-        this.addColliderBox(seg.position.clone(), segW + 0.1, segH + 0.1, thickness + 0.1, false);
-    }
-
-    _findWallForDoor(walls, door, cx, cz, halfW, halfD) {
-        for (let i = 0; i < walls.length; i++) {
-            const w = walls[i];
-            if (door.side === 'front' && w.sign === 1) return i;
-            if (door.side === 'back' && w.sign === -1) return i;
-            if (door.side === 'side' && w.axis === 'x') return i;
-            // Default: front wall
-            if (i === 0) return 0;
-        }
         return 0;
     }
 
-    _findWallForWindow(walls, win, cx, cz, halfW, halfD) {
-        for (let i = 0; i < walls.length; i++) {
-            const w = walls[i];
-            if (win.side === 'front' && w.sign === 1) return i;
-            if (win.side === 'back' && w.sign === -1) return i;
-            if (win.side === 'side') return Math.min(2, walls.length - 1);
-        }
+    getSurfaceHeightAt(x, z) {
         return 0;
     }
 
-    // ========================================================================
-    // ENVIRONMENT PROPS (Phase 5) — Trees, bushes, grass, rocks, props
-    // ========================================================================
-    _generateEnvironment() {
-        for (const sector of this.voronoi.sectors) {
-            const radius = sector.bounds.radius || 64;
-            const cx = sector.center.x;
-            const cz = sector.center.z;
+    // =========================================================================
+    // CENTRAL CORNUCOPIA (Golden Horn)
+    // =========================================================================
+    _generateCornucopia() {
+        const group = new THREE.Group();
 
-            // === SPECIAL BIOME HANDLING ===
-            const isStoneMaze = (sector.biome === 'stone_maze');
-            const isMilitary = (sector.biome === 'military' || sector.id === 4);
-            const isIceLake = (sector.biome === 'ice_lake');
+        // Circular spawn platform
+        const platformGeo = new THREE.CylinderGeometry(38, 38, 0.3, 48);
+        const platformMat = new THREE.MeshStandardMaterial({
+            color: 0xd7ccc8,
+            roughness: 0.7,
+            flatShading: true
+        });
+        const platform = new THREE.Mesh(platformGeo, platformMat);
+        platform.position.set(0, 0.15, 0);
+        platform.userData.mapGenerated = true;
+        platform.userData.walkable = true;
+        group.add(platform);
+        this.addColliderBox(new THREE.Vector3(0, 0.15, 0), 76, 0.3, 76, true);
 
-            if (isStoneMaze) {
-                // Stone maze: corridor walls instead of trees/rocks
-                this._generateMazeWalls(sector, cx, cz, radius);
-            } else if (isMilitary) {
-                // Military zone: tanks + barbed wire fences instead of standard props
-                const numTanks = 6 + Math.floor(this._rand() * 4);
-                for (let i = 0; i < numTanks; i++) this._addTank(cx, cz, sector.bounds.radius || 128);
-                this._placeBarbedWireFences(sector, cx, cz);
-            } else if (isIceLake) {
-                // Ice lake: frozen surface + ice crystals + radio tower
-                const numCrystals = Math.floor(12 * sector.rockDensity);
+        // Decorative radial sunburst pattern on platform
+        const sunburstMat = new THREE.MeshStandardMaterial({
+            color: 0xbcaaa4,
+            roughness: 0.85,
+            flatShading: true,
+            side: THREE.DoubleSide
+        });
+        for (let i = 0; i < 16; i++) {
+            const angle = (i / 16) * Math.PI * 2;
+            const rayGeo = new THREE.PlaneGeometry(0.8, 30, 1, 1);
+            rayGeo.rotateX(-Math.PI / 2);
+            const ray = new THREE.Mesh(rayGeo, sunburstMat.clone());
+            ray.position.set(0, 0.32, 0);
+            ray.rotation.y = angle;
+            ray.userData.mapGenerated = true;
+            group.add(ray);
+        }
 
-                // Frozen water plane at center of sector
-                const surfY = this.getHeightAt(cx, cz);
-                const surfGeo = new THREE.CircleGeometry(radius * 0.95, 32);
-                const surfMat = new THREE.MeshStandardMaterial({
-                    color: sector.terrainColor || 0xb0d4e3, roughness: 0.6, metalness: 0.1, flatShading: true
-                });
-                const surfaceMesh = new THREE.Mesh(surfGeo, surfMat);
-                surfaceMesh.rotation.x = -Math.PI / 2;
-                surfaceMesh.position.set(cx, surfY + 0.05, cz);
-                surfaceMesh.userData.mapGenerated = true;
-                this.scene.add(surfaceMesh);
+        // Outer ring
+        const outerRingGeo = new THREE.RingGeometry(30, 34, 48);
+        outerRingGeo.rotateX(-Math.PI / 2);
+        const outerRingMat = new THREE.MeshStandardMaterial({
+            color: 0xa1887f,
+            roughness: 0.8,
+            flatShading: true,
+            side: THREE.DoubleSide
+        });
+        const outerRing = new THREE.Mesh(outerRingGeo, outerRingMat);
+        outerRing.position.set(0, 0.33, 0);
+        outerRing.userData.mapGenerated = true;
+        group.add(outerRing);
 
-                // Walkable platform for spawn pads on ice lake
-                const padGeo = new THREE.CylinderGeometry(radius * 0.92, radius * 0.92, 0.35, 32);
-                const padMat = new THREE.MeshStandardMaterial({ color: 0xc8e6f0, roughness: 0.7, flatShading: true });
-                const padMesh = new THREE.Mesh(padGeo, padMat);
-                padMesh.position.set(cx, surfY + 0.18, cz);
-                padMesh.userData.mapGenerated = true;
-                this.scene.add(padMesh);
+        // Inner ring
+        const innerRingGeo = new THREE.RingGeometry(20, 23, 48);
+        innerRingGeo.rotateX(-Math.PI / 2);
+        const innerRingMat = new THREE.MeshStandardMaterial({
+            color: 0x8d6e63,
+            roughness: 0.8,
+            flatShading: true,
+            side: THREE.DoubleSide
+        });
+        const innerRing = new THREE.Mesh(innerRingGeo, innerRingMat);
+        innerRing.position.set(0, 0.33, 0);
+        innerRing.userData.mapGenerated = true;
+        group.add(innerRing);
 
-                for (let i = 0; i < numCrystals; i++) {
-                    const cAngle = this._rand() * Math.PI * 2;
-                    const cDist = 10 + this._rand() * radius * 0.85;
-                    this._addIceCrystal(cx + Math.cos(cAngle) * cDist, cz + Math.sin(cAngle) * cDist);
-                }
+        // Golden Cornucopia (horn shape)
+        const hornMat = new THREE.MeshStandardMaterial({
+            color: COLORS.cornucopia,
+            metalness: 0.8,
+            roughness: 0.15
+        });
 
-                if (!sector.bounds?.minX || cx > 100) { // Only one radio tower per ice sector
-                    const angle = Math.random() * Math.PI * 2;
-                    this._addRadioTower(
-                        cx + Math.cos(angle) * (radius - 30),
-                        cz + Math.sin(angle) * (radius - 30)
-                    );
-                }
-            } else {
-                // --- Trees: 60-120 per sector ---
-                const numTrees = 60 + Math.floor(sector.treeDensity * 100);
-                for (let i = 0; i < numTrees; i++) {
-                    const angle = this._rand() * Math.PI * 2;
-                    const dist = 10 + this._rand() * radius * 0.85;
-                    const tx = cx + Math.cos(angle) * dist;
-                    const tz = cz + Math.sin(angle) * dist;
-                    this._addTree(tx, tz, sector);
-                }
+        // Main horn body — lathe geometry for curved horn shape
+        const hornPoints = [];
+        for (let i = 0; i <= 20; i++) {
+            const t = i / 20;
+            const radius = 6 * (1 - t * 0.8);
+            const y = t * 14;
+            hornPoints.push(new THREE.Vector2(radius, y));
+        }
+        const hornGeo = new THREE.LatheGeometry(hornPoints, 24);
+        const horn = new THREE.Mesh(hornGeo, hornMat);
+        horn.position.set(0, 0.3, 0);
+        horn.rotation.y = Math.PI * 0.15;
+        horn.userData.mapGenerated = true;
+        group.add(horn);
 
-                // --- Bushes: 15-25 per sector ---
-                const numBushes = 15 + Math.floor(sector.buildingDensity * 10);
-                for (let i = 0; i < numBushes; i++) {
-                    const angle = this._rand() * Math.PI * 2;
-                    const dist = 5 + this._rand() * radius * 0.7;
-                    const bx = cx + Math.cos(angle) * dist;
-                    const bz = cz + Math.sin(angle) * dist;
-                    this._addBush(bx, bz);
-                }
+        // Horn opening (inner dark area)
+        const openingGeo = new THREE.TorusGeometry(4, 0.5, 8, 24);
+        const openingMat = new THREE.MeshStandardMaterial({
+            color: 0x3e2723,
+            roughness: 0.9
+        });
+        const opening = new THREE.Mesh(openingGeo, openingMat);
+        opening.position.set(4, 8, 0);
+        opening.rotation.y = Math.PI * 0.15;
+        opening.rotation.z = Math.PI / 6;
+        opening.userData.mapGenerated = true;
+        group.add(opening);
 
-                // --- Grass patches: 20-35 per sector ---
-                const numGrass = 20 + Math.floor(sector.buildingDensity * 15);
-                for (let i = 0; i < numGrass; i++) {
-                    const angle = this._rand() * Math.PI * 2;
-                    const dist = 5 + this._rand() * radius * 0.8;
-                    const gx = cx + Math.cos(angle) * dist;
-                    const gz = cz + Math.sin(angle) * dist;
-                    this._addGrassPatch(gx, gz);
-                }
+        // Loot items spilling from horn (small colored boxes/spheres)
+        const lootColors = [0xff5252, 0x448aff, 0x69f0ae, 0xffab40, 0xe040fb, 0xffd740];
+        for (let i = 0; i < 20; i++) {
+            const angle = (i / 20) * Math.PI * 2;
+            const r = 3 + this._rand() * 4;
+            const lootGeo = new THREE.BoxGeometry(0.7, 0.7, 0.7);
+            const lootMat = new THREE.MeshStandardMaterial({
+                color: lootColors[i % lootColors.length],
+                roughness: 0.6,
+                metalness: 0.3,
+                flatShading: true
+            });
+            const loot = new THREE.Mesh(lootGeo, lootMat);
+            loot.position.set(
+                Math.cos(angle) * r,
+                1 + this._rand() * 2,
+                Math.sin(angle) * r
+            );
+            loot.rotation.set(
+                this._rand() * Math.PI,
+                this._rand() * Math.PI,
+                this._rand() * Math.PI
+            );
+            loot.userData.mapGenerated = true;
+            group.add(loot);
+        }
 
-                // --- Rocks: 15-30 per sector ---
-                const numRocks = Math.floor(15 + sector.rockDensity * 15);
-                for (let i = 0; i < numRocks; i++) {
-                    const angle = this._rand() * Math.PI * 2;
-                    const dist = 10 + this._rand() * radius * 0.6;
-                    const rx = cx + Math.cos(angle) * dist;
-                    const rz = cz + Math.sin(angle) * dist;
+        this.scene.add(group);
+    }
 
-                    const size = 2 + this._rand() * 4;
-                    const geo = new THREE.DodecahedronGeometry(size / 3, 0);
-                    const mat = new THREE.MeshStandardMaterial({
-                        color: 0x787878, roughness: 0.95, flatShading: true
-                    });
-                    const rock = new THREE.Mesh(geo, mat);
-                    const baseY = this.getHeightAt(rx, rz);
-                    rock.position.set(rx, baseY + size / 6, rz);
-                    rock.rotation.set(
-                        this._rand() * Math.PI,
-                        this._rand() * Math.PI,
-                        this._rand() * Math.PI
-                    );
-                    rock.userData.mapGenerated = true;
-                    rock.userData.physicsType = 'STATIC';
-                    this.scene.add(rock);
-                    this.addColliderBox(
-                        rock.position.clone(), size, size, size, false, true, false, 'CONVEX_HULL'
-                    );
-                }
+    // =========================================================================
+    // RIVER + BRIDGES
+    // =========================================================================
+    _generateRiver() {
+        const riverMat = new THREE.MeshStandardMaterial({
+            color: COLORS.river,
+            roughness: 0.3,
+            metalness: 0.2,
+            transparent: true,
+            opacity: 0.75
+        });
 
-                // --- Scattered props: 8-15 per sector ---
-                const numProps = Math.floor(8 + sector.buildingDensity * 7);
-            for (let i = 0; i < numProps; i++) {
-                const angle = this._rand() * Math.PI * 2;
-                const dist = 8 + this._rand() * radius * 0.5;
-                const px = cx + Math.cos(angle) * dist;
-                const pz = cz + Math.sin(angle) * dist;
-                const baseY = this.getHeightAt(px, pz);
+        // Main river channel (vertical through center)
+        const riverGeo = new THREE.PlaneGeometry(8, MAP_SIZE * 0.9, 1, 1);
+        riverGeo.rotateX(-Math.PI / 2);
+        const river = new THREE.Mesh(riverGeo, riverMat);
+        river.position.set(0, 0.05, 0);
+        river.userData.mapGenerated = true;
+        this.scene.add(river);
 
-                if (this._rand() < 0.5) {
-                    const bGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.8, 8);
-                    const bMat = new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.9 });
-                    const barrel = new THREE.Mesh(bGeo, bMat);
-                    barrel.position.set(px, baseY + 0.4, pz);
-                    barrel.userData.mapGenerated = true;
-                    barrel.userData.physicsType = 'STATIC';
-                    this.scene.add(barrel);
-                    this.addColliderBox(barrel.position.clone(), 0.8, 0.8, 0.8, false);
-                } else {
-                    const s = 0.4 + this._rand() * 0.4;
-                    const cGeo = new THREE.BoxGeometry(s, s, s);
-                    const cMat = new THREE.MeshStandardMaterial({ color: 0xa1887f, roughness: 0.9, flatShading: true });
-                    const crate = new THREE.Mesh(cGeo, cMat);
-                    crate.position.set(px, baseY + s / 2, pz);
-                    crate.userData.mapGenerated = true;
-                    crate.userData.physicsType = 'STATIC';
-                    this.scene.add(crate);
-                    this.addColliderBox(crate.position.clone(), s, s, s, false);
-                }
-            }
+        // Horizontal river branch (connecting to east)
+        const hRiverGeo = new THREE.PlaneGeometry(MAP_SIZE * 0.4, 4, 1, 1);
+        hRiverGeo.rotateX(-Math.PI / 2);
+        const hRiver = new THREE.Mesh(hRiverGeo, riverMat.clone());
+        hRiver.position.set(0, 0.04, HALF * 0.3);
+        hRiver.userData.mapGenerated = true;
+        this.scene.add(hRiver);
+
+        // Bridges
+        this._addBridge(0, -80);
+        this._addBridge(0, 0);
+        this._addBridge(0, 80);
+        this._addBridge(0, 160);
+    }
+
+    _addBridge(x, z) {
+        const bridgeMat = new THREE.MeshStandardMaterial({
+            color: COLORS.bridge,
+            roughness: 0.85,
+            flatShading: true
+        });
+
+        // Bridge deck
+        const deckGeo = new THREE.BoxGeometry(10, 0.5, 5);
+        const deck = new THREE.Mesh(deckGeo, bridgeMat);
+        deck.position.set(x, 0.6, z);
+        deck.userData.mapGenerated = true;
+        deck.userData.walkable = true;
+        this.scene.add(deck);
+        this.addColliderBox(new THREE.Vector3(x, 0.6, z), 10, 0.5, 5, true);
+
+        // Railings
+        const railGeo = new THREE.BoxGeometry(0.3, 1.5, 5);
+        for (let side of [-1, 1]) {
+            const rail = new THREE.Mesh(railGeo, bridgeMat.clone());
+            rail.position.set(x + side * 4.8, 1.1, z);
+            rail.userData.mapGenerated = true;
+            this.scene.add(rail);
+        }
+
+        // Bridge supports
+        const supportGeo = new THREE.BoxGeometry(0.8, 1.2, 0.8);
+        const supportMat = new THREE.MeshStandardMaterial({
+            color: 0x6d4c41,
+            roughness: 0.9
+        });
+        for (let i = -1; i <= 1; i++) {
+            const support = new THREE.Mesh(supportGeo, supportMat);
+            support.position.set(x + i * 4, 0.3, z);
+            support.userData.mapGenerated = true;
+            this.scene.add(support);
         }
     }
 
-    _addTree(x, z, sector) {
+    // =========================================================================
+    // FOREST QUADRANT (NW: x < 0, z < 0)
+    // =========================================================================
+    _generateForestQuadrant() {
+        // Dense trees
+        const treeCount = 150;
+        for (let i = 0; i < treeCount; i++) {
+            const tx = -HALF + 20 + this._rand() * (HALF - 60);
+            const tz = -HALF + 20 + this._rand() * (HALF - 60);
+
+            // Keep away from river and central area
+            if (Math.abs(tx) < 12 || Math.sqrt(tx * tx + tz * tz) < 50) continue;
+
+            this._addForestTree(tx, tz);
+        }
+
+        // Forest paths (winding brown trails)
+        this._generateForestPaths();
+
+        // Log cabins
+        const cabinCount = 8 + Math.floor(this._rand() * 4);
+        for (let i = 0; i < cabinCount; i++) {
+            const cx = -HALF + 40 + this._rand() * (HALF - 100);
+            const cz = -HALF + 40 + this._rand() * (HALF - 100);
+            if (Math.abs(cx) < 15 || Math.sqrt(cx * cx + cz * cz) < 45) continue;
+            this._addLogCabin(cx, cz);
+        }
+
+        // Mushroom clusters
+        for (let i = 0; i < 30; i++) {
+            const mx = -HALF + 30 + this._rand() * (HALF - 80);
+            const mz = -HALF + 30 + this._rand() * (HALF - 80);
+            if (Math.abs(mx) < 12 || Math.sqrt(mx * mx + mz * mz) < 45) continue;
+            this._addMushroomCluster(mx, mz);
+        }
+
+        // Small decorative rocks
+        for (let i = 0; i < 50; i++) {
+            const rx = -HALF + 20 + this._rand() * (HALF - 60);
+            const rz = -HALF + 20 + this._rand() * (HALF - 60);
+            if (Math.abs(rx) < 12 || Math.sqrt(rx * rx + rz * rz) < 45) continue;
+            this._addForestRock(rx, rz);
+        }
+    }
+
+    _addForestTree(x, z) {
         const trunkH = 6 + this._rand() * 6;
-        const trunkR = 0.8 + this._rand() * 0.8;
-        const crownR = 2.5 + this._rand() * 3;
-        const baseY = this.getHeightAt(x, z);
+        const trunkR = 0.7 + this._rand() * 0.7;
+        const crownR = 3 + this._rand() * 3;
 
-        const trunkGeo = new THREE.CylinderGeometry(trunkR * 0.6, trunkR, trunkH, 6);
-        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.9 });
+        // Trunk
+        const trunkGeo = new THREE.CylinderGeometry(trunkR * 0.5, trunkR, trunkH, 6);
+        const trunkMat = new THREE.MeshStandardMaterial({
+            color: COLORS.forestTrunk,
+            roughness: 0.9
+        });
         const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-        trunk.position.set(x, baseY + trunkH / 2, z);
+        trunk.position.set(x, trunkH / 2, z);
         trunk.userData.mapGenerated = true;
-        trunk.userData.physicsType = 'STATIC';
         this.scene.add(trunk);
-        this.addColliderBox(trunk.position.clone(), trunkR * 2, trunkH, trunkR * 2, false);
+        this.addColliderBox(new THREE.Vector3(x, trunkH / 2, z), trunkR * 2, trunkH, trunkR * 2, false);
 
-        const crownGeo = new THREE.DodecahedronGeometry(crownR, 0);
-        const crownColor = sector.terrainColor || 0x2e7d32;
-        const crownMat = new THREE.MeshStandardMaterial({ color: crownColor, roughness: 0.95, flatShading: true });
-        const crown = new THREE.Mesh(crownGeo, crownMat);
-        crown.position.set(x, baseY + trunkH + crownR * 0.5, z);
-        crown.userData.mapGenerated = true;
-        this.scene.add(crown);
+        // Crown (multiple layered dodecahedrons for dense look)
+        const crownMat = new THREE.MeshStandardMaterial({
+            color: COLORS.forestTree + Math.floor(this._rand() * 0x1a1a1a - 0xa0a0a0),
+            roughness: 0.95,
+            flatShading: true
+        });
+
+        for (let layer = 0; layer < 2 + Math.floor(this._rand() * 2); layer++) {
+            const layerR = crownR * (1 - layer * 0.3);
+            const layerY = trunkH - 1 + layer * 2.5;
+            const crownGeo = new THREE.DodecahedronGeometry(layerR, 0);
+            const crown = new THREE.Mesh(crownGeo, crownMat);
+            crown.position.set(
+                x + (this._rand() - 0.5) * 0.5,
+                layerY,
+                z + (this._rand() - 0.5) * 0.5
+            );
+            crown.userData.mapGenerated = true;
+            this.scene.add(crown);
+        }
     }
 
-    _addBush(x, z) {
-        const baseY = this.getHeightAt(x, z);
-        const size = 0.4 + this._rand() * 0.6;
-        const geo = new THREE.IcosahedronGeometry(size, 0);
-        const color = 0x2e7d32 + Math.floor(this._rand() * 0x1a1a1a - 0xa0a0a0);
-        const mat = new THREE.MeshStandardMaterial({
-            color: color, roughness: 0.95, flatShading: true
+    _generateForestPaths() {
+        // Create winding paths through forest
+        const pathMat = new THREE.MeshStandardMaterial({
+            color: COLORS.forestPath,
+            roughness: 1.0,
+            flatShading: true
         });
-        const bush = new THREE.Mesh(geo, mat);
-        bush.position.set(x, baseY + size * 0.6, z);
-        bush.userData.mapGenerated = true;
-        bush.userData.physicsType = 'STATIC';
-        this.scene.add(bush);
+
+        // Path from cornucopia outward to cabins
+        const pathSegments = 30;
+        let px = -20;
+        let pz = -20;
+        for (let i = 0; i < pathSegments; i++) {
+            const segGeo = new THREE.BoxGeometry(2, 0.05, 3);
+            const seg = new THREE.Mesh(segGeo, pathMat);
+            seg.position.set(px, 0.03, pz);
+            seg.userData.mapGenerated = true;
+            seg.userData.walkable = true;
+            this.scene.add(seg);
+            this._floorTiles.push({ x: px, z: pz });
+            px += (this._rand() - 0.5) * 4;
+            pz -= 3;
+        }
+    }
+
+    _addLogCabin(x, z) {
+        const cabin = new THREE.Group();
+        const wallMat = new THREE.MeshStandardMaterial({
+            color: 0x5d4037,
+            roughness: 0.85,
+            flatShading: true
+        });
+        const roofMat = new THREE.MeshStandardMaterial({
+            color: 0x3e2723,
+            roughness: 0.9,
+            flatShading: true
+        });
+
+        // Walls
+        const w = 5 + this._rand() * 2;
+        const d = 4 + this._rand() * 2;
+        const h = 3.5;
+
+        // Front wall
+        const frontGeo = new THREE.BoxGeometry(w, h, 0.3);
+        const front = new THREE.Mesh(frontGeo, wallMat);
+        front.position.set(0, h / 2, d / 2);
+        front.userData.mapGenerated = true;
+        cabin.add(front);
+
+        // Back wall
+        const back = new THREE.Mesh(frontGeo, wallMat.clone());
+        back.position.set(0, h / 2, -d / 2);
+        back.userData.mapGenerated = true;
+        cabin.add(back);
+
+        // Side walls
+        const sideGeo = new THREE.BoxGeometry(0.3, h, d);
+        const left = new THREE.Mesh(sideGeo, wallMat.clone());
+        left.position.set(-w / 2, h / 2, 0);
+        left.userData.mapGenerated = true;
+        cabin.add(left);
+
+        const right = new THREE.Mesh(sideGeo, wallMat.clone());
+        right.position.set(w / 2, h / 2, 0);
+        right.userData.mapGenerated = true;
+        cabin.add(right);
+
+        // Roof (pitched)
+        const roofGeo = new THREE.ConeGeometry(Math.max(w, d) * 0.8, 2.5, 4);
+        const roof = new THREE.Mesh(roofGeo, roofMat);
+        roof.position.set(0, h + 1.25, 0);
+        roof.rotation.y = Math.PI / 4;
+        roof.userData.mapGenerated = true;
+        cabin.add(roof);
+
+        // Door
+        const doorMat = new THREE.MeshStandardMaterial({ color: 0x4e342e, roughness: 0.9 });
+        const doorGeo = new THREE.BoxGeometry(1.2, 2.2, 0.1);
+        const door = new THREE.Mesh(doorGeo, doorMat);
+        door.position.set(0, 1.1, d / 2 + 0.16);
+        door.userData.mapGenerated = true;
+        cabin.add(door);
+
+        // Windows
+        const winGeo = new THREE.BoxGeometry(0.8, 0.8, 0.1);
+        const winMat = new THREE.MeshStandardMaterial({
+            color: 0xfff9c4,
+            roughness: 0.3,
+            metalness: 0.1,
+            transparent: true,
+            opacity: 0.7
+        });
+        for (let wx of [-1.5, 1.5]) {
+            const win = new THREE.Mesh(winGeo, winMat.clone());
+            win.position.set(wx, h * 0.6, d / 2 + 0.16);
+            win.userData.mapGenerated = true;
+            cabin.add(win);
+        }
+
+        cabin.position.set(x, 0, z);
+        cabin.userData.mapGenerated = true;
+        this.scene.add(cabin);
+
+        // Collider
+        this.addColliderBox(new THREE.Vector3(x, h / 2, z), w + 0.5, h, d + 0.5, false);
+        this._floorTiles.push({ x, z });
+        this._buildings.push({ x, z, w, d, template: { type: 'log_cabin' } });
+    }
+
+    _addMushroomCluster(x, z) {
+        const cluster = new THREE.Group();
+        const stemMat = new THREE.MeshStandardMaterial({ color: 0xfff9c4, roughness: 0.8 });
+        const capMat = new THREE.MeshStandardMaterial({
+            color: COLORS.forestMushroom,
+            roughness: 0.6,
+            flatShading: true
+        });
+
+        const count = 3 + Math.floor(this._rand() * 4);
+        for (let i = 0; i < count; i++) {
+            const angle = (i / count) * Math.PI * 2;
+            const r = 0.3 + this._rand() * 0.5;
+            const mx = Math.cos(angle) * r;
+            const mz = Math.sin(angle) * r;
+            const stemH = 0.3 + this._rand() * 0.4;
+
+            const stemGeo = new THREE.CylinderGeometry(0.08, 0.1, stemH, 6);
+            const stem = new THREE.Mesh(stemGeo, stemMat);
+            stem.position.set(mx, stemH / 2, mz);
+            stem.userData.mapGenerated = true;
+            cluster.add(stem);
+
+            const capGeo = new THREE.SphereGeometry(0.25 + this._rand() * 0.15, 6, 6);
+            capGeo.scale(1, 0.6, 1);
+            const cap = new THREE.Mesh(capGeo, capMat.clone());
+            cap.position.set(mx, stemH + 0.15, mz);
+            cap.userData.mapGenerated = true;
+            cluster.add(cap);
+
+            // White spots on cap
+            for (let s = 0; s < 3; s++) {
+                const spotGeo = new THREE.SphereGeometry(0.05, 4, 4);
+                const spotMat = new THREE.MeshStandardMaterial({
+                    color: COLORS.forestMushroomSpot,
+                    roughness: 0.7
+                });
+                const spot = new THREE.Mesh(spotGeo, spotMat);
+                spot.position.set(
+                    mx + (this._rand() - 0.5) * 0.3,
+                    stemH + 0.25,
+                    mz + (this._rand() - 0.5) * 0.3
+                );
+                spot.userData.mapGenerated = true;
+                cluster.add(spot);
+            }
+        }
+
+        cluster.position.set(x, 0, z);
+        cluster.userData.mapGenerated = true;
+        this.scene.add(cluster);
+    }
+
+    _addForestRock(x, z) {
+        const size = 0.5 + this._rand() * 1.5;
+        const geo = new THREE.DodecahedronGeometry(size, 0);
+        const mat = new THREE.MeshStandardMaterial({
+            color: 0x787878,
+            roughness: 0.95,
+            flatShading: true
+        });
+        const rock = new THREE.Mesh(geo, mat);
+        rock.position.set(x, size * 0.4, z);
+        rock.rotation.set(
+            this._rand() * Math.PI,
+            this._rand() * Math.PI,
+            this._rand() * Math.PI
+        );
+        rock.userData.mapGenerated = true;
+        this.scene.add(rock);
         this.addColliderBox(
-            new THREE.Vector3(x, baseY + size * 0.6, z),
-            size * 2, size * 1.2, size * 2, false
+            new THREE.Vector3(x, size * 0.4, z),
+            size * 1.5, size * 0.8, size * 1.5, false
         );
     }
 
-    _addGrassPatch(x, z) {
-        const baseY = this.getHeightAt(x, z);
-        const w = 1 + this._rand() * 2;
-        const d = 1 + this._rand() * 2;
-        const geo = new THREE.BoxGeometry(w, 0.08, d);
-        const mat = new THREE.MeshStandardMaterial({
-            color: 0x4caf50, roughness: 1.0, flatShading: true, transparent: true, opacity: 0.9
-        });
-        const patch = new THREE.Mesh(geo, mat);
-        patch.position.set(x, baseY + 0.04, z);
-        patch.userData.mapGenerated = true;
-        this.scene.add(patch);
-    }
+    // =========================================================================
+    // STONE MAZE QUADRANT (NE: x > 0, z < 0)
+    // =========================================================================
+    _generateMazeQuadrant() {
+        const mazeStartX = 10;
+        const mazeStartZ = -HALF + 10;
+        const mazeSize = HALF - 40;
+        const cellSize = 6;
+        const wallHeight = 3.5;
+        const wallThickness = 0.5;
 
-    // ========================================================================
-    // BIOME ENVIRONMENT GENERATION (Phase 5b)
-    // ========================================================================
-
-    /** Stone maze corridor walls for stone_maze biome */
-    _generateMazeWalls(sector, cx, cz, radius) {
         const wallMat = new THREE.MeshStandardMaterial({
-            color: 0x7a7a6e, roughness: 0.85, flatShading: true
+            color: COLORS.mazeWall,
+            roughness: 0.85,
+            flatShading: true
+        });
+        const towerMat = new THREE.MeshStandardMaterial({
+            color: COLORS.mazeTower,
+            roughness: 0.9,
+            flatShading: true
         });
 
-        // Build a grid of maze walls with gaps for corridors
-        const spacing = 4;
-        const halfRange = radius * 0.9;
-        const segmentsX = Math.floor(halfRange / spacing) * 2 + 1;
-        const segmentsZ = Math.floor(halfRange / spacing) * 2 + 1;
+        // Generate maze grid
+        const cols = Math.floor(mazeSize / cellSize);
+        const rows = Math.floor(mazeSize / cellSize);
+        const grid = [];
+        for (let r = 0; r < rows; r++) {
+            grid[r] = [];
+            for (let c = 0; c < cols; c++) {
+                grid[r][c] = 1; // 1 = wall, 0 = path
+            }
+        }
 
-        for (let sx = -Math.floor(segmentsX / 2); sx < Math.floor(segmentsX / 2); sx++) {
-            for (let sz = -Math.floor(segmentsZ / 2); sz < Math.floor(segmentsZ / 2); sz++) {
-                const wx = cx + sx * spacing;
-                const wz = cz + sz * spacing;
+        // Maze generation using recursive backtracker
+        function carveMaze(cx, cz) {
+            grid[cz][cx] = 0;
+            const dirs = [
+                { dx: 0, dz: -1 },
+                { dx: 1, dz: 0 },
+                { dx: 0, dz: 1 },
+                { dx: -1, dz: 0 }
+            ].sort(() => this._rand() - 0.5);
 
-                // Leave corridor gaps (~30% chance of no wall)
-                if (this._rand() < 0.3) continue;
-
-                // Wall height varies slightly
-                const h = 1.8 + this._rand() * 2.5;
-                const geo = new THREE.BoxGeometry(spacing - 0.2, h, 0.4);
-                const wall = new THREE.Mesh(geo, wallMat.clone());
-
-                // Randomize color slightly per segment for visual variety
-                const shade = 0x7a7a6e + Math.floor((this._rand() * 0x15 - 0x7) << (this._rand() > 0.5 ? 0 : 8));
-                wall.material.color.setHex(0x7a7a6e);
-                if ((Math.abs(sx) + Math.abs(sz)) % 3 === 0) {
-                    // Tower-like taller segments every few cells
-                    wall.geometry = new THREE.BoxGeometry(spacing * 1.5, h * 1.4, spacing * 1.2);
-                    wall.material.color.setHex(0x6d6d60);
+            for (const dir of dirs) {
+                const nx = cx + dir.dx * 2;
+                const nz = cz + dir.dz * 2;
+                if (nx > 0 && nx < cols - 1 && nz > 0 && nz < rows - 1 && grid[nz][nx] === 1) {
+                    grid[cz + dir.dz][cx + dir.dx] = 0;
+                    carveMaze(nx, nz);
                 }
+            }
+        }
+        carveMaze(1, 1);
 
-                const baseY = this.getHeightAt(wx, wz);
-                wall.position.set(wx, baseY + h / 2, wz);
-                wall.rotation.y = (this._rand() > 0.5 ? Math.PI / 2 : 0);
-                if (wall.userData) {
+        // Build maze walls from grid
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                if (grid[r][c] === 1) {
+                    const wx = mazeStartX + c * cellSize;
+                    const wz = mazeStartZ + r * cellSize;
+
+                    // Wall segment
+                    const wallGeo = new THREE.BoxGeometry(cellSize, wallHeight, wallThickness);
+                    const wall = new THREE.Mesh(wallGeo, wallMat.clone());
+                    wall.position.set(wx, wallHeight / 2, wz);
                     wall.userData.mapGenerated = true;
-                    wall.userData.physicsType = 'STATIC';
-                }
-                this.scene.add(wall);
-
-                // Collider for maze walls - use bounding box from geometry
-                const bBox = new THREE.Box3().setFromObject(wall, false);
-                if (bBox.isEmpty()) {
-                    bBox.setFromCenterAndSize(
-                        wall.position.clone(),
-                        new THREE.Vector3(spacing * 1.2, h, spacing * 1.2)
+                    this.scene.add(wall);
+                    this.addColliderBox(
+                        new THREE.Vector3(wx, wallHeight / 2, wz),
+                        cellSize, wallHeight, wallThickness, false
                     );
+                } else {
+                    this._floorTiles.push({
+                        x: mazeStartX + c * cellSize + cellSize / 2,
+                        z: mazeStartZ + r * cellSize + cellSize / 2
+                    });
                 }
-                const center = bBox.getCenter(new THREE.Vector3());
-                const size = bBox.getSize(new THREE.Vector3());
-                this.addColliderBox(center, size.x, size.y, size.z, true);
             }
-
-            // Add maze towers at corners of the grid area
         }
 
-        // Maze corner towers (larger structures)
-        for (let i = 0; i < 4; i++) {
-            const angle = (i / 4) * Math.PI * 2 + Math.PI / 8;
-            const tx = cx + Math.cos(angle) * radius * 0.95;
-            const tz = cz + Math.sin(angle) * radius * 0.95;
-            const baseY = this.getHeightAt(tx, tz);
+        // Corner towers
+        const towerPositions = [
+            { x: mazeStartX, z: mazeStartZ },
+            { x: mazeStartX + mazeSize, z: mazeStartZ },
+            { x: mazeStartX, z: mazeStartZ + mazeSize },
+            { x: mazeStartX + mazeSize, z: mazeStartZ + mazeSize }
+        ];
 
-            const towerGeo = new THREE.BoxGeometry(3, 6, 3);
-            const towerMat = new THREE.MeshStandardMaterial({ color: 0x5e5e52, roughness: 0.9, flatShading: true });
+        for (const tp of towerPositions) {
+            const towerGeo = new THREE.BoxGeometry(6, 8, 6);
             const tower = new THREE.Mesh(towerGeo, towerMat);
-            tower.position.set(tx, baseY + 3, tz);
+            tower.position.set(tp.x + cellSize * 2, 4, tp.z + cellSize * 2);
             tower.userData.mapGenerated = true;
-            tower.userData.physicsType = 'STATIC';
             this.scene.add(tower);
+            this.addColliderBox(
+                new THREE.Vector3(tp.x + cellSize * 2, 4, tp.z + cellSize * 2),
+                6, 8, 6, false
+            );
 
-            // Small platform on top of each corner tower
-            const platGeo = new THREE.BoxGeometry(2.5, 0.3, 2.5);
-            const platMat = new THREE.MeshStandardMaterial({ color: 0x4a4a40, roughness: 1.0 });
-            const platform = new THREE.Mesh(platGeo, platMat);
-            platform.position.set(tx, baseY + 6.15, tz);
-            platform.userData.mapGenerated = true;
-            this.scene.add(platform);
-
-            // Wall segments connecting towers to nearby maze walls
-            for (let w = 0; w < 3; w++) {
-                const segAngle = angle + ((w - 1) * 0.15);
-                const sx2 = cx + Math.cos(segAngle) * radius * (0.4 + w * 0.18);
-                const sz2 = cz + Math.sin(segAngle) * radius * (0.4 + w * 0.18);
-                if (this._rand() < 0.35) continue; // gaps in connecting walls
-
-                const segGeo = new THREE.BoxGeometry(0.4, h || 2.5, spacing - 0.6);
-                const segMat = new THREE.MeshStandardMaterial({ color: 0x7a7a6e, roughness: 0.8 });
-                const segment = new THREE.Mesh(segGeo, segMat);
-
-                // Orient wall perpendicular to radial direction
-                const perpAngle = angle + Math.PI / 2;
-                segment.position.set(sx2, baseY + (h || 1.25) / 2, sz2);
-                segment.rotation.y = perpAngle;
-                segment.userData.mapGenerated = true;
-                this.scene.add(segment);
-
-                const segH = h || 2.5;
-                this.addColliderBox(
-                    new THREE.Vector3(sx2, baseY + segH / 2, sz2),
-                    spacing - 0.6, segH, 0.4, true
-                );
-            }
+            // Tower platform
+            const platGeo = new THREE.BoxGeometry(5, 0.3, 5);
+            const plat = new THREE.Mesh(platGeo, towerMat.clone());
+            plat.position.set(tp.x + cellSize * 2, 8.15, tp.z + cellSize * 2);
+            plat.userData.mapGenerated = true;
+            plat.userData.walkable = true;
+            this.scene.add(plat);
+            this.addColliderBox(
+                new THREE.Vector3(tp.x + cellSize * 2, 8.15, tp.z + cellSize * 2),
+                5, 0.3, 5, true
+            );
         }
 
-        // Maze wall segments scattered inside the maze area
-        const numSegments = Math.floor(sector.buildingDensity * radius);
-        for (let i = 0; i < numSegments; i++) {
-            const segAngle = this._rand() * Math.PI * 2;
-            const segDist = 15 + this._rand() * radius * 0.7;
-            const sx3 = cx + Math.cos(segAngle) * segDist;
-            const sz3 = cz + Math.sin(segAngle) * segDist;
-
-            // Don't place too close to existing walls (simple check)
-            if (Math.abs(sx3 - cx) < 6 && Math.abs(sz3 - cz) < 6) continue;
-
-            const sH = 1.5 + this._rand() * 2;
-            const segGeo = new THREE.BoxGeometry(0.4, sH, spacing);
-            const segMat = new THREE.MeshStandardMaterial({ color: 0x7a7a6e, roughness: 0.8 });
-            const segment = new THREE.Mesh(segGeo, segMat);
-
-            // Orient randomly (some perpendicular to radial, some parallel)
-            if (this._rand() > 0.5) {
-                segment.rotation.y = segAngle + Math.PI / 2;
-            } else {
-                segment.rotation.y = this._rand() * Math.PI;
+        // Maze interior walkable floor tiles
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                if (grid[r][c] === 0) {
+                    this._floorTiles.push({
+                        x: mazeStartX + c * cellSize + cellSize / 2,
+                        z: mazeStartZ + r * cellSize + cellSize / 2
+                    });
+                }
             }
-
-            const sBaseY = this.getHeightAt(sx3, sz3);
-            segment.position.set(sx3, sBaseY + sH / 2, sz3);
-            segment.userData.mapGenerated = true;
-            segment.userData.physicsType = 'STATIC';
-            this.scene.add(segment);
-
-            this.addColliderBox(
-                new THREE.Vector3(sx3, sBaseY + sH / 2, sz3),
-                spacing - 0.6, sH, 0.4, true
-            );
         }
     }
 
-    /** Ice crystal shard for ice_lake biome */
-    _addIceCrystal(x, z) {
-        const baseY = this.getHeightAt(x, z);
+    // =========================================================================
+    // MILITARY RUINS QUADRANT (SW: x < 0, z > 0)
+    // =========================================================================
+    _generateMilitaryQuadrant() {
+        const milStartX = -HALF + 20;
+        const milStartZ = 10;
+        const milSize = HALF - 60;
 
-        // Crystal geometry - elongated octahedron shape
-        const height = 0.5 + this._rand() * 2;
-        const radius = 0.3 + this._rand() * 0.7;
-        const geo = new THREE.ConeGeometry(radius, height, Math.floor(4 + this._rand() * 4));
+        // Ruined buildings
+        const buildingCount = 15 + Math.floor(this._rand() * 5);
+        for (let i = 0; i < buildingCount; i++) {
+            const bx = milStartX + this._rand() * milSize;
+            const bz = milStartZ + this._rand() * milSize;
+            if (Math.abs(bx) < 15 || Math.sqrt(bx * bx + bz * bz) < 45) continue;
+            this._addRuinedBuilding(bx, bz);
+        }
 
-        // Ice-blue material with slight transparency and sparkle
-        const crystalColor = 0x89cfef + Math.floor(this._rand() * 0x20 - 0x10);
-        const mat = new THREE.MeshStandardMaterial({
-            color: crystalColor, roughness: 0.3, metalness: 0.1, flatShading: true, transparent: true, opacity: 0.85
+        // Tanks
+        const tankCount = 10 + Math.floor(this._rand() * 4);
+        for (let i = 0; i < tankCount; i++) {
+            const tx = milStartX + 30 + this._rand() * (milSize - 60);
+            const tz = milStartZ + 30 + this._rand() * (milSize - 60);
+            if (Math.abs(tx) < 15 || Math.sqrt(tx * tx + tz * tz) < 45) continue;
+            this._addMilitaryTank(tx, tz);
+        }
+
+        // Barbed wire fences
+        this._addMilitaryFences(milStartX, milStartZ, milSize);
+
+        // Sandbag barriers
+        for (let i = 0; i < 40; i++) {
+            const sx = milStartX + this._rand() * milSize;
+            const sz = milStartZ + this._rand() * milSize;
+            this._addSandbagBarrier(sx, sz);
+        }
+
+        // Military crates
+        for (let i = 0; i < 50; i++) {
+            const cx = milStartX + this._rand() * milSize;
+            const cz = milStartZ + this._rand() * milSize;
+            this._addMilitaryCrate(cx, cz);
+        }
+    }
+
+    _addRuinedBuilding(x, z) {
+        const w = 7 + this._rand() * 5;
+        const d = 6 + this._rand() * 4;
+        const h = 2 + this._rand() * 5;
+
+        const ruinMat = new THREE.MeshStandardMaterial({
+            color: this._rand() > 0.5 ? COLORS.militaryRuined : COLORS.militaryBuilding,
+            roughness: 0.9,
+            flatShading: true
         });
 
-        const crystal = new THREE.Mesh(geo, mat);
-        crystal.position.set(x, baseY + height / 2 - 0.1, z);
-        crystal.rotation.y = this._rand() * Math.PI;
-        crystal.rotation.z = (this._rand() > 0.5 ? 1 : -1) * (Math.PI / 8 + this._rand() * Math.PI / 4);
-        crystal.userData.mapGenerated = true;
+        // Partial walls (ruined = missing sections)
+        const wallSegments = 5 + Math.floor(this._rand() * 4);
+        for (let i = 0; i < wallSegments; i++) {
+            const segW = 1.5 + this._rand() * 2.5;
+            const segH = 0.5 + this._rand() * (h - 1);
+            const segGeo = new THREE.BoxGeometry(segW, segH, 0.5);
+            const seg = new THREE.Mesh(segGeo, ruinMat.clone());
 
-        // Scale variation for natural look
-        const scaleX = 0.7 + this._rand() * 0.6;
-        const scaleZ = 0.7 + this._rand() * 0.6;
-        crystal.scale.set(scaleX, 1, scaleZ);
+            const angle = (i / wallSegments) * Math.PI * 2;
+            const segX = x + Math.cos(angle) * w * 0.4;
+            const segZ = z + Math.sin(angle) * d * 0.4;
 
-        this.scene.add(crystal);
-
-        // Small collider base for crystals (not solid but present)
-        if (scaleX > 0.8 && height > 1.5) {
+            seg.position.set(segX, segH / 2, segZ);
+            seg.rotation.y = angle;
+            seg.userData.mapGenerated = true;
+            this.scene.add(seg);
             this.addColliderBox(
-                new THREE.Vector3(x, baseY + height * 0.4, z),
-                radius * scaleX * 2, height, radius * scaleZ * 2, false
+                new THREE.Vector3(segX, segH / 2, segZ),
+                segW + 0.2, segH, 0.7, false
             );
         }
-    }
 
-    /** Barbed wire fence posts for military zone */
-    _placeBarbedWireFences(sector, cx, cz) {
-        const postMat = new THREE.MeshStandardMaterial({ color: 0x4a5238, roughness: 0.9 });
-        const barbedMat = new THREE.LineBasicMaterial({ color: 0x666666 });
-
-        // Place fence posts along sector edges and perimeter
-        const numPosts = Math.floor((sector.bounds?.maxX - sector.bounds?.minX) / 5);
-        const postSpacing = (sector.bounds?.maxZ - sector.bounds?.minZ) / Math.max(numPosts, 8);
-
-        for (let i = 0; i < numPosts; i++) {
-            // Posts along the perimeter edges
-            const edge = i % 4; // 0=top,1=right,2=bottom,3=left
-            let px, pz;
-
-            switch (edge) {
-                case 0: // top edge
-                    px = sector.bounds.minX + (i / numPosts) * (sector.bounds.maxX - sector.bounds.minX);
-                    pz = sector.bounds.minZ;
-                    break;
-                case 1: // right edge
-                    px = sector.bounds.maxX;
-                    pz = sector.bounds.minZ + (i / numPosts) * (sector.bounds.maxZ - sector.bounds.minZ);
-                    break;
-                case 2: // bottom edge
-                    px = sector.bounds.maxX - ((i % Math.floor(numPosts / 4)) / numPosts) * (sector.bounds.maxX - sector.bounds.minX);
-                    pz = sector.bounds.maxZ;
-                    break;
-                default: // left edge
-                    px = sector.bounds.minX;
-                    pz = sector.bounds.maxZ - ((i % Math.floor(numPosts / 4)) / numPosts) * (sector.bounds.maxZ - sector.bounds.minZ);
-                    break;
-            }
-
-            const baseY = this.getHeightAt(px, pz);
-
-            // Fence post
-            const postGeo = new THREE.BoxGeometry(0.15, 2.5, 0.15);
-            const post = new THREE.Mesh(postGeo, postMat.clone());
-            post.position.set(px, baseY + 1.25, pz);
-            post.userData.mapGenerated = true;
-            this.scene.add(post);
-
-            // Barbed wire strands between posts (drawn as thin lines)
-            if (i > 0 && i % Math.floor(numPosts / 8) === 0) {
-                const prevEdge = edge - 1 >= 0 ? edge - 1 : 3;
-                let ppx, ppz;
-                switch (prevEdge) {
-                    case 0: ppx = sector.bounds.minX + ((i - Math.floor(numPosts / 4)) / numPosts) * (sector.bounds.maxX - sector.bounds.minX); ppz = sector.bounds.minZ; break;
-                    case 1: ppx = sector.bounds.maxX; ppz = sector.bounds.minZ + ((i % Math.floor(numPosts / 2)) / numPosts) * (sector.bounds.maxZ - sector.bounds.minZ); break;
-                    default: ppx = px; ppz = pz; // fallback same position
-                }
-
-                const lineGeo = new THREE.BufferGeometry();
-                const points = [new THREE.Vector3(px, baseY + 2.5, pz), new THREE.Vector3(ppx || px, (baseY + ((ppz === pz) ? 0 : 1)) + 2.3, ppz || pz)];
-                lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(points.flat(), 3));
-
-                const wireLine = new THREE.Line(lineGeo, barbedMat);
-                wireLine.userData.mapGenerated = true;
-                this.scene.add(wireLine);
-            }
+        // Collapsed roof pieces
+        for (let i = 0; i < 4; i++) {
+            const roofGeo = new THREE.BoxGeometry(2, 0.4, 2.5);
+            const roof = new THREE.Mesh(roofGeo, ruinMat.clone());
+            roof.position.set(
+                x + (this._rand() - 0.5) * w * 0.6,
+                0.4,
+                z + (this._rand() - 0.5) * d * 0.6
+            );
+            roof.rotation.set(
+                this._rand() * 0.5,
+                this._rand() * Math.PI,
+                this._rand() * 0.3
+            );
+            roof.userData.mapGenerated = true;
+            this.scene.add(roof);
         }
 
-        // Inner perimeter fence - smaller box inside the sector boundary
-        const innerOffset = 15;
-        for (let side = 0; side < 4; side++) {
-            const isHorizontal = side % 2 === 0;
-            const numWires = 3 + Math.floor(this._rand() * 2);
-
-            for (let w = 0; w < numWires; w++) {
-                const wireZ = (isHorizontal ? sector.bounds.minZ : sector.bounds.maxZ) - (sector.bounds.maxZ - sector.bounds.minZ) / 4 + w * innerOffset;
-                const wireX = side === 1 ? sector.bounds.maxX - innerOffset : sector.bounds.minX + innerOffset;
-
-                // Wire strand as thin horizontal line
-                for (let seg = 0; seg < 5; seg++) {
-                    const sx2 = isHorizontal
-                        ? ((sector.bounds?.minX || cx) + seg * ((sector.bounds?.maxX || sector.bounds.minX + radius) - (sector.bounds?.minX || cx)) / 4)
-                        : px;
-                }
-            }
-        }
+        this._floorTiles.push({ x, z });
+        this._buildings.push({ x, z, w, d, template: { type: 'ruined_building' } });
     }
 
-    /** Military tank mesh for military biome */
-    _addTank(cx, cz, radius) {
-        const tx = cx + (this._rand() - 0.5) * radius * 1.6;
-        const tz = cz + (this._rand() - 0.5) * radius * 1.6;
-        const baseY = this.getHeightAt(tx, tz);
+    _addMilitaryTank(x, z) {
+        const tank = new THREE.Group();
+        const hullMat = new THREE.MeshStandardMaterial({
+            color: COLORS.militaryTank,
+            roughness: 0.7,
+            metalness: 0.3
+        });
 
-        // Tank group for easier positioning/rotation
-        const tankGroup = new THREE.Group();
-
-        // Main body (hull)
+        // Main hull
         const hullGeo = new THREE.BoxGeometry(2.4, 0.8, 4.5);
-        const hullMat = new THREE.MeshStandardMaterial({ color: 0x4a5238, roughness: 0.7, metalness: 0.3 });
         const hull = new THREE.Mesh(hullGeo, hullMat);
         hull.position.y = 1;
-        tankGroup.add(hull);
+        tank.add(hull);
 
-        // Front sloped armor plate
+        // Front sloped armor
         const frontPlateGeo = new THREE.BoxGeometry(2.4, 0.6, 1.2);
         const frontPlate = new THREE.Mesh(frontPlateGeo, hullMat.clone());
         frontPlate.position.set(0, 1.3, -2.5);
-        frontPlate.rotation.x = Math.PI / 8; // Slight forward slope
-        tankGroup.add(frontPlate);
+        frontPlate.rotation.x = Math.PI / 8;
+        tank.add(frontPlate);
 
-        // Turret (cylindrical top)
+        // Turret
         const turretGeo = new THREE.CylinderGeometry(1.1, 1.3, 0.7, 8);
-        const turretMat = new THREE.MeshStandardMaterial({ color: 0x54624a, roughness: 0.6, metalness: 0.4 });
+        const turretMat = new THREE.MeshStandardMaterial({
+            color: 0x54624a,
+            roughness: 0.6,
+            metalness: 0.4
+        });
         const turret = new THREE.Mesh(turretGeo, turretMat);
         turret.position.set(0, 1.8, -0.3);
-        tankGroup.add(turret);
+        tank.add(turret);
 
-        // Turret top (flat cap)
+        // Turret top
         const turretTopGeo = new THREE.CylinderGeometry(1.25, 1.25, 0.15, 8);
         const turretTop = new THREE.Mesh(turretTopGeo, hullMat.clone());
         turretTop.position.set(0, 2.25, -0.3);
-        tankGroup.add(turretTop);
+        tank.add(turretTop);
 
-        // Main gun barrel
+        // Gun barrel
         const barrelGeo = new THREE.CylinderGeometry(0.15, 0.18, 4, 6);
-        const barrelMat = new THREE.MeshStandardMaterial({ color: 0x3d4a2f, roughness: 0.5, metalness: 0.6 });
+        const barrelMat = new THREE.MeshStandardMaterial({
+            color: 0x3d4a2f,
+            roughness: 0.5,
+            metalness: 0.6
+        });
         const barrel = new THREE.Mesh(barrelGeo, barrelMat);
-        barrel.rotation.x = Math.PI / 2; // Point forward (along -Z)
+        barrel.rotation.x = Math.PI / 2;
         barrel.position.set(0, 1.8, -3.2);
-        tankGroup.add(barrel);
+        tank.add(barrel);
 
-        // Barrel muzzle brake (wider tip)
+        // Barrel muzzle brake
         const muzzleGeo = new THREE.CylinderGeometry(0.25, 0.18, 0.4, 6);
-        const muzzleMat = barrelMat.clone();
-        const muzzle = new THREE.Mesh(muzzleGeo, muzzleMat);
+        const muzzle = new THREE.Mesh(muzzleGeo, barrelMat.clone());
         muzzle.rotation.x = Math.PI / 2;
         muzzle.position.set(0, 1.8, -5.2);
-        tankGroup.add(muzzle);
+        tank.add(muzzle);
 
-        // Tracks (left and right)
+        // Tracks
         for (let side of [-1, 1]) {
             const trackGeo = new THREE.BoxGeometry(0.6, 0.5, 4.8);
-            const trackMat = new THREE.MeshStandardMaterial({ color: 0x3d3d3d, roughness: 1.0 });
+            const trackMat = new THREE.MeshStandardMaterial({
+                color: COLORS.militaryTread,
+                roughness: 1.0
+            });
             const track = new THREE.Mesh(trackGeo, trackMat);
             track.position.set(side * 1.5, 0.4, 0);
-            tankGroup.add(track);
+            tank.add(track);
 
-            // Track wheels (small cylinders along the track)
+            // Track wheels
             for (let wi = -2; wi <= 2; wi++) {
                 const wheelGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.15, 8);
-                const wheelMat = new THREE.MeshStandardMaterial({ color: 0x4a4a4a, roughness: 0.6 });
+                const wheelMat = new THREE.MeshStandardMaterial({
+                    color: 0x4a4a4a,
+                    roughness: 0.6
+                });
                 const wheel = new THREE.Mesh(wheelGeo, wheelMat);
-                wheel.rotation.z = Math.PI / 2; // Roll along track direction
-                wheel.position.set(side * (1.5 + side * -0.3), 0.4, wi * 0.8);
-                tankGroup.add(wheel);
+                wheel.rotation.z = Math.PI / 2;
+                wheel.position.set(side * 1.5, 0.4, wi * 0.8);
+                tank.add(wheel);
             }
         }
 
-        // Exhaust pipes on rear top of hull
+        // Exhaust pipes
         for (let ep = 0; ep < 2; ep++) {
             const exhaustGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.6, 6);
-            const exhaustMat = new THREE.MeshStandardMaterial({ color: 0x3d3d3d, roughness: 0.8 });
+            const exhaustMat = new THREE.MeshStandardMaterial({
+                color: 0x3d3d3d,
+                roughness: 0.8
+            });
             const exhaust = new THREE.Mesh(exhaustGeo, exhaustMat);
-            exhaust.rotation.x = Math.PI / 2; // Point backward
+            exhaust.rotation.x = Math.PI / 2;
             exhaust.position.set(-0.5 + ep * 0.5, 1.6, 2.3);
-            tankGroup.add(exhaust);
+            tank.add(exhaust);
         }
 
-        // Radio antenna on turret rear
+        // Radio antenna
         const antennaGeo = new THREE.CylinderGeometry(0.02, 0.02, 1.8, 4);
-        const antennaMat = new THREE.MeshStandardMaterial({ color: 0x3d3d3d, roughness: 0.7 });
+        const antennaMat = new THREE.MeshStandardMaterial({
+            color: 0x3d3d3d,
+            roughness: 0.7
+        });
         const antenna = new THREE.Mesh(antennaGeo, antennaMat);
-        antenna.position.set(-0.6, 2.85, -1.0); // Tall thin cylinder pointing up
-        tankGroup.add(antenna);
+        antenna.position.set(-0.6, 2.85, -1.0);
+        tank.add(antenna);
 
-        // Antenna tip (small sphere)
+        // Antenna tip
         const tipGeo = new THREE.SphereGeometry(0.04, 4, 4);
-        const tipMat = new THREE.MeshStandardMaterial({ color: 0xff0000 }); // Red blinking tip
+        const tipMat = new THREE.MeshStandardMaterial({ color: 0xff0000 });
         const tip = new THREE.Mesh(tipGeo, tipMat);
         tip.position.set(-0.6, 3.75, -1.0);
-        tankGroup.add(tip);
+        tank.add(tip);
 
-        // Position the entire tank group in world space
-        tankGroup.rotation.y = this._rand() * Math.PI * 2; // Random facing direction
-        tankGroup.position.set(tx, baseY, tz);
-        tankGroup.userData.mapGenerated = true;
-        tankGroup.userData.physicsType = 'STATIC';
+        tank.position.set(x, 0, z);
+        tank.rotation.y = this._rand() * Math.PI * 2;
+        tank.userData.mapGenerated = true;
+        this.scene.add(tank);
 
-        this.scene.add(tankGroup);
-
-        // Collider for the whole tank body (simplified box)
-        const tankSize = new THREE.Vector3(4.5, 2.5, 6);
-        const tankCenter = new THREE.Vector3(tx, baseY + 1.25, tz);
-        this.addColliderBox(tankCenter, tankSize.x, tankSize.y, tankSize.z, true);
-
-        // Secondary collider for the turret (smaller box)
-        const turretBase = new THREE.Vector3(tx, baseY + 2.85, cz - 0.3);
-        this.addColliderBox(turretBase, 3, 1.4, 3, false);
+        this.addColliderBox(
+            new THREE.Vector3(x, 0.8, z),
+            4.5, 2.5, 6, false
+        );
+        this._floorTiles.push({
+            x: x + Math.cos(tank.rotation.y) * 4,
+            z: z + Math.sin(tank.rotation.y) * 4
+        });
     }
 
-    /** Radio tower with antenna dishes */
+    _addMilitaryFences(startX, startZ, size) {
+        const fenceMat = new THREE.MeshStandardMaterial({
+            color: 0x4a5238,
+            roughness: 0.9
+        });
+
+        // Perimeter fence posts
+        const postGeo = new THREE.BoxGeometry(0.15, 2.5, 0.15);
+        for (let i = 0; i < 24; i++) {
+            const angle = (i / 24) * Math.PI * 2;
+            const r = size * 0.45;
+            const px = startX + r * Math.cos(angle);
+            const pz = startZ + r * Math.sin(angle);
+
+            const post = new THREE.Mesh(postGeo, fenceMat.clone());
+            post.position.set(px, 1.25, pz);
+            post.userData.mapGenerated = true;
+            this.scene.add(post);
+        }
+
+        // Barbed wire between posts
+        const wireMat = new THREE.LineBasicMaterial({ color: 0x666666 });
+        for (let i = 0; i < 24; i++) {
+            const angle1 = (i / 24) * Math.PI * 2;
+            const angle2 = ((i + 1) / 24) * Math.PI * 2;
+            const r = size * 0.45;
+
+            const x1 = startX + r * Math.cos(angle1);
+            const z1 = startZ + r * Math.sin(angle1);
+            const x2 = startX + r * Math.cos(angle2);
+            const z2 = startZ + r * Math.sin(angle2);
+
+            const wireGeo = new THREE.BufferGeometry();
+            wireGeo.setAttribute('position', new THREE.Float32BufferAttribute([
+                x1, 2.3, z1, x2, 2.3, z2
+            ], 3));
+
+            const wireLine = new THREE.Line(wireGeo, wireMat);
+            wireLine.userData.mapGenerated = true;
+            this.scene.add(wireLine);
+        }
+    }
+
+    _addSandbagBarrier(x, z) {
+        const mat = new THREE.MeshStandardMaterial({
+            color: 0x9e9e9e,
+            roughness: 0.95,
+            flatShading: true
+        });
+
+        // L-shape sandbag wall
+        for (let i = 0; i < 3; i++) {
+            const bagGeo = new THREE.BoxGeometry(0.5, 0.3, 0.35);
+            const bag = new THREE.Mesh(bagGeo, mat);
+            bag.position.set(x + i * 0.55, 0.15, z);
+            bag.userData.mapGenerated = true;
+            this.scene.add(bag);
+            this.addColliderBox(
+                new THREE.Vector3(x + i * 0.55, 0.15, z),
+                0.5, 0.3, 0.35, false
+            );
+        }
+        for (let i = 0; i < 2; i++) {
+            const bagGeo = new THREE.BoxGeometry(0.5, 0.3, 0.35);
+            const bag = new THREE.Mesh(bagGeo, mat.clone());
+            bag.position.set(x, 0.15, z + (i + 1) * 0.55);
+            bag.userData.mapGenerated = true;
+            this.scene.add(bag);
+        }
+    }
+
+    _addMilitaryCrate(x, z) {
+        const size = 0.5 + this._rand() * 0.5;
+        const geo = new THREE.BoxGeometry(size, size, size);
+        const mat = new THREE.MeshStandardMaterial({
+            color: 0x6d4c41,
+            roughness: 0.9,
+            flatShading: true
+        });
+        const crate = new THREE.Mesh(geo, mat);
+        crate.position.set(x, size / 2, z);
+        crate.rotation.y = this._rand() * Math.PI;
+        crate.userData.mapGenerated = true;
+        this.scene.add(crate);
+        this.addColliderBox(
+            new THREE.Vector3(x, size / 2, z),
+            size, size, size, false
+        );
+    }
+
+    // =========================================================================
+    // ICE/SNOW QUADRANT (SE: x > 0, z > 0)
+    // =========================================================================
+    _generateIceQuadrant() {
+        const iceStartX = 10;
+        const iceStartZ = 10;
+        const iceSize = HALF - 60;
+
+        // Frozen lake surface
+        const lakeMat = new THREE.MeshStandardMaterial({
+            color: COLORS.iceLake,
+            roughness: 0.4,
+            metalness: 0.1,
+            transparent: true,
+            opacity: 0.7
+        });
+
+        const lakeGeo = new THREE.CircleGeometry(40, 24);
+        lakeGeo.rotateX(-Math.PI / 2);
+        const lake = new THREE.Mesh(lakeGeo, lakeMat);
+        lake.position.set(iceStartX + iceSize * 0.4, 0.02, iceStartZ + iceSize * 0.4);
+        lake.userData.mapGenerated = true;
+        this.scene.add(lake);
+
+        // Igloos
+        const iglooCount = 8 + Math.floor(this._rand() * 3);
+        for (let i = 0; i < iglooCount; i++) {
+            const ix = iceStartX + this._rand() * iceSize;
+            const iz = iceStartZ + this._rand() * iceSize;
+            if (Math.abs(ix) < 15 || Math.sqrt(ix * ix + iz * iz) < 45) continue;
+            this._addIgloo(ix, iz);
+        }
+
+        // Ice crystals
+        for (let i = 0; i < 40; i++) {
+            const cx = iceStartX + this._rand() * iceSize;
+            const cz = iceStartZ + this._rand() * iceSize;
+            if (Math.abs(cx) < 15 || Math.sqrt(cx * cx + cz * cz) < 45) continue;
+            this._addIceCrystal(cx, cz);
+        }
+
+        // Snow-covered trees
+        for (let i = 0; i < 50; i++) {
+            const tx = iceStartX + this._rand() * iceSize;
+            const tz = iceStartZ + this._rand() * iceSize;
+            if (Math.abs(tx) < 15 || Math.sqrt(tx * tx + tz * tz) < 45) continue;
+            this._addSnowTree(tx, tz);
+        }
+
+        // Radio tower
+        this._addRadioTower(
+            iceStartX + iceSize * 0.7,
+            iceStartZ + iceSize * 0.7
+        );
+    }
+
+    _addIgloo(x, z) {
+        const igloo = new THREE.Group();
+        const iglooMat = new THREE.MeshStandardMaterial({
+            color: COLORS.iceIgloo,
+            roughness: 0.7,
+            flatShading: true
+        });
+
+        // Dome shape using hemisphere
+        const domeGeo = new THREE.SphereGeometry(3, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+        const dome = new THREE.Mesh(domeGeo, iglooMat);
+        dome.position.y = 0;
+        dome.userData.mapGenerated = true;
+        igloo.add(dome);
+
+        // Entrance tunnel
+        const tunnelGeo = new THREE.CylinderGeometry(0.8, 0.8, 2, 8);
+        tunnelGeo.rotateZ(Math.PI / 2);
+        const tunnel = new THREE.Mesh(tunnelGeo, iglooMat.clone());
+        tunnel.position.set(2.5, 0.6, 0);
+        tunnel.userData.mapGenerated = true;
+        igloo.add(tunnel);
+
+        // Snow blocks on top
+        for (let i = 0; i < 10; i++) {
+            const blockGeo = new THREE.BoxGeometry(0.7, 0.5, 0.7);
+            const block = new THREE.Mesh(blockGeo, iglooMat.clone());
+            const angle = (i / 10) * Math.PI * 2;
+            block.position.set(
+                Math.cos(angle) * 3,
+                2.2 + this._rand() * 0.6,
+                Math.sin(angle) * 3
+            );
+            block.rotation.y = angle;
+            block.userData.mapGenerated = true;
+            igloo.add(block);
+        }
+
+        igloo.position.set(x, 0, z);
+        igloo.userData.mapGenerated = true;
+        this.scene.add(igloo);
+
+        this.addColliderBox(
+            new THREE.Vector3(x, 1.5, z),
+            6, 3, 6, false
+        );
+        this._floorTiles.push({ x, z });
+    }
+
+    _addIceCrystal(x, z) {
+        const height = 1 + this._rand() * 3;
+        const radius = 0.3 + this._rand() * 0.5;
+        const sides = 4 + Math.floor(this._rand() * 4);
+
+        const geo = new THREE.ConeGeometry(radius, height, sides);
+        const mat = new THREE.MeshStandardMaterial({
+            color: COLORS.iceCrystal + Math.floor(this._rand() * 0x20 - 0x10),
+            roughness: 0.3,
+            metalness: 0.1,
+            flatShading: true,
+            transparent: true,
+            opacity: 0.85
+        });
+
+        const crystal = new THREE.Mesh(geo, mat);
+        crystal.position.set(x, height / 2, z);
+        crystal.rotation.y = this._rand() * Math.PI;
+        crystal.rotation.z = (this._rand() - 0.5) * 0.3;
+        crystal.userData.mapGenerated = true;
+        this.scene.add(crystal);
+
+        if (height > 2) {
+            this.addColliderBox(
+                new THREE.Vector3(x, height * 0.3, z),
+                radius * 2, height * 0.6, radius * 2, false
+            );
+        }
+    }
+
+    _addSnowTree(x, z) {
+        const trunkH = 3 + this._rand() * 3;
+        const trunkR = 0.3 + this._rand() * 0.3;
+
+        // Trunk
+        const trunkGeo = new THREE.CylinderGeometry(trunkR * 0.5, trunkR, trunkH, 6);
+        const trunkMat = new THREE.MeshStandardMaterial({
+            color: COLORS.forestTrunk,
+            roughness: 0.9
+        });
+        const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+        trunk.position.set(x, trunkH / 2, z);
+        trunk.userData.mapGenerated = true;
+        this.scene.add(trunk);
+
+        // Snow-covered layers
+        const snowMat = new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            roughness: 0.8,
+            flatShading: true
+        });
+
+        for (let l = 0; l < 3; l++) {
+            const layerR = (2.5 - l * 0.6) * (0.8 + this._rand() * 0.4);
+            const layerGeo = new THREE.ConeGeometry(layerR, 2, 6);
+            const snowLayer = new THREE.Mesh(layerGeo, snowMat.clone());
+            snowLayer.position.set(x, trunkH - 1 + l * 1.8, z);
+            snowLayer.userData.mapGenerated = true;
+            this.scene.add(snowLayer);
+        }
+    }
+
     _addRadioTower(x, z) {
-        const baseY = this.getHeightAt(x, z);
+        const tower = new THREE.Group();
+        const poleMat = new THREE.MeshStandardMaterial({
+            color: COLORS.iceTower,
+            roughness: 0.7
+        });
 
-        // Tower group for positioning
-        const towerGroup = new THREE.Group();
+        // Main pole
+        const poleGeo = new THREE.CylinderGeometry(0.3, 0.5, 16, 8);
+        const pole = new THREE.Mesh(poleGeo, poleMat);
+        pole.position.y = 8;
+        pole.userData.mapGenerated = true;
+        tower.add(pole);
 
-        // Main tower pole (tall thin cylinder)
-        const poleGeo = new THREE.CylinderGeometry(0.35, 0.6, 18, 8);
-        const poleMat = new THREE.MeshStandardMaterial({ color: 0x4a5238, roughness: 0.7 });
-        const pole = new THREE.Mesh(poleGeo, poleMat.clone());
-        pole.position.y = 9; // Half height of tower
-        towerGroup.add(pole);
-
-        // Cross-bracing (horizontal support beams at intervals)
-        for (let br = 3; br < 18; br += 4.5) {
-            const braceGeo = new THREE.BoxGeometry(2, 0.15, 2);
-            const braceMat = poleMat.clone();
-            const brace = new THREE.Mesh(braceGeo, braceMat);
+        // Cross braces
+        for (let br = 3; br < 16; br += 4) {
+            const braceGeo = new THREE.BoxGeometry(2.5, 0.12, 2.5);
+            const brace = new THREE.Mesh(braceGeo, poleMat.clone());
             brace.position.y = br;
-            towerGroup.add(brace);
-
-            // Diagonal cross-brace wires (thin cylinders)
-            for (let d = -1; d <= 1; d += 2) {
-                const diagGeo = new THREE.CylinderGeometry(0.03, 0.03, Math.sqrt(8), 4);
-                const diagMat = poleMat.clone();
-                const diagonal = new THREE.Mesh(diagGeo, diagMat);
-                diagonal.position.set(d * 0.95, br + 2.25, d * 0.95);
-                diagonal.rotation.z = Math.PI / 4; // Angle for cross-brace
-                towerGroup.add(diagonal);
-
-                const diagonal2 = new THREE.Mesh(diagGeo.clone(), diagMat);
-                diagonal2.position.set(-d * 0.95, br + 2.25, d * 0.95);
-                diagonal2.rotation.z = -Math.PI / 4; // Opposite angle for cross-brace
-                towerGroup.add(diagonal2);
-            }
-
-        // Top platform (small square deck)
-        const platGeo = new THREE.BoxGeometry(1.8, 0.2, 1.8);
-        const platMat = poleMat.clone();
-        const platform = new THREE.Mesh(platGeo, platMat);
-        platform.position.y = 17; // Near top of tower
-        towerGroup.add(platform);
-
-        // Platform railing (thin posts around the edge)
-        for (let r = 0; r < 8; r++) {
-            const railAngle = (r / 8) * Math.PI * 2;
-            const railGeo = new THREE.CylinderGeometry(0.03, 0.03, 1, 4);
-            const railMat = poleMat.clone();
-            const railing = new THREE.Mesh(railGeo, railMat);
-            railing.position.set(Math.cos(railAngle) * 0.85, 17.6, Math.sin(railAngle) * 0.85);
-            towerGroup.add(railing);
+            brace.userData.mapGenerated = true;
+            tower.add(brace);
         }
 
-        // Main dish antenna (parabolic shape using cone geometry inverted)
-        const dishGeo = new THREE.ConeGeometry(2, 3, 8, 1, true); // Open-top cone for dish
-        const dishMat = new THREE.MeshStandardMaterial({ color: 0x6b7280, roughness: 0.4, metalness: 0.5 });
+        // Dish antenna
+        const dishGeo = new THREE.ConeGeometry(2, 3, 8, 1, true);
+        const dishMat = new THREE.MeshStandardMaterial({
+            color: 0x6b7280,
+            roughness: 0.4,
+            metalness: 0.5
+        });
         const dish = new THREE.Mesh(dishGeo, dishMat);
-        dish.position.set(0, 19, -1.5); // Tilted forward (toward negative Z)
-        dish.rotation.x = Math.PI / 6; // Slight tilt angle for directional signal
+        dish.position.set(0, 18, -1);
+        dish.rotation.x = Math.PI / 6;
+        dish.userData.mapGenerated = true;
+        tower.add(dish);
 
-        this.spawnPads = [];
-        const padMat = new THREE.MeshStandardMaterial({ color: 0xb0bec5, roughness: 0.8, flatShading: true });
-        const padGeo = new THREE.BoxGeometry(2.2, 0.3, 2.2);
-        const pads = [];
+        tower.position.set(x, 0, z);
+        tower.userData.mapGenerated = true;
+        this.scene.add(tower);
 
-        // Distribute spawn pads across sectors (~12 pads per sector)
-        const padsPerSector = 12;
-        for (const sector of this.voronoi.sectors) {
-            const cx = sector.center.x;
-            const cz = sector.center.z;
-            const radius = 15; // ~15m radius per sector
-
-            for (let i = 0; i < padsPerSector; i++) {
-                const angle = (i / padsPerSector) * Math.PI * 2;
-                const r = radius * Math.sqrt(Math.random());
-                const wx = Math.round(cx + Math.cos(angle) * r);
-                const wz = Math.round(cz + Math.sin(angle) * r);
-
-                pads.push({ x: wx, z: wz });
-            }
-        }
-
-        // Instanced mesh for pads
-        const inst = new THREE.InstancedMesh(padGeo, padMat, pads.length);
-        const dummy = new THREE.Object3D();
-
-        for (let i = 0; i < pads.length; i++) {
-            const p = pads[i];
-            const floorY = this.getSurfaceHeightAt(p.x, p.z);
-            const padY = floorY + 0.19;
-            dummy.position.set(p.x, padY, p.z);
-            dummy.updateMatrix();
-            inst.setMatrixAt(i, dummy.matrix);
-
-            this.addColliderBox(new THREE.Vector3(p.x, padY, p.z), 2.2, 0.3, 2.2, true);
-            const pad = new THREE.Vector3(p.x, floorY + 0.34, p.z);
-            this.spawnPads.push(pad);
-        }
-
-        inst.userData.mapGenerated = true;
-        this.scene.add(inst);
-
-        // Player spawn point
-        this.playerSpawn = { x: 0, y: 0 };
+        this.addColliderBox(
+            new THREE.Vector3(x, 8, z),
+            1.5, 16, 1.5, false
+        );
     }
 
-    // --- Store building references for API queries ---
-    _buildings = [];
-
-    getSurfaceHeightAt(x, z) {
-        let top = this.getHeightAt(x, z);
-        for (const box of this.colliders || []) {
-            if (!box?.walkable || box.enabled === false) continue;
-            if (x < box.min.x || x > box.max.x) continue;
-            if (z < box.min.z || z > box.max.z) continue;
-            if (box.max.y > top) top = box.max.y;
+    // =========================================================================
+    // COVER OBJECTS (scattered across all quadrants)
+    // =========================================================================
+    _placeCoverObjects() {
+        // Barrels
+        for (let i = 0; i < 60; i++) {
+            const x = -HALF + 20 + this._rand() * (MAP_SIZE - 40);
+            const z = -HALF + 20 + this._rand() * (MAP_SIZE - 40);
+            if (Math.abs(x) < 10 && Math.abs(z) < 10) continue;
+            this._addBarrel(x, z);
         }
-        return top;
+
+        // Crates
+        for (let i = 0; i < 80; i++) {
+            const x = -HALF + 20 + this._rand() * (MAP_SIZE - 40);
+            const z = -HALF + 20 + this._rand() * (MAP_SIZE - 40);
+            if (Math.abs(x) < 10 && Math.abs(z) < 10) continue;
+            this._addCrate(x, z);
+        }
     }
 
-    // ========================================================================
-    // API CONTRACT (preserved from original)
-    // ========================================================================
+    _addBarrel(x, z) {
+        const geo = new THREE.CylinderGeometry(0.4, 0.4, 0.9, 8);
+        const mat = new THREE.MeshStandardMaterial({
+            color: 0x5d4037,
+            roughness: 0.9
+        });
+        const barrel = new THREE.Mesh(geo, mat);
+        barrel.position.set(x, 0.45, z);
+        barrel.userData.mapGenerated = true;
+        barrel.userData.physicsType = 'STATIC';
+        this.scene.add(barrel);
+        this.addColliderBox(new THREE.Vector3(x, 0.45, z), 0.8, 0.8, 0.8, false);
+    }
 
-    addColliderBox(center, width, height, depth, walkable = false, enabled = true, dynamic = false, collisionBounds = 'BOX') {
-        if (!center || !Number.isFinite(center.x) || !Number.isFinite(center.y) || !Number.isFinite(center.z)) return null;
-        if (!Number.isFinite(width) || !Number.isFinite(height) || !Number.isFinite(depth)) return null;
-        if (width < 0.3 || height < 0.3 || depth < 0.3) return null;
-        const min = new THREE.Vector3(
-            center.x - width / 2,
-            center.y - height / 2,
-            center.z - depth / 2
+    _addCrate(x, z) {
+        const size = 0.5 + this._rand() * 0.5;
+        const geo = new THREE.BoxGeometry(size, size, size);
+        const mat = new THREE.MeshStandardMaterial({
+            color: 0xa1887f,
+            roughness: 0.9,
+            flatShading: true
+        });
+        const crate = new THREE.Mesh(geo, mat);
+        crate.position.set(x, size / 2, z);
+        crate.rotation.y = this._rand() * Math.PI;
+        crate.userData.mapGenerated = true;
+        crate.userData.physicsType = 'STATIC';
+        this.scene.add(crate);
+        this.addColliderBox(
+            new THREE.Vector3(x, size / 2, z),
+            size, size, size, false
         );
-        const max = new THREE.Vector3(
-            center.x + width / 2,
-            center.y + height / 2,
-            center.z + depth / 2
-        );
+    }
+
+    // =========================================================================
+    // SPAWN PADS
+    // =========================================================================
+    _buildSpawnPads() {
+        // Add cornucopia platform as spawn pad
+        this.spawnPads.push(new THREE.Vector3(0, 0.34, 0));
+
+        // Add floor tiles as spawn pads
+        for (const tile of this._floorTiles) {
+            this.spawnPads.push(new THREE.Vector3(tile.x, 0.34, tile.z));
+        }
+    }
+
+    // =========================================================================
+    // API CONTRACT
+    // =========================================================================
+    addColliderBox(center, width, height, depth, walkable = false) {
         const box = {
-            min, max, walkable, enabled, dynamic,
-            physicsType: 'STATIC',
-            useCollisionBounds: true,
-            collisionBounds: collisionBounds === 'CONVEX_HULL' ? 'CONVEX_HULL' : (collisionBounds === 'MESH' ? 'MESH' : 'BOX')
+            min: new THREE.Vector3(
+                center.x - width / 2,
+                center.y - height / 2,
+                center.z - depth / 2
+            ),
+            max: new THREE.Vector3(
+                center.x + width / 2,
+                center.y + height / 2,
+                center.z + depth / 2
+            ),
+            walkable,
+            enabled: true,
+            dynamic: false,
+            physicsType: 'STATIC'
         };
         this.colliders.push(box);
         return box;
@@ -1451,12 +1479,15 @@ export class MapGenerator {
     }
 
     getSpawnPads() {
-        return this.spawnPads || [];
+        return this.spawnPads;
     }
 
     getSpawnWorld() {
-        // Return map center in world coordinates
         return { x: 0, z: 0 };
+    }
+
+    getFloorTiles() {
+        return this._floorTiles;
     }
 
     getTraps() {
@@ -1476,100 +1507,50 @@ export class MapGenerator {
     }
 
     getHouseSpots() {
-        return [];
-    }
-
-    getHangarSpots() {
-        return [];
-    }
-
-    spawnCourtyardRadius = 40;
-
-    // --- Explosive barrel spots (near cover objects) ---
-    getExplosiveBarrelSpots() {
         const spots = [];
-        const numSpots = 40;
-        for (let i = 0; i < numSpots; i++) {
-            const x = -this.halfSize + this._rand() * this.size;
-            const z = -this.halfSize + this._rand() * this.size;
-            spots.push({ x, z });
-        }
-        return spots;
-    }
-
-    // --- House spots (near buildings) ---
-    getHouseSpots() {
-        const spots = [];
-        for (const placement of this._buildings || []) {
-            // Spot in front of the building
-            const angle = this._rand() * Math.PI * 2;
-            const dist = 8 + this._rand() * 16;
-            spots.push({
-                x: placement.x + Math.cos(angle) * dist,
-                z: placement.z + Math.sin(angle) * dist
-            });
-        }
-        return spots;
-    }
-
-    // --- Hangar spots (near large buildings) ---
-    getHangarSpots() {
-        const spots = [];
-        for (const placement of this._buildings || []) {
-            if (placement.template.width > 12 && placement.template.depth > 12) {
-                const angle = this._rand() * Math.PI * 2;
-                const dist = 12 + this._rand() * 20;
+        for (const b of this._buildings) {
+            if (b.template?.type === 'log_cabin') {
                 spots.push({
-                    x: placement.x + Math.cos(angle) * dist,
-                    z: placement.z + Math.sin(angle) * dist
+                    x: b.x,
+                    z: b.z + b.d / 2 + 2,
+                    type: 'house'
                 });
             }
         }
         return spots;
     }
 
-    // --- Floor tiles (walkable surfaces) ---
-    getFloorTiles() {
-        const tiles = [];
-        const gridW = this.gridWidth;
-        const gridH = this.gridHeight;
-        for (let gy = 0; gy < gridH; gy++) {
-            for (let gx = 0; gx < gridW; gx++) {
-                const wx = (gx - gridW / 2) * this.tileSize;
-                const wz = (gy - gridH / 2) * this.tileSize;
-                if (this.isWalkableAt(wx, wz)) {
-                    tiles.push({ x: wx, z: wz });
-                }
+    getHangarSpots() {
+        return [];
+    }
+
+    getExplosiveBarrelSpots() {
+        const spots = [];
+        for (let i = 0; i < 30; i++) {
+            spots.push({
+                x: -HALF + 30 + this._rand() * (MAP_SIZE - 60),
+                z: -HALF + 30 + this._rand() * (MAP_SIZE - 60)
+            });
+        }
+        return spots;
+    }
+
+    getStructureAtPoint(x, z, margin = 2) {
+        for (const bp of this._buildings) {
+            const dx = x - bp.x;
+            const dz = z - bp.z;
+            if (Math.abs(dx) < bp.w / 2 + margin && Math.abs(dz) < bp.d / 2 + margin) {
+                return bp;
             }
         }
-        return tiles;
-    }
-
-    // --- Courtyard system ---
-    isInsideCourtyard() {
-        return false;
-    }
-
-    getCourtyardExitPosition() {
         return null;
     }
 
-    setCourtyardGateOpen(open) {
-        // Stub for courtyard gate control
-    }
-
-    // --- Walkability check ---
     isWalkableAt(x, z) {
-        const grid = this.worldToGrid(x, z);
-        const gx = Math.max(0, Math.min(this.gridWidth - 1, grid.x));
-        const gy = Math.max(0, Math.min(this.gridHeight - 1, grid.y));
-        // Check against colliders
-        for (const box of this.colliders || []) {
+        for (const box of this.colliders) {
             if (!box.walkable && box.enabled !== false) {
-                const min = box.min;
-                const max = box.max;
-                if (x >= min.x - 0.5 && x <= max.x + 0.5 &&
-                    z >= min.z - 0.5 && z <= max.z + 0.5) {
+                if (x >= box.min.x - 0.5 && x <= box.max.x + 0.5 &&
+                    z >= box.min.z - 0.5 && z <= box.max.z + 0.5) {
                     return false;
                 }
             }
@@ -1577,100 +1558,259 @@ export class MapGenerator {
         return true;
     }
 
-    // --- Structure queries ---
-    _buildings = [];
-
-    addBuilding(placement) {
-        this._buildings.push(placement);
+    isInsideCourtyard(pos) {
+        const dx = pos.x;
+        const dz = pos.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        return dist < 38;
     }
 
-    getStructureAtPoint(x, z, margin = 0.2) {
-        for (const bp of this._buildings || []) {
-            const dx = x - bp.x;
-            const dz = z - bp.z;
-            const dist = Math.sqrt(dx * dx + dz * dz);
-            if (dist < (bp.w + bp.d) / 2 + margin) {
-                return {
-                    type: bp.template.type,
-                    x: bp.x, z: bp.z,
-                    width: bp.w, depth: bp.d
-                };
-            }
-        }
-        return null;
+    getCourtyardExitPosition() {
+        return new THREE.Vector3(0, 0.5, -38);
     }
 
-    findStructureGuardPoint(structure, type = 'house') {
-        if (!structure || !structure.x || !structure.z) return null;
-        // Guard point ~12m in front of the structure
-        const angle = this._rand() * Math.PI * 2;
-        const dist = 8 + this._rand() * 8;
-        return {
-            x: structure.x + Math.cos(angle) * dist,
-            z: structure.z + Math.sin(angle) * dist,
-            structure
-        };
+    setCourtyardGateOpen(open) {
+        // Stub
     }
 
-    findStructureInteriorPoint(structure, type = 'house', padding = 1.2, attempts = 28) {
-        if (!structure || !structure.x || !structure.z) return null;
-        const halfW = structure.width / 2;
-        const halfD = structure.depth / 2;
-        const side = this._rand() > 0.5 ? 1 : -1;
-        const interiorX = structure.x + (halfW - padding) * side;
-        const interiorZ = structure.z + (halfD - padding) * side;
-        // Check if walkable
-        if (this.isWalkableAt(interiorX, interiorZ)) {
-            return { x: interiorX, z: interiorZ };
-        }
-        // Try random offset
-        for (let i = 0; i < attempts; i++) {
-            const angle = this._rand() * Math.PI * 2;
-            const dist = padding * 0.5 + this._rand() * padding * 0.5;
-            const tx = structure.x + Math.cos(angle) * dist;
-            const tz = structure.z + Math.sin(angle) * dist;
-            if (this.isWalkableAt(tx, tz)) {
-                return { x: tx, z: tz };
-            }
-        }
-        return null;
+    getActiveSafeRadius() {
+        return this.halfSize * 0.8;
     }
 
-    getStructureEntryPoint(structure, type, playerPos) {
-        // Return a point near the structure for the player to move to
-        if (!structure || !structure.x || !structure.z) return null;
-        const dx = playerPos.x - structure.x;
-        const dz = playerPos.z - structure.z;
-        const angle = Math.atan2(dz, dx);
-        const dist = Math.sqrt(dx * dx + dz * dz) > 5 ? 5 : 2;
-        return {
-            x: structure.x + Math.cos(angle) * dist,
-            z: structure.z + Math.sin(angle) * dist
-        };
+    activateFogPhase(index) {
+        return this.halfSize * 0.8;
     }
 
-    // --- Radiation zones ---
+    getFloorTiles() {
+        return this._floorTiles;
+    }
+
+    isShelteredFromRain(pos) {
+        if (!pos) return false;
+        const structure = this.getStructureAtPoint(pos.x, pos.z, 3);
+        return !!structure;
+    }
+
     getClosestRadiationZone(x, z) {
-        // No radiation zones in this map
         return null;
     }
 
     getRadiationDamageAt(x, z) {
-        // No radiation in this map
         return 0;
     }
 
-    // --- Safe radius ---
-    getActiveSafeRadius() {
+    getFogDamageAt(x, z) {
         return 0;
     }
 
-    // --- Debug helper ---
-    enableDebug() {
+    activateTrapsNearEntity(entity) {
+        // No traps in this map
+    }
+
+    updatePropVisibility(pos) {
+        // No LOD prop visibility changes needed
+    }
+
+    enableOptimizedCulling() {
+        // Already optimized
+    }
+
+    setupLOD(isMobile) {
+        // LOD handled by distance-based culling in GameLoop
+    }
+
+    update(delta, playerPos) {
+        // No dynamic updates needed for static map
+    }
+
+    updateZoneAnimations(delta) {
+        // No zone animations on map itself
+    }
+
+    updateParticles(delta) {
+        // No particles
+    }
+
+    setWetTerrain(active) {
+        // No wet terrain
+    }
+
+    setRainPuddles(active, center) {
+        // No puddles
+    }
+
+    enableDebugOverlay() {
         if (!this.debugOverlay) {
-            // Access camera/controls from scene — they should be injected by main.js
             this.debugOverlay = new DebugOverlay(this.scene, this, null, null, null);
             this.debugOverlay.enable();
         }
+    }
+
+    // =========================================================================
+    // VISUAL ELEMENTS — Labels, Compass, Legend
+    // =========================================================================
+
+    /** Create a simple 3D text sprite for quadrant labels */
+    _createTextSprite(text, position, size = 4) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 512;
+        canvas.height = 128;
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.beginPath();
+        ctx.roundRect(10, 10, 492, 108, 20);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 48px Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, 256, 64);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.minFilter = THREE.LinearFilter;
+        const spriteMat = new THREE.SpriteMaterial({
+            map: texture,
+            transparent: true,
+            depthTest: false
+        });
+        const sprite = new THREE.Sprite(spriteMat);
+        sprite.position.copy(position);
+        sprite.position.y = 12;
+        sprite.scale.set(size * 4, size, 1);
+        sprite.userData.mapGenerated = true;
+        return sprite;
+    }
+
+    _addQuadrantLabels() {
+        const labels = [
+            { text: 'Forest', pos: new THREE.Vector3(-120, 0, -120) },
+            { text: 'Stone Maze', pos: new THREE.Vector3(120, 0, -120) },
+            { text: 'Military Ruins', pos: new THREE.Vector3(-120, 0, 120) },
+            { text: 'Ice Lake', pos: new THREE.Vector3(120, 0, 120) }
+        ];
+
+        for (const label of labels) {
+            const sprite = this._createTextSprite(label.text, label.pos, 5);
+            this.scene.add(sprite);
+        }
+    }
+
+    _addCompass() {
+        // North arrow
+        const northGeo = new THREE.ConeGeometry(2, 6, 4);
+        const northMat = new THREE.MeshStandardMaterial({
+            color: 0xff5252,
+            roughness: 0.6,
+            flatShading: true
+        });
+        const north = new THREE.Mesh(northGeo, northMat);
+        north.position.set(0, 3, -HALF + 30);
+        north.userData.mapGenerated = true;
+        this.scene.add(north);
+
+        // N label
+        const nCanvas = document.createElement('canvas');
+        const nCtx = nCanvas.getContext('2d');
+        nCanvas.width = 64;
+        nCanvas.height = 64;
+        nCtx.fillStyle = '#ffffff';
+        nCtx.font = 'bold 48px Arial';
+        nCtx.textAlign = 'center';
+        nCtx.textBaseline = 'middle';
+        nCtx.fillText('N', 32, 32);
+
+        const nTexture = new THREE.CanvasTexture(nCanvas);
+        const nSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: nTexture,
+            transparent: true,
+            depthTest: false
+        }));
+        nSprite.position.set(0, 12, -HALF + 30);
+        nSprite.scale.set(4, 4, 1);
+        nSprite.userData.mapGenerated = true;
+        this.scene.add(nSprite);
+
+        // South arrow
+        const south = new THREE.Mesh(northGeo.clone(), northMat.clone());
+        south.position.set(0, 3, HALF - 30);
+        south.userData.mapGenerated = true;
+        this.scene.add(south);
+
+        // E/W labels
+        const ewCanvas = document.createElement('canvas');
+        const ewCtx = ewCanvas.getContext('2d');
+        ewCanvas.width = 128;
+        ewCanvas.height = 64;
+        ewCtx.fillStyle = '#ffffff';
+        ewCtx.font = 'bold 36px Arial';
+        ewCtx.textAlign = 'center';
+        ewCtx.textBaseline = 'middle';
+        ewCtx.fillText('E', 96, 32);
+        ewCtx.fillText('W', 32, 32);
+
+        const ewTexture = new THREE.CanvasTexture(ewCanvas);
+        const ewSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: ewTexture,
+            transparent: true,
+            depthTest: false
+        }));
+        ewSprite.position.set(0, 8, 0);
+        ewSprite.scale.set(8, 4, 1);
+        ewSprite.userData.mapGenerated = true;
+        this.scene.add(ewSprite);
+    }
+
+    _addLegend() {
+        const legendCanvas = document.createElement('canvas');
+        const legendCtx = legendCanvas.getContext('2d');
+        legendCanvas.width = 256;
+        legendCanvas.height = 256;
+
+        // Background
+        legendCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        legendCtx.beginPath();
+        legendCtx.roundRect(10, 10, 236, 236, 15);
+        legendCtx.fill();
+
+        // Title
+        legendCtx.fillStyle = '#ffffff';
+        legendCtx.font = 'bold 24px Arial';
+        legendCtx.textAlign = 'left';
+        legendCtx.fillText('Map Legend', 25, 45);
+
+        // Legend items
+        const items = [
+            { text: 'Forest', color: '#4caf50' },
+            { text: 'Stone Maze', color: '#9e9e9e' },
+            { text: 'Military Ruins', color: '#795548' },
+            { text: 'Ice Lake', color: '#e0f7fa' },
+            { text: 'Cornucopia', color: '#ffd700' }
+        ];
+
+        items.forEach((item, i) => {
+            const y = 80 + i * 35;
+            legendCtx.fillStyle = item.color;
+            legendCtx.beginPath();
+            legendCtx.roundRect(25, y, 20, 20, 4);
+            legendCtx.fill();
+
+            legendCtx.fillStyle = '#ffffff';
+            legendCtx.font = '18px Arial';
+            legendCtx.fillText(item.text, 55, y + 16);
+        });
+
+        const legendTexture = new THREE.CanvasTexture(legendCanvas);
+        legendTexture.minFilter = THREE.LinearFilter;
+        const legendSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: legendTexture,
+            transparent: true,
+            depthTest: false
+        }));
+        legendSprite.position.set(HALF - 20, 10, 0);
+        legendSprite.scale.set(10, 10, 1);
+        legendSprite.userData.mapGenerated = true;
+        this.scene.add(legendSprite);
     }
 }
