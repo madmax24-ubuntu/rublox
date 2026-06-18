@@ -1,31 +1,19 @@
-// Roblox-style tile textures
+// Roblox-style tile textures — quadrant-based map
 const TILE_SIZE = 4;
 
-// Центральный спавн
-const SPAWN_PLATFORM_RADIUS = 32;
+// Central spawn platform
+const SPAWN_PLATFORM_RADIUS = 38;
 const SPAWN_PLATFORM_COUNT = 50;
 const SPAWN_PLATFORM_SIZE = 5;
 
-// Дороги
-const ROAD_WIDTH = 6;
-const ROAD_NORTH_OFFSET = 16;
-const ROAD_SOUTH_OFFSET = 32;
-const ROAD_WEST_OFFSET = 16;
-const ROAD_EAST_OFFSET = 32;
-
-// Материалы
+// Materials
 const TILE_COLORS = {
-    spawnPlatform: 0xC2B280,      // Бежевый камень
-    roadDirt: 0x8B7355,           // Земля (север, запад)
-    roadStone: 0x757575,          // Серый камень (юг, восток)
-    fountain: 0x4DA6FF,           // Синяя кристальная вода
-    fountainColumn: 0xFFD700,     // Золотой столб
-    fountainBase: 0xB8A888        // Бежевая база
+    spawnPad: 0xC2B280,
+    cornucopia: 0xFFD700,
+    cornucopiaInner: 0xDAA549,
+    river: 0x29B6F6,
+    bridge: 0x8D6E63,
 };
-
-// Треугольные узоры
-const TRIANGLE_COLOR = 0xFF4500; // Огненно-красный
-const TRIANGLE_COUNT = 36;
 
 export class MapGeneratorNode {
     constructor(scene) {

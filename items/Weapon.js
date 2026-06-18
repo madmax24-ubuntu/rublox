@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+﻿import * as THREE from "/node_modules/three/build/three.module.js";
 
 const WEAPON_BALANCE = {
     fists: { damage: 8, range: 2.4, cooldown: 0.38, ammo: null, durability: null, projectileSpeed: 0 },

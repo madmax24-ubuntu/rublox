@@ -1,0 +1,70 @@
+{
+  "testId": "44726eb3-ff38-4a70-a478-78dd6b904263",
+  "timestamp": "2026-06-18T17:58:36.352Z",
+  "reference": "./Gemini_Generated_Image_qgbvlxqgbvlxqgbv.png",
+  "url": "http://localhost:3001/",
+  "thresholds": {
+    "ssimMin": 0.85,
+    "psnrMin": 25,
+    "mseMax": 2500
+  },
+  "attempts": 5,
+  "passed": false,
+  "results": [
+    {
+      "error": "Comparison failed",
+      "ssim": 0,
+      "psnr": 0,
+      "mse": -1,
+      "pass": false,
+      "attempt": 1,
+      "screenshot": "test-results\\visual-screenshots\\final_1_5dbb41b4.png",
+      "consoleLogs": [],
+      "mapReady": true
+    },
+    {
+      "error": "Comparison failed",
+      "ssim": 0,
+      "psnr": 0,
+      "mse": -1,
+      "pass": false,
+      "attempt": 2,
+      "screenshot": "test-results\\visual-screenshots\\final_2_86534fde.png",
+      "consoleLogs": [],
+      "mapReady": true
+    },
+    {
+      "error": "Comparison failed",
+      "ssim": 0,
+      "psnr": 0,
+      "mse": -1,
+      "pass": false,
+      "attempt": 3,
+      "screenshot": "test-results\\visual-screenshots\\final_3_429f46fc.png",
+      "consoleLogs": [],
+      "mapReady": true
+    },
+    {
+      "error": "Comparison failed",
+      "ssim": 0,
+      "psnr": 0,
+      "mse": -1,
+      "pass": false,
+      "attempt": 4,
+      "screenshot": "test-results\\visual-screenshots\\final_4_09f6847f.png",
+      "consoleLogs": [],
+      "mapReady": true
+    },
+    {
+      "error": "Comparison failed",
+      "ssim": 0,
+      "psnr": 0,
+      "mse": -1,
+      "pass": false,
+      "attempt": 5,
+      "screenshot": "test-results\\visual-screenshots\\final_5_a2a96e0c.png",
+      "consoleLogs": [],
+      "mapReady": true
+    }
+  ]
+}

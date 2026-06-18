@@ -3,7 +3,7 @@ import playwright from 'playwright';
 async function main() {
     console.log('[0.0] Starting map visual analysis with top-down cameras');
 
-    const browser = await playwright.chromium.launch({ headless: false });
+    const browser = await playwright.chromium.launch({ headless: true });
     const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
 
     await page.goto('http://localhost:3001/');

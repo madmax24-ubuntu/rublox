@@ -1,5 +1,44 @@
-﻿﻿import * as THREE from 'three';
-import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
+﻿import * as THREE from "/node_modules/three/build/three.module.js";
+// Simple geometry merger (replaces BufferGeometryUtils)
+function mergeGeometries(geometries) {
+    const positions = [];
+    const normals = [];
+    const uvs = [];
+    const indices = [];
+    let indexOffset = 0;
+    
+    for (const geom of geometries) {
+        const posAttr = geom.getAttribute('position');
+        const normAttr = geom.getAttribute('normal');
+        const uvAttr = geom.getAttribute('uv');
+        const indexAttr = geom.getIndex();
+        
+        for (let i = 0; i < posAttr.count; i++) {
+            positions.push(posAttr.getX(i), posAttr.getY(i), posAttr.getZ(i));
+            if (normAttr) normals.push(normAttr.getX(i), normAttr.getY(i), normAttr.getZ(i));
+            if (uvAttr) uvs.push(uvAttr.getX(i), uvAttr.getY(i));
+        }
+        
+        if (indexAttr) {
+            for (let i = 0; i < indexAttr.count; i++) {
+                indices.push(indexAttr.getComponent(i) + indexOffset);
+            }
+        } else {
+            for (let i = 0; i < posAttr.count; i++) {
+                indices.push(i + indexOffset);
+            }
+        }
+        
+        indexOffset += posAttr.count;
+    }
+    
+    const merged = new THREE.BufferGeometry();
+    merged.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    if (normals.length) merged.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+    if (uvs.length) merged.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    merged.setIndex(indices);
+    return merged;
+}
 import { Weapon } from './Weapon.js';
 
 // --- ОПТИМИЗАЦИЯ ---
@@ -168,7 +207,7 @@ export class LootManager {
             bandGeom2.translate(0, 0.18, 0);
             const rimGeom = new THREE.BoxGeometry(1.32, 0.06, 1.02);
             rimGeom.translate(0, 0.76, 0);
-            const mergedBandGeom = BufferGeometryUtils.mergeGeometries([bandGeom1, bandGeom2, rimGeom]);
+            const mergedBandGeom = mergeGeometries([bandGeom1, bandGeom2, rimGeom]);
 
             const latchGeom = new THREE.BoxGeometry(0.18, 0.18, 0.06);
             latchGeom.translate(0, 0.46, 0.48);
@@ -186,7 +225,7 @@ export class LootManager {
                 g.translate(ox, oy, oz);
                 return g;
             });
-            const mergedMetalGeom = BufferGeometryUtils.mergeGeometries([latchGeom, latchPlateGeom, ...cornerGeometries]);
+            const mergedMetalGeom = mergeGeometries([latchGeom, latchPlateGeom, ...cornerGeometries]);
 
             // Создаем меши
             const bodyMesh = new THREE.Mesh(bodyGeom, bodyMat);

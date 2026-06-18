@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+﻿import * as THREE from "/node_modules/three/build/three.module.js";
 
 let activePopups = 0;
 const MAX_ACTIVE_POPUPS = 24;

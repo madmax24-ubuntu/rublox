@@ -1,5 +1,5 @@
-import * as THREE from 'three';
-import Stats from 'three/addons/libs/stats.module.js';
+import * as THREE from "/node_modules/three/build/three.module.js";
+import Stats from "/node_modules/three/examples/jsm/libs/stats.module.js";
 
 window.THREE = THREE;
 THREE.Cache.enabled = true;
@@ -441,8 +441,8 @@ class Game {
         if (this.camera) {
             const isTestMode = this._testMode || (typeof localStorage !== 'undefined' && localStorage.getItem('testMode') === 'true');
             if (isTestMode) {
-                this.camera.position.set(0, 200, 0.01);
-                this.camera.lookAt(0, -50, 0);
+                this.camera.position.set(0, 800, 0);
+                this.camera.lookAt(0, 0, 0);
                 this.camera.fov = 90;
                 this.camera.updateProjectionMatrix();
             } else {
@@ -486,9 +486,9 @@ class Game {
         this.player.setHUD(this.hud);
         this.player.mapRef = this.map;
         if (!this.player.parent) {
-            // Use pad Y or default ground level — not getHeightAt which returns noise
-            const surfaceY = (pad.y ?? 0) || 1.54;
-            this.player.position.set(pad.x, surfaceY + this.player.physics.height, pad.z);
+            // Use centerSpawn Y or default ground level — not getHeightAt which returns noise
+            const surfaceY = (centerSpawn.y ?? 0) || 1.54;
+            this.player.position.set(centerSpawn.x, surfaceY + this.player.physics.height, centerSpawn.z);
             this.player.physics.onGround = true;
         } else {
             const angle = Math.random() * Math.PI * 2;
@@ -513,8 +513,8 @@ class Game {
         this.zombieSpawnCandidates = [];
         this.zombieSpawnCursor = 0;
         this.poiSpawnCandidates = [];
-      this.poiSpawnCursor = 0;
-    this.spawnBots();
+        this.poiSpawnCursor = 0;
+        this.spawnBots();
         this.rebuildSpawnCaches();
         this.spawnEnvironmentEntities();
         this.gateClosed = false;
@@ -743,7 +743,24 @@ class Game {
 
     syncCameraToPlayer() {
         const isTestMode = this._testMode || (typeof localStorage !== 'undefined' && localStorage.getItem('testMode') === 'true');
-        if (isTestMode) return;
+        if (isTestMode) {
+            // In test mode, detach camera from player and keep top-down view
+            if (this.player?.pitch && this.player.pitch.children.includes(this.camera)) {
+                this.player.pitch.remove(this.camera);
+            }
+            if (this.camera.parent && this.camera.parent !== this.scene) {
+                this.camera.parent.remove(this.camera);
+            }
+            this.scene.add(this.camera);
+            this.camera.position.set(0, 800, 0);
+            this.camera.lookAt(0, 0, 0);
+            this.camera.updateProjectionMatrix();
+            if (this.player) {
+                this.player.position.set(0, 0, 0);
+                this.player.visible = false;
+            }
+            return;
+        }
         if (!this.player || !this.camera) return;
         if (!this.player.parent && this.scene) this.scene.add(this.player);
         if (this.player.pitch && this.camera.parent !== this.player.pitch) {
@@ -820,42 +837,44 @@ class Game {
         const botCount = Math.max(0, totalParticipants - 1);
 
         // Центр карты — надёжный спавн для всех ботов
-        const spawnSlots = new THREE.Vector3(0, surfaceY + this.player.physics.height, 0);
+        const surfaceY = this.player?.physics?.height ?? 1.54;
+        const slots = [];
+        const minDistance = 2;
+        const center = { x: 0, y: surfaceY, z: 0 };
 
-        if (this.map.isWalkableAt?.(spawnSlots.x, spawnSlots.z)) {
+        if (this.map.isWalkableAt?.(0, 0)) {
+            const canUsePoint = (x, z) => {
+                if (!this.map?.isWalkableAt?.(x, z)) return false;
+                return !slots.some(s => Math.hypot(s.x - x, s.z - z) < minDistance);
+            };
+            const tryAddSlot = (x, z) => {
+                if (!canUsePoint(x, z)) return false;
+                const y0 = 1.54;
+                slots.push({ x, y: y0 + 1.9, z });
+                return true;
+            };
 
-
-        const canUsePoint = (x, z) => {
-            if (!this.map?.isWalkableAt?.(x, z)) return false;
-            return !slots.some(s => Math.hypot(s.x - x, s.z - z) < minDistance);
-        };
-        const tryAddSlot = (x, z) => {
-            if (!canUsePoint(x, z)) return false;
-            const y0 = 1.54;
-            slots.push({ x, y: y0 + 1.9, z });
-            return true;
-        };
-
-        // Use map-wide tiles spread across the ENTIRE map, not just the courtyard
-        const mapTiles = this.map.getFloorTiles?.() || [];
-        if (mapTiles.length) {
-            for (const tile of mapTiles) {
-                if (slots.length >= botCount) break;
-                const jitterX = (Math.random() - 0.5) * 12;
-                const jitterZ = (Math.random() - 0.5) * 12;
-                tryAddSlot(tile.x + jitterX, tile.z + jitterZ);
+            // Use map-wide tiles spread across the ENTIRE map, not just the courtyard
+            const mapTiles = this.map.getFloorTiles?.() || [];
+            if (mapTiles.length) {
+                for (const tile of mapTiles) {
+                    if (slots.length >= botCount) break;
+                    const jitterX = (Math.random() - 0.5) * 12;
+                    const jitterZ = (Math.random() - 0.5) * 12;
+                    tryAddSlot(tile.x + jitterX, tile.z + jitterZ);
+                }
             }
-        }
 
-        // Fill remaining bots with random positions across the entire map
-        if (slots.length < botCount) {
-            let attempts = 0;
-            while (slots.length < botCount && attempts++ < 8000) {
-                const angle = Math.random() * Math.PI * 2;
-                const radius = 60 + Math.random() * (this.map?.size || 440 - 60);
-                const x = Math.cos(angle) * radius;
-                const z = Math.sin(angle) * radius;
-                tryAddSlot(x, z);
+            // Fill remaining bots with random positions across the entire map
+            if (slots.length < botCount) {
+                let attempts = 0;
+                while (slots.length < botCount && attempts++ < 8000) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const radius = 60 + Math.random() * (this.map?.size || 440 - 60);
+                    const x = Math.cos(angle) * radius;
+                    const z = Math.sin(angle) * radius;
+                    tryAddSlot(x, z);
+                }
             }
         }
 
@@ -1531,8 +1550,8 @@ class Game {
                 if (this.activeEvent.type === "night" && this.env?.forceNightTimer !== undefined) {
                     this.env.forceNightTimer = 0;
                 }
-                else if (!fogActive && !blurryVis && this.scene?.fog) {
-                    const fogBase = sceneFogData.base; // read from this.scene.fog or config
+                else if (!this.fogActive && !this.blurryVis && this.scene?.fog) {
+                    const fogBase = this.scene.fog?.density || 0.05;
                     this.scene.fog.density = (this.activeEvent.type === "night") ? 0.15 : Math.max(0.02, fogBase * 1);
                 }
             }
@@ -1743,22 +1762,22 @@ class Game {
 
         if (this.isVisible === false) return;
         if (this.activeEvent.type === 'radiation_rain') {
-            fogActiveCount++;
+            this.fogActiveCount++;
             if (!this.radiationRainGraceTimer) {
                 this.radiationRainGraceTimer = 6.0;
             }
             else {
                 this.radiationRainGraceTimer -= delta;
-                if (this.radiationRainGraceTimer <= 0) fogActiveCount--;
+                if (this.radiationRainGraceTimer <= 0) this.fogActiveCount--;
             }
         }
 
         // Event resolution & state reset
-        if (!fogActive || !blurryVis && event === "blindness" && fogActiveCount > 0) {}
+        if (!this.fogActive || !this.blurryVis && event === "blindness" && this.fogActiveCount > 0) {}
         else {
-            fogActive = false;
-            blurryVis = false;
-            this.scene.fog.density = sceneFogData.base; // restore base
+            this.fogActive = false;
+            this.blurryVis = false;
+            this.scene.fog.density = this.sceneFogData?.base || 0.05; // restore base
             prevRadiation = undefined;
         }
 
@@ -3003,24 +3022,19 @@ window.addEventListener('DOMContentLoaded', () => {
         startDebugLoop();
 
         console.log('🗺️ Debug controls: WASD move | Q/E up-down | Scroll zoom | R reset view | T top-down');
-                } else {
-                    if (!game || !document.getElementById('loading')) return;
-                    setLoadingProgress(0.9);
-                     window.updateDebugOverlay?.();
-            };
-    yandex.init() ?? this.hud.showGameMessage('\u042f\u0437\u0435\u0418\u043D \u0442\u0435\u043B\u0435');
 
-        console.warn('Yandex init fallback:', err);
-    });
-        console.warn('Yandex init fallback:', err);
-    });
-    if (game.isMobile()) {
-        document.body.classList.add('mobile');
-        game.updateOrientationUI();
-        window.addEventListener('orientationchange', () => game.updateOrientationUI());
-    }
+        try {
+            yandex.init();
+        } catch (err) {
+            console.warn('Yandex init fallback:', err);
+        }
+        if (game.isMobile()) {
+            document.body.classList.add('mobile');
+            game.updateOrientationUI();
+            window.addEventListener('orientationchange', () => game.updateOrientationUI());
+        }
 
-    document.addEventListener('selectSlot', (event) => {
+        document.addEventListener('selectSlot', (event) => {
         if (!game?.player) return;
         const slot = typeof event.detail === 'number' ? event.detail : null;
         if (slot === null) return;
@@ -3094,6 +3108,7 @@ window.addEventListener('DOMContentLoaded', () => {
     bindStartButton(document.getElementById('startButtonDesktop'));
     bindStartButton(document.getElementById('startButtonMobile'));
     bindStartButton(document.getElementById('startButton'));
+    }
 });
 
 

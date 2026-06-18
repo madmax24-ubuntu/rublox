@@ -1,4 +1,4 @@
-import * as THREE from "three";
+﻿import * as THREE from "/node_modules/three/build/three.module.js";
 
 // Debug overlay: FPS counter, bounding boxes, sector visualization
 // IMPORTANT: Does NOT control camera — camera stays in main.js hands

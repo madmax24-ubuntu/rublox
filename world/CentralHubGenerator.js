@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CentralHubGenerator - Generates the central hub with Rose Compass + Cornucopia
  * 
  * Features:
@@ -7,7 +7,7 @@
  * - Decorative grass ring
  */
 
-import * as THREE from 'three';
+import * as THREE from "/node_modules/three/build/three.module.js";
 
 export default class CentralHubGenerator {
     constructor(mapGen, materialSystem) {

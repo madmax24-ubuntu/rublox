@@ -1,4 +1,4 @@
-import * as THREE from "three";
+﻿import * as THREE from "../node_modules/three/build/three.module.js";
 import { MapGeneratorNode } from "./MapGeneratorNode.js";
 import { AABBGrid } from "./AABBGrid.js";
 import { DebugOverlay } from "./DebugOverlay.js";
@@ -762,6 +762,7 @@ export class MapGenerator {
         }
 
         // Maze generation using recursive backtracker
+        const mazeRand = this._rand.bind(this);
         function carveMaze(cx, cz) {
             grid[cz][cx] = 0;
             const dirs = [
@@ -769,7 +770,7 @@ export class MapGenerator {
                 { dx: 1, dz: 0 },
                 { dx: 0, dz: 1 },
                 { dx: -1, dz: 0 }
-            ].sort(() => this._rand() - 0.5);
+            ].sort(() => mazeRand() - 0.5);
 
             for (const dir of dirs) {
                 const nx = cx + dir.dx * 2;

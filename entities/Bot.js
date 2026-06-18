@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+﻿import * as THREE from "/node_modules/three/build/three.module.js";
 import { Inventory } from '../items/Inventory.js';
 import { Weapon } from '../items/Weapon.js';
 import { spawnDamagePopup } from './DamagePopup.js';

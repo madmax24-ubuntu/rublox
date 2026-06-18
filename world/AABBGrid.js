@@ -1,4 +1,4 @@
-import * as THREE from "three";
+﻿import * as THREE from "/node_modules/three/build/three.module.js";
 
 // Optimized spatial hash grid for O(1) nearby collision queries
 export class AABBGrid {
