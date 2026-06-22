@@ -36,8 +36,14 @@ const cam = new THREE.OrthographicCamera(-D * aspect, D * aspect, D, -D, 1, 4000
 
 function setView(mode) {
     if (mode === 'iso') {
+        cam.left = -D * aspect; cam.right = D * aspect; cam.top = D; cam.bottom = -D;
         cam.position.set(0, 700, 360);
+    } else if (mode === 'hub') {
+        const z = 55;
+        cam.left = -z * aspect; cam.right = z * aspect; cam.top = z; cam.bottom = -z;
+        cam.position.set(0, 120, 70);
     } else {
+        cam.left = -D * aspect; cam.right = D * aspect; cam.top = D; cam.bottom = -D;
         cam.position.set(0, 1000, 0.001);
     }
     cam.lookAt(0, 0, 0);

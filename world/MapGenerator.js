@@ -165,8 +165,9 @@ export class MapGenerator {
     // TERRAIN — Circular map with quadrant-based vertex colors
     // =========================================================================
     _generateTerrain() {
-        // Create circular terrain with quadrant-based vertex colors
-        const geo = new THREE.CircleGeometry(HALF - 10, 64);
+        // Square terrain with quadrant-based vertex colors (matches reference frame)
+        const inner = MAP_SIZE - 16;
+        const geo = new THREE.PlaneGeometry(inner, inner, 96, 96);
         geo.rotateX(-Math.PI / 2);
 
         const colors = [];
@@ -192,19 +193,8 @@ export class MapGenerator {
         terrain.userData.walkable = true;
         this.scene.add(terrain);
 
-        // Dark circular boundary ring
-        const boundaryGeo = new THREE.RingGeometry(HALF - 12, HALF - 8, 64);
-        boundaryGeo.rotateX(-Math.PI / 2);
-        const boundaryMat = new THREE.MeshStandardMaterial({
-            color: COLORS.mapBoundary,
-            roughness: 0.95,
-            flatShading: true,
-            side: THREE.DoubleSide
-        });
-        const boundary = new THREE.Mesh(boundaryGeo, boundaryMat);
-        boundary.position.set(0, 0.02, 0);
-        boundary.userData.mapGenerated = true;
-        this.scene.add(boundary);
+        // Blue beveled frame border around the whole map (like reference)
+        this._generateBorderFrame();
 
         // Height map (flat = 0)
         this.heightMap = [];
@@ -214,6 +204,103 @@ export class MapGenerator {
                 this.heightMap[gy][gx] = 0;
             }
         }
+    }
+
+    _generateBorderFrame() {
+        const half = HALF;            // 256
+        const t = 18;                 // frame thickness
+        const h = 16;                 // frame height
+        const mid = half - t / 2;     // center line of each wall
+
+        const frameMat = new THREE.MeshStandardMaterial({
+            color: 0x3d7ec4,
+            roughness: 0.55,
+            metalness: 0.1,
+            flatShading: true
+        });
+        const topMat = new THREE.MeshStandardMaterial({
+            color: 0x6aa6e6,
+            roughness: 0.5,
+            flatShading: true
+        });
+        const innerBevelMat = new THREE.MeshStandardMaterial({
+            color: 0x2b5d9e,
+            roughness: 0.6,
+            flatShading: true,
+            side: THREE.DoubleSide
+        });
+
+        const walls = [
+            { x: 0, z: -mid, w: half * 2, d: t },   // North
+            { x: 0, z: mid, w: half * 2, d: t },    // South
+            { x: mid, z: 0, w: t, d: half * 2 },    // East
+            { x: -mid, z: 0, w: t, d: half * 2 },   // West
+        ];
+        for (const wll of walls) {
+            const box = new THREE.Mesh(new THREE.BoxGeometry(wll.w, h, wll.d), frameMat);
+            box.position.set(wll.x, h / 2 - 0.5, wll.z);
+            box.userData.mapGenerated = true;
+            this.scene.add(box);
+            this.addColliderBox(new THREE.Vector3(wll.x, h / 2, wll.z), wll.w, h, wll.d, false);
+
+            // lighter top cap
+            const cap = new THREE.Mesh(new THREE.BoxGeometry(wll.w, 1.2, wll.d), topMat);
+            cap.position.set(wll.x, h - 0.5, wll.z);
+            cap.userData.mapGenerated = true;
+            this.scene.add(cap);
+        }
+
+        // Inner beveled lip (angled plane from frame top down to ground)
+        const bevelLen = 10;
+        const bevels = [
+            { x: 0, z: -(half - t), rotY: 0 },
+            { x: 0, z: (half - t), rotY: Math.PI },
+            { x: (half - t), z: 0, rotY: -Math.PI / 2 },
+            { x: -(half - t), z: 0, rotY: Math.PI / 2 },
+        ];
+        for (const b of bevels) {
+            const g = new THREE.PlaneGeometry(half * 2, bevelLen);
+            const m = new THREE.Mesh(g, innerBevelMat);
+            m.position.set(b.x, h / 2 - 2, b.z);
+            m.rotation.order = 'YXZ';
+            m.rotation.y = b.rotY;
+            m.rotation.x = -Math.PI / 3;
+            m.userData.mapGenerated = true;
+            this.scene.add(m);
+        }
+
+        // Cardinal letters N / E / S / W on the frame top
+        const letters = [
+            { ch: 'N', x: 0, z: -mid },
+            { ch: 'S', x: 0, z: mid },
+            { ch: 'E', x: mid, z: 0 },
+            { ch: 'W', x: -mid, z: 0 },
+        ];
+        for (const L of letters) {
+            const tex = this._makeLetterTexture(L.ch);
+            const lm = new THREE.MeshBasicMaterial({ map: tex, transparent: true });
+            const lg = new THREE.PlaneGeometry(20, 20);
+            lg.rotateX(-Math.PI / 2);
+            const lp = new THREE.Mesh(lg, lm);
+            lp.position.set(L.x, h + 0.3, L.z);
+            lp.userData.mapGenerated = true;
+            this.scene.add(lp);
+        }
+    }
+
+    _makeLetterTexture(ch) {
+        const c = document.createElement('canvas');
+        c.width = 128; c.height = 128;
+        const ctx = c.getContext('2d');
+        ctx.clearRect(0, 0, 128, 128);
+        ctx.fillStyle = '#eaf3ff';
+        ctx.font = 'bold 96px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(ch, 64, 70);
+        const tex = new THREE.CanvasTexture(c);
+        tex.needsUpdate = true;
+        return tex;
     }
 
     _getTerrainColor(x, z) {
@@ -319,66 +406,151 @@ export class MapGenerator {
         innerRing.userData.mapGenerated = true;
         group.add(innerRing);
 
-        // Golden Cornucopia (horn shape)
-        const hornMat = new THREE.MeshStandardMaterial({
+        // Golden water fountain (replaces the cornucopia horn)
+        this._buildFountain(group);
+
+        this.scene.add(group);
+
+        // Ring of 50 player spawn tiles around the hub
+        this._buildPlayerTiles();
+    }
+
+    // -------------------------------------------------------------------------
+    // Golden multi-tier fountain with water
+    // -------------------------------------------------------------------------
+    _buildFountain(group) {
+        const gold = new THREE.MeshStandardMaterial({
             color: COLORS.cornucopia,
-            metalness: 0.8,
-            roughness: 0.15
+            metalness: 0.9,
+            roughness: 0.18
+        });
+        const goldDark = new THREE.MeshStandardMaterial({
+            color: COLORS.cornucopiaInner,
+            metalness: 0.85,
+            roughness: 0.3
+        });
+        const water = new THREE.MeshStandardMaterial({
+            color: 0x4fc3f7,
+            metalness: 0.2,
+            roughness: 0.1,
+            transparent: true,
+            opacity: 0.8
         });
 
-        // Main horn body — lathe geometry for curved horn shape
-        const hornPoints = [];
-        for (let i = 0; i <= 20; i++) {
-            const t = i / 20;
-            const radius = 6 * (1 - t * 0.8);
-            const y = t * 14;
-            hornPoints.push(new THREE.Vector2(radius, y));
+        const f = new THREE.Group();
+        f.userData.mapGenerated = true;
+        f.userData.isFountain = true;
+
+        // Base pool — outer golden rim
+        const poolRim = new THREE.Mesh(new THREE.CylinderGeometry(11, 12, 2.2, 32), gold);
+        poolRim.position.y = 1.1;
+        f.add(poolRim);
+        // Pool water surface
+        const poolWater = new THREE.Mesh(new THREE.CylinderGeometry(10, 10, 1.6, 32), water);
+        poolWater.position.y = 1.6;
+        f.add(poolWater);
+
+        // First pedestal column
+        const col1 = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 3, 5, 16), goldDark);
+        col1.position.y = 4.5;
+        f.add(col1);
+
+        // Mid tier bowl
+        const bowl1 = new THREE.Mesh(new THREE.CylinderGeometry(6, 2.5, 1.6, 24), gold);
+        bowl1.position.y = 7.5;
+        f.add(bowl1);
+        const bowl1Water = new THREE.Mesh(new THREE.CylinderGeometry(5.2, 5.2, 1, 24), water);
+        bowl1Water.position.y = 8.2;
+        f.add(bowl1Water);
+
+        // Second column
+        const col2 = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 2, 4, 12), goldDark);
+        col2.position.y = 10.5;
+        f.add(col2);
+
+        // Top tier bowl
+        const bowl2 = new THREE.Mesh(new THREE.CylinderGeometry(3.4, 1.6, 1.2, 20), gold);
+        bowl2.position.y = 12.8;
+        f.add(bowl2);
+        const bowl2Water = new THREE.Mesh(new THREE.CylinderGeometry(2.9, 2.9, 0.8, 20), water);
+        bowl2Water.position.y = 13.3;
+        f.add(bowl2Water);
+
+        // Golden finial on top
+        const finial = new THREE.Mesh(new THREE.SphereGeometry(1.1, 16, 12), gold);
+        finial.position.y = 14.6;
+        f.add(finial);
+        const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 2, 8), gold);
+        spout.position.y = 15.8;
+        f.add(spout);
+
+        // Water jets arcing from top into the pool
+        for (let i = 0; i < 8; i++) {
+            const a = (i / 8) * Math.PI * 2;
+            const jet = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.35, 9, 6), water.clone());
+            jet.position.set(Math.cos(a) * 3.5, 11, Math.sin(a) * 3.5);
+            jet.rotation.z = Math.cos(a) * 0.5;
+            jet.rotation.x = -Math.sin(a) * 0.5;
+            f.add(jet);
         }
-        const hornGeo = new THREE.LatheGeometry(hornPoints, 24);
-        const horn = new THREE.Mesh(hornGeo, hornMat);
-        horn.position.set(0, 0.3, 0);
-        horn.rotation.y = Math.PI * 0.15;
-        horn.userData.mapGenerated = true;
-        group.add(horn);
+        // Falling water columns from each bowl edge
+        for (let i = 0; i < 6; i++) {
+            const a = (i / 6) * Math.PI * 2;
+            const drop = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 4, 6), water.clone());
+            drop.position.set(Math.cos(a) * 5.4, 5.5, Math.sin(a) * 5.4);
+            f.add(drop);
+        }
 
-        // Horn opening (inner dark area)
-        const openingGeo = new THREE.TorusGeometry(4, 0.5, 8, 24);
-        const openingMat = new THREE.MeshStandardMaterial({
-            color: 0x3e2723,
-            roughness: 0.9
+        f.traverse(o => { o.userData.mapGenerated = true; });
+        f.userData.isCornucopia = true; // keep gameplay hook (center interactable)
+        group.add(f);
+    }
+
+    // -------------------------------------------------------------------------
+    // 50 player spawn tiles (pedestals) arranged around the central ring
+    // -------------------------------------------------------------------------
+    _buildPlayerTiles() {
+        const group = new THREE.Group();
+        group.userData.mapGenerated = true;
+
+        const count = 50;
+        const ringR = 27;            // radius of the tile ring (inside outer compass ring)
+        const tileR = 2.1;
+
+        const tileMat = new THREE.MeshStandardMaterial({
+            color: 0xe8dcc8,
+            roughness: 0.75,
+            flatShading: true
         });
-        const opening = new THREE.Mesh(openingGeo, openingMat);
-        opening.position.set(4, 8, 0);
-        opening.rotation.y = Math.PI * 0.15;
-        opening.rotation.z = Math.PI / 6;
-        opening.userData.mapGenerated = true;
-        group.add(opening);
+        const tileEdgeMat = new THREE.MeshStandardMaterial({
+            color: 0xb89f7a,
+            roughness: 0.8,
+            flatShading: true
+        });
 
-        // Loot items spilling from horn (small colored boxes/spheres)
-        const lootColors = [0xff5252, 0x448aff, 0x69f0ae, 0xffab40, 0xe040fb, 0xffd740];
-        for (let i = 0; i < 20; i++) {
-            const angle = (i / 20) * Math.PI * 2;
-            const r = 3 + this._rand() * 4;
-            const lootGeo = new THREE.BoxGeometry(0.7, 0.7, 0.7);
-            const lootMat = new THREE.MeshStandardMaterial({
-                color: lootColors[i % lootColors.length],
-                roughness: 0.6,
-                metalness: 0.3,
-                flatShading: true
-            });
-            const loot = new THREE.Mesh(lootGeo, lootMat);
-            loot.position.set(
-                Math.cos(angle) * r,
-                1 + this._rand() * 2,
-                Math.sin(angle) * r
-            );
-            loot.rotation.set(
-                this._rand() * Math.PI,
-                this._rand() * Math.PI,
-                this._rand() * Math.PI
-            );
-            loot.userData.mapGenerated = true;
-            group.add(loot);
+        this.playerTiles = [];
+
+        for (let i = 0; i < count; i++) {
+            const a = (i / count) * Math.PI * 2;
+            const x = Math.cos(a) * ringR;
+            const z = Math.sin(a) * ringR;
+
+            // edge/base ring
+            const edge = new THREE.Mesh(new THREE.CylinderGeometry(tileR + 0.4, tileR + 0.5, 0.5, 16), tileEdgeMat);
+            edge.position.set(x, 0.45, z);
+            edge.userData.mapGenerated = true;
+            group.add(edge);
+
+            // top tile
+            const tile = new THREE.Mesh(new THREE.CylinderGeometry(tileR, tileR, 0.7, 16), tileMat);
+            tile.position.set(x, 0.75, z);
+            tile.userData.mapGenerated = true;
+            tile.userData.walkable = true;
+            tile.userData.playerTile = i;
+            group.add(tile);
+
+            this.addColliderBox(new THREE.Vector3(x, 0.45, z), tileR * 2, 0.9, tileR * 2, true);
+            this.playerTiles.push(new THREE.Vector3(x, 1.1, z));
         }
 
         this.scene.add(group);
@@ -1442,8 +1614,12 @@ export class MapGenerator {
     // SPAWN PADS
     // =========================================================================
     _buildSpawnPads() {
-        // Add cornucopia platform as spawn pad
-        this.spawnPads.push(new THREE.Vector3(0, 0.34, 0));
+        // 50 player tiles around the fountain are the primary spawn points
+        if (this.playerTiles && this.playerTiles.length) {
+            for (const t of this.playerTiles) {
+                this.spawnPads.push(t.clone());
+            }
+        }
 
         // Add floor tiles as spawn pads
         for (const tile of this._floorTiles) {
