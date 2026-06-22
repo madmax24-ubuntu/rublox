@@ -288,6 +288,71 @@ export class MapGenerator {
         }
     }
 
+    _makeCompassRoseTexture() {
+        const S = 512, c = S / 2;
+        const cv = document.createElement('canvas');
+        cv.width = S; cv.height = S;
+        const ctx = cv.getContext('2d');
+
+        // cream base
+        ctx.fillStyle = '#e8dcc2';
+        ctx.beginPath(); ctx.arc(c, c, c, 0, Math.PI * 2); ctx.fill();
+
+        // outer terracotta band
+        ctx.strokeStyle = '#b5543a';
+        ctx.lineWidth = 46;
+        ctx.beginPath(); ctx.arc(c, c, c - 23, 0, Math.PI * 2); ctx.stroke();
+        // thin gold rims
+        ctx.strokeStyle = '#caa24a'; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.arc(c, c, c - 46, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(c, c, c - 2, 0, Math.PI * 2); ctx.stroke();
+
+        // 32 alternating sunburst wedges
+        const inner = 70, outer = c - 48;
+        for (let i = 0; i < 32; i++) {
+            const a0 = (i / 32) * Math.PI * 2;
+            const a1 = ((i + 1) / 32) * Math.PI * 2;
+            ctx.fillStyle = (i % 2 === 0) ? '#d9c39a' : '#b5543a';
+            ctx.beginPath();
+            ctx.arc(c, c, outer, a0, a1);
+            ctx.arc(c, c, inner, a1, a0, true);
+            ctx.closePath(); ctx.fill();
+        }
+
+        // inner cream disc
+        ctx.fillStyle = '#ece2cc';
+        ctx.beginPath(); ctx.arc(c, c, inner, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#caa24a'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(c, c, inner, 0, Math.PI * 2); ctx.stroke();
+
+        // compass star — 4 long (cardinal) + 4 short (intercardinal)
+        const drawStar = (rad, color, rot) => {
+            ctx.fillStyle = color;
+            for (let k = 0; k < 4; k++) {
+                const a = rot + k * (Math.PI / 2);
+                const tipX = c + Math.cos(a) * rad;
+                const tipY = c + Math.sin(a) * rad;
+                const bx1 = c + Math.cos(a + Math.PI / 2) * 9;
+                const by1 = c + Math.sin(a + Math.PI / 2) * 9;
+                const bx2 = c + Math.cos(a - Math.PI / 2) * 9;
+                const by2 = c + Math.sin(a - Math.PI / 2) * 9;
+                ctx.beginPath();
+                ctx.moveTo(tipX, tipY); ctx.lineTo(bx1, by1); ctx.lineTo(bx2, by2);
+                ctx.closePath(); ctx.fill();
+            }
+        };
+        drawStar(58, '#2f6fb0', 0);                // E/W/N/S long blue
+        drawStar(58, '#2f6fb0', Math.PI / 2);
+        drawStar(34, '#c0392b', Math.PI / 4);      // diagonal short red
+        // center hub
+        ctx.fillStyle = '#caa24a';
+        ctx.beginPath(); ctx.arc(c, c, 10, 0, Math.PI * 2); ctx.fill();
+
+        const tex = new THREE.CanvasTexture(cv);
+        tex.needsUpdate = true;
+        return tex;
+    }
+
     _makeLetterTexture(ch) {
         const c = document.createElement('canvas');
         c.width = 128; c.height = 128;
@@ -346,65 +411,33 @@ export class MapGenerator {
     _generateCornucopia() {
         const group = new THREE.Group();
 
-        // Circular spawn platform
-        const platformGeo = new THREE.CylinderGeometry(38, 38, 0.3, 48);
+        // Circular spawn platform side (thickness)
+        const platformGeo = new THREE.CylinderGeometry(38, 38, 0.4, 48);
         const platformMat = new THREE.MeshStandardMaterial({
-            color: 0xd7ccc8,
-            roughness: 0.7,
+            color: 0xb89f7a,
+            roughness: 0.8,
             flatShading: true
         });
         const platform = new THREE.Mesh(platformGeo, platformMat);
-        platform.position.set(0, 0.15, 0);
+        platform.position.set(0, 0.12, 0);
         platform.userData.mapGenerated = true;
         platform.userData.walkable = true;
         group.add(platform);
-        this.addColliderBox(new THREE.Vector3(0, 0.15, 0), 76, 0.3, 76, true);
+        this.addColliderBox(new THREE.Vector3(0, 0.12, 0), 76, 0.4, 76, true);
 
-        // Decorative radial sunburst pattern on platform
-        const sunburstMat = new THREE.MeshStandardMaterial({
-            color: 0xbcaaa4,
-            roughness: 0.85,
-            flatShading: true,
-            side: THREE.DoubleSide
+        // Compass-rose mosaic top (textured disc) — matches reference
+        const roseTex = this._makeCompassRoseTexture();
+        const roseMat = new THREE.MeshStandardMaterial({
+            map: roseTex,
+            roughness: 0.7,
+            flatShading: true
         });
-        for (let i = 0; i < 16; i++) {
-            const angle = (i / 16) * Math.PI * 2;
-            const rayGeo = new THREE.PlaneGeometry(0.8, 30, 1, 1);
-            rayGeo.rotateX(-Math.PI / 2);
-            const ray = new THREE.Mesh(rayGeo, sunburstMat.clone());
-            ray.position.set(0, 0.32, 0);
-            ray.rotation.y = angle;
-            ray.userData.mapGenerated = true;
-            group.add(ray);
-        }
-
-        // Outer ring
-        const outerRingGeo = new THREE.RingGeometry(30, 34, 48);
-        outerRingGeo.rotateX(-Math.PI / 2);
-        const outerRingMat = new THREE.MeshStandardMaterial({
-            color: 0xa1887f,
-            roughness: 0.8,
-            flatShading: true,
-            side: THREE.DoubleSide
-        });
-        const outerRing = new THREE.Mesh(outerRingGeo, outerRingMat);
-        outerRing.position.set(0, 0.33, 0);
-        outerRing.userData.mapGenerated = true;
-        group.add(outerRing);
-
-        // Inner ring
-        const innerRingGeo = new THREE.RingGeometry(20, 23, 48);
-        innerRingGeo.rotateX(-Math.PI / 2);
-        const innerRingMat = new THREE.MeshStandardMaterial({
-            color: 0x8d6e63,
-            roughness: 0.8,
-            flatShading: true,
-            side: THREE.DoubleSide
-        });
-        const innerRing = new THREE.Mesh(innerRingGeo, innerRingMat);
-        innerRing.position.set(0, 0.33, 0);
-        innerRing.userData.mapGenerated = true;
-        group.add(innerRing);
+        const roseDisc = new THREE.Mesh(new THREE.CircleGeometry(37.5, 64), roseMat);
+        roseDisc.rotation.x = -Math.PI / 2;
+        roseDisc.position.set(0, 0.34, 0);
+        roseDisc.userData.mapGenerated = true;
+        roseDisc.userData.walkable = true;
+        group.add(roseDisc);
 
         // Golden water fountain (replaces the cornucopia horn)
         this._buildFountain(group);
@@ -1076,7 +1109,7 @@ export class MapGenerator {
         const d = 9 + this._rand() * 7;
         const h = 6 + this._rand() * 10;
 
-        const grays = [COLORS.militaryBuilding, COLORS.militaryRuined, 0x546e7a, 0x607d8b, 0x4e5d63];
+        const grays = [0x90a4ae, 0x78909c, 0xb0bec5, 0x8d9ca6, 0xa0a0a0];
         const baseColor = grays[Math.floor(this._rand() * grays.length)];
         const ruinMat = new THREE.MeshStandardMaterial({
             color: baseColor,
@@ -1093,7 +1126,7 @@ export class MapGenerator {
         this.addColliderBox(new THREE.Vector3(x, h / 2, z), w, h, d, false);
 
         // Flat roof rim (slightly larger, darker)
-        const roofMat = new THREE.MeshStandardMaterial({ color: 0x37474f, roughness: 0.95, flatShading: true });
+        const roofMat = new THREE.MeshStandardMaterial({ color: 0x9aa7ad, roughness: 0.95, flatShading: true });
         const roof = new THREE.Mesh(new THREE.BoxGeometry(w + 0.6, 0.8, d + 0.6), roofMat);
         roof.position.set(x, h + 0.4, z);
         roof.userData.mapGenerated = true;
@@ -1355,12 +1388,28 @@ export class MapGenerator {
             opacity: 0.7
         });
 
-        const lakeGeo = new THREE.CircleGeometry(40, 24);
-        lakeGeo.rotateX(-Math.PI / 2);
-        const lake = new THREE.Mesh(lakeGeo, lakeMat);
-        lake.position.set(iceStartX + iceSize * 0.4, 0.02, iceStartZ + iceSize * 0.4);
-        lake.userData.mapGenerated = true;
-        this.scene.add(lake);
+        // Pixelated/blocky frozen lake (irregular outline like reference)
+        const lakeCX = iceStartX + iceSize * 0.4;
+        const lakeCZ = iceStartZ + iceSize * 0.4;
+        const cell = 6;
+        const span = 9; // cells in each direction from center
+        const lakeShade = [COLORS.iceLake, 0x5fd4e6, 0x3fb8cf, 0x6fe0ee];
+        for (let gx = -span; gx <= span; gx++) {
+            for (let gz = -span; gz <= span; gz++) {
+                const nd = Math.sqrt(gx * gx + gz * gz) + (this._rand() - 0.5) * 2.4;
+                if (nd > span) continue; // irregular edge
+                const px = lakeCX + gx * cell;
+                const pz = lakeCZ + gz * cell;
+                const tileGeo = new THREE.PlaneGeometry(cell, cell);
+                tileGeo.rotateX(-Math.PI / 2);
+                const m = lakeMat.clone();
+                m.color = new THREE.Color(lakeShade[Math.floor(this._rand() * lakeShade.length)]);
+                const tile = new THREE.Mesh(tileGeo, m);
+                tile.position.set(px, 0.03, pz);
+                tile.userData.mapGenerated = true;
+                this.scene.add(tile);
+            }
+        }
 
         // Igloos
         const iglooCount = 8 + Math.floor(this._rand() * 3);
