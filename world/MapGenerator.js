@@ -693,8 +693,9 @@ export class MapGenerator {
         this.addColliderBox(new THREE.Vector3(x, trunkH / 2, z), trunkR * 2, trunkH, trunkR * 2, false);
 
         // Crown (multiple layered dodecahedrons for dense look)
+        const greenPalette = [0x2e7d32, 0x388e3c, 0x43a047, 0x1b5e20, 0x4caf50, 0x33691e];
         const crownMat = new THREE.MeshStandardMaterial({
-            color: COLORS.forestTree + Math.floor(this._rand() * 0x1a1a1a - 0xa0a0a0),
+            color: greenPalette[Math.floor(this._rand() * greenPalette.length)],
             roughness: 0.95,
             flatShading: true
         });
@@ -962,15 +963,15 @@ export class MapGenerator {
                     const wx = mazeStartX + c * cellSize;
                     const wz = mazeStartZ + r * cellSize;
 
-                    // Wall segment
-                    const wallGeo = new THREE.BoxGeometry(cellSize, wallHeight, wallThickness);
+                    // Solid wall block (full cell) → clear blocky labyrinth
+                    const wallGeo = new THREE.BoxGeometry(cellSize, wallHeight, cellSize);
                     const wall = new THREE.Mesh(wallGeo, wallMat.clone());
                     wall.position.set(wx, wallHeight / 2, wz);
                     wall.userData.mapGenerated = true;
                     this.scene.add(wall);
                     this.addColliderBox(
                         new THREE.Vector3(wx, wallHeight / 2, wz),
-                        cellSize, wallHeight, wallThickness, false
+                        cellSize, wallHeight, cellSize, false
                     );
                 } else {
                     this._floorTiles.push({
@@ -1034,12 +1035,12 @@ export class MapGenerator {
         const milStartZ = 10;
         const milSize = HALF - 60;
 
-        // Ruined buildings
-        const buildingCount = 15 + Math.floor(this._rand() * 5);
+        // Ruined buildings — clustered toward the upper part of the quadrant (like reference town)
+        const buildingCount = 26 + Math.floor(this._rand() * 6);
         for (let i = 0; i < buildingCount; i++) {
             const bx = milStartX + this._rand() * milSize;
-            const bz = milStartZ + this._rand() * milSize;
-            if (Math.abs(bx) < 15 || Math.sqrt(bx * bx + bz * bz) < 45) continue;
+            const bz = milStartZ + this._rand() * (milSize * 0.6); // bias upward (smaller z)
+            if (Math.abs(bx) < 18 || Math.sqrt(bx * bx + bz * bz) < 50) continue;
             this._addRuinedBuilding(bx, bz);
         }
 
@@ -1071,54 +1072,49 @@ export class MapGenerator {
     }
 
     _addRuinedBuilding(x, z) {
-        const w = 7 + this._rand() * 5;
-        const d = 6 + this._rand() * 4;
-        const h = 2 + this._rand() * 5;
+        const w = 10 + this._rand() * 8;
+        const d = 9 + this._rand() * 7;
+        const h = 6 + this._rand() * 10;
 
+        const grays = [COLORS.militaryBuilding, COLORS.militaryRuined, 0x546e7a, 0x607d8b, 0x4e5d63];
+        const baseColor = grays[Math.floor(this._rand() * grays.length)];
         const ruinMat = new THREE.MeshStandardMaterial({
-            color: this._rand() > 0.5 ? COLORS.militaryRuined : COLORS.militaryBuilding,
-            roughness: 0.9,
+            color: baseColor,
+            roughness: 0.92,
             flatShading: true
         });
 
-        // Partial walls (ruined = missing sections)
-        const wallSegments = 5 + Math.floor(this._rand() * 4);
-        for (let i = 0; i < wallSegments; i++) {
-            const segW = 1.5 + this._rand() * 2.5;
-            const segH = 0.5 + this._rand() * (h - 1);
-            const segGeo = new THREE.BoxGeometry(segW, segH, 0.5);
-            const seg = new THREE.Mesh(segGeo, ruinMat.clone());
+        // Solid building body (multi-story block)
+        const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), ruinMat);
+        body.position.set(x, h / 2, z);
+        body.userData.mapGenerated = true;
+        body.userData.physicsType = 'STATIC';
+        this.scene.add(body);
+        this.addColliderBox(new THREE.Vector3(x, h / 2, z), w, h, d, false);
 
-            const angle = (i / wallSegments) * Math.PI * 2;
-            const segX = x + Math.cos(angle) * w * 0.4;
-            const segZ = z + Math.sin(angle) * d * 0.4;
+        // Flat roof rim (slightly larger, darker)
+        const roofMat = new THREE.MeshStandardMaterial({ color: 0x37474f, roughness: 0.95, flatShading: true });
+        const roof = new THREE.Mesh(new THREE.BoxGeometry(w + 0.6, 0.8, d + 0.6), roofMat);
+        roof.position.set(x, h + 0.4, z);
+        roof.userData.mapGenerated = true;
+        this.scene.add(roof);
 
-            seg.position.set(segX, segH / 2, segZ);
-            seg.rotation.y = angle;
-            seg.userData.mapGenerated = true;
-            this.scene.add(seg);
-            this.addColliderBox(
-                new THREE.Vector3(segX, segH / 2, segZ),
-                segW + 0.2, segH, 0.7, false
-            );
-        }
-
-        // Collapsed roof pieces
-        for (let i = 0; i < 4; i++) {
-            const roofGeo = new THREE.BoxGeometry(2, 0.4, 2.5);
-            const roof = new THREE.Mesh(roofGeo, ruinMat.clone());
-            roof.position.set(
-                x + (this._rand() - 0.5) * w * 0.6,
-                0.4,
-                z + (this._rand() - 0.5) * d * 0.6
-            );
-            roof.rotation.set(
-                this._rand() * 0.5,
-                this._rand() * Math.PI,
-                this._rand() * 0.3
-            );
-            roof.userData.mapGenerated = true;
-            this.scene.add(roof);
+        // Windows grid on the two long faces (dark insets)
+        const winMat = new THREE.MeshStandardMaterial({ color: 0x263238, roughness: 0.6, flatShading: true });
+        const floors = Math.max(1, Math.floor(h / 3));
+        const colsW = Math.max(2, Math.floor(w / 3));
+        for (let fl = 0; fl < floors; fl++) {
+            for (let cw = 0; cw < colsW; cw++) {
+                if (this._rand() < 0.25) continue; // some missing (ruined)
+                const wy = 2 + fl * 3;
+                const wxOff = -w / 2 + 2 + cw * (w - 4) / Math.max(1, colsW - 1);
+                for (const sgn of [1, -1]) {
+                    const win = new THREE.Mesh(new THREE.BoxGeometry(1.3, 1.6, 0.2), winMat.clone());
+                    win.position.set(x + wxOff, wy, z + sgn * (d / 2 + 0.05));
+                    win.userData.mapGenerated = true;
+                    this.scene.add(win);
+                }
+            }
         }
 
         this._floorTiles.push({ x, z });
