@@ -53,9 +53,13 @@ async function main() {
     // Подписываемся на ошибки консоли
     page.on('console', (msg) => {
         const type = msg.type();
+        const text = msg.text();
         if (type === 'error' || type === 'warning') {
-            consoleErrors.push({ type, text: msg.text() });
-            console.log(`⚠️  ${type.toUpperCase()}: ${msg.text()}`);
+            consoleErrors.push({ type, text });
+            console.log(`⚠️  ${type.toUpperCase()}: ${text.substring(0, 100)}`);
+        }
+        if (text.includes('[DEBUG]')) {
+            console.log(`  📊 ${text}`);
         }
     });
     
@@ -121,17 +125,24 @@ async function main() {
     console.log('✅ Таймер появился');
     
     // 8. Ожидание окончания таймера (15 секунд + буфер)
+    // Note: headless Chrome runs at ~10 FPS due to performance.now() resolution,
+    // so countdown runs ~3x slower. Need ~40s timeout for 15s countdown.
     console.log('\n⏳ Шаг 8: Ожидание окончания таймера...');
     let countdownReachedZero = false;
-    for (let i = 0; i < 12; i++) {
-        await sleep(2000); // Poll every 2 seconds (24s total)
+    for (let i = 0; i < 24; i++) {
+        await sleep(2000); // Poll every 2 seconds (48s total max)
         const state = await page.evaluate(() => {
             const cd = document.getElementById('countdown');
             return {
                 text: cd ? cd.textContent : 'NONE',
                 gameState: window.game ? window.game.gameState : 'NO_GAME',
+                isStarted: window.game ? window.game.isStarted : 'NO_GAME',
+                countdownTimer: window.game ? window.game.countdownTimer : 'N/A',
             };
         });
+        if (i % 5 === 0) {
+            console.log(`  [poll ${i+1}/24] gameState=${state.gameState} countdownTimer=${state.countdownTimer.toFixed(2)} text="${state.text}"`);
+        }
         if (state.gameState !== 'countdown') {
             countdownReachedZero = true;
             console.log('✅ Таймер завершился (gameState=', state.gameState, ')');

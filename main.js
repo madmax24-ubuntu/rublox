@@ -417,24 +417,12 @@ class Game {
         this.scene.userData.entityManager = this.entityManager;
         this.lootManager = new LootManager(this.scene, this.map);
 
-          const spawnPads = this.map.getSpawnPads?.() || [];
-          console.log('[Game] spawnPads total:', spawnPads.length, 'first:', spawnPads[0] ? `(${spawnPads[0].x.toFixed(1)}, ${spawnPads[0].z.toFixed(1)})` : 'none', 'last:', spawnPads[49] ? `(${spawnPads[49].x.toFixed(1)}, ${spawnPads[49].z.toFixed(1)})` : 'none');
           this.player = new Player(this.scene, this.camera, this.input);
           this.player.setHUD(this.hud);
           this.player.mapRef = this.map;
-            // Player spawns on the first edge tile (not center)
-            if (spawnPads.length) {
-                let pad = spawnPads[0];
-                console.log('[Game] Player spawn pad:', pad ? `(${pad.x.toFixed(1)}, ${pad.y.toFixed(2)}, ${pad.z.toFixed(1)})` : 'none');
-                const groundY = this.map.raycastGroundY?.(pad.x, pad.z, pad.y) ?? pad.y;
-                console.log('[Game] Player position after set:', `(${pad.x}, ${groundY + this.player.physics.height}, ${pad.z})`);
-                this.player.position.set(pad.x, groundY + this.player.physics.height, pad.z);
-                this.player.physics.onGround = true;
-            } else {
-               const fallbackAngle = Math.PI * 0.25;
-               this.player.position.set(Math.cos(fallbackAngle) * 42, 2, Math.sin(fallbackAngle) * 42);
-               this.player.physics.onGround = true;
-           }
+          // Player spawns at center of platform (top surface at y=2)
+          this.player.position.set(0, 2 + this.player.physics.height, 0);
+          this.player.physics.onGround = true;
         this.physics.addEntity(this.player);
         this.entityManager.addEntity(this.player);
 
