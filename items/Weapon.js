@@ -1,4 +1,4 @@
-﻿import * as THREE from "/node_modules/three/build/three.module.js";
+import * as THREE from 'three';
 
 const WEAPON_BALANCE = {
     fists: { damage: 8, range: 2.4, cooldown: 0.38, ammo: null, durability: null, projectileSpeed: 0 },
@@ -6,19 +6,10 @@ const WEAPON_BALANCE = {
     bow: { damage: 20, range: 20, cooldown: 1.18, ammo: 48, durability: null, projectileSpeed: 46 },
     laser: { damage: 23, range: 86, cooldown: 0.34, ammo: 30, durability: null, projectileSpeed: 62 },
     shotgun: { damage: 13, range: 14, cooldown: 0.98, ammo: 36, durability: null, projectileSpeed: 48, pellets: 7 },
-    flamethrower: { damage: 3.8, range: 13.5, cooldown: 0.12, ammo: 260, durability: null, projectileSpeed: 16, flameCount: 4 },
+    flamethrower: { damage: 7.5, range: 13.5, cooldown: 0.08, ammo: 260, durability: null, projectileSpeed: 16, flameCount: 4 },
     pistol: { damage: 20, range: 62, cooldown: 0.36, ammo: 90, durability: null, projectileSpeed: 82 },
     rifle: { damage: 27, range: 96, cooldown: 0.28, ammo: 120, durability: null, projectileSpeed: 98 },
-    machinegun: { damage: 16, range: 86, cooldown: 0.12, ammo: 180, durability: null, projectileSpeed: 94 },
-    sniper: { damage: 48, range: 150, cooldown: 1.2, ammo: 30, durability: null, projectileSpeed: 110 },
-    smg: { damage: 12, range: 50, cooldown: 0.06, ammo: 150, durability: null, projectileSpeed: 88 },
-    crossbow: { damage: 38, range: 42, cooldown: 1.5, ammo: 20, durability: null, projectileSpeed: 52 }
-};
-
-const WEAPON_TACTICAL = {
-    sniper: { soundCategory: 'sniper', fireSound: 'rifle', reloadSound: 'timer', muzzleIntensity: 0.6 },
-    smg: { soundCategory: 'smg', fireSound: 'machinegun', reloadSound: 'timer', muzzleIntensity: 0.25 },
-    crossbow: { soundCategory: 'bow', fireSound: 'bowShot', reloadSound: 'timer', muzzleIntensity: 0.05 }
+    machinegun: { damage: 16, range: 86, cooldown: 0.12, ammo: 180, durability: null, projectileSpeed: 94 }
 };
 
 const TYPE_ALIASES = {
@@ -74,13 +65,7 @@ function configureMeshForGameplay(mesh) {
             child.castShadow = false;
             child.receiveShadow = false;
             child.frustumCulled = false;
-            child.renderOrder = 0;
-            if (child.material) {
-                child.material.depthTest = true;
-                child.material.depthWrite = true;
-                child.material.transparent = false;
-                child.material.opacity = 1;
-            }
+            child.renderOrder = 4;
             child.userData.ignoreDamageTint = true;
         }
     });
@@ -98,7 +83,7 @@ function createKnifeModel() {
     group.add(createPart(getGeom('knife_b', () => new THREE.BoxGeometry(0.76, 0.06, 0.04)), bladeMat, 0.38, 0.01, 0));
     group.add(createPart(getGeom('knife_bs', () => new THREE.BoxGeometry(0.64, 0.02, 0.03)), guardMat, 0.29, 0.045, 0));
     group.add(createPart(getGeom('knife_t', () => new THREE.ConeGeometry(0.038, 0.16, 6)), bladeMat, 0.82, 0.01, 0, 0, 0, -Math.PI / 2));
-    // Parts along +X (barrel forward). No extra rotation needed.
+    group.rotation.y = Math.PI;
     return group;
 }
 
@@ -176,64 +161,9 @@ function createGunModel(style) {
         group.add(createPart(getGeom('laser_core', () => new THREE.CylinderGeometry(0.035, 0.035, 0.4, 8)), neon, 0.18, 0.06, 0, 0, 0, Math.PI / 2));
         group.add(createPart(getGeom('laser_grip', () => new THREE.BoxGeometry(0.12, 0.22, 0.12)), dark, -0.06, -0.17, 0));
         group.add(createPart(getGeom('laser_cell', () => new THREE.BoxGeometry(0.12, 0.18, 0.12)), neon, -0.04, -0.04, 0));
-    } else if (style === 'sniper') {
-        group.add(createPart(getGeom('sniper_body', () => new THREE.BoxGeometry(1.32, 0.12, 0.13)), metal, 0.2, 0.06, 0));
-        group.add(createPart(getGeom('sniper_barrel', () => new THREE.CylinderGeometry(0.028, 0.028, 0.88, 8)), dark, 0.78, 0.06, 0, 0, 0, Math.PI / 2));
-        group.add(createPart(getGeom('sniper_stock', () => new THREE.BoxGeometry(0.48, 0.18, 0.14)), wood, -0.42, 0.04, 0));
-        group.add(createPart(getGeom('sniper_mag', () => new THREE.BoxGeometry(0.11, 0.22, 0.09)), dark, 0.08, -0.1, 0));
-        group.add(createPart(getGeom('sniper_grip', () => new THREE.BoxGeometry(0.11, 0.18, 0.1)), dark, -0.06, -0.12, 0));
-        group.add(createPart(getGeom('sniper_scope', () => new THREE.CylinderGeometry(0.055, 0.055, 0.48, 8)), dark, 0.22, 0.16, 0));
-        group.add(createPart(getGeom('sniper_scope_ring', () => new THREE.TorusGeometry(0.065, 0.012, 8, 12)), metal, 0.22, 0.14, 0, Math.PI / 2));
-        const redDot = getMaterial('sniper_red_dot', () => new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 0.8 }));
-        group.add(createPart(getGeom('sniper_red_dot_g', () => new THREE.SphereGeometry(0.018, 6, 6)), redDot, 0.44, 0.16, 0));
-    } else if (style === 'smg') {
-        group.add(createPart(getGeom('smg_body', () => new THREE.BoxGeometry(0.78, 0.13, 0.13)), metal, 0.14, 0.06, 0));
-        group.add(createPart(getGeom('smg_barrel', () => new THREE.CylinderGeometry(0.03, 0.03, 0.52, 8)), dark, 0.62, 0.06, 0, 0, 0, Math.PI / 2));
-        group.add(createPart(getGeom('smg_stock', () => new THREE.BoxGeometry(0.24, 0.14, 0.12)), dark, -0.26, 0.04, 0));
-        group.add(createPart(getGeom('smg_mag', () => new THREE.BoxGeometry(0.11, 0.26, 0.09)), dark, 0.02, -0.12, 0));
-        group.add(createPart(getGeom('smg_grip', () => new THREE.BoxGeometry(0.1, 0.16, 0.1)), dark, -0.04, -0.1, 0));
-        const blueGlow = getMaterial('smg_glow', () => new THREE.MeshStandardMaterial({ color: 0x4488ff, emissive: 0x4488ff, emissiveIntensity: 0.3 }));
-        group.add(createPart(getGeom('smg_glow', () => new THREE.BoxGeometry(0.06, 0.06, 0.06)), blueGlow, 0.14, 0.13, 0));
     }
 
-    // Parts along +X (barrel forward). No extra rotation needed.
-    return group;
-}
-
-function createCrossbowModel() {
-    const group = new THREE.Group();
-    const woodMat = getMaterial('crossbow_wood', () => new THREE.MeshStandardMaterial({ color: 0x6b4a20, roughness: 0.7, flatShading: true }));
-    const metalMat = getMaterial('crossbow_metal', () => new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.45, metalness: 0.5, flatShading: true }));
-    const stringMat = getMaterial('crossbow_string', () => new THREE.LineBasicMaterial({ color: 0x222222 }));
-
-    // Stock
-    group.add(createPart(getGeom('crossbow_stock', () => new THREE.BoxGeometry(0.62, 0.1, 0.09)), woodMat, -0.08, -0.02, 0));
-    // Upper limb frame
-    group.add(createPart(getGeom('crossbow_frame', () => new THREE.BoxGeometry(0.78, 0.07, 0.06)), woodMat, 0.22, 0.12, 0));
-    // Lower limb frame
-    group.add(createPart(getGeom('crossbow_frame_l', () => new THREE.BoxGeometry(0.78, 0.07, 0.06)), woodMat, 0.22, -0.12, 0));
-    // Barrel groove
-    group.add(createPart(getGeom('crossbow_barrel', () => new THREE.BoxGeometry(0.58, 0.06, 0.08)), metalMat, 0.22, 0, 0));
-    // Trigger
-    group.add(createPart(getGeom('crossbow_trigger', () => new THREE.BoxGeometry(0.06, 0.14, 0.06)), metalMat, -0.02, -0.08, 0));
-    // Grip
-    group.add(createPart(getGeom('crossbow_grip', () => new THREE.BoxGeometry(0.08, 0.18, 0.08)), woodMat, -0.14, -0.1, 0));
-
-    // String (center to front)
-    const string = new THREE.Line(
-        new THREE.BufferGeometry().setFromPoints([
-            new THREE.Vector3(0.62, 0.12, 0),
-            new THREE.Vector3(0.0, 0, 0),
-            new THREE.Vector3(0.62, -0.12, 0)
-        ]),
-        stringMat
-    );
-    string.frustumCulled = false;
-    group.add(string);
-
-    // Sighting rail
-    group.add(createPart(getGeom('crossbow_rail', () => new THREE.BoxGeometry(0.42, 0.02, 0.03)), metalMat, 0.22, 0.16, 0));
-    group.scale.setScalar(0.88);
+    group.rotation.y = Math.PI;
     return group;
 }
 
@@ -254,8 +184,10 @@ function createArrowProjectileMesh() {
 }
 
 function getRotationOffsets(type) {
-    // Offsets are already baked into the view pose rotations above. Zero here.
-    return { pitch: 0, yaw: 0, roll: 0 };
+    if (type === 'knife') return { pitch: -Math.PI / 2, yaw: 0, roll: 0 };
+    if (type === 'bow') return { pitch: 0.04, yaw: Math.PI / 2, roll: -0.04 };
+    // Third-person alignment for character forward (+Z in our actor space).
+    return { pitch: 0, yaw: Math.PI / 2, roll: 0 };
 }
 
 function getViewPoseForType(rawType) {
@@ -272,7 +204,7 @@ function getViewPoseForType(rawType) {
         base.scale = 0.98;
     } else if (type === 'bow') {
         base.position.set(0.24, -0.3, -0.98);
-        base.rotation.set(0.1, -Math.PI / 2.05, Math.PI / 2);
+        base.rotation.set(0.1, -Math.PI / 2, Math.PI / 2.08);
         base.scale = 0.78;
     } else if (type === 'shotgun') {
         base.position.set(0.22, -0.42, -0.9);
@@ -298,18 +230,6 @@ function getViewPoseForType(rawType) {
         base.position.set(0.22, -0.45, -0.98);
         base.rotation.set(0.05, -Math.PI / 2, -0.05);
         base.scale = 0.67;
-    } else if (type === 'sniper') {
-        base.position.set(0.22, -0.46, -1.05);
-        base.rotation.set(0.05, -Math.PI / 2, -0.06);
-        base.scale = 0.64;
-    } else if (type === 'smg') {
-        base.position.set(0.22, -0.43, -0.9);
-        base.rotation.set(0.05, -Math.PI / 2, -0.04);
-        base.scale = 0.68;
-    } else if (type === 'crossbow') {
-        base.position.set(0.24, -0.38, -0.96);
-        base.rotation.set(0.08, -Math.PI / 2, Math.PI / 2.1);
-        base.scale = 0.74;
     }
 
     return base;
@@ -324,9 +244,6 @@ function getThirdPersonGripForType(rawType) {
     if (type === 'shotgun') return { forward: 0.24, right: 0.12, up: -0.34 };
     if (type === 'rifle' || type === 'machinegun') return { forward: 0.25, right: 0.12, up: -0.35 };
     if (type === 'flamethrower' || type === 'laser') return { forward: 0.24, right: 0.12, up: -0.35 };
-    if (type === 'sniper') return { forward: 0.26, right: 0.12, up: -0.36 };
-    if (type === 'smg') return { forward: 0.23, right: 0.12, up: -0.33 };
-    if (type === 'crossbow') return { forward: 0.26, right: 0.16, up: -0.36 };
     return base;
 }
 
@@ -340,9 +257,6 @@ function getThirdPersonWorldScale(rawType) {
     if (type === 'machinegun') return 0.72;
     if (type === 'flamethrower') return 0.7;
     if (type === 'laser') return 0.72;
-    if (type === 'sniper') return 0.68;
-    if (type === 'smg') return 0.7;
-    if (type === 'crossbow') return 0.76;
     return 0.78;
 }
 
@@ -412,9 +326,6 @@ export class Weapon {
         else if (this.type === 'shotgun') group.add(createGunModel('shotgun'));
         else if (this.type === 'flamethrower') group.add(createGunModel('flamethrower'));
         else if (this.type === 'laser') group.add(createGunModel('laser'));
-        else if (this.type === 'sniper') group.add(createGunModel('sniper'));
-        else if (this.type === 'smg') group.add(createGunModel('smg'));
-        else if (this.type === 'crossbow') group.add(createCrossbowModel());
 
         configureMeshForGameplay(group);
         group.userData.ignoreDamageTint = true;
@@ -456,9 +367,6 @@ export class Weapon {
             else if (this.type === 'pistol') audioSynth.playPistol?.(srcPos, srcKey);
             else if (this.type === 'machinegun') audioSynth.playMachinegun?.(srcPos, srcKey);
             else if (this.type === 'rifle') audioSynth.playRifle?.(srcPos, srcKey);
-            else if (this.type === 'sniper') audioSynth.playRifle?.(srcPos, srcKey);
-            else if (this.type === 'smg') audioSynth.playMachinegun?.(srcPos, srcKey);
-            else if (this.type === 'crossbow') audioSynth.playBowShot?.(srcPos, srcKey);
         }
 
         if (this.type === 'fists' || this.type === 'knife') {
@@ -546,18 +454,10 @@ export class Weapon {
             mesh = createArrowProjectileMesh();
             knockback = 6;
             gravity = 0.02;
-       } else if (type === 'pistol' || type === 'rifle' || type === 'machinegun' || type === 'shotgun' || type === 'sniper') {
+        } else if (type === 'pistol' || type === 'rifle' || type === 'machinegun' || type === 'shotgun') {
             const m = getMaterial('proj_bullet', () => new THREE.MeshStandardMaterial({ color: 0xffd54f, emissive: 0xffc107, emissiveIntensity: 0.35, roughness: 0.28, metalness: 0.35, flatShading: true }));
             mesh = createPart(getGeom('proj_bullet', () => new THREE.CylinderGeometry(0.04, 0.04, 0.3, 8)), m, 0, 0, 0, 0, 0, Math.PI / 2);
-            knockback = type === 'sniper' ? 7 : (type === 'rifle' || type === 'machinegun' ? 4 : 3);
-        } else if (type === 'smg') {
-            const m = getMaterial('proj_smg', () => new THREE.MeshStandardMaterial({ color: 0xffaa22, emissive: 0xff8800, emissiveIntensity: 0.25, roughness: 0.3, metalness: 0.3, flatShading: true }));
-            mesh = createPart(getGeom('proj_smg', () => new THREE.CylinderGeometry(0.03, 0.03, 0.22, 8)), m, 0, 0, 0, 0, 0, Math.PI / 2);
-            knockback = 3;
-        } else if (type === 'crossbow') {
-            mesh = createArrowProjectileMesh();
-            knockback = 7;
-            gravity = 0.025;
+            knockback = type === 'rifle' || type === 'machinegun' ? 4 : 3;
         } else if (type === 'flame') {
             const m = getMaterial('proj_flame', () => new THREE.MeshStandardMaterial({ color: 0xff6d00, emissive: 0xff8f00, emissiveIntensity: 0.68, roughness: 0.45, transparent: true, opacity: 0.82, flatShading: true }));
             mesh = createPart(getGeom('proj_flame', () => new THREE.ConeGeometry(0.2, 0.6, 6)), m, 0, 0, 0, 0, 0, Math.PI / 2);
@@ -624,28 +524,6 @@ export class Weapon {
                 this.mesh.rotation.copy(originalRotation);
                 this.mesh.position.copy(originalPosition);
             }, 120);
-        } else if (this.type === 'sniper') {
-            this.mesh.rotation.x = originalRotation.x - 0.35;
-            this.mesh.position.z = originalPosition.z - 0.12;
-            setTimeout(() => {
-                if (!this.mesh) return;
-                this.mesh.rotation.copy(originalRotation);
-                this.mesh.position.copy(originalPosition);
-            }, 180);
-        } else if (this.type === 'smg') {
-            this.mesh.rotation.x = originalRotation.x - 0.18;
-            this.mesh.position.z = originalPosition.z - 0.04;
-            setTimeout(() => {
-                if (!this.mesh) return;
-                this.mesh.rotation.copy(originalRotation);
-                this.mesh.position.copy(originalPosition);
-            }, 80);
-        } else if (this.type === 'crossbow') {
-            this.mesh.rotation.z = originalRotation.z - 0.15;
-            setTimeout(() => {
-                if (!this.mesh) return;
-                this.mesh.rotation.copy(originalRotation);
-            }, 220);
         } else if (this.type === 'flamethrower') {
             this.mesh.rotation.x = originalRotation.x - 0.12;
             setTimeout(() => {

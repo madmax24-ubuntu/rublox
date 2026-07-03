@@ -1,4 +1,4 @@
-﻿import * as THREE from "/node_modules/three/build/three.module.js";
+import * as THREE from 'three';
 
 export class Griever {
     constructor(scene, id, spawnPosition) {
@@ -237,6 +237,6 @@ export class Griever {
             this.physics.velocity.z += dir.z * strength;
             this.physics.velocity.y += 1.5;
         }
-        return true;
+        return !this.isAlive;
     }
 }

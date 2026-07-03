@@ -73,6 +73,7 @@ export class UtilityAI {
                     enemyPressure * 0.5 +
                     combatReadiness * 0.4 +
                     (1 - zoneUrgency) * 0.08 +
+                    (context.hasTrainOpportunity ? 0.12 : 0) -
                     healthNeed * 0.25
                 );
             case 'loot':
@@ -94,12 +95,14 @@ export class UtilityAI {
             case 'ambush':
                 return this.clamp01(
                     ambushPotential * 0.78 +
+                    (context.hasTrainOpportunity ? 0.2 : 0) +
                     (context.closestEnemyDistance < 10 ? -0.16 : 0)
                 );
             case 'patrol':
                 return this.clamp01(
                     patrolValue * 0.74 +
-                    poiOpportunity * 0.14
+                    poiOpportunity * 0.14 +
+                    (context.hasTrainOpportunity ? 0.12 : 0)
                 );
             default:
                 return 0;

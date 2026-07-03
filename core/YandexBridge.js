@@ -1,4 +1,4 @@
-﻿const STRINGS = {
+const STRINGS = {
     ru: {
         title: 'Rubo Arena: Голодные игры',
         badge1: 'Официальный релиз',

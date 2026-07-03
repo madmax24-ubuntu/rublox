@@ -1,4 +1,4 @@
-﻿import * as THREE from "../node_modules/three/build/three.module.js";
+import * as THREE from "three";
 
 export class Environment {
     constructor(scene) {
@@ -127,11 +127,28 @@ export class Environment {
                 this.targetExposure = 0.82;
             } else {
                 this.targetFog = 0.0036;
-                this.targetExposure = 1;
+        this.targetExposure = 1;
+        this.stormFlashTimer = 2;
             }
         } else {
             this.targetFog = 0.0036;
             this.targetExposure = 1;
+        }
+
+        if (this.stormActive) {
+            this.stormIntensity = Math.max(0.3, this.stormIntensity);
+            skyColor.lerp(new THREE.Color(0x2a2a3a), 0.5);
+            intensity *= 0.6;
+            this.targetFog = Math.max(this.targetFog, 0.007);
+            this.targetExposure = Math.min(this.targetExposure, 0.5);
+            this.stormFlashTimer -= delta;
+            if (this.stormFlashTimer <= 0 && Math.random() < 0.008) {
+                this.sunLight.intensity = 3.5;
+                skyColor.lerp(new THREE.Color(0x8a8aaa), 0.4);
+                this.stormFlashTimer = 0.15;
+            } else {
+                this.sunLight.intensity = THREE.MathUtils.lerp(this.sunLight.intensity, 1.4, delta * 15);
+            }
         }
 
         if (forcedNight) {
@@ -188,6 +205,15 @@ export class Environment {
     clearFogOverride() {
         this.overrideFog = null;
         this.overrideFogColor = null;
+    }
+
+    setStormActive(active, intensity = 0.75) {
+        this.stormActive = active;
+        this.stormIntensity = intensity;
+        if (active) {
+            this.weatherType = 'storm';
+            this.weatherChanged = true;
+        }
     }
 
     consumeWeatherChange() {

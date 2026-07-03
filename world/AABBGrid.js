@@ -1,4 +1,4 @@
-﻿import * as THREE from "/node_modules/three/build/three.module.js";
+import * as THREE from "three";
 
 // Optimized spatial hash grid for O(1) nearby collision queries
 export class AABBGrid {
@@ -81,9 +81,9 @@ export class AABBGrid {
                     if (!cells) continue;
                     for (const box of cells) {
                         // Sphere-AABB test
-                        const dx = Math.max(0, center.x - box.max.x);
-                        const dy = Math.max(0, center.y - box.max.y);
-                        const dz = Math.max(0, center.z - box.min.z);
+                        const dx = Math.max(0, center.x - box.max.x) + Math.max(0, box.min.x - center.x);
+                        const dy = Math.max(0, center.y - box.max.y) + Math.max(0, box.min.y - center.y);
+                        const dz = Math.max(0, center.z - box.max.z) + Math.max(0, box.min.z - center.z);
                         if (dx * dx + dy * dy + dz * dz < r2) {
                             results.push(box);
                         }
@@ -178,13 +178,13 @@ export function aabbOverlap(a, b) {
 
 // Sphere-AABB overlap helper
 export function sphereAABBOverlap(center, radius, box) {
-    const dx = Math.max(0, center.x - box.max.x);
-    const dy = Math.max(0, center.y - box.max.y);
-    const dz = Math.max(0, center.z - box.min.z);
+    const dx = Math.max(0, center.x - box.max.x) + Math.max(0, box.min.x - center.x);
+    const dy = Math.max(0, center.y - box.max.y) + Math.max(0, box.min.y - center.y);
+    const dz = Math.max(0, center.z - box.max.z) + Math.max(0, box.min.z - center.z);
     const closest = new THREE.Vector3(
-        center.x - dx,
-        center.y - dy,
-        center.z - dz
+        Math.max(box.min.x, Math.min(center.x, box.max.x)),
+        Math.max(box.min.y, Math.min(center.y, box.max.y)),
+        Math.max(box.min.z, Math.min(center.z, box.max.z))
     );
     const distSq = center.distanceToSquared(closest);
     return distSq < radius * radius;

@@ -15,7 +15,7 @@ app.use(express.static(__dirname, {
   setHeaders: (res, filePath) => {
     res.setHeader('Cache-Control', 'no-store');
     if (filePath.endsWith('.js') || filePath.endsWith('.mjs')) {
-      res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
+      res.setHeader('Content-Type', 'text/javascript; charset=UTF-8');
     } else if (filePath.endsWith('.css')) {
       res.setHeader('Content-Type', 'text/css; charset=UTF-8');
     } else if (filePath.endsWith('.json')) {
@@ -27,10 +27,6 @@ app.use(express.static(__dirname, {
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
-
-// Поддержка подпапок single/ и multi/
-app.use('/single', express.static(path.join(__dirname, 'single')));
-app.use('/multi', express.static(path.join(__dirname, 'multi')));
 
 const wss = new WebSocketServer({ server, path: '/ws' });
 const rooms = new Map();

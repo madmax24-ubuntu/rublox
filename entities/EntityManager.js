@@ -1,4 +1,4 @@
-﻿import * as THREE from "/node_modules/three/build/three.module.js";
+import * as THREE from 'three';
 
 export class EntityManager {
     constructor(scene) {
@@ -19,6 +19,10 @@ export class EntityManager {
         this._nearbyQueryStamp = 1;
         this.aliveSurvivorsCache = [];
         this.aliveSurvivorCount = 0;
+        this._lastRebuildCount = 0;
+        this._impactGeoCache = new Map();
+        this._trailGeo = new THREE.PlaneGeometry(0.6, 0.25);
+        this._tmpVecG = new THREE.Vector3();
     }
 
     addEntity(entity) {
@@ -45,7 +49,10 @@ export class EntityManager {
 
     update(delta, physics, audioSynth) {
         this.physicsRef = physics || this.physicsRef;
-        this.rebuildSpatialIndex();
+        if (this.entities.length !== this._lastRebuildCount) {
+            this._lastRebuildCount = this.entities.length;
+            this.rebuildSpatialIndex();
+        }
         // Update projectiles
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             const proj = this.projectiles[i];
@@ -244,31 +251,22 @@ export class EntityManager {
         const dy = p1.y - p0.y;
         const dz = p1.z - p0.z;
 
-        let min, max;
-        if (box.min && box.max) {
-            min = box.min;
-            max = box.max;
-        } else {
-            min = new THREE.Vector3(box.position.x - box.size.x / 2, box.position.y - box.size.y / 2, box.position.z - box.size.z / 2);
-            max = new THREE.Vector3(box.position.x + box.size.x / 2, box.position.y + box.size.y / 2, box.position.z + box.size.z / 2);
-        }
-
-        const checkAxis = (start, delta, minVal, maxVal) => {
+        const checkAxis = (start, delta, min, max) => {
             if (Math.abs(delta) < 1e-6) {
-                return start >= minVal && start <= maxVal;
+                return start >= min && start <= max;
             }
             const inv = 1 / delta;
-            let t1 = (minVal - start) * inv;
-            let t2 = (maxVal - start) * inv;
+            let t1 = (min - start) * inv;
+            let t2 = (max - start) * inv;
             if (t1 > t2) [t1, t2] = [t2, t1];
             tmin = Math.max(tmin, t1);
             tmax = Math.min(tmax, t2);
             return tmin <= tmax;
         };
 
-        if (!checkAxis(p0.x, dx, min.x, max.x)) return false;
-        if (!checkAxis(p0.y, dy, min.y, max.y)) return false;
-        if (!checkAxis(p0.z, dz, min.z, max.z)) return false;
+        if (!checkAxis(p0.x, dx, box.min.x, box.max.x)) return false;
+        if (!checkAxis(p0.y, dy, box.min.y, box.max.y)) return false;
+        if (!checkAxis(p0.z, dz, box.min.z, box.max.z)) return false;
         return true;
     }
 
@@ -359,6 +357,12 @@ export class EntityManager {
                 : type === 'bow'
                     ? 0xbca27f
                     : 0xcfd8dc;
+        const geoKey = `sphere_${type === 'laser' ? '18' : '12'}`;
+        let geo = this._impactGeoCache.get(geoKey);
+        if (!geo) {
+            geo = new THREE.SphereGeometry(type === 'laser' ? 0.18 : 0.12, 8, 8);
+            this._impactGeoCache.set(geoKey, geo);
+        }
         const mat = new THREE.MeshStandardMaterial({
             color,
             emissive: isHit ? color : 0x000000,
@@ -367,14 +371,20 @@ export class EntityManager {
             transparent: true,
             opacity: 0.9
         });
-        const geo = new THREE.SphereGeometry(type === 'laser' ? 0.18 : 0.12, 8, 8);
         const puff = new THREE.Mesh(geo, mat);
         group.add(puff);
         if (isHeadshot) {
-            const crown = new THREE.Mesh(
-                new THREE.SphereGeometry(0.08, 6, 6),
-                new THREE.MeshBasicMaterial({ color: 0xffeb3b, transparent: true, opacity: 0.9 })
-            );
+            let crownGeo = this._impactGeoCache.get('crown');
+            if (!crownGeo) {
+                crownGeo = new THREE.SphereGeometry(0.08, 6, 6);
+                this._impactGeoCache.set('crown', crownGeo);
+            }
+            let crownMat = this._impactGeoCache.get('crownMat');
+            if (!crownMat) {
+                crownMat = new THREE.MeshBasicMaterial({ color: 0xffeb3b, transparent: true, opacity: 0.9 });
+                this._impactGeoCache.set('crownMat', crownMat);
+            }
+            const crown = new THREE.Mesh(crownGeo, crownMat);
             crown.position.y = 0.18;
             group.add(crown);
         }
@@ -386,14 +396,13 @@ export class EntityManager {
     }
 
     spawnSpeedTrail(position, color = 0x4bb3ff) {
-        const geo = new THREE.PlaneGeometry(0.6, 0.25);
         const mat = new THREE.MeshBasicMaterial({
             color,
             transparent: true,
             opacity: 0.5,
             side: THREE.DoubleSide
         });
-        const mesh = new THREE.Mesh(geo, mat);
+        const mesh = new THREE.Mesh(this._trailGeo, mat);
         mesh.rotation.x = -Math.PI / 2;
         mesh.position.copy(position);
         mesh.position.y += 0.05;

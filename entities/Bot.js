@@ -1,4 +1,4 @@
-﻿import * as THREE from "/node_modules/three/build/three.module.js";
+import * as THREE from 'three';
 import { Inventory } from '../items/Inventory.js';
 import { Weapon } from '../items/Weapon.js';
 import { spawnDamagePopup } from './DamagePopup.js';
@@ -40,7 +40,6 @@ export class Bot {
         this.lastPosition = this.position.clone();
         this.stuckTimer = 0;
         this.isStuck = false;
-        this.audioSynthRef = null;
         this.escapeDir = null;
         this.escapeTimer = 0;
         this.moveDir = new THREE.Vector3(0, 0, 1);
@@ -58,6 +57,8 @@ export class Bot {
         this.burnDamagePerSecond = 0;
         this.burnAttacker = null;
         this.lastFlashTime = 0;
+        this.preferTrainCombat = false;
+        this.ignoreTrainAvoidance = false;
         this.healthRegenDelay = 7;
         this.healthRegenDuration = 7;
         this.lastDamageAt = -Infinity;
@@ -72,6 +73,7 @@ export class Bot {
         this.visualSpeed = 0;
         this._tmpDirection = new THREE.Vector3();
         this._tmpAvoid = new THREE.Vector3();
+        this._tmpTrainAvoid = new THREE.Vector3();
         this._tmpProbe = new THREE.Vector3();
         this._tmpProbe2 = new THREE.Vector3();
         this._tmpProbe3 = new THREE.Vector3();
@@ -84,6 +86,10 @@ export class Bot {
         this._tmpRight = new THREE.Vector3();
         this._tmpWeaponRot = new THREE.Vector3();
         this._tmpErr = new THREE.Vector3();
+        this._tmpScale = new THREE.Vector3(1, 1, 1);
+        this._animTime = 0;
+        this._tintedChildren = new Set();
+        this._weaponRecoilTimer = 0;
 
         this.variants = [
             {
@@ -209,27 +215,31 @@ export class Bot {
             grip.forward * gripMul + 0.12
         );
         this._tmpWeaponRot.set(0, 0, 0);
-        // Weapon model +X = forward (barrel direction). Rotate Y by π/2 so it aligns to character forward.
-        this._tmpWeaponRot.y = Math.PI / 2;
         if (this.currentWeapon.type === 'bow') {
             this._tmpWeaponRot.x = -0.12;
-            this._tmpWeaponRot.y = Math.PI / 2 + 0.04;
+            this._tmpWeaponRot.y = 0.04;
         } else if (this.currentWeapon.type === 'knife') {
             this._tmpWeaponRot.x = -0.08;
-            this._tmpWeaponRot.y = Math.PI / 2 - 0.05;
+            this._tmpWeaponRot.y = -0.05;
         } else if (this.currentWeapon.type === 'pistol') {
             this._tmpWeaponRot.x = -0.03;
         } else if (this.currentWeapon.type === 'shotgun' || this.currentWeapon.type === 'rifle' || this.currentWeapon.type === 'machinegun' || this.currentWeapon.type === 'flamethrower' || this.currentWeapon.type === 'laser') {
             this._tmpWeaponRot.x = -0.06;
-        } else if (this.currentWeapon.type === 'sniper') {
-            this._tmpWeaponRot.x = -0.06;
-        } else if (this.currentWeapon.type === 'smg') {
-            this._tmpWeaponRot.x = -0.06;
-        } else if (this.currentWeapon.type === 'crossbow') {
-            this._tmpWeaponRot.x = -0.12;
-            this._tmpWeaponRot.z = 0.05;
         }
-        mesh.rotation.set(this._tmpWeaponRot.x, this._tmpWeaponRot.y, this._tmpWeaponRot.z);
+
+        // Recoil animation
+        if (this._weaponRecoilTimer > 0) {
+            const recoilFactor = this._weaponRecoilTimer / 0.12;
+            this._tmpWeaponRot.x -= recoilFactor * 0.25;
+            this._tmpWeaponRot.z = recoilFactor * 0.1;
+            this._weaponRecoilTimer -= 0.016;
+        }
+
+        mesh.rotation.set(this._tmpWeaponRot.x, this._tmpWeaponRot.y + Math.PI / 2, this._tmpWeaponRot.z);
+    }
+
+    applyWeaponRecoil() {
+        this._weaponRecoilTimer = 0.12;
     }
 
     createMesh() {
@@ -446,20 +456,22 @@ export class Bot {
 
     createHealthBar() {
         const group = new THREE.Group();
-        // depthTest: true — скрывается за стенами
-        const bgMat = new THREE.MeshBasicMaterial({ color: 0x1a1a1a, transparent: false, depthTest: true, depthWrite: true });
-        const fillMat = new THREE.MeshBasicMaterial({ color: 0x4caf50, transparent: false, depthTest: true, depthWrite: true });
+        const bgMat = new THREE.MeshBasicMaterial({ color: 0x1a1a1a, transparent: true, opacity: 0.8, depthTest: true });
+        const fillMat = new THREE.MeshBasicMaterial({ color: 0x4caf50, transparent: true, opacity: 0.95, depthTest: true });
         const bg = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.12), bgMat);
         const fill = new THREE.Mesh(new THREE.PlaneGeometry(0.86, 0.08), fillMat);
-        fill.position.set(-0.43, 0, 0.001);
+        fill.position.set(-0.43, 0, 0.01);
         fill.userData.isFill = true;
         group.add(bg);
         group.add(fill);
         group.position.set(0, 2.65, 0);
-        // polygonOffset чтобы убрать z-fighting с фоном
-        bgMat.polygonOffset = true;
-        bgMat.polygonOffsetFactor = -2;
-        bgMat.polygonOffsetUnits = -2;
+        group.renderOrder = 900;
+        group.traverse(child => {
+            if (child.material) {
+                child.material.depthTest = true;
+                child.material.depthWrite = false;
+            }
+        });
         return group;
     }
 
@@ -485,6 +497,7 @@ export class Bot {
         this.entityManagerRef = entityManager || this.entityManagerRef;
         this.lootManagerRef = lootManager || this.lootManagerRef;
         this.audioSynthRef = audioSynth;
+        this._animTime = performance.now() / 1000;
         this.updateBurning(delta);
         this.updateHealthRegen(delta);
         this.steeringCooldown = Math.max(0, this.steeringCooldown - delta);
@@ -514,6 +527,19 @@ export class Bot {
             this.animateLimbs();
             this.updateHealthBar(delta);
             this.updateWeaponTransform();
+            this.updateBurning(delta);
+            this._healthRegenTimer = (this._healthRegenTimer || 0) + delta;
+            if (this._healthRegenTimer >= this.healthRegenDuration && this.health < this.maxHealth) {
+                this._healthRegenTimer = 0;
+                const heal = 1.8;
+                this.health = Math.min(this.maxHealth, this.health + heal);
+                this.lastHealTime = performance.now();
+            }
+            if (this.medkits > 0 && this.health < this.maxHealth * 0.35 && !this._lastMedkitUse) {
+                this._lastMedkitUse = performance.now();
+                this.health = Math.min(this.maxHealth, this.health + 45);
+                this.medkits--;
+            }
             return;
         }
 
@@ -528,10 +554,24 @@ export class Bot {
             this.mesh.rotation.y = this.rotation.y;
             this.animateLimbs();
             this.updateHealthBar(delta);
+            this.updateBurning(delta);
+            this._healthRegenTimer = (this._healthRegenTimer || 0) + delta;
+            if (this._healthRegenTimer >= this.healthRegenDuration && this.health < this.maxHealth) {
+                this._healthRegenTimer = 0;
+                const heal = 1.8;
+                this.health = Math.min(this.maxHealth, this.health + heal);
+                this.lastHealTime = performance.now();
+            }
+            if (this.medkits > 0 && this.health < this.maxHealth * 0.35 && !this._lastMedkitUse) {
+                this._lastMedkitUse = performance.now();
+                this.health = Math.min(this.maxHealth, this.health + 45);
+                this.medkits--;
+            }
             return;
         }
 
 
+        this.ignoreTrainAvoidance = false;
         brain.update(this, delta, entityManager, lootManager, audioSynth);
         if (this.escapeTimer > 0) {
             this.escapeTimer = Math.max(0, this.escapeTimer - delta);
@@ -626,7 +666,7 @@ export class Bot {
         );
         const speed = Math.max(velocitySpeed, this.visualSpeed || 0);
         const speedNorm = Math.min(1, speed / Math.max(0.001, this.physics.speed));
-        const time = performance.now() / 1000;
+        const time = this._animTime;
 
         if (speedNorm > 0.05) {
             const swing = Math.sin(time * 10) * 0.8 * speedNorm;
@@ -800,12 +840,16 @@ export class Bot {
         if (!child?.material || child.userData?.ignoreDamageTint) return;
         if (child.userData?.tintMaterialOwned) return;
         if (Array.isArray(child.material)) return;
-        child.material = child.material.clone();
+        const oldMat = child.material;
+        child.material = oldMat.clone();
+        oldMat.dispose();
         child.userData.tintMaterialOwned = true;
+        this._tintedChildren.add(child);
     }
 
     updateHealthBar(delta = 0.016) {
         if (!this.healthBar) return;
+        const isMobile = !!this.scene?.userData?.mobileMode;
         const ratio = Math.max(0, Math.min(1, this.health / this.maxHealth));
         const fill = this.healthBar.children.find(child => child.userData?.isFill);
         if (fill) {
@@ -815,15 +859,29 @@ export class Bot {
             else if (ratio < 0.6) fill.material.color.setHex(0xffc107);
             else fill.material.color.setHex(0x4caf50);
         }
-        const camera = this.scene.userData?.camera;
+        const camera = this._cachedCamera || (this._cachedCamera = this.scene?.userData?.camera);
         if (camera) {
+            this.healthBarRefreshTimer -= delta;
+            this.healthBarLosTimer -= delta;
+            this.healthBarAimTimer -= delta;
+            if (this.healthBarRefreshTimer > 0) return;
+            this.healthBarRefreshTimer = isMobile ? 0.2 + Math.random() * 0.1 : 0.08 + Math.random() * 0.06;
             const dx = camera.position.x - this.position.x;
             const dz = camera.position.z - this.position.z;
             const distSq = dx * dx + dz * dz;
-            // Только показывать в радиусе 25м (ближний бой/прицеливание)
-            const maxDist = 25;
-            this.healthBar.visible = distSq < maxDist * maxDist;
-            if (this.healthBar.visible) this.healthBar.lookAt(camera.position);
+            const entityManager = this.scene.userData?.entityManager;
+            let visible = distSq < (isMobile ? (13 * 13) : (19 * 19));
+            if (!isMobile && visible && entityManager?.hasLineOfSight && this.healthBarLosTimer <= 0) {
+                this._tmpLosFrom.copy(camera.position);
+                this._tmpLosTo.set(this.position.x, this.position.y + (this.physics?.height || 1.8) * 0.65, this.position.z);
+                this.healthBarVisibleCached = entityManager.hasLineOfSight(this._tmpLosFrom, this._tmpLosTo, true);
+                this.healthBarLosTimer = 0.22 + Math.random() * 0.12;
+            }
+            this.healthBar.visible = isMobile ? visible : (visible && this.healthBarVisibleCached);
+            if (this.healthBar.visible && this.healthBarAimTimer <= 0) {
+                this.healthBar.lookAt(camera.position);
+                this.healthBarAimTimer = isMobile ? 0.22 : 0.12;
+            }
         }
     }
 
@@ -834,8 +892,13 @@ export class Bot {
         this.visualSpeed = moved / dt;
         this.visualLastPosition.copy(this.position);
 
+        // Handle crouch effect for HIDE state
+        const targetScale = this.state === 'hide' ? 0.75 : 1.0;
+        this._tmpScale.set(targetScale, targetScale, targetScale);
+        this.mesh.scale.lerp(this._tmpScale, dt * 5);
+
         this.mesh.position.copy(this.position);
-        this.mesh.position.y = this.position.y - (this.physics.height - 0.38);
+        this.mesh.position.y = this.position.y - (this.physics.height * (this.state === 'hide' ? 0.75 : 1.0) - 0.38);
         this.mesh.rotation.y = this.rotation.y;
         this.animateLimbs();
         if (this.healthBar) this.updateHealthBar(delta);
@@ -886,6 +949,11 @@ export class Bot {
             this.computeAvoidance(direction, this._tmpAvoid);
             if (this._tmpAvoid.lengthSq() > 0.0001) {
                 direction.addScaledVector(this._tmpAvoid, 1.2).normalize();
+            }
+
+            this.computeTrainAvoidance(direction, this._tmpTrainAvoid);
+            if (this._tmpTrainAvoid.lengthSq() > 0.0001) {
+                direction.addScaledVector(this._tmpTrainAvoid, 1.35).normalize();
             }
 
             const angles = [0, Math.PI / 10, -Math.PI / 10, Math.PI / 4, -Math.PI / 4];
@@ -956,7 +1024,7 @@ export class Bot {
             this.currentWeapon = null;
             weapon = this.fists;
         }
-        if ((weapon.type === 'bow' || weapon.type === 'laser' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle' || weapon.type === 'machinegun' || weapon.type === 'sniper' || weapon.type === 'smg' || weapon.type === 'crossbow') && weapon.ammo !== null && weapon.ammo <= 0) {
+        if ((weapon.type === 'bow' || weapon.type === 'laser' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle' || weapon.type === 'machinegun') && weapon.ammo !== null && weapon.ammo <= 0) {
             this.currentWeapon = null;
             weapon = this.fists;
         }
@@ -967,7 +1035,7 @@ export class Bot {
 
         if (distance > attackRange) return null;
 
-        if (weapon.type === 'laser' || weapon.type === 'bow' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle' || weapon.type === 'machinegun' || weapon.type === 'sniper' || weapon.type === 'smg' || weapon.type === 'crossbow') {
+        if (weapon.type === 'laser' || weapon.type === 'bow' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle' || weapon.type === 'machinegun') {
             const direction = this._tmpDirection
                 .subVectors(target.position, this.position)
                 .normalize();
@@ -1077,16 +1145,9 @@ export class Bot {
         const bottom = this.position.y - this.physics.height + 0.2;
         for (const box of nearby) {
             if (box.enabled === false) continue;
-            let boxMin, boxMax;
-            if (box.min && box.max) {
-                boxMin = box.min; boxMax = box.max;
-            } else {
-                boxMin = new THREE.Vector3(box.position.x - box.size.x / 2, box.position.y - box.size.y / 2, box.position.z - box.size.z / 2);
-                boxMax = new THREE.Vector3(box.position.x + box.size.x / 2, box.position.y + box.size.y / 2, box.position.z + box.size.z / 2);
-            }
-            if (this._tmpProbe.x < boxMin.x - 0.1 || this._tmpProbe.x > boxMax.x + 0.1) continue;
-            if (this._tmpProbe.z < boxMin.z - 0.1 || this._tmpProbe.z > boxMax.z + 0.1) continue;
-            if (bottom > boxMax.y - 0.1) continue;
+            if (this._tmpProbe.x < box.min.x - 0.1 || this._tmpProbe.x > box.max.x + 0.1) continue;
+            if (this._tmpProbe.z < box.min.z - 0.1 || this._tmpProbe.z > box.max.z + 0.1) continue;
+            if (bottom > box.max.y - 0.1) continue;
             return true;
         }
         return false;
@@ -1103,16 +1164,8 @@ export class Bot {
         for (const box of nearby) {
             if (box.enabled === false) continue;
             if (box.walkable) continue;
-            let min, max;
-            if (box.min && box.max) {
-                min = box.min;
-                max = box.max;
-            } else {
-                min = new THREE.Vector3(box.position.x - box.size.x / 2, box.position.y - box.size.y / 2, box.position.z - box.size.z / 2);
-                max = new THREE.Vector3(box.position.x + box.size.x / 2, box.position.y + box.size.y / 2, box.position.z + box.size.z / 2);
-            }
-            const closestX = Math.max(min.x, Math.min(max.x, this.position.x));
-            const closestZ = Math.max(min.z, Math.min(max.z, this.position.z));
+            const closestX = Math.max(box.min.x, Math.min(box.max.x, this.position.x));
+            const closestZ = Math.max(box.min.z, Math.min(box.max.z, this.position.z));
             const dx = this.position.x - closestX;
             const dz = this.position.z - closestZ;
             const distSq = dx * dx + dz * dz;
@@ -1123,6 +1176,42 @@ export class Bot {
                 result.x += (dx / dist) * push;
                 result.z += (dz / dist) * push;
             }
+        }
+        return result;
+    }
+
+    computeTrainAvoidance(forward, out = null) {
+        const result = out || this._tmpTrainAvoid;
+        result.set(0, 0, 0);
+        if (this.ignoreTrainAvoidance || this.state === 'trainCombat') return result;
+        const map = this.mapRef;
+        if (!map?.getTrainCarsSnapshot) return result;
+        const trains = map.getTrainCarsSnapshot();
+        if (!trains.length) return result;
+
+        for (const train of trains) {
+            const axisX = train.axis === 'x';
+            const alongDist = axisX
+                ? Math.abs(this.position.x - train.x)
+                : Math.abs(this.position.z - train.z);
+            const acrossDist = axisX
+                ? Math.abs(this.position.z - train.z)
+                : Math.abs(this.position.x - train.x);
+            const halfWidth = (train.width || 4.8) * 0.5 + 1.4;
+            if (acrossDist > halfWidth || alongDist > 13.5) continue;
+
+            const intensity = Math.max(0.1, 1 - alongDist / 13.5);
+            if (axisX) {
+                result.z += (this.position.z >= train.z ? 1 : -1) * intensity;
+            } else {
+                result.x += (this.position.x >= train.x ? 1 : -1) * intensity;
+            }
+        }
+
+        if (result.lengthSq() <= 0.0001) return result;
+        result.normalize();
+        if (result.dot(forward) < -0.2) {
+            result.multiplyScalar(0.45);
         }
         return result;
     }
@@ -1156,12 +1245,12 @@ export class Bot {
             child.material.emissive.setHex(0xff2d2d);
             child.material.emissiveIntensity = 0.7;
         });
+        const tinted = this._tintedChildren;
         setTimeout(() => {
-            this.mesh.traverse(child => {
-                if (child.userData?.ignoreDamageTint) return;
-                if (!child.material || !child.material.emissive) return;
-                child.material.emissiveIntensity = 0;
-            });
+            for (const child of tinted) {
+                if (child?.material?.emissive) child.material.emissiveIntensity = 0;
+            }
+            tinted.clear();
         }, 120);
     }
 
@@ -1170,9 +1259,6 @@ export class Bot {
         while (diff < -Math.PI) diff += Math.PI * 2;
         while (diff > Math.PI) diff -= Math.PI * 2;
         return a + diff * t;
-    }
-    setInvulnerable(v) {
-        this.isInvulnerable = v;
     }
 }
 

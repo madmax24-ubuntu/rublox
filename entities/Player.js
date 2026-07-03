@@ -1,388 +1,1242 @@
-﻿import * as THREE from "/node_modules/three/build/three.module.js";
+import * as THREE from 'three';
 import { Inventory } from '../items/Inventory.js';
 import { Weapon } from '../items/Weapon.js';
+import { spawnDamagePopup } from './DamagePopup.js';
 
-export class Player extends THREE.Group {
+export class Player {
     constructor(scene, camera, input) {
-        super();
         this.scene = scene;
         this.camera = camera;
         this.input = input;
 
-        this.yaw = new THREE.Group();
-        this.pitch = new THREE.Group();
-        this.add(this.yaw);
-        this.yaw.add(this.pitch);
-        this.pitch.add(this.camera);
+        this.position = new THREE.Vector3(0, 5, 0);
+        this.rotation = new THREE.Euler(0, 0, 0);
+        this.physics = {
+            velocity: new THREE.Vector3(0, 0, 0),
+            onGround: false,
+            height: 1.7,
+            radius: 0.4,
+            speed: 8
+        };
 
-        this.mesh = new THREE.Mesh(
-            new THREE.BoxGeometry(1.2, 2.2, 1.2),
-            new THREE.MeshLambertMaterial({ color: 0x3333ff })
-        );
-        this.mesh.position.y = 1.1;
-        this.add(this.mesh);
-
-        // ИНИЦИАЛИЗАЦИЯ ИНВЕНТАРЯ — ДОБАВИТЬ ПЕРЕД СОЗДАНИЕМ FISTS!
-        this.inventory = new Inventory();
-
-        // Создаем визуализацию для кулаков (fists не создают mesh автоматически)
-        const sleeveMat = new THREE.MeshLambertMaterial({ color: 0x2f7a3f });
-        const gloveMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
-        
-        // Позиционируем кулаки как FPS-руки — выдвигаем вперед от камеры
-        const leftFist = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.18), gloveMat);
-        leftFist.position.set(-0.24, -0.22, -0.88);
-        const rightFist = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.18), gloveMat);
-        rightFist.position.set(0.24, -0.22, -0.88);
-        this.fists = new Weapon('fists', this.scene);
-        this.fists.mesh = new THREE.Group();
-        this.fists.mesh.add(leftFist, rightFist);
-        // ВАЖНО: Добавляем кулаки в иерархию pitch для рендеринга!
-        this.pitch.add(this.fists.mesh);  
-        // Кулаки видимы по умолчанию — они часть тела игрока
-        this.currentWeapon = this.fists;
-        
-        // ЯВНО устанавливаем видимость кулаков после создания mesh (обход бага Weapon.setVisible)
-        if (this.fists && this.fists.mesh) {
-            this.fists.visible = true;  
-            this.fists.mesh.visible = true;
-        }
-        
-        // ВАЖНО: Добавляем кулаки в инвентарь для управления видимостью!
-        this.inventory.items[0] = this.fists;  // Слот 0 всегда занят fists
-        this.inventory.selectedSlot = 0;
-
-        // Создаем визуализацию рук для первого лица
-        this.arms = new THREE.Group();
-        
-        // Левая рука (предплечье + кисть)
-        const leftForearm = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.42), sleeveMat);
-        leftForearm.position.set(-0.24, -0.2, -0.64);
-        leftForearm.name = 'leftForearm';
-        
-        const leftHand = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.2), gloveMat);
-        leftHand.position.set(-0.24, -0.22, -0.9);
-        leftHand.name = 'leftHand';
-        
-        // Правая рука (предплечье + кисть)
-        const rightForearm = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.42), sleeveMat);
-        rightForearm.position.set(0.24, -0.2, -0.64);
-        rightForearm.name = 'rightForearm';
-        
-        const rightHand = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.2), gloveMat);
-        rightHand.position.set(0.24, -0.22, -0.9);
-        rightHand.name = 'rightHand';
-        
-        this.arms.add(leftForearm, leftHand, rightForearm, rightHand);
-        
-        // Отключаем frustum culling для всей группы рук и её содержимого
-        this.arms.traverse(child => {
-            if (child.isMesh) child.frustumCulled = false;
-        });
-        
-        // Позиционируем группу рук относительно КАМЕРЫ — Z отрицательный = перед камерой!
-        this.arms.position.set(0, -0.42, -0.38);
-        this.camera.add(this.arms);
-        this.leftForearm = leftForearm;
-        this.rightForearm = rightForearm;
-        this.leftHand = leftHand;
-        this.rightHand = rightHand;
-        
-        // Руки видимы по умолчанию в FPS режиме — hide/show управляется через updateViewWeapon()
-        this.viewMode = 'fp';
-        this.toggleViewLatch = false;
-        this.lookSensitivity = 0.002;
-        this.jumpForce = 10;
-        this.isAlive = true;
-        this.isFrozen = false;
-        this.isInvulnerable = false;
-        this.stats = { kills: 0, deaths: 0, loot: 0 };
         this.health = 100;
         this.maxHealth = 100;
+        this.armor = 0;
+        this.maxArmor = 100;
+        this.isInvulnerable = false;
+        this.isAlive = true;
+        this.isCameraFrozen = false;
 
-        // Принудительная инициализация оружия в FPS режиме
-        setTimeout(() => {
-            if (this.currentWeapon && !this.currentWeapon.mesh) {
-                this.updateViewWeapon();
-            }
-        }, 50);
+        this.inventory = new Inventory();
+        this.currentWeapon = null;
+        this.fists = new Weapon('fists', this.scene);
 
-        this.physics = {
-            velocity: new THREE.Vector3(),
-            onGround: false,
-            height: 2.2,
-            radius: 0.6
+        this.mesh = this.createMesh();
+        this.scene.add(this.mesh);
+
+        this.fpArms = this.createFirstPersonArms();
+        this.camera.add(this.fpArms);
+        this.setupViewModel(this.fpArms);
+        this.fpArms.visible = false;
+        this.viewWeapon = null;
+        this.viewWeaponType = null;
+        this.viewWeaponBase = null;
+        this.viewWeaponRequestId = 0;
+        this.viewKick = 0;
+        this.punchTime = 0;
+        this.punchDuration = 0.25;
+        this.weaponSwingTime = 0;
+        this.weaponSwingDuration = 0.2;
+        this.weaponActionTime = 0;
+        this.weaponActionDuration = 0.18;
+        this.weaponActionType = null;
+        this.audioSynthRef = null;
+
+        this.cameraOffset = new THREE.Vector3(0, 1.5, 0);
+        this._tmpFireDir = new THREE.Vector3();
+        this._tmpMuzzle = new THREE.Vector3();
+        this._tmpLookTarget = new THREE.Vector3();
+        this._tmpZeroMove = new THREE.Vector3();
+        this._tmpMoveDirection = new THREE.Vector3();
+        this._tmpCameraDirection = new THREE.Vector3();
+        this._tmpRightDirection = new THREE.Vector3();
+        this._tmpUp = new THREE.Vector3(0, 1, 0);
+        this._tmpTrailPos = new THREE.Vector3();
+        this._tmpCameraPosition = new THREE.Vector3();
+        this._tmpShakeOffset = new THREE.Vector3();
+        this._tmpKnockbackDir = new THREE.Vector3();
+        this._tmpSocketPos = new THREE.Vector3();
+        this._tmpSocketQuat = new THREE.Quaternion();
+        this.lastCameraPosition = null;
+        this._tmpAutoForward = new THREE.Vector3();
+        this._tmpAutoToTarget = new THREE.Vector3();
+        this._tmpAutoAimPoint = new THREE.Vector3();
+        this._tmpAttackDirection = new THREE.Vector3();
+        this.mouseSensitivity = 0.001;
+        this.mobileLookSensitivity = 0.003;
+        this.lookSensitivityMultiplier = 1;
+        this.lastLookSide = 0;
+        this.euler = new THREE.Euler(0, 0, 0, 'YXZ');
+
+        this.animationState = 'idle';
+        this.lastFootstepTime = 0;
+        this.coyoteTime = 0;
+        this.coyoteDuration = 0.12;
+        this.jumpBufferTime = 0;
+        this.jumpBufferDuration = 0.12;
+        this.slowTimer = 0;
+        this.slowFactor = 1;
+        this.attackCooldown = 0;
+        this.attackSpeedMultiplier = 1;
+        this.footstepVolume = 1;
+        this.perk = null;
+        this.perkAmmoBonus = 1;
+        this.isSilent = false;
+        this.damageReduction = 0;
+        this.recoilScale = 1;
+        this.autoFire = false;
+        this.baseSpeed = this.physics.speed;
+        this.damageTakenMultiplier = 0.55;
+        this.stats = { damage: 0, kills: 0, loot: 0 };
+        this.hudRef = null;
+        this.cameraShakeTime = 0;
+        this.cameraShakeDuration = 0.12;
+        this.cameraShakeStrength = 0.035;
+        this.trailCooldown = 0;
+        this.burnTimer = 0;
+        this.burnTickTimer = 0;
+        this.burnDamagePerSecond = 0;
+        this.burnAttacker = null;
+        this.lastFlashTime = 0;
+        this.bowCharge = 0;
+        this.bowChargeMax = 1.2;
+        this.bowMinCharge = 0.14;
+        this.wasFireHeld = false;
+        this.healthRegenDelay = 7;
+        this.healthRegenDuration = 7;
+        this.lastDamageAt = -Infinity;
+
+        const starterKnife = new Weapon('knife', this.scene);
+        this.inventory.addItem(starterKnife);
+        this.selectSlot(0);
+    }
+
+    getWeaponDisplayName(type) {
+        if (type === 'knife') return 'Нож';
+        if (type === 'bow') return 'Лук';
+        if (type === 'laser') return 'Лазер';
+        if (type === 'shotgun') return 'Дробовик';
+        if (type === 'flamethrower') return 'Огнемёт';
+        if (type === 'pistol') return 'Пистолет';
+        if (type === 'rifle') return 'Винтовка';
+        if (type === 'machinegun') return 'Пулемет';
+        return type || 'Предмет';
+    }
+
+    addAmmoToWeaponType(weaponType, amount) {
+        if (!weaponType || !amount || amount <= 0) return 0;
+        const target = this.inventory.getItems().find(item => item?.type === weaponType && item.ammo !== null && item.ammo !== undefined);
+        if (!target) return 0;
+        const before = target.ammo ?? 0;
+        const maxAmmo = target.maxAmmo ?? before + amount;
+        target.ammo = Math.min(maxAmmo, before + amount);
+        return Math.max(0, target.ammo - before);
+    }
+
+    setLookSensitivityMultiplier(value = 1) {
+        this.lookSensitivityMultiplier = Math.max(0.35, Math.min(2.6, value));
+    }
+
+    resetView() {
+        this.rotation.set(0, 0, 0);
+        if (this.input && this.input.resetLook) {
+            this.input.resetLook();
+        }
+        this.camera.rotation.set(0, 0, 0, 'YXZ');
+        this.camera.quaternion.setFromEuler(this.camera.rotation);
+    }
+
+    createFirstPersonArms() {
+        const group = new THREE.Group();
+        const armMat = new THREE.MeshStandardMaterial({
+            color: 0x2f5d8f,
+            roughness: 0.35,
+            metalness: 0.0,
+            flatShading: true
+        });
+        const handMat = new THREE.MeshStandardMaterial({
+            color: 0xffc9a6,
+            roughness: 0.4,
+            metalness: 0.0,
+            flatShading: true
+        });
+        const cuffMat = new THREE.MeshStandardMaterial({
+            color: 0x2f3e55,
+            roughness: 0.5,
+            metalness: 0.0,
+            flatShading: true
+        });
+
+        const leftArm = new THREE.Mesh(
+            new THREE.BoxGeometry(0.18, 0.24, 0.18),
+            armMat
+        );
+        leftArm.position.set(-0.34, -0.56, -0.86);
+        group.add(leftArm);
+        const leftCuff = new THREE.Mesh(
+            new THREE.BoxGeometry(0.18, 0.06, 0.18),
+            cuffMat
+        );
+        leftCuff.position.set(-0.34, -0.7, -0.86);
+        group.add(leftCuff);
+
+        const rightArm = new THREE.Mesh(
+            new THREE.BoxGeometry(0.18, 0.24, 0.18),
+            armMat
+        );
+        rightArm.position.set(0.34, -0.56, -0.86);
+        group.add(rightArm);
+        const rightCuff = new THREE.Mesh(
+            new THREE.BoxGeometry(0.18, 0.06, 0.18),
+            cuffMat
+        );
+        rightCuff.position.set(0.34, -0.7, -0.86);
+        group.add(rightCuff);
+
+        const leftHand = new THREE.Mesh(
+            new THREE.BoxGeometry(0.18, 0.16, 0.18),
+            handMat
+        );
+        leftHand.position.set(-0.34, -0.66, -0.98);
+        group.add(leftHand);
+
+        const rightHand = new THREE.Mesh(
+            new THREE.BoxGeometry(0.18, 0.16, 0.18),
+            handMat
+        );
+        rightHand.position.set(0.34, -0.66, -0.98);
+        group.add(rightHand);
+
+        group.userData.limbs = { leftArm, rightArm, leftHand, rightHand };
+        group.userData.base = {
+            leftArm: leftArm.position.clone(),
+            rightArm: rightArm.position.clone(),
+            leftHand: leftHand.position.clone(),
+            rightHand: rightHand.position.clone()
         };
+
+        group.scale.setScalar(1.0);
+        return group;
     }
 
-    setInvulnerable(v) { this.isInvulnerable = v; }
-    setHUD(hud) { this.hud = hud; }
-
-    applyPerk(perk, baseFootstepVolume) {
-        this.perk = perk;
-        if (perk === 'thickSkin') {
-            this.maxHealth = 150;
-            this.health = 150;
-        } else {
-            this.maxHealth = 100;
-            this.health = Math.min(this.health, 100);
-        }
-        
-        if (perk === 'silentStep') {
-            this.footstepVolume = (baseFootstepVolume || 0.4) * 0.1;
-        } else {
-            this.footstepVolume = baseFootstepVolume || 0.4;
-        }
-
-        if (this.currentWeapon) {
-            this.currentWeapon.applyPerk?.(perk);
-        }
+    setupViewModel(object) {
+        object.traverse(child => {
+            if (child.isMesh) {
+                child.renderOrder = 999;
+                child.frustumCulled = false;
+                if (child.material) {
+                    child.material.depthTest = true;
+                    child.material.depthWrite = true;
+                }
+            }
+        });
     }
 
-    update(delta, audioSynth, lootManager, entityManager) {
+    createMesh() {
+        const group = new THREE.Group();
+
+        const bodyMat = new THREE.MeshStandardMaterial({
+            color: 0x4a90e2,
+            roughness: 0.35,
+            metalness: 0.0,
+            flatShading: true
+        });
+        const body = new THREE.Mesh(
+            new THREE.BoxGeometry(0.8, 1.0, 0.6),
+            bodyMat
+        );
+        body.position.y = 0.85;
+        group.add(body);
+
+        const headMat = new THREE.MeshStandardMaterial({
+            color: 0xffd6b5,
+            roughness: 0.4,
+            metalness: 0.0,
+            flatShading: true
+        });
+        const head = new THREE.Mesh(
+            new THREE.BoxGeometry(0.7, 0.7, 0.7),
+            headMat
+        );
+        head.position.y = 1.65;
+        group.add(head);
+
+        const armMat = new THREE.MeshStandardMaterial({
+            color: 0x3f6fa1,
+            roughness: 0.35,
+            metalness: 0.0,
+            flatShading: true
+        });
+        const leftArm = new THREE.Mesh(
+            new THREE.BoxGeometry(0.28, 0.9, 0.28),
+            armMat
+        );
+        leftArm.position.set(-0.54, 0.7, 0);
+        group.add(leftArm);
+
+        const rightArm = new THREE.Mesh(
+            new THREE.BoxGeometry(0.28, 0.9, 0.28),
+            armMat
+        );
+        rightArm.position.set(0.54, 0.7, 0);
+        group.add(rightArm);
+
+        const handMat = new THREE.MeshStandardMaterial({
+            color: 0xffc9a6,
+            roughness: 0.4,
+            metalness: 0.0,
+            flatShading: true
+        });
+        const leftHand = new THREE.Mesh(
+            new THREE.BoxGeometry(0.26, 0.2, 0.26),
+            handMat
+        );
+        leftHand.position.set(-0.54, 0.2, 0);
+        group.add(leftHand);
+        const rightHand = new THREE.Mesh(
+            new THREE.BoxGeometry(0.26, 0.2, 0.26),
+            handMat
+        );
+        rightHand.position.set(0.54, 0.2, 0);
+        group.add(rightHand);
+
+        const weaponSocket = new THREE.Object3D();
+        weaponSocket.position.set(0.62, 1.1, 0.2);
+        weaponSocket.rotation.set(0, Math.PI / 2, 0);
+        group.add(weaponSocket);
+
+        const legMat = new THREE.MeshStandardMaterial({
+            color: 0x1a1a1a,
+            roughness: 0.5,
+            metalness: 0.0,
+            flatShading: true
+        });
+        const leftLeg = new THREE.Mesh(
+            new THREE.BoxGeometry(0.32, 0.9, 0.32),
+            legMat
+        );
+        leftLeg.position.set(-0.2, 0.3, 0);
+        group.add(leftLeg);
+
+        const rightLeg = new THREE.Mesh(
+            new THREE.BoxGeometry(0.32, 0.9, 0.32),
+            legMat
+        );
+        rightLeg.position.set(0.2, 0.3, 0);
+        group.add(rightLeg);
+
+        group.userData.isEntity = true;
+        group.userData.isPlayer = true;
+        group.userData.limbs = { leftArm, rightArm, leftLeg, rightLeg };
+        group.userData.weaponSocket = weaponSocket;
+        return group;
+    }
+
+    update(delta, audioSynth, lootManager, entityManager, controls) {
         if (!this.isAlive) return;
-        
-        this.handleLook();
-        if (!this.isFrozen) {
-            this.handleMovement(delta);
+        this.audioSynthRef = audioSynth;
+        this.updateBurning(delta);
+        this.updateHealthRegen(delta);
+        if (this.trailCooldown > 0) {
+            this.trailCooldown = Math.max(0, this.trailCooldown - delta);
+        }
+        if (this.attackCooldown > 0) {
+            this.attackCooldown = Math.max(0, this.attackCooldown - delta);
+        }
+
+        const isCameraFrozen = this.isCameraFrozen === true;
+
+        // Always update rotation (even during countdown)
+        if (controls && controls.isLocked) {
+            this.euler.setFromQuaternion(controls.getObject().quaternion, 'YXZ');
+            this.rotation.y = Number.isFinite(this.euler.y) ? this.euler.y : this.rotation.y;
+            this.rotation.x = Number.isFinite(this.euler.x) ? this.euler.x : this.rotation.x;
+            this.rotation.z = 0;
+            const maxPitch = Math.PI / 2.4;
+            this.rotation.x = Math.max(-maxPitch, Math.min(maxPitch, this.rotation.x));
         } else {
+            const look = this.input.getLookDelta();
+            if (look.x !== 0 || look.y !== 0) {
+                const maxDelta = 90;
+                const dx = Math.max(-maxDelta, Math.min(maxDelta, look.x));
+                const dy = Math.max(-maxDelta, Math.min(maxDelta, look.y));
+                if (this.input.isMobile) {
+                    const side = Math.max(window.innerWidth, window.innerHeight);
+                    if (side !== this.lastLookSide) {
+                        this.lastLookSide = side;
+                        this.mobileLookSensitivity = 5.7 / side;
+                    }
+                }
+                const sensitivity = (this.input.isMobile ? this.mobileLookSensitivity : this.mouseSensitivity * 1.4) * this.lookSensitivityMultiplier;
+                this.rotation.y -= dx * sensitivity;
+                this.rotation.x -= dy * sensitivity;
+                const maxPitch = Math.PI / 2.4;
+                this.rotation.x = Math.max(-maxPitch, Math.min(maxPitch, this.rotation.x));
+            }
+        }
+        if (!Number.isFinite(this.rotation.x) || !Number.isFinite(this.rotation.y)) {
+            this.rotation.set(0, 0, 0);
+        }
+
+        if (isCameraFrozen) {
+            if (!this._frozenCamPos) {
+                this._frozenCamPos = new THREE.Vector3(
+                    Math.round(this.position.x * 100) / 100,
+                    Math.round(this.position.y * 100) / 100 + this.cameraOffset.y,
+                    Math.round(this.position.z * 100) / 100
+                );
+            }
+            if (controls && controls.isLocked) {
+                controls.getObject().position.copy(this._frozenCamPos);
+                controls.getObject().rotation.set(this.rotation.x, this.rotation.y, 0, 'YXZ');
+                controls.getObject().quaternion.setFromEuler(controls.getObject().rotation);
+            } else {
+                this.camera.position.copy(this._frozenCamPos);
+                this.camera.rotation.set(this.rotation.x, this.rotation.y, 0, 'YXZ');
+            }
+            // Skip movement/physics during countdown
+            this.physics.velocity.set(0, 0, 0);
+            this.physics.onGround = true;
+            return;
+        }
+
+        const isFrozen = this.isFrozen === true;
+        const moveVector = isFrozen ? this._tmpZeroMove.set(0, 0, 0) : this.input.getMovementVector();
+        if (this.slowTimer > 0) {
+            this.slowTimer = Math.max(0, this.slowTimer - delta);
+        } else {
+            this.slowFactor = 1;
+        }
+
+        if (isFrozen) {
             this.physics.velocity.x = 0;
             this.physics.velocity.z = 0;
         }
-        this.handleActions(delta, audioSynth, entityManager, lootManager);
-        this.updateCamera();
-        this.updateViewWeapon();
-    }
+        if (moveVector.length() > 0) {
+            const moveDirection = this._tmpMoveDirection.set(0, 0, 0);
 
-    handleLook() {
-        const lookDelta = this.input.getLookDelta();
-        const sens = this.input.isMobile ? this.lookSensitivity * 2.2 : this.lookSensitivity;
-        this.rotation.y -= lookDelta.x * sens;
-        this.pitch.rotation.x -= lookDelta.y * sens;
-        this.pitch.rotation.x = Math.max(-1.5, Math.min(1.5, this.pitch.rotation.x));
-    }
+            if (controls && controls.isLocked) {
+                const cameraDirection = this._tmpCameraDirection;
+                controls.getObject().getWorldDirection(cameraDirection);
+                cameraDirection.y = 0;
+                cameraDirection.normalize();
 
-    handleMovement(delta) {
-        const axes = this.input.getMovementAxes();
-        let moveDir = new THREE.Vector3(axes.x, 0, axes.z);
-        moveDir.applyEuler(new THREE.Euler(0, this.rotation.y, 0));
+                const rightDirection = this._tmpRightDirection;
+                rightDirection.crossVectors(cameraDirection, this._tmpUp);
 
-        if (moveDir.lengthSq() > 1) moveDir.normalize();
+                moveDirection.addScaledVector(cameraDirection, -moveVector.z);
+                moveDirection.addScaledVector(rightDirection, moveVector.x);
+                moveDirection.normalize();
+            } else {
+                const cameraDirection = this._tmpCameraDirection;
+                this.camera.getWorldDirection(cameraDirection);
+                cameraDirection.y = 0;
+                cameraDirection.normalize();
 
-        const baseSpeed = 12;
-        const speed = this.perk === 'fastRun' ? baseSpeed * 1.6 : baseSpeed;
-        this.physics.velocity.x = moveDir.x * speed;
-        this.physics.velocity.z = moveDir.z * speed;
+                const rightDirection = this._tmpRightDirection;
+                rightDirection.crossVectors(cameraDirection, this._tmpUp);
 
-        if (this.physics.onGround && this.input.isKeyPressed('Space')) {
-            this.physics.velocity.y = this.jumpForce;
-            this.physics.onGround = false;
+                moveDirection.addScaledVector(cameraDirection, -moveVector.z);
+                moveDirection.addScaledVector(rightDirection, moveVector.x);
+                moveDirection.normalize();
+            }
+
+            const heldWeapon = this.currentWeapon || this.fists;
+            if (!isFrozen && heldWeapon?.type === 'bow' && this.input.isKeyPressed('MouseLeft')) {
+                this.slowFactor = Math.min(this.slowFactor, 0.52);
+            }
+            const speed = this.physics.speed * this.slowFactor;
+            this.physics.velocity.x = moveDirection.x * speed;
+            this.physics.velocity.z = moveDirection.z * speed;
+
+            const currentTime = performance.now() / 1000;
+            if (this.physics.onGround && currentTime - this.lastFootstepTime > 0.5 && audioSynth) {
+                audioSynth.playFootstep(this.footstepVolume);
+                const surfaceType = this.mapRef?.getSlowZoneTypeAt?.(this.position.x, this.position.z);
+                if (surfaceType === 'glass') {
+                    audioSynth.playGlassStep?.(this.position, `player-${Math.floor(currentTime * 10)}`);
+                }
+                this.lastFootstepTime = currentTime;
+            }
+
+            this.animationState = 'walking';
+        } else {
+            this.physics.velocity.x *= 0.8;
+            this.physics.velocity.z *= 0.8;
+            this.animationState = 'idle';
         }
 
-    }
+        if (this.perk === 'fastRun' && entityManager && moveVector.length() > 0.2 && this.trailCooldown === 0) {
+            const trailPos = this._tmpTrailPos.copy(this.position);
+            trailPos.y = 0.4;
+            entityManager.spawnSpeedTrail?.(trailPos, 0x4bb3ff);
+            this.trailCooldown = 0.08;
+        }
 
-    handleActions(delta, audioSynth, entityManager, lootManager) {
-        if (this.input.isKeyPressed('KeyV')) {
-            if (!this.toggleViewLatch) {
-                this.toggleViewLatch = true;
-                this.viewMode = this.viewMode === 'fp' ? 'tp' : 'fp';
-                this.updateViewWeapon();
+        if (!isFrozen && this.input.isKeyPressed('Space')) {
+            this.jumpBufferTime = this.jumpBufferDuration;
+        }
+
+        if (this.physics.onGround) {
+            this.coyoteTime = this.coyoteDuration;
+        } else {
+            this.coyoteTime = Math.max(0, this.coyoteTime - delta);
+        }
+
+        if (!isFrozen && this.jumpBufferTime > 0) {
+            if (this.physics.onGround || this.coyoteTime > 0) {
+                this.physics.velocity.y = 10.2;
+                this.physics.onGround = false;
+                this.jumpBufferTime = 0;
+                this.coyoteTime = 0;
+            }
+        }
+        this.jumpBufferTime = Math.max(0, this.jumpBufferTime - delta);
+
+        this.mesh.position.copy(this.position);
+        this.mesh.position.y = this.position.y - (this.physics.height - 0.15);
+        this.mesh.rotation.y = this.rotation.y;
+        this.animateLimbs();
+
+        const cameraPosition = this._tmpCameraPosition.set(
+            Math.round(this.position.x * 100) / 100,
+            this.position.y + this.cameraOffset.y,
+            Math.round(this.position.z * 100) / 100
+        );
+        const shakeOffset = this._tmpShakeOffset.set(0, 0, 0);
+        if (this.cameraShakeTime > 0) {
+            const t = this.cameraShakeTime / this.cameraShakeDuration;
+            const strength = this.cameraShakeStrength * t;
+            shakeOffset.set(
+                (Math.random() - 0.5) * strength,
+                (Math.random() - 0.5) * strength,
+                (Math.random() - 0.5) * strength
+            );
+            this.cameraShakeTime = Math.max(0, this.cameraShakeTime - delta);
+        }
+
+        if (controls && controls.isLocked) {
+            controls.getObject().position.copy(cameraPosition).add(shakeOffset);
+            controls.getObject().position.y = this.position.y + this.cameraOffset.y;
+            if (this.lastCameraPosition) {
+                const dist = cameraPosition.distanceTo(this.lastCameraPosition);
+                if (dist < 0.05) {
+                    controls.getObject().position.copy(this.lastCameraPosition);
+                } else {
+                    this.lastCameraPosition.copy(cameraPosition);
+                }
+            } else {
+                this.lastCameraPosition = cameraPosition.clone();
             }
         } else {
-            this.toggleViewLatch = false;
+            this.camera.position.copy(cameraPosition).add(shakeOffset);
+            this.camera.rotation.set(this.rotation.x, this.rotation.y, 0, 'YXZ');
+            this.camera.up.set(0, 1, 0);
         }
 
-        if (this.input.isKeyPressed('MouseLeft')) {
-            const weapon = this.currentWeapon || this.fists;
-            const dir = new THREE.Vector3();
-            this.camera.getWorldDirection(dir);
-            const result = weapon.attack(this, null, audioSynth, dir);
-            
-            // Обработка результата атаки оружия
-            if (result && result.projectiles) {
-                // Дробовик или зажигалка - массив снарядов
-                result.projectiles.forEach(p => {
-                    p.owner = this;
-                    entityManager.addProjectile(p);
-                });
-            } else if (result && result.projectile) {
-                // Одиночный снаряд (лук, пистолет, винтовка и т.д.)
-                result.projectile.owner = this;
-                entityManager.addProjectile(result.projectile);
-            } else if (result && result.hit === true) {
-                // Ближний бой - обрабатываем как раньше
-                const raycaster = new THREE.Raycaster();
-                raycaster.setFromCamera({ x: 0, y: 0 }, this.camera);
-                const intersects = raycaster.intersectObjects(entityManager.entities.filter(e => e !== this).map(e => e.mesh || e), true);
-                if (intersects.length > 0) {
-                    const hitObj = intersects[0].object;
-                    let target = entityManager.entities.find(e => e.mesh === hitObj || (e.mesh && e.mesh.children.includes(hitObj)));
-                    if (target && target.takeDamage) {
-                        // Передаем все параметры урона: damage, isHeadshot, attacker, knockback, weaponType
-                        target.takeDamage(result.damage, result.isHeadshot, this, result.knockback, weapon.type);
+        const isFirstPerson = (controls && controls.isLocked) || this.input.isMobile;
+        if (isFirstPerson) {
+            this.mesh.visible = false;
+            this.fpArms.visible = true;
+            if (this.currentWeapon) this.currentWeapon.setVisible(false);
+        } else {
+            this.mesh.visible = true;
+            this.fpArms.visible = false;
+            if (this.currentWeapon) this.currentWeapon.setVisible(true);
+        }
+        this.updateFirstPersonArmsVisibility(isFirstPerson);
+        this.animateViewModel(isFirstPerson);
+
+        for (let displaySlot = 1; displaySlot <= 10; displaySlot++) {
+            const key = displaySlot === 10 ? 0 : displaySlot;
+            const slotIndex = displaySlot === 10 ? 9 : displaySlot - 1;
+            if (this.input.isKeyPressed(`Digit${key}`) || this.input.isKeyPressed(`Numpad${key}`)) {
+                this.selectSlot(slotIndex);
+            }
+        }
+
+        const activeWeapon = this.currentWeapon || this.fists;
+        const autoTarget = this.autoFire && activeWeapon.type !== 'bow' ? this.getAutoFireTarget(entityManager) : null;
+        const isRangedWeapon = ['bow', 'laser', 'shotgun', 'flamethrower', 'pistol', 'rifle', 'machinegun'].includes(activeWeapon.type);
+        const fireHeld = this.input.isKeyPressed('MouseLeft');
+        const fireRequested = fireHeld || (!!autoTarget && !isFrozen && isRangedWeapon);
+        if (activeWeapon.type === 'bow') {
+            if (!isFrozen && fireHeld) {
+                this.bowCharge = Math.min(this.bowChargeMax, this.bowCharge + delta);
+                this.weaponActionTime = this.weaponActionDuration;
+                this.weaponActionType = 'bow';
+            }
+
+            const shouldReleaseBow = !fireHeld && this.wasFireHeld && this.bowCharge >= this.bowMinCharge;
+            if (!isFrozen && shouldReleaseBow && this.attackCooldown <= 0) {
+                const direction = this._tmpFireDir;
+                this.camera.getWorldDirection(direction);
+                const chargeRatio = Math.max(0.35, Math.min(1, this.bowCharge / this.bowChargeMax));
+                const result = activeWeapon.attack(this, null, audioSynth, direction, { chargeRatio });
+                const muzzle = this._tmpMuzzle;
+                this.camera.getWorldPosition(muzzle);
+                muzzle.addScaledVector(direction, 0.6);
+
+                if (result && result.projectiles) {
+                    for (const proj of result.projectiles) {
+                        proj.owner = this;
+                        proj.mesh.position.copy(muzzle);
+                        entityManager.addProjectile(proj);
                     }
+                } else if (result && result.projectile) {
+                    result.projectile.direction.copy(direction);
+                    result.projectile.owner = this;
+                    result.projectile.mesh.position.copy(muzzle);
+                    if (result.projectile.velocity) {
+                        result.projectile.velocity.copy(direction).multiplyScalar(result.projectile.speed);
+                    }
+                    this._tmpLookTarget.copy(muzzle).add(direction);
+                    result.projectile.mesh.lookAt(this._tmpLookTarget);
+                    entityManager.addProjectile(result.projectile);
+                }
+                this.viewKick = (0.14 + chargeRatio * 0.18) * this.recoilScale;
+                this.weaponActionTime = this.weaponActionDuration + chargeRatio * 0.08;
+                this.weaponActionType = activeWeapon.type;
+                this.attackCooldown = Math.max(0.35, activeWeapon.cooldown * (0.95 - chargeRatio * 0.3)) * this.attackSpeedMultiplier;
+            }
+            if (!fireHeld) {
+                this.bowCharge = 0;
+            }
+        } else if (!isFrozen && fireRequested && this.attackCooldown <= 0) {
+            if (activeWeapon.type === 'laser' || activeWeapon.type === 'shotgun' || activeWeapon.type === 'flamethrower' || activeWeapon.type === 'pistol' || activeWeapon.type === 'rifle' || activeWeapon.type === 'machinegun') {
+                const direction = this._tmpFireDir;
+                if (autoTarget) {
+                    direction.subVectors(autoTarget.position, this.camera.position).normalize();
+                } else {
+                    this.camera.getWorldDirection(direction);
+                }
+                const result = activeWeapon.attack(this, null, audioSynth, direction);
+                const muzzle = this._tmpMuzzle;
+                this.camera.getWorldPosition(muzzle);
+                muzzle.addScaledVector(direction, 0.6);
+
+                if (result && result.projectiles) {
+                    for (const proj of result.projectiles) {
+                        proj.owner = this;
+                        proj.mesh.position.copy(muzzle);
+                        entityManager.addProjectile(proj);
+                    }
+                } else if (result && result.projectile) {
+                    result.projectile.direction.copy(direction);
+                    result.projectile.owner = this;
+                    result.projectile.mesh.position.copy(muzzle);
+                    if (result.projectile.velocity) {
+                        result.projectile.velocity.copy(direction).multiplyScalar(result.projectile.speed);
+                    }
+                    this._tmpLookTarget.copy(muzzle).add(direction);
+                    result.projectile.mesh.lookAt(this._tmpLookTarget);
+                    entityManager.addProjectile(result.projectile);
+                }
+                this.viewKick = 0.25 * this.recoilScale;
+                this.weaponActionTime = this.weaponActionDuration;
+                this.weaponActionType = activeWeapon.type;
+            } else {
+                const target = entityManager.getNearestEnemy(this.position, activeWeapon.range);
+                if (target) {
+                    const result = activeWeapon.attack(this, target, audioSynth);
+                    if (result && result.hit) {
+                        target.takeDamage(result.damage, result.isHeadshot, this, result.knockback || 0);
+                        this.viewKick = 0.3 * this.recoilScale;
+                        this.onHit();
+                    }
+                }
+            }
+            if (activeWeapon.type === 'fists') {
+                if (this.punchTime <= 0) {
+                    this.punchTime = this.punchDuration;
+                }
+            }
+            if (activeWeapon.type === 'knife') {
+                if (this.weaponSwingTime <= 0) {
+                    this.weaponSwingTime = this.weaponSwingDuration;
+                }
+            }
+            this.attackCooldown = activeWeapon.cooldown * this.attackSpeedMultiplier;
+            if (this.hudRef) {
+                this.hudRef.updateAmmo(this.currentWeapon);
+            }
+        }
+        this.wasFireHeld = fireHeld;
+
+        if (!isFrozen && this.input.isKeyPressed('KeyE')) {
+            const nearestChest = lootManager.getNearestClosedChest
+                ? lootManager.getNearestClosedChest(this.position, 3.2)
+                : lootManager.getChests().find(chest => {
+                    if (chest.userData.isOpen) return false;
+                    return this.position.distanceTo(chest.position) < 3;
+                });
+
+            if (nearestChest) {
+                const loot = lootManager.tryOpenChest(nearestChest, this, audioSynth);
+                if (loot) {
+                    this.pickupLoot(loot);
                 }
             }
         }
 
-        if (this.input.isKeyPressed('KeyE')) {
-            const nearestChest = lootManager?.getNearestClosedChest?.(this.position, 6);
-            if (nearestChest) {
-                const loot = lootManager.tryOpenChest(nearestChest, this, audioSynth);
-                if (loot) this.pickupLoot(loot);
-            }
+        lootManager.checkNearbyChests(this.position, audioSynth);
+
+        if (!isFirstPerson && this.currentWeapon && this.currentWeapon.mesh) {
+            this.updateThirdPersonWeapon();
+        }
+        this.punchTime = Math.max(0, this.punchTime - delta);
+        this.weaponSwingTime = Math.max(0, this.weaponSwingTime - delta);
+        this.weaponActionTime = Math.max(0, this.weaponActionTime - delta);
+        if (this.weaponActionTime === 0) {
+            this.weaponActionType = null;
+        }
+        this.viewKick = Math.max(0, this.viewKick - delta * 6);
+    }
+
+    animateLimbs() {
+        const limbs = this.mesh?.userData?.limbs;
+        if (!limbs) return;
+
+        const speed = Math.sqrt(
+            this.physics.velocity.x * this.physics.velocity.x +
+            this.physics.velocity.z * this.physics.velocity.z
+        );
+        const speedNorm = Math.min(1, speed / this.physics.speed);
+        const time = performance.now() / 1000;
+
+        if (speedNorm > 0.05) {
+            const swing = Math.sin(time * 10) * 0.8 * speedNorm;
+            limbs.leftArm.rotation.x = swing;
+            limbs.rightArm.rotation.x = -swing;
+            limbs.leftLeg.rotation.x = -swing;
+            limbs.rightLeg.rotation.x = swing;
+        } else {
+            const idle = Math.sin(time * 2) * 0.08;
+            limbs.leftArm.rotation.x = idle;
+            limbs.rightArm.rotation.x = -idle;
+            limbs.leftLeg.rotation.x = -idle;
+            limbs.rightLeg.rotation.x = idle;
+        }
+    }
+
+    animateViewModel(isFirstPerson) {
+        if (!isFirstPerson) {
+            if (this.viewWeapon) this.viewWeapon.visible = false;
+            return;
         }
 
-        for (let i = 0; i < 9; i++) {
-            if (this.input.isKeyPressed('Digit' + (i + 1))) this.selectSlot(i);
+        if (this.viewWeapon) this.viewWeapon.visible = true;
+
+        const arms = this.fpArms?.userData?.limbs;
+        if (!arms) return;
+
+        const swing = Math.sin(performance.now() * 0.01) * 0.02;
+        arms.leftArm.position.copy(this.fpArms.userData.base.leftArm);
+        arms.rightArm.position.copy(this.fpArms.userData.base.rightArm);
+        arms.leftHand.position.copy(this.fpArms.userData.base.leftHand);
+        arms.rightHand.position.copy(this.fpArms.userData.base.rightHand);
+
+        const bob = Math.sin(performance.now() * 0.008) * 0.03;
+        arms.leftArm.position.y += bob;
+        arms.rightArm.position.y += bob;
+        arms.leftHand.position.y += bob;
+        arms.rightHand.position.y += bob;
+
+        if (this.punchTime > 0) {
+            const t = 1 - this.punchTime / this.punchDuration;
+            const punch = Math.sin(t * Math.PI) * 0.25;
+            arms.rightArm.position.z += punch;
+            arms.rightHand.position.z += punch;
+        }
+
+        if (this.viewWeapon && this.viewWeapon.visible) {
+            if (this.viewWeaponBase) {
+                this.viewWeapon.position.copy(this.viewWeaponBase.position);
+                this.viewWeapon.rotation.copy(this.viewWeaponBase.rotation);
+            }
+
+            if (this.viewWeaponType === 'knife' && this.weaponSwingTime > 0) {
+                const t = 1 - this.weaponSwingTime / this.weaponSwingDuration;
+                const swing = Math.sin(t * Math.PI);
+                const swingMul = 0.6;
+                this.viewWeapon.rotation.z -= swing * swingMul;
+                this.viewWeapon.position.z -= swing * 0.08;
+            }
+
+            if ((this.viewWeaponType === 'bow' || this.viewWeaponType === 'laser' || this.viewWeaponType === 'shotgun' || this.viewWeaponType === 'pistol' || this.viewWeaponType === 'rifle' || this.viewWeaponType === 'flamethrower' || this.viewWeaponType === 'machinegun') && this.viewKick > 0) {
+                this.viewWeapon.position.z -= this.viewKick * 0.2;
+                this.viewWeapon.rotation.x -= this.viewKick * 0.6;
+            }
+
+            if (this.weaponActionTime > 0 && this.weaponActionType) {
+                const t = 1 - this.weaponActionTime / this.weaponActionDuration;
+                const ease = Math.sin(t * Math.PI);
+                if (this.weaponActionType === 'bow') {
+                    this.viewWeapon.position.z -= ease * 0.09;
+                    this.viewWeapon.position.x -= ease * 0.03;
+                    this.viewWeapon.rotation.y += ease * 0.06;
+                } else if (this.weaponActionType === 'laser' || this.weaponActionType === 'shotgun' || this.weaponActionType === 'pistol' || this.weaponActionType === 'rifle' || this.weaponActionType === 'flamethrower' || this.weaponActionType === 'machinegun') {
+                    this.viewWeapon.position.z -= ease * 0.1;
+                    this.viewWeapon.rotation.x -= ease * 0.35;
+                }
+            }
+        }
+    }
+
+    updateFirstPersonArmsVisibility(isFirstPerson) {
+        if (!this.fpArms) return;
+        if (!isFirstPerson) return;
+        const limbs = this.fpArms.userData?.limbs;
+        if (!limbs) return;
+        const weaponType = this.currentWeapon?.type || 'fists';
+        const showArms = weaponType === 'fists';
+        limbs.leftArm.visible = showArms;
+        limbs.rightArm.visible = showArms;
+        limbs.leftHand.visible = showArms;
+        limbs.rightHand.visible = showArms;
+    }
+
+    selectSlot(slot) {
+        const weapon = this.inventory.selectSlot(slot);
+        if (this.currentWeapon) {
+            this.currentWeapon.setVisible(false);
+        }
+
+        if (weapon) {
+            this.currentWeapon = weapon;
+            this.currentWeapon.setVisible(true);
+        } else {
+            this.currentWeapon = null;
+            this.fists = new Weapon('fists', this.scene);
+        }
+        this.updateViewWeapon();
+        if (this.hudRef) {
+            this.hudRef.updateAmmo(this.currentWeapon);
         }
     }
 
     pickupLoot(loot) {
+        const feedParts = [];
         if (loot.type === 'weapon') {
             const weapon = new Weapon(loot.weaponType, this.scene);
-            const res = this.inventory.addItem(weapon);
-            if (res.added) {
-                this.selectSlot(res.slot);
-                this.hud?.showGameMessage?.(`Найдено: ${loot.weaponType}`);
+            this.applyWeaponPerk(weapon);
+            const result = this.inventory.addItem(weapon);
+            if (result.added) {
+                feedParts.push(`Лут: ${this.getWeaponDisplayName(loot.weaponType)}`);
+                if (!this.currentWeapon || !this.inventory.getSelectedWeapon()) {
+                    this.selectSlot(result.slot);
+                }
             } else {
-                this.hud?.showGameMessage?.(`Боеприпасы для ${loot.weaponType}`);
+                if (result.slot >= 0) {
+                    feedParts.push(`Пополнение: ${this.getWeaponDisplayName(loot.weaponType)}`);
+                }
+                weapon.dispose();
             }
-            this.stats.loot++;
+            this.updateViewWeapon();
+        } else if (loot.type === 'armor') {
+            this.armor = Math.min(this.maxArmor, this.armor + loot.amount);
+            feedParts.push(`Броня +${Math.round(loot.amount)}`);
+        } else if (loot.type === 'ammo') {
+            const amount = loot.amount || 0;
+            if (amount > 0) {
+                const candidates = this.inventory.getItems().filter(w => w && w.ammo !== null);
+                const target = this.currentWeapon && this.currentWeapon.ammo !== null
+                    ? this.currentWeapon
+                    : candidates[0];
+                if (target) {
+                    const before = target.ammo ?? 0;
+                    target.ammo = Math.min(target.maxAmmo ?? target.ammo, (target.ammo ?? 0) + amount);
+                    const gained = Math.max(0, (target.ammo ?? 0) - before);
+                    if (gained > 0) {
+                        feedParts.push(`${this.getWeaponDisplayName(target.type)}: +${gained} патр.`);
+                    }
+                }
+            }
+        } else if (loot.type === 'heal') {
+            const healAmount = loot.amount || 45;
+            const beforeHp = this.health;
+            this.health = Math.min(this.maxHealth, this.health + healAmount);
+            this.armor = Math.min(this.maxArmor, this.armor + Math.round(healAmount * 0.12));
+            const restored = Math.max(0, Math.round(this.health - beforeHp));
+            if (restored > 0) {
+                feedParts.push(`Аптечка: +${restored} HP`);
+            }
+        }
+        if (loot.bonusAmmo) {
+            const gained = this.addAmmoToWeaponType(loot.bonusAmmo.weaponType, loot.bonusAmmo.amount);
+            if (gained > 0) {
+                feedParts.push(`${this.getWeaponDisplayName(loot.bonusAmmo.weaponType)}: +${gained} патр.`);
+            }
+        }
+        this.stats.loot += 1;
+        if (feedParts.length) {
+            this.hudRef?.showLootNotification?.(feedParts.join(' • '));
         }
     }
 
-    selectSlot(slot) {
-        this.inventory.selectSlot(slot);
-        const selected = this.inventory.getSelectedWeapon();
-        this.currentWeapon = selected || this.fists;
+    takeDamage(damage, isHeadshot = false, attacker = null, knockbackStrength = 0, source = null) {
+        if (this.isInvulnerable) return false;
+        const hpBefore = this.health;
+        const armorBefore = this.armor;
+
+        const finalDamage = (isHeadshot ? damage * 2 : damage) * (1 - this.damageReduction) * this.damageTakenMultiplier;
+        if (finalDamage > 0) {
+            this.lastDamageAt = performance.now() / 1000;
+        }
+        if (attacker?.stats) {
+            attacker.stats.damage += finalDamage;
+        }
+
+        if (this.armor > 0) {
+            const armorDamage = Math.min(this.armor, finalDamage);
+            this.armor -= armorDamage;
+            const remainingDamage = finalDamage - armorDamage;
+
+            if (remainingDamage > 0) {
+                this.health -= remainingDamage;
+            }
+        } else {
+            this.health -= finalDamage;
+        }
+
+        if (this.health <= 0) {
+            this.health = 0;
+            this.isAlive = false;
+            this.isFrozen = true;
+            this.physics.velocity.set(0, 0, 0);
+            this.mesh.position.copy(this.position);
+            this.mesh.position.y = this.position.y - (this.physics.height - 0.15) - 0.8;
+            this.mesh.rotation.set(-Math.PI / 2, this.rotation.y, 0);
+            if (attacker?.stats) {
+                attacker.stats.kills += 1;
+            }
+            this.clearBurning();
+        }
+        const hpDelta = Math.max(0, hpBefore - this.health);
+        const armorDelta = Math.max(0, armorBefore - this.armor);
+        const tookRealDamage = (hpDelta + armorDelta) > 0.001;
+        const isDotDamage = source === 'zone' || source === 'storm' || source === 'burn' || source === 'trap';
+        if (!isDotDamage && tookRealDamage) {
+            this.flashDamage();
+            spawnDamagePopup(this.scene, this.position, finalDamage, { color: '#ff5b5b', key: 'player' });
+        }
+        if (source === 'flame' && this.isAlive) {
+            this.applyBurn(2.2, 4.2, attacker);
+        }
+        if (this.audioSynthRef && tookRealDamage) {
+            if (source === 'zone' && this.audioSynthRef.playZoneDamage) {
+                this.audioSynthRef.playZoneDamage();
+            } else if (this.audioSynthRef.playHurt) {
+                this.audioSynthRef.playHurt();
+            }
+        }
+        if (attacker && this.isAlive) {
+            const strength = knockbackStrength > 0 ? knockbackStrength : 3;
+            const dir = this._tmpKnockbackDir.subVectors(this.position, attacker.position).normalize();
+            this.physics.velocity.x += dir.x * strength;
+            this.physics.velocity.z += dir.z * strength;
+            this.physics.velocity.y += 2;
+        }
+
+        return true;
+    }
+
+    onHit() {
+        if (this.hudRef?.showHitMarker) {
+            this.hudRef.showHitMarker();
+        }
+        this.cameraShakeTime = this.cameraShakeDuration;
+    }
+
+    setHUD(hud) {
+        this.hudRef = hud;
+    }
+
+    applyPerk(perk, baseFootstep = 1) {
+        this.perk = perk;
+        this.attackSpeedMultiplier = 1;
+        this.footstepVolume = baseFootstep;
+        this.perkAmmoBonus = 1;
+        this.isSilent = false;
+        this.damageReduction = 0;
+        this.recoilScale = 1;
+        this.autoFire = false;
+        this.physics.speed = this.baseSpeed;
+
+        if (perk === 'quickHands') {
+            this.attackSpeedMultiplier = 0.5;
+        } else if (perk === 'silentStep') {
+            this.footstepVolume = Math.min(0.12, baseFootstep);
+            this.isSilent = true;
+        } else if (perk === 'moreAmmo') {
+            this.perkAmmoBonus = 2.1;
+        } else if (perk === 'fastRun') {
+            this.physics.speed = this.baseSpeed * 1.7;
+        } else if (perk === 'thickSkin') {
+            this.damageReduction = 0.42;
+        } else if (perk === 'steadyAim') {
+            this.recoilScale = 0.2;
+        } else if (perk === 'autoFire') {
+            this.autoFire = true;
+            this.recoilScale = 0.55;
+        }
+
+        if (this.fists) {
+            this.fists.cooldown *= this.attackSpeedMultiplier;
+        }
+    }
+
+    applyWeaponPerk(weapon) {
+        if (!weapon) return;
+        if (this.perk === 'quickHands') {
+            weapon.cooldown *= this.attackSpeedMultiplier;
+        }
+        if (this.perk === 'moreAmmo') {
+            if (weapon.maxAmmo !== null) {
+                weapon.maxAmmo = Math.round(weapon.maxAmmo * this.perkAmmoBonus);
+                weapon.ammo = weapon.maxAmmo;
+            }
+            if (weapon.maxDurability !== null) {
+                weapon.maxDurability = Math.round(weapon.maxDurability * this.perkAmmoBonus);
+                weapon.durability = weapon.maxDurability;
+            }
+        }
+    }
+
+    updateHealthRegen(delta) {
+        if (!this.isAlive || this.health >= this.maxHealth) return;
+        const now = performance.now() / 1000;
+        if (now - this.lastDamageAt < this.healthRegenDelay) return;
+        const regenPerSecond = this.maxHealth / this.healthRegenDuration;
+        this.health = Math.min(this.maxHealth, this.health + regenPerSecond * delta);
+    }
+
+    setInvulnerable(value) {
+        this.isInvulnerable = value;
+    }
+
+    flashDamage() {
+        if (!this.mesh) return;
+        const now = performance.now();
+        if (now - this.lastFlashTime < 90) return;
+        this.lastFlashTime = now;
+        this.mesh.traverse((child) => {
+            if (child.isMesh) {
+                child.material.emissive = new THREE.Color(0xff0000);
+                child.material.emissiveIntensity = 0.5;
+                setTimeout(() => {
+                    if (child.material) {
+                        child.material.emissiveIntensity = 0;
+                    }
+                }, 200);
+            }
+        });
+    }
+
+    applyBurn(duration = 2, damagePerSecond = 4, attacker = null) {
+        this.burnTimer = Math.max(this.burnTimer, duration);
+        this.burnTickTimer = Math.max(this.burnTickTimer, 0.08);
+        this.burnDamagePerSecond = Math.max(this.burnDamagePerSecond, damagePerSecond);
+        if (attacker) this.burnAttacker = attacker;
+    }
+
+    clearBurning() {
+        this.burnTimer = 0;
+        this.burnTickTimer = 0;
+        this.burnDamagePerSecond = 0;
+        this.burnAttacker = null;
+        this.setBurnVisual(0);
+    }
+
+    updateBurning(delta) {
+        if (this.burnTimer <= 0 || !this.isAlive) return;
+
+        this.burnTimer = Math.max(0, this.burnTimer - delta);
+        this.burnTickTimer -= delta;
+        const pulse = 0.18 + Math.sin(performance.now() * 0.03) * 0.08;
+        this.setBurnVisual(Math.max(0.1, pulse));
+
+        while (this.burnTickTimer <= 0 && this.isAlive) {
+            const tickDamage = this.burnDamagePerSecond * 0.25;
+            this.takeDamage(tickDamage, false, this.burnAttacker, 0, 'burn');
+            this.burnTickTimer += 0.25;
+        }
+
+        if (this.burnTimer <= 0) {
+            this.clearBurning();
+        }
+    }
+
+    setBurnVisual(intensity) {
+        if (!this.mesh) return;
+        this.mesh.traverse(child => {
+            if (!child.material || !child.material.emissive) return;
+            child.material.emissive.setHex(0xff6d00);
+            child.material.emissiveIntensity = intensity;
+        });
+    }
+
+    animateViewModelWeapon(weaponType) {
+        const requestId = ++this.viewWeaponRequestId;
+        if (!this.fpArms) return;
+
+        if (this.viewWeapon) {
+            this.fpArms.remove(this.viewWeapon);
+            this.viewWeapon = null;
+            this.viewWeaponBase = null;
+        }
+
+        this.viewWeaponType = weaponType || null;
+        if (!weaponType || weaponType === 'fists') return;
+
+        const source = new Weapon(weaponType, this.scene);
+        const applyClone = () => {
+            if (requestId !== this.viewWeaponRequestId) return;
+            if (!source.mesh || !this.fpArms) return;
+
+            if (this.viewWeapon) {
+                this.fpArms.remove(this.viewWeapon);
+                this.viewWeapon = null;
+                this.viewWeaponBase = null;
+            }
+
+            const viewClone = source.mesh.clone();
+            this.scene.remove(source.mesh);
+            viewClone.visible = true;
+            const offset = this.getViewWeaponOffset(weaponType);
+            viewClone.scale.setScalar(offset.scale);
+            viewClone.position.copy(offset.position);
+            viewClone.rotation.copy(offset.rotation);
+            this.setupViewModel(viewClone);
+            this.fpArms.add(viewClone);
+            this.viewWeapon = viewClone;
+            this.viewWeaponBase = {
+                position: offset.position.clone(),
+                rotation: offset.rotation.clone()
+            };
+        };
+        applyClone();
     }
 
     updateViewWeapon() {
-        const weapon = this.currentWeapon;
-        if (this.arms?.parent !== this.camera) this.camera.add(this.arms);
-        this.arms.position.set(0, -0.42, -0.38);
-        this.arms.traverse((child) => {
-            if (!child.isMesh) return;
-            child.visible = true;
-            child.frustumCulled = false;
-            child.renderOrder = 1000;
-            if (child.material) {
-                child.material.depthTest = false;
-                child.material.depthWrite = false;
-                child.material.transparent = false;
-                child.material.opacity = 1;
+        const weapon = this.currentWeapon || this.fists;
+        this.animateViewModelWeapon(weapon?.type);
+    }
+
+    getViewWeaponOffset(type) {
+        return Weapon.getViewPose(type);
+    }
+
+    updateThirdPersonWeapon() {
+        const socket = this.mesh?.userData?.weaponSocket;
+        if (!socket || !this.currentWeapon?.mesh) return;
+        const worldPos = this._tmpSocketPos;
+        const worldQuat = this._tmpSocketQuat;
+        socket.getWorldPosition(worldPos);
+        socket.getWorldQuaternion(worldQuat);
+
+        this.currentWeapon.mesh.position.copy(worldPos);
+        this.currentWeapon.mesh.quaternion.copy(worldQuat);
+    }
+
+    getAutoFireTarget(entityManager) {
+        if (!entityManager) return null;
+        const forward = this._tmpAutoForward;
+        this.camera.getWorldDirection(forward);
+        const origin = this.camera.position;
+        const maxDistance = this.currentWeapon?.range || 60;
+        let best = null;
+        let bestDist = maxDistance;
+
+        for (const entity of entityManager.getEntities()) {
+            if (!entity || !entity.isAlive || entity === this) continue;
+            const toTarget = this._tmpAutoToTarget.subVectors(entity.position, origin);
+            const dist = toTarget.length();
+            if (dist > maxDistance || dist < 1.2) continue;
+            toTarget.normalize();
+            const dot = forward.dot(toTarget);
+            if (dot < 0.988) continue;
+            const aimPoint = this._tmpAutoAimPoint.set(
+                entity.position.x,
+                entity.position.y + (entity.physics?.height || 1.8) * 0.55,
+                entity.position.z
+            );
+            if (typeof entityManager.hasLineOfSight === 'function') {
+                const visible = entityManager.hasLineOfSight(origin, aimPoint, true);
+                if (!visible) continue;
             }
-        });
-        
-        this.inventory.getItems().forEach(w => {
-            if (w && w !== weapon) {
-                const isFists = (w.type === 'fists');
-                if (!isFists) w.setVisible(false);
+            if (dist < bestDist) {
+                best = entity;
+                bestDist = dist;
             }
-        });
-        
-        if (this.viewMode === 'fp') {
-            this.arms.visible = true;
-            const unarmed = !weapon || weapon === this.fists || weapon.type === 'fists';
-            if (this.leftForearm && this.leftHand && this.rightForearm && this.rightHand) {
-                if (unarmed) {
-                    this.leftForearm.position.set(-0.24, -0.2, -0.64);
-                    this.rightForearm.position.set(0.24, -0.2, -0.64);
-                    this.leftHand.position.set(-0.24, -0.22, -0.9);
-                    this.rightHand.position.set(0.24, -0.22, -0.9);
-                } else {
-                    this.leftForearm.position.set(-0.2, -0.22, -0.62);
-                    this.rightForearm.position.set(0.16, -0.22, -0.58);
-                    this.leftHand.position.set(-0.18, -0.24, -0.84);
-                    this.rightHand.position.set(0.12, -0.24, -0.8);
+        }
+        return best;
+    }
+
+    applySlow(factor, duration) {
+        this.slowFactor = Math.min(this.slowFactor, factor);
+        this.slowTimer = Math.max(this.slowTimer, duration);
+    }
+
+    attack(target, entityManager) {
+        let weapon = this.currentWeapon || this.fists;
+        if (!weapon || !target || !target.isAlive) return null;
+
+        if (weapon.type === 'knife' && weapon.durability !== null && weapon.durability <= 0) {
+            this.currentWeapon = null;
+            weapon = this.fists;
+        }
+        if ((weapon.type === 'bow' || weapon.type === 'laser' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle' || weapon.type === 'machinegun') && weapon.ammo !== null && weapon.ammo <= 0) {
+            this.currentWeapon = null;
+            weapon = this.fists;
+        }
+
+        const distance = this.position.distanceTo(target.position);
+        const baseRange = weapon.range || (weapon.type === 'fists' ? 2.4 : 3);
+        const attackRange = baseRange * (weapon.type === 'shotgun' ? 0.9 : 1.0);
+
+        if (distance > attackRange) return null;
+
+        if (weapon.type === 'laser' || weapon.type === 'bow' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle' || weapon.type === 'machinegun') {
+            const direction = this._tmpAttackDirection
+                .subVectors(target.position, this.position)
+                .normalize();
+
+            const projectileData = weapon.attack(this, null, this.audioSynthRef, direction);
+            if (projectileData && projectileData.projectiles) {
+                for (const proj of projectileData.projectiles) {
+                    proj.owner = this;
+                    entityManager?.addProjectile(proj);
                 }
+                return { fired: true, damage: weapon.damage };
             }
-            if (weapon?.mesh) {
-                if (weapon !== this.fists && weapon.mesh.parent !== this.camera) this.camera.add(weapon.mesh);
-                const pose = Weapon.getViewPose(weapon.type);
-                weapon.setPosition(pose.position);
-                weapon.setRotation(pose.rotation);
-                weapon.setScale(pose.scale);
-                weapon.setVisible(true);
-            }
-            if (this.fists?.mesh) {
-                this.fists.visible = true;
-                this.fists.mesh.visible = weapon === this.fists;
-                this.fists.mesh.traverse((child) => {
-                    if (!child.isMesh) return;
-                    child.visible = weapon === this.fists;
-                    child.frustumCulled = false;
-                    child.renderOrder = 1001;
-                    if (child.material) {
-                        child.material.depthTest = false;
-                        child.material.depthWrite = false;
-                        child.material.transparent = false;
-                        child.material.opacity = 1;
-                    }
-                });
+            if (projectileData && projectileData.projectile) {
+                projectileData.projectile.direction = direction;
+                projectileData.projectile.owner = this;
+                if (entityManager) {
+                    entityManager.addProjectile(projectileData.projectile);
+                }
+                return { fired: true, damage: weapon.damage };
             }
         } else {
-            this.arms.visible = false;
-            if (this.fists?.mesh) this.fists.mesh.visible = false;
-            if (weapon?.mesh && weapon !== this.fists) {
-                const grip = Weapon.getThirdPersonGrip(weapon.type);
-                if (weapon.mesh.parent !== this.mesh) this.mesh.add(weapon.mesh);
-                weapon.mesh.position.set(grip.right, 1.2 + grip.up, grip.forward);
-                weapon.mesh.rotation.set(0, 3.14, 0);
-                weapon.mesh.scale.setScalar(0.8);
-                weapon.setVisible(true);
+            const result = weapon.attack(this, target, this.audioSynthRef);
+            if (result && result.hit) {
+                target.takeDamage(result.damage, result.isHeadshot, this, result.knockback || 0);
+                return { hit: true, damage: result.damage, killed: target.health <= 0 };
             }
         }
-    }
 
-    updateCamera() {
-        const isTestMode = typeof localStorage !== 'undefined' && localStorage.getItem('testMode') === 'true';
-        if (isTestMode) return;
-        if (this.viewMode === 'fp') {
-            this.camera.position.set(0, 1.8, 0);
-            this.camera.rotation.set(0, 0, 0);
-            this.mesh.visible = false;
-        } else {
-            this.camera.position.set(0, 4, 10);
-            this.camera.rotation.set(-0.3, 0, 0);
-            this.mesh.visible = true;
-        }
-    }
-
-    takeDamage(amount, source, knockback) {
-        if (this.isInvulnerable) return;
-        this.health = Math.max(0, this.health - amount);
-        this.stats.health = this.health;
-        if (this.health <= 0) this.isAlive = false;
-    }
-
-    // Новый метод для обработки урона с расширенными параметрами
-    takeDamageWithParams(damage, isHeadshot, attacker, knockback, weaponType) {
-        if (this.isInvulnerable) return;
-        
-        let finalDamage = damage;
-        
-        // Бонус за попадание в голову
-        if (isHeadshot) {
-            finalDamage *= 2.0;
-        }
-        
-        this.health = Math.max(0, this.health - finalDamage);
-        this.stats.health = this.health;
-        
-        // Применяем откидывание
-        if (knockback > 0 && attacker?.position) {
-            const knockDir = new THREE.Vector3().subVectors(this.position, attacker.position).normalize();
-            knockDir.y = Math.min(knockDir.y + 0.5, 1); // Добавляем немного вверх
-            this.physics.velocity.addScaledVector(knockDir, knockback);
-        }
-        
-        if (this.health <= 0) {
-            this.isAlive = false;
-            if (attacker && typeof attacker.onKill === 'function') {
-                attacker.onKill(this);
-            }
-        }
+        return null;
     }
 }
+

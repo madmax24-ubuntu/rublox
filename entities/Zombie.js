@@ -1,14 +1,43 @@
-﻿import * as THREE from "/node_modules/three/build/three.module.js";
+import * as THREE from 'three';
+
+const VARIANT_CONFIG = {
+    runner: {
+        health: 42, speed: 7.6, damage: 5.8, knockbackMultiplier: 1.2,
+        scale: 1.2, radius: 0.48, bodyColor: 0x1a2e24, headColor: 0x2c3c31,
+        eyeColor: 0xff4411, glowColor: 0x44ff22, glowIntensity: 1.8,
+        attackCooldown: 0.52, patrolSpeed: 0.7, alertRadius: 80,
+        moanInterval: [1.2, 2.4], attackInterval: [0.3, 0.8],
+        hasHorns: false, hasMask: true, hasSpikes: false, hasBackpack: false,
+        hasArmorPlates: false, armAngle: -0.8, clawLength: 0.25,
+        walkSpeed: 8, idleBreathe: 0.02,
+        behavior: 'rush'
+    },
+    normal: {
+        health: 72, speed: 5.1, damage: 7.2, knockbackMultiplier: 0.8,
+        scale: 1.35, radius: 0.54, bodyColor: 0x1f2a23, headColor: 0x263029,
+        eyeColor: 0xff6600, glowColor: 0x8bff4f, glowIntensity: 1.35,
+        attackCooldown: 0.72, patrolSpeed: 0.7, alertRadius: 68,
+        moanInterval: [1.8, 3.6], attackInterval: [0.5, 1.2],
+        hasHorns: true, hasMask: false, hasSpikes: false, hasBackpack: false,
+        hasArmorPlates: true, armAngle: -0.85, clawLength: 0.3,
+        walkSpeed: 6, idleBreathe: 0.015,
+        behavior: 'patrol'
+    },
+    heavy: {
+        health: 180, speed: 3.2, damage: 9.2, knockbackMultiplier: 0,
+        scale: 1.56, radius: 0.6, bodyColor: 0x1b241f, headColor: 0x222c26,
+        eyeColor: 0xff2200, glowColor: 0x3dff1f, glowIntensity: 2.2,
+        attackCooldown: 1.05, patrolSpeed: 0.7, alertRadius: 55,
+        moanInterval: [2.5, 4.5], attackInterval: [0.8, 1.8],
+        hasHorns: true, hasMask: false, hasSpikes: true, hasBackpack: true,
+        hasArmorPlates: true, armAngle: -0.95, clawLength: 0.35,
+        walkSpeed: 4, idleBreathe: 0.01,
+        behavior: 'tank'
+    }
+};
 
 export class Zombie {
-    static pickWeightedType() {
-        const roll = Math.random();
-        if (roll < 0.33) return 'runner';
-        if (roll < 0.55) return 'tank';
-        return 'standard';
-    }
-
-    constructor(scene, id, spawnPosition, forcedType = null) {
+    constructor(scene, id, spawnPosition) {
         this.scene = scene;
         this.id = id;
         this.position = spawnPosition.clone();
@@ -21,224 +50,302 @@ export class Zombie {
             speed: 4.8
         };
 
-        this.health = 100;
-        this.maxHealth = 100;
-        this.isAlive = true;
+        this.variant = Math.random() < 0.5 ? 'runner' : (Math.random() < 0.65 ? 'normal' : 'heavy');
+        const cfg = VARIANT_CONFIG[this.variant];
+        this.maxHealth = cfg.health;
+        this.health = cfg.health;
+        this.physics.speed = cfg.speed;
+        this.physics.radius = cfg.radius;
+        this.knockbackMultiplier = cfg.knockbackMultiplier;
+        this.damage = cfg.damage;
         this.attackCooldown = 0;
         this.patrolTarget = null;
-        this.soundTimer = 1 + Math.random() * 2;
+        this.soundTimer = 2 + Math.random() * 3;
         this.alertTimer = 0;
         this.alertTarget = null;
         this.alertPosition = null;
-        this.variant = (forcedType || Zombie.pickWeightedType() || 'standard').toLowerCase();
-        if (this.variant === 'runner') {
-            this.maxHealth = 50;
-            this.health = 50;
-            this.physics.speed = 7.2;
-            this.knockbackMultiplier = 1.1;
-        } else if (this.variant === 'tank' || this.variant === 'heavy') {
-            this.variant = 'tank';
-            this.maxHealth = 200;
-            this.health = 200;
-            this.physics.speed = 3.36;
-            this.physics.radius = 0.62;
-            this.knockbackMultiplier = 0;
-        } else {
-            this.variant = 'standard';
-            this.maxHealth = 100;
-            this.health = 100;
-            this.physics.speed = 4.8;
-            this.knockbackMultiplier = 0.8;
-        }
         this.stats = { damage: 0, kills: 0, loot: 0 };
         this.burnTimer = 0;
         this.burnTickTimer = 0;
         this.burnDamagePerSecond = 0;
         this.burnAttacker = null;
+        this.hitStaggerTimer = 0;
+        this._deathAudioSynth = null;
+        this._animTime = performance.now() * 0.001;
+        this._moanPhase = Math.random() * Math.PI * 2;
+        this._roamAngle = Math.random() * Math.PI * 2;
+        this._roamTimer = 3 + Math.random() * 5;
 
         this.mesh = this.createMesh();
-        const scale = this.variant === 'tank' ? 1.3 : this.variant === 'runner' ? 0.9 : 1.0;
-        this.mesh.scale.setScalar(scale);
-        this.physics.radius = this.variant === 'tank' ? 0.62 : this.variant === 'runner' ? 0.48 : 0.54;
+        this.mesh.scale.setScalar(cfg.scale);
         this.scene.add(this.mesh);
     }
 
     createMesh() {
         const group = new THREE.Group();
-        const bodyColor = this.variant === 'tank' ? 0x4f4a4a : this.variant === 'runner' ? 0x3f6f4a : 0x7a3f3f;
-        const headColor = this.variant === 'tank' ? 0x6d6767 : this.variant === 'runner' ? 0xc6d8bc : 0xb76a6a;
+        const cfg = VARIANT_CONFIG[this.variant];
+
         const bodyMat = new THREE.MeshStandardMaterial({
-            color: bodyColor,
-            roughness: 0.85,
-            flatShading: true
+            color: cfg.bodyColor, roughness: 0.85, flatShading: true
         });
         const headMat = new THREE.MeshStandardMaterial({
-            color: headColor,
-            roughness: 0.85,
-            flatShading: true
+            color: cfg.headColor, roughness: 0.85, flatShading: true
         });
         const grimeMat = new THREE.MeshStandardMaterial({
-            color: 0x2e3b2e,
-            roughness: 0.95,
-            flatShading: true
+            color: 0x2e3b2e, roughness: 0.95, flatShading: true
         });
         const armorMat = new THREE.MeshStandardMaterial({
-            color: 0x263238,
-            roughness: 0.6,
-            metalness: 0.2,
-            flatShading: true
+            color: 0x263238, roughness: 0.6, metalness: 0.2, flatShading: true
         });
         const glowMat = new THREE.MeshStandardMaterial({
-            color: 0x8bff4f,
-            emissive: 0x7dff3f,
-            emissiveIntensity: 1.35,
-            roughness: 0.2,
-            flatShading: true
+            color: cfg.glowColor, emissive: cfg.glowColor,
+            emissiveIntensity: cfg.glowIntensity, roughness: 0.2, flatShading: true
         });
-        const body = new THREE.Mesh(
-            new THREE.BoxGeometry(0.9, 1.1, 0.6),
-            bodyMat
-        );
-        body.position.y = 0.9;
-        group.add(body);
-
-        const rib = new THREE.Mesh(
-            new THREE.BoxGeometry(0.7, 0.4, 0.08),
-            grimeMat
-        );
-        rib.position.set(0, 0.95, 0.34);
-        group.add(rib);
-
-        if (this.variant !== 'runner') {
-            const shoulderPlate = new THREE.Mesh(
-                new THREE.BoxGeometry(1.0, 0.18, 0.55),
-                armorMat
-            );
-            shoulderPlate.position.set(0, 1.52, 0);
-            group.add(shoulderPlate);
-        }
-
-        const spine = new THREE.Mesh(
-            new THREE.BoxGeometry(0.12, 0.9, 0.12),
-            glowMat
-        );
-        spine.position.set(0, 1.1, -0.3);
-        group.add(spine);
-
-        const head = new THREE.Mesh(
-            new THREE.BoxGeometry(0.7, 0.7, 0.7),
-            headMat
-        );
-        head.position.y = 1.7;
-        group.add(head);
-
-        const eyeMat = new THREE.MeshStandardMaterial({ color: 0xff2b1a, emissive: 0xff2a00, emissiveIntensity: 2.4 });
-        const leftEye = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.05), eyeMat);
-        const rightEye = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.05), eyeMat);
-        leftEye.position.set(-0.14, 1.75, 0.35);
-        rightEye.position.set(0.14, 1.75, 0.35);
-        group.add(leftEye);
-        group.add(rightEye);
-
-        const eyeGlowMat = new THREE.MeshStandardMaterial({ color: 0xff3a20, emissive: 0xff3a20, emissiveIntensity: 1.8, transparent: true, opacity: 0.65 });
-        const leftGlow = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.02), eyeGlowMat);
-        const rightGlow = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.02), eyeGlowMat);
-        leftGlow.position.set(-0.14, 1.75, 0.39);
-        rightGlow.position.set(0.14, 1.75, 0.39);
-        group.add(leftGlow);
-        group.add(rightGlow);
-
-        const jaw = new THREE.Mesh(
-            new THREE.BoxGeometry(0.34, 0.14, 0.08),
-            grimeMat
-        );
-        jaw.position.set(0, 1.56, 0.36);
-        group.add(jaw);
-
-        const hornMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.35, metalness: 0.2, flatShading: true });
-        const hornGeo = new THREE.ConeGeometry(0.09, 0.28, 6);
-        const leftHorn = new THREE.Mesh(hornGeo, hornMat);
-        leftHorn.position.set(-0.24, 2.05, 0);
-        leftHorn.rotation.z = Math.PI / 2;
-        group.add(leftHorn);
-        const rightHorn = new THREE.Mesh(hornGeo, hornMat);
-        rightHorn.position.set(0.24, 2.05, 0);
-        rightHorn.rotation.z = -Math.PI / 2;
-        group.add(rightHorn);
-
-        const armGeo = new THREE.BoxGeometry(0.2, 0.7, 0.2);
-        const leftArm = new THREE.Mesh(armGeo, bodyMat);
-        const rightArm = new THREE.Mesh(armGeo, bodyMat);
-        leftArm.position.set(-0.52, 1.0, 0.12);
-        rightArm.position.set(0.52, 1.0, 0.12);
-        leftArm.rotation.x = this.variant === 'tank' ? -0.95 : -0.8;
-        rightArm.rotation.x = this.variant === 'tank' ? -0.95 : -0.8;
-        group.add(leftArm);
-        group.add(rightArm);
-
-        const legGeo = new THREE.BoxGeometry(0.2, 0.7, 0.2);
-        const leftLeg = new THREE.Mesh(legGeo, bodyMat);
-        const rightLeg = new THREE.Mesh(legGeo, bodyMat);
-        leftLeg.position.set(-0.2, 0.25, 0);
-        rightLeg.position.set(0.2, 0.25, 0);
-        group.add(leftLeg);
-        group.add(rightLeg);
-
-        const clawMat = new THREE.MeshStandardMaterial({
-            color: 0x0e0e0e,
-            roughness: 0.5,
-            metalness: 0.4,
-            flatShading: true
+        const eyeMat = new THREE.MeshStandardMaterial({
+            color: cfg.eyeColor, emissive: cfg.eyeColor, emissiveIntensity: 2.4
         });
-        const clawGeo = new THREE.ConeGeometry(0.08, 0.3, 6);
-        const leftClaw = new THREE.Mesh(clawGeo, clawMat);
-        leftClaw.position.set(-0.52, 0.7, 0.34);
-        leftClaw.rotation.x = Math.PI / 2;
-        group.add(leftClaw);
-        const rightClaw = new THREE.Mesh(clawGeo, clawMat);
-        rightClaw.position.set(0.52, 0.7, 0.34);
-        rightClaw.rotation.x = Math.PI / 2;
-        group.add(rightClaw);
-
-        if (this.variant === 'tank') {
-            const backpack = new THREE.Mesh(
-                new THREE.BoxGeometry(0.55, 0.7, 0.25),
-                armorMat
-            );
-            backpack.position.set(0, 1.1, -0.38);
-            group.add(backpack);
-        }
-
-        const spineGlow = new THREE.Mesh(
-            new THREE.BoxGeometry(0.08, 0.6, 0.08),
-            glowMat
-        );
-        spineGlow.position.set(0, 1.1, -0.52);
-        group.add(spineGlow);
 
         if (this.variant === 'runner') {
-            const mask = new THREE.Mesh(
-                new THREE.BoxGeometry(0.68, 0.68, 0.06),
-                new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.4, flatShading: true })
-            );
-            mask.position.set(0, 1.7, 0.36);
-            group.add(mask);
-        }
+            const leanBody = new THREE.BoxGeometry(0.85, 1.0, 0.55);
+            const body = new THREE.Mesh(leanBody, bodyMat);
+            body.position.set(0.05, 0.85, 0.1);
+            body.rotation.x = -0.15;
+            group.add(body);
 
-        if (this.variant === 'tank') {
-            const spikesGeo = new THREE.ConeGeometry(0.06, 0.18, 5);
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), headMat);
+            head.position.set(0.1, 1.6, 0.25);
+            head.rotation.x = -0.2;
+            group.add(head);
+
+            const maskMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.4, flatShading: true });
+            const mask = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.35, 0.25), maskMat);
+            mask.position.set(0.12, 1.55, 0.5);
+            group.add(mask);
+
+            const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.04), eyeMat);
+            const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.04), eyeMat);
+            eyeL.position.set(0.05, 1.62, 0.55);
+            eyeR.position.set(0.18, 1.62, 0.55);
+            group.add(eyeL);
+            group.add(eyeR);
+
+            const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, 0.08), grimeMat);
+            jaw.position.set(0.1, 1.45, 0.52);
+            group.add(jaw);
+
+            const armGeo = new THREE.BoxGeometry(0.18, 0.65, 0.18);
+            const leftArm = new THREE.Mesh(armGeo, bodyMat);
+            const rightArm = new THREE.Mesh(armGeo, bodyMat);
+            leftArm.position.set(-0.48, 0.9, 0.2);
+            rightArm.position.set(0.58, 0.9, 0.2);
+            leftArm.rotation.x = cfg.armAngle;
+            rightArm.rotation.x = cfg.armAngle;
+            group.add(leftArm);
+            group.add(rightArm);
+
+            const clawGeo = new THREE.ConeGeometry(0.07, cfg.clawLength, 5);
+            const clawMat = new THREE.MeshStandardMaterial({ color: 0x0e0e0e, roughness: 0.5, metalness: 0.4, flatShading: true });
+            const leftClaw = new THREE.Mesh(clawGeo, clawMat);
+            const rightClaw = new THREE.Mesh(clawGeo, clawMat);
+            leftClaw.position.set(-0.48, 0.6, 0.45);
+            rightClaw.position.set(0.58, 0.6, 0.45);
+            leftClaw.rotation.x = Math.PI / 2;
+            rightClaw.rotation.x = Math.PI / 2;
+            group.add(leftClaw);
+            group.add(rightClaw);
+
+            const legGeo = new THREE.BoxGeometry(0.18, 0.65, 0.18);
+            const leftLeg = new THREE.Mesh(legGeo, bodyMat);
+            const rightLeg = new THREE.Mesh(legGeo, bodyMat);
+            leftLeg.position.set(-0.18, 0.25, 0);
+            rightLeg.position.set(0.18, 0.25, 0);
+            group.add(leftLeg);
+            group.add(rightLeg);
+
+            const spine = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.8, 0.1), glowMat);
+            spine.position.set(0, 0.9, -0.25);
+            group.add(spine);
+
+        } else if (this.variant === 'heavy') {
+            const thickBody = new THREE.BoxGeometry(1.1, 1.3, 0.8);
+            const body = new THREE.Mesh(thickBody, bodyMat);
+            body.position.y = 1.0;
+            group.add(body);
+
+            const armorPlate = new THREE.Mesh(
+                new THREE.BoxGeometry(1.15, 0.2, 0.85),
+                armorMat
+            );
+            armorPlate.position.set(0, 1.55, 0);
+            group.add(armorPlate);
+
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), headMat);
+            head.position.y = 1.85;
+            group.add(head);
+
+            const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.05), eyeMat);
+            const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.05), eyeMat);
+            eyeL.position.set(-0.18, 1.9, 0.4);
+            eyeR.position.set(0.18, 1.9, 0.4);
+            group.add(eyeL);
+            group.add(eyeR);
+
+            const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.18, 0.1), grimeMat);
+            jaw.position.set(0, 1.65, 0.4);
+            group.add(jaw);
+
+            const hornMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.35, metalness: 0.2, flatShading: true });
+            const hornGeo = new THREE.ConeGeometry(0.1, 0.35, 6);
+            const leftHorn = new THREE.Mesh(hornGeo, hornMat);
+            const rightHorn = new THREE.Mesh(hornGeo, hornMat);
+            leftHorn.position.set(-0.3, 2.25, 0);
+            rightHorn.position.set(0.3, 2.25, 0);
+            leftHorn.rotation.z = Math.PI / 2;
+            rightHorn.rotation.z = -Math.PI / 2;
+            group.add(leftHorn);
+            group.add(rightHorn);
+
+            const armGeo = new THREE.BoxGeometry(0.25, 0.8, 0.25);
+            const leftArm = new THREE.Mesh(armGeo, bodyMat);
+            const rightArm = new THREE.Mesh(armGeo, bodyMat);
+            leftArm.position.set(-0.65, 1.0, 0.15);
+            rightArm.position.set(0.65, 1.0, 0.15);
+            leftArm.rotation.x = cfg.armAngle;
+            rightArm.rotation.x = cfg.armAngle;
+            group.add(leftArm);
+            group.add(rightArm);
+
+            const clawGeo = new THREE.ConeGeometry(0.09, cfg.clawLength, 5);
+            const clawMat = new THREE.MeshStandardMaterial({ color: 0x0e0e0e, roughness: 0.5, metalness: 0.4, flatShading: true });
+            const leftClaw = new THREE.Mesh(clawGeo, clawMat);
+            const rightClaw = new THREE.Mesh(clawGeo, clawMat);
+            leftClaw.position.set(-0.65, 0.65, 0.4);
+            rightClaw.position.set(0.65, 0.65, 0.4);
+            leftClaw.rotation.x = Math.PI / 2;
+            rightClaw.rotation.x = Math.PI / 2;
+            group.add(leftClaw);
+            group.add(rightClaw);
+
+            const legGeo = new THREE.BoxGeometry(0.25, 0.75, 0.25);
+            const leftLeg = new THREE.Mesh(legGeo, bodyMat);
+            const rightLeg = new THREE.Mesh(legGeo, bodyMat);
+            leftLeg.position.set(-0.25, 0.3, 0);
+            rightLeg.position.set(0.25, 0.3, 0);
+            group.add(leftLeg);
+            group.add(rightLeg);
+
+            const backpack = new THREE.Mesh(
+                new THREE.BoxGeometry(0.6, 0.75, 0.3),
+                armorMat
+            );
+            backpack.position.set(0, 1.1, -0.45);
+            group.add(backpack);
+
+            const spine = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.9, 0.12), glowMat);
+            spine.position.set(0, 1.1, -0.35);
+            group.add(spine);
+
+            const spikesGeo = new THREE.ConeGeometry(0.07, 0.22, 5);
             const spikesMat = new THREE.MeshStandardMaterial({ color: 0x263238, roughness: 0.5, flatShading: true });
-            for (let i = 0; i < 5; i++) {
+            for (let i = 0; i < 6; i++) {
                 const spike = new THREE.Mesh(spikesGeo, spikesMat);
-                spike.position.set(-0.3 + i * 0.15, 1.35, -0.46);
+                spike.position.set(-0.35 + i * 0.15, 1.4, -0.5);
                 spike.rotation.x = -Math.PI / 2;
                 group.add(spike);
             }
+
+        } else {
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.1, 0.6), bodyMat);
+            body.position.y = 0.9;
+            group.add(body);
+
+            const rib = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.4, 0.08), grimeMat);
+            rib.position.set(0, 0.95, 0.34);
+            group.add(rib);
+
+            const shoulderPlate = new THREE.Mesh(
+                new THREE.BoxGeometry(1.05, 0.18, 0.6),
+                armorMat
+            );
+            shoulderPlate.position.set(0, 1.5, 0);
+            group.add(shoulderPlate);
+
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), headMat);
+            head.position.y = 1.7;
+            group.add(head);
+
+            const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.05), eyeMat);
+            const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.05), eyeMat);
+            eyeL.position.set(-0.14, 1.75, 0.35);
+            eyeR.position.set(0.14, 1.75, 0.35);
+            group.add(eyeL);
+            group.add(eyeR);
+
+            const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.14, 0.08), grimeMat);
+            jaw.position.set(0, 1.56, 0.36);
+            group.add(jaw);
+
+            const hornMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.35, metalness: 0.2, flatShading: true });
+            const hornGeo = new THREE.ConeGeometry(0.09, 0.28, 6);
+            const leftHorn = new THREE.Mesh(hornGeo, hornMat);
+            const rightHorn = new THREE.Mesh(hornGeo, hornMat);
+            leftHorn.position.set(-0.24, 2.05, 0);
+            rightHorn.position.set(0.24, 2.05, 0);
+            leftHorn.rotation.z = Math.PI / 2;
+            rightHorn.rotation.z = -Math.PI / 2;
+            group.add(leftHorn);
+            group.add(rightHorn);
+
+            const armGeo = new THREE.BoxGeometry(0.2, 0.7, 0.2);
+            const leftArm = new THREE.Mesh(armGeo, bodyMat);
+            const rightArm = new THREE.Mesh(armGeo, bodyMat);
+            leftArm.position.set(-0.52, 1.0, 0.12);
+            rightArm.position.set(0.52, 1.0, 0.12);
+            leftArm.rotation.x = cfg.armAngle;
+            rightArm.rotation.x = cfg.armAngle;
+            group.add(leftArm);
+            group.add(rightArm);
+
+            const legGeo = new THREE.BoxGeometry(0.2, 0.7, 0.2);
+            const leftLeg = new THREE.Mesh(legGeo, bodyMat);
+            const rightLeg = new THREE.Mesh(legGeo, bodyMat);
+            leftLeg.position.set(-0.2, 0.25, 0);
+            rightLeg.position.set(0.2, 0.25, 0);
+            group.add(leftLeg);
+            group.add(rightLeg);
+
+            const clawGeo = new THREE.ConeGeometry(0.08, cfg.clawLength, 6);
+            const clawMat = new THREE.MeshStandardMaterial({ color: 0x0e0e0e, roughness: 0.5, metalness: 0.4, flatShading: true });
+            const leftClaw = new THREE.Mesh(clawGeo, clawMat);
+            const rightClaw = new THREE.Mesh(clawGeo, clawMat);
+            leftClaw.position.set(-0.52, 0.7, 0.34);
+            rightClaw.position.set(0.52, 0.7, 0.34);
+            leftClaw.rotation.x = Math.PI / 2;
+            rightClaw.rotation.x = Math.PI / 2;
+            group.add(leftClaw);
+            group.add(rightClaw);
+
+            const spine = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.9, 0.12), glowMat);
+            spine.position.set(0, 1.1, -0.3);
+            group.add(spine);
         }
 
         group.userData.isEntity = true;
         group.userData.isZombie = true;
-        group.userData.limbs = { leftArm, rightArm, leftLeg, rightLeg };
+        group.userData.limbs = group.children.filter(c =>
+            c.geometry?.type === 'BoxGeometry' &&
+            (c.position.x < -0.3 || c.position.x > 0.3 || c.position.y < 0.5)
+        );
+        if (group.children.length >= 4) {
+            const arms = group.children.filter(c => c.position.y > 0.5 && c.position.y < 1.3 && Math.abs(c.position.x) > 0.3);
+            const legs = group.children.filter(c => c.position.y < 0.5 && Math.abs(c.position.x) < 0.3);
+            group.userData.limbs = {
+                leftArm: arms[0] || null,
+                rightArm: arms[1] || null,
+                leftLeg: legs[0] || null,
+                rightLeg: legs[1] || null
+            };
+        }
         return group;
     }
 
@@ -252,6 +359,10 @@ export class Zombie {
         this.soundTimer -= delta;
         this.alertTimer = Math.max(0, this.alertTimer - delta);
         this.updateBurning(delta);
+        if (audioSynth) {
+            this._deathAudioSynth = audioSynth;
+        }
+        this._animTime += delta;
 
         const sharedAlert = this.scene?.userData?.zombieAlert;
         if (sharedAlert && (performance.now() * 0.001 - sharedAlert.time) < 3.8) {
@@ -267,29 +378,44 @@ export class Zombie {
         if (!target && this.alertTarget?.isAlive && this.alertTimer > 0) {
             target = this.alertTarget;
         }
+
+        const cfg = VARIANT_CONFIG[this.variant];
+
         if (target) {
             const dist = this.position.distanceTo(target.position);
             this.broadcastAlert(target);
             this.alertTarget = target;
             this.alertPosition = target.position.clone();
             this.alertTimer = 2.8;
+
             if (dist < 2.6 && this.attackCooldown <= 0) {
                 const targetType = target?.constructor?.name;
-                const baseDamage = this.variant === 'heavy' ? 9.2 : this.variant === 'runner' ? 5.8 : 7.2;
-                const damage = targetType === 'Bot' ? baseDamage * 0.42 : baseDamage;
+                const damage = targetType === 'Bot' ? this.damage * 0.42 : this.damage;
                 target.takeDamage(damage, false, this, 3.2);
-                this.attackCooldown = this.variant === 'runner' ? 0.52 : (this.variant === 'heavy' ? 1.05 : 0.72);
+                this.attackCooldown = cfg.attackCooldown;
                 if (audioSynth) {
-                    audioSynth.playZombieAttack?.(this.position);
+                    const attackRate = cfg.attackInterval;
+                    audioSynth.playZombieAttack?.(this.position, { variant: this.variant, rateRange: attackRate });
                 }
             } else {
                 const rush = dist < 8 ? 1.32 : dist < 18 ? 1.18 : 1.04;
-                this.moveTowards(target.position, this.physics.speed * rush);
+                if (this.variant === 'runner') {
+                    const zigzag = Math.sin(this._animTime * 3) * 0.3;
+                    const dir = new THREE.Vector3().subVectors(target.position, this.position).normalize();
+                    dir.x += zigzag;
+                    dir.normalize();
+                    this.physics.velocity.x = dir.x * this.physics.speed * rush;
+                    this.physics.velocity.z = dir.z * this.physics.speed * rush;
+                    this.rotation.y = Math.atan2(dir.x, dir.z);
+                } else {
+                    this.moveTowards(target.position, this.physics.speed * rush);
+                }
             }
 
             if (audioSynth && this.soundTimer <= 0) {
-                audioSynth.playZombieMoan?.(this.position);
-                this.soundTimer = 1.5 + Math.random() * 1.9;
+                const moanRate = cfg.moanInterval;
+                audioSynth.playZombieMoan?.(this.position, { variant: this.variant, rateRange: moanRate });
+                this.soundTimer = moanRate[0] + Math.random() * (moanRate[1] - moanRate[0]);
             }
         } else {
             if (this.alertPosition && this.alertTimer > 0) {
@@ -298,39 +424,43 @@ export class Zombie {
                     this.alertPosition = null;
                 }
             } else {
-            if (!this.patrolTarget || this.position.distanceTo(this.patrolTarget) < 4) {
-                this.setRandomPatrolTarget();
-            }
-            if (this.patrolTarget) {
-                this.moveTowards(this.patrolTarget, this.physics.speed * 0.7);
-            }
-            }
+                this._roamTimer -= delta;
+                if (this._roamTimer <= 0) {
+                    this._roamAngle = Math.random() * Math.PI * 2;
+                    this._roamTimer = 3 + Math.random() * 5;
+                }
+                const roamSpeed = this.physics.speed * cfg.patrolSpeed;
+                this.physics.velocity.x = Math.cos(this._roamAngle) * roamSpeed;
+                this.physics.velocity.z = Math.sin(this._roamAngle) * roamSpeed;
+                this.rotation.y = this._roamAngle;
 
-            if (audioSynth && this.soundTimer <= 0) {
-                audioSynth.playZombieMoan?.(this.position);
-                this.soundTimer = 2.6 + Math.random() * 3.6;
+                if (audioSynth && this.soundTimer <= 0) {
+                    const moanRate = cfg.moanInterval;
+                    audioSynth.playZombieMoan?.(this.position, { variant: this.variant, rateRange: moanRate });
+                    this.soundTimer = moanRate[0] + Math.random() * (moanRate[1] - moanRate[0]);
+                }
             }
         }
 
         this.mesh.position.copy(this.position);
         this.mesh.position.y = this.position.y - (this.physics.height - 0.2);
         this.mesh.rotation.y = this.rotation.y;
-        const pulse = 1 + Math.sin(performance.now() * 0.008 + this.id) * 0.015;
-        this.mesh.scale.setScalar((this.variant === 'heavy' ? 1.56 : this.variant === 'runner' ? 1.2 : 1.35) * pulse);
-        this.animateLimbs();
+        this.animateLimbs(delta);
     }
 
     findNearestTarget(entityManager, maxDistance) {
         const nearby = entityManager?.getNearbyEntities
             ? entityManager.getNearbyEntities(this.position, maxDistance)
             : entityManager.getEntities();
+        const maxDistSq = maxDistance * maxDistance;
         let nearest = null;
         let bestScore = Infinity;
         for (const entity of nearby) {
             if (!entity.isAlive || entity === this) continue;
             if (entity.constructor?.name === 'Zombie') continue;
-            const dist = this.position.distanceTo(entity.position);
-            if (dist > maxDistance) continue;
+            const distSq = this.position.distanceToSquared(entity.position);
+            if (distSq > maxDistSq) continue;
+            const dist = Math.sqrt(distSq);
             let score = dist;
             if (entity.constructor?.name === 'Player') score -= 7;
             if (entity.constructor?.name === 'Bot') score += 2.5;
@@ -351,16 +481,6 @@ export class Zombie {
         };
     }
 
-    setRandomPatrolTarget() {
-        const angle = Math.random() * Math.PI * 2;
-        const distance = 12 + Math.random() * 30;
-        this.patrolTarget = new THREE.Vector3(
-            this.position.x + Math.cos(angle) * distance,
-            0,
-            this.position.z + Math.sin(angle) * distance
-        );
-    }
-
     moveTowards(target, speed) {
         const direction = new THREE.Vector3()
             .subVectors(target, this.position)
@@ -370,18 +490,60 @@ export class Zombie {
         this.rotation.y = Math.atan2(direction.x, direction.z);
     }
 
-    animateLimbs() {
+    animateLimbs(delta) {
         const limbs = this.mesh?.userData?.limbs;
-        if (!limbs) return;
+        if (!limbs || !limbs.leftArm) return;
         const speed = Math.sqrt(
             this.physics.velocity.x * this.physics.velocity.x +
             this.physics.velocity.z * this.physics.velocity.z
         );
         const speedNorm = Math.min(1, speed / this.physics.speed);
-        const time = performance.now() / 1000;
-        const swing = Math.sin(time * 8) * 0.6 * speedNorm;
-        limbs.leftLeg.rotation.x = -swing;
-        limbs.rightLeg.rotation.x = swing;
+        const t = this._animTime;
+        const cfg = VARIANT_CONFIG[this.variant];
+
+        if (this.variant === 'runner') {
+            const swing = Math.sin(t * 10) * 0.7 * speedNorm;
+            limbs.leftLeg.rotation.x = -swing;
+            limbs.rightLeg.rotation.x = swing;
+            limbs.leftArm.rotation.x = Math.sin(t * 8 + 0.8) * 0.5 * speedNorm;
+            limbs.rightArm.rotation.x = Math.sin(t * 8) * 0.5 * speedNorm;
+            limbs.leftArm.rotation.z = -0.2;
+            limbs.rightArm.rotation.z = 0.2;
+        } else if (this.variant === 'heavy') {
+            const swing = Math.sin(t * 5) * 0.4 * speedNorm;
+            limbs.leftLeg.rotation.x = -swing;
+            limbs.rightLeg.rotation.x = swing;
+            limbs.leftArm.rotation.x = Math.sin(t * 4 + 0.3) * 0.3 * speedNorm;
+            limbs.rightArm.rotation.x = Math.sin(t * 4) * 0.3 * speedNorm;
+            limbs.leftArm.rotation.z = -0.1;
+            limbs.rightArm.rotation.z = 0.1;
+        } else {
+            const swing = Math.sin(t * 7) * 0.55 * speedNorm;
+            limbs.leftLeg.rotation.x = -swing;
+            limbs.rightLeg.rotation.x = swing;
+            limbs.leftArm.rotation.x = Math.sin(t * 6 + 0.5) * 0.4 * speedNorm;
+            limbs.rightArm.rotation.x = Math.sin(t * 6) * 0.4 * speedNorm;
+            limbs.leftArm.rotation.z = -0.15;
+            limbs.rightArm.rotation.z = 0.15;
+        }
+
+        if (speedNorm < 0.05) {
+            limbs.leftLeg.rotation.x *= 0.85;
+            limbs.rightLeg.rotation.x *= 0.85;
+            limbs.leftArm.rotation.x *= 0.85;
+            limbs.rightArm.rotation.x *= 0.85;
+        }
+
+        if (this.hitStaggerTimer > 0) {
+            this.hitStaggerTimer -= delta;
+            const stagger = Math.sin(this.hitStaggerTimer * 25) * 0.15 * this.hitStaggerTimer;
+            limbs.leftArm.rotation.x += stagger;
+            limbs.rightArm.rotation.x -= stagger;
+        }
+    }
+
+    applyHitReaction() {
+        this.hitStaggerTimer = 0.25;
     }
 
     takeDamage(damage, isHeadshot = false, attacker = null, knockbackStrength = 0, source = null) {
@@ -392,6 +554,9 @@ export class Zombie {
         this.health -= finalDamage;
         if (source === 'flame' && this.isAlive) {
             this.applyBurn(2.8, 5.5, attacker);
+        }
+        if (this.isAlive && knockbackStrength > 0) {
+            this.applyHitReaction();
         }
         if (this.health <= 0) {
             this.health = 0;
@@ -404,6 +569,10 @@ export class Zombie {
                 attacker.stats.kills += 1;
             }
             this.clearBurning();
+            if (this._deathAudioSynth) {
+                this._deathAudioSynth.playDeath(this.position);
+                this._deathAudioSynth = null;
+            }
         }
 
         if (attacker && this.isAlive) {
@@ -418,7 +587,7 @@ export class Zombie {
             this.alertTimer = Math.max(this.alertTimer, 3.2);
             this.broadcastAlert(attacker);
         }
-        return true;
+        return !this.isAlive;
     }
 
     applyBurn(duration = 2.6, damagePerSecond = 5, attacker = null) {
@@ -460,9 +629,5 @@ export class Zombie {
             child.material.emissive.setHex(0xff6d00);
             child.material.emissiveIntensity = intensity;
         });
-    }
-
-    setInvulnerable(v) {
-        this.isInvulnerable = v;
     }
 }

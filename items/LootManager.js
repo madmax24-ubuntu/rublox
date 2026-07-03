@@ -1,44 +1,5 @@
-﻿import * as THREE from "/node_modules/three/build/three.module.js";
-// Simple geometry merger (replaces BufferGeometryUtils)
-function mergeGeometries(geometries) {
-    const positions = [];
-    const normals = [];
-    const uvs = [];
-    const indices = [];
-    let indexOffset = 0;
-    
-    for (const geom of geometries) {
-        const posAttr = geom.getAttribute('position');
-        const normAttr = geom.getAttribute('normal');
-        const uvAttr = geom.getAttribute('uv');
-        const indexAttr = geom.getIndex();
-        
-        for (let i = 0; i < posAttr.count; i++) {
-            positions.push(posAttr.getX(i), posAttr.getY(i), posAttr.getZ(i));
-            if (normAttr) normals.push(normAttr.getX(i), normAttr.getY(i), normAttr.getZ(i));
-            if (uvAttr) uvs.push(uvAttr.getX(i), uvAttr.getY(i));
-        }
-        
-        if (indexAttr) {
-            for (let i = 0; i < indexAttr.count; i++) {
-                indices.push(indexAttr.getComponent(i) + indexOffset);
-            }
-        } else {
-            for (let i = 0; i < posAttr.count; i++) {
-                indices.push(i + indexOffset);
-            }
-        }
-        
-        indexOffset += posAttr.count;
-    }
-    
-    const merged = new THREE.BufferGeometry();
-    merged.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    if (normals.length) merged.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
-    if (uvs.length) merged.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-    merged.setIndex(indices);
-    return merged;
-}
+﻿import * as THREE from 'three';
+import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 import { Weapon } from './Weapon.js';
 
 // --- ОПТИМИЗАЦИЯ ---
@@ -72,40 +33,32 @@ export class LootManager {
         this.chestMaterials = this.createChestMaterials();
         this.chestReady = false;
         this.claimTTL = 2.4;
-        // Defer chest generation to next frame to avoid freezing
-        requestAnimationFrame(() => {
-            try {
-                this.generateChests();
-                this.rebuildChestIndex();
-                this.chestReady = true;
-            } catch (e) {
-                console.error('[LootManager] Chest generation failed:', e.message);
-                this.chestReady = true;
-            }
+        this.generateChestsAsync().then(() => {
+            this.rebuildChestIndex();
+            this.chestReady = true;
+        }).catch(() => {
+            this.chestReady = true;
         });
     }
 
     getChestPlacementY(x, z) {
         const structure = this.mapGenerator.getStructureAtPoint?.(x, z, 0.2);
-        // Inside buildings we anchor to terrain height so chests do not end up on roof/floor colliders.
-        const baseY = structure
-            ? (this.mapGenerator.getHeightAt?.(x, z) ?? 0)
-            : (this.mapGenerator.getSurfaceHeightAt?.(x, z) ?? this.mapGenerator.getHeightAt(x, z));
-        const surfaceY = baseY;
+        let baseY = 0;
+        if (structure) {
+            baseY = this.mapGenerator.getHeightAt?.(x, z) ?? 0;
+        } else {
+            baseY = this.mapGenerator.getSurfaceHeightAt?.(x, z) ?? this.mapGenerator.getHeightAt?.(x, z) ?? 0;
+        }
         // Keep chest bottom clearly above floor to avoid half-sunken look
         // on uneven or stepped walkable colliders.
-        return surfaceY + 0.38;
+        return baseY + 0.38;
     }
-
-    async generateChestsAsync() {
-        this.generateChests();
-    }
-
-    async generateChests() {
+    
+    generateChests() {
         const floorTiles = this.mapGenerator.getFloorTiles?.() || [];
-        // Significantly reduced chest count: 50 for desktop, 35 for mobile
-        const chestCount = this.isMobile ? 35 : 50;
-        const spots = this.mapGenerator.getHouseSpots?.() || this.mapGenerator.getHangarSpots?.() || [];
+        const targetByMapSize = Math.floor(Math.max(80, floorTiles.length * (this.isMobile ? 0.05 : 0.07)));
+        const chestCount = Math.max(this.isMobile ? 90 : 140, Math.floor(targetByMapSize * this.lootDensity));
+        const spots = this.mapGenerator.getChestSpots?.() || [];
 
         if (spots.length > 0) {
             const shuffled = [...spots].sort(() => Math.random() - 0.5);
@@ -113,15 +66,12 @@ export class LootManager {
 
             for (let i = 0; i < limit; i++) {
                 const spot = shuffled[i];
-                const jitter = 12;
-                const x = spot.x + (Math.random() - 0.5) * jitter;
-                const z = spot.z + (Math.random() - 0.5) * jitter;
-                const y = this.getChestPlacementY(x, z);
+                const y = this.getChestPlacementY(spot.x, spot.z);
                 if (y < this.mapGenerator.waterLevel + 1) continue;
-                const chest = this.createChest(x, y, z, spot.grade || spot.type || 'house');
+                if (!this.isHiddenSpawn(spot.x, y, spot.z)) continue;
+                const chest = this.createChest(spot.x, y, spot.z, spot.grade || 'house');
                 this.chests.push(chest);
                 this.addChestToIndex(chest);
-                if (i % 2 === 0) await new Promise(r => setTimeout(r, 200));
             }
             if (this.chests.length > 0) {
                 this.rebuildChestIndex();
@@ -132,52 +82,128 @@ export class LootManager {
         if (floorTiles.length) {
             const shuffled = [...floorTiles].sort(() => Math.random() - 0.5);
             const limit = Math.min(chestCount, shuffled.length);
-            const MIN_CHEST_DIST = 30; // Minimum distance between chests
-            for (let i = 0; i < limit && this.chests.length < chestCount; i++) {
+            for (let i = 0; i < limit; i++) {
                 const tile = shuffled[i];
-                const jitter = 8;
-                const x = tile.x + (Math.random() - 0.5) * jitter;
-                const z = tile.z + (Math.random() - 0.5) * jitter;
-                const y = this.getChestPlacementY(x, z);
-
-                // Check minimum distance from existing chests
-                const tooClose = this.chests.some(c => Math.hypot(c.position.x - x, c.position.z - z) < MIN_CHEST_DIST);
-                if (tooClose) continue;
-
+                const y = this.getChestPlacementY(tile.x, tile.z);
                 if (y < this.mapGenerator.waterLevel + 1) continue;
-                const chest = this.createChest(x, y, z);
+                if (!this.isHiddenSpawn(tile.x, y, tile.z)) continue;
+                const chest = this.createChest(tile.x, y, tile.z);
                 this.chests.push(chest);
                 this.addChestToIndex(chest);
-                if (i % 2 === 0) await new Promise(r => setTimeout(r, 200));
             }
             this.rebuildChestIndex();
             return;
         }
 
-        let failCount = 0;
-        const MIN_CHEST_DIST = 30; // Minimum distance between chests
-        for (let i = 0; i < chestCount && failCount < chestCount * 5; i++) {
+        for (let i = 0; i < chestCount; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const distance = 80 + Math.random() * 140; // Wider spread, starting further out
+            const distance = 40 + Math.random() * 150;
             const x = Math.cos(angle) * distance;
             const z = Math.sin(angle) * distance;
             const y = this.getChestPlacementY(x, z);
 
             if (y < this.mapGenerator.waterLevel + 1) {
-                failCount++;
+                i--;
                 continue;
             }
-
-            // Check minimum distance from existing chests
-            const tooClose = this.chests.some(c => Math.hypot(c.position.x - x, c.position.z - z) < MIN_CHEST_DIST);
-            if (tooClose) { failCount++; continue; }
+            if (!this.isHiddenSpawn(x, y, z)) {
+                i--;
+                continue;
+            }
 
             const chest = this.createChest(x, y, z);
             this.chests.push(chest);
             this.addChestToIndex(chest);
-            if (i % 2 === 0) await new Promise(r => setTimeout(r, 200));
         }
         this.rebuildChestIndex();
+    }
+
+    // Асинхронная версия generateChests для устранения фризов при старте
+    async generateChestsAsync() {
+        const floorTiles = this.mapGenerator.getFloorTiles?.() || [];
+        const targetByMapSize = Math.floor(Math.max(80, floorTiles.length * (this.isMobile ? 0.05 : 0.07)));
+        const chestCount = Math.max(this.isMobile ? 90 : 140, Math.floor(targetByMapSize * this.lootDensity));
+        const spots = this.mapGenerator.getChestSpots?.() || [];
+
+        if (spots.length > 0) {
+            const shuffled = [...spots].sort(() => Math.random() - 0.5);
+            const limit = Math.min(chestCount, shuffled.length);
+
+            for (let i = 0; i < limit; i++) {
+                const spot = shuffled[i];
+                const y = this.getChestPlacementY(spot.x, spot.z);
+                if (y < this.mapGenerator.waterLevel + 1) continue;
+                if (!this.isHiddenSpawn(spot.x, y, spot.z)) continue;
+                
+                const chest = this.createChest(spot.x, y, spot.z, spot.grade || 'house');
+                this.chests.push(chest);
+
+                // Даем браузеру "прододхнуть" каждые 25 сундуков
+                if (i > 0 && i % 25 === 0) {
+                    await new Promise(resolve => requestAnimationFrame(resolve));
+                }
+            }
+            if (this.chests.length > 0) return;
+        }
+
+        if (floorTiles.length) {
+            const shuffled = [...floorTiles].sort(() => Math.random() - 0.5);
+            const limit = Math.min(chestCount, shuffled.length);
+            for (let i = 0; i < limit; i++) {
+                const tile = shuffled[i];
+                const y = this.getChestPlacementY(tile.x, tile.z);
+                if (y < this.mapGenerator.waterLevel + 1) continue;
+                if (!this.isHiddenSpawn(tile.x, y, tile.z)) continue;
+                const chest = this.createChest(tile.x, y, tile.z);
+                this.chests.push(chest);
+                if (i > 0 && i % 25 === 0) {
+                    await new Promise(resolve => requestAnimationFrame(resolve));
+                }
+            }
+            return;
+        }
+
+        for (let i = 0; i < chestCount; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 40 + Math.random() * 150;
+            const x = Math.cos(angle) * distance;
+            const z = Math.sin(angle) * distance;
+            const y = this.getChestPlacementY(x, z);
+
+            if (y < this.mapGenerator.waterLevel + 1) {
+                i--;
+                continue;
+            }
+            if (!this.isHiddenSpawn(x, y, z)) {
+                i--;
+                continue;
+            }
+
+            const chest = this.createChest(x, y, z);
+            this.chests.push(chest);
+            if (i > 0 && i % 25 === 0) {
+                await new Promise(resolve => requestAnimationFrame(resolve));
+            }
+        }
+    }
+
+    isHiddenSpawn(x, y, z) {
+        const structure = this.mapGenerator.getStructureAtPoint?.(x, z, 0.3);
+        if (structure) {
+            return true;
+        }
+        const distFromCenter = Math.sqrt(x * x + z * z);
+        if (distFromCenter > 160) {
+            return Math.random() < 0.6;
+        }
+        if (this.mapGenerator.isBiomeAt?.(x, z, 'lava')) {
+            return Math.random() < 0.7;
+        }
+        if (this.mapGenerator.isBiomeAt?.(x, z, 'water')) {
+            return Math.random() < 0.5;
+        }
+        const nearbyStructures = this.mapGenerator.getNearbyStructures?.(x, z, 6) || [];
+        return nearbyStructures.length > 0;
     }
 
     createChest(x, y, z, grade = 'house') {
@@ -207,7 +233,7 @@ export class LootManager {
             bandGeom2.translate(0, 0.18, 0);
             const rimGeom = new THREE.BoxGeometry(1.32, 0.06, 1.02);
             rimGeom.translate(0, 0.76, 0);
-            const mergedBandGeom = mergeGeometries([bandGeom1, bandGeom2, rimGeom]);
+            const mergedBandGeom = BufferGeometryUtils.mergeBufferGeometries([bandGeom1, bandGeom2, rimGeom]);
 
             const latchGeom = new THREE.BoxGeometry(0.18, 0.18, 0.06);
             latchGeom.translate(0, 0.46, 0.48);
@@ -225,7 +251,7 @@ export class LootManager {
                 g.translate(ox, oy, oz);
                 return g;
             });
-            const mergedMetalGeom = mergeGeometries([latchGeom, latchPlateGeom, ...cornerGeometries]);
+            const mergedMetalGeom = BufferGeometryUtils.mergeBufferGeometries([latchGeom, latchPlateGeom, ...cornerGeometries]);
 
             // Создаем меши
             const bodyMesh = new THREE.Mesh(bodyGeom, bodyMat);
@@ -259,8 +285,16 @@ export class LootManager {
         chestModel.userData.grade = grade;
         chestModel.userData.claimedBy = null;
         chestModel.userData.claimExpireAt = 0;
-        const rareChest = grade === 'hangar';
+        const rareChest = grade === 'hangar' || grade === 'train';
         let generatedLoot = this.generateLoot(rareChest);
+        if (grade === 'train') {
+            const trainRoll = Math.random();
+            if (trainRoll < 0.42) generatedLoot = { type: 'weapon', weaponType: 'laser' };
+            else if (trainRoll < 0.72) generatedLoot = { type: 'weapon', weaponType: 'flamethrower' };
+            else if (trainRoll < 0.9) generatedLoot = { type: 'weapon', weaponType: 'machinegun' };
+            else if (trainRoll < 0.98) generatedLoot = { type: 'weapon', weaponType: 'rifle' };
+            else generatedLoot = { type: 'ammo', amount: 24 + Math.floor(Math.random() * 18) };
+        }
         chestModel.userData.loot = generatedLoot;
         chestModel.userData.glow = glow;
         chestModel.userData.lid = lidMesh; // Сохраняем ссылку на крышку
@@ -441,42 +475,37 @@ export class LootManager {
     generateLoot(rare = false) {
         if (rare) {
             const rareRoll = Math.random();
-            if (rareRoll < 0.25) return { type: 'weapon', weaponType: 'sniper' };
-            if (rareRoll < 0.35) return { type: 'weapon', weaponType: 'crossbow' };
-            if (rareRoll < 0.5) return { type: 'weapon', weaponType: 'smg' };
-            if (rareRoll < 0.7) return { type: 'weapon', weaponType: 'laser' };
-            if (rareRoll < 0.85) return { type: 'weapon', weaponType: 'machinegun' };
+            if (rareRoll < 0.4) return { type: 'weapon', weaponType: 'laser' };
+            if (rareRoll < 0.7) return { type: 'weapon', weaponType: 'flamethrower' };
+            if (rareRoll < 0.87) return { type: 'weapon', weaponType: 'machinegun' };
             if (rareRoll < 0.95) return { type: 'weapon', weaponType: 'shotgun' };
             if (rareRoll < 0.985) return { type: 'armor', amount: 60 + Math.random() * 40 };
             return { type: 'heal', amount: 55 };
         }
 
+        // Предыдущая логика генерации добычи была запутанной и содержала недостижимый код.
+        // Эта версия использует понятную цепочку "else if", что упрощает понимание и настройку вероятностей.
+        // Вероятности сохранены близкими к первоначальному замыслу.
         const rand = Math.random();
-        if (rand < 0.03) { // 3% для снайперской винтовки
-            return { type: 'weapon', weaponType: 'sniper' };
-        } else if (rand < 0.06) { // 3% для пистолета-пулемёта
-            return { type: 'weapon', weaponType: 'smg' };
-        } else if (rand < 0.09) { // 3% для арбалета
-            return { type: 'weapon', weaponType: 'crossbow' };
-        } else if (rand < 0.12) { // 3% для лазера
+        if (rand < 0.02) { // 2% для лазера
             return { type: 'weapon', weaponType: 'laser' };
-        } else if (rand < 0.22) { // 10% для огнемета
+        } else if (rand < 0.12) { // 10% для огнемета
             return { type: 'weapon', weaponType: 'flamethrower' };
-        } else if (rand < 0.35) { // 13% для дробовика
+        } else if (rand < 0.25) { // 13% для дробовика
             return { type: 'weapon', weaponType: 'shotgun' };
-        } else if (rand < 0.46) { // 11% для лука
+        } else if (rand < 0.36) { // 11% для лука
             return { type: 'weapon', weaponType: 'bow' };
-        } else if (rand < 0.64) { // 18% для пистолета
+        } else if (rand < 0.6) { // 24% для пистолета
             return { type: 'weapon', weaponType: 'pistol' };
-        } else if (rand < 0.76) { // 12% для винтовки
+        } else if (rand < 0.74) { // 14% для винтовки
             return { type: 'weapon', weaponType: 'rifle' };
-        } else if (rand < 0.86) { // 10% для пулемета
+        } else if (rand < 0.84) { // 10% для пулемета
             return { type: 'weapon', weaponType: 'machinegun' };
-        } else if (rand < 0.92) { // 6% для аптечки
+        } else if (rand < 0.9) { // 6% для аптечки
             return { type: 'heal', amount: 40 + Math.random() * 25 };
-        } else if (rand < 0.97) { // 5% для патронов
+        } else if (rand < 0.95) { // 5% для патронов
             return { type: 'ammo', amount: 10 + Math.floor(Math.random() * 9) };
-        } else { // 3% для брони
+        } else { // 5% для брони
             return { type: 'armor', amount: 25 + Math.random() * 25 };
         }
     }

@@ -1,13 +1,13 @@
 export const GAME_CONFIG = {
     bots: {
-        desktopCount: 39,
-        mobileCount: 39,
+        desktopCount: 49,
+        mobileCount: 49,
         spawnRadius: 16
     },
     round: {
         countdownSeconds: 15,
         preFightInvulnerableSeconds: 0,
-              botLootPhaseSeconds: 45
+        botLootPhaseSeconds: 25
     },
     zone: {
         durationSeconds: 600,
@@ -18,28 +18,41 @@ export const GAME_CONFIG = {
         waitBetweenSeconds: 22,
         shrinkPhaseSeconds: 10
     },
-    fogZones: {
-        enabled: true,
-        phaseIntervals: [60, 120, 180, Infinity],
-        phaseNames: ['Внешняя', 'Средняя', 'Внутренняя', 'Центральная'],
-        damageMultipliers: [0.2, 0.5, 1.0, 2.0],
-        radiationZones: {
-            high: { radius: 50, damage: 0.3 },
-            medium: { radius: 35, damage: 0.15 },
-            low: { radius: 30, damage: 0.1 }
-        }
-    },
     events: {
-        randomTimerMin: 35,
-        randomTimerVariance: 25,
-        nextEventMin: 45,
-        nextEventVariance: 35,
+        randomTimerMin: 55,
+        randomTimerVariance: 45,
+        nextEventMin: 65,
+        nextEventVariance: 50,
+        gracePeriodSeconds: 300,
+        waveIntervalSeconds: 120,
+        waveDurationSeconds: 45,
         radiation: {
-            durationSeconds: 30,
+            durationSeconds: 35,
             graceSeconds: 4.0,
             playerDps: 3.2,
             botDpsNearShelter: 0.16,
             botDpsFarShelter: 0.24
+        },
+        supplyDrop: {
+            intervalSeconds: 60,
+            varianceSeconds: 30,
+            beamDuration: 4.5,
+            lootRadius: 8,
+            maxDrops: 3
+        },
+        storm: {
+            durationSeconds: 40,
+            graceSeconds: 5.0,
+            damagePerSecond: 2.8,
+            visualIntensity: 0.75,
+            maxStorms: 2
+        },
+        zombieRush: {
+            durationSeconds: 45,
+            spawnInterval: 3.5,
+            zombieCount: 6,
+            spawnRadius: 120,
+            cooldownSeconds: 60
         }
     }
 };

@@ -1,14 +1,16 @@
-﻿import * as THREE from "/node_modules/three/build/three.module.js";
+import * as THREE from 'three';
 
 const STATES = {
     IDLE: 'idle',
     LOOT: 'loot',
+    EXPLORE: 'explore',
     ENGAGE: 'engage',
     RELOAD_COVER: 'reloadCover',
     RETREAT: 'retreat',
     SURVIVAL: 'survival',
     ZONE_RETREAT: 'zoneRetreat',
-    SHELTER: 'shelter'
+    SHELTER: 'shelter',
+    HIDE: 'hide'
 };
 
 const WEAPON_PRIORITY = {
@@ -24,10 +26,14 @@ const WEAPON_PRIORITY = {
 };
 
 export class BotBrain {
+    static clearReservations() {
+        BotBrain._lootReservations?.clear();
+        BotBrain._combatReservations?.clear();
+    }
+
     constructor() {
         if (!BotBrain._lootReservations) BotBrain._lootReservations = new Map();
         if (!BotBrain._combatReservations) BotBrain._combatReservations = new Map();
-        if (!BotBrain._spawnTime) BotBrain._spawnTime = performance.now();
         this.visionMultiplier = 1;
         this.decisionCooldown = 0;
         this.attackCooldown = 0;
@@ -40,38 +46,25 @@ export class BotBrain {
         this._tmpMoveRight = new THREE.Vector3();
         this._tmpMoveTarget = new THREE.Vector3();
         this._rngShift = Math.random() * 1000;
-        this.baseVisionRange = 45;   // уменьшен радиус зрения для одиночного стиля
-        this.hearingRange = 40;
-        this.shotHearingRange = 90;
-        this.losMemorySeconds = 2.0;
-        this.reactionMin = 0.15;
-        this.reactionMax = 0.35;
-        // Биомный целевой сектор для разбегания
-        this.homeBiome = ['forest','maze','war','ice','plaza'][Math.floor(Math.random() * 5)];
-        // Personality traits — each bot is unique
-        const personality = ['aggressive','cautious','tactical','reckless','sniper_pref','rusher','survivor'][Math.floor(Math.random() * 7)];
-        this.personality = personality;
-        this.aggression = personality === 'aggressive' || personality === 'rusher' ? 1.3 : personality === 'reckless' ? 1.5 : personality === 'cautious' ? 0.6 : 1.0;
-        this.cautious = personality === 'cautious' || personality === 'sniper_pref';
-        this.willFlank = personality === 'tactical' || personality === 'aggressive';
-        this.reactionDelay = personality === 'cautious' ? 0.5 : personality === 'reckless' ? 0.05 : this.reactionMin + Math.random() * (this.reactionMax - this.reactionMin);
-        this.hesitationChance = personality === 'cautious' ? 0.25 : personality === 'reckless' ? 0.02 : 0.08;
-        // Each bot is a lone wolf — avoids other bots, prefers solo play
-        this.avoidsOthers = true;
-        this.homeSector = ['NW', 'NE', 'SW', 'SE'][Math.floor(Math.random() * 4)];
+        this._tmpForward = new THREE.Vector3();
+        this._tmpToTarget = new THREE.Vector3();
+        this._tmpShelterDir = new THREE.Vector3();
+        this._tmpEnemyDir = new THREE.Vector3();
+        this._tmpRandomDir = new THREE.Vector3();
+        this._tmpSide = new THREE.Vector3();
+        this._tmpSideTarget = new THREE.Vector3();
+        this._tmpCoverVec = new THREE.Vector3();
+        this._tmpSpreadVec = new THREE.Vector3();
+        this.baseVisionRange = 68;
+        this.fov = 60 * (Math.PI / 180);
+        this.hearingRange = 34;
+        this.shotHearingRange = 76;
+        this.losMemorySeconds = 1.4;
+        this.reactionMin = 0.2;
+        this.reactionMax = 0.5;
     }
 
-    getMatchAge() {
-        return (performance.now() - (BotBrain._spawnTime || performance.now())) / 1000;
-    }
-
-    isLootPhase(bot) {
-        // Паза лута пока noCombatUntil не истёк
-        const now = performance.now();
-        return bot.noCombatUntil && now < bot.noCombatUntil;
-    }
-
-    update(bot, delta, entityManager, lootManager) {
+    update(bot, delta, entityManager, lootManager, audioSynth) {
         if (!bot?.isAlive) {
             if (bot) {
                 this.releaseLootReservation(bot);
@@ -93,9 +86,9 @@ export class BotBrain {
             bot._fsmCtx = ctx;
             const nextState = this.pickState(bot, ctx);
             bot.state = nextState;
-            if (nextState !== STATES.LOOT) this.releaseLootReservation(bot);
+            if (nextState !== STATES.LOOT && nextState !== STATES.EXPLORE) this.releaseLootReservation(bot);
             if (nextState !== STATES.ENGAGE) this.releaseCombatReservation(bot);
-            this.decisionCooldown = 0.16 + ((bot.id * 0.011) % 0.05);
+            this.decisionCooldown = 0.2 + ((bot.id * 0.011) % 0.1);
         } else {
             ctx.outsideZone = ctx.zone?.isInsideZone ? !ctx.zone.isInsideZone(bot.position) : false;
             ctx.zoneDistance = ctx.zone?.getDistanceFromZone ? ctx.zone.getDistanceFromZone(bot.position) : 0;
@@ -129,6 +122,14 @@ export class BotBrain {
             this.actLoot(bot, ctx, lootManager);
             return;
         }
+        if (bot.state === STATES.EXPLORE) {
+            this.actExplore(bot, ctx);
+            return;
+        }
+        if (bot.state === STATES.HIDE) {
+            this.actHide(bot, ctx);
+            return;
+        }
         if (bot.state === STATES.ENGAGE) {
             this.actEngage(bot, ctx, entityManager);
             return;
@@ -156,6 +157,11 @@ export class BotBrain {
         let nearestZombie = null;
         let nearestZombieDist = Infinity;
 
+        const sin = Math.sin(bot.rotation.y);
+        const cos = Math.cos(bot.rotation.y);
+        this._tmpForward.set(sin, 0, -cos);
+        const forward = this._tmpForward;
+
         for (const ent of nearby) {
             if (!ent?.isAlive || ent === bot) continue;
             const type = ent.constructor?.name;
@@ -167,10 +173,15 @@ export class BotBrain {
                 const hasLos = this.hasLoS(bot, ent, entityManager);
                 const heard = d <= this.hearingRange || (heardShot && d <= this.shotHearingRange);
                 if (hasLos || heard) {
-                    nearestEnemyDist = d;
-                    nearestEnemy = ent;
-                    if (hasLos) bot.lastSeenEnemyAt = now;
-                    else if (!bot.lastSeenEnemyAt) bot.lastSeenEnemyAt = now;
+                    // FOV Check
+                    this._tmpToTarget.subVectors(ent.position, bot.position).normalize();
+                    const dot = forward.dot(this._tmpToTarget);
+                    if (dot >= Math.cos(this.fov / 2)) {
+                        nearestEnemyDist = d;
+                        nearestEnemy = ent;
+                        if (hasLos) bot.lastSeenEnemyAt = now;
+                        else if (!bot.lastSeenEnemyAt) bot.lastSeenEnemyAt = now;
+                    }
                 }
             }
             if (isZombie && d < nearestZombieDist) {
@@ -190,8 +201,24 @@ export class BotBrain {
         const sheltered = map?.isShelteredFromRain?.(bot.position) || false;
         const shelterTarget = this.findNearestShelterTarget(bot);
         const inPreLootPhase = !!(bot.noCombatUntil && now < bot.noCombatUntil);
-        const crowdNear = this.countNearbyBots(bot, entityManager, 6.5);
+        const crowdNear = this.countNearbyCombatants(bot, entityManager, 6.5);
         const gear = this.getGearScore(bot);
+
+        // Compute avoidance force — steer away from nearby players/bots
+        let avoidX = 0, avoidZ = 0;
+        for (const ent of nearby) {
+            if (!ent?.isAlive || ent === bot) continue;
+            const type = ent.constructor?.name;
+            if (type !== 'Player' && type !== 'Bot') continue;
+            const d = bot.position.distanceTo(ent.position);
+            if (d < 12 && d > 0.1) {
+                const force = 1 / (d * d);
+                avoidX += (bot.position.x - ent.position.x) / d * force;
+                avoidZ += (bot.position.z - ent.position.z) / d * force;
+            }
+        }
+        bot._avoidX = avoidX;
+        bot._avoidZ = avoidZ;
 
         return {
             now,
@@ -246,104 +273,118 @@ export class BotBrain {
         if (bot.forceShelterActive) {
             return ctx.sheltered ? STATES.SHELTER : STATES.ZONE_RETREAT;
         }
+
         if (ctx.outsideZone || ctx.zoneDistance > 0.5) {
             return STATES.ZONE_RETREAT;
         }
 
-        const lootPhase = this.isLootPhase(bot);
-        const hp = ctx.hp;
+        if (ctx.inPreLootPhase) {
+            // During loot phase: prioritize looting and scatter away from crowds
+            if (ctx.lootTarget) return STATES.LOOT;
+            if (ctx.crowdNear >= 2) {
+                return STATES.EXPLORE;
+            }
+            return STATES.EXPLORE;
+        }
+
+        const lowHp = ctx.hp < 0.35;
+        const veryLowHp = ctx.hp < 0.2;
+        const underPressure = ctx.nearestEnemy && ctx.nearestEnemyDist < ctx.closeCombatRadius;
         const armed = !!bot.currentWeapon && bot.currentWeapon.type !== 'fists';
         const hasMedkit = (bot.medkits || 0) > 0;
 
-       // Паза лута: разбегаемся и лутаемся, атакуем ТОЛЬКО если стреляют в упор
-        if (lootPhase) {
+        // 1. Critical Survival
+        if ((veryLowHp && hasMedkit) || (lowHp && hasMedkit && underPressure)) {
+            return STATES.SURVIVAL;
+        }
+
+        // 2. Retreat/Hide if in trouble
+        if (veryLowHp && ctx.shelterTarget && (!ctx.nearestEnemy || ctx.nearestEnemyDist > 10)) return STATES.ZONE_RETREAT;
+        if (lowHp && underPressure && !hasMedkit) return STATES.HIDE;
+
+        // 3. Avoid other players/bots — stay alone with strong scatter
+        if (ctx.crowdNear >= 2) {
+            return STATES.EXPLORE;
+        }
+
+        // 4. Early Game / Low Gear Logic
+        const undergeared = ctx.gear < 0.35;
+        if (undergeared) {
+            // If weak, prioritize loot and avoid combat at all costs
+            if (ctx.nearestEnemy && ctx.nearestEnemyDist < 50) {
+                return STATES.HIDE;
+            }
             if (ctx.lootTarget) return STATES.LOOT;
-            // Боты не атакуют друг друга в фазе лута
-            if (ctx.nearestEnemy?.constructor?.name === 'Bot') return STATES.IDLE;
-            if (ctx.nearestEnemy && ctx.nearestEnemyDist < 5) return STATES.ENGAGE; // самооборона в упор
-            return STATES.IDLE; // разбегаемся по карте
+            return STATES.EXPLORE;
         }
 
-        // Выживание: лечимся
-        const underPressure = ctx.nearestEnemy && ctx.nearestEnemyDist < 16;
-        if (hp < 0.2 && hasMedkit) return STATES.SURVIVAL;
-        if (hp < 0.35 && hasMedkit && underPressure) return STATES.SURVIVAL;
-
-        // Отступаем если очень мало HP без аптечки
-        if (hp < 0.15) return STATES.RETREAT;
-
-       // Боевая фаза: атакуем — с учётом личности и одиночного стиля
-        if (ctx.nearestEnemy) {
-            const isPlayer = ctx.nearestEnemy.constructor?.name === 'Player';
-            // Lone wolves: атакуем только игрока или если близко к зомби
-            if (isPlayer && !armed) return STATES.IDLE;
-            if (isPlayer && ctx.nearestEnemyDist < 60 * this.aggression) return STATES.ENGAGE;
-            // БОТ НЕ АТАКУЕТ ДРУГИХ БОТОВ — они лутаются и избегают конфликтов
-            if (ctx.nearestEnemy.constructor?.name === 'Bot') return STATES.IDLE;
-            const engageDist = 30 * this.aggression;
-            // Lone wolves: only engage if armed AND no crowd nearby
-            if (!armed) return STATES.IDLE;
-            if (this.willFlank && this.avoidsOthers && ctx.nearestEnemyDist < engageDist * 0.4) return STATES.ENGAGE;
-            if (ctx.nearestEnemyDist < engageDist && ctx.crowdNear < 2) return STATES.ENGAGE;
-            // Otherwise avoid the fight — lone wolf doesn't join crowds
-            return STATES.IDLE;
+        // 5. Only engage if attacked first — strict engagement rules
+        if (ctx.nearestEnemy && ctx.nearestEnemyDist < 42) {
+            const isBeingAttacked = ctx.heardShot || (bot._lastAttackedBy && performance.now() - bot._lastAttackedBy < 3000);
+            if (isBeingAttacked && armed) {
+                return STATES.ENGAGE;
+            }
+            if (ctx.lootTarget) return STATES.LOOT;
+            return STATES.EXPLORE;
         }
 
-        // Зомби вблизи
-        if (ctx.nearestZombie && ctx.nearestZombieDist < 8) return STATES.ENGAGE;
-
-        // Без цели: лутаемся
+        // 6. Default — loot first, explore second
         if (ctx.lootTarget) return STATES.LOOT;
-        return STATES.IDLE;
+        return STATES.EXPLORE;
     }
 
     actIdle(bot, ctx) {
-        // В пазе лута — разбегаемся по уникальному направлению (биом)
-        if (this.isLootPhase(bot)) {
-            if (!bot.patrolTarget || bot.position.distanceTo(bot.patrolTarget) < 5 || bot.isStuck) {
-                bot.patrolTarget = this.pickBiomeTarget(bot);
-            }
-            if (bot.patrolTarget) this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 1.1);
-            return;
-        }
-        if (!bot.patrolTarget || bot.position.distanceTo(bot.patrolTarget) < 2.2 || bot.isStuck || ctx.crowdNear >= 2) {
-            // Lone wolves spread far apart — use POI-based targets across the map
-            const mapSize = (this.mapRef && this.mapRef.size) || 440;
-            if (this.avoidsOthers && ctx.crowdNear >= 2) {
-                bot.patrolTarget = this.pickSpreadTarget(bot, 40, 160);
-            } else {
-                bot.patrolTarget = this.pickSpreadTarget(bot, 24, 80);
-            }
+        if (!bot.patrolTarget || bot.position.distanceTo(bot.patrolTarget) < 2.2 || bot.isStuck) {
+            bot.patrolTarget = this.pickSpreadTarget(bot, 24, 72);
         }
         if (bot.patrolTarget) {
-            // Cautious bots occasionally pause to scan for threats
-            if (this.cautious && Math.random() < 0.12) {
-                bot.physics.velocity.x *= 0.3;
-                bot.physics.velocity.z *= 0.3;
-                return;
-            }
             this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 0.95);
         }
     }
 
-   // POI-based target spread across the entire map — lone wolves scatter far apart
-    pickBiomeTarget(bot) {
-        const mapSize = (this.mapRef && this.mapRef.size) || 440;
-        const half = mapSize * 0.4;
-        let sectorX, sectorZ;
-        if (this.homeSector === 'NW') { sectorX = -half + (Math.random()-0.5)*100; sectorZ = -half + (Math.random()-0.5)*100; }
-        else if (this.homeSector === 'NE') { sectorX = half + (Math.random()-0.5)*100; sectorZ = -half + (Math.random()-0.5)*100; }
-        else if (this.homeSector === 'SW') { sectorX = -half + (Math.random()-0.5)*100; sectorZ = half + (Math.random()-0.5)*100; }
-        else { sectorX = half + (Math.random()-0.5)*100; sectorZ = half + (Math.random()-0.5)*100; }
-        // Use map tiles if available for valid positions
-        const floors = this.mapRef?.getFloorTiles?.();
-        if (floors?.length) {
-            const tile = floors[(Math.floor((Math.random() * 1000 + this._rngShift) * floors.length)) % floors.length];
-            if (this.mapRef?.isWalkableAt?.(tile.x, tile.z)) return new THREE.Vector3(tile.x + (Math.random()-0.5)*16, 0, tile.z + (Math.random()-0.5)*16);
+    actExplore(bot, ctx) {
+        const now = performance.now();
+        // During loot phase or high crowd, scatter to opposite directions
+        const isScatterPhase = bot.noCombatUntil && now < bot.noCombatUntil;
+        const needsScatter = isScatterPhase || ctx.crowdNear >= 2;
+        
+        if (needsScatter) {
+            // Pick a target far away in a direction opposite to nearest entity
+            let scatterTarget = null;
+            if (ctx.nearestEnemy) {
+                const dir = this._tmpVec.set(
+                    bot.position.x - ctx.nearestEnemy.position.x,
+                    0,
+                    bot.position.z - ctx.nearestEnemy.position.z
+                ).normalize().multiplyScalar(-1);
+                const dist = 50 + Math.random() * 40;
+                scatterTarget = new THREE.Vector3(
+                    bot.position.x + dir.x * dist,
+                    bot.position.y,
+                    bot.position.z + dir.z * dist
+                );
+            } else {
+                // Use bot ID to ensure different scatter directions
+                const angle = (bot.id * 0.7) + Math.random() * 0.5;
+                scatterTarget = new THREE.Vector3(
+                    bot.position.x + Math.cos(angle) * 60,
+                    bot.position.y,
+                    bot.position.z + Math.sin(angle) * 60
+                );
+            }
+            
+            if (!scatterTarget) return;
+            bot.patrolTarget = scatterTarget;
+            this.steerMove(bot, scatterTarget, bot.physics.speed * 1.1);
+        } else {
+            if (!bot.patrolTarget || bot.position.distanceTo(bot.patrolTarget) < 5) {
+                bot.patrolTarget = this.pickSpreadTarget(bot, 30, 80);
+            }
+            if (bot.patrolTarget) {
+                this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 0.85);
+            }
         }
-        return new THREE.Vector3(sectorX, 0, sectorZ);
     }
-
 
     actLoot(bot, ctx, lootManager) {
         const chest = ctx.lootTarget;
@@ -374,14 +415,34 @@ export class BotBrain {
         bot.patrolTarget = this.pickSpreadTarget(bot, 10, 36);
     }
 
-    actEngage(bot, ctx, entityManager) {
-        // Приоритет игроку-человеку
-        let target = null;
-        if (ctx.nearestEnemy?.constructor?.name === 'Player') {
-            target = ctx.nearestEnemy;
-        } else {
-            target = this.pickCombatTarget(bot, ctx, entityManager);
+    actHide(bot, ctx) {
+        const shelter = ctx.shelterTarget || this.findNearestShelterTarget(bot);
+        if (shelter) {
+            const enemy = ctx.nearestEnemy;
+            let isActuallyHidden = true;
+            if (enemy) {
+                this._tmpShelterDir.subVectors(shelter, bot.position).normalize();
+                this._tmpEnemyDir.subVectors(enemy.position, bot.position).normalize();
+                const dot = this._tmpShelterDir.dot(this._tmpEnemyDir);
+                if (dot > 0.8) isActuallyHidden = false; 
+            }
+
+            if (isActuallyHidden) {
+                bot.patrolTarget = shelter;
+                this.steerMove(bot, shelter, bot.physics.speed * 0.75);
+                return;
+            }
         }
+
+        bot.physics.velocity.x *= 0.5;
+        bot.physics.velocity.z *= 0.5;
+        this._tmpRandomDir.set(Math.random() - 0.5, 0, Math.random() - 0.5).normalize();
+        if (!bot.patrolTarget) bot.patrolTarget = new THREE.Vector3();
+        bot.patrolTarget.copy(bot.position).addScaledVector(this._tmpRandomDir, 10);
+    }
+
+    actEngage(bot, ctx, entityManager) {
+        const target = this.pickCombatTarget(bot, ctx, entityManager);
         if (!target) {
             this.releaseCombatReservation(bot);
             bot.patrolTarget = this.pickSpreadTarget(bot, 16, 48);
@@ -391,18 +452,6 @@ export class BotBrain {
         if (ctx.hp < 0.3) {
             bot.state = STATES.RETREAT;
             this.actRetreat(bot, ctx);
-            return;
-        }
-       // Lone wolf: flee if too many bots nearby (avoid crowds)
-        if (this.avoidsOthers && ctx.crowdNear >= 3) {
-            bot.patrolTarget = this.pickSpreadTarget(bot, 30, 80);
-            this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 1.1);
-            return;
-        }
-        // Hesitation — sometimes bots delay engagement
-        if (this.hesitationChance > 0.1 && Math.random() < this.hesitationChance && ctx.nearestEnemyDist > 20) {
-            bot.patrolTarget = this.pickSpreadTarget(bot, 8, 24);
-            this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 0.6);
             return;
         }
         const nowSec = performance.now() / 1000;
@@ -422,109 +471,44 @@ export class BotBrain {
             if (bot.patrolTarget) this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 1.02);
             return;
         }
-
         bot.target = target;
         const dist = bot.position.distanceTo(target.position);
-        let weapon = bot.currentWeapon || bot.fists;
-        const weaponType = weapon.type || 'fists';
-        // Ammo check - fallback to knife if out of ammo on ranged weapon
-        if ((weaponType === 'sniper' || weaponType === 'smg' || weaponType === 'crossbow' || weaponType === 'laser' || weaponType === 'machinegun' || weaponType === 'rifle' || weaponType === 'shotgun' || weaponType === 'pistol') && weapon.ammo !== null && weapon.ammo <= 0) {
-            // Switch to backup weapon
-            if (bot._backupWeapon) {
-                weapon = bot._backupWeapon;
-                bot.currentWeapon = weapon;
-                weapon.setVisible?.(true);
-            } else {
-                // Fall back to knife
-                weapon = bot.fists;
-            }
-        }
-        const updatedType = weapon.type || 'fists';
-        // Weapon-specific range adjustments
-        let effectiveRange = Math.max(2.7, (weapon.range || 3) * 0.95);
-        if (updatedType === 'sniper') effectiveRange *= 1.3;
-        if (updatedType === 'smg') effectiveRange *= 0.8;
-        if (updatedType === 'crossbow') effectiveRange *= 1.1;
-        if (updatedType === 'shotgun') effectiveRange *= 0.88;
-
+        const weapon = bot.currentWeapon || bot.fists;
+        const range = Math.max(2.7, (weapon.range || 3) * (weapon.type === 'shotgun' ? 0.88 : 0.95));
         bot.lookAt(target.position);
-        const strafeDir = ((bot.id + Math.floor(nowSec * 4)) % 2 === 0) ? 1 : -1;
-        if (dist <= effectiveRange) {
+        if (dist <= range) {
             const targetKey = this.getObjectKey(target) || `${Math.round(target.position.x)}:${Math.round(target.position.z)}`;
             if (bot._reactionTargetKey !== targetKey) {
                 bot._reactionTargetKey = targetKey;
                 bot._reactionReadyAt = nowSec + this.reactionMin + Math.random() * (this.reactionMax - this.reactionMin);
             }
- if (updatedType === 'sniper') {
-                // Sniper: stand still for accuracy, slow fire rate
-                bot._reactionReadyAt = nowSec + 0.6 + Math.random() * 0.4;
+            const strafeDir = ((bot.id + Math.floor(nowSec * 4)) % 2 === 0) ? 1 : -1;
+            const to = this._tmpVec.subVectors(target.position, bot.position).normalize();
+            this._tmpSide.set(-to.z, 0, to.x).multiplyScalar(strafeDir * (3.4 + (bot.id % 3)));
+            this._tmpSideTarget.set(bot.position.x + this._tmpSide.x, 0, bot.position.z + this._tmpSide.z);
+            if (bot.mapRef?.isWalkableAt?.(this._tmpSideTarget.x, this._tmpSideTarget.z)) {
+                this.steerMove(bot, this._tmpSideTarget, bot.physics.speed * 0.92);
+            }
+            if (this.attackCooldown <= 0) {
                 if (bot._reactionReadyAt && nowSec < bot._reactionReadyAt) return;
-                if (this.attackCooldown <= 0) {
-                    bot.attack(target, entityManager);
-                    this.attackCooldown = Math.max(0.8, (weapon.cooldown || 1.2) * 0.8);
-                }
-            } else if (updatedType === 'smg') {
-                // SMG: aggressive strafing, fast fire rate
-                const to2 = this._tmpVec2.subVectors(target.position, bot.position);
-                const len2 = Math.max(0.001, Math.hypot(to2.x, to2.z));
-                const side2 = new THREE.Vector3(-to2.z / len2, 0, to2.x / len2).multiplyScalar(strafeDir * (4.5 + (bot.id % 4)));
-                const strafeTarget2 = new THREE.Vector3(bot.position.x + side2.x, 0, bot.position.z + side2.z);
-                if (bot.mapRef?.isWalkableAt?.(strafeTarget2.x, strafeTarget2.z)) {
-                    this.steerMove(bot, strafeTarget2, bot.physics.speed * 1.08);
-                }
-                if (this.attackCooldown <= 0) {
-                    bot.attack(target, entityManager);
-                    this.attackCooldown = Math.max(0.03, (weapon.cooldown || 0.06) * 0.4);
-                }
-            } else if (updatedType === 'crossbow') {
-                // Crossbow: hold position, deliberate shots
-                if (dist > 20) {
-                    this.steerMove(bot, target.position, bot.physics.speed * 0.7);
-                }
-                if (this.attackCooldown <= 0) {
-                    bot.attack(target, entityManager);
-                    this.attackCooldown = Math.max(1.0, (weapon.cooldown || 1.5) * 0.7);
-                }
-            } else if (updatedType === 'shotgun') {
-                // Shotgun: close-range push, aggressive
-                const to = this._tmpVec.subVectors(target.position, bot.position);
-                const len = Math.max(0.001, Math.hypot(to.x, to.z));
-                const side = new THREE.Vector3(-to.z / len, 0, to.x / len).multiplyScalar(strafeDir * (2.5 + (bot.id % 2)));
-                const strafeTarget = new THREE.Vector3(bot.position.x + side.x, 0, bot.position.z + side.z);
-                if (bot.mapRef?.isWalkableAt?.(strafeTarget.x, strafeTarget.z)) {
-                    this.steerMove(bot, strafeTarget, bot.physics.speed * 0.85);
-                }
-                if (this.attackCooldown <= 0) {
-                    bot.attack(target, entityManager);
-                    this.attackCooldown = Math.max(0.5, (weapon.cooldown || 0.98) * 0.5);
-                }
-            } else {
-                // Default: standard strafing
-                const to = this._tmpVec.subVectors(target.position, bot.position);
-                const len = Math.max(0.001, Math.hypot(to.x, to.z));
-                const side = new THREE.Vector3(-to.z / len, 0, to.x / len).multiplyScalar(strafeDir * (3.4 + (bot.id % 3)));
-                const strafeTarget = new THREE.Vector3(bot.position.x + side.x, 0, bot.position.z + side.z);
-                if (bot.mapRef?.isWalkableAt?.(strafeTarget.x, strafeTarget.z)) {
-                    this.steerMove(bot, strafeTarget, bot.physics.speed * 0.92);
-                }
-                if (this.attackCooldown <= 0) {
-                    if (bot._reactionReadyAt && nowSec < bot._reactionReadyAt) return;
-                    const tv = target.physics?.velocity;
-                    const targetSpeed = tv ? Math.hypot(tv.x || 0, tv.z || 0) : 0;
-                    const distNorm = Math.max(0, Math.min(1, dist / Math.max(8, (weapon.range || 40))));
-                    const moveNorm = Math.max(0, Math.min(1, targetSpeed / 9));
-                    bot._dynamicAimError = 0.01 + distNorm * 0.04 + moveNorm * 0.055;
-                    bot.attack(target, entityManager);
-                    this.attackCooldown = Math.max(0.05, (weapon.cooldown || 0.2) * 0.5);
-                }
+                const tv = target.physics?.velocity;
+                const targetSpeed = tv ? Math.hypot(tv.x || 0, tv.z || 0) : 0;
+                const distNorm = Math.max(0, Math.min(1, dist / Math.max(8, (weapon.range || 40))));
+                const moveNorm = Math.max(0, Math.min(1, targetSpeed / 9));
+                bot._dynamicAimError = 0.01 + distNorm * 0.04 + moveNorm * 0.055;
+                bot.attack(target, entityManager);
+                bot.applyWeaponRecoil();
+                this.attackCooldown = Math.max(0.05, (weapon.cooldown || 0.2) * 0.5);
             }
             return;
         }
         bot._reactionTargetKey = null;
         bot._reactionReadyAt = 0;
-
         bot.patrolTarget = target.position;
-        this.steerMove(bot, target.position, bot.physics.speed * 1.3);
+        
+        // Cautious approach: move slower when approaching a target from distance
+        const approachSpeed = dist > 20 ? bot.physics.speed * 0.7 : bot.physics.speed * 1.3;
+        this.steerMove(bot, target.position, approachSpeed);
     }
 
     actRetreat(bot, ctx) {
@@ -535,14 +519,7 @@ export class BotBrain {
         bot.patrolTarget = target;
         bot.target = null;
         this.releaseCombatReservation(bot);
-        const retreatSpeed = this.cautious ? bot.physics.speed * 1.4 : bot.physics.speed * 1.28;
-        // Aggressive bots sometimes counter-attack instead of retreating
-        if (this.personality === 'aggressive' && ctx.nearestEnemy && Math.random() < 0.25) {
-            bot.state = STATES.ENGAGE;
-            this.actEngage(bot, ctx, ctx.entityManager);
-            return;
-        }
-        this.steerMove(bot, target, retreatSpeed);
+        this.steerMove(bot, target, bot.physics.speed * 1.28);
     }
 
     actReloadCover(bot, ctx) {
@@ -560,19 +537,17 @@ export class BotBrain {
 
     actZoneRetreat(bot, ctx) {
         let target = null;
-
         if (bot.forceShelterActive && ctx.shelterTarget) {
             target = ctx.shelterTarget;
         } else if (ctx.zone && !ctx.zone.isInsideZone(bot.position)) {
             const len = Math.hypot(bot.position.x, bot.position.z) || 1;
             const safeRadius = Math.max(4, (ctx.zone.getCurrentRadius?.() || 40) - 8);
-            target = new THREE.Vector3((bot.position.x / len) * safeRadius, bot.position.y, (bot.position.z / len) * safeRadius);
+            target = this._tmpVec.set((bot.position.x / len) * safeRadius, bot.position.y, (bot.position.z / len) * safeRadius);
         } else if (ctx.shelterTarget && ctx.hp < 0.4) {
             target = ctx.shelterTarget;
         } else {
             target = this.pickSpreadTarget(bot, 14, 40);
         }
-
         if (!target) return;
         bot.patrolTarget = target;
         bot.moveTowards(target, bot.physics.speed * 1.25);
@@ -617,6 +592,17 @@ export class BotBrain {
         const len = Math.hypot(dir.x, dir.z);
         if (len < 0.001) return;
         dir.multiplyScalar(1 / len);
+        
+        // Apply avoidance force — steer away from nearby players/bots
+        const avoidX = bot._avoidX || 0;
+        const avoidZ = bot._avoidZ || 0;
+        if (avoidX !== 0 || avoidZ !== 0) {
+            dir.x += avoidX * 0.5;
+            dir.z += avoidZ * 0.5;
+            const newLen = Math.hypot(dir.x, dir.z);
+            if (newLen > 0.001) dir.multiplyScalar(1 / newLen);
+        }
+        
         const sin = Math.sin(Math.PI / 6);
         const cos = Math.cos(Math.PI / 6);
         this._tmpMoveLeft.set(dir.x * cos - dir.z * sin, 0, dir.x * sin + dir.z * cos);
@@ -624,41 +610,46 @@ export class BotBrain {
         const fBlocked = !!bot.isDirectionBlocked?.(dir);
         const lBlocked = !!bot.isDirectionBlocked?.(this._tmpMoveLeft);
         const rBlocked = !!bot.isDirectionBlocked?.(this._tmpMoveRight);
-
         let move = dir;
         if (fBlocked) {
             if (!lBlocked && !rBlocked) move = (bot.id % 2 === 0) ? this._tmpMoveLeft : this._tmpMoveRight;
             else if (!lBlocked) move = this._tmpMoveLeft;
             else if (!rBlocked) move = this._tmpMoveRight;
-            else move = dir.multiplyScalar(-1);
+            else move = dir.clone().multiplyScalar(-1);
         }
-
         if (bot.computeAvoidance) {
             const avoid = bot.computeAvoidance(move);
             if (avoid?.lengthSq?.() > 1e-4) move = this._tmpMoveTarget.copy(move).addScaledVector(avoid, 0.75).normalize();
         }
+        
+        // Cautious movement: if in HIDE or low gear, move slower and more carefully
+        const isCautious = bot.state === STATES.HIDE || bot.state === STATES.EXPLORE && bot.inventory?.getItems?.().length < 2;
+        const finalSpeed = isCautious ? speed * 0.7 : speed;
 
-        const step = Math.max(4.5, speed * 0.9);
+        const step = Math.max(4.5, finalSpeed * 0.9);
         const tx = bot.position.x + move.x * step;
         const tz = bot.position.z + move.z * step;
         this._tmpMoveTarget.set(tx, bot.position.y, tz);
         if (bot.mapRef?.isWalkableAt?.(tx, tz)) {
-            bot.moveTowards(this._tmpMoveTarget, speed);
+            bot.moveTowards(this._tmpMoveTarget, finalSpeed);
         } else {
-            bot.moveTowards(target, speed * 0.75);
+            bot.moveTowards(target, finalSpeed * 0.75);
         }
     }
 
     pickCombatTarget(bot, ctx, entityManager) {
         const preferZombie = ctx.nearestZombie && ctx.nearestZombieDist < 7;
         if (preferZombie) return ctx.nearestZombie;
-
         const t = ctx.nearestEnemy;
         if (!t?.isAlive) return null;
 
-        const maxAttackers = t.constructor?.name === 'Player' ? 3 : 2;
+        // Group Management: If target is part of a large group, avoid engagement
         const attackers = this.countAttackers(entityManager, t, bot);
-        if (attackers >= maxAttackers) return null;
+        if (attackers >= 4) return null;
+
+        // Ensure we don't engage if we are being surrounded by a larger group
+        if (ctx.crowdNear >= 4) return null;
+
         return t;
     }
 
@@ -673,7 +664,7 @@ export class BotBrain {
             const crowd = this.countBotsNearPoint(entityManager, chest.position, 6.5);
             const reserved = this.getLootReservationCount(chest, bot);
             const claimPenalty = chest.userData?.claimedBy && chest.userData.claimedBy !== bot.id ? 0.8 : 0;
-                const score = (1 / Math.max(2, d)) - crowd * 1.2 - reserved * 1.5 - claimPenalty * 1.5 - (crowd > 1 ? 3 : 0) + (chest.userData?.isSupplyDrop ? 0.8 : 0);
+            const score = (1 / Math.max(2, d)) - crowd * 0.28 - reserved * 0.75 - claimPenalty + (chest.userData?.isSupplyDrop ? 0.8 : 0);
             if (score > bestScore) {
                 bestScore = score;
                 best = chest;
@@ -686,7 +677,6 @@ export class BotBrain {
         const map = bot.mapRef;
         const floors = map?.getFloorTiles?.();
         if (!floors?.length) return null;
-
         let best = null;
         let bestScore = -Infinity;
         for (let i = 0; i < 16; i++) {
@@ -697,7 +687,7 @@ export class BotBrain {
             const score = dist + Math.random() * 5;
             if (score > bestScore) {
                 bestScore = score;
-                best = new THREE.Vector3(tile.x, 0, tile.z);
+                best = this._tmpSpreadVec.set(tile.x, 0, tile.z);
             }
         }
         return best;
@@ -710,8 +700,9 @@ export class BotBrain {
         for (let i = 0; i < items.length; i++) {
             const w = items[i];
             if (!w) continue;
+            const ammoRatio = (w.maxAmmo > 0) ? (w.ammo || 0) / w.maxAmmo : 0;
             const score = (WEAPON_PRIORITY[w.type] || 0)
-                + ((w.ammo || 0) > 0 ? 0.7 : 0)
+                + (ammoRatio > 0 ? 0.7 * Math.min(1, ammoRatio * 2) : 0)
                 + ((w.durability || 0) > 0 ? 0.4 : 0);
             if (score > bestScore) {
                 bestScore = score;
@@ -754,7 +745,8 @@ export class BotBrain {
             }
         }
         if (!best) return null;
-        return new THREE.Vector3(best.x, bot.position.y, best.z);
+        this._tmpVec.set(best.x, bot.position.y, best.z);
+        return this._tmpVec;
     }
 
     findNearestCover(bot, threatPos = null) {
@@ -764,15 +756,8 @@ export class BotBrain {
         let bestScore = Infinity;
         for (const c of colliders) {
             if (!c || c.enabled === false || c.walkable) continue;
-            let cMin, cMax;
-            if (c.min && c.max) {
-                cMin = c.min; cMax = c.max;
-            } else {
-                cMin = new THREE.Vector3(c.position.x - c.size.x / 2, c.position.y - c.size.y / 2, c.position.z - c.size.z / 2);
-                cMax = new THREE.Vector3(c.position.x + c.size.x / 2, c.position.y + c.size.y / 2, c.position.z + c.size.z / 2);
-            }
-            const cx = (cMin.x + cMax.x) * 0.5;
-            const cz = (cMin.z + cMax.z) * 0.5;
+            const cx = (c.min.x + c.max.x) * 0.5;
+            const cz = (c.min.z + c.max.z) * 0.5;
             if (!map?.isWalkableAt?.(cx, cz)) continue;
             const dBot = Math.hypot(bot.position.x - cx, bot.position.z - cz);
             if (dBot < 3 || dBot > 46) continue;
@@ -783,10 +768,25 @@ export class BotBrain {
             }
             if (score < bestScore) {
                 bestScore = score;
-                best = new THREE.Vector3(cx, bot.position.y, cz);
+                best = this._tmpCoverVec.set(cx, bot.position.y, cz);
             }
         }
         return best;
+    }
+
+    countNearbyCombatants(bot, entityManager, radius) {
+        const near = entityManager?.getNearbyEntities
+            ? entityManager.getNearbyEntities(bot.position, radius)
+            : [];
+        let count = 0;
+        for (const e of near) {
+            if (!e?.isAlive || e === bot) continue;
+            const type = e.constructor?.name;
+            if (type === 'Player' || type === 'Bot' || type === 'Zombie') {
+                count++;
+            }
+        }
+        return count;
     }
 
     countNearbyBots(bot, entityManager, radius) {
@@ -821,7 +821,6 @@ export class BotBrain {
         const escape = this.pickSpreadTarget(bot, 14, 52);
         if (escape) bot.patrolTarget = escape;
         bot.target = null;
-        bot.lootTarget = null;
         this.releaseLootReservation(bot);
         this.releaseCombatReservation(bot);
         bot.isStuck = false;
