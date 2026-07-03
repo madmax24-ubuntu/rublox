@@ -84,43 +84,48 @@ export class MapGenerator {
     }
 
     async _generate() {
-        this._reset();
-        this._logProgress(0);
-        this._logProgress(0.15);
+        try {
+            this._reset();
+            this._logProgress(0);
+            this._logProgress(0.15);
 
-        // Phase 1: Terrain base
-        this._generateTerrain();
+            // Phase 1: Terrain base
+            this._generateTerrain();
 
-        // Phase 2: Central cornucopia + spawn courtyard
-        this._generateCornucopia();
+            // Phase 2: Central cornucopia + spawn courtyard
+            this._generateCornucopia();
 
-        // Phase 3: River + bridges
-        this._generateRiver();
+            // Phase 3: River + bridges
+            this._generateRiver();
 
-        // Phase 4: Forest quadrant (NW)
-        this._generateForestQuadrant();
+            // Phase 4: Forest quadrant (NW)
+            this._generateForestQuadrant();
 
-        // Phase 5: Stone maze quadrant (NE)
-        this._generateMazeQuadrant();
+            // Phase 5: Stone maze quadrant (NE)
+            this._generateMazeQuadrant();
 
-        // Phase 6: Military ruins quadrant (SW)
-        this._generateMilitaryQuadrant();
+            // Phase 6: Military ruins quadrant (SW)
+            this._generateMilitaryQuadrant();
 
-        // Phase 7: Ice quadrant (SE)
-        this._generateIceQuadrant();
+            // Phase 7: Ice quadrant (SE)
+            this._generateIceQuadrant();
 
-        // Phase 8: Cover objects
-        this._placeCoverObjects();
+            // Phase 8: Cover objects
+            this._placeCoverObjects();
 
-        // Phase 9: Spawn pads
-        this._buildSpawnPads();
+            // Phase 9: Spawn pads
+            this._buildSpawnPads();
 
-        // Phase 10: Finalize
-        this._logProgress(0.95);
-        this.aabbGrid = new AABBGrid(2.0);
-        this.aabbGrid.buildFromColliders(this.colliders);
-        this._logProgress(1.0);
-        this._resolveReady?.();
+            // Phase 10: Finalize
+            this._logProgress(0.95);
+            this.aabbGrid = new AABBGrid(2.0);
+            this.aabbGrid.buildFromColliders(this.colliders);
+            this._logProgress(1.0);
+        } catch (err) {
+            console.error('[MapGenerator] Generation failed:', err);
+        } finally {
+            this._resolveReady?.();
+        }
     }
 
     _reset() {
@@ -967,10 +972,14 @@ export class MapGenerator {
             }
         }
 
-        // Maze generation using recursive backtracker
+        // Maze generation using iterative recursive-backtracker (avoids deep call-stack)
         const mazeRand = this._rand.bind(this);
-        function carveMaze(cx, cz) {
-            grid[cz][cx] = 0;
+        const stack = [];
+        grid[1][1] = 0;
+        stack.push({ x: 1, z: 1 });
+
+        while (stack.length > 0) {
+            const current = stack[stack.length - 1];
             const dirs = [
                 { dx: 0, dz: -1 },
                 { dx: 1, dz: 0 },
@@ -978,16 +987,22 @@ export class MapGenerator {
                 { dx: -1, dz: 0 }
             ].sort(() => mazeRand() - 0.5);
 
+            let carved = false;
             for (const dir of dirs) {
-                const nx = cx + dir.dx * 2;
-                const nz = cz + dir.dz * 2;
+                const nx = current.x + dir.dx * 2;
+                const nz = current.z + dir.dz * 2;
                 if (nx > 0 && nx < cols - 1 && nz > 0 && nz < rows - 1 && grid[nz][nx] === 1) {
-                    grid[cz + dir.dz][cx + dir.dx] = 0;
-                    carveMaze(nx, nz);
+                    grid[current.z + dir.dz][current.x + dir.dx] = 0;
+                    grid[nz][nx] = 0;
+                    stack.push({ x: nx, z: nz });
+                    carved = true;
+                    break;
                 }
             }
+            if (!carved) {
+                stack.pop();
+            }
         }
-        carveMaze(1, 1);
 
         // Build maze walls from grid
         for (let r = 0; r < rows; r++) {
