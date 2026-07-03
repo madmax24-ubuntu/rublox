@@ -342,6 +342,16 @@ export class Player {
         return group;
     }
 
+    setRotation(y) {
+        this.rotation.set(0, y, 0);
+        this.euler.set(0, y, 0, 'YXZ');
+        if (this.input && this.input.controls && this.input.controls.getObject()) {
+            this.input.controls.getObject().rotation.set(0, y, 0);
+            this.input.controls.getObject().quaternion.setFromEuler(new THREE.Euler(0, y, 0, 'YXZ'));
+        }
+        this.camera.rotation.set(0, y, 0);
+    }
+
     update(delta, audioSynth, lootManager, entityManager, controls) {
         if (!this.isAlive) return;
         this.audioSynthRef = audioSynth;
@@ -400,6 +410,7 @@ export class Player {
                 controls.getObject().position.copy(this._frozenCamPos);
             } else {
                 this.camera.position.copy(this._frozenCamPos);
+                this.camera.rotation.copy(this.rotation);
             }
             // Skip movement/physics during countdown
             this.physics.velocity.set(0, 0, 0);

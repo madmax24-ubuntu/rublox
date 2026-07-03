@@ -128,6 +128,31 @@ export class MapGenerator {
         // Phase 7: Ice quadrant (SE)
         this._generateIceQuadrant();
 
+        // CLEANUP PASS: Remove any biome objects that encroached on the central Cornucopia zone
+        const toRemove = [];
+        for (const child of this.scene.children) {
+            if (child.userData?.mapGenerated && !child.userData?.isCornucopia) {
+                const dist = Math.sqrt(child.position.x * child.position.x + child.position.z * child.position.z);
+                if (dist < 36 && child.position.y > 0.1) {
+                    toRemove.push(child);
+                }
+            }
+        }
+        for (const obj of toRemove) {
+            this.scene.remove(obj);
+            if (obj.geometry) obj.geometry.dispose();
+            if (obj.material) {
+                if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+                else obj.material.dispose();
+            }
+        }
+        this.colliders = this.colliders.filter(c => {
+            if (c.isCornucopia) return true;
+            const cx = (c.min.x + c.max.x) / 2;
+            const cz = (c.min.z + c.max.z) / 2;
+            return Math.sqrt(cx*cx + cz*cz) >= 36;
+        });
+
         // Phase 8: Cover objects
         this._placeCoverObjects();
 
@@ -1626,6 +1651,8 @@ export class MapGenerator {
             for (let c = 0; c < mazeCols; c++) {
                 const wx = startX + c * cellSize + cellSize / 2;
                 const wz = startZ + r * cellSize + cellSize / 2;
+                
+                if (Math.sqrt(wx*wx + wz*wz) < 35) continue;
 
                 if (grid[r][c] === 1) {
                     const geo = new THREE.BoxGeometry(cellSize - 0.1, wallHeight, cellSize - 0.1);
