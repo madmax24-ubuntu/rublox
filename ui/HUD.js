@@ -645,8 +645,8 @@ export class HUD {
             display: none;
             align-items: center;
             justify-content: center;
-            background: rgba(6, 12, 18, 0.95);
-            backdrop-filter: blur(4px);
+            background: rgba(6, 12, 18, 0.68);
+            backdrop-filter: blur(2px);
             z-index: 1480;
             pointer-events: auto;
         `;
@@ -690,6 +690,48 @@ export class HUD {
         let perkTouchStartY = 0;
         let perkScrollStart = 0;
         let perkTouchMoved = false;
+
+        // Build perk buttons ONCE — never overwrite innerHTML or handlers will be lost.
+        const perkTitle = document.createElement('div');
+        perkTitle.style.cssText = `font-size:${px(18)}px;font-weight:900;margin-bottom:${px(6)}px;`;
+        perkTitle.textContent = 'Выбор перка';
+        perkPanel.appendChild(perkTitle);
+
+        const perkDesc = document.createElement('div');
+        perkDesc.style.cssText = `font-size:${px(11)}px;opacity:0.76;margin-bottom:${px(10)}px;`;
+        perkDesc.textContent = 'Перк выбирается один раз перед матчем и действует весь раунд.';
+        perkPanel.appendChild(perkDesc);
+
+        this.perkButtons = [];
+        this.perkOptions.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'perk-btn';
+            btn.setAttribute('data-perk', opt.value);
+            btn.textContent = opt.label;
+            btn.style.cssText = `
+                width: 100%;
+                margin: ${px(4)}px 0;
+                padding: ${px(8)}px ${px(10)}px;
+                border-radius: ${px(8)}px;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                background: rgba(255, 255, 255, 0.08);
+                color: #e9f0f6;
+                font-weight: 700;
+                cursor: pointer;
+                font-size: ${px(14)}px;
+            `;
+            btn.addEventListener('click', (e) => {
+                console.log('[perk] DEBUG: click event on button', e.target);
+                e.stopPropagation();
+                const perk = e.currentTarget.getAttribute('data-perk');
+                console.log('[perk] Button clicked:', perk);
+                document.dispatchEvent(new CustomEvent('selectPerk', { detail: perk }));
+                this.togglePerkPanel(false);
+            });
+            perkPanel.appendChild(btn);
+            this.perkButtons.push(btn);
+        });
+
         perkPanel.addEventListener('touchstart', (e) => {
             const touch = e.touches?.[0];
             if (!touch) return;
@@ -721,29 +763,49 @@ export class HUD {
             e.stopPropagation();
         }, { passive: true });
         if (isMobile) {
-            perkPanel.innerHTML = `
-                <div style="font-size:${px(18)}px;font-weight:900;margin-bottom:${px(6)}px;">Выбор перка</div>
-                <div style="font-size:${px(11)}px;opacity:0.76;margin-bottom:${px(10)}px;">На телефоне выбор идет кнопками. Листание страницы не требуется.</div>
-                <div id="perkMobileCard" style="
-                    background: rgba(255,255,255,0.06);
-                    border: 1px solid rgba(255,255,255,0.12);
-                    border-radius: ${px(10)}px;
-                    padding: ${px(12)}px;
-                    min-height: ${px(108)}px;
-                    display: grid;
-                    gap: ${px(8)}px;
-                    margin-bottom: ${px(10)}px;
-                ">
-                    <div id="perkMobileTitle" style="font-size:${px(16)}px;font-weight:900;"></div>
-                    <div id="perkMobileDesc" style="font-size:${px(12)}px;line-height:1.35;opacity:0.84;"></div>
-                    <div id="perkMobileIndex" style="font-size:${px(11)}px;opacity:0.7;"></div>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:${px(8)}px;margin-bottom:${px(8)}px;">
-                    <div id="perkPrev" class="perk-btn">Назад</div>
-                    <div id="perkNext" class="perk-btn">Вперёд</div>
-                </div>
-                <div id="perkSelectMobile" class="perk-btn" style="width:100%;">Выбрать перк</div>
+            // Mobile: add navigation buttons after the already-created perk buttons
+            const navRow = document.createElement('div');
+            navRow.style.cssText = `display:grid;grid-template-columns:1fr 1fr;gap:${px(8)}px;margin-top:${px(8)}px;margin-bottom:${px(8)}px;`;
+            const perkPrev = document.createElement('div');
+            perkPrev.id = 'perkPrev';
+            perkPrev.className = 'perk-btn';
+            perkPrev.textContent = 'Назад';
+            perkPrev.style.cssText = `
+                width: 100%; margin: 0; padding: ${px(10)}px;
+                border-radius: ${px(8)}px; border: 1px solid rgba(255, 255, 255, 0.12);
+                background: rgba(255, 255, 255, 0.08); color: #e9f0f6;
+                font-weight: 700; cursor: pointer; text-align: center;
+                pointer-events: auto; user-select: none; touch-action: manipulation;
+                display: flex; align-items: center; justify-content: center;
             `;
+            const perkNext = document.createElement('div');
+            perkNext.id = 'perkNext';
+            perkNext.className = 'perk-btn';
+            perkNext.textContent = 'Вперёд';
+            perkNext.style.cssText = `
+                width: 100%; margin: 0; padding: ${px(10)}px;
+                border-radius: ${px(8)}px; border: 1px solid rgba(255, 255, 255, 0.12);
+                background: rgba(255, 255, 255, 0.08); color: #e9f0f6;
+                font-weight: 700; cursor: pointer; text-align: center;
+                pointer-events: auto; user-select: none; touch-action: manipulation;
+                display: flex; align-items: center; justify-content: center;
+            `;
+            const perkSelectMobile = document.createElement('div');
+            perkSelectMobile.id = 'perkSelectMobile';
+            perkSelectMobile.className = 'perk-btn';
+            perkSelectMobile.textContent = 'Выбрать перк';
+            perkSelectMobile.style.cssText = `
+                width: 100%; margin: 0; padding: ${px(10)}px;
+                border-radius: ${px(8)}px; border: 1px solid rgba(255, 255, 255, 0.12);
+                background: rgba(255, 255, 255, 0.08); color: #e9f0f6;
+                font-weight: 700; cursor: pointer; text-align: center;
+                pointer-events: auto; user-select: none; touch-action: manipulation;
+                display: flex; align-items: center; justify-content: center;
+            `;
+            navRow.appendChild(perkPrev);
+            navRow.appendChild(perkNext);
+            perkPanel.appendChild(navRow);
+            perkPanel.appendChild(perkSelectMobile);
             this.perkButtons = [];
             const mobileButtons = Array.from(perkPanel.querySelectorAll('.perk-btn'));
             mobileButtons.forEach(btn => {
@@ -820,13 +882,11 @@ export class HUD {
                 if (!t) return;
                 perkPanel.dataset.swipeStartX = String(t.clientX);
             }, { passive: true });
-        } else {
-            perkPanel.innerHTML = `
-                <div style="font-size:${px(18)}px;font-weight:900;margin-bottom:${px(6)}px;">Выбор перка</div>
-                <div style="font-size:${px(11)}px;opacity:0.76;margin-bottom:${px(10)}px;">Перк выбирается один раз перед матчем и действует весь раунд.</div>
-                ${this.perkOptions.map(opt => `<button class="perk-btn" data-perk="${opt.value}">${opt.label}</button>`).join('')}
-            `;
-            this.perkButtons = Array.from(perkPanel.querySelectorAll('.perk-btn'));
+        }
+
+        // Style desktop perk buttons (only on first build)
+        if (!this._perkButtonsBuilt) {
+            this._perkButtonsBuilt = true;
             this.perkButtons.forEach(btn => {
                 btn.style.cssText = `
                     width: 100%;
@@ -839,11 +899,6 @@ export class HUD {
                     font-weight: 700;
                     cursor: pointer;
                 `;
-                btn.addEventListener('click', (e) => {
-                    const perk = e.currentTarget.getAttribute('data-perk');
-                    document.dispatchEvent(new CustomEvent('selectPerk', { detail: perk }));
-                    this.togglePerkPanel(false);
-                });
             });
         }
         perkBackdrop.appendChild(perkPanel);
@@ -1569,96 +1624,6 @@ export class HUD {
         }
         if (data.player) {
             drawDot(data.player.x, data.player.z, '#3cff7a', playerR);
-        }
-    }
-
-    // ===== ZONE / FOG / RADIATION DISPLAY =====
-
-    // Show a zone warning message at the top-center
-    showZoneWarning(message, duration = 3000) {
-        let overlay = document.getElementById('zoneWarningOverlay');
-        if (!overlay) {
-            overlay = document.createElement('div');
-            overlay.id = 'zoneWarningOverlay';
-            overlay.style.cssText = `
-                position: absolute;
-                top: ${px(55)}px;
-                left: 50%;
-                transform: translateX(-50%);
-                font-size: ${px(20)}px;
-                font-weight: 800;
-                color: #ff4444;
-                background: rgba(30, 6, 6, 0.92);
-                padding: ${px(12)}px ${px(28)}px;
-                border-radius: ${px(10)}px;
-                border: 2px solid rgba(255, 50, 50, 0.6);
-                text-shadow: 0 0 8px rgba(255,0,0,0.6);
-                display: none;
-                z-index: 1400;
-                pointer-events: none;
-                text-align: center;
-                white-space: nowrap;
-            `;
-            const hudEl = document.getElementById('hud');
-            if (hudEl) hudEl.appendChild(overlay);
-        }
-        const el = document.getElementById('zoneWarningOverlay');
-        el.textContent = message;
-        el.style.display = 'block';
-        if (this._zoneWarningTimer) clearTimeout(this._zoneWarningTimer);
-        this._zoneWarningTimer = setTimeout(() => { el.style.display = 'none'; }, duration);
-    }
-
-    // Update fog zone phase display
-    updateFogPhase(phase, safeRadius, arenaRadius) {
-        const zoneInfo = document.getElementById('zoneInfo');
-        if (zoneInfo) {
-            const names = ['Внешняя', 'Средняя', 'Внутренняя', 'Центральная'];
-            const phaseName = phase > 0 ? names[phase - 1] || 'Финальная' : 'Безопасная';
-            const pct = safeRadius > 0 ? Math.round((safeRadius / arenaRadius) * 100) : 100;
-            zoneInfo.textContent = `Туман: ${phaseName} · R=${Math.round(safeRadius)} (${pct}%)`;
-            zoneInfo.style.background = phase > 0
-                ? 'rgba(100, 40, 40, 0.85)'
-                : 'rgba(14, 26, 36, 0.88)';
-        }
-
-        // Update storm overlay intensity based on phase
-        const storm = document.getElementById('stormOverlay');
-        if (storm) {
-            storm.style.opacity = phase > 0 ? String(Math.min(0.6, phase * 0.15)) : '0';
-        }
-    }
-
-    // Show radiation warning
-    showRadiationWarning(level = 'low', distance = Infinity) {
-        const zoneInfo = document.getElementById('zoneInfo');
-        if (zoneInfo) {
-            const names = { high: 'Радиация ВЫСОКАЯ', medium: 'Радиация СРЕДНЯЯ', low: 'Радиация НИЗКАЯ' };
-            const name = names[level] || names.low;
-            const dist = distance < Infinity ? `· ${Math.round(distance)}м` : '';
-            zoneInfo.textContent = `${name}${dist}`;
-            zoneInfo.style.background = level === 'high'
-                ? 'rgba(255, 120, 0, 0.85)'
-                : level === 'medium'
-                    ? 'rgba(200, 160, 0, 0.85)'
-                    : 'rgba(60, 120, 40, 0.85)';
-        }
-
-        // Green radiation overlay
-        const storm = document.getElementById('stormOverlay');
-        if (storm) {
-            const intensity = level === 'high' ? 0.25 : level === 'medium' ? 0.15 : 0.06;
-            storm.style.background = `radial-gradient(circle at 30% 30%, rgba(80, 255, 80, ${intensity}), rgba(12, 30, 18, ${intensity + 0.15}))`;
-            storm.style.opacity = '1';
-        }
-    }
-
-    // Clear radiation warning (back to safe)
-    clearRadiationWarning() {
-        const zoneInfo = document.getElementById('zoneInfo');
-        if (zoneInfo) {
-            zoneInfo.textContent = 'Зона: Безопасная';
-            zoneInfo.style.background = 'rgba(14, 26, 36, 0.88)';
         }
     }
 }

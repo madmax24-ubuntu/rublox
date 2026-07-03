@@ -1,121 +1,53 @@
-import * as THREE from "/node_modules/three/build/three.module.js";
-import Stats from "/node_modules/three/examples/jsm/libs/stats.module.js";
+import * as THREE from "three";
+import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 
 window.THREE = THREE;
-THREE.Cache.enabled = true;
-
-// Check for debug mode via URL parameter
-const urlParams = new URLSearchParams(window.location.search);
-const isDebugMode = urlParams.get('debug') === 'true' || window.location.hash === '#debug';
+try { THREE.Cache.enabled = true; } catch (e) {}
+window.__moduleTopLevelExecuted__ = true;
+window.__moduleTopLevelExecutedAt__ = Date.now();
 
 const loadingOverlay = document.getElementById('loadingOverlay');
 const loadingFill = document.getElementById('loadingFill');
 const loadingText = document.getElementById('loadingText');
 
-// Smooth animated loading system
-let _loadingTarget = 0;
-let _loadingCurrent = 0;
-let _loadingStatus = '';
-let _loadingAnimId = null;
-
-const LOADING_STATUSES = {
-    0: 'Инициализация движка...',
-    0.15: 'Загрузка ресурсов...',
-    0.35: 'Генерация карты...',
-    0.65: 'Построение ландшафта...',
-    0.80: 'Размещение объектов...',
-    0.90: 'Настройка освещения...',
-    0.97: 'Подготовка мира...',
-    1.0: 'Готово!'
-};
-
-const setStatus = (text) => {
-    if (text !== _loadingStatus) {
-        _loadingStatus = text;
-        if (loadingText && loadingText.parentElement) {
-            const statusEl = loadingText.parentElement.querySelector('.loading-status');
-            if (statusEl) statusEl.textContent = text;
-        }
-    }
-};
-
-const animateLoading = () => {
-    if (_loadingCurrent >= _loadingTarget) {
-        _loadingAnimId = null;
-        return;
-    }
-    const speed = 0.08 + _loadingTarget * 0.05;
-    _loadingCurrent += Math.min((_loadingTarget - _loadingCurrent) * speed, 0.03);
-
-    if (loadingFill) {
-        const pct = Math.max(0, Math.min(100, Math.floor(_loadingCurrent * 100)));
-        loadingFill.style.width = `${pct}%`;
-    }
-    if (loadingText) {
-        const pct = Math.max(0, Math.min(100, Math.floor(_loadingCurrent * 100)));
-        const statusKey = Object.keys(LOADING_STATUSES).reverse().find(k => _loadingCurrent >= k * 0.95);
-        const statusText = statusKey !== undefined ? LOADING_STATUSES[statusKey] : '';
-        loadingText.textContent = `${pct}% ${statusText}`;
-    }
-
-    if (_loadingCurrent < _loadingTarget) {
-        _loadingAnimId = requestAnimationFrame(animateLoading);
-    } else {
-        _loadingAnimId = null;
-    }
-};
-
 const setLoadingProgress = (ratio) => {
-    _loadingTarget = Math.max(0, Math.min(1, ratio));
-    if (_loadingAnimId) return; // animation running
-    _loadingAnimId = requestAnimationFrame(animateLoading);
+    if (!loadingFill || !loadingText) return;
+    const pct = Math.max(0, Math.min(100, Math.floor(ratio * 100)));
+    loadingFill.style.width = `${pct}%`;
+    loadingText.textContent = `${pct}%`;
 };
+setLoadingProgress._current = 0;
 
 const smoothSetProgress = (increment, status) => {
-    _loadingTarget = Math.min(1, _loadingTarget + increment);
-    if (status) setStatus(status);
-    if (!_loadingAnimId) {
-        _loadingAnimId = requestAnimationFrame(animateLoading);
+    setLoadingProgress._current = Math.min(1, setLoadingProgress._current + increment);
+    setLoadingProgress(setLoadingProgress._current);
+    if (status && loadingText) {
+        loadingText.textContent = `${Math.floor(setLoadingProgress._current * 100)}% ${status}`;
     }
 };
 
-// Insert status text into loading overlay
-(() => {
-    if (loadingOverlay && loadingText) {
-        const statusEl = document.createElement('div');
-        statusEl.className = 'loading-status';
-        statusEl.style.cssText = 'margin-top:6px;font-size:12px;opacity:0.6;min-height:16px;';
-        loadingText.parentElement.appendChild(statusEl);
-    }
-})();
-
-let gameHasStarted = false;
-
-function hideLoadingOverlay() {
-    if (loadingOverlay) {
-        loadingOverlay.style.display = 'none';
-    }
-}
-
-THREE.DefaultLoadingManager.onStart = function () {
-    if (gameHasStarted || document.body?.classList?.contains('game-started')) {
-        return;
-    }
+THREE.DefaultLoadingManager.onStart = function() {
+    if (document.body?.classList?.contains('game-started')) return;
     if (loadingOverlay) loadingOverlay.style.display = 'flex';
     setLoadingProgress(0.05);
 };
 
-THREE.DefaultLoadingManager.onProgress = function (url, loaded, total) {
-    if (gameHasStarted || document.body?.classList?.contains('game-started')) return;
+THREE.DefaultLoadingManager.onProgress = function(url, loaded, total) {
+    if (document.body?.classList?.contains('game-started')) return;
     if (total > 0) {
-        smoothSetProgress(loaded / total * 0.05);
+        setLoadingProgress(loaded / total);
+    } else {
+        setLoadingProgress(0.2);
     }
 };
 
-// Loading overlay stays visible until explicitly hidden by startGame()
-THREE.DefaultLoadingManager.onLoad = function () {
-    if (gameHasStarted || document.body?.classList?.contains('game-started')) return;
-    smoothSetProgress(0.1, 'Ресурсы загружены');
+THREE.DefaultLoadingManager.onLoad = function() {
+    setLoadingProgress(1);
+    if (loadingOverlay) {
+        setTimeout(() => {
+            loadingOverlay.style.display = 'none';
+        }, 300);
+    }
 };
 
 import { MapGenerator } from './world/MapGenerator.js';
@@ -140,60 +72,113 @@ import { GAME_CONFIG, ROUND_MODES } from './core/GameBalance.js';
 
 class Game {
     constructor(yandexBridge = null) {
-        this.yandex = yandexBridge || new YandexBridge();
-        this.isStarted = false;
-        this.startingGame = false;
-        this.initialized = false;
-        this._testMode = typeof window.testMode === 'boolean' && window.testMode === true;
-        if (!this._testMode && typeof window.setTestMode === 'function') {
-            this._testMode = window.setTestMode() === true;
-        }
-        if (!this._testMode && typeof localStorage !== 'undefined') {
-            this._testMode = localStorage.getItem('testMode') === 'true';
-        }
-        this.mobileMode = (
-            'ontouchstart' in window
-            || navigator.maxTouchPoints > 0
-            || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '')
-        );
+         this.yandex = yandexBridge || new YandexBridge();
+         this.isStarted = false;
+         this.startingGame = false;
+         this._constructorRan = true;
+         this.nextSpawnIndex = 0;
+         this.mobileMode = (
+             'ontouchstart' in window
+             || navigator.maxTouchPoints > 0
+             || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '')
+         );
         this._tmpAudioForward = new THREE.Vector3();
-        // Минимальная инициализация - только базовые поля
-        // Полная инициализация будет в initAsync()
-    }
-
-    async initAsync() {
-        if (this.initialized) return;
-        try {
-            await this.initializeGame();
-        } catch (err) {
-            console.error('[Game] initAsync error:', err);
-            console.error(err.stack);
-        }
-        this.initialized = true;
+        try { this.initializeGame(); } catch (err) { this._constructorError = err.message; console.error('[Game] constructor init failed:', err); }
     }
 
     isMobile() {
         return this.mobileMode;
     }
 
+    enableTestMode() {
+        this._testMode = true;
+        // Disable PointerLockControls completely
+        if (this.controls) {
+            this.controls.enabled = false;
+            this.controls.dispose();
+        }
+        if (this.camera) {
+            this.camera.position.set(0, 800, 0);
+            this.camera.lookAt(0, 0, 0);
+            this.camera.fov = 90;
+            this.camera.updateProjectionMatrix();
+        }
+        // Hide UI
+        this.showUI = false;
+        this.hud?.hide?.();
+    }
+
+    disableTestMode() {
+        this._testMode = false;
+        if (this.camera) {
+            this.camera.position.set(0, 1.5, 0);
+            this.camera.lookAt(0, 0, 0);
+            this.camera.fov = 75;
+            this.camera.updateProjectionMatrix();
+        }
+        // Re-enable controls
+        if (this.controls) {
+            this.controls.enabled = true;
+        }
+        this.showUI = true;
+        this.hud?.show?.();
+    }
+
+    // Специальная функция для автотеста — захватывает скриншот с видом сверху
+    takeTopDownScreenshot(x, z, height = 400) {
+        if (!this.camera || !this.renderer || !this.scene) return null;
+        
+        // Сохраняем текущую камеру
+        const savedPosition = this.camera.position.clone();
+        const savedLookAt = this.camera.getWorldDirection(new THREE.Vector3());
+        
+        // Переключаем камеру на вид сверху
+        this.camera.position.set(x, height, z);
+        this.camera.lookAt(x, 0, z);
+        this.camera.fov = 90;
+        this.camera.updateProjectionMatrix();
+        
+        // Рендерим кадр
+        this.renderer.render(this.scene, this.camera);
+        
+        // Захватываем скриншот
+        const dataUrl = this.renderer.domElement.toDataURL('image/png');
+        
+        // Восстанавливаем камеру
+        this.camera.position.copy(savedPosition);
+        this.camera.lookAt(
+            savedPosition.x + savedLookAt.x,
+            savedPosition.y + savedLookAt.y,
+            savedPosition.z + savedLookAt.z
+        );
+        this.camera.fov = 75;
+        this.camera.updateProjectionMatrix();
+        
+        return dataUrl;
+    }
+
+
     async enterFullscreen() {
         const root = document.getElementById('gameRoot') || document.documentElement;
-        if (document.fullscreenElement === root || document.fullscreenElement === this.renderer?.domElement) return true;
-        if (typeof document.hasFocus === 'function' && !document.hasFocus()) return false;
-        try {
-            if (root.requestFullscreen) {
-                await root.requestFullscreen();
-            } else if (root.webkitRequestFullscreen) {
-                await root.webkitRequestFullscreen();
-            } else if (root.msRequestFullscreen) {
-                await root.msRequestFullscreen();
-            } else if (this.renderer?.domElement?.requestFullscreen) {
-                await this.renderer.domElement.requestFullscreen();
-            }
-            return true;
-        } catch (err) {
-            return false;
+        
+        // Edge Legacy: msRequestFullscreen returns void, not a promise - just call it and return
+        if (root.msRequestFullscreen) { 
+            try { root.msRequestFullscreen(); } catch {} 
+            return;
         }
+
+        let fsPromise = null;
+        const reqFS = () => {
+            try { fsPromise = root.requestFullscreen?.(); } catch (e) { console.log('requestFullscreen:', e); }
+            if (!fsPromise && this.renderer?.domElement) {
+                try { fsPromise = this.renderer.domElement.requestFullscreen?.(); } catch {}
+            }
+        };
+        
+        reqFS(); // fire immediately
+        
+        const timeout = new Promise((resolve) => setTimeout(resolve, 50)); // max 50ms wait for fullscreen to resolve or fail
+        await Promise.race([timeout]); // always complete within 50ms regardless of promise state
     }
 
     async lockOrientation() {
@@ -201,7 +186,7 @@ class Game {
         try {
             await screen.orientation.lock('landscape');
         } catch (err) {
-            return;
+            console.log('Orientation lock failed:', err);
         }
     }
 
@@ -221,8 +206,8 @@ class Game {
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(width, height, true);
         const pixelRatio = this.isMobile()
-            ? Math.min(window.devicePixelRatio || 1, 1.5)
-            : Math.min(window.devicePixelRatio || 1, 1.3);
+            ? Math.min(window.devicePixelRatio || 1, 1.3)
+            : Math.min(window.devicePixelRatio || 1, 2);
         this.renderer.setPixelRatio(pixelRatio);
         this.renderer.setViewport(0, 0, width, height);
         this.renderer.setScissorTest(false);
@@ -238,6 +223,14 @@ class Game {
         this.gameLoop?.resetDelta?.();
         this.lastVisibilityHiddenAt = performance.now();
         this.resumeGraceTimer = Math.max(this.resumeGraceTimer || 0, 0.45);
+        if (this.startingGame) return;
+        if (this.startTransitionUntil && performance.now() < this.startTransitionUntil) {
+            return;
+        }
+        if (this.isStarted && !this.isPaused) {
+            this.autoPausedByVisibility = true;
+            this.setPaused(true);
+        }
     }
 
     onAppVisible(reason = 'resume') {
@@ -250,7 +243,7 @@ class Game {
             setTimeout(() => this.applyRendererSizing(), 120);
             setTimeout(() => this.applyRendererSizing(), 320);
         }
-        this.syncCameraToPlayer();
+        this.recoverViewState(reason);
         this.resumeGraceTimer = Math.max(this.resumeGraceTimer || 0, 0.45);
         this.propVisibilityTimer = 0.2;
         this.rainUpdateAccumulator = 0;
@@ -261,14 +254,6 @@ class Game {
             this.map.updatePropVisibility(this.player.position);
             this.lastPropVisibilityPos.copy(this.player.position);
         }
-    }
-
-    applyCameraRescuePose() {
-        if (!this.camera) return;
-        this.camera.near = 0.1;
-        this.camera.far = 5000;
-        this.camera.up.set(0, 1, 0);
-        this.camera.updateProjectionMatrix();
     }
 
     hideStartScreen() {
@@ -291,68 +276,29 @@ class Game {
         startScreen.style.display = 'grid';
     }
 
-    async initializeGame() {
-        this.showStartScreen();
-        if (!this.isMobile()) document.body.style.cursor = 'auto';
-        const isMobile = this.isMobile();
-        
-        // Этап 1: Базовая инициализация Three.js
-        this.scene = new THREE.Scene();
-        this.scene.userData.mobileMode = isMobile;
-        this.scene.fog = new THREE.FogExp2(0x8899aa, 0.006);
-        this.scene.background = new THREE.Color(0x8899aa);
-        this.scene.environment = null;
-
+    initializeGame() {
+        console.log('[initGame] START, isMobile:', this.isMobile());
         try {
-            this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 5000);
-        } catch(err) {
-            console.error('❌ Failed to create camera:', err.message);
-            throw err;
-        }
+        const isMobile = this.isMobile();
+        console.log('[initGame] creating scene...');
+        this.scene = new THREE.Scene();
+        console.log('[initGame] scene created:', !!this.scene);
+        this.scene.userData.mobileMode = isMobile;
+        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.2, 1400);
         this.scene.userData.camera = this.camera;
-        this.camera.layers.enable(0);
-        this.camera.layers.disable(1);
 
         this.renderer = new THREE.WebGLRenderer({
-            antialias: true,
+            antialias: !isMobile,
             powerPreference: "high-performance",
-            precision: "highp",
+            precision: isMobile ? "mediump" : "highp",
             stencil: false,
             depth: true,
-            preserveDrawingBuffer: true,
             logarithmicDepthBuffer: false
         });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.renderer.shadowMap.enabled = true;
-        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.renderer.shadowMap.enabled = false;
         this.applyRendererSizing();
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        this.renderer.toneMappingExposure = 1.2;
-        if (!this.scene.userData.globalAmbientLight) {
-            const ambient = new THREE.AmbientLight(0xffffff, 2.0);
-            this.scene.add(ambient);
-            this.scene.userData.globalAmbientLight = ambient;
-            const hemi = new THREE.HemisphereLight(0x87ceeb, 0x2d4a1d, 2.0);
-            this.scene.add(hemi);
-            this.scene.userData.hemiLight = hemi;
-        }
-        if (!this.scene.userData.globalSunLight) {
-            const sun = new THREE.DirectionalLight(0xfff4e0, 3.0);
-            sun.position.set(80, 120, 60);
-            sun.castShadow = true;
-            sun.shadow.mapSize.width = 2048;
-            sun.shadow.mapSize.height = 2048;
-            sun.shadow.camera.near = 10;
-            sun.shadow.camera.far = 400;
-            sun.shadow.camera.left = -150;
-            sun.shadow.camera.right = 150;
-            sun.shadow.camera.top = 150;
-            sun.shadow.camera.bottom = -150;
-            sun.shadow.bias = -0.001;
-            this.scene.add(sun);
-            this.scene.userData.globalSunLight = sun;
-        }
 
         const gameRoot = document.getElementById('gameRoot');
         if (gameRoot) {
@@ -361,20 +307,37 @@ class Game {
             document.body.appendChild(this.renderer.domElement);
         }
 
-        this.applyCameraRescuePose();
-        this.scene.add(this.camera);
+        this.camera.position.set(0, 1.5, 0);
+        if (!isMobile) {
+            this.controls = new PointerLockControls(this.camera, this.renderer.domElement);
+            this.scene.add(this.controls.getObject());
 
-        // Этап 2: Системные компоненты
-                this.input = new Input();
+            this.controls.addEventListener('lock', () => {
+                console.log('Pointer lock enabled');
+            });
+
+            this.controls.addEventListener('unlock', () => {
+                console.log('Pointer lock disabled');
+                this.input?.clearInputState?.();
+                if (this.isStarted && !this.isPaused) {
+                    this.setPaused(true);
+                }
+            });
+        } else {
+            this.controls = null;
+            this.scene.add(this.camera);
+        }
+
+        this.input = new Input();
         this.audioSynth = new AudioSynth();
         this.hud = new HUD();
-
-        // Инициализация переменных состояния
         this.roundMode = 'hybrid';
         this.perk = 'none';
         this.partyMode = false;
         this.perkLocked = false;
-        this.modeConfig = { ...ROUND_MODES.hybrid };
+        this.modeConfig = {
+            ...ROUND_MODES.hybrid
+        };
         this.commandState = { help: false, enemy: false, gather: false };
         this.quickCommandCooldown = 0;
         this.dropTriggeredAt = new Set();
@@ -389,7 +352,6 @@ class Game {
         this.lastInventorySignature = '';
         this.lastCountdownSecond = null;
         this.noteCooldown = 0;
-        this.pauseInputLockUntil = 0;
         this.achievementState = {
             firstBlood: false,
             hunter: false,
@@ -405,55 +367,33 @@ class Game {
         this.rainUpdateAccumulator = 0;
         this.weatherSyncTimer = 0;
         this.lastWeatherType = 'clear';
-        this.biomeAudioSyncTimer = 0;
-        this.lastBiomeAudioKey = '';
         this.poiWarmupTimer = 0;
         this.zombieMaintainTimer = 3.6;
+        this.roundStartTime = performance.now() * 0.001;
+        this.waveTimer = GAME_CONFIG.events.waveIntervalSeconds;
+        this.waveActive = false;
+        this.waveRemaining = 0;
 
-        // Этап 3: Environment
-                this.env = new Environment(this.scene);
+        this.env = new Environment(this.scene);
         this.env.enableWeather = true;
-        this.audioSynth?.setWeatherState?.('clear');
+        this.audioSynth?.setWeatherState?.(this.env.getWeatherType?.() || 'clear');
 
-        // Yield чтобы браузер успел обработать события
-        await new Promise(r => setTimeout(r, 100));
-
-        // Этап 4: Генерация карты (самый долгий этап)
-                this.map = new MapGenerator(this.scene);
+        // Map generation
+        this.map = new MapGenerator(this.scene);
         this.map.onProgress = (ratio, status) => {
             smoothSetProgress(ratio * 0.5, status);
         };
         this.map.startGeneration();
-        const mapReady = this.map.ready;
-        const timeoutId = setTimeout(() => {}, 90000);
-        await mapReady;
-        clearTimeout(timeoutId);
+        this.map.finalizeColliders();
 
-        // Центральный спавн (Roblox-style)
-                this.tileMapGenerator = new MapGeneratorNode(this.scene);
+        // Tile-based map underneath (for physics/collisions)
+        this.tileMapGenerator = new MapGeneratorNode(this.scene);
         this.tileMapGenerator.init();
 
         // Performance: setup LOD and frustum culling
         this.map.setupLOD?.(this.isMobile());
         this.map.enableOptimizedCulling?.();
-        
-        // Камера для тестирования карты (вид сверху)
-        if (this.camera) {
-            const isTestMode = this._testMode || (typeof localStorage !== 'undefined' && localStorage.getItem('testMode') === 'true');
-            if (isTestMode) {
-                this.camera.position.set(0, 800, 0);
-                this.camera.lookAt(0, 0, 0);
-                this.camera.fov = 90;
-                this.camera.updateProjectionMatrix();
-            } else {
-                this.camera.position.set(0, 500, 0);
-                this.camera.lookAt(0, 0, 0);
-                this.camera.fov = 60;
-                this.camera.updateProjectionMatrix();
-            }
-        }
-        
-       // Создаём остальные объекты, которые зависят от карты
+
         this.physics = new Physics(this.scene, this.map);
         this.zone = new Zone(this.scene, this.map.size);
         this.zoneDuration = GAME_CONFIG.zone.durationSeconds;
@@ -469,32 +409,31 @@ class Game {
         this.lastPropVisibilityPos = new THREE.Vector3(99999, 99999, 99999);
         this.radiationRainEffect = null;
         this.radiationRainActive = false;
-        this.weatherRainEffect = null;
-        this.weatherRainActive = false;
         this.initRadiationRainEffect();
-        this.initWeatherRainEffect();
 
         this.entityManager = new EntityManager(this.scene);
-        this.lootManager = new LootManager(this.scene, this.map);
-        await this.lootManager.generateChests?.();
         this.entityManager.physicsRef = this.physics;
         this.scene.userData.entityManager = this.entityManager;
+        this.lootManager = new LootManager(this.scene, this.map);
 
-        // Центр карты — надёжный спавн для игрока и ботов
-        const centerSpawn = { x: 0, y: 2, z: 0 };
-        this.player = new Player(this.scene, this.camera, this.input);
-        this.player.setHUD(this.hud);
-        this.player.mapRef = this.map;
-        if (!this.player.parent) {
-            // Use centerSpawn Y or default ground level — not getHeightAt which returns noise
-            const surfaceY = (centerSpawn.y ?? 0) || 1.54;
-            this.player.position.set(centerSpawn.x, surfaceY + this.player.physics.height, centerSpawn.z);
-            this.player.physics.onGround = true;
-        } else {
-            const angle = Math.random() * Math.PI * 2;
-            this.player.position.set(Math.cos(angle) * 16, 2, Math.sin(angle) * 16);
-            this.player.physics.onGround = true;
-        }
+          const spawnPads = this.map.getSpawnPads?.() || [];
+          console.log('[Game] spawnPads total:', spawnPads.length, 'first:', spawnPads[0] ? `(${spawnPads[0].x.toFixed(1)}, ${spawnPads[0].z.toFixed(1)})` : 'none', 'last:', spawnPads[49] ? `(${spawnPads[49].x.toFixed(1)}, ${spawnPads[49].z.toFixed(1)})` : 'none');
+          this.player = new Player(this.scene, this.camera, this.input);
+          this.player.setHUD(this.hud);
+          this.player.mapRef = this.map;
+            // Player spawns on the first edge tile (not center)
+            if (spawnPads.length) {
+                let pad = spawnPads[0];
+                console.log('[Game] Player spawn pad:', pad ? `(${pad.x.toFixed(1)}, ${pad.y.toFixed(2)}, ${pad.z.toFixed(1)})` : 'none');
+                const groundY = this.map.raycastGroundY?.(pad.x, pad.z, pad.y) ?? pad.y;
+                console.log('[Game] Player position after set:', `(${pad.x}, ${groundY + this.player.physics.height}, ${pad.z})`);
+                this.player.position.set(pad.x, groundY + this.player.physics.height, pad.z);
+                this.player.physics.onGround = true;
+            } else {
+               const fallbackAngle = Math.PI * 0.25;
+               this.player.position.set(Math.cos(fallbackAngle) * 42, 2, Math.sin(fallbackAngle) * 42);
+               this.player.physics.onGround = true;
+           }
         this.physics.addEntity(this.player);
         this.entityManager.addEntity(this.player);
 
@@ -507,6 +446,7 @@ class Game {
         this.botUpdateIndex = 0;
         this.botFrameCounter = 0;
         this.botHazardCursor = 0;
+        this.trapBotCursor = 0;
         this.pendingZombieBursts = [];
         this.pendingPoiBursts = [];
         this.spawnBurstCooldown = 0;
@@ -524,16 +464,19 @@ class Game {
         this.nextZombieId = 1000;
         this.returnNoticeShown = false;
         this.roundFinished = false;
-        this.roundEvalDelay = 0;
-        this.postStartShieldTimer = 0;
         this.deathHandled = false;
         this.scoreboardShown = false;
         this.oneWayGates = this.map.getOneWayGates?.() || [];
+        this.centerBlast = {
+            active: false,
+            timer: 0,
+            radius: 0,
+            cooldown: 0
+        };
+        this.centerBlastVfx = null;
         this.minimapTimer = 0;
         this.noBugCheckTimer = 0;
         this.poiZombieSeeded = false;
-        this.fogActive = false;
-        this.blurryVis = false;
         this.isPaused = false;
         this.autoPausedByVisibility = false;
 
@@ -545,25 +488,8 @@ class Game {
         this.countdownTime = GAME_CONFIG.round.countdownSeconds;
         this.countdownTimer = this.countdownTime;
         this.lastCountdownSecond = null;
-        this.spawnTime = 10;
+        this.spawnTime = GAME_CONFIG.round.preFightInvulnerableSeconds;
         this.spawnTimer = this.spawnTime;
-        
-        // Test mode - skip countdown/spawn, hide UI, keep camera high
-        const isTestMode = this._testMode || (typeof localStorage !== 'undefined' && localStorage.getItem('testMode') === 'true');
-        if (isTestMode) {
-            this.gameState = 'playing';
-            this.countdownTimer = 0;
-            this.spawnTimer = 0;
-            this.perkLocked = true;
-            this.perkSelectionRequired = false;
-            this.hud?.togglePerkPanel(false);
-            this.hud?.setPerkSelectionEnabled(false);
-            setTimeout(() => {
-                if (document.getElementById('perkPanel')) document.getElementById('perkPanel').style.display = 'none';
-                if (document.getElementById('perkBackdrop')) document.getElementById('perkBackdrop').style.display = 'none';
-                if (document.getElementById('hud')) document.getElementById('hud').style.display = 'none';
-            }, 100);
-        }
         this.botLootPhaseDuration = GAME_CONFIG.round.botLootPhaseSeconds;
         this.zonePhase = 'waiting';
         this.zonePhaseTimer = GAME_CONFIG.zone.waitStartSeconds;
@@ -572,25 +498,17 @@ class Game {
         this.zonePhaseTarget = this.zone.getCurrentRadius();
         this.chestRespawnTimer = 55;
 
-        // Fog zone phase tracking
-        this.fogPhaseTimer = 0;
-        this.fogPhaseEnabled = false;
-        this.lastRadiationLevel = null;
-        this.zoneDamageTickTimer = 0;
-
         this.gameLoop = new GameLoop(this);
         this.applyRoundMode('hybrid');
         this.applyUserSettings(this.loadUserSettings());
-        if (!this._testMode) {
-            this.hud.setPerkSelectionEnabled(true);
-            this.hud.setPerkPanelLock(true);
-            this.hud.showGameMessage(this.isMobile()
-                ? 'Выберите перк до старта матча'
-                : 'Выберите перк до старта матча. Клавиша P');
-            this.perkMenuOpen = true;
-            this.perkSelectionRequired = true;
-            this.hud.togglePerkPanel(true);
-        }
+        this.hud.setPerkSelectionEnabled(true);
+        this.hud.setPerkPanelLock(true);
+        this.hud.showGameMessage(this.isMobile()
+            ? 'Выберите перк до старта матча'
+            : 'Выберите перк до старта матча. Клавиша P');
+        this.perkMenuOpen = true;
+        this.perkSelectionRequired = true;
+        this.hud.togglePerkPanel(true);
 
         window.addEventListener('resize', () => {
             this.applyRendererSizing();
@@ -598,7 +516,12 @@ class Game {
         });
 
         document.addEventListener('fullscreenchange', () => {
-            this.syncCameraToPlayer();
+            if (!document.fullscreenElement) {
+                this.recoverViewState('fullscreen-exit');
+                if (!this.startingGame && this.isStarted && !this.isPaused) {
+                    this.setPaused(true);
+                }
+            }
         });
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
@@ -621,7 +544,6 @@ class Game {
         });
 
         const canvas = this.renderer.domElement;
-        this.setupPointerLock();
         canvas.addEventListener('webglcontextlost', (event) => {
             event.preventDefault();
             this.onAppHidden();
@@ -631,47 +553,21 @@ class Game {
         });
 
         document.addEventListener('togglePause', () => {
-            if (!this.isStarted) return;
-            if (performance.now() < (this.pauseInputLockUntil || 0)) return;
             this.setPaused(!this.isPaused);
         });
+
         document.addEventListener('rebindKey', (e) => {
             if (!e?.detail) return;
             this.input.setKeyRemap(e.detail.action, e.detail.code);
         });
-
-        window.addEventListener('keydown', (e) => {
-            if (this.perkMenuOpen) {
-                const code = e.code;
-                const key = e.key.toLowerCase();
-                if (code === 'KeyE' || code === 'Enter' || key === 'e' || key === 'у') {
-                    if (this.hud && this.hud.perkButtons) {
-                        const idx = this.hud.getPerkMenuSelection();
-                        const btn = this.hud.perkButtons[idx];
-                        if (btn) {
-                            btn.click();
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    applyPerk(perk) {
-        if (!this.player) return;
-        this.player.perk = perk;
-        if (perk === 'healthBoost') {
-            this.player.maxHealth = 150;
-            this.player.health = 150;
-        } else if (perk === 'tank') {
-            this.player.isInvulnerable = true;
-            setTimeout(() => { if (this.player) this.player.isInvulnerable = false; }, 5000);
+        console.log('[initGame] done:', !!this.scene, !!this.camera, !!this.renderer);
+        } catch (err) {
+            console.error('[Game] initializeGame failed:', err);
+            throw err;
         }
-        this.hud?.showGameMessage?.(`Активирован перк: ${perk}`);
     }
 
     setPaused(value) {
-        if (this.isPaused === value) return;
         if (!value && this.isStarted && !document.fullscreenElement) {
             this.enterFullscreen();
             if (this.isMobile()) this.lockOrientation();
@@ -685,233 +581,83 @@ class Game {
         if (this.isPaused) this.yandex?.gameplayStop?.();
         else this.yandex?.gameplayStart?.();
         if (!this.isMobile()) {
-            if (this.isPaused && document.pointerLockElement) {
-                document.exitPointerLock?.();
-            }
             document.body.style.cursor = this.isPaused ? 'auto' : 'none';
             if (this.renderer?.domElement) {
                 this.renderer.domElement.style.cursor = this.isPaused ? 'auto' : 'none';
             }
         }
-        this.syncCameraToPlayer();
+        if (this.controls && !this.isMobile()) {
+            if (this.isPaused && this.controls.isLocked) this.controls.unlock();
+            if (!this.isPaused && !this.controls.isLocked) this.controls.lock();
+        }
+        this.recoverViewState(this.isPaused ? 'pause' : 'unpause');
         if (!this.isPaused) {
             this.gameLoop?.resetDelta?.();
-            setTimeout(() => this.syncCameraToPlayer(), 40);
+            setTimeout(() => this.recoverViewState('post-unpause'), 40);
         }
     }
 
-    updateDesktopCursorMode() {
-        if (this.isMobile()) return;
-        const uiActive = this.isPaused || this.perkMenuOpen || this.perkSelectionRequired || !this.isStarted;
-        const cursor = uiActive ? 'auto' : 'none';
-        document.body.style.cursor = cursor;
-        if (this.renderer?.domElement) {
-            this.renderer.domElement.style.cursor = cursor;
+    recoverViewState(_reason = 'resume') {
+        this.input?.clearInputState?.();
+        this.input?.resetLook?.();
+        if (!this.player) return;
+
+        const maxPitch = Math.PI / 2.4;
+        const safePitch = Number.isFinite(this.player.rotation.x)
+            ? Math.max(-maxPitch, Math.min(maxPitch, this.player.rotation.x))
+            : 0;
+        const safeYaw = Number.isFinite(this.player.rotation.y) ? this.player.rotation.y : 0;
+
+        this.player.rotation.x = safePitch;
+        this.player.rotation.y = safeYaw;
+        this.player.rotation.z = 0;
+        this.player.camera?.rotation?.set(safePitch, safeYaw, 0, 'YXZ');
+
+        if (this.controls) {
+            const obj = this.controls.getObject();
+            obj.rotation.set(safePitch, safeYaw, 0, 'YXZ');
+            obj.quaternion.setFromEuler(obj.rotation);
+            obj.position.set(
+                this.player.position.x,
+                this.player.position.y + this.player.cameraOffset.y,
+                this.player.position.z
+            );
         }
-        if (uiActive && document.pointerLockElement) {
-            document.exitPointerLock?.();
-        }
-    }
-
-    tryEnterGameplayPointerLock() {
-        if (this.isMobile() || !this.isStarted || this.isPaused || this.perkMenuOpen || this.perkSelectionRequired) return;
-        this.enterFullscreen().catch(() => { });
-        this.updateDesktopCursorMode();
-        setTimeout(() => {
-            if (this.isMobile() || !this.isStarted || this.isPaused || this.perkMenuOpen || this.perkSelectionRequired) return;
-            this.renderer?.domElement?.focus?.();
-            this.renderer?.domElement?.requestPointerLock?.();
-        }, 30);
-    }
-
-    setupPointerLock() {
-        if (this.isMobile() || !this.renderer?.domElement) return;
-        const canvas = this.renderer.domElement;
-        const lock = () => {
-            if (!this.isStarted || this.isPaused || this.perkMenuOpen || this.perkSelectionRequired) return;
-            if (document.pointerLockElement === canvas) return;
-            canvas.requestPointerLock?.();
-        };
-        canvas.addEventListener('click', lock);
-        document.addEventListener('pointerlockchange', () => {
-            const locked = document.pointerLockElement === canvas;
-            if (!locked && this.isStarted && !this.isPaused) {
-                document.body.style.cursor = 'none';
-            }
-        });
-    }
-
-    syncCameraToPlayer() {
-        const isTestMode = this._testMode || (typeof localStorage !== 'undefined' && localStorage.getItem('testMode') === 'true');
-        if (isTestMode) {
-            // In test mode, detach camera from player and keep top-down view
-            if (this.player?.pitch && this.player.pitch.children.includes(this.camera)) {
-                this.player.pitch.remove(this.camera);
-            }
-            if (this.camera.parent && this.camera.parent !== this.scene) {
-                this.camera.parent.remove(this.camera);
-            }
-            this.scene.add(this.camera);
-            this.camera.position.set(0, 800, 0);
-            this.camera.lookAt(0, 0, 0);
-            this.camera.updateProjectionMatrix();
-            if (this.player) {
-                this.player.position.set(0, 0, 0);
-                this.player.visible = false;
-            }
-            return;
-        }
-        if (!this.player || !this.camera) return;
-        if (!this.player.parent && this.scene) this.scene.add(this.player);
-        if (this.player.pitch && this.camera.parent !== this.player.pitch) {
-            this.player.pitch.add(this.camera);
-            this.camera.position.set(0, 0, 0);
-            this.camera.rotation.set(0, 0, 0);
-        }
-    }
-
-    getSafePlayerSpawn() {
-        // Центр карты — надёжный спавн
-        const surfaceY = 2;
-        return new THREE.Vector3(0, surfaceY + this.player.physics.height, 0);
-    }
-
-    resetInvalidPlayerState() {
-        if (!this.player?.position) return;
-        const p = this.player.position;
-        const invalidPos = !Number.isFinite(p.x) || !Number.isFinite(p.y) || !Number.isFinite(p.z) || Math.abs(p.x) > 5000 || Math.abs(p.z) > 5000 || p.y < -120 || p.y > 1200;
-        if (!invalidPos) return;
-        const safe = this.getSafePlayerSpawn();
-        this.player.position.copy(safe);
-        this.player.physics?.velocity?.set?.(0, 0, 0);
-        this.player.physics.onGround = true;
-        this.syncCameraToPlayer();
-    }
-
-    ensureSceneRenderable() {
-        if (!this.scene) return 0;
-        
-        const mapGroup = this.map?.mapObjectsCollection;
-        if (mapGroup) {
-            mapGroup.visible = true;
-            if (!mapGroup.parent) this.scene.add(mapGroup);
-            for (const child of mapGroup.children || []) {
-                child.visible = true;
-                child.layers?.enable?.(0);
-                child.layers?.disable?.(1);
-                child.frustumCulled = false;
-            }
-        }
-        let total = 0;
-        let renderables = 0;
-        const biomeCount = Object.create(null);
-        this.scene.traverse((obj) => {
-            if (obj?.userData?.mapGenerated) {
-                obj.visible = true;
-                obj.layers?.enable?.(0);
-                obj.layers?.disable?.(1);
-                obj.frustumCulled = false;
-                const biomeId = obj.userData?.biomeId || obj.userData?.biome || obj.userData?.realm;
-                if (biomeId) biomeCount[biomeId] = (biomeCount[biomeId] || 0) + 1;
-                if (obj.material) {
-                    const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-                    for (let i = 0; i < mats.length; i++) {
-                        const m = mats[i];
-                        if (!m) continue;
-                        m.transparent = false;
-                        m.opacity = 1;
-                    }
-                }
-                if (obj.isInstancedMesh && obj.geometry) {
-                    try { obj.geometry.computeBoundingSphere?.(); } catch (_) { }
-                }
-                if (obj.isMesh || obj.isInstancedMesh || obj.isLine || obj.isPoints) renderables++;
-                total++;
-            }
-        });
-        return total;
+        this.updateOrientationUI?.();
     }
 
     spawnBots() {
-        const totalParticipants = 50;
-        const botCount = Math.max(0, totalParticipants - 1);
+        const botCount = this.isMobile()
+            ? GAME_CONFIG.bots.mobileCount
+            : GAME_CONFIG.bots.desktopCount;
+        const spawnPads = this.map.getSpawnPads?.() || [];
+        const spawnRadius = GAME_CONFIG.bots.spawnRadius;
+        // Player uses pad[0], bots use pads[1..] — each bot gets strictly its own pad
+        const botPads = spawnPads.length > 1 ? spawnPads.slice(1) : spawnPads;
+        console.log('[Game] spawnBots: pads total:', spawnPads.length, 'botPads:', botPads.length, 'botCount:', botCount);
 
-        // Центр карты — надёжный спавн для всех ботов
-        const surfaceY = this.player?.physics?.height ?? 1.54;
-        const slots = [];
-        const minDistance = 2;
-        const center = { x: 0, y: surfaceY, z: 0 };
-
-        if (this.map.isWalkableAt?.(0, 0)) {
-            const canUsePoint = (x, z) => {
-                if (!this.map?.isWalkableAt?.(x, z)) return false;
-                return !slots.some(s => Math.hypot(s.x - x, s.z - z) < minDistance);
-            };
-            const tryAddSlot = (x, z) => {
-                if (!canUsePoint(x, z)) return false;
-                const y0 = 1.54;
-                slots.push({ x, y: y0 + 1.9, z });
-                return true;
-            };
-
-            // Use map-wide tiles spread across the ENTIRE map, not just the courtyard
-            const mapTiles = this.map.getFloorTiles?.() || [];
-            if (mapTiles.length) {
-                for (const tile of mapTiles) {
-                    if (slots.length >= botCount) break;
-                    const jitterX = (Math.random() - 0.5) * 12;
-                    const jitterZ = (Math.random() - 0.5) * 12;
-                    tryAddSlot(tile.x + jitterX, tile.z + jitterZ);
-                }
-            }
-
-            // Fill remaining bots with random positions across the entire map
-            if (slots.length < botCount) {
-                let attempts = 0;
-                while (slots.length < botCount && attempts++ < 8000) {
-                    const angle = Math.random() * Math.PI * 2;
-                    const radius = 60 + Math.random() * (this.map?.size || 440 - 60);
-                    const x = Math.cos(angle) * radius;
-                    const z = Math.sin(angle) * radius;
-                    tryAddSlot(x, z);
-                }
-            }
-        }
-
-        // Tactical loadout pool - distributes weapons across 60 bots
-        const weaponRoles = [];
-        const primaryWeapons = ['sniper', 'rifle', 'smg', 'shotgun', 'machinegun', 'crossbow', 'pistol', 'laser', 'bow', 'flamethrower', 'knife'];
         for (let i = 0; i < botCount; i++) {
-            // Weighted distribution: more common weapons for more bots
-            const roll = Math.random();
-            if (i < 4) {
-                weaponRoles.push('sniper');
-            } else if (i < 12) {
-                weaponRoles.push('rifle');
-            } else if (i < 22) {
-                weaponRoles.push('smg');
-            } else if (i < 32) {
-                weaponRoles.push('shotgun');
-            } else if (i < 40) {
-                weaponRoles.push('machinegun');
-            } else if (i < 44) {
-                weaponRoles.push('crossbow');
-            } else if (i < 50) {
-                weaponRoles.push('laser');
-            } else if (i < 55) {
-                weaponRoles.push('bow');
-            } else if (i < 58) {
-                weaponRoles.push('flamethrower');
-            } else if (i < 62) {
-                weaponRoles.push('pistol');
+            let spawnPos;
+            if (botPads.length) {
+                // Each bot gets its own pad, no cycling, no offsets
+                const pad = botPads[i];
+                if (!pad) { console.log('[Game] Bot', i, 'no pad available'); break; }
+                console.log('[Game] Bot', i, '-> pad', i+1, `(${pad.x.toFixed(1)}, ${pad.y.toFixed(2)}, ${pad.z.toFixed(1)})`);
+
+                const groundY = this.map.raycastGroundY?.(
+                    pad.x,
+                    pad.z,
+                    pad.y
+                ) ?? pad.y;
+                spawnPos = new THREE.Vector3(pad.x, groundY + 1.9, pad.z);
             } else {
-                weaponRoles.push('knife');
+                const angle = (i / botCount) * Math.PI * 2;
+                spawnPos = new THREE.Vector3(
+                    Math.cos(angle) * spawnRadius,
+                    2,
+                    Math.sin(angle) * spawnRadius
+                );
             }
-        }
-
-        for (let i = 0; i < botCount; i++) {
-            const s = slots[i] || slots[slots.length - 1] || { x: center.x, y: surfaceY, z: center.z };
-            const spawnPos = new THREE.Vector3(s.x, s.y, s.z);
 
             const bot = new Bot(this.scene, i, spawnPos);
             bot.mapRef = this.map;
@@ -919,17 +665,7 @@ class Game {
             bot.state = 'spawn';
             bot.target = null;
             bot.patrolTarget = null;
-            bot.weaponRole = weaponRoles[i] || 'knife';
-
-            // Give medkits to ~30% of bots
-            if (Math.random() < 0.3) {
-                bot.medkits = (bot.medkits || 0) + 1 + Math.floor(Math.random() * 2);
-            }
-            // Give armor to ~40% of bots
-            if (Math.random() < 0.4) {
-                bot.armor = Math.min(100, (bot.armor || 0) + 30 + Math.floor(Math.random() * 40));
-            }
-
+            bot.pickupLoot?.({ type: 'weapon', weaponType: 'knife' });
             this.physics.addEntity(bot);
             this.entityManager.addEntity(bot);
             this.bots.push(bot);
@@ -941,7 +677,7 @@ class Game {
         const fallback = ROUND_MODES.classic;
         this.modeConfig = { ...(ROUND_MODES[this.roundMode] || fallback) };
 
-        this.hud?.setRoundMode?.(this.roundMode === 'hybrid'
+        this.hud.setRoundMode(this.roundMode === 'hybrid'
             ? 'Hybrid'
             : this.roundMode === 'nightmare'
                 ? 'Nightmare'
@@ -949,17 +685,13 @@ class Game {
                     ? 'Stealth'
                     : 'Classic');
 
-        this.lootManager?.setLootDensity?.(this.modeConfig.lootDensity);
-        if (this.player) {
-            this.player.footstepVolume = this.modeConfig.footstepVolume;
-        }
+        this.lootManager.setLootDensity(this.modeConfig.lootDensity);
+        this.player.footstepVolume = this.modeConfig.footstepVolume;
         if (this.scene?.fog) {
             this.scene.fog.density = this.modeConfig.fogDensity;
         }
-        if (this.botBrains) {
-            for (const brain of this.botBrains) {
-                brain.visionMultiplier = this.modeConfig.botVision;
-            }
+        for (const brain of this.botBrains) {
+            brain.visionMultiplier = this.modeConfig.botVision;
         }
     }
 
@@ -980,7 +712,7 @@ class Game {
                                 ? '\u0421\u0442\u0430\u0431\u0438\u043b\u044c\u043d\u044b\u0439 \u043f\u0440\u0438\u0446\u0435\u043b'
                                 : this.perk === 'autoFire'
                                     ? '\u0410\u0432\u0442\u043e\u0441\u0442\u0440\u0435\u043b\u044c\u0431\u0430'
-                                    : '-';
+                    : '-';
         this.hud.setPerk(perkLabel);
     }
 
@@ -1260,77 +992,6 @@ class Game {
         return this.map?.isShelteredFromRain?.(position) || false;
     }
 
-    initWeatherRainEffect() {
-        const dropCount = this.isMobile() ? 64 : 110;
-        const geometry = new THREE.BufferGeometry();
-        const positions = new Float32Array(dropCount * 2 * 3);
-        const speeds = new Float32Array(dropCount);
-        const area = this.isMobile() ? 20 : 30;
-        for (let i = 0; i < dropCount; i++) {
-            const x = (Math.random() - 0.5) * area;
-            const z = (Math.random() - 0.5) * area;
-            const y = 7 + Math.random() * 16;
-            const idx = i * 6;
-            positions[idx] = x;
-            positions[idx + 1] = y;
-            positions[idx + 2] = z;
-            positions[idx + 3] = x;
-            positions[idx + 4] = y - (1.6 + Math.random() * 1.2);
-            positions[idx + 5] = z;
-            speeds[i] = 10 + Math.random() * 7;
-        }
-        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        const material = new THREE.LineBasicMaterial({ color: 0x7da7cc, transparent: true, opacity: this.isMobile() ? 0.42 : 0.55, depthWrite: false });
-        const lines = new THREE.LineSegments(geometry, material);
-        lines.visible = false;
-        lines.renderOrder = 18;
-        lines.frustumCulled = false;
-        this.scene.add(lines);
-        this.weatherRainEffect = { lines, positions, speeds, area };
-    }
-
-    setWeatherRainActive(active) {
-        this.weatherRainActive = !!active;
-        if (this.weatherRainEffect?.lines) {
-            this.weatherRainEffect.lines.visible = this.weatherRainActive;
-            if (this.weatherRainActive) {
-                if (this.weatherRainEffect.lines.parent !== this.camera) {
-                    this.camera.add(this.weatherRainEffect.lines);
-                }
-                this.weatherRainEffect.lines.position.set(0, 0, 0);
-            } else if (this.weatherRainEffect.lines.parent !== this.scene) {
-                this.scene.add(this.weatherRainEffect.lines);
-            }
-        }
-        this.map?.setWetTerrain?.(this.weatherRainActive);
-        this.map?.setRainPuddles?.(this.weatherRainActive, this.player?.position || this.map?.getSpawnWorld?.());
-    }
-
-    updateWeatherRainEffect(delta) {
-        if (!this.weatherRainActive || !this.weatherRainEffect?.lines || !this.player) return;
-        const effect = this.weatherRainEffect;
-        const positions = effect.positions;
-        const area = effect.area;
-        for (let i = 0; i < effect.speeds.length; i++) {
-            const idx = i * 6;
-            positions[idx + 1] -= effect.speeds[i] * delta;
-            positions[idx + 4] = positions[idx + 1] - 1.95;
-            if (positions[idx + 4] <= -0.5) {
-                const x = (Math.random() - 0.5) * area;
-                const z = (Math.random() - 0.5) * area;
-                const topY = 8 + Math.random() * 9;
-                positions[idx] = x;
-                positions[idx + 1] = topY;
-                positions[idx + 2] = z;
-                positions[idx + 3] = x;
-                positions[idx + 4] = topY - (1.5 + Math.random() * 1.4);
-                positions[idx + 5] = z;
-                effect.speeds[i] = 10 + Math.random() * 7;
-            }
-        }
-        effect.lines.geometry.attributes.position.needsUpdate = true;
-    }
-
     enforceNoBugPolicy(delta) {
         this.noBugCheckTimer = Math.max(0, this.noBugCheckTimer - delta);
         if (this.noBugCheckTimer > 0) return;
@@ -1407,6 +1068,52 @@ class Game {
         this.environmentUpdateIndex = 0;
     }
 
+    triggerCenterDetonation() {
+        const center = this.map?.getCornucopiaCenter?.() || new THREE.Vector3(0, 0.8, 0);
+        this.centerBlast.active = true;
+        this.centerBlast.timer = 5.0;
+        this.centerBlast.radius = 18;
+        this.centerBlast.cooldown = 0;
+        this.map?.detonateCornucopia?.();
+        this.hud.showGameMessage('Центр уничтожен! Разбегайтесь по биомам!');
+        this.audioSynth?.playExplosion?.(center);
+
+        // VFX removed - ring geometry was visible on map
+    }
+
+    updateCenterDetonation(delta) {
+        if (!this.centerBlast.active) return;
+        this.centerBlast.timer = Math.max(0, this.centerBlast.timer - delta);
+        this.centerBlast.cooldown = Math.max(0, this.centerBlast.cooldown - delta);
+        const center = this.map?.getCornucopiaCenter?.() || new THREE.Vector3(0, 0.8, 0);
+        const radius = this.centerBlast.radius || 18;
+        const radiusSq = radius * radius;
+        const applyLethalTick = (entity) => {
+            if (!entity?.isAlive || !entity?.position || typeof entity.takeDamage !== 'function') return;
+            const dx = entity.position.x - center.x;
+            const dz = entity.position.z - center.z;
+            if ((dx * dx + dz * dz) > radiusSq) return;
+            entity.takeDamage(85 * delta, false, null, 0, 'centerBlast');
+        };
+        applyLethalTick(this.player);
+        for (const bot of this.bots) applyLethalTick(bot);
+        for (const zombie of this.zombies) applyLethalTick(zombie);
+
+        if (this.centerBlastVfx) {
+            const pulse = 1 + Math.sin(performance.now() * 0.016) * 0.05;
+            this.centerBlastVfx.scale.setScalar(pulse);
+            this.centerBlastVfx.material.opacity = 0.28 + (this.centerBlast.timer / 5) * 0.45;
+        }
+
+        if (this.centerBlast.timer <= 0) {
+            this.centerBlast.active = false;
+            if (this.centerBlastVfx?.parent) {
+                this.centerBlastVfx.parent.remove(this.centerBlastVfx);
+            }
+            this.centerBlastVfx = null;
+        }
+    }
+
     getNearestShelterTarget(position) {
         const houses = this.map?.getHouseSpots?.() || [];
         const hangars = this.map?.getHangarSpots?.() || [];
@@ -1435,100 +1142,46 @@ class Game {
         this.zonePhaseIndex = 0;
         this.zonePhaseTarget = this.zone.getCurrentRadius();
         this.chestRespawnTimer = 55;
-        const fullRadius = Math.min(this.map?.halfSize || this.zone.getCurrentRadius(), 300);
-        this.zone.setCurrentRadius(fullRadius);
-        this.zone.shrink(fullRadius);
-        this.zone.shrinkSpeed = GAME_CONFIG.zone.shrinkPhaseSeconds > 0 ? fullRadius / GAME_CONFIG.zone.shrinkPhaseSeconds : 0;
-        if (this.zone.zoneMesh) this.zone.zoneMesh.visible = true;
-        if (this.zone.ringMesh) this.zone.ringMesh.visible = true;
-
-        // Enable fog zones
-        this.fogPhaseEnabled = true;
-        this.fogPhaseTimer = 0;
-        this.lastRadiationLevel = null;
-        this.zoneDamageTickTimer = 0;
-        if (this.map?.activateFogPhase) {
-            this.map.activateFogPhase(0);
-        }
+        this.zone.setCurrentRadius(this.zone.getCurrentRadius());
+        this.zone.shrink(this.zone.getCurrentRadius());
+        this.zone.shrinkSpeed = 0;
     }
 
     updateZoneCycle(delta) {
+        if (this.zonePhaseIndex >= this.zonePhaseCount && this.zone.getCurrentRadius() <= this.zoneMinRadius + 0.25) {
+            this.zonePhase = 'final';
+            return;
+        }
+
         if (this.zonePhase === 'waiting') {
-            this.zonePhaseTimer -= delta;
-            if (this.zonePhaseTimer <= 0) {
-                // Start first fog phase
-                this.zonePhase = 'active';
-                this.zonePhaseIndex = 0;
-                this.fogPhaseTimer = 0;
-                this.zonePhaseTarget = this.map?.getActiveSafeRadius?.() || this.zone.getCurrentRadius();
-                if (this.zonePhaseTarget < this.zone.getCurrentRadius()) {
-                    this.zone.shrink(this.zonePhaseTarget);
-                }
+            this.zonePhaseTimer = Math.max(0, this.zonePhaseTimer - delta);
+            if (this.zonePhaseTimer <= 0 && this.zonePhaseIndex < this.zonePhaseCount) {
+                const currentRadius = this.zone.getCurrentRadius();
+                const remainingSteps = Math.max(1, this.zonePhaseCount - this.zonePhaseIndex);
+                const stepDrop = (currentRadius - this.zoneMinRadius) / remainingSteps;
+                this.zonePhaseTarget = Math.max(this.zoneMinRadius, currentRadius - stepDrop);
+                this.zone.shrink(this.zonePhaseTarget);
+                this.zone.shrinkSpeed = Math.max(8, (currentRadius - this.zonePhaseTarget) / GAME_CONFIG.zone.shrinkPhaseSeconds);
+                this.zonePhase = 'shrinking';
+                this.zonePhaseTimer = GAME_CONFIG.zone.shrinkPhaseSeconds;
             }
             return;
         }
 
-        if (this.zonePhase !== 'active') return;
-
-        // Track fog phase timer
-        if (this.fogPhaseEnabled && this.map?.activateFogPhase) {
-            this.fogPhaseTimer += delta;
-            const intervals = GAME_CONFIG.fogZones?.phaseIntervals || [60, 120, 180, Infinity];
-            const nextInterval = intervals[this.zonePhaseIndex] || Infinity;
-
-            if (this.fogPhaseTimer >= nextInterval && this.zonePhaseIndex < 3) {
-                this.zonePhaseIndex++;
-                this.fogPhaseTimer = 0;
-                const safeRadius = this.map.activateFogPhase(this.zonePhaseIndex);
-                this.zonePhaseTarget = safeRadius || this.zonePhaseTarget;
-                if (this.zonePhaseTarget < this.zone.getCurrentRadius()) {
-                    this.zone.shrink(this.zonePhaseTarget);
+        if (this.zonePhase === 'shrinking') {
+            this.zone.update(delta);
+            this.zonePhaseTimer = Math.max(0, this.zonePhaseTimer - delta);
+            if (this.zone.getCurrentRadius() <= this.zonePhaseTarget + 0.25 || this.zonePhaseTimer <= 0) {
+                this.zone.setCurrentRadius(this.zonePhaseTarget);
+                this.zone.shrink(this.zonePhaseTarget);
+                this.zone.shrinkSpeed = 0;
+                const restored = this.lootManager.refillOpenedChests?.(10) || 0;
+                if (restored > 0) {
+                    this.hud.showLootNotification?.(`Сундуки пополнены: ${restored}`);
                 }
-
-                // Sound + HUD warning
-                this.audioSynth?.playZonePhaseTransition?.(this.zonePhaseIndex);
-                const arenaRadius = this.map?.halfSize || this.zone.getCurrentRadius();
-                this.hud?.updateFogPhase?.(this.zonePhaseIndex, safeRadius, arenaRadius);
-                const phaseName = (GAME_CONFIG.fogZones?.phaseNames || [])[this.zonePhaseIndex] || 'Финальная';
-                this.hud?.showZoneWarning?.(`\u0422\u0443\u043c\u0430\u043d: ${phaseName}!`, 4000);
-            }
-        }
-
-        // Zone damage tick (every 1s)
-        this.zoneDamageTickTimer += delta;
-        if (this.zoneDamageTickTimer >= 1) {
-            this.zoneDamageTickTimer = 0;
-            const entities = [this.player, ...this.bots];
-            for (const entity of entities) {
-                if (!entity || entity.health <= 0) continue;
-                const pos = entity.position;
-                const fogDmg = this.map?.getFogDamageAt?.(pos.x, pos.z) || 0;
-                const radDmg = this.map?.getRadiationDamageAt?.(pos.x, pos.z) || 0;
-                if (fogDmg > 0) {
-                    entity.takeDamage(fogDmg, false, null, 0, 'storm');
-                    this.audioSynth?.playRadiationTick?.();
-                }
-                if (radDmg > 0) {
-                    entity.takeDamage(radDmg, false, null, 0, 'radiation');
-                }
-            }
-        }
-
-        // Radiation warnings (check player only)
-        if (this.map?.getClosestRadiationZone) {
-            const radInfo = this.map.getClosestRadiationZone(this.player.position.x, this.player.position.z);
-            if (radInfo) {
-                const intensity = radInfo.zone.intensity || 'low';
-                if (intensity !== this.lastRadiationLevel) {
-                    this.lastRadiationLevel = intensity;
-                    this.audioSynth?.playRadiationWarning?.(intensity);
-                }
-                this.hud?.showRadiationWarning?.(intensity, Math.round(radInfo.distance));
-            } else {
-                if (this.lastRadiationLevel !== null) {
-                    this.lastRadiationLevel = null;
-                    this.hud?.clearRadiationWarning?.();
-                }
+                this.zonePhaseIndex += 1;
+                this.zonePhase = 'waiting';
+                this.zonePhaseTimer = this.zonePhaseIndex >= this.zonePhaseCount ? 9999 : GAME_CONFIG.zone.waitBetweenSeconds;
             }
         }
     }
@@ -1550,26 +1203,27 @@ class Game {
                 if (this.activeEvent.type === "night" && this.env?.forceNightTimer !== undefined) {
                     this.env.forceNightTimer = 0;
                 }
-                else if (!this.fogActive && !this.blurryVis && this.scene?.fog) {
-                    const fogBase = this.scene.fog?.density || 0.05;
-                    this.scene.fog.density = (this.activeEvent.type === "night") ? 0.15 : Math.max(0.02, fogBase * 1);
+                if (this.activeEvent.type === "radiationRain") {
+                    this.setRadiationRainActive(false);
                 }
+                this.activeEvent = { type: null, timer: 0, prevFog: null };
+                this.hud.showGameMessage("Событие завершено");
             }
         }
 
         this.randomEventTimer -= delta;
         if (this.randomEventTimer > 0 || this.activeEvent.type) return;
 
-        const events = ["blindness", "night", "radiationRain"];
+        const events = ["blindness", "night", "radiationRain", "supplyDrop", "storm", "zombieRush"];
         const event = events[Math.floor(Math.random() * events.length)];
 
         if (event === "blindness") {
             this.activeEvent.type = "blindness";
-            this.activeEvent.timer = 3.5;
+            this.activeEvent.timer = 4;
             if (this.env?.setFogOverride) {
-                this.env.setFogOverride(0.06, 0x04060a);
+                this.env.setFogOverride(0.085, 0x030307);
             } else if (this.scene?.fog) {
-                this.scene.fog.density = 0.06;
+                this.scene.fog.density = 0.085;
             }
             this.hud.showGameMessage("Событие: Слепота");
         } else if (event === "night" && this.env?.forceNight) {
@@ -1582,58 +1236,37 @@ class Game {
             this.activeEvent.timer = GAME_CONFIG.events.radiation.durationSeconds;
             this.setRadiationRainActive(true);
             this.hud.showGameMessage("Событие: Радиационный дождь. Прячьтесь в домах или ангарах!");
+        } else if (event === "supplyDrop") {
+            this.activeEvent.type = "supplyDrop";
+            this.activeEvent.timer = GAME_CONFIG.events.supplyDrop.intervalSeconds;
+            this.spawnSupplyDrop();
+            this.hud.showGameMessage("Событие: Снаряжение упало! Ищите контейнеры!");
+        } else if (event === "storm") {
+            this.activeEvent.type = "storm";
+            this.activeEvent.timer = GAME_CONFIG.events.storm.durationSeconds;
+            this.hud.showGameMessage("Событие: Шторм! Укрытия снижают урон!");
+            if (this.env?.setStormActive) {
+                this.env.setStormActive(true, GAME_CONFIG.events.storm.visualIntensity);
+            }
+        } else if (event === "zombieRush") {
+            this.activeEvent.type = "zombieRush";
+            this.activeEvent.timer = GAME_CONFIG.events.zombieRush.durationSeconds;
+            this.queueZombieBurst(false, 2.5, 120, GAME_CONFIG.events.zombieRush.zombieCount, 4);
+            this.hud.showGameMessage("Событие: Зомби-волна! Готовьтесь к бою!");
         }
 
-       this.randomEventTimer = GAME_CONFIG.events.nextEventMin + Math.random() * GAME_CONFIG.events.nextEventVariance;
+        this.randomEventTimer = GAME_CONFIG.events.nextEventMin + Math.random() * GAME_CONFIG.events.nextEventVariance;
     }
 
-    // Adjust ambient light based on player's biome location
-    updateBiomeAmbient(delta) {
-        if (!this.scene.userData.globalAmbientLight || !this.map) return;
-        const px = this.player.position.x;
-        const pz = this.player.position.z;
-        let color = 0xffffff;
-        let intensity = 1.5;
-
-        // Check radiation zones first (dark orange/red tint)
-        const radDmg = this.map.getRadiationDamageAt?.(px, pz) || 0;
-        if (radDmg > 0.25) {
-            color = 0xffaa66;
-            intensity = 1.2;
-        } else if (radDmg > 0.1) {
-            color = 0xffcc88;
-            intensity = 1.35;
+    spawnSupplyDrop() {
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 40 + Math.random() * 120;
+        const x = Math.cos(angle) * distance;
+        const z = Math.sin(angle) * distance;
+        const y = this.map.getHeightAt?.(x, z) ?? 0;
+        if (y > this.map.waterLevel + 1) {
+            this.lootManager.spawnSupplyDrop(new THREE.Vector3(x, y + 0.5, z));
         }
-
-        // Burning wastes - dark orange
-        if (px > 30 && pz < -30 && Math.hypot(px - 100, pz + 100) < 50) {
-            color = 0xff8844;
-            intensity = 1.1;
-        }
-
-        // Luminous forest - cyan/blue tint
-        if (px < -30 && pz > 30 && Math.hypot(px + 60, pz - 60) < 50) {
-            color = 0xaaddff;
-            intensity = 1.4;
-        }
-
-        // Crystal grotto - blue tint
-        if (px > 30 && pz > 30 && Math.hypot(px - 60, pz - 60) < 50) {
-            color = 0x8899cc;
-            intensity = 1.2;
-        }
-
-        // Dark areas (inside structures)
-        const inside = this.map.getStructureAtPoint?.(px, pz, 8);
-        if (inside && (inside.userData.isInnerRing || inside.userData.isCornucopia)) {
-            intensity *= 0.85;
-        }
-
-        // Apply with smooth interpolation
-        const target = new THREE.Color(color);
-        const ambient = this.scene.userData.globalAmbientLight;
-        ambient.color.lerp(target, delta * 3);
-        ambient.intensity += (intensity - ambient.intensity) * delta * 3;
     }
 
     queueZombieBurst(reset, multiplier, capOverride, count, chunk = 6) {
@@ -1719,77 +1352,23 @@ class Game {
                 job.remaining -= batch;
                 if (job.remaining <= 0) this.pendingPoiBursts.shift();
                 operations++;
+                continue;
             }
         }
         this.spawnBurstCooldown = this.isMobile() ? 0.03 : 0.02;
     }
 
     update(delta) {
-        // Handle perk menu navigation WITHOUT blocking game loop
-        let perkMenuBlocking = false;
-        if (this.perkMenuOpen) {
-            const wPressed = !!this.input.keys['KeyW'] || !!this.input.keys['ArrowUp'];
-            const sPressed = !!this.input.keys['KeyS'] || !!this.input.keys['ArrowDown'];
-            const ePressed = !!this.input.keys['KeyE'] || !!this.input.keys['Enter'] || !!this.input.keys['Space'];
-
-            if (wPressed && !this.menuKeyLatch.w) {
-                this.perkMenuIndex -= 1;
-                this.hud.setPerkMenuSelection(this.perkMenuIndex);
-            }
-            if (sPressed && !this.menuKeyLatch.s) {
-                this.perkMenuIndex += 1;
-                this.hud.setPerkMenuSelection(this.perkMenuIndex);
-            }
-
-            if (ePressed && !this.menuKeyLatch.e) {
-                if (this.hud && this.hud.perkButtons) {
-                    const idx = this.hud.getPerkMenuSelection();
-                    const btn = this.hud.perkButtons[idx];
-                    if (btn) btn.click();
-                }
-            }
-
-            this.menuKeyLatch.w = wPressed;
-            this.menuKeyLatch.s = sPressed;
-            this.menuKeyLatch.e = ePressed;
-            document.exitPointerLock?.();
-            perkMenuBlocking = true;
-        } else {
-            this.menuKeyLatch.w = false;
-            this.menuKeyLatch.s = false;
-            this.menuKeyLatch.e = false;
-        }
-
-        if (this.isVisible === false) return;
-        if (this.activeEvent.type === 'radiation_rain') {
-            this.fogActiveCount++;
-            if (!this.radiationRainGraceTimer) {
-                this.radiationRainGraceTimer = 6.0;
-            }
-            else {
-                this.radiationRainGraceTimer -= delta;
-                if (this.radiationRainGraceTimer <= 0) this.fogActiveCount--;
-            }
-        }
-
-        // Event resolution & state reset
-        if (!this.fogActive || !this.blurryVis && event === "blindness" && this.fogActiveCount > 0) {}
-        else {
-            this.fogActive = false;
-            this.blurryVis = false;
-            this.scene.fog.density = this.sceneFogData?.base || 0.05; // restore base
-            prevRadiation = undefined;
-        }
-
-        if (this.activeEvent.type === 'radiation_rain') {
-            this.updateRadiationRainDamage(delta);
+        this.enforceNoBugPolicy(delta);
+        if (this.isStarted && loadingOverlay && loadingOverlay.style.display !== 'none') {
+            loadingOverlay.style.display = 'none';
         }
         if (this.resumeGraceTimer > 0) {
             this.resumeGraceTimer = Math.max(0, this.resumeGraceTimer - delta);
         }
 
         if (this.input.isKeyPressed('KeyM')) {
-            if (!this.pauseKeyLatch && performance.now() >= (this.pauseInputLockUntil || 0)) {
+            if (!this.pauseKeyLatch) {
                 this.setPaused(!this.isPaused);
                 this.pauseKeyLatch = true;
             }
@@ -1802,49 +1381,14 @@ class Game {
             return;
         }
 
-        // ===== COUNTDOWN HANDLER (always runs) =====
-        if (this.gameState === 'countdown') {
-            this.countdownTimer -= delta;
-            const sec = Math.max(0, Math.ceil(this.countdownTimer));
-            if (sec !== this.lastCountdownSecond) {
-                this.lastCountdownSecond = sec;
-                if (sec > 0) this.audioSynth?.playTimerTick?.(sec <= 3 ? 1.25 : 0.9);
-            }
-            this.player.setInvulnerable(true);
-            this.bots.forEach(bot => bot.setInvulnerable(true));
-            this.player.isFrozen = true;
-            this.bots.forEach(bot => { bot.isFrozen = true; });
-            this.hud.showCountdown(sec);
-            if (this.countdownTimer <= 0) {
-                if (!this.perkLocked) { this.applyPerk('quickHands'); this.perkLocked = true; }
-                this.gameState = 'spawn';
-                this.perkLocked = true;
-                this.perkSelectionRequired = false;
-                this.perkMenuOpen = false;
-                this.hud.setPerkPanelLock(false);
-                this.hud.togglePerkPanel(false);
-                this.hud.setPerkSelectionEnabled(false);
-                this.updateDesktopCursorMode();
-                this.tryEnterGameplayPointerLock();
-                this.hud.hideCountdown();
-                this.hud.showGameMessage('\u0414\u043e\u0431\u0440\u043e \u043f\u043e\u0436\u0430\u043b\u043e\u0432\u0430\u0442\u044c \u043d\u0430 \u0413\u043e\u043b\u043e\u0434\u043d\u044b\u0435 \u0438\u0433\u0440\u044b, \u0432\u044b\u0436\u0438\u0432\u0435\u0442 \u0441\u0438\u043b\u044c\u043d\u0435\u0439\u0448\u0438\u0439!');
-                this.audioSynth.playBoxArrival?.(new THREE.Vector3(0, 1, 0));
-                this.player.isFrozen = false;
-                this.bots.forEach(bot => { bot.isFrozen = false; });
-                this.queueZombieBurst(true, 1.6, 120, 22, this.isMobile() ? 4 : 6);
-                this.queuePoiBurst(1.7, this.isMobile() ? 18 : 28, this.isMobile() ? 4 : 5);
-            }
-        }
-
-        if (perkMenuBlocking) {
-            // Perk menu is open — skip player/bot logic below
-        } else {
+        this.handleQuickCommands(delta);
+        this.processDeferredSpawns(delta);
+        this.updateCenterDetonation(delta);
         const canSelectPerk = this.gameState === 'countdown' && !this.perkLocked;
         if (this.input.isKeyPressed('KeyP') && canSelectPerk) {
             if (!this.perkKeyLatch) {
                 this.perkMenuOpen = this.perkSelectionRequired ? true : !this.perkMenuOpen;
                 this.hud.togglePerkPanel(this.perkMenuOpen);
-                this.updateDesktopCursorMode();
                 if (this.perkMenuOpen) {
                     this.perkMenuIndex = this.hud.getPerkMenuSelection();
                     this.hud.setPerkMenuSelection(this.perkMenuIndex);
@@ -1854,20 +1398,92 @@ class Game {
         } else {
             this.perkKeyLatch = false;
         }
-
         if (this.perkSelectionRequired && canSelectPerk && !this.perkMenuOpen) {
             this.perkMenuOpen = true;
-            this.menuKeyLatch.e = this.input.isKeyPressed('KeyE');
-            this.menuKeyLatch.w = this.input.isKeyPressed('KeyW');
-            this.menuKeyLatch.s = this.input.isKeyPressed('KeyS');
             this.hud.togglePerkPanel(true);
-            this.updateDesktopCursorMode();
         }
 
-        // ===== SPAWN HANDLER (always runs) =====
-        if (this.gameState === 'spawn') {
+        if (this.perkMenuOpen) {
+            const wPressed = this.input.isKeyPressed('KeyW');
+            const sPressed = this.input.isKeyPressed('KeyS');
+            const ePressed = this.input.isKeyPressed('KeyE');
+
+            if (wPressed && !this.menuKeyLatch.w) {
+                this.perkMenuIndex -= 1;
+                this.hud.setPerkMenuSelection(this.perkMenuIndex);
+                console.log('[perk] W pressed, index:', this.perkMenuIndex);
+            }
+            if (sPressed && !this.menuKeyLatch.s) {
+                this.perkMenuIndex += 1;
+                this.hud.setPerkMenuSelection(this.perkMenuIndex);
+                console.log('[perk] S pressed, index:', this.perkMenuIndex);
+            }
+            if (ePressed && !this.menuKeyLatch.e) {
+                const perk = this.hud.getPerkMenuValue();
+                console.log('[perk] E pressed, selected:', perk, 'menuIndex:', this.perkMenuIndex);
+                if (perk) {
+                    document.dispatchEvent(new CustomEvent('selectPerk', { detail: perk }));
+                }
+                this.perkMenuOpen = false;
+                this.hud.togglePerkPanel(false);
+            }
+            this.menuKeyLatch.w = wPressed;
+            this.menuKeyLatch.s = sPressed;
+            this.menuKeyLatch.e = ePressed;
+        } else {
+            this.menuKeyLatch.w = false;
+            this.menuKeyLatch.s = false;
+            this.menuKeyLatch.e = false;
+        }
+        if (this.gameState === 'countdown' && this.isStarted) {
+            this.countdownTimer -= delta;
+            const sec = Math.max(0, Math.ceil(this.countdownTimer));
+            if (sec !== this.lastCountdownSecond) {
+                this.lastCountdownSecond = sec;
+                if (sec > 0) {
+                    this.audioSynth?.playTimerTick?.(sec <= 3 ? 1.25 : 0.9);
+                }
+            }
+
+            this.player.setInvulnerable(true);
+            this.bots.forEach(bot => bot.setInvulnerable(true));
+            this.player.isFrozen = true;
+            this.bots.forEach(bot => { bot.isFrozen = true; });
+            this.player.isCameraFrozen = true;
+
+            this.hud.showCountdown(sec);
+
+            if (this.countdownTimer <= 0) {
+                BotBrain.clearReservations();
+                if (!this.perkLocked) {
+                    this.applyPerk('quickHands');
+                    this.perkLocked = true;
+                }
+                this.gameState = 'spawn';
+                this.perkLocked = true;
+                this.perkSelectionRequired = false;
+                this.perkMenuOpen = false;
+                this.hud.setPerkPanelLock(false);
+                this.hud.togglePerkPanel(false);
+                this.hud.setPerkSelectionEnabled(false);
+                this.hud.hideCountdown();
+                this.hud.showGameMessage('\u0414\u043e\u0431\u0440\u043e \u043f\u043e\u0436\u0430\u043b\u043e\u0432\u0430\u0442\u044c \u043d\u0430 \u0413\u043e\u043b\u043e\u0434\u043d\u044b\u0435 \u0438\u0433\u0440\u044b, \u0432\u044b\u0436\u0438\u0432\u0435\u0442 \u0441\u0438\u043b\u044c\u043d\u0435\u0439\u0448\u0438\u0439!');
+                this.audioSynth.playBoxArrival?.(new THREE.Vector3(0, 1, 0));
+                this.triggerCenterDetonation();
+                this.player.isFrozen = false;
+                this.player.isCameraFrozen = false;
+                this.player._frozenCamPos = null;
+                this.player.lastCameraPosition = null;
+                this.bots.forEach(bot => { bot.isFrozen = false; });
+                this.queueZombieBurst(true, 1.6, 120, 22, this.isMobile() ? 4 : 6);
+                this.queuePoiBurst(1.7, this.isMobile() ? 18 : 28, this.isMobile() ? 4 : 5);
+                this.gameLoop.start();
+            }
+        } else if (this.gameState === 'spawn' && this.isStarted) {
             this.spawnTimer -= delta;
             this.player.isFrozen = false;
+            this.player.isCameraFrozen = false;
+            this.player.lastCameraPosition = null;
             this.bots.forEach(bot => { bot.isFrozen = false; });
             if (!this.spawnScatterTargets || this.spawnScatterTargets.length === 0) {
                 const floor = this.map.getFloorTiles?.() || [];
@@ -1919,34 +1535,26 @@ class Game {
 
             if (this.spawnTimer <= 0) {
                 this.gameState = 'playing';
-                this.roundEvalDelay = 6;
-                this.postStartShieldTimer = 2.5;
                 this.startZoneCycle();
                 this.player.setInvulnerable(false);
                 this.bots.forEach(bot => bot.setInvulnerable(false));
                 const noCombatUntil = performance.now() + this.botLootPhaseDuration * 1000;
-                for (const bot of this.bots) {
+                for (let i = 0; i < this.bots.length; i++) {
+                    const bot = this.bots[i];
                     bot.noCombatUntil = noCombatUntil;
                     bot.target = null;
                     bot.assistTarget = null;
                     bot.state = 'explore';
+                    bot._fsmCtx = null;
+                    if (this.botBrains[i]) {
+                        this.botBrains[i].decisionCooldown = 0;
+                    }
                 }
                 this.hud.showGameMessage('\u0412\u044b\u0436\u0438\u0432\u0430\u043d\u0438\u0435 \u043d\u0430\u0447\u0430\u043b\u043e\u0441\u044c!');
                 this.map.setCourtyardGateOpen(false);
                 this.gateClosed = true;
                 this.audioSynth.playStoneDoorClose?.(this.map.getCourtyardExitPosition());
                 this.poiWarmupTimer = 7;
-                const kickOut = (entity) => {
-                    if (this.map.isInsideCourtyard(entity.position)) {
-                        const exitPos = this.map.getCourtyardExitPosition();
-                        // Use raycastGroundY same as initial spawn for consistent ground level
-                        const groundY = this.map.raycastGroundY?.(exitPos.x, exitPos.z, 0.5) ?? 0.5;
-                        entity.position.set(exitPos.x, groundY + entity.physics.height, exitPos.z);
-                        entity.physics.velocity.set(0, 0, 0);
-                    }
-                };
-                kickOut(this.player);
-                this.bots.forEach(kickOut);
             } else {
                 this.player.setInvulnerable(true);
                 this.bots.forEach(bot => bot.setInvulnerable(true));
@@ -1956,19 +1564,15 @@ class Game {
         }
 
         if (this.gameState === 'playing') {
-            this.postStartShieldTimer = Math.max(0, this.postStartShieldTimer - delta);
-            this.roundEvalDelay = Math.max(0, this.roundEvalDelay - delta);
-            const startProtected = this.postStartShieldTimer > 0;
-            this.player.setInvulnerable(startProtected);
-            this.bots.forEach(bot => bot.setInvulnerable(startProtected));
+            this.player.setInvulnerable(false);
+            this.bots.forEach(bot => bot.setInvulnerable(false));
             if (!this.poiZombieSeeded && this.poiWarmupTimer > 0) {
                 this.poiWarmupTimer = Math.max(0, this.poiWarmupTimer - delta);
                 if (this.poiWarmupTimer <= 0) {
                     this.queuePoiBurst(1.65, this.isMobile() ? 16 : 22, this.isMobile() ? 4 : 5);
                 }
             }
-          this.updateZoneCycle(delta);
-            this.updateBiomeAmbient(delta);
+            this.updateZoneCycle(delta);
             this.chestRespawnTimer = Math.max(0, this.chestRespawnTimer - delta);
             if (this.chestRespawnTimer <= 0) {
                 const restored = this.lootManager.refillOpenedChests?.(6) || 0;
@@ -1978,25 +1582,33 @@ class Game {
                 this.chestRespawnTimer = 55;
             }
 
+            if (!this.zone.isInsideZone(this.player.position)) {
+                const damage = this.zone.getDamage(delta, this.player.position);
+                this.player.takeDamage(damage, false, null, 0, 'zone');
+            }
             if (this.activeEvent?.type === 'radiationRain' && this.radiationRainDamageActive && !this.isShelteredFromRadiation(this.player.position)) {
                 this.player.takeDamage(GAME_CONFIG.events.radiation.playerDps * delta, false, null, 0, 'storm');
             }
 
-            // Dynamic zone info
-            if (this.zonePhase === 'waiting') {
-                this.hud.updateZoneInfo(`\u0417\u043e\u043d\u0430 \u0441\u0436\u0430\u0442\u0438\u044f: ${Math.ceil(this.zonePhaseTimer)}s`, false);
-            } else if (this.fogPhaseEnabled && this.map?.getActiveSafeRadius) {
-                const safeRadius = this.map.getActiveSafeRadius();
-                const arenaRadius = this.map?.halfSize || this.zone.getCurrentRadius();
-                this.hud.updateFogPhase(this.zonePhaseIndex, safeRadius, arenaRadius);
+            const distanceFromZone = this.zone.getDistanceFromZone(this.player.position);
+            if (distanceFromZone > 0) {
+                this.hud.updateZoneInfo(`\u0412\u043d\u0435 \u0437\u043e\u043d\u044b! ${Math.ceil(distanceFromZone)}\u043c`, true);
             } else {
-                this.hud.updateZoneInfo(`\u0417\u043e\u043d\u0430: R=${Math.round(this.zone.getCurrentRadius())}`, false);
+                const radius = Math.ceil(this.zone.getCurrentRadius());
+                if (this.zonePhase === 'shrinking') {
+                    this.hud.updateZoneInfo(`\u0417\u043e\u043d\u0430 \u0441\u0443\u0436\u0430\u0435\u0442\u0441\u044f (\u0440\u0430\u0434\u0438\u0443\u0441 ${radius}\u043c)`, true);
+                } else if (this.zonePhase === 'final') {
+                    this.hud.updateZoneInfo(`\u0424\u0438\u043d\u0430\u043b\u044c\u043d\u0430\u044f \u0437\u043e\u043d\u0430 (\u0440\u0430\u0434\u0438\u0443\u0441 ${radius}\u043c)`, false);
+                } else {
+                    this.hud.updateZoneInfo(`\u0411\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u0430: ${Math.ceil(this.zonePhaseTimer)}\u0441 (\u0440\u0430\u0434\u0438\u0443\u0441 ${radius}\u043c)`, false);
+                }
             }
 
+            const distanceOutside = this.zone.getDistanceFromZone(this.player.position);
             const fogDensity = this.scene?.fog?.density || 0;
             const nightBoost = this.env && (this.env.dayTime < 0.18 || this.env.dayTime > 0.78) ? 0.14 : 0;
-            const shrinkBoost = 0;
-            const outsideBoost = 0;
+            const shrinkBoost = this.zonePhase === 'shrinking' ? 0.12 : 0;
+            const outsideBoost = distanceOutside > 0 ? Math.min(0.24, distanceOutside * 0.015) : 0;
             const fogBoost = Math.min(0.24, Math.max(0, fogDensity - 0.004) * 30);
             const blindnessBoost = this.activeEvent?.type === 'blindness' ? 0.55 : 0;
             const radiationBoost = this.activeEvent?.type === 'radiationRain' && this.radiationRainDamageActive && !this.isShelteredFromRadiation(this.player.position) ? 0.08 : 0;
@@ -2007,14 +1619,16 @@ class Game {
 
         this.physics.update(delta);
 
-        this.resetInvalidPlayerState();
-        this.player.update(delta, this.audioSynth, this.lootManager, this.entityManager);
-        this.map?.activateTrapsNearEntity?.(this.player);
-        this.syncCameraToPlayer();
+        this.player.update(delta, this.audioSynth, this.lootManager, this.entityManager, this.controls);
         this.map.update?.(delta, this.player.position);
-        this.tileMapGenerator?.update?.(delta);
+        this.map.updateFountainAnimation?.(delta);
+        this.map.updateFireflyAnimation?.(delta);
+        this.map.updateCrystalAnimation?.(delta);
+        this.map.updateTorchAnimation?.(delta);
+        this.map.updateGlowAnimation?.(delta);
+        this.map.updateSnowParticles?.(delta);
+        this.map.updateWindTurbines?.(delta);
         this.updateRadiationRainEffect(delta);
-        this.updateWeatherRainEffect(delta);
         this.propVisibilityTimer -= delta;
         if (this.propVisibilityTimer <= 0) {
             const movedSq = this.lastPropVisibilityPos.distanceToSquared(this.player.position);
@@ -2092,7 +1706,7 @@ class Game {
             const localFogPenalty = localFog * 3800;
             const nightPenalty = isNight ? 35 : 0;
             const targetFar = this.activeEvent?.type === 'blindness'
-                ? 22
+                ? 15
                 : Math.max(55, Math.min(maxFar, this.zone.getCurrentRadius() * 0.2 + 90 - fogPenalty - localFogPenalty - nightPenalty));
             if (this.camera.far !== targetFar) {
                 this.camera.far = targetFar;
@@ -2125,7 +1739,6 @@ class Game {
                 continue;
             }
             bot.update(delta, this.botBrains[botIndex], this.entityManager, this.lootManager, this.audioSynth, this.physics, this.zone);
-            this.map?.activateTrapsNearEntity?.(bot);
         }
         if (this.gameState === 'playing') {
             if (this.activeEvent?.type === 'radiationRain') {
@@ -2157,6 +1770,17 @@ class Game {
                 const botIndex = (this.botHazardCursor + i) % this.bots.length;
                 const bot = this.bots[botIndex];
                 if (!bot.isAlive) continue;
+                if (!this.zone.isInsideZone(bot.position)) {
+                    const damage = this.zone.getDamage(delta * hazardScale, bot.position);
+                    bot.takeDamage(damage, false, null, 0, 'zone');
+                    const safePoint = this.getSafeZoneTarget(bot.position);
+                    bot.target = null;
+                    bot.assistTarget = null;
+                    const outside = this.zone.getDistanceFromZone(bot.position);
+                    if (outside > 10) {
+                        bot.position.lerp(safePoint, 0.18);
+                    }
+                }
                 if (this.activeEvent?.type === 'radiationRain' && !this.isShelteredFromRadiation(bot.position)) {
                     const shelter = this.getNearestShelterTarget(bot.position);
                     if (shelter) {
@@ -2211,17 +1835,40 @@ class Game {
         }
 
         if (this.gameState === 'playing') {
-            this.zombieMaintainTimer = Math.max(0, this.zombieMaintainTimer - delta);
-            if (this.zombieMaintainTimer <= 0) {
-                const aliveZombies = this.zombies.filter(z => z?.isAlive).length;
-                const minAlive = this.isMobile() ? 16 : 22;
-                if (aliveZombies < minAlive) {
-                    const need = minAlive - aliveZombies;
-                    this.queuePoiBurst(1.45, Math.min(14, need + 2), this.isMobile() ? 3 : 4);
-                    this.queueZombieBurst(false, 2.0, 180, Math.max(0, need - 2), this.isMobile() ? 4 : 5);
+            const elapsed = performance.now() * 0.001 - this.roundStartTime;
+            const gracePeriod = GAME_CONFIG.events.gracePeriodSeconds;
+
+            if (elapsed < gracePeriod) {
+                this.zombieMaintainTimer = Math.max(0, this.zombieMaintainTimer - delta);
+                if (this.zombieMaintainTimer <= 0) {
+                    const aliveZombies = this.zombies.filter(z => z?.isAlive).length;
+                    const minAlive = this.isMobile() ? 16 : 22;
+                    if (aliveZombies < minAlive) {
+                        const need = minAlive - aliveZombies;
+                        this.queuePoiBurst(1.45, Math.min(14, need + 2), this.isMobile() ? 3 : 4);
+                        this.queueZombieBurst(false, 2.0, 180, Math.max(0, need - 2), this.isMobile() ? 4 : 5);
+                    }
+                    this.ensurePoiZombiePresence(this.isMobile() ? 8 : 12);
+                    this.zombieMaintainTimer = 3.2 + Math.random() * 1.4;
                 }
-                this.ensurePoiZombiePresence(this.isMobile() ? 8 : 12);
-                this.zombieMaintainTimer = 3.2 + Math.random() * 1.4;
+            }
+
+            if (elapsed >= gracePeriod) {
+                if (!this.waveActive) {
+                    this.waveTimer -= delta;
+                    if (this.waveTimer <= 0) {
+                        this.waveActive = true;
+                        this.waveRemaining = GAME_CONFIG.events.waveDurationSeconds;
+                        this.queueZombieBurst(false, 2.5, 120, GAME_CONFIG.events.zombieRush.zombieCount, 4);
+                        this.hud.showGameMessage("Волна зомби! Готовьтесь к бою!");
+                    }
+                } else {
+                    this.waveRemaining -= delta;
+                    if (this.waveRemaining <= 0) {
+                        this.waveActive = false;
+                        this.waveTimer = GAME_CONFIG.events.waveIntervalSeconds;
+                    }
+                }
             }
         }
 
@@ -2244,15 +1891,43 @@ class Game {
             this.hud.updateAmmo(this.player.currentWeapon || this.player.fists);
             this.hudStatsTimer = this.isMobile() ? 0.1 : 0.06;
         }
+        if (this.traps && this.traps.length) {
+            const applyTrap = (entity) => {
+                if (!entity.isAlive) return;
+                for (const trap of this.traps) {
+                    const dx = entity.position.x - trap.position.x;
+                    const dz = entity.position.z - trap.position.z;
+                    const dist = Math.sqrt(dx * dx + dz * dz);
+                    if (dist < trap.radius) {
+                        if (typeof entity.applySlow === 'function') {
+                            entity.applySlow(trap.slow, 0.6);
+                        }
+                        if (typeof entity.takeDamage === 'function') {
+                            entity.takeDamage(trap.damage * delta, false, null, 0, 'trap');
+                        }
+                    }
+                }
+            };
+            applyTrap(this.player);
+            const trapBatch = Math.max(
+                this.isMobile() ? 10 : 16,
+                Math.min(this.bots.length, Math.ceil(this.bots.length * (this.isMobile() ? 0.35 : 0.5)))
+            );
+            for (let i = 0; i < trapBatch && i < this.bots.length; i++) {
+                const botIndex = (this.trapBotCursor + i) % this.bots.length;
+                applyTrap(this.bots[botIndex]);
+            }
+            if (this.bots.length > 0) {
+                this.trapBotCursor = (this.trapBotCursor + trapBatch) % this.bots.length;
+            }
+        }
+
         this.forceEliminateInvalidSurvivors();
         const aliveSurvivors = this.entityManager.getAliveSurvivors?.() || [];
         const aliveCount = aliveSurvivors.length;
 
         if (!this.player.isAlive && !this.deathHandled) {
             this.deathHandled = true;
-            this.player.isFrozen = true;
-            this.player.physics.velocity.set(0, 0, 0);
-            this.player.physics.onGround = true;
             this.endRound('\u0418\u0433\u0440\u0430 \u043e\u043a\u043e\u043d\u0447\u0435\u043d\u0430. \u041d\u0430\u0436\u043c\u0438\u0442\u0435 E \u0447\u0442\u043e\u0431\u044b \u043d\u0430\u0447\u0430\u0442\u044c \u0437\u0430\u043d\u043e\u0432\u043e');
         }
 
@@ -2296,40 +1971,15 @@ class Game {
             this.minimapTimer = this.isMobile() ? 0.16 : 0.1;
         }
 
-        if (this.gameState === 'playing' && !this.roundFinished && this.roundEvalDelay <= 0) {
-            if (aliveCount <= 0) {
+        if (this.gameState === 'playing' && !this.roundFinished) {
+            if (aliveCount === 0) {
                 this.endRound('\u0412 \u0436\u0438\u0432\u044b\u0445 \u043d\u0438\u043a\u043e\u0433\u043e \u043d\u0435 \u043e\u0441\u0442\u0430\u043b\u043e\u0441\u044c. \u041d\u0430\u0436\u043c\u0438\u0442\u0435 E \u0447\u0442\u043e\u0431\u044b \u043d\u0430\u0447\u0430\u0442\u044c \u0437\u0430\u043d\u043e\u0432\u043e');
-            } else if (aliveCount === 1) {
-                if (aliveSurvivors[0] === this.player) {
-                    this.endRound('\u041f\u043e\u0431\u0435\u0434\u0430! \u0422\u044b \u043e\u0441\u0442\u0430\u043b\u0441\u044f \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u043c \u0432\u044b\u0436\u0438\u0432\u0448\u0438\u043c. \u041d\u0430\u0436\u043c\u0438\u0442\u0435 E \u0447\u0442\u043e\u0431\u044b \u043d\u0430\u0447\u0430\u0442\u044c \u0437\u0430\u043d\u043e\u0432\u043e');
-                } else if (!this.deathHandled) {
-                    this.deathHandled = true;
-                    this.endRound('\u041f\u043e\u0440\u0430\u0436\u0435\u043d\u0438\u0435! \u041f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0439 \u0432\u044b\u0436\u0438\u0432\u0448\u0438\u0439 — \u0431\u043e\u0442. \u041d\u0430\u0436\u043c\u0438\u0442\u0435 E \u0447\u0442\u043e\u0431\u044b \u043d\u0430\u0447\u0430\u0442\u044c \u0437\u0430\u043d\u043e\u0432\u043e');
-                }
+            } else if (aliveCount === 1 && aliveSurvivors[0] === this.player) {
+                this.endRound('\u041f\u043e\u0431\u0435\u0434\u0430! \u0422\u044b \u043e\u0441\u0442\u0430\u043b\u0441\u044f \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u043c \u0432\u044b\u0436\u0438\u0432\u0448\u0438\u043c. \u041d\u0430\u0436\u043c\u0438\u0442\u0435 E \u0447\u0442\u043e\u0431\u044b \u043d\u0430\u0447\u0430\u0442\u044c \u0437\u0430\u043d\u043e\u0432\u043e');
             }
         }
 
         this.env.update(delta);
-
-        // Biome-aware fog/sky transition based on player position
-        if (this.player?.position) {
-            const px = this.player.position.x;
-            const pz = this.player.position.z;
-            let biome = 'default';
-            if (px < -10 && pz > 10) biome = 'citadel';
-            else if (px > 10 && pz > 10) biome = 'crystal';
-            else if (px < -10 && pz < -10) biome = 'wastes';
-            else if (px > 10 && pz < -10) biome = 'forest';
-            if (this.env.currentBiome !== biome) {
-                this.env.setBiome(biome);
-            }
-        }
-
-        this.map?.updateZoneAnimations?.(delta);
-        this.map?.updateParticles?.(delta);
-        if ((this.env?.getWeatherType?.() || 'clear') === 'rain') {
-            this.scene.background = new THREE.Color(0x3b3f46);
-        }
         this.weatherSyncTimer = Math.max(0, this.weatherSyncTimer - delta);
         if (this.weatherSyncTimer <= 0) {
             const changedWeather = this.env?.consumeWeatherChange?.();
@@ -2337,7 +1987,6 @@ class Game {
             if (weatherType !== this.lastWeatherType) {
                 this.lastWeatherType = weatherType;
                 this.audioSynth?.setWeatherState?.(weatherType);
-                this.setWeatherRainActive(weatherType === 'rain');
                 if (this.gameState === 'playing') {
                     if (weatherType === 'rain') {
                         this.hud.showGameMessage('Погода: Дождь');
@@ -2350,31 +1999,7 @@ class Game {
             }
             this.weatherSyncTimer = 1.2;
         }
-        const isNightNow = !!(this.env && (this.env.dayTime < 0.18 || this.env.dayTime > 0.78));
-        this.map?.setNightEmissive?.(isNightNow);
-        this.biomeAudioSyncTimer = Math.max(0, this.biomeAudioSyncTimer - delta);
-        if (this.biomeAudioSyncTimer <= 0) {
-            const biomeMat = this.map?.getTerrainMaterialAt?.(this.player.position.x, this.player.position.z) || 'stone';
-            const weather = this.env?.getWeatherType?.() || 'clear';
-            const key = `${biomeMat}:${weather}:${isNightNow ? 1 : 0}`;
-            if (key !== this.lastBiomeAudioKey) {
-                this.lastBiomeAudioKey = key;
-                this.audioSynth?.setBiomeAmbience?.(biomeMat, weather, isNightNow);
-            }
-            this.biomeAudioSyncTimer = 0.8;
-        }
-        if (this.renderer) {
-            const targetExposure = Number.isFinite(this.scene?.userData?.targetExposure) ? this.scene.userData.targetExposure : 1;
-            const curr = Number.isFinite(this.renderer.toneMappingExposure) ? this.renderer.toneMappingExposure : 1;
-            this.renderer.toneMappingExposure = THREE.MathUtils.lerp(curr, targetExposure, Math.min(1, delta * 3.5));
-        }
         if (this.scene?.fog && this.gameState === 'playing') {
-            const terrainMat = this.map?.getTerrainMaterialAt?.(this.player.position.x, this.player.position.z) || 'stone';
-            const fogTargetColor =
-                terrainMat === 'urban' ? new THREE.Color(0x6b7278) :
-                    terrainMat === 'wild' ? new THREE.Color(0x46624d) :
-                        new THREE.Color(0x9cb8cc);
-            this.scene.fog.color.lerp(fogTargetColor, Math.min(1, delta * 2.4));
             const localFogBoost = this.getLocalizedFogBoost(this.player.position);
             if (localFogBoost > 0) {
                 this.scene.fog.density = Math.min(0.12, this.scene.fog.density + localFogBoost);
@@ -2382,7 +2007,6 @@ class Game {
         }
 
         // players count is updated by throttled hudStatsTimer block above
-        } // end else (perkMenuBlocking)
     }
 
     getLocalizedFogBoost(position) {
@@ -2440,7 +2064,7 @@ class Game {
             ) ?? 0;
             const pos = new THREE.Vector3(x, baseY + 1.8, z);
             if (pos.distanceTo(this.player.position) < 14) return false;
-            const zombie = new Zombie(this.scene, this.nextZombieId++, pos, Zombie.pickWeightedType());
+            const zombie = new Zombie(this.scene, this.nextZombieId++, pos);
             this.physics.addEntity(zombie);
             this.entityManager.addEntity(zombie);
             this.zombies.push(zombie);
@@ -2524,7 +2148,7 @@ class Game {
                 const y = this.map.getHeightAt?.(x, z) ?? 0;
                 const pos = new THREE.Vector3(x, y + 1.8, z);
                 if (this.player?.position && pos.distanceTo(this.player.position) < 10) continue;
-                const zombie = new Zombie(this.scene, this.nextZombieId++, pos, Zombie.pickWeightedType());
+                const zombie = new Zombie(this.scene, this.nextZombieId++, pos);
                 this.physics.addEntity(zombie);
                 this.entityManager.addEntity(zombie);
                 this.zombies.push(zombie);
@@ -2596,7 +2220,7 @@ class Game {
             const pos = new THREE.Vector3(tile.x, baseY + 1.8, tile.z);
             if (pos.distanceTo(this.player.position) < (reset ? 20 : 24)) continue;
             if (!this.map.isWalkableAt?.(tile.x, tile.z)) continue;
-            const zombie = new Zombie(this.scene, this.nextZombieId++, pos, Zombie.pickWeightedType());
+            const zombie = new Zombie(this.scene, this.nextZombieId++, pos);
             this.physics.addEntity(zombie);
             this.entityManager.addEntity(zombie);
             this.zombies.push(zombie);
@@ -2607,45 +2231,27 @@ class Game {
 
     render() {
         this.renderFrameCount = (this.renderFrameCount || 0) + 1;
-        this.camera.layers.enableAll();
         this.renderer.render(this.scene, this.camera);
     }
 
     async startGame() {
-        if (!this.initialized) {
-            if (loadingOverlay) loadingOverlay.style.display = 'flex';
-            smoothSetProgress(0.05, 'Инициализация...');
-            await this.initAsync();
-            smoothSetProgress(0.2, 'Ресурсы загружены');
-            await new Promise(r => setTimeout(r, 100));
-        }
         if (this.isStarted) return;
         this.isStarted = true;
-        gameHasStarted = true;
         this.startingGame = true;
         this.startAttemptAt = performance.now();
         try {
-            // Hide start screen (but keep loading overlay visible)
             this.hideStartScreen();
-            smoothSetProgress(0.05, 'Генерация мира...');
+            this.startTransitionUntil = performance.now() + 3500;
+            this.hud.showPause(false);
+            this.isPaused = false;
+            this.partyMode = false;
+            this.applyRoundMode('hybrid');
+            await new Promise(resolve => requestAnimationFrame(() => resolve()));
 
-            // Hide HUD during map generation
-            const hudEl = document.getElementById('hud');
-            if (hudEl) hudEl.style.display = 'none';
-
-            await new Promise(r => setTimeout(r, 100));
-
-            // Wait for full map generation BEFORE entering fullscreen
-            if (this.map?.ready?.then) {
-                await this.map.ready;
-            }
-
-            smoothSetProgress(0.08, 'Мир построен');
-
-            // NOW enter fullscreen — map is fully loaded
-            this.enterFullscreen().catch(() => { });
             if (this.isMobile()) {
-                this.lockOrientation().catch(() => { });
+                // Important: do not block game start on fullscreen promises (some mobile browsers keep them pending).
+                this.enterFullscreen().catch(() => {});
+                this.lockOrientation().catch(() => {});
                 this.updateOrientationUI();
                 this.applyRendererSizing();
                 setTimeout(() => this.applyRendererSizing(), 180);
@@ -2653,8 +2259,8 @@ class Game {
                 this.player?.resetView?.();
                 const retry = async () => {
                     if (!document.fullscreenElement) {
-                        this.enterFullscreen().catch(() => { });
-                        this.lockOrientation().catch(() => { });
+                        this.enterFullscreen().catch(() => {});
+                        this.lockOrientation().catch(() => {});
                         this.updateOrientationUI();
                         this.applyRendererSizing();
                         setTimeout(() => this.applyRendererSizing(), 180);
@@ -2663,59 +2269,45 @@ class Game {
                     window.removeEventListener('touchend', retry);
                 };
                 window.addEventListener('touchend', retry, { passive: false });
+            } else {
+                try {
+                    await this.enterFullscreen();
+                } catch (fsErr) {
+                    console.warn('Fullscreen/orientation fallback:', fsErr);
+                }
             }
 
-            // Show HUD after map generation is complete
-            if (hudEl) hudEl.style.display = '';
-            this.hud?.showPause?.(false);
-            this.isPaused = false;
-            this.partyMode = false;
-            this.applyRoundMode('hybrid');
-            this.ensureSceneRenderable();
-
-            this.audioSynth?.unlock?.().catch(() => { });
-            this.audioSynth?.playMusic?.();
-            this.audioSynth?.startAmbient?.();
+            this.audioSynth.unlock?.().catch(() => {});
+            setTimeout(() => { try { this.audioSynth.playMusic?.(); } catch(e) {} try { this.audioSynth.startAmbient?.(); } catch(e) {} }, 50);
             this.yandex?.gameplayStart?.();
 
             this.perkMenuOpen = !this.perkLocked;
             this.perkSelectionRequired = !this.perkLocked;
-            this.hud?.setPerkPanelLock?.(this.perkSelectionRequired);
-
-            this.updateDesktopCursorMode();
+            this.hud.setPerkPanelLock(this.perkSelectionRequired);
+            this.hud.togglePerkPanel(this.perkMenuOpen);
+            if (this.perkMenuOpen) {
+                this.hud.showGameMessage('Выберите перк перед стартом матча');
+            }
+            this.hud.showCountdown(this.countdownTime);
 
             this.applyRendererSizing();
-            this.syncCameraToPlayer();
-
-            // Hide loading overlay BEFORE render — prevents freeze if WebGL fails
+            this.recoverViewState('start');
+            this.render();
+            requestAnimationFrame(() => this.hideStartScreen());
             if (loadingOverlay && loadingOverlay.style.display !== 'none') {
                 loadingOverlay.style.display = 'none';
             }
-
-            // Start game loop with error handling (WebGL may not be available in all environments)
-            try {
-                this.render();
-                this.gameLoop.start();
-            } catch (err) {
-                console.warn('Render/game loop failed (non-fatal):', err);
-            }
-            smoothSetProgress(0.07, 'Запуск...');
-
-            // Show perk panel AFTER loading is fully complete
-            if (this.perkMenuOpen) {
-                this.hud?.togglePerkPanel?.(true);
-                document.exitPointerLock?.();
-                this.hud?.showGameMessage?.('Выберите перк перед стартом матча');
-            }
-            if (this.perkMenuOpen) {
-                this.hud?.showCountdown?.(this.countdownTime);
-            }
-            setLoadingProgress(0.9);
-            this.pauseInputLockUntil = performance.now() + 1200;
+            setTimeout(() => {
+                if (this.isStarted && loadingOverlay && loadingOverlay.style.display !== 'none') {
+                    loadingOverlay.style.display = 'none';
+                }
+            }, 1200);
+            this.startTransitionUntil = 0;
             this.startingGame = false;
         } catch (err) {
             console.error('Failed to start game:', err);
             this.isStarted = false;
+            this.startTransitionUntil = 0;
             this.startingGame = false;
             this.showStartScreen();
             if (loadingOverlay && loadingOverlay.style.display !== 'none') {
@@ -2729,312 +2321,18 @@ class Game {
 
 window.addEventListener('DOMContentLoaded', () => {
     const yandex = new YandexBridge();
-    window.game = new Game(yandex);
-    const game = window.game;
+    const game = new Game(yandex);
+    window.game = game;
+    yandex.init().catch((err) => {
+        console.warn('Yandex init fallback:', err);
+    });
+    if (game.isMobile()) {
+        document.body.classList.add('mobile');
+        game.updateOrientationUI();
+        window.addEventListener('orientationchange', () => game.updateOrientationUI());
+    }
 
-    // Debug mode camera controls (activated via ?debug=true or #hash)
-    setTimeout(() => {
-        console.log('DEBUG: Checking game object properties...');
-        console.log('  camera:', !!game.camera, typeof game.camera);
-        console.log('  scene:', !!game.scene, typeof game.scene);
-        if (game.camera) {
-            console.log('  camera.position:', game.camera.position?.x, game.camera.position?.y, game.camera.position?.z);
-        }
-    }, 100);
-    
-    // Debug mode camera controls (activated via ?debug=true or #hash)
-    if (isDebugMode && typeof Stats !== 'undefined') {
-        console.log('🗺️ Debug Map Viewer activated');
-        
-        // Create debug overlay UI
-        const overlay = document.createElement('div');
-        overlay.style.cssText = `position:fixed;top:10px;left:10px;z-index:9999;background:rgba(0,0,0,.85);color:#0f0;padding:12px;border-radius:6px;font-size:13px;line-height:1.6;min-width:280px;user-select:none;pointer-events:auto;border:1px solid #0f04`;
-        overlay.innerHTML = `<h3 style="margin-bottom:8px;color:#fff">🗺️ Debug Map Viewer</h3>
-            <div><span style="color:#aaa">FPS:</span><span id="dbgFps">0</span></div>
-            <div><span style="color:#aaa">Cam X,Y,Z:</span><span id="dbgPos">0, 0, 0</span></div>
-            <div><span style="color:#aaa">FOV:</span><span id="dbgFov">60</span></div>
-            <div><span style="color:#aaa">Mode:</span><span id="dbgMode">manual</span></div>`;
-        document.body.appendChild(overlay);
-
-        // Debug state
-        let frameCount = 0, frameTime = 0, lastFrame = performance.now();
-        
-        window.debugCamState = { x: 100, y: 80, z: -100, lookAtX: 0, lookAtY: 0, lookAtZ: 0 };
-        window.setDebugCamera = function(x, y, z, lx, ly, lz) {
-            debugCamState.x = x; debugCamState.y = y; debugCamState.z = z;
-            debugCamState.lookAtX = lx; debugCamState.lookAtY = ly; debugCamState.lookAtZ = lz;
-        };
-        const keysDown = {};
-
-        // Multi-camera test mode for comprehensive map verification
-        const testCameras = [
-            { name: 'center_high', pos: { x: 0, y: 100, z: 0.01 }, lookAt: { x: 0, y: 0, z: 0 }, delay: 3000 },
-            { name: 'center_low', pos: { x: 0, y: 15, z: 10 }, lookAt: { x: 0, y: 0, z: 0 }, delay: 3000 },
-            { name: 'forest_nw', pos: { x: -158, y: 50, z: -158 }, lookAt: { x: -158, y: 0, z: -158 }, delay: 3000 },
-            { name: 'stone_ne', pos: { x: 158, y: 50, z: -158 }, lookAt: { x: 158, y: 0, z: -158 }, delay: 3000 },
-            { name: 'military_sw', pos: { x: -158, y: 50, z: 158 }, lookAt: { x: -158, y: 0, z: 158 }, delay: 3000 },
-            { name: 'snow_se', pos: { x: 158, y: 50, z: 158 }, lookAt: { x: 158, y: 0, z: 158 }, delay: 3000 },
-            { name: 'north_wall', pos: { x: 0, y: 20, z: -256 }, lookAt: { x: 0, y: 0, z: -128 }, delay: 3000 },
-            { name: 'south_wall', pos: { x: 0, y: 20, z: 256 }, lookAt: { x: 0, y: 0, z: 128 }, delay: 3000 },
-            { name: 'east_wall', pos: { x: 256, y: 20, z: 0 }, lookAt: { x: 128, y: 0, z: 0 }, delay: 3000 },
-            { name: 'west_wall', pos: { x: -256, y: 20, z: 0 }, lookAt: { x: -128, y: 0, z: 0 }, delay: 3000 },
-            { name: 'boundary_n', pos: { x: 0, y: 15, z: -60 }, lookAt: { x: 0, y: 0, z: -30 }, delay: 3000 },
-            { name: 'boundary_s', pos: { x: 0, y: 15, z: 60 }, lookAt: { x: 0, y: 0, z: 30 }, delay: 3000 },
-            { name: 'boundary_e', pos: { x: 60, y: 15, z: 0 }, lookAt: { x: 30, y: 0, z: 0 }, delay: 3000 },
-            { name: 'boundary_w', pos: { x: -60, y: 15, z: 0 }, lookAt: { x: -30, y: 0, z: 0 }, delay: 3000 },
-        ];
-        
-        let testModeActive = false;
-        let testCameraIndex = 0;
-        let testScreenshots = [];
-        
-        window.runTestCameras = function() {
-            testModeActive = true;
-            testCameraIndex = 0;
-            testScreenshots = [];
-            console.log('📷 Starting multi-camera test with ' + testCameras.length + ' cameras');
-        };
-        
-        window.takeTestScreenshot = function(name) {
-            if (!game || !game.renderer || !game.camera) return;
-            game.renderer.render(game.scene, game.camera);
-            const canvas = game.renderer.domElement;
-            const link = document.createElement('a');
-            link.download = `test-screenshot-${name}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-            console.log(`📷 Screenshot: ${name}`);
-        };
-
-        window.addEventListener('keydown', (e) => {
-            keysDown[e.code] = true;
-            if (!game.camera || !game.scene) return;
-            
-            switch(e.code) {
-                case 'KeyR': debugCamState.x = 100; debugCamState.y = 80; debugCamState.z = -100; break;
-                case 'KeyT': debugCamState.x = 0; debugCamState.y = 200; debugCamState.z = 0.01; game.camera.up.set(0, -1, 0); game.camera.rotation.order = 'YXZ'; break;
-            }
-        });
-
-        window.addEventListener('keyup', (e) => { keysDown[e.code] = false; });
-
-        // Initialize DebugOverlay for bounding boxes and sector visualization
-        if (game.map && game.camera) {
-            window.debugOverlay = new DebugOverlay(game.scene, game.map, game.renderer, game.camera, null);
-            window.debugOverlay.enable();
-            window.debugOverlay.setVoronoi(game.map.voronoi);
-            console.log('📦 DebugOverlay: bounding boxes + sectors enabled');
-        }
-
-        // Mouse wheel for zoom
-        window.addEventListener('wheel', (e) => {
-            if (!game.camera || !game.scene) return;
-            
-            const dirX = game.camera.position.x - debugCamState.lookAtX;
-            const dirZ = game.camera.position.z - debugCamState.lookAtZ;
-            const dist = Math.sqrt(dirX * dirX + dirZ * dirZ);
-            if (dist > 0) {
-                debugCamState.x -= (dirX / dist) * e.deltaY * 0.15;
-                debugCamState.z -= (dirZ / dist) * e.deltaY * 0.15;
-            }
-            
-            // Also adjust Y based on scroll direction for vertical zoom
-            if (game.camera.position.y > 20) {
-                debugCamState.y = Math.max(10, game.camera.position.y - e.deltaY * 0.3);
-            }
-            
-            e.preventDefault();
-        }, { passive: false });
-
-        // Mouse drag to orbit camera
-        let isDragging = false;
-        let lastMouseX = 0, lastMouseY = 0;
-
-        window.addEventListener('mousedown', (e) => {
-            if (!game.camera || !game.scene) return;
-            isDragging = true;
-            lastMouseX = e.clientX;
-            lastMouseY = e.clientY;
-        });
-
-        window.addEventListener('mouseup', () => { isDragging = false; });
-
-        window.addEventListener('mousemove', (e) => {
-            if (!isDragging || !game.camera || !game.scene) return;
-            
-            const dx = e.clientX - lastMouseX;
-            const dy = e.clientY - lastMouseY;
-            
-            // Orbit around lookAt point using spherical coordinates
-            const offsetX = game.camera.position.x - debugCamState.lookAtX;
-            const offsetZ = game.camera.position.z - debugCamState.lookAtZ;
-            const offsetY = game.camera.position.y - debugCamState.lookAtY;
-            
-            const horizontalDist = Math.sqrt(offsetX * offsetX + offsetZ * offsetZ);
-            let distance = Math.sqrt(horizontalDist * horizontalDist + offsetY * offsetY) || 100;
-            
-            let theta = Math.atan2(offsetX, offsetZ);
-            let phi = Math.acos(Math.max(-1, Math.min(1, offsetY / (distance || 1))));
-            
-            theta -= dx * 0.015;
-            phi += dy * 0.015;
-            phi = Math.max(0.1, Math.min(Math.PI - 0.1, phi));
-            
-            debugCamState.x = debugCamState.lookAtX + Math.sin(theta) * Math.sin(phi) * distance;
-            debugCamState.z = debugCamState.lookAtZ + Math.cos(theta) * Math.sin(phi) * distance;
-        });
-
-        // Override syncCameraToPlayer to disable automatic camera control during gameplay
-        const origSyncCameraToPlayer = game.syncCameraToPlayer.bind(game);
-        game.syncCameraToPlayer = function() { /* disabled in debug mode */ };
-
-        // Debug update loop
-        let testTimer = 0;
-        window.updateDebugOverlay = function(delta) {
-            if (!game || !game.camera || !game.scene) return;
-
-            frameCount++;
-            frameTime += (performance.now() - lastFrame);
-            lastFrame = performance.now();
-
-            if (frameTime >= 1000) {
-                document.getElementById('dbgFps').textContent = Math.round(frameCount * 1000 / frameTime);
-                frameCount = 0;
-                frameTime = 0;
-            }
-
-            // Update DebugOverlay (bounding boxes, sector info)
-            if (window.debugOverlay) {
-                window.debugOverlay.update(delta, game.player?.position || null);
-            }
-
-            // Test camera mode - automatically switch between cameras
-            if (testModeActive && game.camera) {
-                testTimer += delta * 1000; // ms
-                if (testTimer >= testCameras[testCameraIndex]?.delay) {
-                    testTimer = 0;
-                    testCameraIndex++;
-                    
-                    if (testCameraIndex >= testCameras.length) {
-                        testModeActive = false;
-                        console.log('✅ Multi-camera test complete. Took ' + testScreenshots.length + ' screenshots.');
-                        document.getElementById('dbgMode').textContent = 'complete';
-                        return;
-                    }
-                    
-                    const cam = testCameras[testCameraIndex];
-                    game.camera.position.set(cam.pos.x, cam.pos.y, cam.pos.z);
-                    game.camera.lookAt(cam.lookAt.x, cam.lookAt.y, cam.lookAt.z);
-                    document.getElementById('dbgMode').textContent = cam.name;
-                    console.log(`📷 Camera: ${cam.name} (${cam.pos.x}, ${cam.pos.y}, ${cam.pos.z})`);
-                    
-                    // Signal test runner to take screenshot
-                    window._testCameraName = cam.name;
-                    window._testCameraReady = true;
-                }
-            } else if (game.camera) {
-                // WASD movement
-                const moveSpeed = 3;
-                
-                const dirX = debugCamState.lookAtX - game.camera.position.x;
-                const dirZ = debugCamState.lookAtZ - game.camera.position.z;
-                const dist = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
-                
-                const fwdX = dirX / dist, fwdZ = dirZ / dist;
-                const rightX = -fwdZ, rightZ = fwdX;
-
-                if (keysDown['KeyW']) { debugCamState.x += fwdX * moveSpeed; debugCamState.z += fwdZ * moveSpeed; }
-                if (keysDown['KeyS']) { debugCamState.x -= fwdX * moveSpeed; debugCamState.z -= fwdZ * moveSpeed; }
-                if (keysDown['KeyA']) { debugCamState.x -= rightX * moveSpeed; debugCamState.z -= rightZ * moveSpeed; }
-                if (keysDown['KeyD']) { debugCamState.x += rightX * moveSpeed; debugCamState.z += rightZ * moveSpeed; }
-
-                // Q/E for up/down movement
-                if (keysDown['KeyQ']) debugCamState.y -= moveSpeed;
-                if (keysDown['KeyE']) debugCamState.y += moveSpeed;
-
-                game.camera.position.set(debugCamState.x, debugCamState.y, debugCamState.z);
-                game.camera.lookAt(debugCamState.lookAtX, debugCamState.lookAtY, debugCamState.lookAtZ);
-
-                // Update overlay info
-                document.getElementById('dbgPos').textContent = 
-                    `${game.camera.position.x.toFixed(1)}, ${game.camera.position.y.toFixed(1)}, ${game.camera.position.z.toFixed(1)}`;
-                document.getElementById('dbgFov').textContent = Math.round(game.camera.fov);
-                if (!testModeActive) {
-                    document.getElementById('dbgMode').textContent = 'manual';
-                }
-
-                // Update object count periodically
-                if (frameCount % 60 === 0 && !window._debugObjCountCached) {
-                    let count = 0;
-                    game.scene.traverse((child) => {
-                        if (child.isMesh || child.isGroup) count++;
-                    });
-                    const div = document.createElement('div');
-                    div.innerHTML = `<span style="color:#aaa">Objects:</span> ${count.toLocaleString()}`;
-                    overlay.appendChild(div);
-                }
-            }
-
-            requestAnimationFrame(window.updateDebugOverlay);
-        };
-
-      // Start debug loop - poll until game.scene and game.camera are ready
-        const startDebugLoop = () => {
-            if (game && game.scene && game.camera) {
-                console.log('🗺️ Starting debug camera controls...');
-                
-                // Override syncCameraToPlayer to disable automatic player camera control  
-                const origSync = game.syncCameraToPlayer.bind(game);
-                game.syncCameraToPlayer = function() { /* disabled in debug mode */ };
-
-                debugCamState.x = 100; debugCamState.y = 80; debugCamState.z = -100;
-                game.camera.position.set(debugCamState.x, debugCamState.y, debugCamState.z);
-                game.camera.lookAt(0, 0, 0);
-                
-                requestAnimationFrame(window.updateDebugOverlay);
-            } else {
-                if (game && !game.isStarted) {
-                    // Auto-start the game in debug mode so scene/camera get initialized  
-                    console.log('🚀 Auto-starting game for debug mode...');
-                    game.startGame().then(() => {
-                        console.log('✅ Game started, waiting for camera ready...');
-                    }).catch(err => {
-                        console.error('❌ Failed to start game:', err);
-                    });
-                } else if (!game) {
-                    console.warn('⚠️ window.game not found!');
-                }
-                
-                setTimeout(startDebugLoop, 500);
-            }
-        };
-
-        // Auto-start the game immediately in debug mode  
-        if (game && !game.isStarted) {
-            console.log('🚀 Starting game for debug mode...');
-            game.startGame().then(() => {
-                console.log('✅ Game started successfully');
-            }).catch(err => {
-                console.error('❌ Failed to start game:', err);
-            });
-        }
-
-        startDebugLoop();
-
-        console.log('🗺️ Debug controls: WASD move | Q/E up-down | Scroll zoom | R reset view | T top-down');
-
-        try {
-            yandex.init();
-        } catch (err) {
-            console.warn('Yandex init fallback:', err);
-        }
-        if (game.isMobile()) {
-            document.body.classList.add('mobile');
-            game.updateOrientationUI();
-            window.addEventListener('orientationchange', () => game.updateOrientationUI());
-        }
-
-        document.addEventListener('selectSlot', (event) => {
+    document.addEventListener('selectSlot', (event) => {
         if (!game?.player) return;
         const slot = typeof event.detail === 'number' ? event.detail : null;
         if (slot === null) return;
@@ -3043,10 +2341,13 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     document.addEventListener('selectPerk', (event) => {
+        console.log('[selectPerk] DEBUG: event received', event);
         const perk = typeof event.detail === 'string' ? event.detail : null;
-        if (!perk || !game?.player) return;
+        if (!perk) { console.warn('[selectPerk] no perk detail'); return; }
+        if (!game) { console.warn('[selectPerk] game is null'); return; }
+        if (!game.player) { console.warn('[selectPerk] game.player is null'); return; }
         if (game.perkLocked) {
-            game.hud?.showGameMessage?.('\u041f\u0435\u0440\u043a \u0443\u0436\u0435 \u0432\u044b\u0431\u0440\u0430\u043d');
+            game.hud.showGameMessage('\u041f\u0435\u0440\u043a \u0443\u0436\u0435 \u0432\u044b\u0431\u0440\u0430\u043d');
             return;
         }
         game.applyPerk(perk);
@@ -3055,9 +2356,8 @@ window.addEventListener('DOMContentLoaded', () => {
         game.hud.setPerkPanelLock(false);
         game.perkMenuOpen = false;
         game.hud.togglePerkPanel(false);
-        game.updateDesktopCursorMode();
-        game.tryEnterGameplayPointerLock();
         game.hud.showGameMessage('\u041f\u0435\u0440\u043a \u0430\u043a\u0442\u0438\u0432\u0438\u0440\u043e\u0432\u0430\u043d');
+        console.log('[selectPerk] Applied:', perk);
     });
 
     document.addEventListener('setAudioSettings', (event) => {
@@ -3082,40 +2382,26 @@ window.addEventListener('DOMContentLoaded', () => {
 
     const bindStartButton = (button) => {
         if (!button) return;
-        const handleStart = async (e) => {
-            if (e?.cancelable) e.preventDefault();
-            if (game.startingGame || game.isStarted) return;
-            if (loadingOverlay) {
-                loadingOverlay.style.display = 'flex';
-                setLoadingProgress(0.05);
+
+        let _startHandled = false;
+
+        button.addEventListener('click', async () => {
+            if (_startHandled || game.startingGame || game.isStarted) return;
+            _startHandled = true;
+            try { await (game.audioSynth?.unlock?.() ?? Promise.resolve()); } catch {}
+            // Call pointer lock synchronously from click handler (browser requirement)
+            if (!game.isMobile() && game.controls && game.controls.lock) {
+                try { game.controls.lock(); } catch (err) { console.log('Pointer lock not available:', err); }
             }
-         try {
-                game.audioSynth?.unlock?.().catch(() => { });
-                await game.startGame();
-                if (loadingOverlay) loadingOverlay.style.display = 'none';
-            } catch (err) {
-                console.error('Start failed:', err);
-            }
-        };
-        button.addEventListener('click', handleStart);
-        button.addEventListener('touchstart', handleStart, { passive: false });
-        button.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-        }, { passive: false });
+            try { await game.startGame(); } catch (err) { console.error('startGame failed:', err); }
+        });
+
     };
 
     bindStartButton(document.getElementById('startButtonDesktop'));
     bindStartButton(document.getElementById('startButtonMobile'));
     bindStartButton(document.getElementById('startButton'));
-    }
 });
-
-
-
-
-
-
 
 
 
