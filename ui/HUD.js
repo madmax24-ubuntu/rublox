@@ -648,7 +648,7 @@ export class HUD {
             background: rgba(6, 12, 18, 0.68);
             backdrop-filter: blur(2px);
             z-index: 1480;
-            pointer-events: auto;
+            pointer-events: none;
         `;
         perkBackdrop.addEventListener('click', (e) => {
             if (e.target !== perkBackdrop) return;
