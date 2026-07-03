@@ -144,9 +144,12 @@ async function main() {
         process.exit(1);
     }
     
-    // Проверяем что таймер исчез
-    const countdownGone = await page.$('#countdown').then(() => false).catch(() => true);
-    if (!countdownGone) {
+    // Проверяем что таймер исчез (display !== 'none')
+    const countdownHidden = await page.evaluate(() => {
+        const cd = document.getElementById('countdown');
+        return cd && getComputedStyle(cd).display === 'none';
+    });
+    if (!countdownHidden) {
         console.error('❌ Таймер не исчез после окончания');
         await cleanup();
         process.exit(1);
