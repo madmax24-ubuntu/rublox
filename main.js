@@ -1363,6 +1363,7 @@ class Game {
 
     update(delta) {
         this.enforceNoBugPolicy(delta);
+        console.error('[DEBUG update entry] delta=', delta, 'gameState=', this.gameState, 'isPaused=', this.isPaused, 'isStarted=', this.isStarted);
         if (this.isStarted && loadingOverlay && loadingOverlay.style.display !== 'none') {
             loadingOverlay.style.display = 'none';
         }
@@ -1381,6 +1382,7 @@ class Game {
 
         if (this.isPaused) {
             this.hud.showPause(true);
+            console.error('[DEBUG] update() PAUSED - returning early');
             return;
         }
 
@@ -1439,7 +1441,7 @@ class Game {
             this.menuKeyLatch.e = false;
         }
         if (this.gameState === 'countdown' && this.isStarted) {
-            console.log('[DEBUG update] countdown: timer=', this.countdownTimer, 'delta=', delta, 'isStarted=', this.isStarted);
+            console.error('[DEBUG update] countdown: timer=', this.countdownTimer, 'delta=', delta, 'isStarted=', this.isStarted);
             this.countdownTimer -= delta;
             const sec = Math.max(0, Math.ceil(this.countdownTimer));
             if (sec !== this.lastCountdownSecond) {
