@@ -1,4 +1,4 @@
-﻿import * as THREE from "/node_modules/three/build/three.module.js";
+import * as THREE from 'three';
 
 export class GameLoop {
     constructor(game) {
@@ -8,7 +8,6 @@ export class GameLoop {
         this.lastFrameTime = 0;
         this.targetFPS = 60;
         this.frameTime = 1000 / this.targetFPS;
-        this._frameCount = 0;
     }
 
     start() {
@@ -30,20 +29,19 @@ export class GameLoop {
     }
 
     animate() {
-        if (!this.isRunning) {
+        if (!this.isRunning) return;
+
+        const now = performance.now();
+        const elapsed = now - this.lastFrameTime;
+        if (elapsed < this.frameTime) {
+            requestAnimationFrame(() => this.animate());
             return;
         }
-
+        this.lastFrameTime = now;
         requestAnimationFrame(() => this.animate());
 
         // Do not advance simulation when the tab/app is hidden.
         if (typeof document !== 'undefined' && document.hidden) {
-            this.resetDelta();
-            return;
-        }
-
-        // Do not advance simulation when paused.
-        if (this.game.isPaused) {
             this.resetDelta();
             return;
         }
@@ -59,7 +57,5 @@ export class GameLoop {
         if (this.game.render) {
             this.game.render();
         }
-
-        this._frameCount++;
     }
 }
