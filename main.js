@@ -276,7 +276,7 @@ class Game {
         startScreen.style.display = 'grid';
     }
 
-    initializeGame() {
+    async initializeGame() {
         console.log('[initGame] START, isMobile:', this.isMobile());
         try {
         const isMobile = this.isMobile();
@@ -385,11 +385,15 @@ class Game {
             smoothSetProgress(ratio * 0.5, status);
         };
         this.map.startGeneration();
-        this.map.finalizeColliders();
 
         // Tile-based map underneath (for physics/collisions)
         this.tileMapGenerator = new MapGeneratorNode(this.scene);
         this.tileMapGenerator.init();
+
+        // Wait for map generation to complete (populates spawnPads)
+        await this.map._generatePromise;
+
+        this.map.finalizeColliders();
 
         // Performance: setup LOD and frustum culling
         this.map.setupLOD?.(this.isMobile());
