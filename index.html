@@ -2,10 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23ffb300' width='100' height='100' rx='20'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='white' font-family='Arial'>R</text></svg>">
     <title>Rubo Arena: Голодные игры</title>
     <style>
         :root {
@@ -31,7 +28,7 @@
         body {
             margin: 0;
             overflow: hidden;
-            background: #0a0f14;
+            background: #000;
             touch-action: none;
             overscroll-behavior: none;
             cursor: none;
@@ -60,6 +57,7 @@
         canvas {
             cursor: none !important;
             display: block;
+            pointer-events: none;
         }
 
         #touchStick {
@@ -733,7 +731,29 @@
             50% { transform: rotateX(62deg) translateY(-12px); }
         }
     </style>
-    <!-- Importmap disabled - using direct imports in main.js -->
+    <script type="importmap" id="importmap">
+        {
+            "imports": {
+                "three": "./node_modules/three/build/three.module.js",
+                "three/addons/": "./node_modules/three/examples/jsm/"
+            }
+        }
+    </script>
+    <script>
+        // Cache-busting for importmap — forces browser to reload all modules
+        (function() {
+            const timestamp = Date.now();
+            const importmap = document.getElementById('importmap');
+            const original = JSON.parse(importmap.textContent);
+            // Add cache-busting to all module imports
+            for (const key in original.imports) {
+                if (original.imports[key].includes('.')) {
+                    original.imports[key] = original.imports[key] + '?t=' + timestamp;
+                }
+            }
+            importmap.textContent = JSON.stringify(original, null, 4);
+        })();
+    </script>
 </head>
 <body>
     <div id="gameRoot">
@@ -845,37 +865,7 @@
             document.addEventListener('wheel', prevent, { capture: true, passive: false });
         })();
     </script>
-    <script>
-        let testModeEnabled = false;
-        window.setTestMode = function(enabled) {
-            if (enabled !== undefined) {
-                testModeEnabled = !!enabled;
-            }
-            return testModeEnabled;
-        };
-        
-        // Expose game instance for testing
-        window.getGameInstance = function() {
-            return typeof window.game !== 'undefined' ? window.game : null;
-        };
-        
-        // Check if test mode should be enabled (set before page load)
-        if (window.localStorage.getItem('testMode') === 'true') {
-            testModeEnabled = true;
-        }
-    </script>
-    <script>
-        // Console log capture — stores all console output for Playwright testing
-        window._consoleLogs = [];
-        const _origLog = console.log;
-        const _origWarn = console.warn;
-        const _origError = console.error;
-        console.log = function() { var args = Array.prototype.slice.call(arguments); _origLog.apply(console, args); window._consoleLogs.push({t: Date.now(), type: 'log', msg: args.map(function(a) { return String(a); }).join(' ')}); };
-        console.warn = function() { var args = Array.prototype.slice.call(arguments); _origWarn.apply(console, args); window._consoleLogs.push({t: Date.now(), type: 'warn', msg: args.map(function(a) { return String(a); }).join(' ')}); };
-        console.error = function() { var args = Array.prototype.slice.call(arguments); _origError.apply(console, args); window._consoleLogs.push({t: Date.now(), type: 'error', msg: args.map(function(a) { return String(a); }).join(' ')}); };
-        window.getConsoleLogs = function(count) { return window._consoleLogs.slice(-count || -9999); };
-    </script>
-    <script type="module" src="./main.js"></script>
+    <script type="module" src="./main.js?v=20240622001"></script>
 </body>
 </html>
 

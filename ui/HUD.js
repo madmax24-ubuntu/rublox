@@ -687,6 +687,8 @@ export class HUD {
             z-index: 1500;
             box-shadow: 0 18px 40px rgba(0,0,0,0.42);
         `;
+        // perkPanel is a direct child of hud, NOT nested inside perkBackdrop
+        hud.appendChild(perkPanel);
         let perkTouchStartY = 0;
         let perkScrollStart = 0;
         let perkTouchMoved = false;
@@ -901,7 +903,7 @@ export class HUD {
                 `;
             });
         }
-        perkBackdrop.appendChild(perkPanel);
+        // perkPanel already appended to hud above — do NOT nest inside perkBackdrop
 
         const scoreboard = document.createElement('div');
         scoreboard.id = 'scoreboard';

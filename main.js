@@ -2245,6 +2245,11 @@ class Game {
             this.startTransitionUntil = performance.now() + 3500;
             this.hud.showPause(false);
             this.isPaused = false;
+
+            // Enable canvas pointer events now that game is running
+            if (this.renderer?.domElement) {
+                this.renderer.domElement.style.pointerEvents = 'auto';
+            }
             this.partyMode = false;
             this.applyRoundMode('hybrid');
             await new Promise(resolve => requestAnimationFrame(() => resolve()));
