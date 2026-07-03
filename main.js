@@ -300,13 +300,6 @@ class Game {
         this.applyRendererSizing();
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-        const gameRoot = document.getElementById('gameRoot');
-        if (gameRoot) {
-            gameRoot.appendChild(this.renderer.domElement);
-        } else {
-            document.body.appendChild(this.renderer.domElement);
-        }
-
         this.camera.position.set(0, 1.5, 0);
         if (!isMobile) {
             this.controls = new PointerLockControls(this.camera, this.renderer.domElement);
@@ -331,6 +324,14 @@ class Game {
         this.input = new Input();
         this.audioSynth = new AudioSynth();
         this.hud = new HUD();
+
+        // Insert canvas AFTER HUD so HUD panels can capture pointer events
+        const gameRootEl = document.getElementById('gameRoot');
+        if (gameRootEl) {
+            gameRootEl.appendChild(this.renderer.domElement);
+        } else {
+            document.body.appendChild(this.renderer.domElement);
+        }
         this.roundMode = 'hybrid';
         this.perk = 'none';
         this.partyMode = false;
