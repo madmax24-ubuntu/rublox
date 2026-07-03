@@ -147,6 +147,27 @@ async function runDebugTest() {
     } catch (e) { /* ignore */ }
     console.log('✅ Диалоги закрыты\n');
 
+    // Подготовка к скриншотам: скрываем UI и делаем игрока бессмертным
+    await page.evaluate(() => {
+        // Скрываем все UI элементы
+        const style = document.createElement('style');
+        style.innerHTML = `
+            #ui, .ui, .hud, .menu, .game-over, .perk-menu, #crosshair, #health-bar, #ammo, #minimap {
+                display: none !important;
+                opacity: 0 !important;
+                visibility: hidden !important;
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Предотвращаем смерть и скрываем оружие
+        const g = window.game;
+        if (g && g.player) {
+            g.player.health = 999999;
+            if (g.player.weaponMesh) g.player.weaponMesh.visible = false;
+        }
+    });
+
     // Делаем скриншоты
     console.log('📸 Делаем скриншоты с камер...\n');
     const results = [];
@@ -157,22 +178,40 @@ async function runDebugTest() {
 
         try {
             await page.evaluate((cam) => {
-                if (window.gameInstance && window.gameInstance.camera) {
-                    window.gameInstance.camera.position.set(cam.x, cam.y, cam.z);
-                    const lookAt = cam.lookAt || { x: 0, y: 0, z: 0 };
-                    window.gameInstance.camera.lookAt(lookAt.x, lookAt.y, lookAt.z);
-                    window.gameInstance.camera.fov = cam.fov || 60;
-                    window.gameInstance.camera.updateProjectionMatrix();
-                    // Force render frame
-                    if (window.gameInstance.renderer) {
-                        window.gameInstance.renderer.render(
-                            window.gameInstance.scene,
-                            window.gameInstance.camera
-                        );
-                    } else if (window.gameInstance.render) {
-                        window.gameInstance.render();
-                    }
+                const g = window.gameInstance;
+                if (!g) return;
+
+                // Находим камеру через gameInstance или THREE.Scene
+                const camera = g.camera || g.scene?.camera;
+                if (!camera) return;
+
+                // Заморозить обновление камеры игроком — сохраняем оригинал
+                const origUpdate = g.player?.updateCamera;
+                if (g.player) {
+                    g.player.updateCamera = () => {}; // заглушка
                 }
+
+                // Позиционируем камеру
+                camera.position.set(cam.x, cam.y, cam.z);
+                camera.up.set(0, 1, 0);
+                const lookAt = cam.lookAt || { x: 0, y: 0, z: 0 };
+                camera.lookAt(lookAt.x, lookAt.y, lookAt.z);
+                camera.fov = cam.fov || 60;
+                camera.updateProjectionMatrix();
+
+                // Принудительный рендер
+                const renderer = g.renderer || g.threeRenderer;
+                const scene = g.scene || g.threeScene;
+                if (renderer && scene) {
+                    renderer.render(scene, camera);
+                } else if (g.render) {
+                    g.render();
+                }
+
+                // Восстанавливаем после
+                setTimeout(() => {
+                    if (g.player && origUpdate) g.player.updateCamera = origUpdate;
+                }, 2000);
             }, cam);
 
             await page.waitForTimeout(300);

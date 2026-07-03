@@ -398,11 +398,8 @@ export class Player {
             }
             if (controls && controls.isLocked) {
                 controls.getObject().position.copy(this._frozenCamPos);
-                controls.getObject().rotation.set(this.rotation.x, this.rotation.y, 0, 'YXZ');
-                controls.getObject().quaternion.setFromEuler(controls.getObject().rotation);
             } else {
                 this.camera.position.copy(this._frozenCamPos);
-                this.camera.rotation.set(this.rotation.x, this.rotation.y, 0, 'YXZ');
             }
             // Skip movement/physics during countdown
             this.physics.velocity.set(0, 0, 0);

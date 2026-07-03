@@ -50,8 +50,8 @@ THREE.DefaultLoadingManager.onLoad = function() {
     }
 };
 
-import { MapGenerator } from './world/MapGenerator.js';
-import { MapGeneratorNode } from './world/MapGeneratorNode.js';
+import { MapGenerator } from './world/MapGenerator.js?v=2';
+import { MapGeneratorNode } from './world/MapGeneratorNode.js?v=2';
 import { DebugOverlay } from './world/DebugOverlay.js';
 import { Environment } from './world/Environment.js';
 import { Physics } from './world/Physics.js';
@@ -637,7 +637,7 @@ class Game {
                     pad.z,
                     pad.y
                 ) ?? pad.y;
-                spawnPos = new THREE.Vector3(pad.x, groundY + 1.9, pad.z);
+                spawnPos = new THREE.Vector3(pad.x, groundY + 2.0, pad.z);
                 console.log('[Game] Bot', i, 'spawned at', `(${spawnPos.x.toFixed(2)}, ${spawnPos.y.toFixed(2)}, ${spawnPos.z.toFixed(2)})`);
             } else {
                 const angle = (i / botCount) * Math.PI * 2;
@@ -674,12 +674,12 @@ class Game {
         if (spawnPads.length > 0) {
             const pad = spawnPads[0];
             const groundY = this.map.raycastGroundY?.(pad.x, pad.z, pad.y) ?? pad.y;
-            this.player.position.set(pad.x, groundY + this.player.physics.height, pad.z);
+            this.player.position.set(pad.x, groundY + this.player.physics.height + 0.3, pad.z);
             this.player.physics.onGround = true;
             console.log('[Game] Player -> pad 0 at', `(${pad.x.toFixed(1)}, ${pad.y.toFixed(2)}, ${pad.z.toFixed(1)}), groundY=${groundY.toFixed(2)}, player.y=${this.player.position.y.toFixed(2)}`);
         } else {
             // Fallback to center if no pads
-            this.player.position.set(0, 2 + this.player.physics.height, 0);
+            this.player.position.set(0, 2 + this.player.physics.height + 0.3, 0);
             this.player.physics.onGround = true;
             console.log('[Game] Player fallback to center');
         }
