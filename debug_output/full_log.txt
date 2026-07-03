@@ -1,9 +1,9 @@
 Debug Map Test - Full Log
 ════════════════════════════════════════════════════════════
-Время: 15.06.2026, 16:00:10
+Время: 04.07.2026, 00:33:09
 Время генерации: 0с
 
-Успешных камер: 20 из 20
+Успешных камер: 16 из 16
 Ошибок камер: 0
 
 Сцена:
@@ -11,17 +11,125 @@ null
 
 Логи:
 ════════════════════════════════════════════════════════════
-[15:59:59] [LOG] DEBUG: Checking game object properties...
-[15:59:59] [LOG]   camera: true object
-[15:59:59] [LOG]   scene: true object
-[15:59:59] [LOG]   camera.position: 0 0 0
-[16:00:07] [LOG] [THREE.WebGLRenderer.render #1]
-[16:00:08] [LOG] [THREE.WebGLRenderer.render #2]
-[16:00:08] [LOG] [THREE.WebGLRenderer.render #3]
-[16:00:08] [LOG] [THREE.WebGLRenderer.render #4]
-[16:00:08] [LOG] [THREE.WebGLRenderer.render #5]
-[16:00:08] [LOG] [THREE.WebGLRenderer.render #6]
-[16:00:08] [LOG] [THREE.WebGLRenderer.render #7]
-[16:00:08] [LOG] [THREE.WebGLRenderer.render #8]
-[16:00:08] [LOG] [THREE.WebGLRenderer.render #9]
-[16:00:08] [LOG] [THREE.WebGLRenderer.render #10]
+[00:32:52] [LOG] [initGame] START, isMobile: false
+[00:32:52] [LOG] [initGame] creating scene...
+[00:32:52] [LOG] [initGame] scene created: true
+[00:32:53] [LOG] [MapGenerator] Before filter: 50 pads, first: (18.0, 0.0)
+[00:32:53] [LOG] [MapGenerator] After filter: 50 pads, first: (18.0, 0.0)
+[00:32:53] [LOG] [Game] spawnPlayerAndBots: pads total: 50
+[00:32:53] [LOG] [Game] Player -> pad 0 at (18.0, 2.00, 0.0), groundY=2.00, player.y=3.70
+[00:32:53] [LOG] [Game] spawnBots: pads total: 50 botPads: 49 botCount: 49
+[00:32:53] [LOG] [Game] Bot 0 -> pad 1 (17.9, 2.00, -2.3)
+[00:32:53] [LOG] [Game] Bot 0 spawned at (17.86, 3.90, -2.26)
+[00:32:53] [LOG] [Game] Bot 1 -> pad 2 (17.4, 2.00, -4.5)
+[00:32:53] [LOG] [Game] Bot 1 spawned at (17.43, 3.90, -4.48)
+[00:32:53] [LOG] [Game] Bot 2 -> pad 3 (16.7, 2.00, -6.6)
+[00:32:53] [LOG] [Game] Bot 2 spawned at (16.74, 3.90, -6.63)
+[00:32:53] [LOG] [Game] Bot 3 -> pad 4 (15.8, 2.00, -8.7)
+[00:32:53] [LOG] [Game] Bot 3 spawned at (15.77, 3.90, -8.67)
+[00:32:53] [LOG] [Game] Bot 4 -> pad 5 (14.6, 2.00, -10.6)
+[00:32:53] [LOG] [Game] Bot 4 spawned at (14.56, 3.90, -10.58)
+[00:32:53] [LOG] [Game] Bot 5 -> pad 6 (13.1, 2.00, -12.3)
+[00:32:53] [LOG] [Game] Bot 5 spawned at (13.12, 3.90, -12.32)
+[00:32:53] [LOG] [Game] Bot 6 -> pad 7 (11.5, 2.00, -13.9)
+[00:32:53] [LOG] [Game] Bot 6 spawned at (11.47, 3.90, -13.87)
+[00:32:53] [LOG] [Game] Bot 7 -> pad 8 (9.6, 2.00, -15.2)
+[00:32:53] [LOG] [Game] Bot 7 spawned at (9.64, 3.90, -15.20)
+[00:32:53] [LOG] [Game] Bot 8 -> pad 9 (7.7, 2.00, -16.3)
+[00:32:53] [LOG] [Game] Bot 8 spawned at (7.66, 3.90, -16.29)
+[00:32:53] [LOG] [Game] Bot 9 -> pad 10 (5.6, 2.00, -17.1)
+[00:32:53] [LOG] [Game] Bot 9 spawned at (5.56, 3.90, -17.12)
+[00:32:53] [LOG] [Game] Bot 10 -> pad 11 (3.4, 2.00, -17.7)
+[00:32:53] [LOG] [Game] Bot 10 spawned at (3.37, 3.90, -17.68)
+[00:32:53] [LOG] [Game] Bot 11 -> pad 12 (1.1, 2.00, -18.0)
+[00:32:53] [LOG] [Game] Bot 11 spawned at (1.13, 3.90, -17.96)
+[00:32:53] [LOG] [Game] Bot 12 -> pad 13 (-1.1, 2.00, -18.0)
+[00:32:53] [LOG] [Game] Bot 12 spawned at (-1.13, 3.90, -17.96)
+[00:32:53] [LOG] [Game] Bot 13 -> pad 14 (-3.4, 2.00, -17.7)
+[00:32:53] [LOG] [Game] Bot 13 spawned at (-3.37, 3.90, -17.68)
+[00:32:53] [LOG] [Game] Bot 14 -> pad 15 (-5.6, 2.00, -17.1)
+[00:32:53] [LOG] [Game] Bot 14 spawned at (-5.56, 3.90, -17.12)
+[00:32:53] [LOG] [Game] Bot 15 -> pad 16 (-7.7, 2.00, -16.3)
+[00:32:53] [LOG] [Game] Bot 15 spawned at (-7.66, 3.90, -16.29)
+[00:32:53] [LOG] [Game] Bot 16 -> pad 17 (-9.6, 2.00, -15.2)
+[00:32:53] [LOG] [Game] Bot 16 spawned at (-9.64, 3.90, -15.20)
+[00:32:53] [LOG] [Game] Bot 17 -> pad 18 (-11.5, 2.00, -13.9)
+[00:32:53] [LOG] [Game] Bot 17 spawned at (-11.47, 3.90, -13.87)
+[00:32:53] [LOG] [Game] Bot 18 -> pad 19 (-13.1, 2.00, -12.3)
+[00:32:53] [LOG] [Game] Bot 18 spawned at (-13.12, 3.90, -12.32)
+[00:32:53] [LOG] [Game] Bot 19 -> pad 20 (-14.6, 2.00, -10.6)
+[00:32:53] [LOG] [Game] Bot 19 spawned at (-14.56, 3.90, -10.58)
+[00:32:53] [LOG] [Game] Bot 20 -> pad 21 (-15.8, 2.00, -8.7)
+[00:32:53] [LOG] [Game] Bot 20 spawned at (-15.77, 3.90, -8.67)
+[00:32:53] [LOG] [Game] Bot 21 -> pad 22 (-16.7, 2.00, -6.6)
+[00:32:53] [LOG] [Game] Bot 21 spawned at (-16.74, 3.90, -6.63)
+[00:32:53] [LOG] [Game] Bot 22 -> pad 23 (-17.4, 2.00, -4.5)
+[00:32:53] [LOG] [Game] Bot 22 spawned at (-17.43, 3.90, -4.48)
+[00:32:53] [LOG] [Game] Bot 23 -> pad 24 (-17.9, 2.00, -2.3)
+[00:32:53] [LOG] [Game] Bot 23 spawned at (-17.86, 3.90, -2.26)
+[00:32:53] [LOG] [Game] Bot 24 -> pad 25 (-18.0, 2.00, 0.0)
+[00:32:53] [LOG] [Game] Bot 24 spawned at (-18.00, 3.90, 0.00)
+[00:32:53] [LOG] [Game] Bot 25 -> pad 26 (-17.9, 2.00, 2.3)
+[00:32:53] [LOG] [Game] Bot 25 spawned at (-17.86, 3.90, 2.26)
+[00:32:53] [LOG] [Game] Bot 26 -> pad 27 (-17.4, 2.00, 4.5)
+[00:32:53] [LOG] [Game] Bot 26 spawned at (-17.43, 3.90, 4.48)
+[00:32:53] [LOG] [Game] Bot 27 -> pad 28 (-16.7, 2.00, 6.6)
+[00:32:53] [LOG] [Game] Bot 27 spawned at (-16.74, 3.90, 6.63)
+[00:32:53] [LOG] [Game] Bot 28 -> pad 29 (-15.8, 2.00, 8.7)
+[00:32:53] [LOG] [Game] Bot 28 spawned at (-15.77, 3.90, 8.67)
+[00:32:53] [LOG] [Game] Bot 29 -> pad 30 (-14.6, 2.00, 10.6)
+[00:32:53] [LOG] [Game] Bot 29 spawned at (-14.56, 3.90, 10.58)
+[00:32:53] [LOG] [Game] Bot 30 -> pad 31 (-13.1, 2.00, 12.3)
+[00:32:53] [LOG] [Game] Bot 30 spawned at (-13.12, 3.90, 12.32)
+[00:32:53] [LOG] [Game] Bot 31 -> pad 32 (-11.5, 2.00, 13.9)
+[00:32:53] [LOG] [Game] Bot 31 spawned at (-11.47, 3.90, 13.87)
+[00:32:53] [LOG] [Game] Bot 32 -> pad 33 (-9.6, 2.00, 15.2)
+[00:32:53] [LOG] [Game] Bot 32 spawned at (-9.64, 3.90, 15.20)
+[00:32:53] [LOG] [Game] Bot 33 -> pad 34 (-7.7, 2.00, 16.3)
+[00:32:53] [LOG] [Game] Bot 33 spawned at (-7.66, 3.90, 16.29)
+[00:32:53] [LOG] [Game] Bot 34 -> pad 35 (-5.6, 2.00, 17.1)
+[00:32:53] [LOG] [Game] Bot 34 spawned at (-5.56, 3.90, 17.12)
+[00:32:53] [LOG] [Game] Bot 35 -> pad 36 (-3.4, 2.00, 17.7)
+[00:32:53] [LOG] [Game] Bot 35 spawned at (-3.37, 3.90, 17.68)
+[00:32:53] [LOG] [Game] Bot 36 -> pad 37 (-1.1, 2.00, 18.0)
+[00:32:53] [LOG] [Game] Bot 36 spawned at (-1.13, 3.90, 17.96)
+[00:32:53] [LOG] [Game] Bot 37 -> pad 38 (1.1, 2.00, 18.0)
+[00:32:53] [LOG] [Game] Bot 37 spawned at (1.13, 3.90, 17.96)
+[00:32:53] [LOG] [Game] Bot 38 -> pad 39 (3.4, 2.00, 17.7)
+[00:32:53] [LOG] [Game] Bot 38 spawned at (3.37, 3.90, 17.68)
+[00:32:53] [LOG] [Game] Bot 39 -> pad 40 (5.6, 2.00, 17.1)
+[00:32:53] [LOG] [Game] Bot 39 spawned at (5.56, 3.90, 17.12)
+[00:32:53] [LOG] [Game] Bot 40 -> pad 41 (7.7, 2.00, 16.3)
+[00:32:53] [LOG] [Game] Bot 40 spawned at (7.66, 3.90, 16.29)
+[00:32:53] [LOG] [Game] Bot 41 -> pad 42 (9.6, 2.00, 15.2)
+[00:32:53] [LOG] [Game] Bot 41 spawned at (9.64, 3.90, 15.20)
+[00:32:53] [LOG] [Game] Bot 42 -> pad 43 (11.5, 2.00, 13.9)
+[00:32:53] [LOG] [Game] Bot 42 spawned at (11.47, 3.90, 13.87)
+[00:32:53] [LOG] [Game] Bot 43 -> pad 44 (13.1, 2.00, 12.3)
+[00:32:53] [LOG] [Game] Bot 43 spawned at (13.12, 3.90, 12.32)
+[00:32:53] [LOG] [Game] Bot 44 -> pad 45 (14.6, 2.00, 10.6)
+[00:32:53] [LOG] [Game] Bot 44 spawned at (14.56, 3.90, 10.58)
+[00:32:53] [LOG] [Game] Bot 45 -> pad 46 (15.8, 2.00, 8.7)
+[00:32:53] [LOG] [Game] Bot 45 spawned at (15.77, 3.90, 8.67)
+[00:32:53] [LOG] [Game] Bot 46 -> pad 47 (16.7, 2.00, 6.6)
+[00:32:53] [LOG] [Game] Bot 46 spawned at (16.74, 3.90, 6.63)
+[00:32:53] [LOG] [Game] Bot 47 -> pad 48 (17.4, 2.00, 4.5)
+[00:32:53] [LOG] [Game] Bot 47 spawned at (17.43, 3.90, 4.48)
+[00:32:53] [LOG] [Game] Bot 48 -> pad 49 (17.9, 2.00, 2.3)
+[00:32:53] [LOG] [Game] Bot 48 spawned at (17.86, 3.90, 2.26)
+[00:32:53] [LOG] [Game] ✅ Spawn uniqueness verified: 50 entities, 50 unique pads
+[00:32:53] [LOG] [THREE.WebGLRenderer.render #1]
+[00:32:54] [LOG] [initGame] done: true true true
+[00:32:54] [LOG] [THREE.WebGLRenderer.render #2]
+[00:32:54] [LOG] [THREE.WebGLRenderer.render #3]
+[00:32:54] [ERROR] Failed to load resource: the server responded with a status of 404 (File not found)
+[00:32:54] [LOG] [THREE.WebGLRenderer.render #4]
+[00:32:54] [LOG] [THREE.WebGLRenderer.render #5]
+[00:32:54] [LOG] Pointer lock enabled
+[00:32:54] [LOG] [THREE.WebGLRenderer.render #6]
+[00:32:54] [LOG] [THREE.WebGLRenderer.render #7]
+[00:32:55] [LOG] [THREE.WebGLRenderer.render #8]
+[00:32:55] [LOG] [THREE.WebGLRenderer.render #9]
+[00:32:55] [LOG] [THREE.WebGLRenderer.render #10]
+[00:33:00] [LOG] [THREE.WebGLRenderer.render #120]
+[00:33:06] [LOG] [THREE.WebGLRenderer.render #240]

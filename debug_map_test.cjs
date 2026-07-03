@@ -11,35 +11,38 @@ if (!fs.existsSync(outputDir)) {
 }
 
 const cameraPositions = [
-    // Высокие обзоры
-    { name: 'top_center', x: 0, y: 300, z: 0, fov: 90, color: '#ff0000' },
-    { name: 'top_left', x: -100, y: 250, z: 100, fov: 60, color: '#ff4400' },
-    { name: 'top_right', x: 100, y: 250, z: 100, fov: 60, color: '#ff8800' },
-    { name: 'top_front', x: 0, y: 200, z: -150, fov: 75, color: '#ffaa00' },
-    { name: 'top_back', x: 0, y: 200, z: 150, fov: 75, color: '#ffcc00' },
+    // ====== ГЛАВНЫЙ ВИД — как референс (изометрический с ЮВ угла) ======
+    { name: '00_iso_reference', x: 400, y: 340, z: 400, lookAt: {x:0,y:0,z:0}, fov: 55 },
+    // Чуть ближе — видно весь квадрат
+    { name: '01_overview_high', x: 0, y: 450, z: 350, lookAt: {x:0,y:0,z:0}, fov: 65 },
+    // Точный изометрический вид с оси юго-востока (SE)
+    { name: '02_iso_se', x: 350, y: 300, z: 350, lookAt: {x:0,y:0,z:0}, fov: 60 },
+    // Вид с севера
+    { name: '03_from_north', x: 0, y: 280, z: -380, lookAt: {x:0,y:0,z:0}, fov: 65 },
 
-    // Биомы на земле
-    { name: 'citadel_ground', x: -80, y: 25, z: 80, fov: 60, color: '#00ff00' },
-    { name: 'crystal_ground', x: 80, y: 25, z: 80, fov: 60, color: '#00ff44' },
-    { name: 'wastes_ground', x: -80, y: 25, z: -80, fov: 60, color: '#00ff88' },
-    { name: 'forest_ground', x: 80, y: 25, z: -80, fov: 60, color: '#00ffcc' },
+    // ====== БИОМЫ — обзор каждого квадранта ======
+    // Лес (СЗ)
+    { name: '10_forest_nw', x: -130, y: 120, z: -130, lookAt: {x:-130,y:0,z:-130}, fov: 65 },
+    // Лабиринт (СВ)
+    { name: '11_maze_ne', x: 130, y: 120, z: -130, lookAt: {x:130,y:0,z:-130}, fov: 65 },
+    // Военный (ЮЗ)
+    { name: '12_military_sw', x: -130, y: 120, z: 130, lookAt: {x:-130,y:0,z:130}, fov: 65 },
+    // Лёд (ЮВ)
+    { name: '13_ice_se', x: 130, y: 120, z: 130, lookAt: {x:130,y:0,z:130}, fov: 65 },
 
-    // Ворота
-    { name: 'gate_north', x: 0, y: 15, z: -25, fov: 60, color: '#0088ff' },
-    { name: 'gate_south', x: 0, y: 15, z: 25, fov: 60, color: '#0044ff' },
-    { name: 'gate_west', x: -25, y: 15, z: 0, fov: 60, color: '#4400ff' },
-    { name: 'gate_east', x: 25, y: 15, z: 0, fov: 60, color: '#8800ff' },
+    // ====== ЦЕНТР — спавн-плиты и фонтан ======
+    { name: '20_center_top', x: 0, y: 60, z: 0, lookAt: {x:0,y:0,z:0}, fov: 80 },
+    { name: '21_center_iso', x: 35, y: 40, z: 35, lookAt: {x:0,y:2,z:0}, fov: 70 },
+    { name: '22_spawn_pads', x: 0, y: 30, z: 25, lookAt: {x:0,y:2,z:0}, fov: 75 },
 
-    // Ближие ракурсы
-    { name: 'spawn_pad', x: 0, y: 12, z: 0, fov: 70, color: '#cc00ff' },
-    { name: 'cornucopia', x: 15, y: 15, z: 15, fov: 65, color: '#ff00cc' },
-    { name: 'center_path', x: 0, y: 20, z: 50, fov: 70, color: '#ff0088' },
+    // ====== ПЕРИМЕТР — голубые стены ======
+    { name: '30_perimeter_n', x: 0, y: 25, z: -240, lookAt: {x:0,y:10,z:-256}, fov: 70 },
+    { name: '31_perimeter_e', x: 240, y: 25, z: 0, lookAt: {x:256,y:10,z:0}, fov: 70 },
+    { name: '32_corner_ne', x: 220, y: 60, z: -220, lookAt: {x:256,y:0,z:-256}, fov: 70 },
 
-    // Края арены
-    { name: 'edge_ne', x: 120, y: 60, z: 120, fov: 65, color: '#ff0044' },
-    { name: 'edge_nw', x: -120, y: 60, z: 120, fov: 65, color: '#ff0066' },
-    { name: 'edge_se', x: 120, y: 60, z: -120, fov: 65, color: '#ff0022' },
-    { name: 'edge_sw', x: -120, y: 60, z: -120, fov: 65, color: '#ff0011' },
+    // ====== ЛЕДЯНОЙ КВАДРАНТ — озеро и иглу ======
+    { name: '40_ice_lake', x: 130, y: 50, z: 80, lookAt: {x:130,y:0,z:130}, fov: 65 },
+    { name: '41_ice_igloos', x: 200, y: 30, z: 60, lookAt: {x:200,y:0,z:100}, fov: 70 },
 ];
 
 async function runDebugTest() {
@@ -126,6 +129,24 @@ async function runDebugTest() {
     await page.waitForTimeout(3000);
     console.log('✅ Игра стабильна\n');
 
+    // Закрываем диалог выбора перка и другие оверлеи
+    console.log('🔒 Закрываем диалоги...');
+    try {
+        // Нажимаем Escape чтобы закрыть диалоги
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(300);
+        // Кликаем по первому перку если диалог открыт
+        const perkBtn = await page.$('.perk-menu button, .modal button, [data-perk]');
+        if (perkBtn) {
+            await perkBtn.click();
+            await page.waitForTimeout(500);
+        }
+        // Ещё раз Escape для любых других диалогов
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(300);
+    } catch (e) { /* ignore */ }
+    console.log('✅ Диалоги закрыты\n');
+
     // Делаем скриншоты
     console.log('📸 Делаем скриншоты с камер...\n');
     const results = [];
@@ -138,12 +159,23 @@ async function runDebugTest() {
             await page.evaluate((cam) => {
                 if (window.gameInstance && window.gameInstance.camera) {
                     window.gameInstance.camera.position.set(cam.x, cam.y, cam.z);
-                    window.gameInstance.camera.lookAt(0, 0, 0);
+                    const lookAt = cam.lookAt || { x: 0, y: 0, z: 0 };
+                    window.gameInstance.camera.lookAt(lookAt.x, lookAt.y, lookAt.z);
                     window.gameInstance.camera.fov = cam.fov || 60;
                     window.gameInstance.camera.updateProjectionMatrix();
-                    window.gameInstance.render();
+                    // Force render frame
+                    if (window.gameInstance.renderer) {
+                        window.gameInstance.renderer.render(
+                            window.gameInstance.scene,
+                            window.gameInstance.camera
+                        );
+                    } else if (window.gameInstance.render) {
+                        window.gameInstance.render();
+                    }
                 }
             }, cam);
+
+            await page.waitForTimeout(300);
 
             // Сохраняем скриншот
             const screenshot = await page.screenshot({
@@ -151,7 +183,7 @@ async function runDebugTest() {
                 clip: { x: 0, y: 0, width: 1280, height: 720 }
             });
 
-            const fileName = `${String(i + 1).padStart(2, '_')}_${cam.name}.png`;
+            const fileName = `${String(i + 1).padStart(2, '0')}_${cam.name}.png`;
             const filePath = path.join(outputDir, fileName);
             fs.writeFileSync(filePath, screenshot);
 
@@ -162,8 +194,6 @@ async function runDebugTest() {
             console.log(`  ❌ Ошибка: ${err.message}`);
             results.push({ camera: cam.name, status: 'error', error: err.message, time: Date.now() });
         }
-
-        await page.waitForTimeout(200);
     }
 
     // Информация о сцене
@@ -231,8 +261,38 @@ async function runDebugTest() {
         console.log(`  🌊 Воды: ${sceneInfo.waterMeshes}`);
         console.log(`  💣 Ловушек: ${sceneInfo.traps}`);
         console.log(`  🌫️ Тумана: ${sceneInfo.fogZones}`);
-        console.log(`  🏁 Падтов: ${sceneInfo.spawnPads}`);
+        console.log(`  🏁 Спавн-плит: ${sceneInfo.spawnPads}`);
     }
+
+    // Анализ позиций спавн-плит
+    console.log('\n🎯 Анализ спавн-плит:');
+    const spawnAnalysis = await page.evaluate(() => {
+        const game = window.gameInstance;
+        if (!game) return null;
+        const pads = game.mapGenerator?.spawnPads || [];
+        const first5 = pads.slice(0, 5).map(p => ({
+            x: p.x?.toFixed(2), y: p.y?.toFixed(2), z: p.z?.toFixed(2)
+        }));
+        const wrongY = pads.filter(p => Math.abs((p.y || 0) - 2.0) > 0.5).length;
+        return {
+            total: pads.length,
+            first5,
+            wrongY,
+            minY: Math.min(...pads.map(p => p.y || 0)).toFixed(2),
+            maxY: Math.max(...pads.map(p => p.y || 0)).toFixed(2),
+        };
+    });
+    if (spawnAnalysis) {
+        const ok = spawnAnalysis.wrongY === 0 ? '✅' : '⚠️';
+        console.log(`  Всего плит: ${spawnAnalysis.total}`);
+        console.log(`  ${ok} Плит с неверной высотой (y≠2): ${spawnAnalysis.wrongY}`);
+        console.log(`  Диапазон Y: ${spawnAnalysis.minY} .. ${spawnAnalysis.maxY}`);
+        console.log(`  Первые 5 позиций:`);
+        spawnAnalysis.first5?.forEach((p, i) => {
+            console.log(`    [${i}] x=${p.x}, y=${p.y}, z=${p.z}`);
+        });
+    }
+
 
     // Итоги логов
     const errors = logs.filter(l => l.type === 'error');

@@ -116,9 +116,6 @@ export class MapGenerator {
         // Phase 3: River + bridges (simplified - just thin dividers)
         this._generateRiver();
 
-        // Phase 3.5: Biome boundary walls (removed - biomes separated by terrain colors)
-        // this._placeBiomeBoundaries();
-
         // Phase 4: Forest quadrant (NW)
         this._generateForestQuadrant();
 
@@ -136,6 +133,12 @@ export class MapGenerator {
 
         // Phase 9: Logical connections between biomes
         this._generateBiomeConnections();
+
+        // Phase 9.8: Map perimeter walls (glass/blue like reference)
+        this._generatePerimeterWalls();
+
+        // Phase 9.9: Compass rose markers
+        this._generateCompassMarkers();
 
         // Phase 9.5: Build collider grid for spatial queries
         this._rebuildColliderGrid();
@@ -312,11 +315,10 @@ export class MapGenerator {
         // No center pad needed; all pads are on the edge
 
         // Add collision for the high-detail structure to match its geometry perfectly.
-        // Base platform: mesh at y=1 with height 2 → top surface at y=2
-        // Spawn pads sit on top at y=2.15 (0.15 above platform)
-        // Collider center.y=1, halfY=1 → top at y=2 (matches platform surface)
-        const baseRadius = 25;
-        this.addColliderBox(new THREE.Vector3(0, 1, 0), baseRadius * 2, 1, baseRadius * 2, true);
+        // Base platform: BoxGeometry(50,2,50) at y=1 → top surface at y=2
+        // Collider: center.y=1, height=2 → min.y=0, max.y=2 ✅
+        const baseRadius = 27; // cover all 50 pads at edgeRadius=18
+        this.addColliderBox(new THREE.Vector3(0, 1, 0), baseRadius * 2, 2, baseRadius * 2, true);
 
         // Fountain collision — solid non-walkable volume (fountain positioned at y=2 in scene)
         this.addColliderBox(new THREE.Vector3(0, 3.0, 0), 7, 2.5, 7, false);
@@ -3220,49 +3222,27 @@ export class MapGenerator {
     // =========================================================================
     _generateIceQuadrant() {
         // ЮВ квадрант: x в [10, 256], z в [10, 256]
-        const lakeMat = new THREE.MeshStandardMaterial({
-            color: COLORS.iceLake,
-            roughness: 0.3,
-            metalness: 0.2,
-            transparent: true,
-            opacity: 0.75
+        const iceFloorMat = new THREE.MeshStandardMaterial({
+            color: 0xddeeff, roughness: 0.8, flatShading: true
         });
+        const iceFloorGeo = new THREE.PlaneGeometry(246, 246);
+        const iceFloor = new THREE.Mesh(iceFloorGeo, iceFloorMat);
+        iceFloor.rotation.x = -Math.PI / 2;
+        iceFloor.position.set(133, 0.02, 133);
+        iceFloor.userData.mapGenerated = true;
+        this.scene.add(iceFloor);
 
-        const lakeGeo = new THREE.CircleGeometry(30, 20);
-        lakeGeo.rotateX(-Math.PI / 2);
-        const lake = new THREE.Mesh(lakeGeo, lakeMat);
-        lake.position.set(130, 0.02, 130);
-        lake.userData.mapGenerated = true;
-        this.scene.add(lake);
-
-        // Дополнительные пруды
-        for (let pond = 0; pond < 5; pond++) {
-            const pondR = 8 + this._rand() * 12;
-            const pondMat = new THREE.MeshStandardMaterial({
-                color: 0xaaddff,
-                roughness: 0.2,
-                metalness: 0.1,
-                transparent: true,
-                opacity: 0.6
-            });
-            const pondGeo = new THREE.CircleGeometry(pondR, 16);
-            pondGeo.rotateX(-Math.PI / 2);
-            const pondMesh = new THREE.Mesh(pondGeo, pondMat);
-            pondMesh.position.set(20 + this._rand() * 220, 0.03, 20 + this._rand() * 220);
-            pondMesh.userData.mapGenerated = true;
-            this.scene.add(pondMesh);
-        }
+        // ---- СТУПЕНЧАТОЕ КВАДРАТНОЕ ОЗЕРО (как в референсе) ----
+        this._generateSteppedIceLake(130, 130);
 
         // Снежные дюны
-        for (let drift = 0; drift < 20; drift++) {
-            const driftW = 5 + this._rand() * 8;
+        for (let drift = 0; drift < 16; drift++) {
+            const driftW = 4 + this._rand() * 7;
             const driftH = 1 + this._rand() * 2;
             const driftD = 3 + this._rand() * 5;
             const driftGeo = new THREE.SphereGeometry(driftW, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2);
             const driftMat = new THREE.MeshStandardMaterial({
-                color: 0xeef4ff,
-                roughness: 0.9,
-                flatShading: true
+                color: 0xeef4ff, roughness: 0.9, flatShading: true
             });
             const driftMesh = new THREE.Mesh(driftGeo, driftMat);
             driftMesh.position.set(15 + this._rand() * 230, 0, 15 + this._rand() * 230);
@@ -3271,21 +3251,21 @@ export class MapGenerator {
             this.scene.add(driftMesh);
         }
 
-        // Иглу — детализированные с факелами и мебелью
-        for (let i = 0; i < 8; i++) {
-            const ix = 20 + this._rand() * 225;
-            const iz = 20 + this._rand() * 225;
-            this._addDetailedIgloo(ix, iz);
+        // Иглу — детализированные, ближе к краям как в референсе
+        const iglooPositions = [
+            { x: 195, z: 50 }, { x: 230, z: 100 }, { x: 215, z: 165 },
+            { x: 190, z: 220 }, { x: 60, z: 200 }, { x: 30, z: 145 },
+            { x: 70, z: 60 },  { x: 140, z: 35 },
+        ];
+        for (const pos of iglooPositions) {
+            this._addDetailedIgloo(pos.x, pos.z);
         }
-
-        // Ледяные столбы вокруг озера
-        this._addIcePillars(130, 130);
 
         // Ледяные трещины на поверхности озера
         this._addIceCracks(130, 130);
 
         // Зимний костёр у озера
-        this._addIceCampfire(130 + 40, 130 - 35);
+        this._addIceCampfire(175, 100);
 
         // Снежные люди (snowmen)
         this._addSnowmen(10, 10, 236);
@@ -3296,30 +3276,40 @@ export class MapGenerator {
         // Временные зимние укрытия (snow shelters)
         this._addSnowShelters(10, 10, 236);
 
-        // Кристаллы
-        for (let i = 0; i < 25; i++) {
-            const cx = 10 + this._rand() * 235;
-            const cz = 10 + this._rand() * 235;
-            this._addIceCrystal(cx, cz);
+        // Крупные ледяные кристаллы по краям
+        const crystalPositions = [
+            { x: 210, z: 30 }, { x: 240, z: 80 }, { x: 240, z: 185 },
+            { x: 200, z: 240 }, { x: 40, z: 230 }, { x: 15, z: 180 },
+            { x: 20, z: 70 },  { x: 90, z: 20 },
+        ];
+        for (const cp of crystalPositions) {
+            this._addIceCrystal(cp.x, cp.z);
+            // Несколько мелких рядом
+            for (let j = 0; j < 3; j++) {
+                this._addIceCrystal(
+                    cp.x + (this._rand() - 0.5) * 12,
+                    cp.z + (this._rand() - 0.5) * 12
+                );
+            }
         }
 
-        // Снежные деревья с улучшенным снегом
-        for (let i = 0; i < 30; i++) {
-            const tx = 10 + this._rand() * 235;
-            const tz = 10 + this._rand() * 235;
+        // Снежные деревья — сгруппированные как в референсе
+        for (let i = 0; i < 35; i++) {
+            const tx = 12 + this._rand() * 232;
+            const tz = 12 + this._rand() * 232;
+            // Не ставим деревья прямо в озеро
+            const distToLake = Math.sqrt((tx - 130) ** 2 + (tz - 130) ** 2);
+            if (distToLake < 55) continue;
             this._addSnowTree(tx, tz);
         }
 
         // Ледяные стены (остатки стен)
-        for (let wall = 0; wall < 8; wall++) {
+        for (let wall = 0; wall < 6; wall++) {
             const wallW = 3 + this._rand() * 6;
             const wallH = 2 + this._rand() * 3;
             const wallGeo = new THREE.BoxGeometry(wallW, wallH, 0.5);
             const wallMat = new THREE.MeshStandardMaterial({
-                color: 0xccddff,
-                roughness: 0.4,
-                transparent: true,
-                opacity: 0.7
+                color: 0xccddff, roughness: 0.4, transparent: true, opacity: 0.7
             });
             const wallMesh = new THREE.Mesh(wallGeo, wallMat);
             wallMesh.position.set(15 + this._rand() * 230, wallH / 2, 15 + this._rand() * 230);
@@ -3328,8 +3318,8 @@ export class MapGenerator {
             this.scene.add(wallMesh);
         }
 
-        // Ветряная турбина (как на референсе)
-        this._addWindTurbine(180, 180);
+        // Радиовышка (как в референсе — справа от озера)
+        this._addRadioTower(185, 105);
 
         // Edge trees — dense ice perimeter
         this._addIceEdgeTrees(10, 10, 236);
@@ -3341,10 +3331,136 @@ export class MapGenerator {
         this._addIcePOI(10, 10, 236);
 
         // Path from ice to center
-        this._addIceToCenterPath(130, 130);
+        this._addIceToCenterPath(100, 100);
 
         // Falling snow particles
         this._addSnowParticles();
+    }
+
+    // =========================================================================
+    // STEPPED ICE LAKE — квадратные ступенчатые платформы льда как в референсе
+    // =========================================================================
+    _generateSteppedIceLake(cx, cz) {
+        const lakeMat = new THREE.MeshStandardMaterial({
+            color: 0x7ecff5,
+            roughness: 0.15,
+            metalness: 0.3,
+            transparent: true,
+            opacity: 0.82
+        });
+        const icePlatMat = new THREE.MeshStandardMaterial({
+            color: 0xaaddff,
+            roughness: 0.4,
+            metalness: 0.1,
+            transparent: true,
+            opacity: 0.9,
+            flatShading: true
+        });
+        const shallowMat = new THREE.MeshStandardMaterial({
+            color: 0x5ab8f0,
+            roughness: 0.2,
+            metalness: 0.2,
+            transparent: true,
+            opacity: 0.75
+        });
+
+        // Центральное озеро — глубокая часть (самая синяя)
+        const deepGeo = new THREE.BoxGeometry(40, 0.3, 40);
+        const deep = new THREE.Mesh(deepGeo, lakeMat.clone());
+        deep.position.set(cx, 0.15, cz);
+        deep.userData.mapGenerated = true;
+        this.scene.add(deep);
+
+        // Мелкие зоны вокруг — квадратные плитки
+        const tileSize = 14;
+        const steps = [
+            // Первый уровень ступеней (ближние к центру)
+            { dx: -27, dz: -27, w: tileSize, d: tileSize },
+            { dx: 0,   dz: -35, w: tileSize * 2, d: tileSize },
+            { dx: 27,  dz: -27, w: tileSize, d: tileSize },
+            { dx: 35,  dz: 0,   w: tileSize, d: tileSize * 2 },
+            { dx: 27,  dz: 27,  w: tileSize, d: tileSize },
+            { dx: 0,   dz: 35,  w: tileSize * 2, d: tileSize },
+            { dx: -27, dz: 27,  w: tileSize, d: tileSize },
+            { dx: -35, dz: 0,   w: tileSize, d: tileSize * 2 },
+        ];
+
+        for (const s of steps) {
+            const geo = new THREE.BoxGeometry(s.w, 0.2, s.d);
+            const mesh = new THREE.Mesh(geo, shallowMat.clone());
+            mesh.position.set(cx + s.dx, 0.1, cz + s.dz);
+            mesh.userData.mapGenerated = true;
+            this.scene.add(mesh);
+        }
+
+        // Внешние квадратные плитки льда (разной высоты) — как в референсе
+        const outerTiles = [
+            { dx: -55, dz: -55, w: 18, d: 18, y: 0.08 },
+            { dx: 0,   dz: -60, w: 28, d: 14, y: 0.08 },
+            { dx: 55,  dz: -55, w: 18, d: 18, y: 0.08 },
+            { dx: 60,  dz: 0,   w: 14, d: 28, y: 0.08 },
+            { dx: 55,  dz: 55,  w: 18, d: 18, y: 0.08 },
+            { dx: 0,   dz: 60,  w: 28, d: 14, y: 0.08 },
+            { dx: -55, dz: 55,  w: 18, d: 18, y: 0.08 },
+            { dx: -60, dz: 0,   w: 14, d: 28, y: 0.08 },
+            // Угловые дополнительные
+            { dx: -28, dz: -55, w: 12, d: 12, y: 0.06 },
+            { dx: 28,  dz: -55, w: 12, d: 12, y: 0.06 },
+            { dx: 55,  dz: -28, w: 12, d: 12, y: 0.06 },
+            { dx: 55,  dz: 28,  w: 12, d: 12, y: 0.06 },
+            { dx: 28,  dz: 55,  w: 12, d: 12, y: 0.06 },
+            { dx: -28, dz: 55,  w: 12, d: 12, y: 0.06 },
+            { dx: -55, dz: 28,  w: 12, d: 12, y: 0.06 },
+            { dx: -55, dz: -28, w: 12, d: 12, y: 0.06 },
+        ];
+
+        for (const t of outerTiles) {
+            const geo = new THREE.BoxGeometry(t.w, 0.15, t.d);
+            const mesh = new THREE.Mesh(geo, icePlatMat.clone());
+            mesh.position.set(cx + t.dx, t.y, cz + t.dz);
+            mesh.userData.mapGenerated = true;
+            mesh.userData.walkable = true;
+            this.scene.add(mesh);
+            this.addColliderBox(
+                new THREE.Vector3(cx + t.dx, t.y, cz + t.dz),
+                t.w, 0.15, t.d, true
+            );
+        }
+
+        // Ледяные трещины и детали на центральной части
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const r = 10 + this._rand() * 15;
+            const crackX = cx + Math.cos(angle) * r;
+            const crackZ = cz + Math.sin(angle) * r;
+            const crackLen = 3 + this._rand() * 6;
+            const crackGeo = new THREE.BoxGeometry(crackLen, 0.05, 0.15);
+            const crackMat = new THREE.MeshStandardMaterial({
+                color: 0x336699, roughness: 0.3, flatShading: true
+            });
+            const crack = new THREE.Mesh(crackGeo, crackMat);
+            crack.position.set(crackX, 0.25, crackZ);
+            crack.rotation.y = angle + this._rand() * 0.5;
+            crack.userData.mapGenerated = true;
+            this.scene.add(crack);
+        }
+
+        // Снежные купола на льду (maленькие глыбы льда по краям)
+        const snowMat = new THREE.MeshStandardMaterial({
+            color: 0xffffff, roughness: 0.85, flatShading: true
+        });
+        for (let i = 0; i < 12; i++) {
+            const angle = (i / 12) * Math.PI * 2 + this._rand() * 0.3;
+            const r = 48 + this._rand() * 12;
+            const bx = cx + Math.cos(angle) * r;
+            const bz = cz + Math.sin(angle) * r;
+            const size = 1.5 + this._rand() * 2.5;
+            const geo = new THREE.SphereGeometry(size, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2);
+            const mesh = new THREE.Mesh(geo, snowMat.clone());
+            mesh.position.set(bx, 0, bz);
+            mesh.userData.mapGenerated = true;
+            this.scene.add(mesh);
+        }
     }
 
     _addIceEdgeTrees(startX, startZ, size) {
@@ -4141,6 +4257,124 @@ export class MapGenerator {
         }
     }
 
+    // =========================================================================
+    // PERIMETER WALLS — Glass blue border walls like in reference image
+    // =========================================================================
+    _generatePerimeterWalls() {
+        const wallH = 18;   // Wall height
+        const wallT = 1.5;  // Thickness
+        const half = HALF;  // 256
+        const wallMat = new THREE.MeshStandardMaterial({
+            color: 0x4dd0e1,
+            emissive: 0x006064,
+            emissiveIntensity: 0.4,
+            roughness: 0.1,
+            metalness: 0.2,
+            transparent: true,
+            opacity: 0.55,
+            flatShading: false
+        });
+
+        // Bottom base plate (solid floor under walls)
+        const baseMat = new THREE.MeshStandardMaterial({
+            color: 0x1565c0,
+            roughness: 0.7,
+            flatShading: true
+        });
+
+        // Four perimeter walls
+        const walls = [
+            // North wall
+            { x: 0, y: wallH / 2, z: -half, w: half * 2 + wallT * 2, h: wallH, d: wallT },
+            // South wall
+            { x: 0, y: wallH / 2, z: half,  w: half * 2 + wallT * 2, h: wallH, d: wallT },
+            // West wall
+            { x: -half, y: wallH / 2, z: 0, w: wallT, h: wallH, d: half * 2 },
+            // East wall
+            { x: half,  y: wallH / 2, z: 0, w: wallT, h: wallH, d: half * 2 },
+        ];
+
+        for (const w of walls) {
+            const geo = new THREE.BoxGeometry(w.w, w.h, w.d);
+            const mesh = new THREE.Mesh(geo, wallMat.clone());
+            mesh.position.set(w.x, w.y, w.z);
+            mesh.userData.mapGenerated = true;
+            this.scene.add(mesh);
+            this.addColliderBox(new THREE.Vector3(w.x, w.y, w.z), w.w, w.h, w.d, false);
+        }
+
+        // Blue base strip (floor level frame)
+        const baseWalls = [
+            { x: 0, z: -half - wallT * 0.5, w: half * 2 + wallT * 4, d: wallT * 2 },
+            { x: 0, z: half + wallT * 0.5,  w: half * 2 + wallT * 4, d: wallT * 2 },
+            { x: -half - wallT * 0.5, z: 0, w: wallT * 2, d: half * 2 },
+            { x: half + wallT * 0.5,  z: 0, w: wallT * 2, d: half * 2 },
+        ];
+
+        for (const b of baseWalls) {
+            const geo = new THREE.BoxGeometry(b.w, 0.5, b.d);
+            const mesh = new THREE.Mesh(geo, baseMat.clone());
+            mesh.position.set(b.x, 0.25, b.z);
+            mesh.userData.mapGenerated = true;
+            this.scene.add(mesh);
+        }
+    }
+
+    // =========================================================================
+    // COMPASS MARKERS — N/S/E/W markers at map edges like reference
+    // =========================================================================
+    _generateCompassMarkers() {
+        const markerH = 22;
+        const dirs = [
+            { label: 'N', x: 0, z: -HALF + 15, color: 0xff5252 },
+            { label: 'S', x: 0, z: HALF - 15,  color: 0xff5252 },
+            { label: 'W', x: -HALF + 15, z: 0, color: 0xffffff },
+            { label: 'E', x: HALF - 15,  z: 0, color: 0xffffff },
+        ];
+
+        for (const d of dirs) {
+            // Tall thin pole
+            const poleGeo = new THREE.CylinderGeometry(0.3, 0.4, markerH, 8);
+            const poleMat = new THREE.MeshStandardMaterial({
+                color: d.color, roughness: 0.5, flatShading: true
+            });
+            const pole = new THREE.Mesh(poleGeo, poleMat);
+            pole.position.set(d.x, markerH / 2, d.z);
+            pole.userData.mapGenerated = true;
+            this.scene.add(pole);
+
+            // Arrow/cone at top
+            const coneGeo = new THREE.ConeGeometry(1.0, 3, 6);
+            const cone = new THREE.Mesh(coneGeo, poleMat.clone());
+            cone.position.set(d.x, markerH + 1.5, d.z);
+            cone.userData.mapGenerated = true;
+            this.scene.add(cone);
+
+            // Canvas text label
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.beginPath();
+            ctx.arc(32, 32, 30, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = d.label === 'N' || d.label === 'S' ? '#ff5252' : '#ffffff';
+            ctx.font = 'bold 36px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(d.label, 32, 32);
+            const tex = new THREE.CanvasTexture(canvas);
+            const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+                map: tex, transparent: true, depthTest: false
+            }));
+            sprite.position.set(d.x, markerH + 5, d.z);
+            sprite.scale.set(5, 5, 1);
+            sprite.userData.mapGenerated = true;
+            this.scene.add(sprite);
+        }
+    }
+
     _addIceChunk(x, z) {
         const size = 0.5 + this._rand() * 1.5;
         const geo = new THREE.DodecahedronGeometry(size, 0);
@@ -4384,11 +4618,17 @@ export class MapGenerator {
         return { x: 0, z: 0 };
     }
 
-        // Raycast to find ground Y at given X,Z — returns surface height or fallback
+    // Raycast to find ground Y at given X,Z — returns surface height or fallback
     raycastGroundY(x, z, fallbackY = 0) {
-        // Find the highest walkable surface at this position, but only below spawn height
-        // This ensures we get the platform (y~3.3) not the second floor (y~14)
-        const maxSearchY = fallbackY + 2;
+        // For spawn pads near the center, platform surface is at y=2
+        const distFromCenter = Math.sqrt(x * x + z * z);
+        if (distFromCenter <= 30) {
+            // Center platform always at y=2
+            return 2.0;
+        }
+
+        // Find the highest walkable surface at this position
+        const maxSearchY = fallbackY + 3;
         let closestY = fallbackY;
         let found = false;
         for (const col of this.colliders) {
