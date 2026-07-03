@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { MapGeneratorNode } from "./MapGeneratorNode.js?v=2";
+import { MapGeneratorNode } from "./MapGeneratorNode.js?v=3";
 import { AABBGrid } from "./AABBGrid.js";
 import { DebugOverlay } from "./DebugOverlay.js";
 

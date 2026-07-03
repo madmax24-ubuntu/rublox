@@ -50,25 +50,25 @@ THREE.DefaultLoadingManager.onLoad = function() {
     }
 };
 
-import { MapGenerator } from './world/MapGenerator.js?v=3';
-import { MapGeneratorNode } from './world/MapGeneratorNode.js?v=3';
-import { DebugOverlay } from './world/DebugOverlay.js?v=3';
-import { Environment } from './world/Environment.js?v=3';
-import { Physics } from './world/Physics.js?v=3';
-import { Zone } from './world/Zone.js?v=3';
-import { GameLoop } from './core/GameLoop.js?v=3';
-import { Input } from './core/Input.js?v=3';
-import { AudioSynth } from './core/AudioSynth.js?v=3';
-import { Player } from './entities/Player.js?v=3';
-import { Bot } from './entities/Bot.js?v=3';
-import { BotBrain } from './entities/BotBrain.js?v=3';
-import { Zombie } from './entities/Zombie.js?v=3';
-import { ExplosiveBarrel } from './entities/ExplosiveBarrel.js?v=3';
-import { EntityManager } from './entities/EntityManager.js?v=3';
-import { LootManager } from './items/LootManager.js?v=3';
-import { HUD } from './ui/HUD.js?v=3';
-import { YandexBridge } from './core/YandexBridge.js?v=3';
-import { GAME_CONFIG, ROUND_MODES } from './core/GameBalance.js?v=3';
+import { MapGenerator } from './world/MapGenerator.js??v=1783104590654';
+import { MapGeneratorNode } from './world/MapGeneratorNode.js??v=1783104590654';
+import { DebugOverlay } from './world/DebugOverlay.js??v=1783104590654';
+import { Environment } from './world/Environment.js??v=1783104590654';
+import { Physics } from './world/Physics.js??v=1783104590654';
+import { Zone } from './world/Zone.js??v=1783104590654';
+import { GameLoop } from './core/GameLoop.js??v=1783104590654';
+import { Input } from './core/Input.js??v=1783104590654';
+import { AudioSynth } from './core/AudioSynth.js??v=1783104590654';
+import { Player } from './entities/Player.js??v=1783104590654';
+import { Bot } from './entities/Bot.js??v=1783104590654';
+import { BotBrain } from './entities/BotBrain.js??v=1783104590654';
+import { Zombie } from './entities/Zombie.js??v=1783104590654';
+import { ExplosiveBarrel } from './entities/ExplosiveBarrel.js??v=1783104590654';
+import { EntityManager } from './entities/EntityManager.js??v=1783104590654';
+import { LootManager } from './items/LootManager.js??v=1783104590654';
+import { HUD } from './ui/HUD.js??v=1783104590654';
+import { YandexBridge } from './core/YandexBridge.js??v=1783104590654';
+import { GAME_CONFIG, ROUND_MODES } from './core/GameBalance.js??v=1783104590654';
 
 class Game {
     constructor(yandexBridge = null) {
