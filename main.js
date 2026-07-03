@@ -489,7 +489,6 @@ class Game {
         this.countdownTime = GAME_CONFIG.round.countdownSeconds;
         this.countdownTimer = this.countdownTime;
         this.lastCountdownSecond = null;
-        this.gameLoop.start();
         this.spawnTime = GAME_CONFIG.round.preFightInvulnerableSeconds;
         this.spawnTimer = this.spawnTime;
         this.botLootPhaseDuration = GAME_CONFIG.round.botLootPhaseSeconds;
@@ -501,6 +500,7 @@ class Game {
         this.chestRespawnTimer = 55;
 
         this.gameLoop = new GameLoop(this);
+        this.gameLoop.start();
         this.applyRoundMode('hybrid');
         this.applyUserSettings(this.loadUserSettings());
         this.hud.setPerkSelectionEnabled(true);
