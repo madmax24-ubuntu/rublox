@@ -1438,6 +1438,7 @@ class Game {
             this.menuKeyLatch.e = false;
         }
         if (this.gameState === 'countdown' && this.isStarted) {
+            console.log('[DEBUG] countdown: timer=', this.countdownTimer, 'delta=', delta, 'isStarted=', this.isStarted);
             this.countdownTimer -= delta;
             const sec = Math.max(0, Math.ceil(this.countdownTimer));
             if (sec !== this.lastCountdownSecond) {
