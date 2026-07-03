@@ -489,6 +489,7 @@ class Game {
         this.countdownTime = GAME_CONFIG.round.countdownSeconds;
         this.countdownTimer = this.countdownTime;
         this.lastCountdownSecond = null;
+        this.gameLoop.start();
         this.spawnTime = GAME_CONFIG.round.preFightInvulnerableSeconds;
         this.spawnTimer = this.spawnTime;
         this.botLootPhaseDuration = GAME_CONFIG.round.botLootPhaseSeconds;
@@ -1478,7 +1479,7 @@ class Game {
                 this.bots.forEach(bot => { bot.isFrozen = false; });
                 this.queueZombieBurst(true, 1.6, 120, 22, this.isMobile() ? 4 : 6);
                 this.queuePoiBurst(1.7, this.isMobile() ? 18 : 28, this.isMobile() ? 4 : 5);
-                this.gameLoop.start();
+                // Game loop already started at countdown
             }
         } else if (this.gameState === 'spawn' && this.isStarted) {
             this.spawnTimer -= delta;
