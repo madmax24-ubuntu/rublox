@@ -103,25 +103,8 @@ async function main() {
     // Выбираем первый перк
     const firstPerk = perkButtons[0];
     
-    // Debug: get element bounding box and pointer events
-    const box = await firstPerk.boundingBox();
-    console.log('🔍 Perk button bounding box:', JSON.stringify(box));
-    
-    // Get computed pointer-events of canvas
-    const canvasPE = await page.evaluate(() => {
-        const c = document.querySelector('canvas');
-        return c ? getComputedStyle(c).pointerEvents : 'NOT FOUND';
-    });
-    console.log('🔍 Canvas pointer-events:', canvasPE);
-    
-    // Get DOM order of gameRoot children
-    const domOrder = await page.evaluate(() => {
-        const root = document.getElementById('gameRoot');
-        return Array.from(root.children).map(el => el.tagName + (el.id ? '#' + el.id : ''));
-    });
-    console.log('🔍 DOM order:', domOrder);
-    
     // Click by coordinates to bypass Playwright's hit-test
+    const box = await firstPerk.boundingBox();
     const centerX = box.x + box.width / 2;
     const centerY = box.y + box.height / 2;
     await page.mouse.click(centerX, centerY);
@@ -137,47 +120,29 @@ async function main() {
     }
     console.log('✅ Таймер появился');
     
-    // 8. Ожидание окончания таймера
+    // 8. Ожидание окончания таймера (15 секунд + буфер)
     console.log('\n⏳ Шаг 8: Ожидание окончания таймера...');
     let countdownReachedZero = false;
-    for (let i = 0; i < 9; i++) {
-        await sleep(2000); // Poll every 2 seconds
+    for (let i = 0; i < 12; i++) {
+        await sleep(2000); // Poll every 2 seconds (24s total)
         const state = await page.evaluate(() => {
             const cd = document.getElementById('countdown');
             return {
                 text: cd ? cd.textContent : 'NONE',
                 gameState: window.game ? window.game.gameState : 'NO_GAME',
-                isStarted: window.game ? window.game.isStarted : false,
-                countdownTimer: window.game ? window.game.countdownTimer : -1,
             };
         });
-        console.log(`🔍 [${i * 2}s]`, JSON.stringify(state));
         if (state.gameState !== 'countdown') {
             countdownReachedZero = true;
-            console.log('✅ Таймер завершился');
+            console.log('✅ Таймер завершился (gameState=', state.gameState, ')');
             break;
         }
     }
     if (!countdownReachedZero) {
-        console.error('❌ Таймер не завершился за 18 секунд');
+        console.error('❌ Таймер не завершился за 24 секунды');
+        await cleanup();
+        process.exit(1);
     }
-
-    // Debug: check countdown state
-    const countdownState = await page.evaluate(() => {
-        const cd = document.getElementById('countdown');
-        return {
-            exists: !!cd,
-            display: cd ? getComputedStyle(cd).display : 'N/A',
-            gameRootChildren: Array.from(document.getElementById('gameRoot').children).map(el => el.tagName + (el.id ? '#' + el.id : '')),
-        };
-    });
-    console.log('🔍 Countdown state:', JSON.stringify(countdownState, null, 2));
-    
-    // Also check gameState
-    const gameState = await page.evaluate(() => {
-        return window.game ? window.game.gameState : 'NO_GAME';
-    });
-    console.log('🔍 gameState:', gameState);
     
     // Проверяем что таймер исчез
     const countdownGone = await page.$('#countdown').then(() => false).catch(() => true);

@@ -489,7 +489,6 @@ class Game {
         this.countdownTime = GAME_CONFIG.round.countdownSeconds;
         this.countdownTimer = this.countdownTime;
         this.lastCountdownSecond = null;
-        console.log('[DEBUG init] countdownTime=', this.countdownTime, 'countdownTimer=', this.countdownTimer);
         this.spawnTime = GAME_CONFIG.round.preFightInvulnerableSeconds;
         this.spawnTimer = this.spawnTime;
         this.botLootPhaseDuration = GAME_CONFIG.round.botLootPhaseSeconds;
@@ -1363,7 +1362,6 @@ class Game {
 
     update(delta) {
         this.enforceNoBugPolicy(delta);
-        console.error('[DEBUG update entry] delta=', delta, 'gameState=', this.gameState, 'isPaused=', this.isPaused, 'isStarted=', this.isStarted);
         if (this.isStarted && loadingOverlay && loadingOverlay.style.display !== 'none') {
             loadingOverlay.style.display = 'none';
         }
@@ -1382,7 +1380,6 @@ class Game {
 
         if (this.isPaused) {
             this.hud.showPause(true);
-            console.error('[DEBUG] update() PAUSED - returning early');
             return;
         }
 
@@ -1441,7 +1438,6 @@ class Game {
             this.menuKeyLatch.e = false;
         }
         if (this.gameState === 'countdown' && this.isStarted) {
-            console.error('[DEBUG update] countdown: timer=', this.countdownTimer, 'delta=', delta, 'isStarted=', this.isStarted);
             this.countdownTimer -= delta;
             const sec = Math.max(0, Math.ceil(this.countdownTimer));
             if (sec !== this.lastCountdownSecond) {
