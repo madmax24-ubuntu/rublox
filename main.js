@@ -420,12 +420,6 @@ class Game {
           this.player = new Player(this.scene, this.camera, this.input);
           this.player.setHUD(this.hud);
           this.player.mapRef = this.map;
-          // Player spawns at center of platform (top surface at y=2)
-          this.player.position.set(0, 2 + this.player.physics.height, 0);
-          this.player.physics.onGround = true;
-        this.physics.addEntity(this.player);
-        this.entityManager.addEntity(this.player);
-
         this.bots = [];
         this.botBrains = [];
         this.zombies = [];
@@ -443,7 +437,7 @@ class Game {
         this.zombieSpawnCursor = 0;
         this.poiSpawnCandidates = [];
         this.poiSpawnCursor = 0;
-        this.spawnBots();
+        this.spawnPlayerAndBots();
         this.rebuildSpawnCaches();
         this.spawnEnvironmentEntities();
         this.gateClosed = false;
@@ -622,7 +616,7 @@ class Game {
             : GAME_CONFIG.bots.desktopCount;
         const spawnPads = this.map.getSpawnPads?.() || [];
         const spawnRadius = GAME_CONFIG.bots.spawnRadius;
-        // Player uses pad[0], bots use pads[1..] — each bot gets strictly its own pad
+        // Player uses pad[0], bots use pads[1..] — each entity gets strictly its own pad
         const botPads = spawnPads.length > 1 ? spawnPads.slice(1) : spawnPads;
         console.log('[Game] spawnBots: pads total:', spawnPads.length, 'botPads:', botPads.length, 'botCount:', botCount);
 
@@ -640,6 +634,7 @@ class Game {
                     pad.y
                 ) ?? pad.y;
                 spawnPos = new THREE.Vector3(pad.x, groundY + 1.9, pad.z);
+                console.log('[Game] Bot', i, 'spawned at', `(${spawnPos.x.toFixed(2)}, ${spawnPos.y.toFixed(2)}, ${spawnPos.z.toFixed(2)})`);
             } else {
                 const angle = (i / botCount) * Math.PI * 2;
                 spawnPos = new THREE.Vector3(
@@ -647,6 +642,7 @@ class Game {
                     2,
                     Math.sin(angle) * spawnRadius
                 );
+                console.log('[Game] Bot', i, 'fallback to angle', angle.toFixed(2), 'pos', `(${spawnPos.x.toFixed(2)}, ${spawnPos.y.toFixed(2)}, ${spawnPos.z.toFixed(2)})`);
             }
 
             const bot = new Bot(this.scene, i, spawnPos);
@@ -659,6 +655,80 @@ class Game {
             this.physics.addEntity(bot);
             this.entityManager.addEntity(bot);
             this.bots.push(bot);
+        }
+    }
+
+    /**
+     * Spawn player and all bots on strictly reserved spawn pads.
+     * One entity per pad — player gets pad[0], bots get pads[1..N].
+     */
+    spawnPlayerAndBots() {
+        const spawnPads = this.map.getSpawnPads?.() || [];
+        console.log('[Game] spawnPlayerAndBots: pads total:', spawnPads.length);
+
+        // Spawn player on pad[0]
+        if (spawnPads.length > 0) {
+            const pad = spawnPads[0];
+            const groundY = this.map.raycastGroundY?.(pad.x, pad.z, pad.y) ?? pad.y;
+            this.player.position.set(pad.x, groundY + this.player.physics.height, pad.z);
+            this.player.physics.onGround = true;
+            console.log('[Game] Player -> pad 0 at', `(${pad.x.toFixed(1)}, ${pad.y.toFixed(2)}, ${pad.z.toFixed(1)}), groundY=${groundY.toFixed(2)}, player.y=${this.player.position.y.toFixed(2)}`);
+        } else {
+            // Fallback to center if no pads
+            this.player.position.set(0, 2 + this.player.physics.height, 0);
+            this.player.physics.onGround = true;
+            console.log('[Game] Player fallback to center');
+        }
+
+        this.physics.addEntity(this.player);
+        this.entityManager.addEntity(this.player);
+
+        // Spawn bots on remaining pads
+        this.spawnBots();
+
+        // Verify no two entities share the same pad
+        this._verifySpawnUniqueness();
+    }
+
+    /**
+     * Verify that no two entities share the same spawn pad.
+     */
+    _verifySpawnUniqueness() {
+        const entities = [this.player, ...this.bots];
+        const padUsage = new Map(); // padIndex -> entityIndex
+        let duplicates = 0;
+
+        for (let i = 0; i < entities.length; i++) {
+            const ent = entities[i];
+            if (!ent || !ent.position) continue;
+
+            // Find which pad this entity is on
+            const spawnPads = this.map.getSpawnPads?.() || [];
+            let assignedPad = -1;
+            for (let p = 0; p < spawnPads.length; p++) {
+                const pad = spawnPads[p];
+                const dx = ent.position.x - pad.x;
+                const dz = ent.position.z - pad.z;
+                if (Math.sqrt(dx * dx + dz * dz) < 1.5) {
+                    assignedPad = p;
+                    break;
+                }
+            }
+
+            if (assignedPad >= 0) {
+                if (padUsage.has(assignedPad)) {
+                    console.log(`[Game] DUPLICATE: pad ${assignedPad} used by entity ${padUsage.get(assignedPad)} and entity ${i}`);
+                    duplicates++;
+                } else {
+                    padUsage.set(assignedPad, i);
+                }
+            }
+        }
+
+        if (duplicates === 0) {
+            console.log(`[Game] ✅ Spawn uniqueness verified: ${entities.length} entities, ${padUsage.size} unique pads`);
+        } else {
+            console.log(`[Game] ❌ Spawn uniqueness FAILED: ${duplicates} duplicates found`);
         }
     }
 
