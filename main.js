@@ -1502,6 +1502,7 @@ class Game {
         if (this.gameState === 'countdown' && this.isStarted) {
             this.countdownTimer -= delta;
             const sec = Math.max(0, Math.ceil(this.countdownTimer));
+            console.log(`[Game] countdown: ${sec}s, delta: ${delta.toFixed(3)}`);
             if (sec !== this.lastCountdownSecond) {
                 this.lastCountdownSecond = sec;
                 if (sec > 0) {
