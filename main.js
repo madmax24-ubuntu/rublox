@@ -475,6 +475,10 @@ class Game {
         this.countdownTime = GAME_CONFIG.round.countdownSeconds;
         this.countdownTimer = this.countdownTime;
         this.lastCountdownSecond = null;
+        // Test mode: shorten countdown
+        if (window.__kilo_test__) {
+            this.countdownTimer = 0.15;
+        }
         this.spawnTime = GAME_CONFIG.round.preFightInvulnerableSeconds;
         this.spawnTimer = this.spawnTime;
         this.botLootPhaseDuration = GAME_CONFIG.round.botLootPhaseSeconds;
@@ -1502,7 +1506,6 @@ class Game {
         if (this.gameState === 'countdown' && this.isStarted) {
             this.countdownTimer -= delta;
             const sec = Math.max(0, Math.ceil(this.countdownTimer));
-            console.log(`[Game] countdown: ${sec}s, delta: ${delta.toFixed(3)}`);
             if (sec !== this.lastCountdownSecond) {
                 this.lastCountdownSecond = sec;
                 if (sec > 0) {

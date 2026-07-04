@@ -545,6 +545,10 @@ class Game {
         this.countdownTime = GAME_CONFIG.round.countdownSeconds;
         this.countdownTimer = this.countdownTime;
         this.lastCountdownSecond = null;
+        // Test mode: shorten countdown
+        if (window.__kilo_test__) {
+            this.countdownTimer = 0.15;
+        }
         this.spawnTime = 10;
         this.spawnTimer = this.spawnTime;
         
