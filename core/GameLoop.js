@@ -46,9 +46,8 @@ export class GameLoop {
             console.log('[GameLoop] hidden, skipping');
             return;
         }
-        console.log('[GameLoop] running, delta:', delta.toFixed(3));
-
         const delta = this.clock.getDelta();
+        console.log('[GameLoop] running, delta:', delta.toFixed(3));
         // Clamp delta to avoid large physics/AI jumps after tab switching.
         const clampedDelta = Math.min(delta, 0.1);
 
