@@ -636,9 +636,8 @@ class Game {
                 if (!pad) { console.log('[Game] Bot', i, 'no pad available'); break; }
                 console.log('[Game] Bot', i, '-> pad', i+1, `(${pad.x.toFixed(1)}, ${pad.y.toFixed(2)}, ${pad.z.toFixed(1)})`);
 
-                // Bots spawn ON the pad (pad.y is platform surface, pad.y + 0.3 is the ring/pad top)
-                const padTopY = pad.y + 0.3;
-                spawnPos = new THREE.Vector3(pad.x, padTopY + 1.9, pad.z);
+                // Bots spawn ON the pad surface (pad.y = platform surface y=2)
+                spawnPos = new THREE.Vector3(pad.x, pad.y + 1.9, pad.z);
                 console.log('[Game] Bot', i, 'spawned at', `(${spawnPos.x.toFixed(2)}, ${spawnPos.y.toFixed(2)}, ${spawnPos.z.toFixed(2)})`);
             } else {
                 const angle = (i / botCount) * Math.PI * 2;
