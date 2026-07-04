@@ -19,26 +19,9 @@ import { chromium } from 'playwright';
 
     await page.waitForTimeout(2000);
 
+    await page.evaluate(() => { window.__kilo_test__ = true; });
     try { await page.click('button.start-btn'); } catch(e) {}
     console.log('Clicked start button');
-
-    const start = Date.now();
-    let overlayGone = false;
-    while (Date.now() - start < 120000 && !overlayGone) {
-        try {
-            const display = await page.evaluate(() => {
-                const ol = document.getElementById('loadingOverlay');
-                return ol ? ol.style.display : 'no-overlay';
-            }, { timeout: 3000 });
-            if (display === 'none') {
-                overlayGone = true;
-                console.log('Overlay hidden');
-            }
-        } catch(e) { break; }
-        await page.waitForTimeout(1000);
-    }
-
-    await page.evaluate(() => { window.__kilo_test__ = true; });
     
     await page.waitForFunction(() => {
         const g = window.game;
