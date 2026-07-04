@@ -25,7 +25,7 @@ import { chromium } from 'playwright';
     // Override countdown timer after game starts
     await page.evaluate(() => {
         const g = window.game;
-        console.log(`[Test] Setting countdown override, gameState=${g?.gameState}, countdownTimer=${g?.countdownTimer}`);
+        console.log(`[Test] Setting countdown override, gameState=${g?.gameState}, countdownTimer=${g?.countdownTimer}, document.hidden=${document.hidden}, __kilo_test__=${window.__kilo_test__}`);
         if (g && g.gameState === 'countdown') {
             g.countdownTimer = 0.15;
         }
