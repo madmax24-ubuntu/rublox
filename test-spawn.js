@@ -21,6 +21,14 @@ import { chromium } from 'playwright';
 
     await page.evaluate(() => { window.__kilo_test__ = true; });
     try { await page.click('button.start-btn'); } catch(e) {}
+    
+    // Override countdown timer after game starts
+    await page.evaluate(() => {
+        const g = window.game;
+        if (g && g.gameState === 'countdown') {
+            g.countdownTimer = 0.15;
+        }
+    });
     console.log('Clicked start button');
     
     await page.waitForFunction(() => {
