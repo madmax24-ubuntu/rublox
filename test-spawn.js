@@ -31,6 +31,7 @@ import { chromium } from 'playwright';
     // Wait for countdown to finish
     await page.waitForFunction(() => {
         const g = window.game;
+        console.log(`[Test] gameState=${g?.gameState}, countdownTimer=${g?.countdownTimer}`);
         return g && g.gameState === 'spawn';
     }, { timeout: 120000 });
 
