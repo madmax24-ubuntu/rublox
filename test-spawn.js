@@ -31,7 +31,7 @@ import { chromium } from 'playwright';
     // Wait for countdown to finish
     await page.waitForFunction(() => {
         const g = window.game;
-        return g && (g.gameState !== 'countdown' || g.countdownTimer <= 0);
+        return g && g.gameState === 'spawn';
     }, { timeout: 120000 });
 
     console.log('Game is started, checking spawn positions...');
