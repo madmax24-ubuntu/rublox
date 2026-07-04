@@ -340,7 +340,24 @@ export class Physics {
         const nearby = this.getNearbyColliders(position, radius + 4);
         let debugCount = 0;
         if (nearby.length === 0 && this.colliders.length > 0) {
-            console.log(`[Physics] getColliderSurfaceHeight: pos=(${position.x.toFixed(1)}, ${position.y.toFixed(1)}, ${position.z.toFixed(1)}), nearby=0, total=${this.colliders.length}, grid size=${this.colliderGrid.size}`);
+            // Fallback: iterate all colliders
+            for (const box of this.colliders) {
+                if (box.enabled === false || !box.walkable) continue;
+                const min = box.min;
+                const max = box.max;
+                if (!min || !max) continue;
+                if (position.x + radius < min.x || position.x - radius > max.x) continue;
+                if (position.z + radius < min.z || position.z - radius > max.z) continue;
+                if (position.y + height < min.y - 0.5) continue;
+                if (position.y > max.y + height + 0.5) continue;
+                if (bottom > max.y + 0.5) continue;
+                debugCount++;
+                const dist = Math.abs(max.y - bottom);
+                if (maxY === -Infinity || dist < Math.abs(maxY - bottom)) maxY = max.y;
+            }
+            if (debugCount > 0) {
+                console.log(`[Physics] FALLBACK found platform: pos=(${position.x.toFixed(1)}, ${position.y.toFixed(1)}, ${position.z.toFixed(1)}), maxY=${maxY}, count=${debugCount}`);
+            }
         }
         for (const box of nearby) {
             if (box.enabled === false || !box.walkable) continue;

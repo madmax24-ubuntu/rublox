@@ -38,10 +38,10 @@ import { chromium } from 'playwright';
         return g && g.isStarted && g.player && g.bots && g.bots.length > 0;
     }, { timeout: 120000 });
     
-    // Wait for countdown to finish
+    // Wait for game to start, check positions during countdown while bots frozen on platform
     await page.waitForFunction(() => {
         const g = window.game;
-        return g && g.gameState === 'spawn';
+        return g && g.gameState === 'countdown';
     }, { timeout: 120000 });
 
     console.log('Game is started, checking spawn positions...');
