@@ -43,11 +43,9 @@ export class GameLoop {
         // Do not advance simulation when the tab/app is hidden.
         if (typeof document !== 'undefined' && document.hidden && !window.__kilo_test__) {
             this.resetDelta();
-            console.log('[GameLoop] hidden, skipping');
             return;
         }
         const delta = this.clock.getDelta();
-        console.log('[GameLoop] running, delta:', delta.toFixed(3));
         // Clamp delta to avoid large physics/AI jumps after tab switching.
         const clampedDelta = Math.min(delta, 0.1);
 
