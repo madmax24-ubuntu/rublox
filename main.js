@@ -1,4 +1,4 @@
-import * as THREE from "three";
+﻿import * as THREE from "three";
 import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
 
 window.THREE = THREE;
@@ -50,25 +50,25 @@ THREE.DefaultLoadingManager.onLoad = function() {
     }
 };
 
-import { MapGenerator } from './world/MapGenerator.js??v=1783104590654';
-import { MapGeneratorNode } from './world/MapGeneratorNode.js??v=1783104590654';
-import { DebugOverlay } from './world/DebugOverlay.js??v=1783104590654';
-import { Environment } from './world/Environment.js??v=1783104590654';
-import { Physics } from './world/Physics.js??v=1783104590654';
-import { Zone } from './world/Zone.js??v=1783104590654';
-import { GameLoop } from './core/GameLoop.js??v=1783104590654';
-import { Input } from './core/Input.js??v=1783104590654';
-import { AudioSynth } from './core/AudioSynth.js??v=1783104590654';
-import { Player } from './entities/Player.js??v=1783104590654';
-import { Bot } from './entities/Bot.js??v=1783104590654';
-import { BotBrain } from './entities/BotBrain.js??v=1783104590654';
-import { Zombie } from './entities/Zombie.js??v=1783104590654';
-import { ExplosiveBarrel } from './entities/ExplosiveBarrel.js??v=1783104590654';
-import { EntityManager } from './entities/EntityManager.js??v=1783104590654';
-import { LootManager } from './items/LootManager.js??v=1783104590654';
-import { HUD } from './ui/HUD.js??v=1783104590654';
-import { YandexBridge } from './core/YandexBridge.js??v=1783104590654';
-import { GAME_CONFIG, ROUND_MODES } from './core/GameBalance.js??v=1783104590654';
+import { MapGenerator } from './world/MapGenerator.js?v=1783108938526';
+import { MapGeneratorNode } from './world/MapGeneratorNode.js?v=1783108938526';
+import { DebugOverlay } from './world/DebugOverlay.js?v=1783108938526';
+import { Environment } from './world/Environment.js?v=1783108938526';
+import { Physics } from './world/Physics.js?v=1783108938526';
+import { Zone } from './world/Zone.js?v=1783108938526';
+import { GameLoop } from './core/GameLoop.js?v=1783108938526';
+import { Input } from './core/Input.js?v=1783108938526';
+import { AudioSynth } from './core/AudioSynth.js?v=1783108938526';
+import { Player } from './entities/Player.js?v=1783108938526';
+import { Bot } from './entities/Bot.js?v=1783108938526';
+import { BotBrain } from './entities/BotBrain.js?v=1783108938526';
+import { Zombie } from './entities/Zombie.js?v=1783108938526';
+import { ExplosiveBarrel } from './entities/ExplosiveBarrel.js?v=1783108938526';
+import { EntityManager } from './entities/EntityManager.js?v=1783108938526';
+import { LootManager } from './items/LootManager.js?v=1783108938526';
+import { HUD } from './ui/HUD.js?v=1783108938526';
+import { YandexBridge } from './core/YandexBridge.js?v=1783108938526';
+import { GAME_CONFIG, ROUND_MODES } from './core/GameBalance.js?v=1783108938526';
 
 class Game {
     constructor(yandexBridge = null) {
@@ -637,13 +637,13 @@ class Game {
                     pad.z,
                     pad.y
                 ) ?? pad.y;
-                spawnPos = new THREE.Vector3(pad.x, groundY + 2.0, pad.z);
+                spawnPos = new THREE.Vector3(pad.x, groundY + 1.9, pad.z);
                 console.log('[Game] Bot', i, 'spawned at', `(${spawnPos.x.toFixed(2)}, ${spawnPos.y.toFixed(2)}, ${spawnPos.z.toFixed(2)})`);
             } else {
                 const angle = (i / botCount) * Math.PI * 2;
                 spawnPos = new THREE.Vector3(
                     Math.cos(angle) * spawnRadius,
-                    2,
+                    2 + 1.9,
                     Math.sin(angle) * spawnRadius
                 );
                 console.log('[Game] Bot', i, 'fallback to angle', angle.toFixed(2), 'pos', `(${spawnPos.x.toFixed(2)}, ${spawnPos.y.toFixed(2)}, ${spawnPos.z.toFixed(2)})`);
@@ -674,12 +674,12 @@ class Game {
         if (spawnPads.length > 0) {
             const pad = spawnPads[0];
             const groundY = this.map.raycastGroundY?.(pad.x, pad.z, pad.y) ?? pad.y;
-            this.player.position.set(pad.x, groundY + this.player.physics.height + 0.3, pad.z);
+            this.player.position.set(pad.x, groundY + this.player.physics.height, pad.z);
             this.player.physics.onGround = true;
             console.log('[Game] Player -> pad 0 at', `(${pad.x.toFixed(1)}, ${pad.y.toFixed(2)}, ${pad.z.toFixed(1)}), groundY=${groundY.toFixed(2)}, player.y=${this.player.position.y.toFixed(2)}`);
         } else {
             // Fallback to center if no pads
-            this.player.position.set(0, 2 + this.player.physics.height + 0.3, 0);
+            this.player.position.set(0, 2 + this.player.physics.height, 0);
             this.player.physics.onGround = true;
             console.log('[Game] Player fallback to center');
         }
