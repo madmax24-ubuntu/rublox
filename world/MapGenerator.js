@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { MapGeneratorNode } from "./MapGeneratorNode.js?v=3";
+import { MapGeneratorNode } from "./MapGeneratorNode.js?v=1783108959290";
 import { AABBGrid } from "./AABBGrid.js";
 import { DebugOverlay } from "./DebugOverlay.js";
 
@@ -207,6 +207,10 @@ export class MapGenerator {
         }
     }
 
+    getSpawnPads() {
+        return this.spawnPads;
+    }
+
     _logProgress(pct) {
         if (this.onProgress) this.onProgress(pct);
     }
@@ -320,6 +324,7 @@ export class MapGenerator {
         this.scene.traverse((child) => {
             if (child.userData && !child.userData.mapGenerated && child.position.length() < 100) {
                 child.userData.mapGenerated = true;
+                child.userData.isCornucopia = true;
             }
         });
 
@@ -343,7 +348,8 @@ export class MapGenerator {
         // Base platform: BoxGeometry(50,2,50) at y=1 → top surface at y=2
         // Collider: center.y=1, height=2 → min.y=0, max.y=2 ✅
         const baseRadius = 27; // cover all 50 pads at edgeRadius=18
-        this.addColliderBox(new THREE.Vector3(0, 1, 0), baseRadius * 2, 2, baseRadius * 2, true);
+        const platformCollider = this.addColliderBox(new THREE.Vector3(0, 1, 0), baseRadius * 2, 2, baseRadius * 2, true);
+        platformCollider.isCornucopia = true;
 
         // Fountain collision — solid non-walkable volume (fountain positioned at y=2 in scene)
         this.addColliderBox(new THREE.Vector3(0, 3.0, 0), 7, 2.5, 7, false);

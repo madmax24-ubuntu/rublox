@@ -337,7 +337,7 @@ export class Physics {
         let maxY = -Infinity;
         const radius = 0.6;
         const bottom = position.y - height;
-        const nearby = this.getNearbyColliders(position, radius + 0.5);
+        const nearby = this.getNearbyColliders(position, radius + 4);
         for (const box of nearby) {
             if (box.enabled === false || !box.walkable) continue;
             
@@ -348,10 +348,25 @@ export class Physics {
             if (position.x + radius < min.x || position.x - radius > max.x) continue;
             if (position.z + radius < min.z || position.z - radius > max.z) continue;
             if (position.y + height < min.y - 0.5) continue;
-            if (position.y > max.y + height) continue;
-            if (bottom > max.y + 0.2) continue;
+            if (position.y > max.y + height + 0.5) continue;
+            if (bottom > max.y + 0.5) continue;
             const dist = Math.abs(max.y - bottom);
             if (maxY === -Infinity || dist < Math.abs(maxY - bottom)) maxY = max.y;
+        }
+        if (maxY === -Infinity && this.colliders.length > 0) {
+            for (const box of this.colliders) {
+                if (box.enabled === false || !box.walkable) continue;
+                const min = box.min;
+                const max = box.max;
+                if (!min || !max) continue;
+                if (position.x + radius < min.x || position.x - radius > max.x) continue;
+                if (position.z + radius < min.z || position.z - radius > max.z) continue;
+                if (position.y + height < min.y - 0.5) continue;
+                if (position.y > max.y + height + 0.5) continue;
+                if (bottom > max.y + 0.5) continue;
+                const dist = Math.abs(max.y - bottom);
+                if (maxY === -Infinity || dist < Math.abs(maxY - bottom)) maxY = max.y;
+            }
         }
         return maxY;
     }

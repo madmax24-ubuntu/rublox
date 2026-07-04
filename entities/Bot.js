@@ -465,7 +465,8 @@ export class Bot {
         group.add(bg);
         group.add(fill);
         group.position.set(0, 2.65, 0);
-        group.renderOrder = 900;
+        bg.renderOrder = 900;
+        fill.renderOrder = 901;
         group.traverse(child => {
             if (child.material) {
                 child.material.depthTest = true;
@@ -861,26 +862,25 @@ export class Bot {
         }
         const camera = this._cachedCamera || (this._cachedCamera = this.scene?.userData?.camera);
         if (camera) {
-            this.healthBarRefreshTimer -= delta;
             this.healthBarLosTimer -= delta;
-            this.healthBarAimTimer -= delta;
-            if (this.healthBarRefreshTimer > 0) return;
-            this.healthBarRefreshTimer = isMobile ? 0.2 + Math.random() * 0.1 : 0.08 + Math.random() * 0.06;
+            
             const dx = camera.position.x - this.position.x;
             const dz = camera.position.z - this.position.z;
             const distSq = dx * dx + dz * dz;
             const entityManager = this.scene.userData?.entityManager;
             let visible = distSq < (isMobile ? (13 * 13) : (19 * 19));
+            
             if (!isMobile && visible && entityManager?.hasLineOfSight && this.healthBarLosTimer <= 0) {
                 this._tmpLosFrom.copy(camera.position);
                 this._tmpLosTo.set(this.position.x, this.position.y + (this.physics?.height || 1.8) * 0.65, this.position.z);
                 this.healthBarVisibleCached = entityManager.hasLineOfSight(this._tmpLosFrom, this._tmpLosTo, true);
                 this.healthBarLosTimer = 0.22 + Math.random() * 0.12;
             }
+            
             this.healthBar.visible = isMobile ? visible : (visible && this.healthBarVisibleCached);
-            if (this.healthBar.visible && this.healthBarAimTimer <= 0) {
+            
+            if (this.healthBar.visible) {
                 this.healthBar.lookAt(camera.position);
-                this.healthBarAimTimer = isMobile ? 0.22 : 0.12;
             }
         }
     }

@@ -249,6 +249,7 @@ export class MapGeneratorNode {
         fountain.add(topSphere);
 
         fountain.userData.isFountain = true;
+        fountain.userData.isCornucopia = true;
         fountain.userData.drops = drops;
         return fountain;
     }
@@ -358,6 +359,7 @@ export class MapGeneratorNode {
         const baseMesh = new THREE.Mesh(baseGeo, mat.clone());
         baseMesh.position.set(0, 1, 0);
         baseMesh.userData.mapGenerated = true;
+        baseMesh.userData.isCornucopia = true;
         this.scene.add(baseMesh);
 
         // Fountain sitting on the platform surface (y=2)
