@@ -253,6 +253,9 @@ export class Physics {
                 if (pos.y < min.y - 0.3) continue;
                 if (bottom > max.y + 0.3) continue;
 
+                // Skip walkable colliders when entity is standing on top (floor, not wall)
+                if (box.walkable && bottom >= max.y - 0.5) continue;
+
                 const clampedX = Math.max(min.x, Math.min(max.x, pos.x));
                 const clampedZ = Math.max(min.z, Math.min(max.z, pos.z));
                 const dx = pos.x - clampedX;
