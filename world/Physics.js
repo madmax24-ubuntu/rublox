@@ -339,6 +339,9 @@ export class Physics {
         const bottom = position.y - height;
         const nearby = this.getNearbyColliders(position, radius + 4);
         let debugCount = 0;
+        if (nearby.length === 0 && this.colliders.length > 0) {
+            console.log(`[Physics] getColliderSurfaceHeight: pos=(${position.x.toFixed(1)}, ${position.y.toFixed(1)}, ${position.z.toFixed(1)}), nearby=0, total=${this.colliders.length}, grid size=${this.colliderGrid.size}`);
+        }
         for (const box of nearby) {
             if (box.enabled === false || !box.walkable) continue;
             

@@ -56,9 +56,20 @@ import { chromium } from 'playwright';
         const physics = g.physics;
         const colliders = physics?.colliders || [];
         
+        console.log(`[Test] Colliders count: ${colliders.length}, grid size: ${physics?.colliderGrid?.size}`);
+        
         // Find center platform collider
         const centerPlatform = colliders.find(c => c.walkable && c.max && Math.abs(c.max.x - 27) < 1 && Math.abs(c.max.y - 2) < 1 && Math.abs(c.max.z - 27) < 1);
         console.log(`[Test] Center platform: ${centerPlatform ? 'found' : 'not found'}, max.y=${centerPlatform?.max?.y}`);
+        
+        // Check first bot position and collider query
+        const bot = bots[0];
+        if (bot) {
+            const nearby = physics.getNearbyColliders(bot.position, 4.6);
+            console.log(`[Test] Bot 0 pos=(${bot.position.x.toFixed(1)}, ${bot.position.y.toFixed(1)}, ${bot.position.z.toFixed(1)}), nearby colliders: ${nearby.length}`);
+            const surfaceHeight = physics.getColliderSurfaceHeight(bot.position, bot.physics?.height || 1.9);
+            console.log(`[Test] Bot 0 surface height: ${surfaceHeight}`);
+        }
 
         // Debug: log first few pads
         console.log(`[Test] Pads count: ${pads.length}, first pad: ${JSON.stringify(pads[0])}`);
