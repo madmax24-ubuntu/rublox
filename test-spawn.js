@@ -38,6 +38,8 @@ import { chromium } from 'playwright';
         await page.waitForTimeout(1000);
     }
 
+    await page.evaluate(() => { window.__kilo_test__ = true; });
+    
     await page.waitForFunction(() => {
         const g = window.game;
         return g && g.isStarted && g.player && g.bots && g.bots.length > 0;
