@@ -2105,8 +2105,15 @@ class Game {
                 }
                 continue;
             }
-            bot.update(delta, this.botBrains[botIndex], this.entityManager, this.lootManager, this.audioSynth, this.physics, this.zone);
-            this.map?.activateTrapsNearEntity?.(bot);
+            if (this.gameState !== 'countdown') {
+                bot.update(delta, this.botBrains[botIndex], this.entityManager, this.lootManager, this.audioSynth, this.physics, this.zone);
+                this.map?.activateTrapsNearEntity?.(bot);
+            } else {
+                // During countdown, just update mesh position
+                bot.mesh.position.copy(bot.position);
+                bot.mesh.position.y = bot.position.y - (bot.physics.height - 0.38);
+                if (bot.healthBar) bot.updateHealthBar(0.05);
+            }
         }
         if (this.gameState === 'playing') {
             if (this.activeEvent?.type === 'radiationRain') {
