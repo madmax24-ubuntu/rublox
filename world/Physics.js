@@ -338,6 +338,7 @@ export class Physics {
         const radius = 0.6;
         const bottom = position.y - height;
         const nearby = this.getNearbyColliders(position, radius + 4);
+        let debugCount = 0;
         for (const box of nearby) {
             if (box.enabled === false || !box.walkable) continue;
             
@@ -364,9 +365,13 @@ export class Physics {
                 if (position.y + height < min.y - 0.5) continue;
                 if (position.y > max.y + height + 0.5) continue;
                 if (bottom > max.y + 0.5) continue;
+                debugCount++;
                 const dist = Math.abs(max.y - bottom);
                 if (maxY === -Infinity || dist < Math.abs(maxY - bottom)) maxY = max.y;
             }
+        }
+        if (debugCount > 0 && maxY !== -Infinity) {
+            console.log(`[Physics] getColliderSurfaceHeight: pos=(${position.x.toFixed(1)}, ${position.y.toFixed(1)}, ${position.z.toFixed(1)}), maxY=${maxY}, count=${debugCount}`);
         }
         return maxY;
     }
