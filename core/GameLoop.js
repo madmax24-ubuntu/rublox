@@ -43,6 +43,7 @@ export class GameLoop {
         // Do not advance simulation when the tab/app is hidden.
         if (typeof document !== 'undefined' && document.hidden && !window.__kilo_test__) {
             this.resetDelta();
+            console.log('[GameLoop] hidden, skipping');
             return;
         }
 
