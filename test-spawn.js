@@ -60,6 +60,9 @@ import { chromium } from 'playwright';
         const centerPlatform = colliders.find(c => c.walkable && c.max && Math.abs(c.max.x - 27) < 1 && Math.abs(c.max.y - 2) < 1 && Math.abs(c.max.z - 27) < 1);
         console.log(`[Test] Center platform: ${centerPlatform ? 'found' : 'not found'}, max.y=${centerPlatform?.max?.y}`);
 
+        // Debug: log first few pads
+        console.log(`[Test] Pads count: ${pads.length}, first pad: ${JSON.stringify(pads[0])}`);
+        
         const playerPad = pads.find(p => {
             const dx = player.position.x - p.x;
             const dz = player.position.z - p.z;
