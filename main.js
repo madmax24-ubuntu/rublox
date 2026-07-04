@@ -475,9 +475,9 @@ class Game {
         this.countdownTime = GAME_CONFIG.round.countdownSeconds;
         this.countdownTimer = this.countdownTime;
         this.lastCountdownSecond = null;
-        // Test mode: shorten countdown
+        // Test mode: keep countdown long enough for tests to verify spawn positions
         if (window.__kilo_test__) {
-            this.countdownTimer = 0.15;
+            this.countdownTimer = 5;
         }
         this.spawnTime = GAME_CONFIG.round.preFightInvulnerableSeconds;
         this.spawnTimer = this.spawnTime;
