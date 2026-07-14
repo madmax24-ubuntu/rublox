@@ -320,11 +320,11 @@ export class MeshPool {
                 flatShading: flatShading, transparent: transparent, opacity: opacity,
                 emissive: eHex, emissiveIntensity
             };
-            if (wall && !transparent) {
+            if (!transparent) {
                 opts.side = THREE.DoubleSide;
                 opts.polygonOffset = true;
-                opts.polygonOffsetFactor = 12;
-                opts.polygonOffsetUnits = 6;
+                opts.polygonOffsetFactor = wall ? 12 : 4;
+                opts.polygonOffsetUnits = wall ? 6 : 2;
             }
             this.mats.set(key, new THREE.MeshStandardMaterial(opts));
         }

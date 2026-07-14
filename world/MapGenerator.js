@@ -1662,7 +1662,7 @@ export class MapGenerator {
 
                 if (grid[r][c] === 1) {
                     if (Math.hypot(wx - clearingCX, wz - clearingCZ) < clearingRadius + cellSize) continue;
-                    const wallWidth = cellSize;
+                    const wallWidth = cellSize * 0.9;
                     const geo = this.pool.getGeoBox(wallWidth, wallHeight, wallWidth);
                     const color = wallColors[Math.floor(this._rand() * wallColors.length)];
                     const wallMat2 = this.pool.getMatStd(color, 0.85, 0, true, false, 1, 0, 0, true);
