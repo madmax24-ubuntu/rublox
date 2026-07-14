@@ -154,8 +154,9 @@ export class Input {
                     this.touch.centerX = touch.clientX;
                     this.touch.centerY = touch.clientY;
                     if (stick) {
-                        this.touch.defaultX = this.touch.defaultX ?? parseFloat(stick.style.left || getComputedStyle(stick).left);
-                        this.touch.defaultY = this.touch.defaultY ?? parseFloat(stick.style.top || getComputedStyle(stick).top);
+                        const rect = stick.getBoundingClientRect();
+                        this.touch.defaultX = rect.left;
+                        this.touch.defaultY = rect.top;
                         stick.style.left = `${this.touch.centerX}px`;
                         stick.style.top = `${this.touch.centerY}px`;
                         stick.style.opacity = '0.7';
@@ -187,6 +188,13 @@ export class Input {
                     this.touch.moveX = dx;
                     this.touch.moveY = dy;
                     setKnob(dx, dy);
+                    // Update stick position to follow touch
+                    if (stick) {
+                        stick.style.left = `${touch.clientX}px`;
+                        stick.style.top = `${touch.clientY}px`;
+                    }
+                    this.touch.centerX = touch.clientX;
+                    this.touch.centerY = touch.clientY;
                 } else if (this.touch.lookId === touch.identifier) {
                     const dx = touch.clientX - this.touch.lastLookX;
                     const dy = touch.clientY - this.touch.lastLookY;
@@ -209,6 +217,9 @@ export class Input {
                     stick.style.opacity = '0.35';
                     stick.style.left = `${this.touch.defaultX}px`;
                     stick.style.top = `${this.touch.defaultY}px`;
+                    // Reset default on next touch
+                    this.touch.defaultX = undefined;
+                    this.touch.defaultY = undefined;
                 }
             } else if (this.touch.lookId === touch.identifier) {
                 this.touch.lookId = null;
