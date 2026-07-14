@@ -33,8 +33,8 @@ export class Player {
         this._stableFirstPerson = true; // stabilize visibility against pointer-lock flicker
 
         this.inventory = new Inventory();
-        this.currentWeapon = null;
         this.fists = new Weapon('fists', this.scene);
+        this.currentWeapon = this.fists;
 
         this.mesh = this.createMesh();
         this.scene.add(this.mesh);

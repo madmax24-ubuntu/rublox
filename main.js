@@ -442,6 +442,7 @@ class Game {
           this.player = new Player(this.scene, this.camera, this.input);
           this.player.setHUD(this.hud);
           this.player.mapRef = this.map;
+          this.player.updateViewWeapon();
         this.bots = [];
         this.botBrains = [];
         this.zombies = [];
