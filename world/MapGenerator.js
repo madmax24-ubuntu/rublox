@@ -1012,6 +1012,7 @@ export class MapGenerator {
     }
 
     _addForestTree(x, z, type = 'pine') {
+        if (Math.sqrt(x * x + z * z) < 60) return;
         const trunkMat = this.pool.getMatStd(COLORS.forestTrunk, 0.8, 0, false, false, 1, 0, 0);
 
         if (type === 'pine') {
@@ -4069,6 +4070,7 @@ export class MapGenerator {
     }
 
     _addSnowTree(x, z) {
+        if (Math.sqrt(x * x + z * z) < 60) return;
         // Large snow tree — bigger
         const trunkH = 11 + this._rand() * 6;
         const trunkR = 0.5 + this._rand() * 0.3;
