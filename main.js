@@ -215,7 +215,7 @@ class Game {
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(width, height, true);
         const pixelRatio = this.isMobile()
-            ? Math.min(window.devicePixelRatio || 1, 1.3)
+            ? Math.min(window.devicePixelRatio || 1, 2)
             : Math.min(window.devicePixelRatio || 1, 2);
         this.renderer.setPixelRatio(pixelRatio);
         this.renderer.setViewport(0, 0, width, height);
@@ -301,13 +301,13 @@ class Game {
         this.scene = new THREE.Scene();
         console.log('[initGame] scene created:', !!this.scene);
         this.scene.userData.mobileMode = isMobile;
-        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.2, 1400);
+        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.5, 500);
         this.scene.userData.camera = this.camera;
 
         this.renderer = new THREE.WebGLRenderer({
-            antialias: false, // disable for stable 60fps
+            antialias: true,
             powerPreference: "high-performance",
-            precision: isMobile ? "mediump" : "highp",
+            precision: "highp",
             stencil: false,
             depth: true,
             logarithmicDepthBuffer: false
