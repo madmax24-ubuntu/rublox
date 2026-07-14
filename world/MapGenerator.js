@@ -141,7 +141,7 @@ export class MapGenerator {
         for (const child of this.scene.children) {
             if (child.userData?.mapGenerated && !child.userData?.isCornucopia) {
                 const dist = Math.sqrt(child.position.x * child.position.x + child.position.z * child.position.z);
-                if (dist < 60) {
+                if (dist < 75) {
                     toRemove.push(child);
                 }
             }
@@ -158,7 +158,7 @@ export class MapGenerator {
             if (c.isCornucopia) return true;
             const cx = (c.min.x + c.max.x) / 2;
             const cz = (c.min.z + c.max.z) / 2;
-            return Math.sqrt(cx*cx + cz*cz) >= 60;
+            return Math.sqrt(cx*cx + cz*cz) >= 75;
         });
 
         // Phase 8: Cover objects
@@ -1012,7 +1012,7 @@ export class MapGenerator {
     }
 
     _addForestTree(x, z, type = 'pine') {
-        if (Math.sqrt(x * x + z * z) < 60) return;
+        if (Math.sqrt(x * x + z * z) < 75) return;
         const trunkMat = this.pool.getMatStd(COLORS.forestTrunk, 0.8, 0, false, false, 1, 0, 0);
 
         if (type === 'pine') {
@@ -4070,7 +4070,7 @@ export class MapGenerator {
     }
 
     _addSnowTree(x, z) {
-        if (Math.sqrt(x * x + z * z) < 60) return;
+        if (Math.sqrt(x * x + z * z) < 75) return;
         // Large snow tree — bigger
         const trunkH = 11 + this._rand() * 6;
         const trunkR = 0.5 + this._rand() * 0.3;
