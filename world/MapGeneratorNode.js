@@ -18,7 +18,7 @@ export class MapGeneratorNode {
     }
 
     init() {
-        const baseMat = new THREE.MeshStandardMaterial({ color: 0x62584c, roughness: 0.94, metalness: 0.02, flatShading: true, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 4, polygonOffsetUnits: 2 });
+        const baseMat = new THREE.MeshStandardMaterial({ color: 0x62584c, roughness: 0.94, metalness: 0.02, flatShading: true, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6 });
         const baseMesh = new THREE.Mesh(new THREE.CylinderGeometry(PLATFORM_RADIUS, PLATFORM_RADIUS + 1.4, PLATFORM_HEIGHT, 64), baseMat);
         baseMesh.position.set(0, PLATFORM_HEIGHT / 2, 0);
         baseMesh.userData.mapGenerated = true;
@@ -142,7 +142,7 @@ export class MapGeneratorNode {
         const fountain = new THREE.Group();
         const stoneMat = new THREE.MeshStandardMaterial({
             color: 0x555555, roughness: 0.8, flatShading: true, side: THREE.DoubleSide,
-            polygonOffset: true, polygonOffsetFactor: 4, polygonOffsetUnits: 2
+            polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6
         });
 
         // Lower basin (wide)

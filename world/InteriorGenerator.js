@@ -69,7 +69,7 @@ export class InteriorGenerator {
         const color = data.template?.wallColor || 0xbcaaa4;
         const mat = new THREE.MeshStandardMaterial({
             color, roughness: 0.85, flatShading: true, side: THREE.DoubleSide,
-            polygonOffset: true, polygonOffsetFactor: 4, polygonOffsetUnits: 2
+            polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6
         });
         const mesh = new THREE.Mesh(geo, mat);
         mesh.position.set(center.x, center.y + height / 2, center.z);
@@ -206,7 +206,7 @@ export class InteriorGenerator {
         const d = prop.d || 0.6;
         const h = prop.h || 0.9;
         const geo = new THREE.BoxGeometry(w, h, d);
-        const mat = new THREE.MeshStandardMaterial({ color: 0x8d7b63, roughness: 0.95 });
+        const mat = new THREE.MeshStandardMaterial({ color: 0x8d7b63, roughness: 0.95, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6 });
         const mesh = new THREE.Mesh(geo, mat);
         mesh.position.set(x, y + h / 2, z);
         mesh.userData.mapGenerated = true;
