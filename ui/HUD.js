@@ -39,9 +39,10 @@ export class HUD {
             color: #e9f0f6;
             text-shadow: 0 2px 0 rgba(0,0,0,0.35);
         `;
-        // Insert into body directly — position:fixed inside gameRoot is unreliable on mobile
         document.body.appendChild(hud);
         this.root = hud;
+        // Hide HUD during start screen — it will be shown when game starts
+        this.root.style.display = 'none';
 
         const visionOverlay = document.createElement('div');
         visionOverlay.id = 'visionOverlay';
