@@ -39,8 +39,8 @@ export class HUD {
             color: #e9f0f6;
             text-shadow: 0 2px 0 rgba(0,0,0,0.35);
         `;
-        const root = document.getElementById('gameRoot') || document.body;
-        root.appendChild(hud);
+        // Insert into body directly — position:fixed inside gameRoot is unreliable on mobile
+        document.body.appendChild(hud);
         this.root = hud;
 
         const visionOverlay = document.createElement('div');

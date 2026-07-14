@@ -311,7 +311,7 @@ class Game {
             precision: "highp",
             stencil: false,
             depth: true,
-            logarithmicDepthBuffer: false
+            logarithmicDepthBuffer: true
         });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.shadowMap.enabled = false;

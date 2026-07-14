@@ -322,11 +322,14 @@ export class MeshPool {
             };
             if (!transparent) {
                 opts.side = THREE.DoubleSide;
-                opts.polygonOffset = true;
-                opts.polygonOffsetFactor = 12;
-                opts.polygonOffsetUnits = 6;
             }
-            this.mats.set(key, new THREE.MeshStandardMaterial(opts));
+            const mat = new THREE.MeshStandardMaterial(opts);
+            if (!transparent) {
+                mat.polygonOffset = true;
+                mat.polygonOffsetFactor = 12;
+                mat.polygonOffsetUnits = 6;
+            }
+            this.mats.set(key, mat);
         }
         return this.mats.get(key);
     }
