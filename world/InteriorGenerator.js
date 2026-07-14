@@ -68,7 +68,8 @@ export class InteriorGenerator {
         const geo = new THREE.BoxGeometry(width, height, depth);
         const color = data.template?.wallColor || 0xbcaaa4;
         const mat = new THREE.MeshStandardMaterial({
-            color, roughness: 0.85, flatShading: true
+            color, roughness: 0.85, flatShading: true, side: THREE.DoubleSide,
+            polygonOffset: true, polygonOffsetFactor: 4, polygonOffsetUnits: 2
         });
         const mesh = new THREE.Mesh(geo, mat);
         mesh.position.set(center.x, center.y + height / 2, center.z);

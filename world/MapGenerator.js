@@ -1664,7 +1664,7 @@ export class MapGenerator {
                     const wallWidth = cellSize + 0.1;
                     const geo = this.pool.getGeoBox(wallWidth, wallHeight, wallWidth);
                     const color = wallColors[Math.floor(this._rand() * wallColors.length)];
-                    const wallMat2 = this.pool.getMatStd(color, 0.85, 0, true, false, 1, 0, 0);
+                    const wallMat2 = this.pool.getMatStd(color, 0.85, 0, true, false, 1, 0, 0, true);
                     const wall = new THREE.Mesh(geo, wallMat2);
                     wall.position.set(wx, wallHeight / 2, wz);
                     wall.userData.mapGenerated = true;
