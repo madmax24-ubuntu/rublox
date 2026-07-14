@@ -321,9 +321,10 @@ export class MeshPool {
                 emissive: eHex, emissiveIntensity
             };
             if (wall && !transparent) {
+                opts.side = THREE.DoubleSide;
                 opts.polygonOffset = true;
-                opts.polygonOffsetFactor = 1;
-                opts.polygonOffsetUnits = 1;
+                opts.polygonOffsetFactor = 4;
+                opts.polygonOffsetUnits = 2;
             }
             this.mats.set(key, new THREE.MeshStandardMaterial(opts));
         }
