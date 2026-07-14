@@ -360,12 +360,12 @@ export class AudioSynth {
         return this.sampleBuffers.get(path) ? path : null;
     }
 
-    playSample(pathList, options = {}) {
+    async playSample(pathList, options = {}) {
         this._ensureLazyInit();
         if (!this.audioContext) return false;
         if (this.audioContext.state !== 'running') {
-            this.unlock();
-            return false;
+            await this.unlock();
+            if (this.audioContext.state !== 'running') return false;
         }
         const path = this.pickSample(pathList);
         if (!path) return false;
@@ -407,12 +407,12 @@ export class AudioSynth {
         return true;
     }
 
-    fallbackTone(type, fromFreq, toFreq, duration, volume = 0.1, position = null, category = 'sfx') {
+    async fallbackTone(type, fromFreq, toFreq, duration, volume = 0.1, position = null, category = 'sfx') {
         this._ensureLazyInit();
         if (!this.audioContext) return;
         if (this.audioContext.state !== 'running') {
-            this.unlock();
-            return;
+            await this.unlock();
+            if (this.audioContext.state !== 'running') return;
         }
         const ctx = this.audioContext;
         const now = ctx.currentTime;
@@ -429,12 +429,12 @@ export class AudioSynth {
         osc.stop(now + duration);
     }
 
-    playNoiseBurst({ duration = 0.14, volume = 0.12, highpass = 300, lowpass = 2800, position = null, category = 'weapon' } = {}) {
+    async playNoiseBurst({ duration = 0.14, volume = 0.12, highpass = 300, lowpass = 2800, position = null, category = 'weapon' } = {}) {
         this._ensureLazyInit();
         if (!this.audioContext) return;
         if (this.audioContext.state !== 'running') {
-            this.unlock();
-            return;
+            await this.unlock();
+            if (this.audioContext.state !== 'running') return;
         }
         const ctx = this.audioContext;
         const now = ctx.currentTime;
@@ -464,12 +464,12 @@ export class AudioSynth {
         noise.stop(now + Math.max(0.03, duration) + 0.03);
     }
 
-    playProceduralShot(kind = 'generic', volume = 0.14, position = null, category = 'weapon') {
+    async playProceduralShot(kind = 'generic', volume = 0.14, position = null, category = 'weapon') {
         this._ensureLazyInit();
         if (!this.audioContext) return;
         if (this.audioContext.state !== 'running') {
-            this.unlock();
-            return;
+            await this.unlock();
+            if (this.audioContext.state !== 'running') return;
         }
         const ctx = this.audioContext;
         const now = ctx.currentTime;

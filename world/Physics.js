@@ -16,7 +16,7 @@ export class Physics {
 
         // Wall sliding
         this.slideDamping = 0.85;
-        this.maxCompression = 1;
+        this.maxCompression = 1.5;
         this.boundaryMargin = 180;
         this.boundaryForce = 12;
 
@@ -257,7 +257,7 @@ export class Physics {
     resolveCollisions(entity) {
         if (!this.colliders.length) return;
         const type = entity.constructor?.name;
-        const bonusRadius = type === 'Zombie' ? 0.1 : type === 'Bot' ? 0.07 : 0;
+        const bonusRadius = type === 'Zombie' ? 0.1 : type === 'Bot' ? 0.15 : 0;
         const baseRadius = (entity.physics?.radius || 0.5) + bonusRadius;
         const pos = entity.position;
         const bottom = pos.y - (entity.physics?.height || 1.7);
