@@ -109,7 +109,7 @@ export class BotBrain {
             bot.state = nextState;
             if (nextState !== STATES.LOOT && nextState !== STATES.EXPLORE) this.releaseLootReservation(bot);
             if (nextState !== STATES.ENGAGE) this.releaseCombatReservation(bot);
-            this.decisionCooldown = 0.25 + ((bot.id * 0.009) % 0.1); // Increased from 0.15-0.23 to 0.25-0.35
+            this.decisionCooldown = 1.0 + ((bot.id * 0.009) % 0.5); // 1.0-1.5s between decisions
         } else {
             // Refresh earlyGamePhase on cached context so actEngage / actExplore see current phase
             ctx.earlyGamePhase = earlyGamePhase;
@@ -559,7 +559,7 @@ export class BotBrain {
     }
 
     actIdle(bot, ctx) {
-        if (!bot.patrolTarget || bot.position.distanceTo(bot.patrolTarget) < 2.2 || bot.isStuck) {
+        if (!bot.patrolTarget || bot.position.distanceTo(bot.patrolTarget) < 5 || bot.isStuck) {
             bot.patrolTarget = this.pickSpreadTarget(bot, 24, 72);
         }
         if (bot.patrolTarget) {
