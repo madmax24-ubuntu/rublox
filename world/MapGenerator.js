@@ -141,7 +141,7 @@ export class MapGenerator {
         for (const child of this.scene.children) {
             if (child.userData?.mapGenerated && !child.userData?.isCornucopia) {
                 const dist = Math.sqrt(child.position.x * child.position.x + child.position.z * child.position.z);
-                if (dist < 60 && child.position.y > 0.1) {
+                if (dist < 60) {
                     toRemove.push(child);
                 }
             }
