@@ -41,8 +41,6 @@ export class HUD {
         `;
         document.body.appendChild(hud);
         this.root = hud;
-        // Hide HUD during start screen — it will be shown when game starts
-        this.root.style.display = 'none';
 
         const visionOverlay = document.createElement('div');
         visionOverlay.id = 'visionOverlay';
