@@ -1061,6 +1061,12 @@ export class Bot {
         const invLen = 1 / Math.sqrt(lenSq);
         const direction = this._tmpDirection.set(toTargetX * invLen, 0, toTargetZ * invLen);
 
+        // Slow down if approaching a wall — prevents clipping
+        let wallFactor = 1;
+        if (this.isDirectionBlocked(direction)) {
+            wallFactor = 0.3;
+        }
+
         if (this._hasEscapeDir && this.escapeTimer > 0) {
             direction.copy(this.escapeDir);
         }
@@ -1107,7 +1113,7 @@ export class Bot {
             direction.copy(this.cachedMoveDir);
         }
 
-        const finalSpeed = speed * this.slowFactor;
+        const finalSpeed = speed * this.slowFactor * wallFactor;
         // Movement inertia — blend toward new direction instead of snapping
         const inertia = 0.65;
         this.physics.velocity.x = this.physics.velocity.x * inertia + direction.x * finalSpeed * (1 - inertia);
@@ -1260,7 +1266,7 @@ export class Bot {
 
     isDirectionBlocked(dir) {
         if (!this.physicsRef?.getNearbyColliders) return false;
-        this._tmpProbe.copy(this.position).addScaledVector(dir, 1.55);
+        this._tmpProbe.copy(this.position).addScaledVector(dir, 2.5);
         if (this.mapRef?.isWalkableAt && !this.mapRef.isWalkableAt(this._tmpProbe.x, this._tmpProbe.z)) {
             return true;
         }
@@ -1281,7 +1287,7 @@ export class Bot {
         result.set(0, 0, 0);
         if (!this.physicsRef?.getNearbyColliders) return result;
         const radius = (this.physics?.radius || 0.5) + 0.6;
-        const sampleDist = 2.2;
+        const sampleDist = 3.0;
         this._tmpProbe2.copy(this.position).addScaledVector(forward, sampleDist);
         const nearby = this.physicsRef.getNearbyColliders(this._tmpProbe2, 2.6);
         for (const box of nearby) {

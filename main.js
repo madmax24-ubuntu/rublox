@@ -1749,6 +1749,8 @@ class Game {
             this.hud.setVisionIntensity?.(0);
         }
 
+        const _t0 = performance.now(); this.physics.update(delta, this.gameState); const physicsMs = performance.now() - _t0;
+
         const _t1 = performance.now(); this.player.update(delta, this.audioSynth, this.lootManager, this.entityManager, this.cameraController); const playerMs = performance.now() - _t1;
         // Обновляем камеру (позиция + вращение); frozen=true во время таймера старта
         const _t2 = performance.now(); this.cameraController.update(delta, this.input, this.player.position, this.gameState === 'countdown'); const cameraMs = performance.now() - _t2;
@@ -2035,7 +2037,6 @@ class Game {
             if (!bot?.isAlive) continue;
             bot.syncVisualAfterPhysics?.(delta);
         }
-        const _t0 = performance.now(); this.physics.update(delta, this.gameState); const physicsMs = performance.now() - _t0;
         if (this.gameState === 'playing') {
             this.trySupplyDrop(aliveCountBeforeHazards);
             this.updateRandomEvents(delta);
