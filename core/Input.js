@@ -30,8 +30,8 @@ export class Input {
             lastLookY: 0,
             deadzone: 8,
             radius: 60,
-            centerX: 0,
-            centerY: 0,
+            originX: 0,
+            originY: 0,
             active: false
         };
 
@@ -151,14 +151,14 @@ export class Input {
                 if (isButtonTarget(touch)) continue;
                 if (touch.clientX < window.innerWidth / 2 && this.touch.moveId === null) {
                     this.touch.moveId = touch.identifier;
-                    this.touch.centerX = touch.clientX;
-                    this.touch.centerY = touch.clientY;
+                    this.touch.originX = touch.clientX;
+                    this.touch.originY = touch.clientY;
                     if (stick) {
                         const rect = stick.getBoundingClientRect();
                         this.touch.defaultX = rect.left;
                         this.touch.defaultY = rect.top;
-                        stick.style.left = `${this.touch.centerX}px`;
-                        stick.style.top = `${this.touch.centerY}px`;
+                        stick.style.left = `${this.touch.originX}px`;
+                        stick.style.top = `${this.touch.originY}px`;
                         stick.style.opacity = '0.7';
                     }
                     this.touch.active = true;
@@ -176,8 +176,9 @@ export class Input {
             e.preventDefault();
             for (const touch of e.changedTouches) {
                 if (this.touch.moveId === touch.identifier) {
-                    let dx = touch.clientX - this.touch.centerX;
-                    let dy = touch.clientY - this.touch.centerY;
+                    // Use original touch point, not updated center
+                    let dx = touch.clientX - this.touch.originX;
+                    let dy = touch.clientY - this.touch.originY;
                     const dist = Math.hypot(dx, dy);
                     const max = this.touch.radius;
                     if (dist > max) {
@@ -193,8 +194,6 @@ export class Input {
                         stick.style.left = `${touch.clientX}px`;
                         stick.style.top = `${touch.clientY}px`;
                     }
-                    this.touch.centerX = touch.clientX;
-                    this.touch.centerY = touch.clientY;
                 } else if (this.touch.lookId === touch.identifier) {
                     const dx = touch.clientX - this.touch.lastLookX;
                     const dy = touch.clientY - this.touch.lastLookY;

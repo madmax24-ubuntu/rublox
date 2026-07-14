@@ -14,7 +14,7 @@ export class Bot {
             velocity: new THREE.Vector3(0, 0, 0),
             onGround: false,
             height: 1.9,
-            radius: 0.47,
+            radius: 0.55,
             speed: 6.6 + Math.random() * 2.2
         };
 
@@ -107,7 +107,7 @@ export class Bot {
                 gear: true,
                 hat: 'cap',
                 skin: 0xffd6b5,
-                scale: 1.38
+                scale: 2.0
             },
             {
                 shirt: 0xff7043,
@@ -119,7 +119,7 @@ export class Bot {
                 gear: true,
                 hat: 'beanie',
                 skin: 0xf2c9a0,
-                scale: 1.4
+                scale: 2.05
             },
             {
                 shirt: 0x8e24aa,
@@ -131,7 +131,7 @@ export class Bot {
                 gear: false,
                 hat: null,
                 skin: 0xf5d7b2,
-                scale: 1.35
+                scale: 2.0
             },
             {
                 shirt: 0x43a047,
@@ -143,7 +143,7 @@ export class Bot {
                 gear: true,
                 hat: 'helmet',
                 skin: 0xffd1a6,
-                scale: 1.42
+                scale: 2.1
             },
             {
                 shirt: 0xfdd835,
@@ -155,7 +155,7 @@ export class Bot {
                 gear: false,
                 hat: 'hair',
                 skin: 0xf7c59f,
-                scale: 1.34
+                scale: 1.95
             },
             {
                 shirt: 0x26a69a,
@@ -167,7 +167,7 @@ export class Bot {
                 gear: true,
                 hat: 'cap',
                 skin: 0xeec4a0,
-                scale: 1.4
+                scale: 2.05
             }
         ];
         this.variant = Math.floor(Math.random() * this.variants.length);
@@ -186,7 +186,7 @@ export class Bot {
         this.enemyEncounters = [];
 
         this.mesh = this.createMesh();
-        this.mesh.scale.setScalar(this.outfit.scale || 1.6);
+        this.mesh.scale.setScalar(this.outfit.scale || 2.0);
         // Pre-allocate bounding sphere for frustum culling
         this.mesh._frustumSphere = new THREE.Sphere(new THREE.Vector3(), 1.0);
         this.healthBar = this.createHealthBar();
@@ -1266,7 +1266,7 @@ export class Bot {
 
     isDirectionBlocked(dir) {
         if (!this.physicsRef?.getNearbyColliders) return false;
-        this._tmpProbe.copy(this.position).addScaledVector(dir, 2.5);
+        this._tmpProbe.copy(this.position).addScaledVector(dir, 3.5);
         if (this.mapRef?.isWalkableAt && !this.mapRef.isWalkableAt(this._tmpProbe.x, this._tmpProbe.z)) {
             return true;
         }
@@ -1287,7 +1287,7 @@ export class Bot {
         result.set(0, 0, 0);
         if (!this.physicsRef?.getNearbyColliders) return result;
         const radius = (this.physics?.radius || 0.5) + 0.6;
-        const sampleDist = 3.0;
+        const sampleDist = 4.0;
         this._tmpProbe2.copy(this.position).addScaledVector(forward, sampleDist);
         const nearby = this.physicsRef.getNearbyColliders(this._tmpProbe2, 2.6);
         for (const box of nearby) {

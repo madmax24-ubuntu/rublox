@@ -257,11 +257,11 @@ export class Physics {
     resolveCollisions(entity) {
         if (!this.colliders.length) return;
         const type = entity.constructor?.name;
-        const bonusRadius = type === 'Zombie' ? 0.1 : type === 'Bot' ? 0.25 : 0;
+        const bonusRadius = type === 'Zombie' ? 0.1 : type === 'Bot' ? 0.35 : 0;
         const baseRadius = (entity.physics?.radius || 0.5) + bonusRadius;
         const pos = entity.position;
         const bottom = pos.y - (entity.physics?.height || 1.7);
-        const pushDistSq = (baseRadius + 0.3) * (baseRadius + 0.3);
+        const pushDistSq = (baseRadius + 0.5) * (baseRadius + 0.5);
 
         const nearby = this.getNearbyColliders(pos, baseRadius + 1.2);
         if (!nearby.length) return;
