@@ -186,7 +186,7 @@ export class Bot {
         this.enemyEncounters = [];
 
         this.mesh = this.createMesh();
-        this.mesh.scale.setScalar(this.outfit.scale || 1.4);
+        this.mesh.scale.setScalar(this.outfit.scale || 1.6);
         // Pre-allocate bounding sphere for frustum culling
         this.mesh._frustumSphere = new THREE.Sphere(new THREE.Vector3(), 1.0);
         this.healthBar = this.createHealthBar();

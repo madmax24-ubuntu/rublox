@@ -281,6 +281,7 @@ class Game {
         startScreen.style.visibility = 'hidden';
         startScreen.style.pointerEvents = 'none';
         startScreen.style.display = 'none';
+        this.hud?.show?.();
     }
 
     showStartScreen() {
@@ -2498,7 +2499,7 @@ class Game {
                 }
             }
 
-            await this.audioSynth.unlock?.().catch(() => {});
+            this.audioSynth.unlock?.().catch(() => {});
             setTimeout(() => { try { this.audioSynth.playMusic?.(); } catch(e) {} try { this.audioSynth.startAmbient?.(); } catch(e) {} }, 50);
             this.yandex?.gameplayStart?.();
 

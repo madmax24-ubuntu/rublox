@@ -38,8 +38,8 @@ export class AudioSynth {
         this.musicLoopTimer = null;
         this.musicThemeIndex = 0;
         this.rainNoiseBuffer = null;
-        this.musicVolume = this.isMobileDevice ? 0.08 : 0.11;
-        this.sfxVolume = this.isMobileDevice ? 0.45 : 0.48;
+        this.musicVolume = this.isMobileDevice ? 0.2 : 0.11;
+        this.sfxVolume = this.isMobileDevice ? 0.7 : 0.48;
         this.sampleBuffers = new Map();
         this.sampleLoadStarted = false;
         this.sampleLoadPromise = null;
@@ -153,10 +153,10 @@ export class AudioSynth {
     _ensureLazyInit() {
         if (this._lazyInitCalled) return;
         this._lazyInitCalled = true;
-        this.init();
+        this.init().catch(() => {});
     }
 
-    init() {
+    async init() {
         try {
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
             this.musicGain = this.audioContext.createGain();
@@ -195,7 +195,7 @@ export class AudioSynth {
 
             this.musicGain.gain.value = this.musicVolume;
             this.masterSfxGain.gain.value = this.sfxVolume;
-            this.loadSamples();
+            await this.loadSamples();
             this.bindUnlockHandlers();
         } catch (e) {
             console.warn('Web Audio API not supported');
@@ -370,8 +370,12 @@ export class AudioSynth {
         const path = this.pickSample(pathList);
         if (!path) return false;
 
-        const buffer = this.sampleBuffers.get(path);
-        if (!buffer) return false;
+        let buffer = this.sampleBuffers.get(path);
+        if (!buffer && this.sampleLoadPromise) {
+            await Promise.race([this.sampleLoadPromise, new Promise(r => setTimeout(r, 2000))]);
+            buffer = this.sampleBuffers.get(path);
+            if (!buffer) return false;
+        }
 
         const ctx = this.audioContext;
         const now = ctx.currentTime + (options.delay || 0);
