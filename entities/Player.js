@@ -11,6 +11,7 @@ export class Player {
 
         this.position = new THREE.Vector3(0, 5, 0);
         this.rotation = new THREE.Euler(0, 0, 0);
+        this.quaternion = new THREE.Quaternion();
         this.physics = {
             velocity: new THREE.Vector3(0, 0, 0),
             onGround: false,
@@ -26,6 +27,10 @@ export class Player {
         this.isInvulnerable = false;
         this.isAlive = true;
         this.isCameraFrozen = false;
+
+        // Кэш видимости рук по типу оружия — не мерцает каждый кадр
+        this._lastArmWeaponType = null;
+        this._stableFirstPerson = true; // stabilize visibility against pointer-lock flicker
 
         this.inventory = new Inventory();
         this.currentWeapon = null;
@@ -62,17 +67,16 @@ export class Player {
         this._tmpRightDirection = new THREE.Vector3();
         this._tmpUp = new THREE.Vector3(0, 1, 0);
         this._tmpTrailPos = new THREE.Vector3();
-        this._tmpCameraPosition = new THREE.Vector3();
-        this._tmpShakeOffset = new THREE.Vector3();
+
         this._tmpKnockbackDir = new THREE.Vector3();
         this._tmpSocketPos = new THREE.Vector3();
         this._tmpSocketQuat = new THREE.Quaternion();
-        this.lastCameraPosition = null;
+        // this.lastCameraPosition removed — was causing snap-back teleport
         this._tmpAutoForward = new THREE.Vector3();
         this._tmpAutoToTarget = new THREE.Vector3();
         this._tmpAutoAimPoint = new THREE.Vector3();
         this._tmpAttackDirection = new THREE.Vector3();
-        this.mouseSensitivity = 0.001;
+        this.mouseSensitivity = 0.003;
         this.mobileLookSensitivity = 0.003;
         this.lookSensitivityMultiplier = 1;
         this.lastLookSide = 0;
@@ -152,8 +156,6 @@ export class Player {
         if (this.input && this.input.resetLook) {
             this.input.resetLook();
         }
-        this.camera.rotation.set(0, 0, 0, 'YXZ');
-        this.camera.quaternion.setFromEuler(this.camera.rotation);
     }
 
     createFirstPersonArms() {
@@ -224,19 +226,25 @@ export class Player {
             leftHand: leftHand.position.clone(),
             rightHand: rightHand.position.clone()
         };
-
+        group.userData.isFirstPersonArm = true;
         group.scale.setScalar(1.0);
         return group;
     }
 
-    setupViewModel(object) {
+    setupViewModel(object, isViewWeapon = false) {
         object.traverse(child => {
             if (child.isMesh) {
-                child.renderOrder = 999;
+                child.renderOrder = isViewWeapon ? 500 : 999;
                 child.frustumCulled = false;
                 if (child.material) {
                     child.material.depthTest = true;
                     child.material.depthWrite = true;
+                    // Polygon offset prevents z-fighting with hands
+                    if (isViewWeapon) {
+                        child.material.polygonOffset = true;
+                        child.material.polygonOffsetFactor = 1;
+                        child.material.polygonOffsetUnits = 1;
+                    }
                 }
             }
         });
@@ -342,15 +350,7 @@ export class Player {
         return group;
     }
 
-    setRotation(y) {
-        this.rotation.set(0, y, 0);
-        this.euler.set(0, y, 0, 'YXZ');
-        if (this.input && this.input.controls && this.input.controls.getObject()) {
-            this.input.controls.getObject().rotation.set(0, y, 0);
-            this.input.controls.getObject().quaternion.setFromEuler(new THREE.Euler(0, y, 0, 'YXZ'));
-        }
-        this.camera.rotation.set(0, y, 0);
-    }
+
 
     update(delta, audioSynth, lootManager, entityManager, controls) {
         if (!this.isAlive) return;
@@ -366,14 +366,9 @@ export class Player {
 
         const isCameraFrozen = this.isCameraFrozen === true;
 
-        // Always update rotation (even during countdown)
-        if (controls && controls.isLocked) {
-            this.euler.setFromQuaternion(controls.getObject().quaternion, 'YXZ');
-            this.rotation.y = Number.isFinite(this.euler.y) ? this.euler.y : this.rotation.y;
-            this.rotation.x = Number.isFinite(this.euler.x) ? this.euler.x : this.rotation.x;
-            this.rotation.z = 0;
-            const maxPitch = Math.PI / 2.4;
-            this.rotation.x = Math.max(-maxPitch, Math.min(maxPitch, this.rotation.x));
+        // Читаем вращение камеры напрямую из quaternion — всегда актуально
+        if (controls) {
+            this.rotation.setFromQuaternion(controls.camera.quaternion, 'YXZ');
         } else {
             const look = this.input.getLookDelta();
             if (look.x !== 0 || look.y !== 0) {
@@ -399,19 +394,6 @@ export class Player {
         }
 
         if (isCameraFrozen) {
-            if (!this._frozenCamPos) {
-                this._frozenCamPos = new THREE.Vector3(
-                    Math.round(this.position.x * 100) / 100,
-                    Math.round(this.position.y * 100) / 100 + this.cameraOffset.y,
-                    Math.round(this.position.z * 100) / 100
-                );
-            }
-            if (controls && controls.isLocked) {
-                controls.getObject().position.copy(this._frozenCamPos);
-            } else {
-                this.camera.position.copy(this._frozenCamPos);
-                this.camera.rotation.copy(this.rotation);
-            }
             // Skip movement/physics during countdown
             this.physics.velocity.set(0, 0, 0);
             this.physics.onGround = true;
@@ -433,9 +415,9 @@ export class Player {
         if (moveVector.length() > 0) {
             const moveDirection = this._tmpMoveDirection.set(0, 0, 0);
 
-            if (controls && controls.isLocked) {
+            if (controls) {
                 const cameraDirection = this._tmpCameraDirection;
-                controls.getObject().getWorldDirection(cameraDirection);
+                controls.getWorldDirection(cameraDirection);
                 cameraDirection.y = 0;
                 cameraDirection.normalize();
 
@@ -447,7 +429,7 @@ export class Player {
                 moveDirection.normalize();
             } else {
                 const cameraDirection = this._tmpCameraDirection;
-                this.camera.getWorldDirection(cameraDirection);
+                cameraDirection.set(0, 0, -1).applyEuler(this.rotation);
                 cameraDirection.y = 0;
                 cameraDirection.normalize();
 
@@ -516,43 +498,26 @@ export class Player {
         this.mesh.rotation.y = this.rotation.y;
         this.animateLimbs();
 
-        const cameraPosition = this._tmpCameraPosition.set(
-            Math.round(this.position.x * 100) / 100,
-            this.position.y + this.cameraOffset.y,
-            Math.round(this.position.z * 100) / 100
-        );
-        const shakeOffset = this._tmpShakeOffset.set(0, 0, 0);
+        // Camera shake — передаём напрямую в CameraController, НЕ меняем позицию игрока
         if (this.cameraShakeTime > 0) {
             const t = this.cameraShakeTime / this.cameraShakeDuration;
             const strength = this.cameraShakeStrength * t;
-            shakeOffset.set(
+            controls.setShakeOffset(
                 (Math.random() - 0.5) * strength,
                 (Math.random() - 0.5) * strength,
                 (Math.random() - 0.5) * strength
             );
             this.cameraShakeTime = Math.max(0, this.cameraShakeTime - delta);
-        }
-
-        if (controls && controls.isLocked) {
-            controls.getObject().position.copy(cameraPosition).add(shakeOffset);
-            controls.getObject().position.y = this.position.y + this.cameraOffset.y;
-            if (this.lastCameraPosition) {
-                const dist = cameraPosition.distanceTo(this.lastCameraPosition);
-                if (dist < 0.05) {
-                    controls.getObject().position.copy(this.lastCameraPosition);
-                } else {
-                    this.lastCameraPosition.copy(cameraPosition);
-                }
-            } else {
-                this.lastCameraPosition = cameraPosition.clone();
-            }
         } else {
-            this.camera.position.copy(cameraPosition).add(shakeOffset);
-            this.camera.rotation.set(this.rotation.x, this.rotation.y, 0, 'YXZ');
-            this.camera.up.set(0, 1, 0);
+            controls.clearShake();
         }
 
-        const isFirstPerson = (controls && controls.isLocked) || this.input.isMobile;
+        const isFirstPersonRaw = (controls && controls.isLocked) || this.input.isMobile;
+        // Stabilize: only flip on confirmed state change (prevents pointer-lock flicker)
+        if (isFirstPersonRaw !== this._stableFirstPerson) {
+            this._stableFirstPerson = isFirstPersonRaw;
+        }
+        const isFirstPerson = this._stableFirstPerson;
         if (isFirstPerson) {
             this.mesh.visible = false;
             this.fpArms.visible = true;
@@ -588,12 +553,11 @@ export class Player {
             const shouldReleaseBow = !fireHeld && this.wasFireHeld && this.bowCharge >= this.bowMinCharge;
             if (!isFrozen && shouldReleaseBow && this.attackCooldown <= 0) {
                 const direction = this._tmpFireDir;
-                this.camera.getWorldDirection(direction);
+                controls.getWorldDirection(direction);
                 const chargeRatio = Math.max(0.35, Math.min(1, this.bowCharge / this.bowChargeMax));
                 const result = activeWeapon.attack(this, null, audioSynth, direction, { chargeRatio });
                 const muzzle = this._tmpMuzzle;
-                this.camera.getWorldPosition(muzzle);
-                muzzle.addScaledVector(direction, 0.6);
+                muzzle.copy(controls.camera.position).addScaledVector(direction, 0.6);
 
                 if (result && result.projectiles) {
                     for (const proj of result.projectiles) {
@@ -624,13 +588,13 @@ export class Player {
             if (activeWeapon.type === 'laser' || activeWeapon.type === 'shotgun' || activeWeapon.type === 'flamethrower' || activeWeapon.type === 'pistol' || activeWeapon.type === 'rifle' || activeWeapon.type === 'machinegun') {
                 const direction = this._tmpFireDir;
                 if (autoTarget) {
-                    direction.subVectors(autoTarget.position, this.camera.position).normalize();
+                    direction.subVectors(autoTarget.position, controls.camera.position).normalize();
                 } else {
-                    this.camera.getWorldDirection(direction);
+                    controls.getWorldDirection(direction);
                 }
                 const result = activeWeapon.attack(this, null, audioSynth, direction);
                 const muzzle = this._tmpMuzzle;
-                this.camera.getWorldPosition(muzzle);
+                muzzle.copy(controls.camera.position);
                 muzzle.addScaledVector(direction, 0.6);
 
                 if (result && result.projectiles) {
@@ -740,6 +704,13 @@ export class Player {
     animateViewModel(isFirstPerson) {
         if (!isFirstPerson) {
             if (this.viewWeapon) this.viewWeapon.visible = false;
+            // Обновляем позицию рук даже если не first-person (для стабильности)
+            const arms = this.fpArms?.userData?.limbs;
+            if (!arms) return;
+            arms.leftArm.position.copy(this.fpArms.userData.base.leftArm);
+            arms.rightArm.position.copy(this.fpArms.userData.base.rightArm);
+            arms.leftHand.position.copy(this.fpArms.userData.base.leftHand);
+            arms.rightHand.position.copy(this.fpArms.userData.base.rightHand);
             return;
         }
 
@@ -806,12 +777,16 @@ export class Player {
         if (!isFirstPerson) return;
         const limbs = this.fpArms.userData?.limbs;
         if (!limbs) return;
+        // Кэшируем тип оружия — руки скрываем/показываем только при смене оружия
         const weaponType = this.currentWeapon?.type || 'fists';
-        const showArms = weaponType === 'fists';
-        limbs.leftArm.visible = showArms;
-        limbs.rightArm.visible = showArms;
-        limbs.leftHand.visible = showArms;
-        limbs.rightHand.visible = showArms;
+        if (weaponType !== this._lastArmWeaponType) {
+            this._lastArmWeaponType = weaponType;
+            const showArms = weaponType === 'fists';
+            limbs.leftArm.visible = showArms;
+            limbs.rightArm.visible = showArms;
+            limbs.leftHand.visible = showArms;
+            limbs.rightHand.visible = showArms;
+        }
     }
 
     selectSlot(slot) {
@@ -1095,45 +1070,66 @@ export class Player {
     }
 
     animateViewModelWeapon(weaponType) {
-        const requestId = ++this.viewWeaponRequestId;
+        // Кэшируем viewWeapon по типу оружия — не пересоздаём каждый кадр
+        if (weaponType === this.viewWeaponType && this.viewWeapon) return;
+
+        this.viewWeaponType = weaponType || null;
+        if (!weaponType || weaponType === 'fists') {
+            if (this.viewWeapon) {
+                this.fpArms.remove(this.viewWeapon);
+                this.viewWeapon = null;
+                this.viewWeaponBase = null;
+            }
+            return;
+        }
+
         if (!this.fpArms) return;
 
+        // Удаляем старый mesh
         if (this.viewWeapon) {
             this.fpArms.remove(this.viewWeapon);
             this.viewWeapon = null;
             this.viewWeaponBase = null;
         }
 
-        this.viewWeaponType = weaponType || null;
-        if (!weaponType || weaponType === 'fists') return;
+        try {
+            const source = new Weapon(weaponType, this.scene);
+            if (!source.mesh) return;
 
-        const source = new Weapon(weaponType, this.scene);
-        const applyClone = () => {
-            if (requestId !== this.viewWeaponRequestId) return;
-            if (!source.mesh || !this.fpArms) return;
-
-            if (this.viewWeapon) {
-                this.fpArms.remove(this.viewWeapon);
-                this.viewWeapon = null;
-                this.viewWeaponBase = null;
-            }
-
+            // Deep clone materials to isolate from shared materials + add polygonOffset to prevent z-fighting
+            const matMap = new Map();
             const viewClone = source.mesh.clone();
-            this.scene.remove(source.mesh);
+            viewClone.traverse(child => {
+                if (child.isMesh && child.material) {
+                    if (!matMap.has(child.material)) {
+                        const cloned = child.material.clone();
+                        // Polygon offset prevents z-fighting with hands
+                        cloned.polygonOffset = true;
+                        cloned.polygonOffsetFactor = 1;
+                        cloned.polygonOffsetUnits = 1;
+                        matMap.set(child.material, cloned);
+                    }
+                    child.material = matMap.get(child.material);
+                }
+            });
+            viewClone.userData.isViewWeapon = true;
             viewClone.visible = true;
-            const offset = this.getViewWeaponOffset(weaponType);
+            this.scene.remove(source.mesh);
+            const offset = (this.getViewWeaponOffset && this.getViewWeaponOffset(weaponType))
+                || { scale: 0.8, position: new THREE.Vector3(0.2, -0.4, -0.78), rotation: new THREE.Euler(0, -Math.PI / 2, 0) };
             viewClone.scale.setScalar(offset.scale);
             viewClone.position.copy(offset.position);
             viewClone.rotation.copy(offset.rotation);
-            this.setupViewModel(viewClone);
+            this.setupViewModel(viewClone, true);
             this.fpArms.add(viewClone);
             this.viewWeapon = viewClone;
             this.viewWeaponBase = {
                 position: offset.position.clone(),
                 rotation: offset.rotation.clone()
             };
-        };
-        applyClone();
+        } catch (e) {
+            console.warn('[Player] animateViewModelWeapon error:', e);
+        }
     }
 
     updateViewWeapon() {
@@ -1153,6 +1149,11 @@ export class Player {
         socket.getWorldPosition(worldPos);
         socket.getWorldQuaternion(worldQuat);
 
+        if (![worldPos.x, worldPos.y, worldPos.z, worldQuat.x, worldQuat.y, worldQuat.z, worldQuat.w].every(Number.isFinite)) {
+            this.currentWeapon.ensureFiniteTransform?.();
+            return;
+        }
+
         this.currentWeapon.mesh.position.copy(worldPos);
         this.currentWeapon.mesh.quaternion.copy(worldQuat);
     }
@@ -1160,8 +1161,8 @@ export class Player {
     getAutoFireTarget(entityManager) {
         if (!entityManager) return null;
         const forward = this._tmpAutoForward;
-        this.camera.getWorldDirection(forward);
-        const origin = this.camera.position;
+        controls.getWorldDirection(forward);
+        const origin = controls.camera.position;
         const maxDistance = this.currentWeapon?.range || 60;
         let best = null;
         let bestDist = maxDistance;

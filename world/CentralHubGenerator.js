@@ -43,48 +43,96 @@ export default class CentralHubGenerator {
     }
 
     /**
-     * Creates the mosaic plinth base
+     * Creates the mosaic plinth base with starburst pattern
+     * Matches reference: beige base + reddish-brown rays + yellow inner circle + gray rim
      */
     _createPlinth() {
         const plinthGroup = new THREE.Group();
+        const outerR = this.plinthSize / 2;   // 25 — внешний радиус платформы
+        const innerR = 8;                      // внутренний жёлтый круг
         
-        // Мозаичная основа (сектора)
-        const sectorCount = 8;
-        const sectorAngle = (Math.PI * 2) / sectorCount;
+        // 1) Base disc — light beige (visible between rays)
+        const baseGeo = new THREE.CircleGeometry(outerR, 64);
+        const baseMesh = new THREE.Mesh(
+            baseGeo,
+            new THREE.MeshStandardMaterial({ color: 0xe8dcc8, roughness: 0.8 })
+        );
+        baseMesh.rotation.x = -Math.PI / 2;
+        baseMesh.position.y = -0.3;
+        plinthGroup.add(baseMesh);
         
-        for (let i = 0; i < sectorCount; i++) {
-            const angle = i * sectorAngle;
-            const x = Math.cos(angle) * (this.plinthSize / 2);
-            const z = Math.sin(angle) * (this.plinthSize / 2);
+        // 2) Starburst rays — sharp triangular wedges from innerR to outerR
+        const rayCount = 12;
+        const rayAngle = (Math.PI * 2) / rayCount;
+        for (let i = 0; i < rayCount; i++) {
+            const isRed = (i % 2 === 0);
             
-            // Мозаичные плитки разных цветов
-            const mosaicColor = Math.floor(i / 2) % 2 === 0 
-                ? 0xffd700  // Gold
-                : 0xffa500;  // Dark gold
+            // Build triangle: center → outer edge point 1 → outer edge point 2
+            const aStart = i * rayAngle;
+            const aEnd = (i + 1) * rayAngle;
+            const aMid = (aStart + aEnd) / 2;
             
-            const mosaic = new THREE.Mesh(
-                new THREE.PlaneGeometry(25, 25),
-                new THREE.MeshBasicMaterial({ 
-                    color: mosaicColor,
-                    transparent: true,
-                    opacity: 0.95
+            // Inner point on circle at innerR
+            const ix = Math.cos(aMid) * innerR;
+            const iz = Math.sin(aMid) * innerR;
+            // Outer points at outerR (slightly narrower than full wedge for gap)
+            const gapHalfAngle = rayAngle * 0.42;
+            const ox1 = Math.cos(aMid - gapHalfAngle) * outerR;
+            const oz1 = Math.sin(aMid - gapHalfAngle) * outerR;
+            const ox2 = Math.cos(aMid + gapHalfAngle) * outerR;
+            const oz2 = Math.sin(aMid + gapHalfAngle) * outerR;
+            
+            const triGeo = new THREE.BufferGeometry();
+            const verts = new Float32Array([
+                ix, 0, iz,
+                ox1, 0, oz1,
+                ox2, 0, oz2
+            ]);
+            triGeo.setAttribute('position', new THREE.BufferAttribute(verts, 3));
+            triGeo.computeVertexNormals();
+            
+            const triMesh = new THREE.Mesh(
+                triGeo,
+                new THREE.MeshStandardMaterial({
+                    color: isRed ? 0xb87a4e : 0xd4c4a8,
+                    roughness: 0.7,
+                    side: THREE.DoubleSide
                 })
             );
-            mosaic.rotation.y = -angle - Math.PI / 2;
-            mosaic.position.set(x, -0.5, z);
-            plinthGroup.add(mosaic);
+            triMesh.rotation.x = -Math.PI / 2;
+            triMesh.position.y = -0.2;
+            plinthGroup.add(triMesh);
         }
         
-        // Золотая окантовка
-        const rim = new THREE.Mesh(
-            new THREE.TorusGeometry(this.plinthSize / 2 - 2, 0.5, 16, 50),
-            new THREE.MeshStandardMaterial({
-                color: 0xffcc00,
-                metalness: 0.9,
-                roughness: 0.1
-            })
+        // 3) Inner yellow circle — cornucopia base
+        const innerGeo = new THREE.CircleGeometry(innerR, 48);
+        const innerMesh = new THREE.Mesh(
+            innerGeo,
+            new THREE.MeshStandardMaterial({ color: 0xffd700, roughness: 0.5, metalness: 0.3 })
         );
-        plinthGroup.add(rim);
+        innerMesh.rotation.x = -Math.PI / 2;
+        innerMesh.position.y = -0.1;
+        plinthGroup.add(innerMesh);
+        
+        // 4) Gray border ring
+        const rimGeo = new THREE.TorusGeometry(outerR, 0.6, 8, 48);
+        const rimMesh = new THREE.Mesh(
+            rimGeo,
+            new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.5, metalness: 0.2 })
+        );
+        rimMesh.rotation.x = -Math.PI / 2;
+        rimMesh.position.y = -0.1;
+        plinthGroup.add(rimMesh);
+        
+        // 5) Inner ring separating yellow from rays
+        const innerRingGeo = new THREE.TorusGeometry(innerR, 0.3, 8, 48);
+        const innerRingMesh = new THREE.Mesh(
+            innerRingGeo,
+            new THREE.MeshStandardMaterial({ color: 0x777777, roughness: 0.5 })
+        );
+        innerRingMesh.rotation.x = -Math.PI / 2;
+        innerRingMesh.position.y = -0.15;
+        plinthGroup.add(innerRingMesh);
         
         this.mapGen._addToScene(plinthGroup);
     }
@@ -119,11 +167,12 @@ export default class CentralHubGenerator {
         const cornucopiaGroup = new THREE.Group();
         
         // Основной корпус рога (спиральная форма)
-        const hornGeometry = new THREE.TorusGeometry(8, 3, 8, 30, Math.PI);
+        const hornGeometry = new THREE.TorusGeometry(8, 3, 4, 12, Math.PI);
         const horn = new THREE.Mesh(
             hornGeometry,
             this.matSys.cornucopiaGold.clone()
         );
+        horn.userData.mapGenerated = true;
         
         // Наклоняем рог как естественный
         horn.rotation.z = Math.PI / 6;

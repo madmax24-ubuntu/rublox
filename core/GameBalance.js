@@ -1,13 +1,13 @@
 export const GAME_CONFIG = {
     bots: {
-        desktopCount: 49,
-        mobileCount: 49,
+        desktopCount: 99,
+        mobileCount: 99,
         spawnRadius: 16
     },
     round: {
         countdownSeconds: 15,
-        preFightInvulnerableSeconds: 0,
-        botLootPhaseSeconds: 25
+        preFightInvulnerableSeconds: 30,
+        botLootPhaseSeconds: 90
     },
     zone: {
         durationSeconds: 600,
@@ -23,7 +23,7 @@ export const GAME_CONFIG = {
         randomTimerVariance: 45,
         nextEventMin: 65,
         nextEventVariance: 50,
-        gracePeriodSeconds: 300,
+        gracePeriodSeconds: 45,
         waveIntervalSeconds: 120,
         waveDurationSeconds: 45,
         radiation: {

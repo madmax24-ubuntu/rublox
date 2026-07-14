@@ -41,6 +41,7 @@ export class HUD {
         `;
         const root = document.getElementById('gameRoot') || document.body;
         root.appendChild(hud);
+        this.root = hud;
 
         const visionOverlay = document.createElement('div');
         visionOverlay.id = 'visionOverlay';
@@ -376,6 +377,23 @@ export class HUD {
         `;
         hud.appendChild(countdown);
 
+        // FPS counter (top-right corner)
+        const fpsEl = document.createElement('div');
+        fpsEl.id = 'fpsDisplay';
+        fpsEl.style.cssText = `
+            position: absolute;
+            top: ${px(4)}px;
+            right: ${px(4)}px;
+            font-size: ${px(14)}px;
+            font-weight: 700;
+            color: #0f0;
+            background: rgba(0,0,0,0.6);
+            padding: ${px(3)}px ${px(6)}px;
+            border-radius: ${px(4)}px;
+            z-index: 10001;
+        `;
+        hud.appendChild(fpsEl);
+
         const crosshair = document.createElement('div');
         crosshair.id = 'crosshair';
         crosshair.style.cssText = `
@@ -661,7 +679,7 @@ export class HUD {
             e.preventDefault();
             this.togglePerkPanel(false);
         }, { passive: false });
-        hud.appendChild(perkBackdrop);
+        root.appendChild(perkBackdrop);
 
         const perkPanel = document.createElement('div');
         perkPanel.id = 'perkPanel';
@@ -687,20 +705,19 @@ export class HUD {
             z-index: 1500;
             box-shadow: 0 18px 40px rgba(0,0,0,0.42);
         `;
-        // perkPanel is a direct child of hud, NOT nested inside perkBackdrop
-        hud.appendChild(perkPanel);
+        perkBackdrop.appendChild(perkPanel);
         let perkTouchStartY = 0;
         let perkScrollStart = 0;
         let perkTouchMoved = false;
 
         // Build perk buttons ONCE — never overwrite innerHTML or handlers will be lost.
         const perkTitle = document.createElement('div');
-        perkTitle.style.cssText = `font-size:${px(18)}px;font-weight:900;margin-bottom:${px(6)}px;`;
+        perkTitle.style.cssText = `font-size:${px(18)}px;font-weight:900;margin-bottom:${px(6)}px;color:#ffffff;text-shadow:0 2px 4px rgba(0,0,0,0.75);`;
         perkTitle.textContent = 'Выбор перка';
         perkPanel.appendChild(perkTitle);
 
         const perkDesc = document.createElement('div');
-        perkDesc.style.cssText = `font-size:${px(11)}px;opacity:0.76;margin-bottom:${px(10)}px;`;
+        perkDesc.style.cssText = `font-size:${px(11)}px;color:#cbd7e1;line-height:1.35;margin-bottom:${px(10)}px;text-shadow:0 1px 3px rgba(0,0,0,0.7);`;
         perkDesc.textContent = 'Перк выбирается один раз перед матчем и действует весь раунд.';
         perkPanel.appendChild(perkDesc);
 
@@ -727,6 +744,7 @@ export class HUD {
                 e.stopPropagation();
                 const perk = e.currentTarget.getAttribute('data-perk');
                 console.log('[perk] Button clicked:', perk);
+                if (!window.game?.isMobile?.()) window.game?.cameraController?.lock?.();
                 document.dispatchEvent(new CustomEvent('selectPerk', { detail: perk }));
                 this.togglePerkPanel(false);
             });
@@ -1328,6 +1346,16 @@ export class HUD {
         countdown.style.display = 'none';
     }
 
+    updateFpsDisplay(fps) {
+        const fpsEl = document.getElementById('fpsDisplay');
+        if (fpsEl) {
+            fpsEl.textContent = `${fps} FPS`;
+            if (fps >= 50) fpsEl.style.color = '#0f0';
+            else if (fps >= 30) fpsEl.style.color = '#ff0';
+            else fpsEl.style.color = '#f00';
+        }
+    }
+
     showGameMessage(message) {
         const gameMessage = document.getElementById('gameMessage');
         gameMessage.textContent = message;
@@ -1469,6 +1497,7 @@ export class HUD {
         if (typeof force === 'boolean') {
             panel.style.display = force ? 'block' : 'none';
             backdrop.style.display = force ? 'flex' : 'none';
+            backdrop.style.pointerEvents = 'none';
             if (force) {
                 this.setPerkMenuSelection(this.getPerkMenuSelection());
             }
@@ -1476,6 +1505,7 @@ export class HUD {
         }
         panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
         backdrop.style.display = panel.style.display === 'block' ? 'flex' : 'none';
+        backdrop.style.pointerEvents = 'none';
         if (panel.style.display === 'block') {
             this.setPerkMenuSelection(this.getPerkMenuSelection());
         }

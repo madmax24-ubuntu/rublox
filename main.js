@@ -1,5 +1,5 @@
 ﻿import * as THREE from "three";
-import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
+import { CameraController } from './core/CameraController.js';
 
 window.THREE = THREE;
 try { THREE.Cache.enabled = true; } catch (e) {}
@@ -51,13 +51,12 @@ THREE.DefaultLoadingManager.onLoad = function() {
 };
 
 import { MapGenerator } from './world/MapGenerator.js?v=1783108938526';
-import { MapGeneratorNode } from './world/MapGeneratorNode.js?v=1783108938526';
 import { DebugOverlay } from './world/DebugOverlay.js?v=1783108938526';
 import { Environment } from './world/Environment.js?v=1783108938526';
 import { Physics } from './world/Physics.js?v=1783108938526';
 import { Zone } from './world/Zone.js?v=1783108938526';
 import { GameLoop } from './core/GameLoop.js?v=1783108938526';
-import { Input } from './core/Input.js?v=1783108938526';
+import { InputController } from './core/InputController.js';
 import { AudioSynth } from './core/AudioSynth.js?v=1783108938526';
 import { Player } from './entities/Player.js?v=1783108938526';
 import { Bot } from './entities/Bot.js?v=1783108938526';
@@ -83,7 +82,18 @@ class Game {
              || /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '')
          );
         this._tmpAudioForward = new THREE.Vector3();
-        try { this.initializeGame(); } catch (err) { this._constructorError = err.message; console.error('[Game] constructor init failed:', err); }
+        this._frustumBox = new THREE.Box3();
+        this._tmpSafeZone = new THREE.Vector3();
+        this.initialized = false;
+        this.ready = this.initializeGame().then(() => {
+            this.initialized = true;
+            document.dispatchEvent(new CustomEvent('gameReady'));
+            return this;
+        }).catch(err => {
+            this._constructorError = err.message;
+            console.error('[Game] constructor init failed:', err);
+            throw err;
+        });
     }
 
     isMobile() {
@@ -92,10 +102,12 @@ class Game {
 
     enableTestMode() {
         this._testMode = true;
-        // Disable PointerLockControls completely
-        if (this.controls) {
-            this.controls.enabled = false;
-            this.controls.dispose();
+        // Disable camera controls completely
+        if (this.cameraController) {
+            if (this.cameraController.controls) {
+                this.cameraController.controls.enabled = false;
+                this.cameraController.controls.dispose();
+            }
         }
         if (this.camera) {
             this.camera.position.set(0, 800, 0);
@@ -110,16 +122,13 @@ class Game {
 
     disableTestMode() {
         this._testMode = false;
-        if (this.camera) {
-            this.camera.position.set(0, 1.5, 0);
-            this.camera.lookAt(0, 0, 0);
-            this.camera.fov = 75;
-            this.camera.updateProjectionMatrix();
+        if (this.cameraController && this.cameraController.controls) {
+            this.cameraController.controls.enabled = true;
         }
-        // Re-enable controls
-        if (this.controls) {
-            this.controls.enabled = true;
-        }
+        this.camera.position.set(0, 1.5, 0);
+        this.camera.lookAt(0, 0, 0);
+        this.camera.fov = 75;
+        this.camera.updateProjectionMatrix();
         this.showUI = true;
         this.hud?.show?.();
     }
@@ -254,6 +263,14 @@ class Game {
             this.map.updatePropVisibility(this.player.position);
             this.lastPropVisibilityPos.copy(this.player.position);
         }
+        if (this.map?.instancedMeshSystem?.updateCulling && this.player?.position) {
+            const distSq = this._lastCullPos.distanceToSquared(this.player.position);
+            if (distSq > 25) {
+                const cullDist = this.isMobile() ? 200 : 300;
+                this.map.instancedMeshSystem.updateCulling(this.player.position, cullDist);
+                this._lastCullPos.copy(this.player.position);
+            }
+        }
     }
 
     hideStartScreen() {
@@ -288,7 +305,7 @@ class Game {
         this.scene.userData.camera = this.camera;
 
         this.renderer = new THREE.WebGLRenderer({
-            antialias: !isMobile,
+            antialias: false, // disable for stable 60fps
             powerPreference: "high-performance",
             precision: isMobile ? "mediump" : "highp",
             stencil: false,
@@ -297,31 +314,17 @@ class Game {
         });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.shadowMap.enabled = false;
-        this.applyRendererSizing();
+        this.renderer.sortObjects = false; // Disable sorting for FPS
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+        this.renderer.frustumCulled = true; // Enable frustum culling globally
+        this.renderer.autoClear = true; // Auto-clear buffers (default, but explicit)
 
         this.camera.position.set(0, 1.5, 0);
-        if (!isMobile) {
-            this.controls = new PointerLockControls(this.camera, this.renderer.domElement);
-            this.scene.add(this.controls.getObject());
+        this.cameraController = new CameraController(this.scene, this.camera, this.renderer.domElement);
+        this.cameraController.init(isMobile);
 
-            this.controls.addEventListener('lock', () => {
-                console.log('Pointer lock enabled');
-            });
-
-            this.controls.addEventListener('unlock', () => {
-                console.log('Pointer lock disabled');
-                this.input?.clearInputState?.();
-                if (this.isStarted && !this.isPaused) {
-                    this.setPaused(true);
-                }
-            });
-        } else {
-            this.controls = null;
-            this.scene.add(this.camera);
-        }
-
-        this.input = new Input();
+        this.input = new InputController({ domElement: this.renderer.domElement });
+        this.input.attachListeners();
         this.audioSynth = new AudioSynth();
         this.hud = new HUD();
 
@@ -361,6 +364,20 @@ class Game {
         };
         this.randomEventTimer = GAME_CONFIG.events.randomTimerMin + Math.random() * GAME_CONFIG.events.randomTimerVariance;
         this.activeEvent = { type: null, timer: 0, prevFog: null };
+        this.eventDeck = [];
+        this.lastEventType = null;
+        this.eventTimeline = [
+            { at: 90, type: 'supplyDrop', duration: 12 },
+            { at: 150, type: 'platformOpen', duration: 22 },
+            { at: 210, type: 'night', duration: 40 },
+            { at: 275, type: 'blindness', duration: 4 },
+            { at: 320, type: 'radiationRain', duration: GAME_CONFIG.events.radiation.durationSeconds },
+            { at: 390, type: 'supplyDrop', duration: 12 },
+            { at: 450, type: 'platformOpen', duration: 18 },
+            { at: 490, type: 'storm', duration: GAME_CONFIG.events.storm.durationSeconds },
+            { at: 545, type: 'zombieRush', duration: GAME_CONFIG.events.zombieRush.durationSeconds }
+        ];
+        this.eventTimelineIndex = 0;
         this.radiationRainGraceTimer = 0;
         this.radiationRainDamageActive = false;
         this.resumeGraceTimer = 0;
@@ -368,6 +385,7 @@ class Game {
         this.rainUpdateAccumulator = 0;
         this.weatherSyncTimer = 0;
         this.lastWeatherType = 'clear';
+        this.lastAmbientBiome = null;
         this.poiWarmupTimer = 0;
         this.zombieMaintainTimer = 3.6;
         this.roundStartTime = performance.now() * 0.001;
@@ -386,10 +404,6 @@ class Game {
         };
         this.map.startGeneration();
 
-        // Tile-based map underneath (for physics/collisions)
-        this.tileMapGenerator = new MapGeneratorNode(this.scene);
-        this.tileMapGenerator.init();
-
         // Wait for map generation to complete (populates spawnPads)
         await this.map._generatePromise;
 
@@ -402,16 +416,14 @@ class Game {
         this.physics = new Physics(this.scene, this.map);
         this.zone = new Zone(this.scene, this.map.size);
         this.zoneDuration = GAME_CONFIG.zone.durationSeconds;
-        this.zoneMinRadius = Math.max(
-            GAME_CONFIG.zone.minRadiusAbsolute,
-            this.zone.getCurrentRadius() * GAME_CONFIG.zone.minRadiusFactor
-        );
+        this.zoneMinRadius = 9999;
         this.zone.shrink(this.zone.getCurrentRadius());
         this.zone.shrinkSpeed = 0;
         this.traps = this.map.getTraps?.() || [];
         this.localFogZones = this.map.getFogZones?.() || [];
         this.propVisibilityTimer = 0;
         this.lastPropVisibilityPos = new THREE.Vector3(99999, 99999, 99999);
+        this._lastCullPos = new THREE.Vector3(99999, 99999, 99999);
         this.radiationRainEffect = null;
         this.radiationRainActive = false;
         this.initRadiationRainEffect();
@@ -420,6 +432,7 @@ class Game {
         this.entityManager.physicsRef = this.physics;
         this.scene.userData.entityManager = this.entityManager;
         this.lootManager = new LootManager(this.scene, this.map);
+        this.lootEvents = 0; // counter for test validation
 
           this.player = new Player(this.scene, this.camera, this.input);
           this.player.setHUD(this.hud);
@@ -498,9 +511,9 @@ class Game {
         this.hud.showGameMessage(this.isMobile()
             ? 'Выберите перк до старта матча'
             : 'Выберите перк до старта матча. Клавиша P');
-        this.perkMenuOpen = true;
+        this.perkMenuOpen = false;
         this.perkSelectionRequired = true;
-        this.hud.togglePerkPanel(true);
+        this.hud.togglePerkPanel(false);
 
         window.addEventListener('resize', () => {
             this.applyRendererSizing();
@@ -578,11 +591,10 @@ class Game {
                 this.renderer.domElement.style.cursor = this.isPaused ? 'auto' : 'none';
             }
         }
-        if (this.controls && !this.isMobile()) {
-            if (this.isPaused && this.controls.isLocked) this.controls.unlock();
-            if (!this.isPaused && !this.controls.isLocked) this.controls.lock();
+        if (this.cameraController && !this.isMobile()) {
+            if (this.isPaused && this.cameraController.isLocked) this.cameraController.unlock();
+            if (!this.isPaused && !this.cameraController.isLocked) this.cameraController.lock();
         }
-        this.recoverViewState(this.isPaused ? 'pause' : 'unpause');
         if (!this.isPaused) {
             this.gameLoop?.resetDelta?.();
             setTimeout(() => this.recoverViewState('post-unpause'), 40);
@@ -590,32 +602,10 @@ class Game {
     }
 
     recoverViewState(_reason = 'resume') {
+        // CameraController автоматически восстанавливает состояние при разблокировке.
+        // Мы просто сбрасываем ввод.
         this.input?.clearInputState?.();
         this.input?.resetLook?.();
-        if (!this.player) return;
-
-        const maxPitch = Math.PI / 2.4;
-        const safePitch = Number.isFinite(this.player.rotation.x)
-            ? Math.max(-maxPitch, Math.min(maxPitch, this.player.rotation.x))
-            : 0;
-        const safeYaw = Number.isFinite(this.player.rotation.y) ? this.player.rotation.y : 0;
-
-        this.player.rotation.x = safePitch;
-        this.player.rotation.y = safeYaw;
-        this.player.rotation.z = 0;
-        this.player.camera?.rotation?.set(safePitch, safeYaw, 0, 'YXZ');
-
-        if (this.controls) {
-            const obj = this.controls.getObject();
-            obj.rotation.set(safePitch, safeYaw, 0, 'YXZ');
-            obj.quaternion.setFromEuler(obj.rotation);
-            obj.position.set(
-                this.player.position.x,
-                this.player.position.y + this.player.cameraOffset.y,
-                this.player.position.z
-            );
-        }
-        this.updateOrientationUI?.();
     }
 
     spawnBots() {
@@ -626,19 +616,16 @@ class Game {
         const spawnRadius = GAME_CONFIG.bots.spawnRadius;
         // Player uses pad[0], bots use pads[1..] — each entity gets strictly its own pad
         const botPads = spawnPads.length > 1 ? spawnPads.slice(1) : spawnPads;
-        console.log('[Game] spawnBots: pads total:', spawnPads.length, 'botPads:', botPads.length, 'botCount:', botCount);
 
         for (let i = 0; i < botCount; i++) {
             let spawnPos;
             if (botPads.length) {
                 // Each bot gets its own pad, no cycling, no offsets
                 const pad = botPads[i];
-                if (!pad) { console.log('[Game] Bot', i, 'no pad available'); break; }
-                console.log('[Game] Bot', i, '-> pad', i+1, `(${pad.x.toFixed(1)}, ${pad.y.toFixed(2)}, ${pad.z.toFixed(1)})`);
+                if (!pad) break;
 
                 // Bots spawn ON the pad surface (pad.y = platform surface y=2)
                 spawnPos = new THREE.Vector3(pad.x, pad.y + 1.9, pad.z);
-                console.log('[Game] Bot', i, 'spawned at', `(${spawnPos.x.toFixed(2)}, ${spawnPos.y.toFixed(2)}, ${spawnPos.z.toFixed(2)})`);
             } else {
                 const angle = (i / botCount) * Math.PI * 2;
                 spawnPos = new THREE.Vector3(
@@ -646,7 +633,6 @@ class Game {
                     2 + 1.9,
                     Math.sin(angle) * spawnRadius
                 );
-                console.log('[Game] Bot', i, 'fallback to angle', angle.toFixed(2), 'pos', `(${spawnPos.x.toFixed(2)}, ${spawnPos.y.toFixed(2)}, ${spawnPos.z.toFixed(2)})`);
             }
 
             const bot = new Bot(this.scene, i, spawnPos);
@@ -668,7 +654,6 @@ class Game {
      */
     spawnPlayerAndBots() {
         const spawnPads = this.map.getSpawnPads?.() || [];
-        console.log('[Game] spawnPlayerAndBots: pads total:', spawnPads.length);
 
         // Spawn player on pad[0]
         if (spawnPads.length > 0) {
@@ -676,12 +661,10 @@ class Game {
             const groundY = this.map.raycastGroundY?.(pad.x, pad.z, pad.y) ?? pad.y;
             this.player.position.set(pad.x, groundY + this.player.physics.height, pad.z);
             this.player.physics.onGround = true;
-            console.log('[Game] Player -> pad 0 at', `(${pad.x.toFixed(1)}, ${pad.y.toFixed(2)}, ${pad.z.toFixed(1)}), groundY=${groundY.toFixed(2)}, player.y=${this.player.position.y.toFixed(2)}`);
         } else {
             // Fallback to center if no pads
             this.player.position.set(0, 2 + this.player.physics.height, 0);
             this.player.physics.onGround = true;
-            console.log('[Game] Player fallback to center');
         }
 
         this.physics.addEntity(this.player);
@@ -721,7 +704,6 @@ class Game {
 
             if (assignedPad >= 0) {
                 if (padUsage.has(assignedPad)) {
-                    console.log(`[Game] DUPLICATE: pad ${assignedPad} used by entity ${padUsage.get(assignedPad)} and entity ${i}`);
                     duplicates++;
                 } else {
                     padUsage.set(assignedPad, i);
@@ -730,9 +712,6 @@ class Game {
         }
 
         if (duplicates === 0) {
-            console.log(`[Game] ✅ Spawn uniqueness verified: ${entities.length} entities, ${padUsage.size} unique pads`);
-        } else {
-            console.log(`[Game] ❌ Spawn uniqueness FAILED: ${duplicates} duplicates found`);
         }
     }
 
@@ -750,7 +729,7 @@ class Game {
                     : 'Classic');
 
         this.lootManager.setLootDensity(this.modeConfig.lootDensity);
-        this.player.footstepVolume = this.modeConfig.footstepVolume;
+        if (this.player) this.player.footstepVolume = this.modeConfig.footstepVolume;
         if (this.scene?.fog) {
             this.scene.fog.density = this.modeConfig.fogDensity;
         }
@@ -761,7 +740,7 @@ class Game {
 
     applyPerk(perk) {
         this.perk = perk || 'none';
-        this.player.applyPerk(this.perk, this.modeConfig.footstepVolume);
+        if (this.player) this.player.applyPerk(this.perk, this.modeConfig.footstepVolume);
         const perkLabel = this.perk === 'quickHands'
             ? '\u0411\u044b\u0441\u0442\u0440\u044b\u0435 \u0440\u0443\u043a\u0438'
             : this.perk === 'silentStep'
@@ -953,10 +932,10 @@ class Game {
     }
 
     getSafeZoneTarget(position) {
-        const v = new THREE.Vector3(position.x, 0, position.z);
-        if (v.lengthSq() < 1e-6) return new THREE.Vector3(0, position.y, 0);
+        const v = this._tmpSafeZone.set(position.x, 0, position.z);
+        if (v.lengthSq() < 1e-6) { this._tmpSafeZone.set(0, position.y, 0); return this._tmpSafeZone.clone(); }
         v.normalize().multiplyScalar(Math.max(0, this.zone.getCurrentRadius() * 0.6));
-        return new THREE.Vector3(v.x, position.y, v.z);
+        return this._tmpSafeZone.clone();
     }
 
     initRadiationRainEffect() {
@@ -1139,10 +1118,78 @@ class Game {
         this.centerBlast.radius = 18;
         this.centerBlast.cooldown = 0;
         this.map?.detonateCornucopia?.();
-        this.hud.showGameMessage('Центр уничтожен! Разбегайтесь по биомам!');
         this.audioSynth?.playExplosion?.(center);
+    }
 
-        // VFX removed - ring geometry was visible on map
+    triggerPlatformUnavailable(notify = true) {
+        const center = this.map?.getCornucopiaCenter?.() || new THREE.Vector3(0, 0.8, 0);
+        this.centerPlatformOpen = false;
+        this.map?.setBiomeGatesOpen?.(false);
+        if (notify) this.hud.showGameMessage('Центральная платформа закрыта. Покиньте опасную зону!');
+        if (!this.laserRing) {
+            const laserRadius = 57;
+            const laserSegments = 64;
+            const coreGeo = new THREE.TorusGeometry(laserRadius, 0.5, 16, laserSegments);
+            const coreMat = new THREE.MeshStandardMaterial({
+                color: 0xFF2200,
+                emissive: 0xFF4400,
+                emissiveIntensity: 2.0,
+                transparent: true,
+                opacity: 0.95,
+                depthWrite: false
+            });
+            this.laserRing = new THREE.Mesh(coreGeo, coreMat);
+            this.laserRing.rotation.x = -Math.PI / 2;
+            this.laserRing.position.set(center.x, 1.5, center.z);
+            this.scene.add(this.laserRing);
+            const glowGeo = new THREE.TorusGeometry(laserRadius, 1.5, 8, laserSegments);
+            const glowMat = new THREE.MeshBasicMaterial({
+                color: 0xFF4400,
+                transparent: true,
+                opacity: 0.25,
+                depthWrite: false
+            });
+            this.laserGlow = new THREE.Mesh(glowGeo, glowMat);
+            this.laserGlow.rotation.x = -Math.PI / 2;
+            this.laserGlow.position.copy(this.laserRing.position);
+            this.scene.add(this.laserGlow);
+            const curtainGeo = new THREE.CylinderGeometry(laserRadius, laserRadius, 38, laserSegments, 1, true);
+            const curtainMat = new THREE.MeshBasicMaterial({
+                color: 0xFF2200,
+                transparent: true,
+                opacity: 0.12,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            });
+            this.laserCurtain = new THREE.Mesh(curtainGeo, curtainMat);
+            this.laserCurtain.position.set(center.x, 19, center.z);
+            this.scene.add(this.laserCurtain);
+            const domeGeo = new THREE.SphereGeometry(laserRadius, 48, 24, 0, Math.PI * 2, 0, Math.PI / 2);
+            const domeMat = new THREE.MeshBasicMaterial({
+                color: 0xff3d00,
+                transparent: true,
+                opacity: 0.1,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            });
+            this.laserDome = new THREE.Mesh(domeGeo, domeMat);
+            this.laserDome.position.set(center.x, 0.5, center.z);
+            this.scene.add(this.laserDome);
+        }
+        this.laserRing.visible = true;
+        this.laserGlow.visible = true;
+        this.laserCurtain.visible = true;
+        this.laserDome.visible = true;
+        this.laserActive = true;
+    }
+
+    setCenterPlatformOpen(open) {
+        this.centerPlatformOpen = !!open;
+        this.map?.setBiomeGatesOpen?.(open);
+        this.laserActive = !open;
+        for (const mesh of [this.laserRing, this.laserGlow, this.laserCurtain, this.laserDome]) {
+            if (mesh) mesh.visible = !open;
+        }
     }
 
     updateCenterDetonation(delta) {
@@ -1212,42 +1259,8 @@ class Game {
     }
 
     updateZoneCycle(delta) {
-        if (this.zonePhaseIndex >= this.zonePhaseCount && this.zone.getCurrentRadius() <= this.zoneMinRadius + 0.25) {
-            this.zonePhase = 'final';
-            return;
-        }
-
-        if (this.zonePhase === 'waiting') {
-            this.zonePhaseTimer = Math.max(0, this.zonePhaseTimer - delta);
-            if (this.zonePhaseTimer <= 0 && this.zonePhaseIndex < this.zonePhaseCount) {
-                const currentRadius = this.zone.getCurrentRadius();
-                const remainingSteps = Math.max(1, this.zonePhaseCount - this.zonePhaseIndex);
-                const stepDrop = (currentRadius - this.zoneMinRadius) / remainingSteps;
-                this.zonePhaseTarget = Math.max(this.zoneMinRadius, currentRadius - stepDrop);
-                this.zone.shrink(this.zonePhaseTarget);
-                this.zone.shrinkSpeed = Math.max(8, (currentRadius - this.zonePhaseTarget) / GAME_CONFIG.zone.shrinkPhaseSeconds);
-                this.zonePhase = 'shrinking';
-                this.zonePhaseTimer = GAME_CONFIG.zone.shrinkPhaseSeconds;
-            }
-            return;
-        }
-
-        if (this.zonePhase === 'shrinking') {
-            this.zone.update(delta);
-            this.zonePhaseTimer = Math.max(0, this.zonePhaseTimer - delta);
-            if (this.zone.getCurrentRadius() <= this.zonePhaseTarget + 0.25 || this.zonePhaseTimer <= 0) {
-                this.zone.setCurrentRadius(this.zonePhaseTarget);
-                this.zone.shrink(this.zonePhaseTarget);
-                this.zone.shrinkSpeed = 0;
-                const restored = this.lootManager.refillOpenedChests?.(10) || 0;
-                if (restored > 0) {
-                    this.hud.showLootNotification?.(`Сундуки пополнены: ${restored}`);
-                }
-                this.zonePhaseIndex += 1;
-                this.zonePhase = 'waiting';
-                this.zonePhaseTimer = this.zonePhaseIndex >= this.zonePhaseCount ? 9999 : GAME_CONFIG.zone.waitBetweenSeconds;
-            }
-        }
+        // Zone shrinking disabled - zone stays at full size
+        return;
     }
 
     updateRandomEvents(delta) {
@@ -1270,20 +1283,29 @@ class Game {
                 if (this.activeEvent.type === "radiationRain") {
                     this.setRadiationRainActive(false);
                 }
+                if (this.activeEvent.type === "storm") {
+                    this.env?.setStormActive?.(false, 0);
+                    this.hud?.setStormActive?.(false, 'storm');
+                }
+                if (this.activeEvent.type === 'platformOpen') {
+                    this.triggerPlatformUnavailable();
+                }
+                this.lastEventType = this.activeEvent.type;
                 this.activeEvent = { type: null, timer: 0, prevFog: null };
                 this.hud.showGameMessage("Событие завершено");
             }
         }
 
-        this.randomEventTimer -= delta;
-        if (this.randomEventTimer > 0 || this.activeEvent.type) return;
-
-        const events = ["blindness", "night", "radiationRain", "supplyDrop", "storm", "zombieRush"];
-        const event = events[Math.floor(Math.random() * events.length)];
+        const roundElapsed = performance.now() * 0.001 - this.roundStartTime;
+        if (this.gameState !== 'playing' || this.activeEvent.type) return;
+        const scheduled = this.eventTimeline[this.eventTimelineIndex];
+        if (!scheduled || roundElapsed < scheduled.at) return;
+        this.eventTimelineIndex++;
+        const event = scheduled.type;
 
         if (event === "blindness") {
             this.activeEvent.type = "blindness";
-            this.activeEvent.timer = 4;
+            this.activeEvent.timer = scheduled.duration;
             if (this.env?.setFogOverride) {
                 this.env.setFogOverride(0.085, 0x030307);
             } else if (this.scene?.fog) {
@@ -1292,34 +1314,37 @@ class Game {
             this.hud.showGameMessage("Событие: Слепота");
         } else if (event === "night" && this.env?.forceNight) {
             this.activeEvent.type = "night";
-            this.activeEvent.timer = 28;
-            this.env.forceNight(30);
-            this.hud.showGameMessage("Событие: Ночь");
+            this.activeEvent.timer = scheduled.duration;
+            this.env.forceNight(scheduled.duration);
+            this.hud.showGameMessage("Событие: Ночь. Заражённые слышат и видят дальше!");
         } else if (event === "radiationRain") {
             this.activeEvent.type = "radiationRain";
-            this.activeEvent.timer = GAME_CONFIG.events.radiation.durationSeconds;
+            this.activeEvent.timer = scheduled.duration;
             this.setRadiationRainActive(true);
             this.hud.showGameMessage("Событие: Радиационный дождь. Прячьтесь в домах или ангарах!");
         } else if (event === "supplyDrop") {
             this.activeEvent.type = "supplyDrop";
-            this.activeEvent.timer = GAME_CONFIG.events.supplyDrop.intervalSeconds;
+            this.activeEvent.timer = scheduled.duration;
             this.spawnSupplyDrop();
             this.hud.showGameMessage("Событие: Снаряжение упало! Ищите контейнеры!");
         } else if (event === "storm") {
             this.activeEvent.type = "storm";
-            this.activeEvent.timer = GAME_CONFIG.events.storm.durationSeconds;
+            this.activeEvent.timer = scheduled.duration;
             this.hud.showGameMessage("Событие: Шторм! Укрытия снижают урон!");
             if (this.env?.setStormActive) {
                 this.env.setStormActive(true, GAME_CONFIG.events.storm.visualIntensity);
             }
         } else if (event === "zombieRush") {
             this.activeEvent.type = "zombieRush";
-            this.activeEvent.timer = GAME_CONFIG.events.zombieRush.durationSeconds;
+            this.activeEvent.timer = scheduled.duration;
             this.queueZombieBurst(false, 2.5, 120, GAME_CONFIG.events.zombieRush.zombieCount, 4);
             this.hud.showGameMessage("Событие: Зомби-волна! Готовьтесь к бою!");
+        } else if (event === 'platformOpen') {
+            this.activeEvent.type = 'platformOpen';
+            this.activeEvent.timer = scheduled.duration;
+            this.setCenterPlatformOpen(true);
+            this.hud.showGameMessage(`Центральная платформа открыта на ${scheduled.duration}с! Можно сменить биом.`);
         }
-
-        this.randomEventTimer = GAME_CONFIG.events.nextEventMin + Math.random() * GAME_CONFIG.events.nextEventVariance;
     }
 
     spawnSupplyDrop() {
@@ -1423,6 +1448,16 @@ class Game {
     }
 
     update(delta) {
+        // FPS tracking — update display every 0.5s
+        this._fpsFrameCount = (this._fpsFrameCount || 0) + 1;
+        this._fpsAccumulator = (this._fpsAccumulator || 0) + delta;
+        if (this._fpsAccumulator >= 0.5) {
+            const fps = Math.round(this._fpsFrameCount / this._fpsAccumulator);
+            this.hud.updateFpsDisplay?.(fps);
+            this._fpsFrameCount = 0;
+            this._fpsAccumulator = 0;
+        }
+
         this.enforceNoBugPolicy(delta);
         if (this.isStarted && loadingOverlay && loadingOverlay.style.display !== 'none') {
             loadingOverlay.style.display = 'none';
@@ -1500,7 +1535,8 @@ class Game {
             this.menuKeyLatch.e = false;
         }
         if (this.gameState === 'countdown' && this.isStarted) {
-            this.countdownTimer -= delta;
+            const dt = Number.isFinite(delta) ? delta : 0.016;
+            this.countdownTimer -= dt;
             const sec = Math.max(0, Math.ceil(this.countdownTimer));
             if (sec !== this.lastCountdownSecond) {
                 this.lastCountdownSecond = sec;
@@ -1523,24 +1559,33 @@ class Game {
                     this.applyPerk('quickHands');
                     this.perkLocked = true;
                 }
+                this.spawnScatterInitialized = false;
                 this.gameState = 'spawn';
                 this.perkLocked = true;
                 this.perkSelectionRequired = false;
                 this.perkMenuOpen = false;
                 this.hud.setPerkPanelLock(false);
                 this.hud.togglePerkPanel(false);
+                if (this.renderer?.domElement) this.renderer.domElement.style.pointerEvents = 'auto';
                 this.hud.setPerkSelectionEnabled(false);
                 this.hud.hideCountdown();
+                const hudRoot = document.getElementById('hud');
+                if (hudRoot) {
+                    hudRoot.style.display = 'block';
+                    hudRoot.style.visibility = 'visible';
+                    hudRoot.style.opacity = '1';
+                }
+                this.hud.updateHealth(this.player.health, this.player.maxHealth);
+                this.hud.updateArmor(this.player.armor, this.player.maxArmor);
+                this.hud.updateAmmo(this.player.currentWeapon || this.player.fists);
                 this.hud.showGameMessage('\u0414\u043e\u0431\u0440\u043e \u043f\u043e\u0436\u0430\u043b\u043e\u0432\u0430\u0442\u044c \u043d\u0430 \u0413\u043e\u043b\u043e\u0434\u043d\u044b\u0435 \u0438\u0433\u0440\u044b, \u0432\u044b\u0436\u0438\u0432\u0435\u0442 \u0441\u0438\u043b\u044c\u043d\u0435\u0439\u0448\u0438\u0439!');
                 this.audioSynth.playBoxArrival?.(new THREE.Vector3(0, 1, 0));
-                this.triggerCenterDetonation();
+                this.centerPlatformOpen = true;
+                this.map?.setBiomeGatesOpen?.(true);
                 this.player.isFrozen = false;
                 this.player.isCameraFrozen = false;
                 this.player._frozenCamPos = null;
-                this.player.lastCameraPosition = null;
                 this.bots.forEach(bot => { bot.isFrozen = false; });
-                this.queueZombieBurst(true, 1.6, 120, 22, this.isMobile() ? 4 : 6);
-                this.queuePoiBurst(1.7, this.isMobile() ? 18 : 28, this.isMobile() ? 4 : 5);
                 // Game loop already started at countdown
             }
         } else if (this.gameState === 'spawn' && this.isStarted) {
@@ -1549,56 +1594,62 @@ class Game {
             this.player.isCameraFrozen = false;
             this.player.lastCameraPosition = null;
             this.bots.forEach(bot => { bot.isFrozen = false; });
-            if (!this.spawnScatterTargets || this.spawnScatterTargets.length === 0) {
-                const floor = this.map.getFloorTiles?.() || [];
+            if (!this.spawnScatterInitialized) {
+                const floor = this.map.getNavigationTiles?.() || this.map.getFloorTiles?.() || [];
                 const minR = (this.map.spawnCourtyardRadius || 54) + 24;
-                this.spawnScatterTargets = floor
-                    .filter(t => Math.hypot(t.x, t.z) > minR)
-                    .sort((a, b) => Math.hypot(a.x, a.z) - Math.hypot(b.x, b.z));
-                for (let i = this.spawnScatterTargets.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    const tmp = this.spawnScatterTargets[i];
-                    this.spawnScatterTargets[i] = this.spawnScatterTargets[j];
-                    this.spawnScatterTargets[j] = tmp;
-                }
-            }
-            const usedScatter = new Set();
-            for (let i = 0; i < this.bots.length; i++) {
-                const bot = this.bots[i];
-                bot.target = null;
-                bot.assistTarget = null;
-                bot.allies = [];
-                bot.state = 'spawn';
-                if (!bot.patrolTarget) {
+                const biomeDefs = [
+                    ['forest', t => t.x < -5 && t.z < -5],
+                    ['maze', t => t.x > 5 && t.z < -5],
+                    ['military', t => t.x < -5 && t.z > 5],
+                    ['ice', t => t.x > 5 && t.z > 5]
+                ];
+                const pools = biomeDefs.map(([, test]) => floor.filter(t => {
+                    const r = Math.hypot(t.x, t.z);
+                    return r > minR && r < 190 && test(t) && this.map.isWalkableAt?.(t.x, t.z) !== false;
+                }));
+                const usedByBiome = pools.map(() => new Set());
+                for (let i = 0; i < this.bots.length; i++) {
+                    const bot = this.bots[i];
+                    const biomeIndex = i % biomeDefs.length;
+                    const pool = pools[biomeIndex];
+                    const used = usedByBiome[biomeIndex];
+                    bot.target = null;
+                    bot.assistTarget = null;
+                    bot.allies = [];
+                    bot.state = 'spawn';
                     let scatter = null;
-                    if (this.spawnScatterTargets?.length) {
-                        for (let k = 0; k < this.spawnScatterTargets.length; k++) {
-                            const idx = (i * 11 + k * 17 + Math.floor(Math.random() * 13)) % this.spawnScatterTargets.length;
-                            if (!usedScatter.has(idx)) {
-                                usedScatter.add(idx);
-                                scatter = this.spawnScatterTargets[idx];
+                    if (pool.length) {
+                        for (let k = 0; k < pool.length; k++) {
+                            const idx = (Math.floor(i / 4) * 17 + k * 23) % pool.length;
+                            if (!used.has(idx)) {
+                                used.add(idx);
+                                scatter = pool[idx];
                                 break;
                             }
                         }
                     }
                     if (scatter) {
-                        const jitterX = (Math.random() - 0.5) * 8;
-                        const jitterZ = (Math.random() - 0.5) * 8;
-                        bot.patrolTarget = new THREE.Vector3(scatter.x + jitterX, 0, scatter.z + jitterZ);
+                        bot.patrolTarget = new THREE.Vector3(scatter.x, 0, scatter.z);
                     } else {
-                        const angle = (i / Math.max(1, this.bots.length)) * Math.PI * 2;
-                        const distance = this.zone.getCurrentRadius() * 0.32 + (i % 5) * 3.5;
-                        bot.patrolTarget = new THREE.Vector3(
-                            Math.cos(angle) * distance,
-                            0,
-                            Math.sin(angle) * distance
-                        );
+                        const signs = [[-1, -1], [1, -1], [-1, 1], [1, 1]][biomeIndex];
+                        const offset = 95 + (Math.floor(i / 4) % 6) * 9;
+                        bot.patrolTarget = new THREE.Vector3(signs[0] * offset, 0, signs[1] * offset);
                     }
+                    bot.assignedBiome = biomeDefs[biomeIndex][0];
+                    bot.assignedBiomeUntil = performance.now() + 180000;
+                    bot.assignedBiomeTarget = bot.patrolTarget.clone();
                 }
+                this.spawnScatterInitialized = true;
             }
 
             if (this.spawnTimer <= 0) {
+                this.triggerPlatformUnavailable();
                 this.gameState = 'playing';
+                this.roundStartTime = performance.now() * 0.001;
+                this.eventTimelineIndex = 0;
+                this.activeEvent = { type: null, timer: 0, prevFog: null };
+                this.initialZombieWaveQueued = false;
+                this.randomEventTimer = GAME_CONFIG.events.randomTimerMin + Math.random() * GAME_CONFIG.events.randomTimerVariance;
                 this.startZoneCycle();
                 this.player.setInvulnerable(false);
                 this.bots.forEach(bot => bot.setInvulnerable(false));
@@ -1611,11 +1662,10 @@ class Game {
                     bot.state = 'explore';
                     bot._fsmCtx = null;
                     if (this.botBrains[i]) {
-                        this.botBrains[i].decisionCooldown = 0;
+                        this.botBrains[i].decisionCooldown = (i % 12) * 0.04 + Math.floor(i / 12) * 0.02;
                     }
                 }
                 this.hud.showGameMessage('\u0412\u044b\u0436\u0438\u0432\u0430\u043d\u0438\u0435 \u043d\u0430\u0447\u0430\u043b\u043e\u0441\u044c!');
-                this.map.setCourtyardGateOpen(false);
                 this.gateClosed = true;
                 this.audioSynth.playStoneDoorClose?.(this.map.getCourtyardExitPosition());
                 this.poiWarmupTimer = 7;
@@ -1628,8 +1678,6 @@ class Game {
         }
 
         if (this.gameState === 'playing') {
-            this.player.setInvulnerable(false);
-            this.bots.forEach(bot => bot.setInvulnerable(false));
             if (!this.poiZombieSeeded && this.poiWarmupTimer > 0) {
                 this.poiWarmupTimer = Math.max(0, this.poiWarmupTimer - delta);
                 if (this.poiWarmupTimer <= 0) {
@@ -1649,6 +1697,21 @@ class Game {
             if (!this.zone.isInsideZone(this.player.position)) {
                 const damage = this.zone.getDamage(delta, this.player.position);
                 this.player.takeDamage(damage, false, null, 0, 'zone');
+            }
+
+            if (this.laserActive && this.laserRing) {
+                const center = this.map?.getCornucopiaCenter?.() || this.laserRing.position;
+                const damageCenter = (entity) => {
+                    if (!entity?.isAlive || !entity.position || typeof entity.takeDamage !== 'function') return;
+                    const dx = entity.position.x - center.x;
+                    const dz = entity.position.z - center.z;
+                    if (dx * dx + dz * dz < 57 * 57) {
+                        entity.takeDamage(34 * delta, false, null, 0, 'laser');
+                    }
+                };
+                damageCenter(this.player);
+                for (const bot of this.bots) damageCenter(bot);
+                for (const zombie of this.zombies) damageCenter(zombie);
             }
             if (this.activeEvent?.type === 'radiationRain' && this.radiationRainDamageActive && !this.isShelteredFromRadiation(this.player.position)) {
                 this.player.takeDamage(GAME_CONFIG.events.radiation.playerDps * delta, false, null, 0, 'storm');
@@ -1681,17 +1744,13 @@ class Game {
             this.hud.setVisionIntensity?.(0);
         }
 
-        this.physics.update(delta);
+        const _t0 = performance.now(); this.physics.update(delta, this.gameState); const physicsMs = performance.now() - _t0;
 
-        this.player.update(delta, this.audioSynth, this.lootManager, this.entityManager, this.controls);
-        this.map.update?.(delta, this.player.position);
-        this.map.updateFountainAnimation?.(delta);
-        this.map.updateFireflyAnimation?.(delta);
-        this.map.updateCrystalAnimation?.(delta);
-        this.map.updateTorchAnimation?.(delta);
-        this.map.updateGlowAnimation?.(delta);
-        this.map.updateSnowParticles?.(delta);
-        this.map.updateWindTurbines?.(delta);
+        const _t1 = performance.now(); this.player.update(delta, this.audioSynth, this.lootManager, this.entityManager, this.cameraController); const playerMs = performance.now() - _t1;
+        // Обновляем камеру (позиция + вращение); frozen=true во время таймера старта
+        const _t2 = performance.now(); this.cameraController.update(delta, this.input, this.player.position, this.gameState === 'countdown'); const cameraMs = performance.now() - _t2;
+        // Batch animation updates — distance-culled in MapGenerator
+        const _t3 = performance.now(); this.map.updateAllAnimations?.(delta, this.player.position); const animMs = performance.now() - _t3;
         this.updateRadiationRainEffect(delta);
         this.propVisibilityTimer -= delta;
         if (this.propVisibilityTimer <= 0) {
@@ -1716,17 +1775,16 @@ class Game {
         if (this.env && this.gameState === 'playing') {
             const night = this.env.dayTime < 0.18 || this.env.dayTime > 0.78;
             if (night) {
-                this.map.setCourtyardGateOpen(true);
                 if (!this.nightNotified) {
-                    this.hud.showGameMessage('\u041d\u043e\u0447\u044c \u043d\u0430\u0441\u0442\u0443\u043f\u0438\u043b\u0430. \u0412\u0435\u0440\u043d\u0438\u0442\u0435\u0441\u044c \u0432 \u0434\u0432\u043e\u0440!');
+                    this.hud.showGameMessage('Ночь наступила. Заражённые стали активнее.');
                     this.nightNotified = true;
                     this.nightWaveBurstDone = false;
-                    this.nightWaveTimer = 3.5;
+                    this.nightWaveTimer = 18;
                 }
                 if (!this.nightWaveBurstDone) {
-                    this.queueZombieBurst(false, 5.6, 260, 34, this.isMobile() ? 6 : 8);
-                    this.queuePoiBurst(2.0, this.isMobile() ? 6 : 8, this.isMobile() ? 2 : 3);
-                    const spawned = 34;
+                    this.queueZombieBurst(false, 5.6, 260, 16, this.isMobile() ? 4 : 6);
+                    this.queuePoiBurst(2.0, this.isMobile() ? 4 : 6, this.isMobile() ? 2 : 3);
+                    const spawned = 16;
                     if (spawned > 0) {
                         this.hud.showGameMessage(`Ночь наступила. Заражённых прибыло: ${spawned}`);
                     }
@@ -1734,30 +1792,19 @@ class Game {
                 } else {
                     this.nightWaveTimer -= delta;
                     if (this.nightWaveTimer <= 0) {
-                        this.queueZombieBurst(false, 4.2, 260, 20, this.isMobile() ? 5 : 7);
-                        this.queuePoiBurst(1.5, this.isMobile() ? 4 : 6, this.isMobile() ? 2 : 3);
-                        const spawned = 20;
+                        this.queueZombieBurst(false, 4.2, 260, 10, this.isMobile() ? 4 : 5);
+                        this.queuePoiBurst(1.5, this.isMobile() ? 3 : 4, this.isMobile() ? 2 : 3);
+                        const spawned = 10;
                         if (spawned >= 3) {
                             this.hud.showGameMessage('Во тьме слышны новые заражённые...');
                         }
-                        this.nightWaveTimer = 3.2 + Math.random() * 1.8;
-                    }
-                }
-                if (this.map.isInsideCourtyard(this.player.position)) {
-                    this.hud.showGameMessage('\u0412\u044b \u0432\u0435\u0440\u043d\u0443\u043b\u0438\u0441\u044c \u0432 \u0434\u0432\u043e\u0440. \u0412\u044b \u043f\u043e\u0431\u0435\u0434\u0438\u043b\u0438!');
-                    this.gameState = 'ended';
-                    if (!this.scoreboardShown) {
-                        this.scoreboardShown = true;
-                        this.showMvpBoard();
+                        this.nightWaveTimer = 18 + Math.random() * 8;
                     }
                 }
             } else {
                 this.nightNotified = false;
                 this.nightWaveBurstDone = false;
                 this.nightWaveTimer = 0;
-                if (this.gateClosed) {
-                    this.map.setCourtyardGateOpen(false);
-                }
             }
         }
 
@@ -1782,26 +1829,53 @@ class Game {
             this.audioSynth.updateListener(this.camera.position, this._tmpAudioForward);
         }
 
-        this.botFrameCounter = (this.botFrameCounter + 1) % 8;
-        const farBotCullDistSq = this.isMobile() ? (95 * 95) : (135 * 135);
+        this.botFrameCounter = (this.botFrameCounter + 1) % 6;
+        // OPTIMIZED: Tiered culling by distance + state
+        const farBotCullDistSq = this.isMobile() ? 15625 : 30250;  // 125m / 175m
+        const midBotCullDistSq = this.isMobile() ? 6250 : 12100;    // 80m / 110m
+        const nearBotCullDistSq = this.isMobile() ? 2500 : 5625;    // 50m / 75m
+        // Pre-check combat states (no Set allocation per frame)
+        const isCombat = (bot) => bot.target || bot.assistTarget || bot.state === 'combat' || bot.state === 'chase' || bot.state === 'engage';
         for (let botIndex = 0; botIndex < this.bots.length; botIndex++) {
             const bot = this.bots[botIndex];
             if (!bot.isAlive) continue;
             const distSq = bot.position.distanceToSquared(this.player.position);
-            const isFarIdleBot = distSq > farBotCullDistSq
-                && !bot.target
-                && !bot.assistTarget
-                && bot.state !== 'combat'
-                && bot.state !== 'chase'
-                && bot.state !== 'engage';
-            if (isFarIdleBot && ((this.botFrameCounter + botIndex) % 2) !== 0) {
-                if (bot.mesh) {
-                    bot.mesh.position.copy(bot.position);
-                    bot.mesh.position.y = bot.position.y - (bot.physics.height - 0.2);
-                    if (bot.healthBar) bot.updateHealthBar(0.05);
+            bot._aiSkipFrame = !isCombat(bot) && ((this.botFrameCounter + botIndex) % 3 !== 0);
+
+            // OPTIMIZED: Frustum culling via pre-allocated sphere
+            const sphere = bot.mesh?._frustumSphere;
+            const frustum = this.camera?.frustum;
+            const isInFrustum = sphere && frustum
+                ? frustum.intersectsSphere(sphere.set(bot.mesh.position, 1.2))
+                : distSq <= farBotCullDistSq;
+            bot._visuallyRelevant = distSq <= midBotCullDistSq || isInFrustum;
+
+            // FAR bots: update every 4 frames if idle, every 2 if combat
+            if (distSq > farBotCullDistSq) {
+                const skip = isCombat(bot)
+                    ? ((this.botFrameCounter + botIndex) % 2) !== 0
+                    : ((this.botFrameCounter + botIndex) % 4) !== 0;
+                if (skip) {
+                    if (bot.mesh) {
+                        bot.mesh.position.copy(bot.position);
+                        bot.mesh.position.y = bot.position.y - (bot.physics.height - 0.2);
+                    }
+                    continue;
                 }
-                continue;
             }
+
+            // MID bots: update every 3 frames if idle, every frame if combat
+            if (distSq > midBotCullDistSq && !isCombat(bot)) {
+                if ((this.botFrameCounter + botIndex) % 3 !== 0) {
+                    if (bot.mesh) {
+                        bot.mesh.position.copy(bot.position);
+                        bot.mesh.position.y = bot.position.y - (bot.physics.height - 0.2);
+                    }
+                    continue;
+                }
+            }
+
+            // NEAR idle bots: skip AI every 2 frames (mesh always updates)
             if (this.gameState !== 'countdown') {
                 bot.update(delta, this.botBrains[botIndex], this.entityManager, this.lootManager, this.audioSynth, this.physics, this.zone);
             } else {
@@ -1908,12 +1982,22 @@ class Game {
         if (this.gameState === 'playing') {
             const elapsed = performance.now() * 0.001 - this.roundStartTime;
             const gracePeriod = GAME_CONFIG.events.gracePeriodSeconds;
+            const isNight = this.env && (this.env.dayTime < 0.18 || this.env.dayTime > 0.78);
+            this.scene.userData.zombieAggression = 1 + Math.min(1, elapsed / 600) * 0.8 + (isNight ? 0.75 : 0);
 
-            if (elapsed < gracePeriod) {
+            if (elapsed >= gracePeriod && !this.initialZombieWaveQueued) {
+                this.initialZombieWaveQueued = true;
+                this.queueZombieBurst(true, 1.35, 120, this.isMobile() ? 14 : 20, this.isMobile() ? 3 : 5);
+                this.queuePoiBurst(1.2, this.isMobile() ? 12 : 18, this.isMobile() ? 3 : 4);
+            }
+
+            if (elapsed >= gracePeriod) {
                 this.zombieMaintainTimer = Math.max(0, this.zombieMaintainTimer - delta);
                 if (this.zombieMaintainTimer <= 0) {
                     const aliveZombies = this.zombies.filter(z => z?.isAlive).length;
-                    const minAlive = this.isMobile() ? 16 : 22;
+                    const growth = Math.floor(Math.min(5, elapsed / 120)) * 2;
+                    const nightBonus = isNight ? (this.isMobile() ? 8 : 14) : 0;
+                    const minAlive = (this.isMobile() ? 16 : 22) + growth + nightBonus;
                     if (aliveZombies < minAlive) {
                         const need = minAlive - aliveZombies;
                         this.queuePoiBurst(1.45, Math.min(14, need + 2), this.isMobile() ? 3 : 4);
@@ -2007,39 +2091,47 @@ class Game {
             return;
         }
 
-        const inventoryItems = this.player.inventory.getItems().map(item => {
-            if (!item) return null;
-            return { type: item.type };
-        });
         this.hudInventoryTimer -= delta;
-        const inventorySignature = `${this.player.inventory.selectedSlot}|${inventoryItems.map(item => item ? item.type : '-').join(',')}`;
-        if (this.hudInventoryTimer <= 0 || inventorySignature !== this.lastInventorySignature) {
-            this.hud.updateInventory(inventoryItems, this.player.inventory.selectedSlot);
-            this.lastInventorySignature = inventorySignature;
+        // OPTIMIZED: Build signature only when timer expires
+        if (this.hudInventoryTimer <= 0) {
+            const inv = this.player.inventory;
+            const items = inv.getItems();
+            let sig = inv.selectedSlot + '|';
+            for (let i = 0; i < items.length; i++) {
+                sig += (items[i] ? items[i].type : '-') + ',';
+            }
+            if (sig !== this.lastInventorySignature) {
+                const inventoryItems = items.map(item => item ? { type: item.type } : null);
+                this.hud.updateInventory(inventoryItems, inv.selectedSlot);
+                this.lastInventorySignature = sig;
+            }
             this.hudInventoryTimer = this.isMobile() ? 0.14 : 0.08;
         }
         this.minimapTimer -= delta;
         if (this.minimapTimer <= 0) {
-            const botPoints = [];
+            // OPTIMIZED: Reuse arrays with fixed capacity
+            const botPoints = this._minimapBotPoints || (this._minimapBotPoints = []);
+            botPoints.length = 0;
             for (let i = 0; i < this.bots.length; i++) {
                 const bot = this.bots[i];
                 if (!bot?.isAlive) continue;
-                botPoints.push({ x: bot.position.x, z: bot.position.z });
+                botPoints.push(bot.position);
             }
-            const zombiePoints = [];
-            for (let i = 0; i < this.zombies.length && zombiePoints.length < 96; i++) {
+            const zombiePoints = this._minimapZombiePoints || (this._minimapZombiePoints = []);
+            zombiePoints.length = 0;
+            for (let i = 0; i < this.zombies.length && zombiePoints.length < 64; i++) {
                 const zombie = this.zombies[i];
                 if (!zombie?.isAlive) continue;
-                zombiePoints.push({ x: zombie.position.x, z: zombie.position.z });
+                zombiePoints.push(zombie.position);
             }
             this.hud.updateMinimap?.({
                 mapSize: this.map.size,
                 zoneRadius: this.zone.getCurrentRadius(),
-                player: { x: this.player.position.x, z: this.player.position.z },
+                player: this.player.position,
                 bots: botPoints,
                 zombies: zombiePoints
             });
-            this.minimapTimer = this.isMobile() ? 0.16 : 0.1;
+            this.minimapTimer = this.isMobile() ? 0.2 : 0.12;
         }
 
         if (this.gameState === 'playing' && !this.roundFinished) {
@@ -2067,6 +2159,20 @@ class Game {
                         this.hud.showGameMessage('Погода: Ясно');
                     }
                 }
+            }
+            const radius = Math.hypot(this.player.position.x, this.player.position.z);
+            const ambientBiome = radius < 60
+                ? 'center'
+                : this.player.position.x < 0 && this.player.position.z < 0
+                    ? 'forest'
+                    : this.player.position.x >= 0 && this.player.position.z < 0
+                        ? 'maze'
+                        : this.player.position.x < 0
+                            ? 'military'
+                            : 'ice';
+            if (ambientBiome !== this.lastAmbientBiome) {
+                this.lastAmbientBiome = ambientBiome;
+                this.audioSynth?.setBiomeAmbience?.(ambientBiome);
             }
             this.weatherSyncTimer = 1.2;
         }
@@ -2104,7 +2210,7 @@ class Game {
         const hangarSpots = points.filter(p => p.type === 'hangar');
 
         const aliveNow = this.zombies.filter(z => z?.isAlive).length;
-        const maxAlive = 320;
+        const maxAlive = this.isMobile() ? 64 : 96;
         let budget = Math.max(0, Math.min(maxAlive - aliveNow, Math.floor((houseSpots.length * 2.4 + hangarSpots.length * 13.0) * intensity)));
         budget = Math.min(budget, Math.max(0, Number.isFinite(maxSpawn) ? maxSpawn : budget));
         if (budget <= 0) return 0;
@@ -2193,7 +2299,7 @@ class Game {
         const checks = Math.min(points.length, Math.max(1, limitPerTick | 0));
         let injected = 0;
         const aliveNow = this.zombies.filter(z => z?.isAlive).length;
-        const maxAlive = this.isMobile() ? 190 : 260;
+        const maxAlive = this.isMobile() ? 64 : 96;
         let remainingBudget = Math.max(0, maxAlive - aliveNow);
         if (remainingBudget <= 0) return 0;
 
@@ -2267,7 +2373,7 @@ class Game {
         if (!floorTiles.length) return 0;
 
         const baseCount = Math.min(32, Math.max(10, Math.floor(floorTiles.length / 180)));
-        const maxAlive = capOverride ?? (reset ? 90 : 180);
+        const maxAlive = Math.min(capOverride ?? (reset ? 90 : 180), this.isMobile() ? 64 : 96);
         const aliveNow = this.zombies.filter(z => z?.isAlive).length;
         let count = Math.min(
             Math.max(0, maxAlive - aliveNow),
@@ -2302,14 +2408,52 @@ class Game {
 
     render() {
         this.renderFrameCount = (this.renderFrameCount || 0) + 1;
+        if (this.laserRing && this.laserActive) {
+            const t = performance.now() * 0.008;
+            // Core ring pulse
+            this.laserRing.rotation.z += 0.5 * 0.016;
+            this.laserRing.material.opacity = 0.8 + Math.sin(t) * 0.2;
+            this.laserRing.material.emissiveIntensity = 1.5 + Math.sin(t * 1.3) * 1.0;
+            // Glow ring pulse
+            if (this.laserGlow) {
+                this.laserGlow.material.opacity = 0.15 + Math.sin(t * 0.7) * 0.12;
+            }
+            // Curtain pulse
+            if (this.laserCurtain) {
+                this.laserCurtain.material.opacity = 0.06 + Math.sin(t * 0.9) * 0.04;
+            }
+            if (this.laserDome) {
+                this.laserDome.material.opacity = 0.075 + Math.sin(t * 0.55) * 0.025;
+            }
+        }
         this.renderer.render(this.scene, this.camera);
+        if (this.renderFrameCount % 300 === 0 && this.gameState === 'playing') {
+            const info = this.renderer.info;
+            console.log(`[Perf] frames=${info.render.frame} draws=${info.render.calls} tris=${info.render.triangles} geos=${info.memory.geometries} mats=${info.memory.textures}`);
+        }
+    }
+
+    _destroyLaserRing() {
+        if (this.laserRing?.parent) { this.laserRing.parent.remove(this.laserRing); }
+        if (this.laserGlow?.parent) { this.laserGlow.parent.remove(this.laserGlow); }
+        if (this.laserCurtain?.parent) { this.laserCurtain.parent.remove(this.laserCurtain); }
+        if (this.laserDome?.parent) { this.laserDome.parent.remove(this.laserDome); }
+        this.laserRing = null;
+        this.laserGlow = null;
+        this.laserCurtain = null;
+        this.laserDome = null;
+        this.laserActive = false;
     }
 
     async startGame() {
+        if (!this.initialized) await this.ready;
         if (this.isStarted) return;
         this.isStarted = true;
         this.startingGame = true;
         this.startAttemptAt = performance.now();
+        this._destroyLaserRing();
+        this.triggerPlatformUnavailable(false);
+        this.setCenterPlatformOpen(true);
         try {
             this.hideStartScreen();
             this.startTransitionUntil = performance.now() + 3500;
@@ -2319,6 +2463,7 @@ class Game {
             // Enable canvas pointer events now that game is running
             if (this.renderer?.domElement) {
                 this.renderer.domElement.style.pointerEvents = 'auto';
+                this.renderer.domElement.style.zIndex = '0';
             }
             this.partyMode = false;
             this.applyRoundMode('hybrid');
@@ -2362,6 +2507,7 @@ class Game {
             this.hud.setPerkPanelLock(this.perkSelectionRequired);
             this.hud.togglePerkPanel(this.perkMenuOpen);
             if (this.perkMenuOpen) {
+                this.renderer.domElement.style.pointerEvents = 'none';
                 this.hud.showGameMessage('Выберите перк перед стартом матча');
             }
             this.hud.showCountdown(this.countdownTime);
@@ -2432,6 +2578,11 @@ window.addEventListener('DOMContentLoaded', () => {
         game.hud.setPerkPanelLock(false);
         game.perkMenuOpen = false;
         game.hud.togglePerkPanel(false);
+        if (game.renderer?.domElement) {
+            game.renderer.domElement.style.pointerEvents = 'auto';
+            game.renderer.domElement.focus?.({ preventScroll: true });
+        }
+        if (!game.isMobile()) game.cameraController?.lock?.();
         game.hud.showGameMessage('\u041f\u0435\u0440\u043a \u0430\u043a\u0442\u0438\u0432\u0438\u0440\u043e\u0432\u0430\u043d');
         console.log('[selectPerk] Applied:', perk);
     });
@@ -2464,12 +2615,17 @@ window.addEventListener('DOMContentLoaded', () => {
         button.addEventListener('click', async () => {
             if (_startHandled || game.startingGame || game.isStarted) return;
             _startHandled = true;
+            button.setAttribute('aria-busy', 'true');
             try { await (game.audioSynth?.unlock?.() ?? Promise.resolve()); } catch {}
-            // Call pointer lock synchronously from click handler (browser requirement)
-            if (!game.isMobile() && game.controls && game.controls.lock) {
-                try { game.controls.lock(); } catch (err) { console.log('Pointer lock not available:', err); }
+            try {
+                await game.ready;
+                await game.startGame();
+            } catch (err) {
+                console.error('startGame failed:', err);
+            } finally {
+                button.removeAttribute('aria-busy');
+                if (!game.isStarted) _startHandled = false;
             }
-            try { await game.startGame(); } catch (err) { console.error('startGame failed:', err); }
         });
 
     };

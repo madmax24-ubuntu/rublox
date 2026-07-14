@@ -49,7 +49,11 @@ export class EntityManager {
 
     update(delta, physics, audioSynth) {
         this.physicsRef = physics || this.physicsRef;
-        if (this.entities.length !== this._lastRebuildCount) {
+        // OPTIMIZED: Batch spatial hash rebuilds — only rebuild when entity count changes OR every 3 frames
+        // Entities move every frame, but spatial hash doesn't need to be rebuilt every frame
+        this._spatialFrameCounter = ((this._spatialFrameCounter || 0) + 1) % 3;
+        const shouldRebuild = this.entities.length !== this._lastRebuildCount || this._spatialFrameCounter === 0;
+        if (shouldRebuild) {
             this._lastRebuildCount = this.entities.length;
             this.rebuildSpatialIndex();
         }
@@ -183,6 +187,7 @@ export class EntityManager {
     }
 
     rebuildSpatialIndex() {
+        // OPTIMIZED: Use Map.clear() and batch lookups to reduce allocations
         this.spatialIndex.clear();
         this.aliveSurvivorsCache.length = 0;
         this.aliveSurvivorCount = 0;
@@ -195,7 +200,8 @@ export class EntityManager {
             }
             const cx = Math.floor(entity.position.x / cellSize);
             const cz = Math.floor(entity.position.z / cellSize);
-            const key = `${cx},${cz}`;
+            // OPTIMIZED: Use numeric key with bit shifting to avoid string concatenation
+            const key = (cx << 16) | (cz & 0xFFFF);
             let bucket = this.spatialIndex.get(key);
             if (!bucket) {
                 bucket = [];
@@ -497,7 +503,9 @@ export class EntityManager {
 
         for (let cx = minCx; cx <= maxCx; cx++) {
             for (let cz = minCz; cz <= maxCz; cz++) {
-                const bucket = this.spatialIndex.get(`${cx},${cz}`);
+                // OPTIMIZED: Use numeric key with bit shifting
+                const key = (cx << 16) | (cz & 0xFFFF);
+                const bucket = this.spatialIndex.get(key);
                 if (!bucket) continue;
                 for (const entity of bucket) {
                     if (!entity?.isAlive) continue;

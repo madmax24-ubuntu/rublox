@@ -16,6 +16,7 @@ export class Physics {
 
         // Wall sliding
         this.slideDamping = 0.85;
+        this.maxCompression = 1;
         this.boundaryMargin = 180;
         this.boundaryForce = 12;
 
@@ -48,7 +49,7 @@ export class Physics {
         }
     }
 
-    update(delta) {
+    update(delta, gameState) {
         // Cache colliders (check once)
         const newColliders = this.mapGenerator.getColliders?.() || this.colliders;
         if (newColliders !== this.colliders) {
@@ -65,6 +66,8 @@ export class Physics {
 
         for (const entity of this.entities) {
             if (!entity.physics) continue;
+            // Skip bots during countdown — they are frozen on spawn pads
+            if (gameState === 'countdown' && entity.constructor?.name === 'Bot') continue;
             const pos = entity.position;
 
             // Validate position
@@ -387,7 +390,8 @@ export class Physics {
             const maxZ = Math.floor(max.z / cellSize);
             for (let x = minX; x <= maxX; x++) {
                 for (let z = minZ; z <= maxZ; z++) {
-                    const key = x + ',' + z;
+                    // OPTIMIZED: numeric key with bit shifting to avoid string concatenation
+                    const key = (x << 16) | (z & 0xFFFF);
                     let bucket = this.colliderGrid.get(key);
                     if (!bucket) {
                         bucket = [];
@@ -415,7 +419,8 @@ export class Physics {
         }
         for (let cx = minCx; cx <= maxCx; cx++) {
             for (let cz = minCz; cz <= maxCz; cz++) {
-                const bucket = this.colliderGrid.get(cx + ',' + cz);
+                const key = (cx << 16) | (cz & 0xFFFF);
+                const bucket = this.colliderGrid.get(key);
                 if (!bucket) continue;
                 for (let i = 0; i < bucket.length; i++) {
                     const box = bucket[i];

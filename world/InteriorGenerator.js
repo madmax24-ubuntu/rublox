@@ -21,13 +21,6 @@ export class InteriorGenerator {
         elements.colliders.push(...furniture.colliders);
         elements.meshes.push(...furniture.meshes);
 
-        // Stairs for 2-story buildings
-        if (template && template.hasStairs) {
-            const stairs = this.generateStairs(buildingData, scene, addCollider);
-            elements.colliders.push(...stairs.colliders);
-            elements.meshes.push(...stairs.meshes);
-        }
-
         // Lighting
         const lights = this.generateLighting(buildingData, scene);
         elements.lights.push(...lights);

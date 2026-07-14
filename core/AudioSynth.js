@@ -28,6 +28,8 @@ export class AudioSynth {
         this.sfxLimiter = null;
         this.ambientRunning = false;
         this.ambientTimers = [];
+        this.ambientNodes = null;
+        this.currentBiomeAmbient = null;
         this.radiationRainNodes = null;
         this.weatherLoopNodes = null;
         this.currentWeatherState = 'clear';
@@ -55,11 +57,7 @@ export class AudioSynth {
         };
 
         this.sampleCatalog = {
-            ambient: [
-                'assets/audio/rpg/ambient_wind1.ogg',
-                'assets/audio/rpg/ambient_wind2.ogg',
-                'assets/audio/rpg/ambient_nature.ogg'
-            ],
+            ambient: [],
             rumble: [
                 'assets/audio/rpg/doorClose_2.ogg',
                 'assets/audio/rpg/doorClose_3.ogg',
@@ -82,11 +80,9 @@ export class AudioSynth {
             zombieMoan: Array.from({ length: 12 }, (_, i) => `assets/audio/zombies/zombie-${i + 1}.wav`),
             zombieAttack: Array.from({ length: 12 }, (_, i) => `assets/audio/zombies/zombie-${i + 13}.wav`),
             bow: [
-                'assets/audio/weapons/bow_draw.wav',
                 'assets/audio/weapons/bow_shot.wav'
             ],
             laser: [
-                'assets/audio/weapons/laser_charge.wav',
                 'assets/audio/weapons/laser_shot.wav'
             ],
             machinegun: [
@@ -102,31 +98,27 @@ export class AudioSynth {
                 'assets/audio/weapons/rifle_mosin.wav'
             ],
             flamethrower: [
-                'assets/audio/weapons/flamethrower_loop.wav'
+                'assets/audio/weapons/flamethrower_fire.ogg'
             ],
             reload: [
-                'assets/audio/weapons/reload_pistol.wav',
-                'assets/audio/weapons/reload_rifle.wav'
+                'assets/audio/rpg/metalLatch.ogg',
+                'assets/audio/rpg/drawKnife3.ogg'
             ],
             pickup: [
-                'assets/audio/rpg/itemPickup.ogg'
+                'assets/audio/rpg/handleCoins2.ogg'
             ],
             death: [
-                'assets/audio/rpg/death_male1.ogg',
-                'assets/audio/rpg/death_male2.ogg',
-                'assets/audio/rpg/death_female1.ogg'
+                'assets/audio/zombies/zombie-24.wav'
             ],
             explosion: [
-                'assets/audio/rpg/explosion_large.ogg'
+                'assets/audio/weapons/shotgun_shotty.wav'
             ],
             ui: [
-                'assets/audio/rpg/ui_click.ogg',
-                'assets/audio/rpg/ui_switch.ogg'
-            ],
-            timer: [
-                'assets/audio/rpg/metalClick.ogg',
                 'assets/audio/rpg/metalClick.ogg',
                 'assets/audio/rpg/bookClose.ogg'
+            ],
+            timer: [
+                'assets/audio/rpg/cloth2.ogg'
             ],
             wind: [
                 'assets/audio/rpg/cloth1.ogg',
@@ -150,15 +142,9 @@ export class AudioSynth {
                 'assets/audio/rpg/doorClose_4.ogg'
             ],
             rain: [
-                'assets/audio/rpg/cloth1.ogg',
-                'assets/audio/rpg/cloth2.ogg',
-                'assets/audio/rpg/clothBelt.ogg'
+                'assets/audio/weather_rain.ogg'
             ],
-            music: [
-                'assets/audio/music/theme1.ogg',
-                'assets/audio/music/theme2.ogg',
-                'assets/audio/music/theme3.ogg'
-            ]
+            music: []
         };
 
         this._lazyInitCalled = false;
@@ -280,11 +266,17 @@ export class AudioSynth {
     }
 
     async loadSamples() {
-        // Samples are not bundled — procedural fallbacks handle all SFX.
-        // Keeping this method as a no-op to avoid 404 network errors.
         if (this.sampleLoadStarted) return this.sampleLoadPromise;
         this.sampleLoadStarted = true;
-        this.sampleLoadPromise = Promise.resolve();
+        const paths = [...new Set(Object.values(this.sampleCatalog).flat())];
+        this.sampleLoadPromise = Promise.all(paths.map(async path => {
+            try {
+                const response = await fetch(path, { cache: 'force-cache' });
+                if (!response.ok) return;
+                const buffer = await this.audioContext.decodeAudioData(await response.arrayBuffer());
+                this.sampleBuffers.set(path, buffer);
+            } catch (_) {}
+        }));
         return this.sampleLoadPromise;
     }
 
@@ -319,15 +311,19 @@ export class AudioSynth {
         panner.maxDistance = 220;
         panner.rolloffFactor = 0.85;
         if (position) {
-            panner.positionX.value = position.x;
-            panner.positionY.value = position.y;
-            panner.positionZ.value = position.z;
+            panner.positionX.value = Number.isFinite(position.x) ? position.x : 0;
+            panner.positionY.value = Number.isFinite(position.y) ? position.y : 0;
+            panner.positionZ.value = Number.isFinite(position.z) ? position.z : 0;
         }
         return panner;
     }
 
     updateListener(position, forward) {
         if (!this.audioContext) return;
+        // SAFETY: Guard against NaN/Infinity from camera position
+        if (!Number.isFinite(position.x) || !Number.isFinite(position.y) || !Number.isFinite(position.z)) return;
+        if (!Number.isFinite(forward.x) || !Number.isFinite(forward.y) || !Number.isFinite(forward.z)) return;
+
         const listener = this.audioContext.listener;
         if (listener.positionX) {
             listener.positionX.value = position.x;
@@ -382,11 +378,11 @@ export class AudioSynth {
         const source = ctx.createBufferSource();
         source.buffer = buffer;
         source.loop = !!options.loop;
-        source.playbackRate.value = options.rate
-            || clamp((options.rateMin || 1) + Math.random() * ((options.rateMax || 1) - (options.rateMin || 1)), 0.5, 2.25);
+        const rate = Number.isFinite(options.rate) ? options.rate : (Number.isFinite(options.rateMin) ? options.rateMin : 1) + Math.random() * ((Number.isFinite(options.rateMax) ? options.rateMax : 1) - (Number.isFinite(options.rateMin) ? options.rateMin : 1));
+        source.playbackRate.value = clamp(rate, 0.5, 2.25);
 
         const gainNode = ctx.createGain();
-        gainNode.gain.value = clamp(options.volume ?? 0.2, 0, 2);
+        gainNode.gain.value = clamp(Number.isFinite(options.volume) ? options.volume : 0.2, 0, 2);
 
         source.connect(gainNode);
         if (options.reverbSend > 0) {
@@ -534,37 +530,67 @@ export class AudioSynth {
     startAmbient() {
         if (!this.audioContext || this.ambientRunning) return;
         this.ambientRunning = true;
+        this.setBiomeAmbience('center');
+    }
 
-        const softAmbience = () => {
-            if (!this.ambientRunning) return;
-            const played = this.playSample(this.sampleCatalog.ambient, {
-                volume: this.isMobileDevice ? 0.008 : 0.015,
-                rateMin: 0.76,
-                rateMax: 0.96,
-                reverbSend: 0.12,
-                maxDuration: 0.32,
-                category: 'ambient'
-            });
-            if (!played) {
-                this.playSample(this.sampleCatalog.ambient, { volume: this.isMobileDevice ? 0.006 : 0.01, rateMin: 0.6, rateMax: 1.2, category: 'ambient', maxDuration: 0.35 });
-            }
+    setBiomeAmbience(biome) {
+        if (!this.audioContext || !this.ambientRunning || this.currentBiomeAmbient === biome) return;
+        const profiles = {
+            center: { type: 'lowpass', frequency: 420, gain: 0, rate: 0.72 },
+            forest: { type: 'bandpass', frequency: 1750, gain: 0.016, rate: 0.9 },
+            maze: { type: 'lowpass', frequency: 620, gain: 0.011, rate: 0.78 },
+            military: { type: 'bandpass', frequency: 520, gain: 0.012, rate: 0.8 },
+            ice: { type: 'highpass', frequency: 980, gain: 0.013, rate: 0.84 }
         };
-
-        const lowRumble = () => {
-            if (!this.ambientRunning) return;
-            this.playWind();
-        };
-
-        softAmbience();
-        lowRumble();
-        this.ambientTimers.push(setInterval(softAmbience, this.isMobileDevice ? 4200 : 3200));
-        this.ambientTimers.push(setInterval(lowRumble, this.isMobileDevice ? 12000 : 9000));
+        const profile = profiles[biome] || profiles.center;
+        const now = this.audioContext.currentTime;
+        if (this.ambientNodes) {
+            this.ambientNodes.gain.gain.cancelScheduledValues(now);
+            this.ambientNodes.gain.gain.linearRampToValueAtTime(0, now + 0.35);
+            const old = this.ambientNodes;
+            setTimeout(() => {
+                try { old.source.stop(); } catch (_) {}
+                old.source.disconnect();
+                old.filter.disconnect();
+                old.gain.disconnect();
+            }, 450);
+        }
+        if (profile.gain <= 0) {
+            this.ambientNodes = null;
+            this.currentBiomeAmbient = biome;
+            return;
+        }
+        const source = this.audioContext.createBufferSource();
+        const filter = this.audioContext.createBiquadFilter();
+        const gain = this.audioContext.createGain();
+        source.buffer = this.createRainNoiseBuffer(4);
+        source.loop = true;
+        source.playbackRate.value = profile.rate;
+        filter.type = profile.type;
+        filter.frequency.value = profile.frequency;
+        filter.Q.value = biome === 'forest' ? 0.7 : 0.35;
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(profile.gain * (this.isMobileDevice ? 0.8 : 1), now + 0.8);
+        source.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.getCategoryGain('ambient'));
+        source.start();
+        this.ambientNodes = { source, filter, gain };
+        this.currentBiomeAmbient = biome;
     }
 
     stopAmbient() {
         this.ambientRunning = false;
         for (const timer of this.ambientTimers) clearInterval(timer);
         this.ambientTimers = [];
+        if (this.ambientNodes) {
+            try { this.ambientNodes.source.stop(); } catch (_) {}
+            this.ambientNodes.source.disconnect();
+            this.ambientNodes.filter.disconnect();
+            this.ambientNodes.gain.disconnect();
+            this.ambientNodes = null;
+        }
+        this.currentBiomeAmbient = null;
         this.stopWeatherLoop();
     }
 
@@ -581,11 +607,11 @@ export class AudioSynth {
     }
 
     playStoneDoorClose(position) {
-        this.playSample(this.sampleCatalog.rumble, { volume: 0.22, rateMin: 0.6, rateMax: 0.85, position, reverbSend: 0.45, category: 'ambient' });
+        return false;
     }
 
     playBoxArrival(position) {
-        this.playSample(this.sampleCatalog.rumble, { volume: 0.18, rateMin: 0.9, rateMax: 1.2, position, reverbSend: 0.35, category: 'ambient' });
+        return false;
     }
 
     playFootstep(volume = 1) {
@@ -692,20 +718,11 @@ export class AudioSynth {
         });
     }
 
-    playZoneDamage() {
-        this.playSample(this.sampleCatalog.zoneDamage, { volume: this.isMobileDevice ? 0.08 : 0.11, rateMin: 0.6, rateMax: 1.4, category: 'weather', maxDuration: 0.3 });
-    }
-
-    playZombieMoan(position = null, opts = null) {
-        const variant = opts?.variant || 'normal';
-        const rateRange = opts?.rateRange || [0.8, 1.1];
-        this.playSample(this.sampleCatalog.zombieMoan, { volume: this.isMobileDevice ? 0.2 : 0.32, rateMin: rateRange[0], rateMax: rateRange[1], position, reverbSend: 0.18, category: 'zombie', maxDuration: 0.75 });
-    }
-
     playZombieAttack(position = null, opts = null) {
         const variant = opts?.variant || 'normal';
-        const rateRange = opts?.rateRange || [0.95, 1.1];
-        this.playSample(this.sampleCatalog.zombieAttack, { volume: this.isMobileDevice ? 0.24 : 0.36, rateMin: rateRange[0], rateMax: rateRange[1], position, reverbSend: 0.12, category: 'zombie', maxDuration: 0.42 });
+        const offset = variant === 'runner' ? 0 : variant === 'heavy' ? 8 : 4;
+        const rates = variant === 'runner' ? [1.1, 1.28] : variant === 'heavy' ? [0.7, 0.86] : [0.92, 1.08];
+        this.playSample(this.sampleCatalog.zombieAttack.slice(offset, offset + 4), { volume: this.isMobileDevice ? 0.24 : 0.36, rateMin: rates[0], rateMax: rates[1], position, reverbSend: 0.12, category: 'zombie', maxDuration: variant === 'heavy' ? 0.65 : 0.42 });
     }
 
     playZoneDamage() {
@@ -714,8 +731,9 @@ export class AudioSynth {
 
     playZombieMoan(position = null, opts = null) {
         const variant = opts?.variant || 'normal';
-        const rateRange = opts?.rateRange || [0.8, 1.1];
-        this.playSample(this.sampleCatalog.zombieMoan, { volume: this.isMobileDevice ? 0.2 : 0.32, rateMin: rateRange[0], rateMax: rateRange[1], position, reverbSend: 0.18, category: 'zombie', maxDuration: 0.75 });
+        const offset = variant === 'runner' ? 0 : variant === 'heavy' ? 8 : 4;
+        const rates = variant === 'runner' ? [1.12, 1.3] : variant === 'heavy' ? [0.66, 0.82] : [0.9, 1.06];
+        this.playSample(this.sampleCatalog.zombieMoan.slice(offset, offset + 4), { volume: this.isMobileDevice ? 0.2 : 0.32, rateMin: rates[0], rateMax: rates[1], position, reverbSend: 0.18, category: 'zombie', maxDuration: variant === 'heavy' ? 1.1 : 0.75 });
     }
 
     fallbackZombieMoan(type, freq, dur, vol, pos, cat) {
@@ -872,9 +890,9 @@ export class AudioSynth {
 
     playTimerTick(volume = 1) {
         this.playSample(this.sampleCatalog.timer, {
-            volume: (this.isMobileDevice ? 0.045 : 0.06) * clamp(volume, 0.4, 1.4),
-            rateMin: 0.92,
-            rateMax: 1.08,
+            volume: (this.isMobileDevice ? 0.018 : 0.024) * clamp(volume, 0.4, 1.4),
+            rateMin: 0.98,
+            rateMax: 1.02,
             category: 'ui'
         });
     }
@@ -897,13 +915,10 @@ export class AudioSynth {
         this.footstepWeatherFactor = state === 'rain' ? 0.62 : state === 'snow' ? 0.82 : 1;
         if (state === 'rain') {
             this.startWeatherLoop({
-                intervalMs: this.isMobileDevice ? 2100 : 1500,
+                continuous: true,
                 category: 'weather',
-                volume: this.isMobileDevice ? 0.028 : 0.045,
-                rateMin: 0.82,
-                rateMax: 1.02,
-                sampleList: this.sampleCatalog.rain,
-                fallback: () => this.playSample(this.sampleCatalog.rain, { volume: this.isMobileDevice ? 0.045 : 0.07, rateMin: 0.7, rateMax: 1.2, category: 'weather', maxDuration: 0.3 })
+                volume: this.isMobileDevice ? 0.06 : 0.09,
+                sampleList: this.sampleCatalog.rain
             });
         } else if (state === 'snow') {
             this.startWeatherLoop({
@@ -922,6 +937,7 @@ export class AudioSynth {
         this._ensureLazyInit();
         if (!this.audioContext) return;
         const {
+            continuous = false,
             intervalMs = 1800,
             category = 'weather',
             volume = 0.04,
@@ -930,6 +946,29 @@ export class AudioSynth {
             sampleList = this.sampleCatalog.rain,
             fallback = null
         } = options;
+
+        if (continuous) {
+            const start = () => {
+                if (this.currentWeatherState !== 'rain') return;
+                const path = this.pickSample(sampleList);
+                if (!path) {
+                    this.weatherLoopNodes = { timer: setTimeout(start, 400) };
+                    return;
+                }
+                const source = this.audioContext.createBufferSource();
+                const gain = this.audioContext.createGain();
+                source.buffer = this.sampleBuffers.get(path);
+                source.loop = true;
+                source.playbackRate.value = 1;
+                gain.gain.value = volume;
+                source.connect(gain);
+                this.connectSfx(gain, null, category);
+                source.start();
+                this.weatherLoopNodes = { source, gain };
+            };
+            start();
+            return;
+        }
 
         const tick = () => {
             const played = this.playSample(sampleList, {
@@ -951,6 +990,9 @@ export class AudioSynth {
     stopWeatherLoop() {
         if (!this.weatherLoopNodes) return;
         if (this.weatherLoopNodes.timer) clearInterval(this.weatherLoopNodes.timer);
+        try { this.weatherLoopNodes.source?.stop?.(); } catch (_) {}
+        try { this.weatherLoopNodes.source?.disconnect?.(); } catch (_) {}
+        try { this.weatherLoopNodes.gain?.disconnect?.(); } catch (_) {}
         this.weatherLoopNodes = null;
     }
 

@@ -355,6 +355,7 @@ export class Weapon {
         if (this.type === 'knife' && this.durability !== null && this.durability <= 0) return false;
         if (this.maxAmmo !== null && this.ammo <= 0) return false;
 
+        this.ensureFiniteTransform();
         this.animateAttack();
         if (audioSynth) {
             const srcPos = owner?.position || null;
@@ -499,6 +500,7 @@ export class Weapon {
 
     animateAttack() {
         if (!this.mesh) return;
+        this.ensureFiniteTransform();
         const originalRotation = this.mesh.rotation.clone();
         const originalPosition = this.mesh.position.clone();
 
@@ -538,13 +540,21 @@ export class Weapon {
     }
 
     setPosition(position) {
-        if (this.mesh) this.mesh.position.copy(position);
+        if (!this.mesh || !position || ![position.x, position.y, position.z].every(Number.isFinite)) return;
+        this.mesh.position.copy(position);
     }
 
     setRotation(rotation) {
-        if (!this.mesh) return;
+        if (!this.mesh || !rotation || ![rotation.x, rotation.y, rotation.z].every(Number.isFinite)) return;
         const o = getRotationOffsets(this.type);
         this.mesh.rotation.set(rotation.x + o.pitch, rotation.y + o.yaw, rotation.z + o.roll);
+    }
+
+    ensureFiniteTransform() {
+        if (!this.mesh) return;
+        if (![this.mesh.position.x, this.mesh.position.y, this.mesh.position.z].every(Number.isFinite)) this.mesh.position.set(0, 0, 0);
+        if (![this.mesh.rotation.x, this.mesh.rotation.y, this.mesh.rotation.z].every(Number.isFinite)) this.mesh.rotation.set(0, 0, 0);
+        if (![this.mesh.scale.x, this.mesh.scale.y, this.mesh.scale.z].every(Number.isFinite)) this.mesh.scale.setScalar(getThirdPersonWorldScale(this.type));
     }
 
     setScale(scale = 1) {

@@ -1,3 +1,7 @@
 ﻿RPGsounds_Kenney.zip: https://lpc.opengameart.org/content/50-rpg-sound-effects
 Zombie pack: https://opengameart.org/content/zombies-sound-pack
 Gunshot sounds (CC-BY 3.0): https://lpc.opengameart.org/content/gunshot-sounds
+Laser shot (CC0): https://opengameart.org/content/lasershootingsx
+Bow shot (CC0): https://opengameart.org/content/battle-sound-effects
+Flame effect (CC0): https://opengameart.org/content/catching-fire
+Rain ambience (CC0): https://opengameart.org/content/rain-ambient-not-loopable-2-versions-available

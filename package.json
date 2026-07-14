@@ -10,11 +10,17 @@
     "build:yandex": "node scripts/prepare-yandex-builds.mjs"
   },
   "dependencies": {
+    "codebase-memory-mcp": "^0.9.0",
     "express": "^4.18.2",
+    "git-mcp": "^1.0.0",
+    "git-mcp": "^1.0.0",
+    "meshy-mcp-server": "^1.2.3",
     "three": "^0.160.0",
+    "tripo-ai-mcp-server": "^1.1.0",
     "ws": "^8.19.0"
   },
   "devDependencies": {
+    "@playwright/mcp": "^0.0.78",
     "nodemon": "^3.0.1",
     "playwright": "^1.61.0"
   }

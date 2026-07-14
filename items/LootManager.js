@@ -33,10 +33,13 @@ export class LootManager {
         this.chestMaterials = this.createChestMaterials();
         this.chestReady = false;
         this.claimTTL = 2.4;
+        this.lootCount = 0; // counter for test validation
         this.generateChestsAsync().then(() => {
             this.rebuildChestIndex();
             this.chestReady = true;
-        }).catch(() => {
+            console.log(`[LootManager] Generated ${this.chests.length} chests`);
+        }).catch(e => {
+            console.error(`[LootManager] generateChestsAsync error:`, e);
             this.chestReady = true;
         });
     }
@@ -68,7 +71,6 @@ export class LootManager {
                 const spot = shuffled[i];
                 const y = this.getChestPlacementY(spot.x, spot.z);
                 if (y < this.mapGenerator.waterLevel + 1) continue;
-                if (!this.isHiddenSpawn(spot.x, y, spot.z)) continue;
                 const chest = this.createChest(spot.x, y, spot.z, spot.grade || 'house');
                 this.chests.push(chest);
                 this.addChestToIndex(chest);
@@ -124,6 +126,7 @@ export class LootManager {
         const targetByMapSize = Math.floor(Math.max(80, floorTiles.length * (this.isMobile ? 0.05 : 0.07)));
         const chestCount = Math.max(this.isMobile ? 90 : 140, Math.floor(targetByMapSize * this.lootDensity));
         const spots = this.mapGenerator.getChestSpots?.() || [];
+        console.log(`[LootManager] generateChestsAsync: floorTiles=${floorTiles.length}, spots=${spots.length}, chestCount=${chestCount}`);
 
         if (spots.length > 0) {
             const shuffled = [...spots].sort(() => Math.random() - 0.5);
@@ -133,7 +136,6 @@ export class LootManager {
                 const spot = shuffled[i];
                 const y = this.getChestPlacementY(spot.x, spot.z);
                 if (y < this.mapGenerator.waterLevel + 1) continue;
-                if (!this.isHiddenSpawn(spot.x, y, spot.z)) continue;
                 
                 const chest = this.createChest(spot.x, y, spot.z, spot.grade || 'house');
                 this.chests.push(chest);
@@ -160,9 +162,15 @@ export class LootManager {
                     await new Promise(resolve => requestAnimationFrame(resolve));
                 }
             }
-            return;
+            console.log(`[LootManager] floorTiles path: created ${this.chests.length} chests`);
+            if (this.chests.length === 0) {
+                console.log(`[LootManager] floorTiles created 0 chests, falling through to random fallback`);
+            } else {
+                return;
+            }
         }
 
+        console.log(`[LootManager] random fallback path, chestCount=${chestCount}`);
         for (let i = 0; i < chestCount; i++) {
             const angle = Math.random() * Math.PI * 2;
             const distance = 40 + Math.random() * 150;
@@ -185,6 +193,7 @@ export class LootManager {
                 await new Promise(resolve => requestAnimationFrame(resolve));
             }
         }
+        console.log(`[LootManager] random fallback: created ${this.chests.length} chests`);
     }
 
     isHiddenSpawn(x, y, z) {
@@ -194,7 +203,7 @@ export class LootManager {
         }
         const distFromCenter = Math.sqrt(x * x + z * z);
         if (distFromCenter > 160) {
-            return Math.random() < 0.6;
+            return Math.random() < 0.8;
         }
         if (this.mapGenerator.isBiomeAt?.(x, z, 'lava')) {
             return Math.random() < 0.7;
@@ -203,7 +212,12 @@ export class LootManager {
             return Math.random() < 0.5;
         }
         const nearbyStructures = this.mapGenerator.getNearbyStructures?.(x, z, 6) || [];
-        return nearbyStructures.length > 0;
+        if (nearbyStructures.length > 0) return true;
+        // Fallback: allow some chests far from center even without nearby structures
+        if (distFromCenter > 50) {
+            return Math.random() < 0.4;
+        }
+        return false;
     }
 
     createChest(x, y, z, grade = 'house') {
@@ -268,7 +282,7 @@ export class LootManager {
         }
 
         const glow = new THREE.Mesh(
-            new THREE.SphereGeometry(0.3, 8, 8),
+            new THREE.SphereGeometry(0.3, 4, 4),
             new THREE.MeshBasicMaterial({
                 color: 0xffff00,
                 transparent: true,
@@ -276,11 +290,13 @@ export class LootManager {
                 visible: false
             })
         );
+        glow.userData.isGlow = true;
         glow.position.y = 1.2;
         chestModel.add(glow);
 
         chestModel.position.set(x, y, z);
         chestModel.userData.isChest = true;
+        chestModel.userData.mapGenerated = true;
         chestModel.userData.isOpen = false;
         chestModel.userData.grade = grade;
         chestModel.userData.claimedBy = null;
@@ -469,7 +485,9 @@ export class LootManager {
         ctx.lineTo(canvas.width, 52);
         ctx.stroke();
 
-        return new THREE.CanvasTexture(canvas);
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.needsUpdate = true;
+        return tex;
     }
 
     generateLoot(rare = false) {
@@ -601,6 +619,7 @@ export class LootManager {
         if (entity?.stats) {
             entity.stats.loot += 1;
         }
+        this.lootCount += 1;
         if (chest.userData.isSupplyDrop) {
             const drop = this.supplyDrops.find(d => d.chest === chest);
             if (drop?.beam) {

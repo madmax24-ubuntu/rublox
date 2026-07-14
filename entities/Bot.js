@@ -34,13 +34,16 @@ export class Bot {
         this.target = null;
         this.allies = [];
         this.lastStateChange = 0;
-        this.patrolTarget = null;
+        this.patrolTarget = new THREE.Vector3();
         this.slowTimer = 0;
         this.slowFactor = 1;
         this.lastPosition = this.position.clone();
+        this._safePosition = this.position.clone();
         this.stuckTimer = 0;
         this.isStuck = false;
-        this.escapeDir = null;
+        this.escapeDir = new THREE.Vector3();
+        this._hasEscapeDir = false;
+        this._tmpEscapeDir = new THREE.Vector3();
         this.escapeTimer = 0;
         this.moveDir = new THREE.Vector3(0, 0, 1);
         this.stats = { damage: 0, kills: 0, loot: 0 };
@@ -58,6 +61,8 @@ export class Bot {
         this.burnAttacker = null;
         this.lastFlashTime = 0;
         this.preferTrainCombat = false;
+        // Кэш grip-параметров для каждого типа оружия — не вызывать getThirdPersonGrip каждый кадр
+        this._weaponGripCache = {};
         this.ignoreTrainAvoidance = false;
         this.healthRegenDelay = 7;
         this.healthRegenDuration = 7;
@@ -169,8 +174,21 @@ export class Bot {
         this.outfit = this.variants[this.variant];
         this.color = this.outfit.shirt;
 
+        // Personality traits — each bot is unique
+        this.personality = {
+            aggression: 0.15 + Math.random() * 0.85,
+            caution: 0.15 + Math.random() * 0.85,
+            lootFocus: 0.15 + Math.random() * 0.85
+        };
+
+        // Memory systems — remember where we looted and where we got shot at
+        this.lootedAreas = [];
+        this.enemyEncounters = [];
+
         this.mesh = this.createMesh();
         this.mesh.scale.setScalar(this.outfit.scale || 1.4);
+        // Pre-allocate bounding sphere for frustum culling
+        this.mesh._frustumSphere = new THREE.Sphere(new THREE.Vector3(), 1.0);
         this.healthBar = this.createHealthBar();
         this.mesh.add(this.healthBar);
         this.scene.add(this.mesh);
@@ -192,10 +210,23 @@ export class Bot {
 
     updateWeaponTransform() {
         if (!this.currentWeapon || !this.currentWeapon.mesh || !this.isAlive) return;
+        // OPTIMIZED: Throttle weapon transform for idle bots — only update every 3 frames when not firing
+        this._weaponFrameCounter = (this._weaponFrameCounter || 0) + 1;
+        if (this._weaponRecoilTimer <= 0 && this._weaponFrameCounter % 3 !== 0) return;
+
         const limbs = this.mesh?.userData?.limbs;
         if (!limbs?.rightArm) return;
-        const grip = Weapon.getThirdPersonGrip(this.currentWeapon.type);
+        const wType = this.currentWeapon.type;
+        if (this._cachedGripType !== wType) {
+            this._cachedGrip = Weapon.getThirdPersonGrip(wType);
+            this._cachedGripType = wType;
+        }
+        const grip = this._cachedGrip;
         const mesh = this.currentWeapon.mesh;
+        if (![grip?.right, grip?.up, grip?.forward].every(Number.isFinite)) {
+            this.currentWeapon.ensureFiniteTransform?.();
+            return;
+        }
         if (mesh.parent !== limbs.rightArm) {
             limbs.rightArm.add(mesh);
         }
@@ -486,12 +517,36 @@ export class Bot {
     }
 
     update(delta, brain, entityManager, lootManager, audioSynth, physics, zone) {
+        this._deferredDelta = (this._deferredDelta || 0) + delta;
+        if (![this.position.x, this.position.y, this.position.z].every(Number.isFinite)) {
+            this.position.copy(this._safePosition);
+            this.physics.velocity.set(0, 0, 0);
+            this.patrolTarget = null;
+            this.target = null;
+        }
         if (!this.isAlive) {
             this.mesh.position.copy(this.position);
             if (this.healthBar) this.healthBar.visible = false;
             return;
         }
         if (this.healthBar) this.healthBar.visible = true;
+
+        // OPTIMIZED: Skip expensive AI for near-idle bots every other frame
+        if (this._aiSkipFrame) {
+            this.mesh.position.copy(this.position);
+            this.mesh.position.y = this.position.y - (this.physics.height - 0.38);
+            this.mesh.rotation.y = this.rotation.y;
+            if (this._visuallyRelevant) {
+                this._animTime = performance.now() / 1000;
+                this.animateLimbs();
+                this.updateHealthBar(delta);
+                this.updateWeaponTransform();
+            }
+            return;
+        }
+
+        delta = Math.min(0.12, this._deferredDelta);
+        this._deferredDelta = 0;
 
         this.physicsRef = physics;
         this.zoneRef = zone || this.zoneRef;
@@ -547,7 +602,6 @@ export class Bot {
         if (zone && typeof zone.isInsideZone === 'function' && !zone.isInsideZone(this.position)) {
             const center = this._tmpCenter.set(0, this.position.y, 0);
             this.target = null;
-            if (!this.patrolTarget) this.patrolTarget = new THREE.Vector3();
             this.patrolTarget.copy(center);
             this.moveTowards(center, this.physics.speed * 1.25);
             this.mesh.position.copy(this.position);
@@ -577,14 +631,16 @@ export class Bot {
         if (this.escapeTimer > 0) {
             this.escapeTimer = Math.max(0, this.escapeTimer - delta);
             if (this.escapeTimer === 0) {
-                this.escapeDir = null;
+                this._hasEscapeDir = false;
             }
         }
 
         this.updateNavProgress(delta);
-        if (this.isStuck && !this.escapeDir) {
+        if (this.isStuck && !this._hasEscapeDir) {
             const angle = Math.random() * Math.PI * 2;
-            this.escapeDir = new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle));
+            this._tmpEscapeDir.set(Math.cos(angle), 0, Math.sin(angle));
+            this.escapeDir.copy(this._tmpEscapeDir);
+            this._hasEscapeDir = true;
             this.escapeTimer = 1.2;
             if (this.mapRef?.getFloorTiles) {
                 const tiles = this.mapRef.getFloorTiles();
@@ -595,7 +651,8 @@ export class Bot {
                         const dz = tile.z - this.position.z;
                         const dist = Math.hypot(dx, dz);
                         if (dist < 25) continue;
-                        this.patrolTarget = new THREE.Vector3(tile.x, 0, tile.z);
+                        if (!this.patrolTarget) this.patrolTarget = new THREE.Vector3();
+                        this.patrolTarget.set(tile.x, 0, tile.z);
                         break;
                     }
                 }
@@ -606,10 +663,11 @@ export class Bot {
         this.mesh.position.copy(this.position);
         this.mesh.position.y = this.position.y - (this.physics.height - 0.38);
         this.mesh.rotation.y = this.rotation.y;
-        this.animateLimbs();
-        this.updateHealthBar(delta);
-
-        this.updateWeaponTransform();
+        if (this._visuallyRelevant) {
+            this.animateLimbs();
+            this.updateHealthBar(delta);
+            this.updateWeaponTransform();
+        }
 
         const moved = this.position.distanceTo(this.lastPosition);
         if (moved < 0.05 && !this.isFrozen) {
@@ -626,11 +684,16 @@ export class Bot {
             this.lastPosition.copy(this.position);
         }
 
-        // Simple separation to avoid bot clumping
+        // OPTIMIZED: Separation to avoid bot clumping — throttled per-bot
+        const isEarlyGame = this.noCombatUntil && performance.now() < this.noCombatUntil + 45000;
+        const sepRadius = isEarlyGame ? 8.0 : 4.5;
+        const sepRadiusSq = sepRadius * sepRadius;
         this.separationTimer = Math.max(0, this.separationTimer - delta);
+        // OPTIMIZED: Increase separation interval to reduce spatial queries
+        const sepInterval = isEarlyGame ? (0.15 + Math.random() * 0.1) : (0.25 + Math.random() * 0.15);
         if (entityManager && this.isAlive && !this.isFrozen && this.separationTimer <= 0) {
             const nearby = entityManager.getNearbyEntities
-                ? entityManager.getNearbyEntities(this.position, 5.2, 'Bot')
+                ? entityManager.getNearbyEntities(this.position, sepRadius, 'Bot')
                 : entityManager.getEntities();
             let sepX = 0;
             let sepZ = 0;
@@ -640,24 +703,36 @@ export class Bot {
                 const dx = this.position.x - e.position.x;
                 const dz = this.position.z - e.position.z;
                 const distSq = dx * dx + dz * dz;
-                if (distSq > 0.0001 && distSq < 23.04) {
+                if (distSq > 0.0001 && distSq < sepRadiusSq) {
                     const dist = Math.sqrt(distSq);
                     const inv = 1 / dist;
-                    const pushPower = 1.55 / Math.max(0.22, Math.pow(dist, 1.08));
+                    const pushPower = (isEarlyGame ? 3.5 : 1.55) / Math.max(0.22, Math.pow(dist, 1.08));
                     sepX += dx * inv * pushPower;
                     sepZ += dz * inv * pushPower;
                     count += 1;
+                    if (count >= 6) break;
                 }
             }
             if (count > 0) {
-                this.physics.velocity.x += sepX * 1.35 + (Math.random() - 0.5) * 0.45;
-                this.physics.velocity.z += sepZ * 1.35 + (Math.random() - 0.5) * 0.45;
+                const multiplier = isEarlyGame ? 2.2 : 1.35;
+                this.physics.velocity.x += sepX * multiplier + (Math.random() - 0.5) * 0.6;
+                this.physics.velocity.z += sepZ * multiplier + (Math.random() - 0.5) * 0.6;
             }
-            this.separationTimer = 0.12 + Math.random() * 0.06;
+            this.separationTimer = sepInterval;
+        }
+        if ([this.position.x, this.position.y, this.position.z].every(Number.isFinite)) {
+            this._safePosition.copy(this.position);
+        } else {
+            this.position.copy(this._safePosition);
+            this.physics.velocity.set(0, 0, 0);
         }
     }
 
     animateLimbs() {
+        // OPTIMIZED: Throttle limb animation to every 2 frames — visual impact is minimal
+        this._animFrameCounter = (this._animFrameCounter || 0) + 1;
+        if (this._animFrameCounter % 2 !== 0) return;
+
         const limbs = this.mesh?.userData?.limbs;
         if (!limbs) return;
 
@@ -698,7 +773,14 @@ export class Bot {
         this.syncWeaponVisibility();
     }
 
-    pickupLoot(loot) {
+    pickupLoot(loot, chestPosition) {
+        // Record looted area in memory
+        if (chestPosition) {
+            this.lootedAreas.push({ pos: chestPosition.clone(), time: performance.now() });
+            // Cap memory to prevent unbounded growth
+            if (this.lootedAreas.length > 20) this.lootedAreas.shift();
+        }
+
         if (loot.type === 'weapon') {
             const weapon = new Weapon(loot.weaponType, this.scene);
             const result = this.inventory.addItem(weapon);
@@ -739,6 +821,15 @@ export class Bot {
         }
         if (attacker?.stats) {
             attacker.stats.damage += finalDamage;
+        }
+
+        // Record enemy encounter in memory
+        if (attacker && attacker.position) {
+            const isDotDamage = source === 'zone' || source === 'storm' || source === 'burn' || source === 'trap';
+            if (!isDotDamage) {
+                this.enemyEncounters.push({ pos: attacker.position.clone(), time: performance.now(), damage: finalDamage });
+                if (this.enemyEncounters.length > 15) this.enemyEncounters.shift();
+            }
         }
 
         if (this.armor > 0) {
@@ -784,7 +875,8 @@ export class Bot {
         }
         if (attacker && this.isAlive) {
             const strength = knockbackStrength > 0 ? knockbackStrength : 3;
-            const dir = new THREE.Vector3().subVectors(this.position, attacker.position).normalize();
+            this._tmpDirection.subVectors(this.position, attacker.position).normalize();
+            const dir = this._tmpDirection;
             this.physics.velocity.x += dir.x * strength;
             this.physics.velocity.z += dir.z * strength;
             this.physics.velocity.y += 2;
@@ -863,22 +955,34 @@ export class Bot {
         const camera = this._cachedCamera || (this._cachedCamera = this.scene?.userData?.camera);
         if (camera) {
             this.healthBarLosTimer -= delta;
-            
+
             const dx = camera.position.x - this.position.x;
             const dz = camera.position.z - this.position.z;
             const distSq = dx * dx + dz * dz;
-            const entityManager = this.scene.userData?.entityManager;
-            let visible = distSq < (isMobile ? (13 * 13) : (19 * 19));
-            
-            if (!isMobile && visible && entityManager?.hasLineOfSight && this.healthBarLosTimer <= 0) {
-                this._tmpLosFrom.copy(camera.position);
-                this._tmpLosTo.set(this.position.x, this.position.y + (this.physics?.height || 1.8) * 0.65, this.position.z);
-                this.healthBarVisibleCached = entityManager.hasLineOfSight(this._tmpLosFrom, this._tmpLosTo, true);
-                this.healthBarLosTimer = 0.22 + Math.random() * 0.12;
+            // OPTIMIZED: Reduce health bar visibility range
+            const visRange = isMobile ? 13 : 17;
+            let visible = distSq < (visRange * visRange);
+
+            // OPTIMIZED: Skip LOS for far bots (stale cache is OK)
+            if (!visible) {
+                this.healthBar.visible = false;
+                return;
             }
-            
+
+            // OPTIMIZED: Increase LOS interval and stagger by bot ID
+            const losInterval = 0.35 + ((this.id % 7) * 0.04);
+            if (!isMobile && this.healthBarLosTimer <= 0) {
+                const entityManager = this.scene.userData?.entityManager;
+                if (entityManager?.hasLineOfSight) {
+                    this._tmpLosFrom.copy(camera.position);
+                    this._tmpLosTo.set(this.position.x, this.position.y + (this.physics?.height || 1.8) * 0.65, this.position.z);
+                    this.healthBarVisibleCached = entityManager.hasLineOfSight(this._tmpLosFrom, this._tmpLosTo, true);
+                }
+                this.healthBarLosTimer = losInterval;
+            }
+
             this.healthBar.visible = isMobile ? visible : (visible && this.healthBarVisibleCached);
-            
+
             if (this.healthBar.visible) {
                 this.healthBar.lookAt(camera.position);
             }
@@ -930,10 +1034,15 @@ export class Bot {
     }
 
     moveTowards(target, speed) {
+        if (!target || ![target.x, target.z, this.position.x, this.position.z, speed].every(Number.isFinite)) {
+            this.physics.velocity.x = 0;
+            this.physics.velocity.z = 0;
+            return;
+        }
         const toTargetX = target.x - this.position.x;
         const toTargetZ = target.z - this.position.z;
         const lenSq = toTargetX * toTargetX + toTargetZ * toTargetZ;
-        if (lenSq < 1e-6) {
+        if (!Number.isFinite(lenSq) || lenSq < 1e-6) {
             this.physics.velocity.x = 0;
             this.physics.velocity.z = 0;
             return;
@@ -941,7 +1050,7 @@ export class Bot {
         const invLen = 1 / Math.sqrt(lenSq);
         const direction = this._tmpDirection.set(toTargetX * invLen, 0, toTargetZ * invLen);
 
-        if (this.escapeDir && this.escapeTimer > 0) {
+        if (this._hasEscapeDir && this.escapeTimer > 0) {
             direction.copy(this.escapeDir);
         }
 
@@ -977,7 +1086,8 @@ export class Bot {
             if (!found) {
                 const angle = (Math.random() * 0.8 - 0.4) + Math.PI / 2;
                 this._tmpProbe2.copy(direction).applyAxisAngle(this._tmpUp, angle);
-                this.escapeDir = this._tmpProbe2.clone();
+                this.escapeDir.copy(this._tmpProbe2);
+                this._hasEscapeDir = true;
                 this.escapeTimer = 0.8;
             }
             this.cachedMoveDir.copy(this._tmpProbe2).normalize();

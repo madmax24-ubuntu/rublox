@@ -60,8 +60,8 @@ export class BotBrain {
         this.hearingRange = 34;
         this.shotHearingRange = 76;
         this.losMemorySeconds = 1.4;
-        this.reactionMin = 0.2;
-        this.reactionMax = 0.5;
+        this.reactionMin = 0.5;
+        this.reactionMax = 1.0;
     }
 
     update(bot, delta, entityManager, lootManager, audioSynth) {
@@ -73,6 +73,18 @@ export class BotBrain {
             return;
         }
 
+        // Push bots away from laser ring at radius 27
+        const botDistToCenter = Math.hypot(bot.position.x, bot.position.z);
+        if (botDistToCenter > 23 && botDistToCenter < 31) {
+            const pushDir = botDistToCenter < 27 ? 1 : -1;
+            const angle = Math.atan2(bot.position.z, bot.position.x);
+            const targetR = 27 + 5 * pushDir;
+            const tx = Math.cos(angle) * targetR;
+            const tz = Math.sin(angle) * targetR;
+            bot.position.x += (tx - bot.position.x) * delta * 3;
+            bot.position.z += (tz - bot.position.z) * delta * 3;
+        }
+
         this.decisionCooldown = Math.max(0, this.decisionCooldown - delta);
         this.attackCooldown = Math.max(0, this.attackCooldown - delta);
         this.retargetCooldown = Math.max(0, this.retargetCooldown - delta);
@@ -80,19 +92,36 @@ export class BotBrain {
         this.ensureBestWeaponEquipped(bot);
         this.handleStuck(bot);
 
+        const now = performance.now();
+        const phaseGear = this.getGearScore(bot);
+        const inPreLootPhase = !!(bot.noCombatUntil && now < bot.noCombatUntil && phaseGear < 0.75);
+        const earlyGamePhase = inPreLootPhase || !!(bot.noCombatUntil && now < bot.noCombatUntil + 30000 && phaseGear < 1.15);
+
+        // Force context refresh when phases change — prevents stale cached state from keeping bots in combat
+        const phaseChanged = !!(bot._lastPhase && bot._lastPhase !== earlyGamePhase);
         let ctx = bot._fsmCtx;
-        if (!ctx || this.decisionCooldown <= 0) {
+        if (!ctx || this.decisionCooldown <= 0 || phaseChanged) {
             ctx = this.collectContext(bot, entityManager, lootManager);
+            ctx.earlyGamePhase = earlyGamePhase;
             bot._fsmCtx = ctx;
+            bot._lastPhase = earlyGamePhase;
             const nextState = this.pickState(bot, ctx);
             bot.state = nextState;
             if (nextState !== STATES.LOOT && nextState !== STATES.EXPLORE) this.releaseLootReservation(bot);
             if (nextState !== STATES.ENGAGE) this.releaseCombatReservation(bot);
-            this.decisionCooldown = 0.2 + ((bot.id * 0.011) % 0.1);
+            this.decisionCooldown = 0.25 + ((bot.id * 0.009) % 0.1); // Increased from 0.15-0.23 to 0.25-0.35
         } else {
+            // Refresh earlyGamePhase on cached context so actEngage / actExplore see current phase
+            ctx.earlyGamePhase = earlyGamePhase;
+            ctx.inPreLootPhase = inPreLootPhase;
             ctx.outsideZone = ctx.zone?.isInsideZone ? !ctx.zone.isInsideZone(bot.position) : false;
             ctx.zoneDistance = ctx.zone?.getDistanceFromZone ? ctx.zone.getDistanceFromZone(bot.position) : 0;
             ctx.sheltered = bot.mapRef?.isShelteredFromRain?.(bot.position) || false;
+            // Refresh enemy detection for early-game scatter
+            if (earlyGamePhase) {
+                ctx.nearestEnemy = this.detectNearestEnemyForEarlyGame(bot, entityManager);
+                ctx.nearestEnemyDist = ctx.nearestEnemy ? bot.position.distanceTo(ctx.nearestEnemy.position) : Infinity;
+            }
             if (!ctx.shelterTarget) {
                 ctx.shelterTarget = this.findNearestShelterTarget(bot);
             }
@@ -139,18 +168,36 @@ export class BotBrain {
 
     collectContext(bot, entityManager, lootManager) {
         const now = performance.now();
+        const phaseGear = this.getGearScore(bot);
+        const inPreLootPhase = !!(bot.noCombatUntil && now < bot.noCombatUntil && phaseGear < 0.75);
+        const earlyGamePhase = inPreLootPhase || !!(bot.noCombatUntil && now < bot.noCombatUntil + 30000 && phaseGear < 1.15);
+
         const hp = bot.health / Math.max(1, bot.maxHealth || 100);
         const zone = bot.zoneRef;
         const outsideZone = zone?.isInsideZone ? !zone.isInsideZone(bot.position) : false;
         const zoneDistance = zone?.getDistanceFromZone ? zone.getDistanceFromZone(bot.position) : 0;
 
-        const visionRadius = Math.max(30, this.baseVisionRange * this.visionMultiplier);
-        const queryRadius = Math.max(visionRadius, this.shotHearingRange + 10);
+        // OPTIMIZED: Smaller radius for better performance
+        const queryRadius = earlyGamePhase ? 25 : Math.min(50, this.baseVisionRange * this.visionMultiplier * 0.6);
         const closeCombatRadius = 24;
-        const nearby = entityManager?.getNearbyEntities
-            ? entityManager.getNearbyEntities(bot.position, queryRadius)
-            : (entityManager?.getEntities?.() || []);
-        const heardShot = this.detectNearbyGunfire(bot, entityManager, this.shotHearingRange);
+
+        // OPTIMIZED: Cache nearby query — reuse if bot hasn't moved much (extended cache to 200ms)
+        const cacheAge = (bot._nearbyCacheTime || 0) + 0.2 - (now / 1000);
+        let nearby = null;
+        if (cacheAge > 0 && bot._cachedNearby && !earlyGamePhase) {
+            nearby = bot._cachedNearby;
+        } else {
+            nearby = entityManager?.getNearbyEntities
+                ? entityManager.getNearbyEntities(bot.position, queryRadius)
+                : (entityManager?.getEntities?.() || []);
+            bot._cachedNearby = nearby;
+            bot._nearbyCacheTime = now / 1000;
+        }
+
+        // OPTIMIZED: Skip gunfire detection during early game (rare shots)
+        const heardShot = earlyGamePhase
+            ? false
+            : this.detectNearbyGunfire(bot, entityManager, this.shotHearingRange);
 
         let nearestEnemy = null;
         let nearestEnemyDist = Infinity;
@@ -161,6 +208,14 @@ export class BotBrain {
         const cos = Math.cos(bot.rotation.y);
         this._tmpForward.set(sin, 0, -cos);
         const forward = this._tmpForward;
+        const fovCos = Math.cos(this.fov / 2);
+
+        // OPTIMIZED: Skip LOS checks every other collectContext call
+        const skipLos = (bot.id % 2 === 0) || earlyGamePhase;
+        const skipLosEarlyGame = earlyGamePhase;
+
+        const hearingRangeSq = this.hearingRange * this.hearingRange;
+        const shotHearingSq = this.shotHearingRange * this.shotHearingRange;
 
         for (const ent of nearby) {
             if (!ent?.isAlive || ent === bot) continue;
@@ -168,24 +223,39 @@ export class BotBrain {
             const isEnemySurvivor = type === 'Player' || type === 'Bot';
             const isZombie = type === 'Zombie';
             if (!isEnemySurvivor && !isZombie) continue;
-            const d = bot.position.distanceTo(ent.position);
-            if (isEnemySurvivor && d < nearestEnemyDist) {
-                const hasLos = this.hasLoS(bot, ent, entityManager);
-                const heard = d <= this.hearingRange || (heardShot && d <= this.shotHearingRange);
+
+            const dx = ent.position.x - bot.position.x;
+            const dz = ent.position.z - bot.position.z;
+            const dSq = dx * dx + dz * dz;
+            if (!Number.isFinite(dSq) || dSq < 1e-6) continue;
+
+            if (isEnemySurvivor && dSq < nearestEnemyDist * nearestEnemyDist) {
+                const d = Math.sqrt(dSq);
+                let hasLos;
+                if (skipLosEarlyGame) {
+                    hasLos = d < 15;
+                } else if (!skipLos) {
+                    hasLos = this.hasLoS(bot, ent, entityManager);
+                } else {
+                    hasLos = bot._cachedLosTarget === ent.id && !!bot._cachedLos;
+                }
+                const heard = dSq <= hearingRangeSq || (heardShot && dSq <= shotHearingSq);
                 if (hasLos || heard) {
-                    // FOV Check
-                    this._tmpToTarget.subVectors(ent.position, bot.position).normalize();
-                    const dot = forward.dot(this._tmpToTarget);
-                    if (dot >= Math.cos(this.fov / 2)) {
+                    this._tmpToTarget.set(dx, 0, dz).normalize();
+                    if (forward.dot(this._tmpToTarget) >= fovCos) {
                         nearestEnemyDist = d;
                         nearestEnemy = ent;
-                        if (hasLos) bot.lastSeenEnemyAt = now;
-                        else if (!bot.lastSeenEnemyAt) bot.lastSeenEnemyAt = now;
+                        if (hasLos && !skipLosEarlyGame) {
+                            bot.lastSeenEnemyAt = now;
+                            bot._cachedLos = true;
+                            bot._cachedLosTarget = ent.id;
+                        }
                     }
                 }
             }
-            if (isZombie && d < nearestZombieDist) {
-                nearestZombieDist = d;
+
+            if (isZombie && dSq < nearestZombieDist * nearestZombieDist) {
+                nearestZombieDist = Math.sqrt(dSq);
                 nearestZombie = ent;
             }
         }
@@ -200,25 +270,67 @@ export class BotBrain {
         const map = bot.mapRef;
         const sheltered = map?.isShelteredFromRain?.(bot.position) || false;
         const shelterTarget = this.findNearestShelterTarget(bot);
-        const inPreLootPhase = !!(bot.noCombatUntil && now < bot.noCombatUntil);
+        // earlyGamePhase already computed at top of collectContext
         const crowdNear = this.countNearbyCombatants(bot, entityManager, 6.5);
         const gear = this.getGearScore(bot);
 
         // Compute avoidance force — steer away from nearby players/bots
+        // During early game, use larger radius (14m) and stronger force for scatter
         let avoidX = 0, avoidZ = 0;
-        for (const ent of nearby) {
+        let avoidCount = 0;
+        const maxAvoidChecks = Math.min(nearby.length, earlyGamePhase ? 16 : 12);
+        const avoidRadiusSq = earlyGamePhase ? 196 : 64; // 14m radius during early game, 8m otherwise
+        for (let i = 0; i < maxAvoidChecks; i++) {
+            const ent = nearby[i];
             if (!ent?.isAlive || ent === bot) continue;
             const type = ent.constructor?.name;
             if (type !== 'Player' && type !== 'Bot') continue;
-            const d = bot.position.distanceTo(ent.position);
-            if (d < 12 && d > 0.1) {
-                const force = 1 / (d * d);
-                avoidX += (bot.position.x - ent.position.x) / d * force;
-                avoidZ += (bot.position.z - ent.position.z) / d * force;
+            const dx = ent.position.x - bot.position.x;
+            const dz = ent.position.z - bot.position.z;
+            const dSq = dx * dx + dz * dz;
+            if (dSq < avoidRadiusSq && dSq > 0.01) {
+                const d = Math.sqrt(dSq);
+                const force = earlyGamePhase ? (4.5 / (dSq + 0.5)) : (1.8 / (dSq + 0.5));
+                avoidX += (dx / d) * force;
+                avoidZ += (dz / d) * force;
+                avoidCount++;
+                if (avoidCount >= (earlyGamePhase ? 8 : 6)) break;
             }
         }
         bot._avoidX = avoidX;
         bot._avoidZ = avoidZ;
+
+        // Memory-based avoidance: steer away from recently looted areas and enemy encounters
+        const memoryAgeLimit = 120000; // 2 minutes — forget after that
+        // Clean old entries
+        bot.lootedAreas = bot.lootedAreas.filter(e => now - e.time < memoryAgeLimit);
+        bot.enemyEncounters = bot.enemyEncounters.filter(e => now - e.time < memoryAgeLimit);
+
+        // Avoid looted areas (don't waste time going back)
+        for (const area of bot.lootedAreas) {
+            const dx = bot.position.x - area.pos.x;
+            const dz = bot.position.z - area.pos.z;
+            const dSq = dx * dx + dz * dz;
+            if (dSq < 400 && dSq > 0.01) { // 20m radius
+                const d = Math.sqrt(dSq);
+                const force = (3.0 / (dSq + 1));
+                bot._avoidX += (dx / d) * force;
+                bot._avoidZ += (dz / d) * force;
+            }
+        }
+
+        // Avoid enemy encounter areas (dangerous spots)
+        for (const enc of bot.enemyEncounters) {
+            const dx = bot.position.x - enc.pos.x;
+            const dz = bot.position.z - enc.pos.z;
+            const dSq = dx * dx + dz * dz;
+            if (dSq < 900 && dSq > 0.01) { // 30m radius
+                const d = Math.sqrt(dSq);
+                const force = (5.0 / (dSq + 1)) * (enc.damage / 50); // scaled by damage received
+                bot._avoidX += (dx / d) * force;
+                bot._avoidZ += (dz / d) * force;
+            }
+        }
 
         return {
             now,
@@ -236,6 +348,7 @@ export class BotBrain {
             sheltered,
             shelterTarget,
             inPreLootPhase,
+            earlyGamePhase,
             crowdNear,
             gear,
             closeCombatRadius
@@ -252,11 +365,44 @@ export class BotBrain {
         return entityManager.hasLineOfSight(this._tmpFrom, this._tmpTo, true);
     }
 
+    detectNearestEnemyForEarlyGame(bot, entityManager) {
+        // Lightweight enemy detection for early-game context refresh
+        const nearby = entityManager?.getNearbyEntities
+            ? entityManager.getNearbyEntities(bot.position, 50)
+            : (entityManager?.getEntities?.() || []);
+        let nearest = null;
+        let nearestDist = Infinity;
+        const fovCos = Math.cos(this.fov / 2);
+        const sin = Math.sin(bot.rotation.y);
+        const cos = Math.cos(bot.rotation.y);
+        this._tmpForward.set(sin, 0, -cos);
+        for (const ent of nearby) {
+            if (!ent?.isAlive || ent === bot) continue;
+            const type = ent.constructor?.name;
+            if (type !== 'Player' && type !== 'Bot') continue;
+            // OPTIMIZED: use squared distance to avoid sqrt
+            const dx = ent.position.x - bot.position.x;
+            const dz = ent.position.z - bot.position.z;
+            const dSq = dx * dx + dz * dz;
+            if (!Number.isFinite(dSq) || dSq < 1e-6) continue;
+            if (dSq >= nearestDist * nearestDist) continue;
+            // Normalize direction for FOV check
+            const invD = 1 / Math.sqrt(dSq);
+            this._tmpToTarget.set(dx * invD, 0, dz * invD);
+            if (this._tmpForward.dot(this._tmpToTarget) >= fovCos) {
+                nearestDist = Math.sqrt(dSq);
+                nearest = ent;
+            }
+        }
+        return nearest;
+    }
+
     detectNearbyGunfire(bot, entityManager, range) {
         const projs = entityManager?.projectiles;
         if (!projs?.length || !bot?.position) return false;
         const now = performance.now();
         const maxAge = 320;
+        const rangeSq = range * range;
         for (let i = projs.length - 1; i >= 0; i--) {
             const p = projs[i];
             if (!p?.mesh?.position) continue;
@@ -264,7 +410,10 @@ export class BotBrain {
             if (ownerType !== 'Player' && ownerType !== 'Bot') continue;
             if (p._bornAt === undefined) p._bornAt = now;
             if (now - p._bornAt > maxAge) continue;
-            if (bot.position.distanceTo(p.mesh.position) <= range) return true;
+            // OPTIMIZED: use squared distance
+            const dx = bot.position.x - p.mesh.position.x;
+            const dz = bot.position.z - p.mesh.position.z;
+            if (dx * dx + dz * dz <= rangeSq) return true;
         }
         return false;
     }
@@ -278,53 +427,129 @@ export class BotBrain {
             return STATES.ZONE_RETREAT;
         }
 
-        if (ctx.inPreLootPhase) {
-            // During loot phase: prioritize looting and scatter away from crowds
-            if (ctx.lootTarget) return STATES.LOOT;
-            if (ctx.crowdNear >= 2) {
-                return STATES.EXPLORE;
-            }
-            return STATES.EXPLORE;
-        }
-
         const lowHp = ctx.hp < 0.35;
         const veryLowHp = ctx.hp < 0.2;
         const underPressure = ctx.nearestEnemy && ctx.nearestEnemyDist < ctx.closeCombatRadius;
         const armed = !!bot.currentWeapon && bot.currentWeapon.type !== 'fists';
+        const wellArmed = armed && WEAPON_PRIORITY[bot.currentWeapon?.type] >= 5;
         const hasMedkit = (bot.medkits || 0) > 0;
+
+        // Personality-driven thresholds
+        const agg = Math.min(1, (bot.personality?.aggression ?? 0.5) + ctx.gear * 0.18);
+        const cau = bot.personality?.caution ?? 0.5;
+        const lootF = bot.personality?.lootFocus ?? 0.5;
+
+        // Aggression adjusts engagement distance: aggressive bots engage from further away
+        const engageDist = ctx.closeCombatRadius * (0.6 + agg * 0.8);
+        // Caution adjusts undergeared threshold: cautious bots hide with less gear
+        const undergearedThreshold = 0.3 + cau * 0.2;
+        // Aggression adjusts crowd tolerance: aggressive bots tolerate more crowd in combat
+        const crowdTolerance = Math.max(1, Math.round(1 + agg * 3));
+        // Caution adjusts retreat threshold: cautious bots retreat at higher HP
+        const retreatHpThreshold = 0.2 + cau * 0.15;
+
+        if (ctx.nearestZombie && ctx.nearestZombieDist < 10) {
+            if (veryLowHp || (lowHp && !wellArmed)) return ctx.shelterTarget ? STATES.RETREAT : STATES.EXPLORE;
+            return STATES.ENGAGE;
+        }
+
+        // === PHASE 1: Pre-loot (noCombatUntil not expired) ===
+        // Bots scatter and loot, almost never fight
+        if (ctx.inPreLootPhase) {
+            if (ctx.lootTarget) return STATES.LOOT;
+            // Only engage if very close AND being shot AND well-armed (aggression can override)
+            if (ctx.nearestEnemy && ctx.nearestEnemyDist < 12 && ctx.heardShot && wellArmed && agg > 0.7) {
+                return STATES.ENGAGE;
+            }
+            return STATES.EXPLORE; // scatter
+        }
+
+        // === PHASE 2: Early game (45s after pre-loot) ===
+        // Still mostly loot, cautious engagement
+        if (ctx.earlyGamePhase) {
+            // 1. Survival always wins
+            if ((veryLowHp && hasMedkit) || (lowHp && hasMedkit && underPressure)) {
+                return STATES.SURVIVAL;
+            }
+            if (veryLowHp && ctx.shelterTarget && (!ctx.nearestEnemy || ctx.nearestEnemyDist > 10)) {
+                return STATES.ZONE_RETREAT;
+            }
+
+            // 2. Scatter if crowd nearby (aggressive bots tolerate more)
+            if (ctx.crowdNear >= crowdTolerance) {
+                return STATES.EXPLORE;
+            }
+
+            // 3. Undergeared? Hide or loot
+            const undergeared = ctx.gear < undergearedThreshold;
+            if (undergeared) {
+                if (ctx.lootTarget && lootF > 0.4) return STATES.LOOT;
+                if (ctx.nearestEnemy && ctx.nearestEnemyDist < 60) return STATES.HIDE;
+                return STATES.EXPLORE;
+            }
+
+            // 4. Low HP → hide/retreat
+            if (lowHp && underPressure && !hasMedkit) return STATES.HIDE;
+
+            // 5. Engagement: personality-adjusted thresholds
+            if (ctx.nearestEnemy && ctx.nearestEnemyDist < engageDist) {
+                const isBeingShot = ctx.heardShot;
+                // Aggressive bots engage more easily; cautious bots need wellArmed + beingShot
+                if (isBeingShot && wellArmed && ctx.gear >= undergearedThreshold && ctx.crowdNear < crowdTolerance) {
+                    return STATES.ENGAGE;
+                }
+                // Very aggressive bots engage even without being shot
+                if (agg > 0.8 && wellArmed && ctx.gear >= undergearedThreshold && ctx.crowdNear < crowdTolerance) {
+                    return STATES.ENGAGE;
+                }
+                // Otherwise loot or scatter
+                if (ctx.lootTarget && ctx.nearestEnemyDist > 8 && lootF > 0.3) return STATES.LOOT;
+                return STATES.EXPLORE;
+            }
+
+            // 6. Default: loot then explore
+            if (ctx.lootTarget) return STATES.LOOT;
+            return STATES.EXPLORE;
+        }
+
+        // === PHASE 3: Mid/Late game — normal combat ===
 
         // 1. Critical Survival
         if ((veryLowHp && hasMedkit) || (lowHp && hasMedkit && underPressure)) {
             return STATES.SURVIVAL;
         }
 
-        // 2. Retreat/Hide if in trouble
-        if (veryLowHp && ctx.shelterTarget && (!ctx.nearestEnemy || ctx.nearestEnemyDist > 10)) return STATES.ZONE_RETREAT;
+        // 2. Retreat/Hide if in trouble (caution-adjusted)
+        if (ctx.hp < retreatHpThreshold && ctx.shelterTarget && (!ctx.nearestEnemy || ctx.nearestEnemyDist > 10)) return STATES.ZONE_RETREAT;
         if (lowHp && underPressure && !hasMedkit) return STATES.HIDE;
 
-        // 3. Avoid other players/bots — stay alone with strong scatter
-        if (ctx.crowdNear >= 2) {
+        // 3. Avoid crowds (aggressive bots tolerate more)
+        if (ctx.crowdNear >= crowdTolerance) {
             return STATES.EXPLORE;
         }
 
-        // 4. Early Game / Low Gear Logic
-        const undergeared = ctx.gear < 0.35;
+        // 4. Undergeared — prioritize loot and hide from range
+        const undergeared = ctx.gear < undergearedThreshold;
         if (undergeared) {
-            // If weak, prioritize loot and avoid combat at all costs
-            if (ctx.nearestEnemy && ctx.nearestEnemyDist < 50) {
+            if (ctx.nearestEnemy && ctx.nearestEnemyDist < 55) {
                 return STATES.HIDE;
             }
-            if (ctx.lootTarget) return STATES.LOOT;
+            if (ctx.lootTarget && lootF > 0.3) return STATES.LOOT;
             return STATES.EXPLORE;
         }
 
-        // 5. Only engage if attacked first — strict engagement rules
-        if (ctx.nearestEnemy && ctx.nearestEnemyDist < 42) {
+        // 5. Engage only if well-positioned, armed, AND actively being attacked
+        if (ctx.nearestEnemy && ctx.nearestEnemyDist < engageDist) {
             const isBeingAttacked = ctx.heardShot || (bot._lastAttackedBy && performance.now() - bot._lastAttackedBy < 3000);
-            if (isBeingAttacked && armed) {
+            if (isBeingAttacked && wellArmed && armed && ctx.crowdNear < crowdTolerance) {
                 return STATES.ENGAGE;
             }
-            if (ctx.lootTarget) return STATES.LOOT;
+            // Very aggressive bots engage even without being attacked
+            if (agg > 0.85 && wellArmed && armed && ctx.crowdNear < crowdTolerance) {
+                return STATES.ENGAGE;
+            }
+            // If just armed but not attacked, keep looting/exploring
+            if (ctx.lootTarget && ctx.nearestEnemyDist > 12 && lootF > 0.3) return STATES.LOOT;
             return STATES.EXPLORE;
         }
 
@@ -344,44 +569,118 @@ export class BotBrain {
 
     actExplore(bot, ctx) {
         const now = performance.now();
+        if (bot.assignedBiomeTarget && now < (bot.assignedBiomeUntil || 0)) {
+            if (bot.position.distanceTo(bot.assignedBiomeTarget) > 7) {
+                bot.patrolTarget = bot.assignedBiomeTarget;
+                this.steerMove(bot, bot.assignedBiomeTarget, bot.physics.speed * 1.25);
+                return;
+            }
+            bot.assignedBiomeTarget = null;
+        }
+        const agg = Math.min(1, (bot.personality?.aggression ?? 0.5) + ctx.gear * 0.18);
         // During loot phase or high crowd, scatter to opposite directions
-        const isScatterPhase = bot.noCombatUntil && now < bot.noCombatUntil;
-        const needsScatter = isScatterPhase || ctx.crowdNear >= 2;
-        
+        // Cautious bots scatter more easily; aggressive bots tolerate more crowd
+        const scatterThreshold = Math.max(1, Math.round(3 - agg * 2));
+        const isScatterPhase = ctx.earlyGamePhase || ctx.inPreLootPhase;
+        const needsScatter = isScatterPhase || ctx.crowdNear >= scatterThreshold;
+
         if (needsScatter) {
-            // Pick a target far away in a direction opposite to nearest entity
+            // Pick a target far away — avoid ALL nearby bots, not just the nearest enemy
+            const entityManager = bot.entityManagerRef;
+            const nearby = entityManager?.getNearbyEntities
+                ? entityManager.getNearbyEntities(bot.position, 30)
+                : [];
+
+            // Compute average direction of nearby entities
+            let avgX = 0, avgZ = 0, count = 0;
+            for (const ent of nearby) {
+                if (!ent?.isAlive || ent === bot) continue;
+                const type = ent.constructor?.name;
+                if (type !== 'Player' && type !== 'Bot') continue;
+                avgX += ent.position.x;
+                avgZ += ent.position.z;
+                count++;
+            }
+            if (count > 0) {
+                avgX /= count;
+                avgZ /= count;
+            }
+
             let scatterTarget = null;
-            if (ctx.nearestEnemy) {
+            if (count >= 2) {
+                // Scatter AWAY from the center of nearby entities
+                const dir = this._tmpVec.set(
+                    bot.position.x - avgX,
+                    0,
+                    bot.position.z - avgZ
+                ).normalize();
+                // Add unique offset per bot ID to prevent bots from following same path
+                const idOffset = bot.id * 0.15;
+                const perpDir = this._tmpVec.set(-dir.z, 0, dir.x);
+                const combinedDir = this._tmpSpreadVec.set(
+                    dir.x + perpDir.x * idOffset,
+                    0,
+                    dir.z + perpDir.z * idOffset
+                ).normalize();
+                const dist = ctx.earlyGamePhase ? (120 + Math.random() * 60) : (80 + Math.random() * 40);
+                scatterTarget = this._tmpMoveTarget.set(
+                    bot.position.x + combinedDir.x * dist,
+                    bot.position.y,
+                    bot.position.z + combinedDir.z * dist
+                );
+            } else if (ctx.nearestEnemy) {
                 const dir = this._tmpVec.set(
                     bot.position.x - ctx.nearestEnemy.position.x,
                     0,
                     bot.position.z - ctx.nearestEnemy.position.z
-                ).normalize().multiplyScalar(-1);
-                const dist = 50 + Math.random() * 40;
-                scatterTarget = new THREE.Vector3(
+                ).normalize();
+                const dist = (ctx.earlyGamePhase ? 100 : 70) + Math.random() * 40;
+                scatterTarget = this._tmpSpreadVec.set(
                     bot.position.x + dir.x * dist,
                     bot.position.y,
                     bot.position.z + dir.z * dist
                 );
             } else {
-                // Use bot ID to ensure different scatter directions
-                const angle = (bot.id * 0.7) + Math.random() * 0.5;
-                scatterTarget = new THREE.Vector3(
-                    bot.position.x + Math.cos(angle) * 60,
+                // Unique deterministic direction per bot
+                const seedAngle = bot.id * 2.399963227949204;
+                const angle = seedAngle + Math.random() * 0.5;
+                const radius = ctx.earlyGamePhase ? (110 + Math.random() * 50) : (75 + Math.random() * 30);
+                scatterTarget = this._tmpSpreadVec.set(
+                    bot.position.x + Math.cos(angle) * radius,
                     bot.position.y,
-                    bot.position.z + Math.sin(angle) * 60
+                    bot.position.z + Math.sin(angle) * radius
                 );
             }
-            
+
             if (!scatterTarget) return;
+            // Avoid laser ring at radius 27
+            const distToLaser = Math.hypot(scatterTarget.x, scatterTarget.z);
+            if (distToLaser > 23 && distToLaser < 31) {
+                const pushDir = distToLaser < 27 ? 1 : -1;
+                const angle = Math.atan2(scatterTarget.z, scatterTarget.x);
+                scatterTarget.set(
+                    Math.cos(angle) * (27 + 5 * pushDir),
+                    scatterTarget.y,
+                    Math.sin(angle) * (27 + 5 * pushDir)
+                );
+            }
             bot.patrolTarget = scatterTarget;
-            this.steerMove(bot, scatterTarget, bot.physics.speed * 1.1);
+            // Move fast during scatter
+            const scatterSpeed = ctx.inPreLootPhase ? 1.5 : (ctx.earlyGamePhase ? 1.35 : 1.2);
+            this.steerMove(bot, scatterTarget, bot.physics.speed * scatterSpeed);
         } else {
             if (!bot.patrolTarget || bot.position.distanceTo(bot.patrolTarget) < 5) {
-                bot.patrolTarget = this.pickSpreadTarget(bot, 30, 80);
+                bot.patrolTarget = this.pickSpreadTarget(bot, 35, 90);
             }
             if (bot.patrolTarget) {
-                this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 0.85);
+                // Avoid laser ring
+                const d = Math.hypot(bot.patrolTarget.x, bot.patrolTarget.z);
+                if (d > 23 && d < 31) {
+                    const pushDir = d < 27 ? 1 : -1;
+                    const angle = Math.atan2(bot.patrolTarget.z, bot.patrolTarget.x);
+                    bot.patrolTarget.set(Math.cos(angle) * (27 + 5 * pushDir), bot.patrolTarget.y, Math.sin(angle) * (27 + 5 * pushDir));
+                }
+                this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 0.9);
             }
         }
     }
@@ -410,7 +709,7 @@ export class BotBrain {
         }
 
         const loot = lootManager?.tryOpenChest?.(chest, bot, bot.audioSynthRef);
-        if (loot) bot.pickupLoot(loot);
+        if (loot) bot.pickupLoot(loot, chest.position);
         this.releaseLootReservation(bot);
         bot.patrolTarget = this.pickSpreadTarget(bot, 10, 36);
     }
@@ -437,11 +736,26 @@ export class BotBrain {
         bot.physics.velocity.x *= 0.5;
         bot.physics.velocity.z *= 0.5;
         this._tmpRandomDir.set(Math.random() - 0.5, 0, Math.random() - 0.5).normalize();
-        if (!bot.patrolTarget) bot.patrolTarget = new THREE.Vector3();
-        bot.patrolTarget.copy(bot.position).addScaledVector(this._tmpRandomDir, 10);
+        bot.patrolTarget = (bot.patrolTarget || new THREE.Vector3()).copy(bot.position).addScaledVector(this._tmpRandomDir, 10);
     }
 
     actEngage(bot, ctx, entityManager) {
+        const agg = Math.min(1, (bot.personality?.aggression ?? 0.5) + ctx.gear * 0.18);
+        const cau = bot.personality?.caution ?? 0.5;
+
+        // Early-game check: retreat if not being actively shot at
+        if (ctx.earlyGamePhase) {
+            const isBeingShot = ctx.heardShot;
+            const dist = ctx.nearestEnemy ? bot.position.distanceTo(ctx.nearestEnemy.position) : Infinity;
+            // Aggressive bots stay in combat longer; cautious bots retreat easier
+            const retreatDist = 10 - agg * 4 + cau * 3;
+            if (!isBeingShot && dist > retreatDist) {
+                bot.state = STATES.EXPLORE;
+                this.releaseCombatReservation(bot);
+                return;
+            }
+        }
+
         const target = this.pickCombatTarget(bot, ctx, entityManager);
         if (!target) {
             this.releaseCombatReservation(bot);
@@ -449,18 +763,24 @@ export class BotBrain {
             if (bot.patrolTarget) this.steerMove(bot, bot.patrolTarget, bot.physics.speed);
             return;
         }
-        if (ctx.hp < 0.3) {
+        // HP threshold adjusted by personality: aggressive bots fight to lower HP, cautious retreat earlier
+        const hpThreshold = ctx.earlyGamePhase
+            ? (0.45 - agg * 0.1 + cau * 0.1)
+            : (0.3 - agg * 0.1 + cau * 0.1);
+        if (ctx.hp < hpThreshold) {
             bot.state = STATES.RETREAT;
             this.actRetreat(bot, ctx);
             return;
         }
         const nowSec = performance.now() / 1000;
         if (!bot._engageWindowUntil || nowSec >= bot._engageWindowUntil) {
-            bot._engageWindowUntil = nowSec + 5 + Math.random() * 2;
+            // Shorter engage windows during early game
+            const windowDuration = ctx.earlyGamePhase ? (3 + Math.random()) : (5 + Math.random() * 2);
+            bot._engageWindowUntil = nowSec + windowDuration;
         }
         if (nowSec >= bot._engageWindowUntil) {
             bot._reloadCoverUntil = nowSec + 1.35 + Math.random() * 0.85;
-            bot._engageWindowUntil = nowSec + 5 + Math.random() * 2;
+            bot._engageWindowUntil = nowSec + (ctx.earlyGamePhase ? 3 : 5) + Math.random() * 2;
             bot.state = STATES.RELOAD_COVER;
             this.actReloadCover(bot, ctx);
             return;
@@ -498,7 +818,7 @@ export class BotBrain {
                 bot._dynamicAimError = 0.01 + distNorm * 0.04 + moveNorm * 0.055;
                 bot.attack(target, entityManager);
                 bot.applyWeaponRecoil();
-                this.attackCooldown = Math.max(0.05, (weapon.cooldown || 0.2) * 0.5);
+                this.attackCooldown = Math.max(0.1, (weapon.cooldown || 0.2) * 1.2);
             }
             return;
         }
@@ -590,15 +910,15 @@ export class BotBrain {
         if (!bot?.position || !target) return;
         const dir = this._tmpMoveDir.set(target.x - bot.position.x, 0, target.z - bot.position.z);
         const len = Math.hypot(dir.x, dir.z);
-        if (len < 0.001) return;
+        if (!Number.isFinite(len) || len < 0.001) return;
         dir.multiplyScalar(1 / len);
         
         // Apply avoidance force — steer away from nearby players/bots
         const avoidX = bot._avoidX || 0;
         const avoidZ = bot._avoidZ || 0;
         if (avoidX !== 0 || avoidZ !== 0) {
-            dir.x += avoidX * 0.5;
-            dir.z += avoidZ * 0.5;
+            dir.x += avoidX * 0.8;
+            dir.z += avoidZ * 0.8;
             const newLen = Math.hypot(dir.x, dir.z);
             if (newLen > 0.001) dir.multiplyScalar(1 / newLen);
         }
@@ -615,7 +935,7 @@ export class BotBrain {
             if (!lBlocked && !rBlocked) move = (bot.id % 2 === 0) ? this._tmpMoveLeft : this._tmpMoveRight;
             else if (!lBlocked) move = this._tmpMoveLeft;
             else if (!rBlocked) move = this._tmpMoveRight;
-            else move = dir.clone().multiplyScalar(-1);
+            else { this._tmpMoveTarget.copy(dir).multiplyScalar(-1); move = this._tmpMoveTarget; }
         }
         if (bot.computeAvoidance) {
             const avoid = bot.computeAvoidance(move);
@@ -623,8 +943,9 @@ export class BotBrain {
         }
         
         // Cautious movement: if in HIDE or low gear, move slower and more carefully
-        const isCautious = bot.state === STATES.HIDE || bot.state === STATES.EXPLORE && bot.inventory?.getItems?.().length < 2;
-        const finalSpeed = isCautious ? speed * 0.7 : speed;
+        const cau = bot.personality?.caution ?? 0.5;
+        const isCautious = bot.state === STATES.HIDE || (bot.state === STATES.EXPLORE && bot.inventory?.getItems?.().length < 2) || cau > 0.7;
+        const finalSpeed = isCautious ? speed * (0.6 + (1 - cau) * 0.2) : speed;
 
         const step = Math.max(4.5, finalSpeed * 0.9);
         const tx = bot.position.x + move.x * step;
@@ -638,17 +959,30 @@ export class BotBrain {
     }
 
     pickCombatTarget(bot, ctx, entityManager) {
-        const preferZombie = ctx.nearestZombie && ctx.nearestZombieDist < 7;
+        const agg = bot.personality?.aggression ?? 0.5;
+        const preferZombie = ctx.nearestZombie && ctx.nearestZombieDist < 11;
         if (preferZombie) return ctx.nearestZombie;
         const t = ctx.nearestEnemy;
         if (!t?.isAlive) return null;
 
-        // Group Management: If target is part of a large group, avoid engagement
+        // Max attackers per target: aggressive bots tolerate more attackers
         const attackers = this.countAttackers(entityManager, t, bot);
-        if (attackers >= 4) return null;
+        const maxAttackers = ctx.earlyGamePhase
+            ? Math.max(2, Math.round(2 + agg * 2))
+            : Math.min(4, Math.max(3, Math.round(3 + agg)));
+        if (attackers >= maxAttackers) return null;
 
-        // Ensure we don't engage if we are being surrounded by a larger group
-        if (ctx.crowdNear >= 4) return null;
+        // Don't engage if surrounded (aggressive bots tolerate more)
+        const maxCrowd = ctx.earlyGamePhase
+            ? Math.min(5, Math.max(3, Math.round(3 + agg * 2)))
+            : 5;
+        if (ctx.crowdNear >= maxCrowd) return null;
+
+        // During early game, only fight if well-armed (aggressive bots less strict)
+        if (ctx.earlyGamePhase) {
+            const wellArmed = !!bot.currentWeapon && WEAPON_PRIORITY[bot.currentWeapon?.type] >= (agg > 0.7 ? 4 : 5);
+            if (!wellArmed) return null;
+        }
 
         return t;
     }
@@ -659,12 +993,24 @@ export class BotBrain {
         let bestScore = -Infinity;
         for (const chest of chests) {
             if (!chest || chest.userData?.isOpen) continue;
+            if (!this.isInAssignedBiome(bot, chest.position)) continue;
             if (bot.lootManagerRef?.isChestClaimedByOther?.(chest, bot.id)) continue;
+
+            // Penalize chests bot already looted
+            let lootedPenalty = 0;
+            for (const area of bot.lootedAreas) {
+                const d = chest.position.distanceTo(area.pos);
+                if (d < 5) { // Same chest or very nearby
+                    lootedPenalty += 3.0 / (d + 0.5);
+                }
+            }
+
             const d = bot.position.distanceTo(chest.position);
             const crowd = this.countBotsNearPoint(entityManager, chest.position, 6.5);
             const reserved = this.getLootReservationCount(chest, bot);
             const claimPenalty = chest.userData?.claimedBy && chest.userData.claimedBy !== bot.id ? 0.8 : 0;
-            const score = (1 / Math.max(2, d)) - crowd * 0.28 - reserved * 0.75 - claimPenalty + (chest.userData?.isSupplyDrop ? 0.8 : 0);
+            const lootFocusBonus = (bot.personality?.lootFocus ?? 0.5) * 0.3;
+            const score = (1 / Math.max(2, d)) - crowd * 0.28 - reserved * 0.75 - claimPenalty - lootedPenalty + (chest.userData?.isSupplyDrop ? 0.8 : 0) + lootFocusBonus;
             if (score > bestScore) {
                 bestScore = score;
                 best = chest;
@@ -675,22 +1021,63 @@ export class BotBrain {
 
     pickSpreadTarget(bot, minDist = 20, maxDist = 64) {
         const map = bot.mapRef;
-        const floors = map?.getFloorTiles?.();
+        const floors = map?.getNavigationTiles?.() || map?.getFloorTiles?.();
         if (!floors?.length) return null;
         let best = null;
         let bestScore = -Infinity;
-        for (let i = 0; i < 16; i++) {
-            const tile = floors[(Math.floor((Math.random() + this._rngShift) * floors.length) + i * 17) % floors.length];
+        for (let i = 0; i < 20; i++) {
+            const tile = floors[(Math.floor((Math.random() + this._rngShift) * floors.length) + i * 23) % floors.length];
+            if (!this.isInAssignedBiome(bot, tile)) continue;
+            const distFromCenter = Math.hypot(tile.x, tile.z);
+            // Avoid laser ring at radius 27
+            if (distFromCenter > 23 && distFromCenter < 31) continue;
             const dist = Math.hypot(tile.x - bot.position.x, tile.z - bot.position.z);
             if (dist < minDist || dist > maxDist) continue;
             if (!map.isWalkableAt?.(tile.x, tile.z)) continue;
-            const score = dist + Math.random() * 5;
+
+            // Penalize targets near looted areas and enemy encounters
+            let memoryPenalty = 0;
+            for (const area of bot.lootedAreas) {
+                const d = Math.hypot(tile.x - area.pos.x, tile.z - area.pos.z);
+                if (d < 15) memoryPenalty += 8 / (d + 1);
+            }
+            for (const enc of bot.enemyEncounters) {
+                const d = Math.hypot(tile.x - enc.pos.x, tile.z - enc.pos.z);
+                if (d < 20) memoryPenalty += 12 / (d + 1) * (enc.damage / 50);
+            }
+
+            // Score: prefer distant, isolated targets (far from other bots)
+            const isolationBonus = this.countBotsNearPointForSpread(bot, tile.x, tile.z, 8) * -12;
+            const score = dist + Math.random() * 5 + isolationBonus - memoryPenalty;
             if (score > bestScore) {
                 bestScore = score;
                 best = this._tmpSpreadVec.set(tile.x, 0, tile.z);
             }
         }
         return best;
+    }
+
+    isInAssignedBiome(bot, point) {
+        if (!bot.assignedBiome || performance.now() >= (bot.assignedBiomeUntil || 0)) return true;
+        if (bot.assignedBiome === 'forest') return point.x < -5 && point.z < -5;
+        if (bot.assignedBiome === 'maze') return point.x > 5 && point.z < -5;
+        if (bot.assignedBiome === 'military') return point.x < -5 && point.z > 5;
+        if (bot.assignedBiome === 'ice') return point.x > 5 && point.z > 5;
+        return true;
+    }
+
+    countBotsNearPointForSpread(bot, px, pz, radius) {
+        const entityManager = bot.entityManagerRef;
+        if (!entityManager) return 0;
+        const nearby = entityManager.getNearbyEntities?.(this._tmpVec.set(px, 0, pz), radius);
+        if (!nearby) return 0;
+        let count = 0;
+        for (const ent of nearby) {
+            if (ent === bot) continue;
+            const type = ent.constructor?.name;
+            if (type === 'Bot' || type === 'Player') count++;
+        }
+        return count;
     }
 
     ensureBestWeaponEquipped(bot) {
@@ -881,10 +1268,14 @@ export class BotBrain {
     tryReserveCombat(bot, target, maxBots = 2) {
         const key = this.getObjectKey(target);
         if (!key) return true;
+        // Cap maxBots — max 2 during early game, 3 otherwise
+        const now = performance.now();
+        const isEarlyGame = bot.noCombatUntil && now < bot.noCombatUntil + 45000;
+        const cappedMax = isEarlyGame ? Math.min(maxBots, 2) : Math.min(maxBots, 3);
         const prev = bot._combatReservationKey;
         if (prev && prev !== key) this.releaseFromMap(BotBrain._combatReservations, bot.id, prev);
         const set = this.ensureSet(BotBrain._combatReservations, key);
-        if (!set.has(bot.id) && set.size >= maxBots) return false;
+        if (!set.has(bot.id) && set.size >= cappedMax) return false;
         set.add(bot.id);
         bot._combatReservationKey = key;
         return true;

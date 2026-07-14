@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
 const VARIANT_CONFIG = {
     runner: {
         health: 42, speed: 7.6, damage: 5.8, knockbackMultiplier: 1.2,
@@ -40,6 +42,7 @@ export class Zombie {
     constructor(scene, id, spawnPosition) {
         this.scene = scene;
         this.id = id;
+        this.isAlive = true;
         this.position = spawnPosition.clone();
         this.rotation = new THREE.Euler(0, 0, 0);
         this.physics = {
@@ -355,6 +358,13 @@ export class Zombie {
             return;
         }
 
+        if (![this.position.x, this.position.y, this.position.z].every(Number.isFinite)) {
+            this.position.set(0, this.physics.height + 0.2, 0);
+        }
+        if (![this.physics.velocity.x, this.physics.velocity.y, this.physics.velocity.z].every(Number.isFinite)) {
+            this.physics.velocity.set(0, 0, 0);
+        }
+
         this.attackCooldown = Math.max(0, this.attackCooldown - delta);
         this.soundTimer -= delta;
         this.alertTimer = Math.max(0, this.alertTimer - delta);
@@ -365,17 +375,18 @@ export class Zombie {
         this._animTime += delta;
 
         const sharedAlert = this.scene?.userData?.zombieAlert;
+        const aggression = clamp(this.scene?.userData?.zombieAggression || 1, 1, 2.6);
         if (sharedAlert && (performance.now() * 0.001 - sharedAlert.time) < 3.8) {
             const alertDist = this.position.distanceTo(sharedAlert.position);
-            if (alertDist < 34) {
+            if (alertDist < 34 * aggression) {
                 this.alertTarget = sharedAlert.target || this.alertTarget;
                 this.alertPosition = sharedAlert.position.clone();
                 this.alertTimer = Math.max(this.alertTimer, 2.6);
             }
         }
 
-        let target = this.findNearestTarget(entityManager, 68);
-        if (!target && this.alertTarget?.isAlive && this.alertTimer > 0) {
+        let target = this.findNearestTarget(entityManager, 68 * aggression);
+        if (!target && this.alertTarget?.isAlive && this.alertTimer > 0 && this.isFinitePosition(this.alertTarget.position)) {
             target = this.alertTarget;
         }
 
@@ -394,11 +405,10 @@ export class Zombie {
                 target.takeDamage(damage, false, this, 3.2);
                 this.attackCooldown = cfg.attackCooldown;
                 if (audioSynth) {
-                    const attackRate = cfg.attackInterval;
-                    audioSynth.playZombieAttack?.(this.position, { variant: this.variant, rateRange: attackRate });
+                    audioSynth.playZombieAttack?.(this.position, { variant: this.variant });
                 }
             } else {
-                const rush = dist < 8 ? 1.32 : dist < 18 ? 1.18 : 1.04;
+                const rush = (dist < 8 ? 1.32 : dist < 18 ? 1.18 : 1.04) * Math.min(1.55, 0.88 + aggression * 0.17);
                 if (this.variant === 'runner') {
                     const zigzag = Math.sin(this._animTime * 3) * 0.3;
                     const dir = new THREE.Vector3().subVectors(target.position, this.position).normalize();
@@ -413,9 +423,9 @@ export class Zombie {
             }
 
             if (audioSynth && this.soundTimer <= 0) {
-                const moanRate = cfg.moanInterval;
-                audioSynth.playZombieMoan?.(this.position, { variant: this.variant, rateRange: moanRate });
-                this.soundTimer = moanRate[0] + Math.random() * (moanRate[1] - moanRate[0]);
+                const moanInterval = cfg.moanInterval;
+                audioSynth.playZombieMoan?.(this.position, { variant: this.variant });
+                this.soundTimer = moanInterval[0] + Math.random() * (moanInterval[1] - moanInterval[0]);
             }
         } else {
             if (this.alertPosition && this.alertTimer > 0) {
@@ -435,9 +445,9 @@ export class Zombie {
                 this.rotation.y = this._roamAngle;
 
                 if (audioSynth && this.soundTimer <= 0) {
-                    const moanRate = cfg.moanInterval;
-                    audioSynth.playZombieMoan?.(this.position, { variant: this.variant, rateRange: moanRate });
-                    this.soundTimer = moanRate[0] + Math.random() * (moanRate[1] - moanRate[0]);
+                    const moanInterval = cfg.moanInterval;
+                    audioSynth.playZombieMoan?.(this.position, { variant: this.variant });
+                    this.soundTimer = moanInterval[0] + Math.random() * (moanInterval[1] - moanInterval[0]);
                 }
             }
         }
@@ -458,6 +468,7 @@ export class Zombie {
         for (const entity of nearby) {
             if (!entity.isAlive || entity === this) continue;
             if (entity.constructor?.name === 'Zombie') continue;
+            if (!this.isFinitePosition(entity.position)) continue;
             const distSq = this.position.distanceToSquared(entity.position);
             if (distSq > maxDistSq) continue;
             const dist = Math.sqrt(distSq);
@@ -473,7 +484,7 @@ export class Zombie {
     }
 
     broadcastAlert(target) {
-        if (!target || !this.scene?.userData) return;
+        if (!target || !this.scene?.userData || !this.isFinitePosition(target.position)) return;
         this.scene.userData.zombieAlert = {
             position: target.position.clone(),
             target,
@@ -482,12 +493,21 @@ export class Zombie {
     }
 
     moveTowards(target, speed) {
+        if (!this.isFinitePosition(target) || !Number.isFinite(speed)) {
+            this.physics.velocity.x = 0;
+            this.physics.velocity.z = 0;
+            return;
+        }
         const direction = new THREE.Vector3()
             .subVectors(target, this.position)
             .normalize();
         this.physics.velocity.x = direction.x * speed;
         this.physics.velocity.z = direction.z * speed;
         this.rotation.y = Math.atan2(direction.x, direction.z);
+    }
+
+    isFinitePosition(position) {
+        return !!position && Number.isFinite(position.x) && Number.isFinite(position.y) && Number.isFinite(position.z);
     }
 
     animateLimbs(delta) {
