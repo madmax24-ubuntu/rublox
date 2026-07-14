@@ -27,7 +27,7 @@ export class MapGeneratorNode {
 
         const surfaceMat = new THREE.MeshStandardMaterial({
             color: 0xb7aa88, roughness: 0.88, metalness: 0.02,
-            polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2
+            side: THREE.DoubleSide
         });
         const surface = new THREE.Mesh(new THREE.CylinderGeometry(PLATFORM_RADIUS - 0.8, PLATFORM_RADIUS - 0.8, 0.22, 64), surfaceMat);
         surface.position.set(0, PLATFORM_TOP_Y + 0.08, 0);
