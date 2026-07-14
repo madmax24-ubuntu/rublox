@@ -177,7 +177,7 @@ export class HUD {
         const leftPanel = document.createElement('div');
         leftPanel.style.cssText = `
             position: absolute;
-            bottom: ${px(isMobile ? 120 : 120)}px;
+            bottom: ${px(isMobile ? 200 : 120)}px;
             left: ${px(14)}px;
             display: flex;
             flex-direction: column;
@@ -616,8 +616,7 @@ export class HUD {
         ammoInfo.id = 'ammoInfo';
         ammoInfo.style.cssText = `
             position: absolute;
-            ${isMobile ? `top: ${px(126)}px;` : ''}
-            ${isMobile ? 'bottom: auto;' : `bottom: ${px(90)}px;`}
+            bottom: ${px(isMobile ? 12 : 90)}px;
             right: ${isMobile ? 'max(16px, 4vw)' : `${px(16)}px`};
             background: rgba(14, 26, 36, 0.88);
             padding: ${px(8)}px ${px(14)}px;

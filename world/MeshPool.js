@@ -17,6 +17,13 @@ export class MeshPool {
         this._initMats();
     }
 
+    static addPolygonOffset(mat, factor = 1, units = 1) {
+        if (mat.transparent) return;
+        mat.polygonOffset = true;
+        mat.polygonOffsetFactor = factor;
+        mat.polygonOffsetUnits = units;
+    }
+
     // ─── Геометрии — ключи совпадают с InstancedMesh._getGeoKey ──
 
     _initGeos() {
@@ -308,11 +315,17 @@ export class MeshPool {
         const eHex = this._quantizeColor(emissive);
         const key = `Std_${cHex}_${r}_${m}_${transparent}_${opacity}_${flatShading ? 'F' : 'N'}_${eHex}_${emissiveIntensity}`;
         if (!this.mats.has(key)) {
-            this.mats.set(key, new THREE.MeshStandardMaterial({
+            const opts = {
                 color: cHex, roughness: r, metalness: m,
                 flatShading: flatShading, transparent: transparent, opacity: opacity,
                 emissive: eHex, emissiveIntensity
-            }));
+            };
+            if (!transparent) {
+                opts.polygonOffset = true;
+                opts.polygonOffsetFactor = 1;
+                opts.polygonOffsetUnits = 1;
+            }
+            this.mats.set(key, new THREE.MeshStandardMaterial(opts));
         }
         return this.mats.get(key);
     }
@@ -338,9 +351,13 @@ export class MeshPool {
         const cHex = this._quantizeColor(color);
         const key = `Bas_${cHex}_${transparent}_${opacity}_${side === THREE.FrontSide ? 'F' : 'B'}_${side === THREE.BackSide ? 'B' : 'D'}_${side === THREE.DoubleSide ? 'D' : ''}`;
         if (!this.mats.has(key)) {
-            this.mats.set(key, new THREE.MeshBasicMaterial({
-                color: cHex, transparent, opacity, side
-            }));
+            const opts = { color: cHex, transparent, opacity, side };
+            if (!transparent) {
+                opts.polygonOffset = true;
+                opts.polygonOffsetFactor = 1;
+                opts.polygonOffsetUnits = 1;
+            }
+            this.mats.set(key, new THREE.MeshBasicMaterial(opts));
         }
         return this.mats.get(key);
     }
