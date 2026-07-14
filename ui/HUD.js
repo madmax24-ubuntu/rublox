@@ -38,8 +38,6 @@ export class HUD {
             font-family: 'Trebuchet MS', Verdana, sans-serif;
             color: #e9f0f6;
             text-shadow: 0 2px 0 rgba(0,0,0,0.35);
-            transform: translateZ(0);
-            will-change: transform;
         `;
         const root = document.getElementById('gameRoot') || document.body;
         root.appendChild(hud);

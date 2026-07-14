@@ -154,6 +154,8 @@ export class Input {
                     this.touch.centerX = touch.clientX;
                     this.touch.centerY = touch.clientY;
                     if (stick) {
+                        this.touch.defaultX = this.touch.defaultX ?? parseFloat(stick.style.left || getComputedStyle(stick).left);
+                        this.touch.defaultY = this.touch.defaultY ?? parseFloat(stick.style.top || getComputedStyle(stick).top);
                         stick.style.left = `${this.touch.centerX}px`;
                         stick.style.top = `${this.touch.centerY}px`;
                         stick.style.opacity = '0.7';
@@ -205,6 +207,8 @@ export class Input {
                 this.touch.active = false;
                 if (stick) {
                     stick.style.opacity = '0.35';
+                    stick.style.left = `${this.touch.defaultX}px`;
+                    stick.style.top = `${this.touch.defaultY}px`;
                 }
             } else if (this.touch.lookId === touch.identifier) {
                 this.touch.lookId = null;
