@@ -668,8 +668,8 @@ export class MapGenerator {
     _addTwoStoryCabin(x, z) {
         const cabin = new THREE.Group();
         const wallMat = this.pool.getMatStd(0x5d4037, 0.75, 0, true, false, 1, 0, 0, true);
-        const roofMat = this.pool.getMatStd(0x3e2723, 0.85, 0, true, false, 1, 0, 0);
-        const woodMat = this.pool.getMatStd(0x795548, 0.8, 0, true, false, 1, 0, 0);
+        const roofMat = this.pool.getMatStd(0x3e2723, 0.85, 0, true, false, 1, 0, 0, true);
+        const woodMat = this.pool.getMatStd(0x795548, 0.8, 0, true, false, 1, 0, 0, true);
 
         // Размеры хижины — более крупные и заметные
         const w = 14;
@@ -729,7 +729,7 @@ export class MapGenerator {
         cabin.add(backWall);
 
         // Дверь
-        const doorMat = this.pool.getMatStd(0x4e342e, 0.9, 0, false, false, 1, 0, 0);
+        const doorMat = this.pool.getMatStd(0x4e342e, 0.9, 0, false, false, 1, 0, 0, true);
         const doorGeo = this.pool.getGeoBox(doorW, doorH, 0.1);
         const door = new THREE.Mesh(doorGeo, doorMat);
         door.position.set(0, doorH / 2 + 0.3, d / 2 + 0.05);
@@ -864,7 +864,7 @@ export class MapGenerator {
     _addSmallHut(x, z) {
         const hut = new THREE.Group();
         const wallMat = this.pool.getMatStd(0x8d6e63, 0.8, 0, true, false, 1, 0, 0, true);
-        const roofMat = this.pool.getMatStd(0x5d4037, 0.85, 0, true, false, 1, 0, 0);
+        const roofMat = this.pool.getMatStd(0x5d4037, 0.85, 0, true, false, 1, 0, 0, true);
         const w = 10;
         const d = 12;
         const h = 5;
@@ -910,7 +910,7 @@ export class MapGenerator {
         hut.add(bw);
 
         // Door
-        const doorMat = this.pool.getMatStd(0x4e342e, 0.9, 0, false, false, 1, 0, 0);
+        const doorMat = this.pool.getMatStd(0x4e342e, 0.9, 0, false, false, 1, 0, 0, true);
         const door = new THREE.Mesh(this.pool.getGeoBox(dw, dh, 0.1), doorMat);
         door.position.set(0, dh / 2 + 0.3, d / 2 + 0.05);
         door.userData.mapGenerated = true;
@@ -1448,7 +1448,7 @@ export class MapGenerator {
     _addLogCabin(x, z) {
         const cabin = new THREE.Group();
         const wallMat = this.pool.getMatStd(0x5d4037, 0.75, 0, true, false, 1, 0, 0, true);
-        const roofMat = this.pool.getMatStd(0x3e2723, 0.85, 0, true, false, 1, 0, 0);
+        const roofMat = this.pool.getMatStd(0x3e2723, 0.85, 0, true, false, 1, 0, 0, true);
 
         // Large cabin
         const w = 14 + this._rand() * 6;
@@ -1485,7 +1485,7 @@ export class MapGenerator {
         cabin.add(roof);
 
         // Door
-        const doorMat = this.pool.getMatStd(0x4e342e, 0.9, 0, false, false, 1, 0, 0);
+        const doorMat = this.pool.getMatStd(0x4e342e, 0.9, 0, false, false, 1, 0, 0, true);
         const doorGeo = this.pool.getGeoBox(1.2, 2.5, 0.1);
         const door = new THREE.Mesh(doorGeo, doorMat);
         door.position.set(0, 1.25, d / 2 + 0.1);
@@ -2029,7 +2029,7 @@ export class MapGenerator {
 
         // Gate roof
         const roofGeo = this.pool.getGeoCone(7, 4, 4);
-        const roofMat = this.pool.getMatStd(0x3e2723, 0.85, 0, true, false, 1, 0, 0);
+        const roofMat = this.pool.getMatStd(0x3e2723, 0.85, 0, true, false, 1, 0, 0, true);
         const roof = new THREE.Mesh(roofGeo, roofMat);
         roof.position.set(0, wallHeight + 6.5, 0);
         roof.rotation.y = Math.PI / 4;
@@ -2731,7 +2731,7 @@ export class MapGenerator {
         // Soviet-style concrete panel colors - warm gray
         const wallMat = this.pool.getMatStd(0x9e9e96, 0.85, 0, true, false, 1, 0, 0, true);
         const concreteMat = this.pool.getMatStd(0xb0b0a8, 0.9, 0, true, false, 1, 0, 0);
-        const doorMat = this.pool.getMatStd(0x4a3525, 0.8, 0, false, false, 1, 0, 0);
+        const doorMat = this.pool.getMatStd(0x4a3525, 0.8, 0, false, false, 1, 0, 0, true);
 
         const width = w;
         const depth = d;
@@ -3649,7 +3649,7 @@ export class MapGenerator {
     }
 
     _addSleighs(startX, startZ, size) {
-        const woodMat = this.pool.getMatStd(0x6d4c41, 0.8, 0, true, false, 1, 0, 0);
+        const woodMat = this.pool.getMatStd(0x6d4c41, 0.8, 0, true, false, 1, 0, 0, true);
         const metalMat = this.pool.getMatStd(0x757575, 0.6, 0.5, true, false, 1, 0, 0);
 
         for (let i = 0; i < 3; i++) {
@@ -3741,7 +3741,7 @@ export class MapGenerator {
     _addSnowBarrack(x, z) {
         const group = new THREE.Group();
         const wallMat = this.pool.getMatStd(0xe8f2ff, 0.82, 0, true, false, 1, 0, 0, true);
-        const roofMat = this.pool.getMatStd(0x8fb7d7, 0.65, 0.05, true, false, 1, 0, 0);
+        const roofMat = this.pool.getMatStd(0x8fb7d7, 0.65, 0.05, true, false, 1, 0, 0, true);
         const floorMat = this.pool.getMatStd(0xb6cedf, 0.9, 0, true, false, 1, 0, 0);
         const w = 18;
         const d = 26;
@@ -4179,7 +4179,7 @@ export class MapGenerator {
     _addGuardPost(x, z) {
         const group = new THREE.Group();
         const postMat = this.pool.getMatStd(0x4c553d, 0.82, 0.2, true, false, 1, 0, 0);
-        const roofMat = this.pool.getMatStd(0x343b34, 0.72, 0.35, true, false, 1, 0, 0);
+        const roofMat = this.pool.getMatStd(0x343b34, 0.72, 0.35, true, false, 1, 0, 0, true);
         for (const px of [-2.5, 2.5]) {
             for (const pz of [-2.5, 2.5]) {
                 const post = new THREE.Mesh(this.pool.getGeoBox(0.7, 6, 0.7), postMat);
