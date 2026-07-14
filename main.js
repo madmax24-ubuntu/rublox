@@ -62,6 +62,7 @@ import { Player } from './entities/Player.js?v=1783108938526';
 import { Bot } from './entities/Bot.js?v=1783108938526';
 import { BotBrain } from './entities/BotBrain.js?v=1783108938526';
 import { Zombie } from './entities/Zombie.js?v=1783108938526';
+import { ZombiePool } from './entities/ZombiePool.js';
 import { ExplosiveBarrel } from './entities/ExplosiveBarrel.js?v=1783108938526';
 import { EntityManager } from './entities/EntityManager.js?v=1783108938526';
 import { LootManager } from './items/LootManager.js?v=1783108938526';
@@ -436,6 +437,7 @@ class Game {
         this.entityManager = new EntityManager(this.scene);
         this.entityManager.physicsRef = this.physics;
         this.scene.userData.entityManager = this.entityManager;
+        this.zombiePool = new ZombiePool(this.scene, this.physics, this.entityManager);
         this.lootManager = new LootManager(this.scene, this.map);
         this.lootEvents = 0; // counter for test validation
 
@@ -2247,9 +2249,7 @@ class Game {
             ) ?? 0;
             const pos = new THREE.Vector3(x, baseY + 1.8, z);
             if (pos.distanceTo(this.player.position) < 14) return false;
-            const zombie = new Zombie(this.scene, this.nextZombieId++, pos);
-            this.physics.addEntity(zombie);
-            this.entityManager.addEntity(zombie);
+            const zombie = this.zombiePool.acquire(pos);
             this.zombies.push(zombie);
             spawned++;
             budget--;
@@ -2331,9 +2331,7 @@ class Game {
                 const y = this.map.getHeightAt?.(x, z) ?? 0;
                 const pos = new THREE.Vector3(x, y + 1.8, z);
                 if (this.player?.position && pos.distanceTo(this.player.position) < 10) continue;
-                const zombie = new Zombie(this.scene, this.nextZombieId++, pos);
-                this.physics.addEntity(zombie);
-                this.entityManager.addEntity(zombie);
+                const zombie = this.zombiePool.acquire(pos);
                 this.zombies.push(zombie);
                 remainingBudget--;
                 made++;
@@ -2363,11 +2361,7 @@ class Game {
     spawnZombies(reset = true, multiplier = 1, capOverride = null, forceCount = null) {
         if (reset) {
             for (const zombie of this.zombies) {
-                zombie.isAlive = false;
-                if (zombie.mesh?.parent) zombie.mesh.parent.remove(zombie.mesh);
-                this.physics?.removeEntity?.(zombie);
-                const idx = this.entityManager?.entities?.indexOf(zombie);
-                if (idx >= 0) this.entityManager.entities.splice(idx, 1);
+                this.zombiePool.release(zombie);
             }
             this.zombies = [];
         }
@@ -2403,9 +2397,7 @@ class Game {
             const pos = new THREE.Vector3(tile.x, baseY + 1.8, tile.z);
             if (pos.distanceTo(this.player.position) < (reset ? 20 : 24)) continue;
             if (!this.map.isWalkableAt?.(tile.x, tile.z)) continue;
-            const zombie = new Zombie(this.scene, this.nextZombieId++, pos);
-            this.physics.addEntity(zombie);
-            this.entityManager.addEntity(zombie);
+            const zombie = this.zombiePool.acquire(pos);
             this.zombies.push(zombie);
             spawned++;
         }

@@ -204,7 +204,7 @@ export class InstancedMeshSystem {
             obj.userData.isGlow || obj.userData.isFountain || obj.userData.isWindTurbine ||
             obj.userData.isSnowParticles || obj.userData.isPOI || obj.userData.isSpawnPlatform ||
             obj.userData.isFirstPersonArm || obj.userData.isViewWeapon ||
-            obj.userData.isTerrain || obj.userData.biomeGate) { skipReasons.aniInt++; return; }
+            obj.userData.isTerrain || obj.userData.biomeGate || obj.userData.biomeBoundary) { skipReasons.aniInt++; return; }
         const geoKey = this.pool.geoKey(obj.geometry);
         if (!geoKey) { skipReasons.noGeoKey++; return; }
         const matKey = this.pool.matKey(obj.material);

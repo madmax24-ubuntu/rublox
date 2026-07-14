@@ -74,6 +74,7 @@ export class Zombie {
         this.burnAttacker = null;
         this.hitStaggerTimer = 0;
         this._deathAudioSynth = null;
+        this._corpseTimer = 0;
         this._animTime = performance.now() * 0.001;
         this._moanPhase = Math.random() * Math.PI * 2;
         this._roamAngle = Math.random() * Math.PI * 2;
@@ -355,6 +356,10 @@ export class Zombie {
     update(delta, entityManager, audioSynth) {
         if (!this.isAlive) {
             this.mesh.position.copy(this.position);
+            this._corpseTimer -= delta;
+            if (this._corpseTimer <= 0) {
+                this.dispose();
+            }
             return;
         }
 
@@ -585,6 +590,7 @@ export class Zombie {
             this.mesh.position.copy(this.position);
             this.mesh.position.y = this.position.y - (this.physics.height - 0.2) - 0.8;
             this.mesh.rotation.set(-Math.PI / 2, this.rotation.y, 0);
+            this._corpseTimer = 10;
             if (attacker?.stats) {
                 attacker.stats.kills += 1;
             }
@@ -649,5 +655,10 @@ export class Zombie {
             child.material.emissive.setHex(0xff6d00);
             child.material.emissiveIntensity = intensity;
         });
+    }
+
+    dispose() {
+        if (this.mesh?.parent) this.mesh.parent.remove(this.mesh);
+        this.mesh.visible = false;
     }
 }

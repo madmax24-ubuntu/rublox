@@ -137,9 +137,10 @@ export class MapGenerator {
         this._generateIceQuadrant();
 
         // CLEANUP PASS: Remove any biome objects that encroached on the central Cornucopia zone
+        // Skip biomeBoundary objects — they are the walls between biomes
         const toRemove = [];
         for (const child of this.scene.children) {
-            if (child.userData?.mapGenerated && !child.userData?.isCornucopia) {
+            if (child.userData?.mapGenerated && !child.userData?.isCornucopia && !child.userData?.biomeBoundary) {
                 const dist = Math.sqrt(child.position.x * child.position.x + child.position.z * child.position.z);
                 if (dist < 75) {
                     toRemove.push(child);
@@ -156,6 +157,7 @@ export class MapGenerator {
         }
         this.colliders = this.colliders.filter(c => {
             if (c.isCornucopia) return true;
+            if (c.userData?.biomeBoundary) return true;
             const cx = (c.min.x + c.max.x) / 2;
             const cz = (c.min.z + c.max.z) / 2;
             return Math.sqrt(cx*cx + cz*cz) >= 75;
@@ -447,7 +449,7 @@ export class MapGenerator {
             this.scene.add(mesh);
             const c = Math.abs(Math.cos(rotation));
             const s = Math.abs(Math.sin(rotation));
-            this.addColliderBox(new THREE.Vector3(x, wallH / 2, z), w * c + d * s, wallH, w * s + d * c, false);
+            this.addColliderBox(new THREE.Vector3(x, wallH / 2, z), w * c + d * s, wallH, w * s + d * c, false, true);
         };
         const ringRadius = 64;
         const ringSegments = 40;
@@ -468,7 +470,7 @@ export class MapGenerator {
                 this.scene.add(gate);
                 const c = Math.abs(Math.cos(rotation));
                 const s = Math.abs(Math.sin(rotation));
-                const collider = this.addColliderBox(new THREE.Vector3(x, 8, z), segmentLength * c + wallT * s, 16, segmentLength * s + wallT * c, false);
+                const collider = this.addColliderBox(new THREE.Vector3(x, 8, z), segmentLength * c + wallT * s, 16, segmentLength * s + wallT * c, false, true);
                 collider.enabled = false;
                 this._biomeGates.push(gate);
                 this._biomeGateColliders.push(collider);
@@ -4505,7 +4507,7 @@ export class MapGenerator {
         return results;
     }
 
-    addColliderBox(center, width, height, depth, walkable = false) {
+    addColliderBox(center, width, height, depth, walkable = false, biomeBoundary = false) {
         const box = {
             min: new THREE.Vector3(
                 center.x - width / 2,
@@ -4520,7 +4522,8 @@ export class MapGenerator {
             walkable,
             enabled: true,
             dynamic: false,
-            physicsType: 'STATIC'
+            physicsType: 'STATIC',
+            biomeBoundary
         };
         this.colliders.push(box);
         return box;
