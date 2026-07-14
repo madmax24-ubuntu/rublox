@@ -94,7 +94,7 @@ export class InputController {
 
         if (this.isMobile) {
             move.x = this.joystick.dx;
-            move.z = -this.joystick.dy;
+            move.z = this.joystick.dy;
         } else {
             move.set(0, 0, 0);
             if (this.isKeyPressed('KeyW')) move.z -= 1;

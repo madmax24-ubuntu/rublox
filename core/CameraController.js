@@ -70,8 +70,10 @@ export class CameraController {
                 const side = Math.max(window.innerWidth, window.innerHeight);
                 const sensitivity = input.isMobile ? (5.7 / side) : 0.0042;
                 this._tmpQYaw.setFromAxisAngle(this._tmpAxisY, -look.x * sensitivity);
+                this.camera.quaternion.multiply(this._tmpQYaw);
+                this._tmpAxisX.set(1, 0, 0).applyQuaternion(this.camera.quaternion);
                 this._tmpQPitch.setFromAxisAngle(this._tmpAxisX, -look.y * sensitivity);
-                this.camera.quaternion.multiply(this._tmpQYaw).multiply(this._tmpQPitch);
+                this.camera.quaternion.multiply(this._tmpQPitch);
                 this.rotation.setFromQuaternion(this.camera.quaternion, 'YXZ');
                 if (this.rotation.x > this._maxPitch) {
                     this.rotation.x = this._maxPitch;
