@@ -308,19 +308,19 @@ export class MeshPool {
         return { geometries: this.geos.size, materials: this.mats.size };
     }
 
-    getMatStd(color, roughness = 0.9, metalness = 0, flatShading = false, transparent = false, opacity = 1, emissive = 0, emissiveIntensity = 0) {
+    getMatStd(color, roughness = 0.9, metalness = 0, flatShading = false, transparent = false, opacity = 1, emissive = 0, emissiveIntensity = 0, wall = false) {
         const cHex = this._quantizeColor(color);
         const r = Math.round(roughness * 10) / 10;
         const m = Math.round(metalness * 10) / 10;
         const eHex = this._quantizeColor(emissive);
-        const key = `Std_${cHex}_${r}_${m}_${transparent}_${opacity}_${flatShading ? 'F' : 'N'}_${eHex}_${emissiveIntensity}`;
+        const key = `Std_${cHex}_${r}_${m}_${transparent}_${opacity}_${flatShading ? 'F' : 'N'}_${eHex}_${emissiveIntensity}_${wall ? 'W' : 'N'}`;
         if (!this.mats.has(key)) {
             const opts = {
                 color: cHex, roughness: r, metalness: m,
                 flatShading: flatShading, transparent: transparent, opacity: opacity,
                 emissive: eHex, emissiveIntensity
             };
-            if (!transparent) {
+            if (wall && !transparent) {
                 opts.polygonOffset = true;
                 opts.polygonOffsetFactor = 1;
                 opts.polygonOffsetUnits = 1;
@@ -351,13 +351,9 @@ export class MeshPool {
         const cHex = this._quantizeColor(color);
         const key = `Bas_${cHex}_${transparent}_${opacity}_${side === THREE.FrontSide ? 'F' : 'B'}_${side === THREE.BackSide ? 'B' : 'D'}_${side === THREE.DoubleSide ? 'D' : ''}`;
         if (!this.mats.has(key)) {
-            const opts = { color: cHex, transparent, opacity, side };
-            if (!transparent) {
-                opts.polygonOffset = true;
-                opts.polygonOffsetFactor = 1;
-                opts.polygonOffsetUnits = 1;
-            }
-            this.mats.set(key, new THREE.MeshBasicMaterial(opts));
+            this.mats.set(key, new THREE.MeshBasicMaterial({
+                color: cHex, transparent, opacity, side
+            }));
         }
         return this.mats.get(key);
     }
