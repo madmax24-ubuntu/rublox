@@ -181,13 +181,6 @@ export class Input {
                     this.touch.moveX = dx;
                     this.touch.moveY = dy;
                     setKnob(dx, dy);
-                    // Move stick center to follow touch
-                    if (stick) {
-                        stick.style.left = `${touch.clientX}px`;
-                        stick.style.top = `${touch.clientY}px`;
-                        this.touch.originX = touch.clientX;
-                        this.touch.originY = touch.clientY;
-                    }
                 } else if (this.touch.lookId === touch.identifier) {
                     const dx = touch.clientX - this.touch.lastLookX;
                     const dy = touch.clientY - this.touch.lastLookY;

@@ -1064,7 +1064,7 @@ export class HUD {
     }
 
     initTouchLayout() {
-        const ids = ['touchJump', 'touchAttack', 'touchInteract', 'touchStick'];
+        const ids = ['touchJump', 'touchAttack', 'touchInteract'];
         const saved = localStorage.getItem('mazearena_touch_layout');
         if (saved) {
             try {
@@ -1093,7 +1093,7 @@ export class HUD {
 
         const onDown = (e) => {
             if (!document.documentElement.classList.contains('edit-controls')) return;
-            const target = e.target.closest ? e.target.closest('.touch-btn, #touchStick') : null;
+            const target = e.target.closest ? e.target.closest('.touch-btn') : null;
             if (!target) return;
             active = target;
             const rect = active.getBoundingClientRect();
