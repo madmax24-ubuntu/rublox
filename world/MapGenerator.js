@@ -1660,6 +1660,11 @@ export class MapGenerator {
                 
                 if (Math.sqrt(wx*wx + wz*wz) < 35) continue;
 
+                // Skip cells near the castle gate entrance
+                const gateX = startX + cellSize * 2;
+                const gateZ = startZ + cellSize;
+                if (Math.hypot(wx - gateX, wz - gateZ) < cellSize * 3) continue;
+
                 if (grid[r][c] === 1) {
                     if (Math.hypot(wx - clearingCX, wz - clearingCZ) < clearingRadius + cellSize) continue;
                     const wallWidth = cellSize + 0.1;
