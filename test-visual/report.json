@@ -1,0 +1,18 @@
+{
+  "report": {
+    "renderables": 4975,
+    "hidden": 5,
+    "invalid": 0,
+    "counts": {
+      "forest": 1599,
+      "maze": 854,
+      "military": 977,
+      "ice": 1099,
+      "center": 446
+    },
+    "colliders": 855,
+    "pads": 100,
+    "chestSpots": 78
+  },
+  "errors": []
+}
