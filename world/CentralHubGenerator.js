@@ -96,7 +96,8 @@ export default class CentralHubGenerator {
                 new THREE.MeshStandardMaterial({
                     color: isRed ? 0xb87a4e : 0xd4c4a8,
                     roughness: 0.7,
-                    side: THREE.DoubleSide
+                    side: THREE.DoubleSide,
+                    polygonOffset: true, polygonOffsetFactor: 4, polygonOffsetUnits: 2
                 })
             );
             triMesh.rotation.x = -Math.PI / 2;
