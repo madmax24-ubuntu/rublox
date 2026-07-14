@@ -637,11 +637,17 @@ export class Bot {
 
         this.updateNavProgress(delta);
         if (this.isStuck && !this._hasEscapeDir) {
-            const angle = Math.random() * Math.PI * 2;
-            this._tmpEscapeDir.set(Math.cos(angle), 0, Math.sin(angle));
+            // Bias escape toward previous movement direction for smoother recovery
+            if (this.moveDir.lengthSq() > 0.01) {
+                const angle = (Math.random() - 0.5) * 1.5;
+                this._tmpEscapeDir.copy(this.moveDir).applyAxisAngle(new THREE.Vector3(0, 1, 0), angle);
+            } else {
+                const angle = Math.random() * Math.PI * 2;
+                this._tmpEscapeDir.set(Math.cos(angle), 0, Math.sin(angle));
+            }
             this.escapeDir.copy(this._tmpEscapeDir);
             this._hasEscapeDir = true;
-            this.escapeTimer = 1.2;
+            this.escapeTimer = 1.5;
             if (this.mapRef?.getFloorTiles) {
                 const tiles = this.mapRef.getFloorTiles();
                 if (tiles.length) {
@@ -706,7 +712,7 @@ export class Bot {
                 if (distSq > 0.0001 && distSq < sepRadiusSq) {
                     const dist = Math.sqrt(distSq);
                     const inv = 1 / dist;
-                    const pushPower = (isEarlyGame ? 3.5 : 1.55) / Math.max(0.22, Math.pow(dist, 1.08));
+                    const pushPower = (isEarlyGame ? 2.0 : 1.0) / Math.max(0.22, Math.pow(dist, 1.08));
                     sepX += dx * inv * pushPower;
                     sepZ += dz * inv * pushPower;
                     count += 1;
@@ -714,9 +720,9 @@ export class Bot {
                 }
             }
             if (count > 0) {
-                const multiplier = isEarlyGame ? 2.2 : 1.35;
-                this.physics.velocity.x += sepX * multiplier + (Math.random() - 0.5) * 0.6;
-                this.physics.velocity.z += sepZ * multiplier + (Math.random() - 0.5) * 0.6;
+                const multiplier = isEarlyGame ? 1.2 : 0.8;
+                this.physics.velocity.x += sepX * multiplier + (Math.random() - 0.5) * 0.4;
+                this.physics.velocity.z += sepZ * multiplier + (Math.random() - 0.5) * 0.4;
             }
             this.separationTimer = sepInterval;
         }
@@ -818,6 +824,11 @@ export class Bot {
         const finalDamage = isHeadshot ? damage * 2 : damage;
         if (finalDamage > 0) {
             this.lastDamageAt = performance.now() / 1000;
+            // Stagger effect — bot briefly slows down when hit
+            if (finalDamage > 10) {
+                this.slowTimer = Math.max(this.slowTimer, 0.3 + finalDamage * 0.02);
+                this.slowFactor = Math.min(this.slowFactor, 0.4 + (1 - finalDamage / 100) * 0.4);
+            }
         }
         if (attacker?.stats) {
             attacker.stats.damage += finalDamage;
@@ -1091,18 +1102,20 @@ export class Bot {
                 this.escapeTimer = 0.8;
             }
             this.cachedMoveDir.copy(this._tmpProbe2).normalize();
-            this.steeringCooldown = 0.12 + Math.random() * 0.06;
+            this.steeringCooldown = 0.2 + Math.random() * 0.15;
         } else {
             direction.copy(this.cachedMoveDir);
         }
 
         const finalSpeed = speed * this.slowFactor;
-        this.physics.velocity.x = direction.x * finalSpeed;
-        this.physics.velocity.z = direction.z * finalSpeed;
+        // Movement inertia — blend toward new direction instead of snapping
+        const inertia = 0.65;
+        this.physics.velocity.x = this.physics.velocity.x * inertia + direction.x * finalSpeed * (1 - inertia);
+        this.physics.velocity.z = this.physics.velocity.z * inertia + direction.z * finalSpeed * (1 - inertia);
 
         const targetRot = Math.atan2(direction.x, direction.z);
         if (finalSpeed > 0.2) {
-            this.rotation.y = this.lerpAngle(this.rotation.y, targetRot, 0.25);
+            this.rotation.y = this.lerpAngle(this.rotation.y, targetRot, 0.15);
             this.moveDir.copy(direction);
         }
     }
@@ -1116,7 +1129,7 @@ export class Bot {
         if (direction.lengthSq() < 1e-6) return;
         direction.normalize();
         const targetRot = Math.atan2(direction.x, direction.z);
-        this.rotation.y = this.lerpAngle(this.rotation.y, targetRot, 0.25);
+        this.rotation.y = this.lerpAngle(this.rotation.y, targetRot, 0.15);
     }
 
     applySlow(factor, duration) {

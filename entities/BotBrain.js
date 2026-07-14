@@ -147,6 +147,13 @@ export class BotBrain {
             this.actReloadCover(bot, ctx);
             return;
         }
+        // Respect loot pause — bot stands still briefly after looting
+        if (bot._lootPauseUntil && performance.now() < bot._lootPauseUntil) {
+            bot.physics.velocity.x *= 0.8;
+            bot.physics.velocity.z *= 0.8;
+            return;
+        }
+
         if (bot.state === STATES.LOOT) {
             this.actLoot(bot, ctx, lootManager);
             return;
@@ -559,6 +566,28 @@ export class BotBrain {
     }
 
     actIdle(bot, ctx) {
+        // Occasional look-around — bot rotates to survey surroundings
+        if (!bot._lastLookTime || performance.now() - bot._lastLookTime > 4000 + Math.random() * 3000) {
+            bot._lookAngle = Math.random() * Math.PI * 2;
+            bot._lastLookTime = performance.now();
+        }
+        if (bot._lastLookTime && performance.now() - bot._lastLookTime < 4000) {
+            const elapsed = (performance.now() - bot._lastLookTime) / 4000;
+            const lookProgress = Math.sin(elapsed * Math.PI); // smooth back-and-forth
+            bot.rotation.y = bot.lerpAngle(bot.rotation.y, bot._lookAngle, lookProgress * 0.15);
+        }
+
+        // Occasionally check/reload weapon while idle
+        if (bot.currentWeapon && bot.currentWeapon.ammo !== null && bot.currentWeapon.ammo < bot.currentWeapon.maxAmmo * 0.3) {
+            if (!bot._reloadCheckTime || performance.now() - bot._reloadCheckTime > 8000) {
+                bot._reloadCheckTime = performance.now();
+                // Bot briefly stops to check weapon
+                if (bot.currentWeapon.ammo <= 0) {
+                    bot.currentWeapon.reload?.();
+                }
+            }
+        }
+
         if (!bot.patrolTarget || bot.position.distanceTo(bot.patrolTarget) < 5 || bot.isStuck) {
             bot.patrolTarget = this.pickSpreadTarget(bot, 24, 72);
         }
@@ -576,6 +605,26 @@ export class BotBrain {
                 return;
             }
             bot.assignedBiomeTarget = null;
+        }
+
+        // Group cohesion — bots occasionally follow nearby allies
+        if (bot.allies?.length > 0 && Math.random() < 0.3) {
+            const nearestAlly = bot.allies.reduce((best, ally) => {
+                if (!ally?.isAlive) return best;
+                const d = bot.position.distanceTo(ally.position);
+                return (!best || d < best.dist) ? { ally, dist: d } : best;
+            }, null);
+            if (nearestAlly && nearestAlly.dist > 8 && nearestAlly.dist < 40) {
+                // Move toward ally but maintain comfortable distance
+                this._tmpVec.subVectors(nearestAlly.ally.position, bot.position).normalize();
+                const offset = this._tmpVec.clone().multiplyScalar(-6);
+                const groupTarget = this._tmpMoveTarget.copy(nearestAlly.ally.position).add(offset);
+                if (bot.mapRef?.isWalkableAt?.(groupTarget.x, groupTarget.z)) {
+                    bot.patrolTarget = groupTarget;
+                    this.steerMove(bot, groupTarget, bot.physics.speed * 0.95);
+                    return;
+                }
+            }
         }
         const agg = Math.min(1, (bot.personality?.aggression ?? 0.5) + ctx.gear * 0.18);
         // During loot phase or high crowd, scatter to opposite directions
@@ -665,8 +714,8 @@ export class BotBrain {
                 );
             }
             bot.patrolTarget = scatterTarget;
-            // Move fast during scatter
-            const scatterSpeed = ctx.inPreLootPhase ? 1.5 : (ctx.earlyGamePhase ? 1.35 : 1.2);
+            // Move at natural speed during scatter — no frantic sprinting
+            const scatterSpeed = ctx.inPreLootPhase ? 1.1 : (ctx.earlyGamePhase ? 1.05 : 0.95);
             this.steerMove(bot, scatterTarget, bot.physics.speed * scatterSpeed);
         } else {
             if (!bot.patrolTarget || bot.position.distanceTo(bot.patrolTarget) < 5) {
@@ -680,7 +729,9 @@ export class BotBrain {
                     const angle = Math.atan2(bot.patrolTarget.z, bot.patrolTarget.x);
                     bot.patrolTarget.set(Math.cos(angle) * (27 + 5 * pushDir), bot.patrolTarget.y, Math.sin(angle) * (27 + 5 * pushDir));
                 }
-                this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 0.9);
+                // Slow down when gunfire is heard
+                const exploreSpeed = ctx.heardShot ? 0.5 : 0.9;
+                this.steerMove(bot, bot.patrolTarget, bot.physics.speed * exploreSpeed);
             }
         }
     }
@@ -711,6 +762,8 @@ export class BotBrain {
         const loot = lootManager?.tryOpenChest?.(chest, bot, bot.audioSynthRef);
         if (loot) bot.pickupLoot(loot, chest.position);
         this.releaseLootReservation(bot);
+        // Pause after looting — bot stands still for a bit instead of immediately rushing
+        bot._lootPauseUntil = performance.now() + 1500 + Math.random() * 1000;
         bot.patrolTarget = this.pickSpreadTarget(bot, 10, 36);
     }
 
@@ -756,6 +809,21 @@ export class BotBrain {
             }
         }
 
+        // Cautious bots occasionally break to check flanks
+        if (cau > 0.6 && !bot._lastFlankCheck && performance.now() - (bot._lastFlankCheck || 0) > 5000) {
+            bot._lastFlankCheck = performance.now();
+            const flankDir = this._tmpVec.set(
+                bot.position.x - (ctx.nearestEnemy?.position.x || 0),
+                0,
+                bot.position.z - (ctx.nearestEnemy?.position.z || 0)
+            ).normalize();
+            const flankTarget = this._tmpMoveTarget.copy(bot.position).addScaledVector(flankDir, 8);
+            if (bot.mapRef?.isWalkableAt?.(flankTarget.x, flankTarget.z)) {
+                this.steerMove(bot, flankTarget, bot.physics.speed * 0.8);
+                return;
+            }
+        }
+
         const target = this.pickCombatTarget(bot, ctx, entityManager);
         if (!target) {
             this.releaseCombatReservation(bot);
@@ -768,9 +836,15 @@ export class BotBrain {
             ? (0.45 - agg * 0.1 + cau * 0.1)
             : (0.3 - agg * 0.1 + cau * 0.1);
         if (ctx.hp < hpThreshold) {
-            bot.state = STATES.RETREAT;
-            this.actRetreat(bot, ctx);
-            return;
+            // Hesitation — bot doesn't flee immediately
+            if (!bot._retreatHesitateUntil || performance.now() >= bot._retreatHesitateUntil) {
+                bot.state = STATES.RETREAT;
+                this.actRetreat(bot, ctx);
+                return;
+            }
+            if (!bot._retreatHesitateUntil) {
+                bot._retreatHesitateUntil = performance.now() + (500 + cau * 1000) * (1 + (1 - ctx.hp) * 2);
+            }
         }
         const nowSec = performance.now() / 1000;
         if (!bot._engageWindowUntil || nowSec >= bot._engageWindowUntil) {
@@ -793,16 +867,33 @@ export class BotBrain {
         }
         bot.target = target;
         const dist = bot.position.distanceTo(target.position);
-        const weapon = bot.currentWeapon || bot.fists;
+        let weapon = bot.currentWeapon || bot.fists;
         const range = Math.max(2.7, (weapon.range || 3) * (weapon.type === 'shotgun' ? 0.88 : 0.95));
+
+        // Don't waste ammo on close-range targets when melee is available
+        if (dist < 3 && weapon.type !== 'fists' && weapon.type !== 'knife' && bot.inventory?.getItems?.()) {
+            const meleeItems = bot.inventory.getItems().filter(w => w && (w.type === 'knife' || w.type === 'fists'));
+            if (meleeItems.length && (weapon.ammo === null || weapon.ammo <= 3)) {
+                const meleeSlot = bot.inventory.getItems().indexOf(meleeItems[0]);
+                if (meleeSlot >= 0 && bot.inventory.selectedSlot !== meleeSlot) {
+                    bot.selectSlot(meleeSlot);
+                    bot._weaponSwitchCooldown = performance.now() + 2000;
+                }
+                weapon = bot.currentWeapon || bot.fists;
+            }
+        }
+
         bot.lookAt(target.position);
         if (dist <= range) {
             const targetKey = this.getObjectKey(target) || `${Math.round(target.position.x)}:${Math.round(target.position.z)}`;
             if (bot._reactionTargetKey !== targetKey) {
                 bot._reactionTargetKey = targetKey;
-                bot._reactionReadyAt = nowSec + this.reactionMin + Math.random() * (this.reactionMax - this.reactionMin);
+                const reactionRange = this.reactionMax - this.reactionMin;
+                const reactionDelay = (this.reactionMin + Math.random() * reactionRange) * (1 + cau * 0.8);
+                bot._reactionReadyAt = nowSec + reactionDelay;
             }
-            const strafeDir = ((bot.id + Math.floor(nowSec * 4)) % 2 === 0) ? 1 : -1;
+            // Strafe direction changes less frequently — more natural
+            const strafeDir = ((bot.id + Math.floor(nowSec * 2)) % 2 === 0) ? 1 : -1;
             const to = this._tmpVec.subVectors(target.position, bot.position).normalize();
             this._tmpSide.set(-to.z, 0, to.x).multiplyScalar(strafeDir * (3.4 + (bot.id % 3)));
             this._tmpSideTarget.set(bot.position.x + this._tmpSide.x, 0, bot.position.z + this._tmpSide.z);
@@ -815,9 +906,11 @@ export class BotBrain {
                 const targetSpeed = tv ? Math.hypot(tv.x || 0, tv.z || 0) : 0;
                 const distNorm = Math.max(0, Math.min(1, dist / Math.max(8, (weapon.range || 40))));
                 const moveNorm = Math.max(0, Math.min(1, targetSpeed / 9));
-                bot._dynamicAimError = 0.01 + distNorm * 0.04 + moveNorm * 0.055;
+                const accuracyFactor = 1 - (agg - 0.5) * 0.3;
+                bot._dynamicAimError = (0.01 + distNorm * 0.03 + moveNorm * 0.04) * accuracyFactor;
                 bot.attack(target, entityManager);
                 bot.applyWeaponRecoil();
+
                 this.attackCooldown = Math.max(0.1, (weapon.cooldown || 0.2) * 1.2);
             }
             return;
@@ -827,7 +920,9 @@ export class BotBrain {
         bot.patrolTarget = target.position;
         
         // Cautious approach: move slower when approaching a target from distance
-        const approachSpeed = dist > 20 ? bot.physics.speed * 0.7 : bot.physics.speed * 1.3;
+        const approachMult = dist > 20 ? 0.7 : 1.3;
+        const cauMod = 1 - (cau - 0.5) * 0.3;
+        const approachSpeed = bot.physics.speed * approachMult * cauMod;
         this.steerMove(bot, target.position, approachSpeed);
     }
 
@@ -908,6 +1003,9 @@ export class BotBrain {
 
     steerMove(bot, target, speed) {
         if (!bot?.position || !target) return;
+        // Natural speed variation — breathing effect
+        const breathFactor = 0.92 + Math.sin(performance.now() * 0.003 + bot.id * 7.3) * 0.08;
+        const effectiveSpeed = speed * breathFactor;
         const dir = this._tmpMoveDir.set(target.x - bot.position.x, 0, target.z - bot.position.z);
         const len = Math.hypot(dir.x, dir.z);
         if (!Number.isFinite(len) || len < 0.001) return;
@@ -945,7 +1043,7 @@ export class BotBrain {
         // Cautious movement: if in HIDE or low gear, move slower and more carefully
         const cau = bot.personality?.caution ?? 0.5;
         const isCautious = bot.state === STATES.HIDE || (bot.state === STATES.EXPLORE && bot.inventory?.getItems?.().length < 2) || cau > 0.7;
-        const finalSpeed = isCautious ? speed * (0.6 + (1 - cau) * 0.2) : speed;
+        const finalSpeed = isCautious ? effectiveSpeed * (0.6 + (1 - cau) * 0.2) : effectiveSpeed;
 
         const step = Math.max(4.5, finalSpeed * 0.9);
         const tx = bot.position.x + move.x * step;
@@ -1081,6 +1179,9 @@ export class BotBrain {
     }
 
     ensureBestWeaponEquipped(bot) {
+        // Don't switch weapons too frequently
+        if (!bot._weaponSwitchCooldown || performance.now() < bot._weaponSwitchCooldown) return;
+
         const items = bot.inventory?.getItems?.() || [];
         let bestSlot = -1;
         let bestScore = 0;
@@ -1098,6 +1199,7 @@ export class BotBrain {
         }
         if (bestSlot >= 0 && bot.inventory.selectedSlot !== bestSlot) {
             bot.selectSlot(bestSlot);
+            bot._weaponSwitchCooldown = performance.now() + 2000;
         }
     }
 
