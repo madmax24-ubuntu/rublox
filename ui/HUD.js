@@ -19,6 +19,7 @@ export class HUD {
 
     createHUD() {
         const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+        this._isMobile = isMobile;
         const shortSide = Math.min(window.innerWidth, window.innerHeight);
         const scale = isMobile
             ? (shortSide < 420 ? 0.7 : shortSide < 600 ? 0.8 : 0.9)
@@ -966,10 +967,22 @@ export class HUD {
 
     show() {
         if (this.root) this.root.style.display = 'block';
+        // Show touch controls only on mobile
+        if (this._isMobile) {
+            const stick = document.getElementById('touchStick');
+            const area = document.getElementById('touchArea');
+            if (stick) stick.style.display = 'block';
+            if (area) area.style.display = 'block';
+        }
     }
 
     hide() {
         if (this.root) this.root.style.display = 'none';
+        // Hide touch controls
+        const stick = document.getElementById('touchStick');
+        const area = document.getElementById('touchArea');
+        if (stick) stick.style.display = 'none';
+        if (area) area.style.display = 'none';
     }
 
     bindPauseUI() {
