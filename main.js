@@ -2498,7 +2498,7 @@ class Game {
                 }
             }
 
-            this.audioSynth.unlock?.().catch(() => {});
+            await this.audioSynth.unlock?.().catch(() => {});
             setTimeout(() => { try { this.audioSynth.playMusic?.(); } catch(e) {} try { this.audioSynth.startAmbient?.(); } catch(e) {} }, 50);
             this.yandex?.gameplayStart?.();
 
