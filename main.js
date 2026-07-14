@@ -339,7 +339,7 @@ class Game {
         } else {
             document.body.appendChild(this.renderer.domElement);
         }
-        this.renderer.domElement.style.transform = 'translateZ(0)';
+
         this.roundMode = 'hybrid';
         this.perk = 'none';
         this.partyMode = false;
