@@ -1578,22 +1578,24 @@ export class HUD {
             ammoInfo.textContent = '';
             return;
         }
+        const nameMap = { knife: '\u041d\u043e\u0436', bow: '\u041b\u0443\u043a', laser: '\u041b\u0430\u0437\u0435\u0440', shotgun: '\u0414\u0440\u043e\u0431\u043e\u0432\u0438\u043a', flamethrower: '\u041e\u0433\u043d\u0435\u043c\u0435\u0442', pistol: '\u041f\u0438\u0441\u0442\u043e\u043b\u0435\u0442', rifle: '\u0412\u0438\u043d\u0442\u043e\u0432\u043a\u0430', machinegun: '\u041f\u0443\u043b\u044c\u043c\u0435\u0442' };
+        const name = nameMap[weapon.type] || weapon.type;
         if (weapon.type === 'knife') {
-            ammoInfo.textContent = `\u041d\u043e\u0436: ${weapon.durability ?? 0}`;
+            ammoInfo.textContent = `${name}: ${weapon.durability ?? 0}`;
         } else if (weapon.type === 'bow') {
-            ammoInfo.textContent = `\u0421\u0442\u0440\u0435\u043b\u044b: ${weapon.ammo ?? 0}`;
+            ammoInfo.textContent = `${name}: ${weapon.ammo ?? 0}`;
         } else if (weapon.type === 'laser') {
-            ammoInfo.textContent = `\u041f\u0443\u043b\u044c\u043a\u0438: ${weapon.ammo ?? 0}`;
+            ammoInfo.textContent = `${name}: ${weapon.ammo ?? 0}`;
         } else if (weapon.type === 'shotgun') {
-            ammoInfo.textContent = `\u041f\u0430\u0442\u0440\u043e\u043d\u044b: ${weapon.ammo ?? 0}`;
+            ammoInfo.textContent = `${name}: ${weapon.ammo ?? 0}`;
         } else if (weapon.type === 'flamethrower') {
-            ammoInfo.textContent = `\u0422\u043e\u043f\u043b\u0438\u0432\u043e: ${weapon.ammo ?? 0}`;
+            ammoInfo.textContent = `${name}: ${weapon.ammo ?? 0}`;
         } else if (weapon.type === 'pistol') {
-            ammoInfo.textContent = `\u041f\u0430\u0442\u0440\u043e\u043d\u044b: ${weapon.ammo ?? 0}`;
+            ammoInfo.textContent = `${name}: ${weapon.ammo ?? 0}`;
         } else if (weapon.type === 'rifle') {
-            ammoInfo.textContent = `\u041f\u0430\u0442\u0440\u043e\u043d\u044b: ${weapon.ammo ?? 0}`;
+            ammoInfo.textContent = `${name}: ${weapon.ammo ?? 0}`;
         } else if (weapon.type === 'machinegun') {
-            ammoInfo.textContent = `\u041f\u0430\u0442\u0440\u043e\u043d\u044b: ${weapon.ammo ?? 0}`;
+            ammoInfo.textContent = `${name}: ${weapon.ammo ?? 0}`;
         } else {
             ammoInfo.textContent = '';
         }
