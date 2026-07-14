@@ -323,8 +323,8 @@ export class MeshPool {
             if (!transparent) {
                 opts.side = THREE.DoubleSide;
                 opts.polygonOffset = true;
-                opts.polygonOffsetFactor = wall ? 12 : 4;
-                opts.polygonOffsetUnits = wall ? 6 : 2;
+                opts.polygonOffsetFactor = 12;
+                opts.polygonOffsetUnits = 6;
             }
             this.mats.set(key, new THREE.MeshStandardMaterial(opts));
         }

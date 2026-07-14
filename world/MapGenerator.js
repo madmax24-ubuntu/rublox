@@ -430,7 +430,13 @@ export class MapGenerator {
         const wallH = 30;
         const wallT = 2.4;
         const wallMat = this.pool.getMatStd(0x58636b, 0.9, 0, true, false, 1, 0, 0, true);
+        wallMat.polygonOffset = true;
+        wallMat.polygonOffsetFactor = 12;
+        wallMat.polygonOffsetUnits = 6;
         const gateMat = this.pool.getMatStd(0xb74b18, 0.45, 0.15, false, true, 0.16, 0x7a2108, 0.12);
+        gateMat.polygonOffset = true;
+        gateMat.polygonOffsetFactor = 12;
+        gateMat.polygonOffsetUnits = 6;
         const addWall = (x, z, w, d, rotation = 0) => {
             const mesh = new THREE.Mesh(this.pool.getGeoBox(w, wallH, d), wallMat);
             mesh.position.set(x, wallH / 2, z);
