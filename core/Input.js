@@ -111,15 +111,8 @@ export class Input {
         const touchEnemy = null;
         const touchGather = null;
 
-        const updateStickRadius = () => {
-            if (!stick) return;
-            const rect = stick.getBoundingClientRect();
-            this.touch.radius = rect.width * 0.45;
-        };
-
-        updateStickRadius();
-        window.addEventListener('resize', updateStickRadius);
-        window.addEventListener('orientationchange', updateStickRadius);
+        // Fixed radius — stick is 120px wide, knob moves within ~54px radius
+        this.touch.radius = 54;
 
         const setKnob = (dx, dy) => {
             if (!knob) return;
@@ -154,12 +147,12 @@ export class Input {
                     this.touch.originX = touch.clientX;
                     this.touch.originY = touch.clientY;
                     if (stick) {
-                        const rect = stick.getBoundingClientRect();
-                        this.touch.defaultX = rect.left;
-                        this.touch.defaultY = rect.top;
-                        stick.style.left = `${this.touch.originX}px`;
-                        stick.style.top = `${this.touch.originY}px`;
+                        // Show floating stick at touch point
+                        stick.style.display = 'block';
+                        stick.style.left = `${touch.clientX}px`;
+                        stick.style.top = `${touch.clientY}px`;
                         stick.style.opacity = '0.7';
+                        setKnob(0, 0);
                     }
                     this.touch.active = true;
                 } else if (touch.clientX >= window.innerWidth / 2 && this.touch.lookId === null) {
@@ -176,7 +169,6 @@ export class Input {
             e.preventDefault();
             for (const touch of e.changedTouches) {
                 if (this.touch.moveId === touch.identifier) {
-                    // Use original touch point, not updated center
                     let dx = touch.clientX - this.touch.originX;
                     let dy = touch.clientY - this.touch.originY;
                     const dist = Math.hypot(dx, dy);
@@ -189,10 +181,12 @@ export class Input {
                     this.touch.moveX = dx;
                     this.touch.moveY = dy;
                     setKnob(dx, dy);
-                    // Update stick position to follow touch
+                    // Move stick center to follow touch
                     if (stick) {
                         stick.style.left = `${touch.clientX}px`;
                         stick.style.top = `${touch.clientY}px`;
+                        this.touch.originX = touch.clientX;
+                        this.touch.originY = touch.clientY;
                     }
                 } else if (this.touch.lookId === touch.identifier) {
                     const dx = touch.clientX - this.touch.lastLookX;
@@ -213,12 +207,8 @@ export class Input {
                 resetKnob();
                 this.touch.active = false;
                 if (stick) {
-                    stick.style.opacity = '0.35';
-                    stick.style.left = `${this.touch.defaultX}px`;
-                    stick.style.top = `${this.touch.defaultY}px`;
-                    // Reset default on next touch
-                    this.touch.defaultX = undefined;
-                    this.touch.defaultY = undefined;
+                    stick.style.display = 'none';
+                    stick.style.opacity = '0';
                 }
             } else if (this.touch.lookId === touch.identifier) {
                 this.touch.lookId = null;

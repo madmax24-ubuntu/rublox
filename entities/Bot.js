@@ -186,7 +186,14 @@ export class Bot {
         this.enemyEncounters = [];
 
         this.mesh = this.createMesh();
-        this.mesh.scale.setScalar(this.outfit.scale || 2.0);
+        // Normalize bot height to match player (~1.7m) via Box3
+        const box = new THREE.Box3().setFromObject(this.mesh);
+        const modelHeight = box.max.y - box.min.y;
+        const targetHeight = 1.7;
+        const baseScale = targetHeight / modelHeight;
+        // Apply outfit variant multiplier on top
+        const outfitMult = this.outfit.scale || 1.0;
+        this.mesh.scale.setScalar(baseScale * outfitMult);
         // Pre-allocate bounding sphere for frustum culling
         this.mesh._frustumSphere = new THREE.Sphere(new THREE.Vector3(), 1.0);
         this.healthBar = this.createHealthBar();
