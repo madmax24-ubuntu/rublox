@@ -65,22 +65,20 @@ export class CameraController {
             this.rotation.set(this._pitch, this._yaw, 0, 'YXZ');
             this.camera.quaternion.setFromEuler(this.rotation);
         } else {
-            const look = input.getLookDelta();
-            if (look.x !== 0 || look.y !== 0) {
-                const side = Math.max(window.innerWidth, window.innerHeight);
-                const sensitivity = input.isMobile ? (5.7 / side) : 0.0042;
-                this._tmpQYaw.setFromAxisAngle(this._tmpAxisY, -look.x * sensitivity);
-                this.camera.quaternion.multiply(this._tmpQYaw);
-                this._tmpAxisX.set(1, 0, 0).applyQuaternion(this.camera.quaternion);
-                this._tmpQPitch.setFromAxisAngle(this._tmpAxisX, -look.y * sensitivity);
-                this.camera.quaternion.multiply(this._tmpQPitch);
-                this.rotation.setFromQuaternion(this.camera.quaternion, 'YXZ');
-                if (this.rotation.x > this._maxPitch) {
-                    this.rotation.x = this._maxPitch;
-                    this.camera.quaternion.setFromEuler(this.rotation);
-                }
-                if (this.rotation.x < -this._maxPitch) {
-                    this.rotation.x = -this._maxPitch;
+            if (input.isMobile) {
+                this._yaw = input.yaw;
+                this._pitch = input.pitch;
+                this.rotation.set(this._pitch, this._yaw, 0, 'YXZ');
+                this.camera.quaternion.setFromEuler(this.rotation);
+            } else {
+                const look = input.getLookDelta();
+                if (look.x !== 0 || look.y !== 0) {
+                    const sensitivity = 0.0042;
+                    this._yaw -= look.x * sensitivity;
+                    this._pitch -= look.y * sensitivity;
+                    if (this._pitch > this._maxPitch) this._pitch = this._maxPitch;
+                    if (this._pitch < -this._maxPitch) this._pitch = -this._maxPitch;
+                    this.rotation.set(this._pitch, this._yaw, 0, 'YXZ');
                     this.camera.quaternion.setFromEuler(this.rotation);
                 }
             }

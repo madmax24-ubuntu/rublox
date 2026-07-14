@@ -299,6 +299,16 @@ export class InputController {
                 this._lookDy += dy;
                 this.trackpad.startX = x;
                 this.trackpad.startY = y;
+
+                if (this.isMobile) {
+                    const side = Math.max(window.innerWidth, window.innerHeight);
+                    const sensitivity = 5.7 / side;
+                    this.yaw -= dx * sensitivity;
+                    this.pitch -= dy * sensitivity;
+                    const maxPitch = this._maxPitchRad;
+                    if (this.pitch > maxPitch) this.pitch = maxPitch;
+                    if (this.pitch < -maxPitch) this.pitch = -maxPitch;
+                }
             }
         }
     }
