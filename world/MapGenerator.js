@@ -954,7 +954,7 @@ export class MapGenerator {
         // Floor collider
         this.addColliderBox(new THREE.Vector3(x, 0.15, z), w, 0.3, d, true);
         // Wall colliders
-        this.addColliderBox(new THREE.Vector3(x, h / 2 + 0.3, z), w + 0.6, h, d + 0.6, false);
+        this.addColliderBox(new THREE.Vector3(x, h / 2 + 0.3, z), w + 0.4, h, d + 0.4, false);
     }
 
     _addForestBush(x, z) {
@@ -980,7 +980,7 @@ export class MapGenerator {
 
         bush.position.set(x, 0, z);
         this.scene.add(bush);
-        this.addColliderBox(new THREE.Vector3(x, 0.8, z), 4, 1.6, 4, false);
+        this.addColliderBox(new THREE.Vector3(x, 0.8, z), 3, 1.6, 3, false);
     }
 
     _addForestClearing(x, z) {
@@ -1170,7 +1170,7 @@ export class MapGenerator {
         this.scene.add(log);
         this.addColliderBox(
             new THREE.Vector3(x, radius, z),
-            length, radius * 2, radius * 2, false
+            length, radius * 1.4, radius * 1.4, false
         );
     }
 
@@ -1251,7 +1251,7 @@ export class MapGenerator {
             rock.userData.mapGenerated = true;
             rock.userData.instancable = true;
             this.scene.add(rock);
-            this.addColliderBox(new THREE.Vector3(rx, size * 0.3, rz), size * 1.5, size * 0.8, size * 1.5, false);
+            this.addColliderBox(new THREE.Vector3(rx, size * 0.3, rz), size * 1.15, size * 0.7, size * 1.15, false);
         }
 
         // Moss patches on clearing ground
@@ -3609,7 +3609,7 @@ export class MapGenerator {
         campfire.position.set(cx, 0, cz);
         campfire.userData.mapGenerated = true;
         this.scene.add(campfire);
-        this.addColliderBox(new THREE.Vector3(cx, 0.4, cz), 5, 0.8, 5, false);
+        this.addColliderBox(new THREE.Vector3(cx, 0.4, cz), 3.5, 0.8, 3.5, false);
     }
 
     _addSnowmen(startX, startZ, size) {
@@ -4094,7 +4094,7 @@ export class MapGenerator {
         if (height > 2) {
             this.addColliderBox(
                 new THREE.Vector3(x, height * 0.3, z),
-                radius * 2, height * 0.6, radius * 2, false
+                radius * 1.4, height * 0.5, radius * 1.4, false
             );
         }
     }
@@ -4386,7 +4386,7 @@ export class MapGenerator {
         this.scene.add(chunk);
         this.addColliderBox(
             new THREE.Vector3(x, size * 0.3, z),
-            size * 1.2, size * 0.6, size * 1.2, false
+            size * 1.0, size * 0.5, size * 1.0, false
         );
     }
 
