@@ -13,8 +13,8 @@ export class Bot {
         this.physics = {
             velocity: new THREE.Vector3(0, 0, 0),
             onGround: false,
-            height: 1.9,
-            radius: 0.55,
+            height: 1.7,
+            radius: 0.5,
             speed: 6.6 + Math.random() * 2.2
         };
 
@@ -190,10 +190,7 @@ export class Bot {
         const box = new THREE.Box3().setFromObject(this.mesh);
         const modelHeight = box.max.y - box.min.y;
         const targetHeight = 1.7;
-        const baseScale = targetHeight / modelHeight;
-        // Apply outfit variant multiplier on top
-        const outfitMult = this.outfit.scale || 1.0;
-        this.mesh.scale.setScalar(baseScale * outfitMult);
+        this.mesh.scale.setScalar(targetHeight / modelHeight);
         // Pre-allocate bounding sphere for frustum culling
         this.mesh._frustumSphere = new THREE.Sphere(new THREE.Vector3(), 1.0);
         this.healthBar = this.createHealthBar();

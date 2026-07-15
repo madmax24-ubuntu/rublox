@@ -985,6 +985,26 @@ export class HUD {
         if (area) area.style.display = 'none';
     }
 
+    updateJoystick(joystick) {
+        if (!joystick || !this._isMobile) return;
+        const stick = document.getElementById('touchStick');
+        const knob = document.getElementById('touchKnob');
+        if (!stick || !knob) return;
+        if (joystick.active) {
+            stick.style.display = 'block';
+            stick.style.left = `${joystick.baseX}px`;
+            stick.style.top = `${joystick.baseY}px`;
+            stick.style.opacity = '0.7';
+            const dx = joystick.currentX - joystick.baseX;
+            const dy = joystick.currentY - joystick.baseY;
+            knob.style.transform = `translate(${dx}px, ${dy}px)`;
+        } else {
+            stick.style.display = 'none';
+            stick.style.opacity = '0';
+            knob.style.transform = 'translate(0px, 0px)';
+        }
+    }
+
     bindPauseUI() {
         const resume = document.getElementById('pauseResume');
         const edit = document.getElementById('pauseEdit');

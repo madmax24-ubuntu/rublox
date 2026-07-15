@@ -271,8 +271,6 @@ export class InputController {
             const y = touch.clientY;
 
             if (this.joystick.active && this.joystick.touchId === id) {
-                this.joystick.currentX = x;
-                this.joystick.currentY = y;
                 let dx = x - this.joystick.baseX;
                 let dy = y - this.joystick.baseY;
                 const dist = Math.sqrt(dx * dx + dy * dy);
@@ -280,6 +278,8 @@ export class InputController {
                 if (dist < this.deadZone) {
                     this.joystick.dx = 0;
                     this.joystick.dy = 0;
+                    this.joystick.currentX = this.joystick.baseX;
+                    this.joystick.currentY = this.joystick.baseY;
                     continue;
                 }
 
@@ -290,6 +290,8 @@ export class InputController {
 
                 this.joystick.dx = dx / this.joystickRadius;
                 this.joystick.dy = dy / this.joystickRadius;
+                this.joystick.currentX = this.joystick.baseX + dx;
+                this.joystick.currentY = this.joystick.baseY + dy;
             }
 
             if (this.trackpad.active && this.trackpad.touchId === id) {

@@ -633,12 +633,12 @@ class Game {
                 if (!pad) break;
 
                 // Bots spawn ON the pad surface (pad.y = platform surface y=2)
-                spawnPos = new THREE.Vector3(pad.x, pad.y + 1.9, pad.z);
+                spawnPos = new THREE.Vector3(pad.x, pad.y + 1.7, pad.z);
             } else {
                 const angle = (i / botCount) * Math.PI * 2;
                 spawnPos = new THREE.Vector3(
                     Math.cos(angle) * spawnRadius,
-                    2 + 1.9,
+                    2 + 1.7,
                     Math.sin(angle) * spawnRadius
                 );
             }
@@ -2053,6 +2053,9 @@ class Game {
             this.hud.updatePlayersCount(aliveCountBeforeHazards);
             this.hud.updateAmmo(this.player.currentWeapon || this.player.fists);
             this.hudStatsTimer = this.isMobile() ? 0.1 : 0.06;
+        }
+        if (this.isMobile()) {
+            this.hud.updateJoystick?.(this.input.joystick);
         }
         if (this.traps && this.traps.length) {
             const applyTrap = (entity) => {
