@@ -980,6 +980,7 @@ export class MapGenerator {
 
         bush.position.set(x, 0, z);
         this.scene.add(bush);
+        this.addColliderBox(new THREE.Vector3(x, 0.8, z), 4, 1.6, 4, false);
     }
 
     _addForestClearing(x, z) {
@@ -992,6 +993,7 @@ export class MapGenerator {
         clearing.userData.mapGenerated = true;
         clearing.userData.walkable = true;
         this.scene.add(clearing);
+        this.addColliderBox(new THREE.Vector3(x, 0.02, z), 12, 0.04, 12, true);
 
         // Small stream from clearing to river
         const streamMat = this.pool.getMatStd(0x29b6f6, 0.2, 0.3, false, true, 0.6, 0, 0);
@@ -1001,6 +1003,7 @@ export class MapGenerator {
         stream.position.set(x + 3, 0.04, z - 5);
         stream.userData.mapGenerated = true;
         this.scene.add(stream);
+        this.addColliderBox(new THREE.Vector3(x + 3, 0.04, z - 5), 1.5, 0.01, 15, true);
     }
 
     // Small flowers in forest
@@ -1197,6 +1200,7 @@ export class MapGenerator {
                     seg.userData.mapGenerated = true;
                     seg.userData.walkable = true;
                     this.scene.add(seg);
+                    this.addColliderBox(new THREE.Vector3(seg.position.x, 0.1, seg.position.z), 8.5, 0.16, 8.5, true);
                 }
             }
         }
@@ -1247,6 +1251,7 @@ export class MapGenerator {
             rock.userData.mapGenerated = true;
             rock.userData.instancable = true;
             this.scene.add(rock);
+            this.addColliderBox(new THREE.Vector3(rx, size * 0.3, rz), size * 1.5, size * 0.8, size * 1.5, false);
         }
 
         // Moss patches on clearing ground
@@ -1334,6 +1339,7 @@ export class MapGenerator {
         barrel.userData.mapGenerated = true;
         barrel.userData.isBarrel = true;
         this.scene.add(barrel);
+        this.addColliderBox(new THREE.Vector3(x, 0.6, z), 1.3, 1.2, 1.3, false);
     }
 
     _addFireflies(startX, startZ, size, cx, cz) {
@@ -1650,6 +1656,20 @@ export class MapGenerator {
         const clearingCX = startX + size * 0.5;
         const clearingCZ = startZ + size * 0.5;
         const clearingRadius = 25;
+
+        // Central clearing — open area in the center (apply BEFORE wall creation)
+        for (let r = 0; r < mazeRows; r++) {
+            for (let c = 0; c < mazeCols; c++) {
+                const wx = startX + c * cellSize + cellSize / 2;
+                const wz = startZ + r * cellSize + cellSize / 2;
+                const dist = Math.sqrt((wx - clearingCX) ** 2 + (wz - clearingCZ) ** 2);
+                if (dist < clearingRadius) {
+                    grid[r][c] = 0;
+                }
+            }
+        }
+
+        // Register hidden loot spots (after clearing applied)
         let hiddenMazeLoot = 0;
         for (let r = 1; r < mazeRows - 1 && hiddenMazeLoot < 28; r++) {
             for (let c = 1; c < mazeCols - 1 && hiddenMazeLoot < 28; c++) {
@@ -1660,16 +1680,16 @@ export class MapGenerator {
                 hiddenMazeLoot++;
             }
         }
+
         const wallColors = [0x666666, 0x777777, 0x5a5a5a, 0x6b6b6b, 0x5e5e5e];
         for (let r = 0; r < mazeRows; r++) {
             for (let c = 0; c < mazeCols; c++) {
                 const wx = startX + c * cellSize + cellSize / 2;
                 const wz = startZ + r * cellSize + cellSize / 2;
-                
+
                 if (Math.sqrt(wx*wx + wz*wz) < 35) continue;
 
                 if (grid[r][c] === 1) {
-                    if (Math.hypot(wx - clearingCX, wz - clearingCZ) < clearingRadius + cellSize) continue;
                     const wallWidth = cellSize * 0.9;
                     const geo = this.pool.getGeoBox(wallWidth, wallHeight, wallWidth);
                     const color = wallColors[Math.floor(this._rand() * wallColors.length)];
@@ -1683,19 +1703,6 @@ export class MapGenerator {
                         new THREE.Vector3(wx, wallHeight / 2, wz),
                         wallWidth, wallHeight, wallWidth, false
                     );
-                }
-            }
-        }
-
-        // Central clearing with loot - open area in the center
-        // Clear area in center - remove walls around clearing
-        for (let r = 0; r < mazeRows; r++) {
-            for (let c = 0; c < mazeCols; c++) {
-                const wx = startX + c * cellSize + cellSize / 2;
-                const wz = startZ + r * cellSize + cellSize / 2;
-                const dist = Math.sqrt((wx - clearingCX) ** 2 + (wz - clearingCZ) ** 2);
-                if (dist < clearingRadius) {
-                    grid[r][c] = 0;
                 }
             }
         }
@@ -2047,6 +2054,7 @@ export class MapGenerator {
         gateGroup.position.set(x, 0, z);
         gateGroup.userData.mapGenerated = true;
         this.scene.add(gateGroup);
+        this.addColliderBox(new THREE.Vector3(x, (wallHeight + 6) / 2, z), 13, wallHeight + 6, 6, false);
     }
 
     _addMazeMoss(startX, startZ, size) {
@@ -2155,6 +2163,7 @@ export class MapGenerator {
             seg.userData.mapGenerated = true;
             seg.userData.walkable = true;
             this.scene.add(seg);
+            this.addColliderBox(new THREE.Vector3(seg.position.x, 0.03, seg.position.z), 3, 0.05, 4, true);
             px += (endX - px) * 0.15 + (this._rand() - 0.5) * 2;
             pz += (endZ - pz) * 0.15 + (this._rand() - 0.5) * 2;
         }
@@ -2424,6 +2433,7 @@ export class MapGenerator {
             seg.userData.mapGenerated = true;
             seg.userData.walkable = true;
             this.scene.add(seg);
+            this.addColliderBox(new THREE.Vector3(seg.position.x, 0.03, seg.position.z), 3, 0.05, 4, true);
             px += (endX - px) * 0.12 + (this._rand() - 0.5) * 2;
             pz += (endZ - pz) * 0.12 + (this._rand() - 0.5) * 2;
         }
@@ -2447,6 +2457,7 @@ export class MapGenerator {
             post.position.set(px, postH / 2, startZ);
             post.userData.mapGenerated = true;
             this.scene.add(post);
+            this.addColliderBox(new THREE.Vector3(px, postH / 2, startZ), 0.1, postH, 0.1, false);
         }
 
         // Южная сторона
@@ -2456,6 +2467,7 @@ export class MapGenerator {
             post.position.set(px, postH / 2, startZ + size);
             post.userData.mapGenerated = true;
             this.scene.add(post);
+            this.addColliderBox(new THREE.Vector3(px, postH / 2, startZ + size), 0.1, postH, 0.1, false);
         }
 
         // Западная сторона
@@ -2464,6 +2476,7 @@ export class MapGenerator {
             post.position.set(startX, postH / 2, pz);
             post.userData.mapGenerated = true;
             this.scene.add(post);
+            this.addColliderBox(new THREE.Vector3(startX, postH / 2, pz), 0.1, postH, 0.1, false);
         }
 
         // Восточная сторона
@@ -2472,6 +2485,7 @@ export class MapGenerator {
             post.position.set(startX + size, postH / 2, pz);
             post.userData.mapGenerated = true;
             this.scene.add(post);
+            this.addColliderBox(new THREE.Vector3(startX + size, postH / 2, pz), 0.1, postH, 0.1, false);
         }
 
         // Проволока между столбами (горизонтальные линии)
@@ -2663,13 +2677,14 @@ export class MapGenerator {
         bottom.userData.mapGenerated = true;
         this.scene.add(bottom);
 
-        // Стенки окопа
+        // Стенки окопа + коллайдеры
         for (let side of [-1, 1]) {
             const wallGeo = this.pool.getGeoBox(0.3, 1, length);
             const wall = new THREE.Mesh(wallGeo, trenchMat);
             wall.position.set(x + side * 1.5, 0.5, z);
             wall.userData.mapGenerated = true;
             this.scene.add(wall);
+            this.addColliderBox(new THREE.Vector3(x + side * 1.5, 0.5, z), 0.3, 1, length, false);
         }
 
         // Повернутый окоп (перпендикулярно)
@@ -2685,6 +2700,7 @@ export class MapGenerator {
             wall.position.set(x + length / 2, 0.5, z + length / 2 + side * 1.5);
             wall.userData.mapGenerated = true;
             this.scene.add(wall);
+            this.addColliderBox(new THREE.Vector3(x + length / 2, 0.5, z + length / 2 + side * 1.5), length, 1, 0.3, false);
         }
     }
 
@@ -3240,6 +3256,7 @@ export class MapGenerator {
             bag.position.set(x, 0.15, z + (i + 1) * 0.55);
             bag.userData.mapGenerated = true;
             this.scene.add(bag);
+            this.addColliderBox(new THREE.Vector3(x, 0.15, z + (i + 1) * 0.55), 0.5, 0.3, 0.35, false);
         }
 
         // Visual only — no spawn tile
@@ -3387,6 +3404,7 @@ export class MapGenerator {
         deep.position.set(cx, 0.15, cz);
         deep.userData.mapGenerated = true;
         this.scene.add(deep);
+        this.addColliderBox(new THREE.Vector3(cx, 0.15, cz), 60, 0.3, 60, true);
 
         // Мелкие зоны вокруг — квадратные плитки
         const tileSize = 20;
@@ -3408,6 +3426,7 @@ export class MapGenerator {
             mesh.position.set(cx + s.dx, 0.1, cz + s.dz);
             mesh.userData.mapGenerated = true;
             this.scene.add(mesh);
+            this.addColliderBox(new THREE.Vector3(cx + s.dx, 0.1, cz + s.dz), s.w, 0.2, s.d, true);
         }
 
         // Внешние квадратные плитки льда (разной высоты) — как в референсе
@@ -3590,6 +3609,7 @@ export class MapGenerator {
         campfire.position.set(cx, 0, cz);
         campfire.userData.mapGenerated = true;
         this.scene.add(campfire);
+        this.addColliderBox(new THREE.Vector3(cx, 0.4, cz), 5, 0.8, 5, false);
     }
 
     _addSnowmen(startX, startZ, size) {
@@ -3850,6 +3870,7 @@ export class MapGenerator {
         group.userData.isWindTurbine = true;
         group.userData.mapGenerated = true;
         this.scene.add(group);
+        this.addColliderBox(new THREE.Vector3(x, 7.5, z), 1.5, 15, 1.5, false);
     }
 
     updateWindTurbines(delta) {
@@ -3965,6 +3986,7 @@ export class MapGenerator {
             seg.userData.mapGenerated = true;
             seg.userData.walkable = true;
             this.scene.add(seg);
+            this.addColliderBox(new THREE.Vector3(seg.position.x, 0.03, seg.position.z), 3, 0.05, 4, true);
             px += (endX - px) * 0.12 + (this._rand() - 0.5) * 2;
             pz += (endZ - pz) * 0.12 + (this._rand() - 0.5) * 2;
         }
@@ -4269,6 +4291,7 @@ export class MapGenerator {
             seg.userData.mapGenerated = true;
             seg.userData.walkable = true;
             this.scene.add(seg);
+            this.addColliderBox(new THREE.Vector3(px, 0.03, pz), 2, 0.05, 2, true);
         }
         // Military to Ice path (diagonal)
         for (let i = 0; i < 4; i++) {
@@ -4280,6 +4303,7 @@ export class MapGenerator {
             seg.userData.mapGenerated = true;
             seg.userData.walkable = true;
             this.scene.add(seg);
+            this.addColliderBox(new THREE.Vector3(px, 0.03, pz), 2, 0.05, 2, true);
         }
 
         // Forest to Military path (vertical)
@@ -4292,6 +4316,7 @@ export class MapGenerator {
             seg.userData.mapGenerated = true;
             seg.userData.walkable = true;
             this.scene.add(seg);
+            this.addColliderBox(new THREE.Vector3(px, 0.03, pz), 2, 0.05, 2, true);
         }
     }
 
@@ -4342,6 +4367,7 @@ export class MapGenerator {
             mesh.position.set(b.x, 0.25, b.z);
             mesh.userData.mapGenerated = true;
             this.scene.add(mesh);
+            this.addColliderBox(new THREE.Vector3(b.x, 0.25, b.z), b.w, 0.5, b.d, false);
         }
     }
 
