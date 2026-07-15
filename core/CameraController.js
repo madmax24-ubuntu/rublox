@@ -52,6 +52,86 @@ export class CameraController {
         }
     }
 
+    _raycastAABB(origin, dir, box) {
+        const { min, max } = box;
+        let tmin = -Infinity, tmax = Infinity;
+
+        for (let i = 0; i < 3; i++) {
+            const d = this._tmpVec1[i];
+            if (Math.abs(d) < 1e-8) {
+                if (origin[i] < min[i] || origin[i] > max[i]) return null;
+            } else {
+                const invD = 1 / d;
+                let t0, t1;
+                if (d > 0) { t0 = (min[i] - origin[i]) * invD; t1 = (max[i] - origin[i]) * invD; }
+                else { t0 = (max[i] - origin[i]) * invD; t1 = (min[i] - origin[i]) * invD; }
+                if (t0 > tmin) tmin = t0;
+                if (t1 < tmax) tmax = t1;
+                if (tmin > tmax) return null;
+            }
+        }
+
+        if (tmin < 0) {
+            // Origin inside AABB — return tmax (exit point)
+            return tmax > 0 ? tmax : null;
+        }
+        // Camera is in front of the box
+        if (tmin >= 0 && tmin < tmax) return tmin;
+        return null;
+    }
+
+    _clampCamera(cameraPos, playerPos) {
+        const colliders = this.physics?.colliders;
+        if (!colliders || colliders.length === 0) return;
+
+        // Direction from player to camera
+        const dir = this._tmpVec1.subVectors(cameraPos, playerPos);
+        const dist = dir.length();
+        if (dist < 0.1) return; // too close — nothing to block
+        dir.normalize();
+
+        // Query colliders along the ray using spatial grid
+        const grid = this.physics.colliderGrid;
+        const cellSize = this.physics.colliderGridCellSize;
+        const pCx = Math.floor(playerPos.x / cellSize);
+        const pCz = Math.floor(playerPos.z / cellSize);
+        const cCx = Math.floor(cameraPos.x / cellSize);
+        const cCz = Math.floor(cameraPos.z / cellSize);
+
+        // Collect colliders from cells along the path
+        const minX = Math.min(pCx, cCx) - 1;
+        const maxX = Math.max(pCx, cCx) + 1;
+        const minZ = Math.min(pCz, cCz) - 1;
+        const maxZ = Math.max(pCz, cCz) + 1;
+
+        let closestT = Infinity;
+        for (let cx = minX; cx <= maxX; cx++) {
+            for (let cz = minZ; cz <= maxZ; cz++) {
+                const key = `${cx},${cz}`;
+                const cell = grid.get(key);
+                if (!cell) continue;
+                for (let i = 0; i < cell.length; i++) {
+                    const box = cell[i];
+                    if (!box.min || !box.max) continue;
+                    const t = this._raycastAABB(playerPos, dir, box);
+                    if (t !== null && t > 0 && t < closestT && t < dist) {
+                        closestT = t;
+                    }
+                }
+            }
+        }
+
+        // If an obstacle blocks the camera, move it closer to player
+        if (closestT < dist - 0.2) {
+            const newDist = closestT - 0.1; // small gap from obstacle
+            cameraPos.set(
+                playerPos.x + dir.x * newDist,
+                playerPos.y + dir.y * newDist,
+                playerPos.z + dir.z * newDist
+            );
+        }
+    }
+
     resolveCollision(cameraPos, playerPos) {
         const colliders = this.physics?.colliders;
         if (!colliders || colliders.length === 0) return;
@@ -169,6 +249,9 @@ export class CameraController {
                 targetY + this._shakeOffset.y,
                 playerPos.z + this._shakeOffset.z
             );
+
+            // Clamp camera so it never goes behind obstacles
+            this._clampCamera(this.camera.position, playerPos);
 
             // Resolve camera collision with world
             this.resolveCollision(this.camera.position, playerPos);

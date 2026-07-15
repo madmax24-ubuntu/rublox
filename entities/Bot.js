@@ -191,6 +191,9 @@ export class Bot {
         const modelHeight = box.max.y - box.min.y;
         const targetHeight = 1.7;
         this.mesh.scale.setScalar(targetHeight / modelHeight);
+        // After scaling, compute the actual bottom Y of the model — used for correct mesh offset
+        const scaledBox = new THREE.Box3().setFromObject(this.mesh);
+        this._modelBottomY = scaledBox.min.y;
         // Pre-allocate bounding sphere for frustum culling
         this.mesh._frustumSphere = new THREE.Sphere(new THREE.Vector3(), 1.0);
         this.healthBar = this.createHealthBar();
@@ -538,7 +541,7 @@ export class Bot {
         // OPTIMIZED: Skip expensive AI for near-idle bots every other frame
         if (this._aiSkipFrame) {
             this.mesh.position.copy(this.position);
-            this.mesh.position.y = this.position.y - (this.physics.height - 0.38);
+            this.mesh.position.y = this.position.y - (this.physics.height + this._modelBottomY);
             this.mesh.rotation.y = this.rotation.y;
             if (this._visuallyRelevant) {
                 this._animTime = performance.now() / 1000;
@@ -572,7 +575,7 @@ export class Bot {
             this.physics.velocity.x = 0;
             this.physics.velocity.z = 0;
             this.mesh.position.copy(this.position);
-            this.mesh.position.y = this.position.y - (this.physics.height - 0.38);
+            this.mesh.position.y = this.position.y - (this.physics.height + this._modelBottomY);
             this.mesh.rotation.y = this.rotation.y;
             this.updateWeaponTransform();
             return;
@@ -582,7 +585,7 @@ export class Bot {
             this.assistTimer = Math.max(0, this.assistTimer - delta);
             this.moveTowards(this.assistTarget.position, this.physics.speed * 1.35);
             this.mesh.position.copy(this.position);
-            this.mesh.position.y = this.position.y - (this.physics.height - 0.38);
+            this.mesh.position.y = this.position.y - (this.physics.height + this._modelBottomY);
             this.mesh.rotation.y = this.rotation.y;
             this.animateLimbs();
             this.updateHealthBar(delta);
@@ -609,7 +612,7 @@ export class Bot {
             this.patrolTarget.copy(center);
             this.moveTowards(center, this.physics.speed * 1.25);
             this.mesh.position.copy(this.position);
-            this.mesh.position.y = this.position.y - (this.physics.height - 0.38);
+            this.mesh.position.y = this.position.y - (this.physics.height + this._modelBottomY);
             this.mesh.rotation.y = this.rotation.y;
             this.animateLimbs();
             this.updateHealthBar(delta);
@@ -671,7 +674,7 @@ export class Bot {
         }
 
         this.mesh.position.copy(this.position);
-        this.mesh.position.y = this.position.y - (this.physics.height - 0.38);
+        this.mesh.position.y = this.position.y - (this.physics.height + this._modelBottomY);
         this.mesh.rotation.y = this.rotation.y;
         if (this._visuallyRelevant) {
             this.animateLimbs();
@@ -865,7 +868,7 @@ export class Bot {
             this.isFrozen = true;
             this.physics.velocity.set(0, 0, 0);
             this.mesh.position.copy(this.position);
-            this.mesh.position.y = this.position.y - (this.physics.height - 0.38) - 0.8;
+            this.mesh.position.y = this.position.y - (this.physics.height + this._modelBottomY) - 0.8;
             this.mesh.rotation.set(-Math.PI / 2, this.rotation.y, 0);
             this.syncWeaponVisibility();
             if (attacker?.stats) {
@@ -1017,7 +1020,8 @@ export class Bot {
         this.mesh.scale.lerp(this._tmpScale, dt * 5);
 
         this.mesh.position.copy(this.position);
-        this.mesh.position.y = this.position.y - (this.physics.height * (this.state === 'hide' ? 0.75 : 1.0) - 0.38);
+        const crouchFactor = this.state === 'hide' ? 0.75 : 1.0;
+        this.mesh.position.y = this.position.y - (this.physics.height * crouchFactor + this._modelBottomY * crouchFactor);
         this.mesh.rotation.y = this.rotation.y;
         this.animateLimbs();
         if (this.healthBar) this.updateHealthBar(delta);

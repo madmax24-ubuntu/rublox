@@ -1728,7 +1728,7 @@ export class MapGenerator {
             segment.rotation.y = -angle;
             segment.userData.mapGenerated = true;
             this.scene.add(segment);
-            this.addColliderBox(new THREE.Vector3(sx, towerHeight / 2, sz), 1.2, towerHeight, segmentLength, false);
+            this.addColliderBox(new THREE.Vector3(sx, towerHeight / 2, sz), 0.8, towerHeight, segmentLength, false);
         }
 
         // Tower floor
