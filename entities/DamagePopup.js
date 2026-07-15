@@ -42,11 +42,11 @@ export function spawnDamagePopup(scene, position, amount, options = {}) {
     const material = new THREE.SpriteMaterial({
         map: texture,
         transparent: true,
-        depthTest: false
+        depthTest: true
     });
     const sprite = new THREE.Sprite(material);
     sprite.scale.set(1.0, 0.52, 1);
-    sprite.renderOrder = 999;
+    sprite.renderOrder = 4;
     sprite.position.copy(position);
     sprite.position.y += 2.2;
     scene.add(sprite);

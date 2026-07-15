@@ -18,7 +18,7 @@ const run = async (mobile = false) => {
     });
     await page.waitForFunction(() => window.game?.gameState === 'spawn', null, { timeout: 10000 });
     const transition = await page.evaluate(() => {
-        const before = game.camera.quaternion.clone();
+        const before = game.camera.getWorldQuaternion(new THREE.Quaternion());
         const hud = getComputedStyle(document.getElementById('hud'));
         return {
             participants: game.bots.filter(bot => bot?.isAlive).length + 1,
@@ -41,6 +41,13 @@ const run = async (mobile = false) => {
         game.spawnTimer = 0.05;
     });
     await page.waitForFunction(() => window.game?.gameState === 'playing', null, { timeout: 10000 });
+    if (mobile) {
+        await page.evaluate(() => {
+            game.input.yaw += 0.4;
+            game.input.pitch += 0.15;
+        });
+        await page.waitForTimeout(100);
+    }
     const earlyZombies = await page.evaluate(() => game.zombies.filter(z => z?.isAlive).length);
     await page.evaluate(() => { game.roundStartTime = performance.now() * 0.001 - 46; });
     await page.waitForTimeout(1800);
@@ -100,7 +107,7 @@ const run = async (mobile = false) => {
             moved: Math.hypot(after.x - before.x, after.z - before.z),
             fps,
             transition,
-            cameraChanged: transition.camera.some((v, i) => Math.abs(v - game.camera.quaternion.toArray()[i]) > 1e-5),
+            cameraChanged: transition.camera.some((v, i) => Math.abs(v - game.camera.getWorldQuaternion(new THREE.Quaternion()).toArray()[i]) > 1e-5),
             participants: bots.length + 1,
             earlyZombies,
             pads: game.map.spawnPads.length,

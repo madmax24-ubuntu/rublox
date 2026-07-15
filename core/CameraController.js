@@ -56,15 +56,15 @@ export class CameraController {
         const { min, max } = box;
         let tmin = -Infinity, tmax = Infinity;
 
-        for (let i = 0; i < 3; i++) {
-            const d = this._tmpVec1[i];
+        for (const axis of ['x', 'y', 'z']) {
+            const d = dir[axis];
             if (Math.abs(d) < 1e-8) {
-                if (origin[i] < min[i] || origin[i] > max[i]) return null;
+                if (origin[axis] < min[axis] || origin[axis] > max[axis]) return null;
             } else {
                 const invD = 1 / d;
                 let t0, t1;
-                if (d > 0) { t0 = (min[i] - origin[i]) * invD; t1 = (max[i] - origin[i]) * invD; }
-                else { t0 = (max[i] - origin[i]) * invD; t1 = (min[i] - origin[i]) * invD; }
+                if (d > 0) { t0 = (min[axis] - origin[axis]) * invD; t1 = (max[axis] - origin[axis]) * invD; }
+                else { t0 = (max[axis] - origin[axis]) * invD; t1 = (min[axis] - origin[axis]) * invD; }
                 if (t0 > tmin) tmin = t0;
                 if (t1 < tmax) tmax = t1;
                 if (tmin > tmax) return null;
@@ -107,7 +107,7 @@ export class CameraController {
         let closestT = Infinity;
         for (let cx = minX; cx <= maxX; cx++) {
             for (let cz = minZ; cz <= maxZ; cz++) {
-                const key = `${cx},${cz}`;
+                const key = (cx << 16) | (cz & 0xFFFF);
                 const cell = grid.get(key);
                 if (!cell) continue;
                 for (let i = 0; i < cell.length; i++) {
@@ -145,7 +145,9 @@ export class CameraController {
         const nearby = [];
         for (let dx = -1; dx <= 1; dx++) {
             for (let dz = -1; dz <= 1; dz++) {
-                const key = `${cx + dx},${cz + dz}`;
+                const gx = cx + dx;
+                const gz = cz + dz;
+                const key = (gx << 16) | (gz & 0xFFFF);
                 const cell = grid.get(key);
                 if (cell) {
                     for (let i = 0; i < cell.length; i++) {
@@ -187,11 +189,8 @@ export class CameraController {
                     (min.y + max.y) * 0.5,
                     (min.z + max.z) * 0.5
                 );
-                const dir = this._tmpVec2.subVectors(cameraPos, center).normalize();
-
-                if (axis === 'x') cameraPos.x += dir.x * amount;
-                else if (axis === 'y') cameraPos.y += dir.y * amount;
-                else cameraPos.z += dir.z * amount;
+                const sign = cameraPos[axis] >= center[axis] ? 1 : -1;
+                cameraPos[axis] += sign * amount;
 
                 pushed = true;
             }

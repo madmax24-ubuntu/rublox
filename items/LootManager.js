@@ -247,7 +247,7 @@ export class LootManager {
             bandGeom2.translate(0, 0.18, 0);
             const rimGeom = new THREE.BoxGeometry(1.32, 0.06, 1.02);
             rimGeom.translate(0, 0.76, 0);
-            const mergedBandGeom = BufferGeometryUtils.mergeBufferGeometries([bandGeom1, bandGeom2, rimGeom]);
+            const mergedBandGeom = BufferGeometryUtils.mergeGeometries([bandGeom1, bandGeom2, rimGeom]);
 
             const latchGeom = new THREE.BoxGeometry(0.18, 0.18, 0.06);
             latchGeom.translate(0, 0.46, 0.48);
@@ -265,7 +265,7 @@ export class LootManager {
                 g.translate(ox, oy, oz);
                 return g;
             });
-            const mergedMetalGeom = BufferGeometryUtils.mergeBufferGeometries([latchGeom, latchPlateGeom, ...cornerGeometries]);
+            const mergedMetalGeom = BufferGeometryUtils.mergeGeometries([latchGeom, latchPlateGeom, ...cornerGeometries]);
 
             // Создаем меши
             const bodyMesh = new THREE.Mesh(bodyGeom, bodyMat);

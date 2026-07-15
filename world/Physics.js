@@ -17,7 +17,7 @@ export class Physics {
         // Wall sliding
         this.slideDamping = 0.85;
         this.maxCompression = 1.5;
-        this.boundaryMargin = 180;
+        this.boundaryMargin = Math.max(180, (mapGenerator?.halfSize || 256) - 4);
         this.boundaryForce = 12;
 
         // Reusable vectors
@@ -135,9 +135,15 @@ export class Physics {
 
             // --- Move ---
             if (!isFrozen) {
-                pos.x += vel.x * delta;
+                const moveX = vel.x * delta;
+                const moveZ = vel.z * delta;
+                const steps = Math.max(1, Math.ceil(Math.max(Math.abs(moveX), Math.abs(moveZ)) / 0.28));
                 pos.y += vel.y * delta;
-                pos.z += vel.z * delta;
+                for (let step = 0; step < steps; step++) {
+                    pos.x += moveX / steps;
+                    pos.z += moveZ / steps;
+                    this.resolveCollisions(entity);
+                }
             }
 
             // --- Single surface height query (merged) ---
@@ -152,9 +158,6 @@ export class Physics {
             } else {
                 entity.physics.onGround = false;
             }
-
-            // --- Horizontal wall collisions ---
-            this.resolveCollisions(entity, surfaceY);
 
             // --- Fall damage ---
             if (!entity.physics.wasOnGround && entity.physics.onGround) {
@@ -234,8 +237,7 @@ export class Physics {
             if (maxY === -Infinity || dist < Math.abs(maxY - bottom)) maxY = max.y;
         }
 
-        // Fallback: full scan only if grid found nothing
-        if (maxY === -Infinity) {
+        if (maxY === -Infinity && !this.colliderGrid.size) {
             for (const box of this.colliders) {
                 if (box.enabled === false || !box.walkable) continue;
                 const min = box.min;

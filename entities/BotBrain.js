@@ -280,6 +280,7 @@ export class BotBrain {
         // earlyGamePhase already computed at top of collectContext
         const crowdNear = this.countNearbyCombatants(bot, entityManager, 6.5);
         const gear = this.getGearScore(bot);
+        const combatReady = this.isCombatReady(bot);
 
         // Compute avoidance force — steer away from nearby players/bots
         // During early game, use larger radius (14m) and stronger force for scatter
@@ -358,6 +359,7 @@ export class BotBrain {
             earlyGamePhase,
             crowdNear,
             gear,
+            combatReady,
             closeCombatRadius
         };
     }
@@ -438,7 +440,7 @@ export class BotBrain {
         const veryLowHp = ctx.hp < 0.2;
         const underPressure = ctx.nearestEnemy && ctx.nearestEnemyDist < ctx.closeCombatRadius;
         const armed = !!bot.currentWeapon && bot.currentWeapon.type !== 'fists';
-        const wellArmed = armed && WEAPON_PRIORITY[bot.currentWeapon?.type] >= 5;
+        const wellArmed = ctx.combatReady;
         const hasMedkit = (bot.medkits || 0) > 0;
 
         // Personality-driven thresholds
@@ -607,25 +609,6 @@ export class BotBrain {
             bot.assignedBiomeTarget = null;
         }
 
-        // Group cohesion — bots occasionally follow nearby allies
-        if (bot.allies?.length > 0 && Math.random() < 0.3) {
-            const nearestAlly = bot.allies.reduce((best, ally) => {
-                if (!ally?.isAlive) return best;
-                const d = bot.position.distanceTo(ally.position);
-                return (!best || d < best.dist) ? { ally, dist: d } : best;
-            }, null);
-            if (nearestAlly && nearestAlly.dist > 8 && nearestAlly.dist < 40) {
-                // Move toward ally but maintain comfortable distance
-                this._tmpVec.subVectors(nearestAlly.ally.position, bot.position).normalize();
-                const offset = this._tmpVec.clone().multiplyScalar(-6);
-                const groupTarget = this._tmpMoveTarget.copy(nearestAlly.ally.position).add(offset);
-                if (bot.mapRef?.isWalkableAt?.(groupTarget.x, groupTarget.z)) {
-                    bot.patrolTarget = groupTarget;
-                    this.steerMove(bot, groupTarget, bot.physics.speed * 0.95);
-                    return;
-                }
-            }
-        }
         const agg = Math.min(1, (bot.personality?.aggression ?? 0.5) + ctx.gear * 0.18);
         // During loot phase or high crowd, scatter to opposite directions
         // Cautious bots scatter more easily; aggressive bots tolerate more crowd
@@ -702,6 +685,10 @@ export class BotBrain {
             }
 
             if (!scatterTarget) return;
+            if (!this.isInAssignedBiome(bot, scatterTarget)) {
+                scatterTarget = this.pickSpreadTarget(bot, 35, 110);
+                if (!scatterTarget) return;
+            }
             // Avoid laser ring at radius 27
             const distToLaser = Math.hypot(scatterTarget.x, scatterTarget.z);
             if (distToLaser > 23 && distToLaser < 31) {
@@ -1214,6 +1201,12 @@ export class BotBrain {
         }
         score += Math.min(0.25, (bot.armor || 0) / 100 * 0.25);
         return Math.max(0, Math.min(1, score));
+    }
+
+    isCombatReady(bot) {
+        const items = bot.inventory?.getItems?.() || [];
+        const ranged = items.some(item => item && (WEAPON_PRIORITY[item.type] || 0) >= 5 && (item.ammo === null || item.ammo > 0));
+        return ranged && ((bot.stats?.loot || 0) > 1 || (bot.lootedAreas?.length || 0) > 0) && this.getGearScore(bot) >= 0.55;
     }
 
     findNearestShelterTarget(bot) {

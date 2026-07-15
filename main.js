@@ -1613,7 +1613,7 @@ class Game {
                 ];
                 const pools = biomeDefs.map(([, test]) => floor.filter(t => {
                     const r = Math.hypot(t.x, t.z);
-                    return r > minR && r < 190 && test(t) && this.map.isWalkableAt?.(t.x, t.z) !== false;
+                    return r > minR && r < (this.map.halfSize || 256) - 18 && test(t) && this.map.isWalkableAt?.(t.x, t.z) !== false;
                 }));
                 const usedByBiome = pools.map(() => new Set());
                 for (let i = 0; i < this.bots.length; i++) {
@@ -1752,13 +1752,12 @@ class Game {
             this.hud.setVisionIntensity?.(0);
         }
 
-        const _t0 = performance.now(); this.physics.update(delta, this.gameState); const physicsMs = performance.now() - _t0;
-
-        const _t1 = performance.now(); this.player.update(delta, this.audioSynth, this.lootManager, this.entityManager, this.cameraController); const playerMs = performance.now() - _t1;
+        this.physics.update(delta, this.gameState);
+        this.player.update(delta, this.audioSynth, this.lootManager, this.entityManager, this.cameraController);
         // Обновляем камеру (позиция + вращение); frozen=true во время таймера старта
-        const _t2 = performance.now(); this.cameraController.update(delta, this.input, this.player.position, this.gameState === 'countdown'); const cameraMs = performance.now() - _t2;
+        this.cameraController.update(delta, this.input, this.player.position, this.gameState === 'countdown');
         // Batch animation updates — distance-culled in MapGenerator
-        const _t3 = performance.now(); this.map.updateAllAnimations?.(delta, this.player.position); const animMs = performance.now() - _t3;
+        this.map.updateAllAnimations?.(delta, this.player.position);
         this.updateRadiationRainEffect(delta);
         this.propVisibilityTimer -= delta;
         if (this.propVisibilityTimer <= 0) {
@@ -1848,36 +1847,34 @@ class Game {
             const bot = this.bots[botIndex];
             if (!bot.isAlive) continue;
             const distSq = bot.position.distanceToSquared(this.player.position);
-            bot._aiSkipFrame = !isCombat(bot) && ((this.botFrameCounter + botIndex) % 3 !== 0);
-
-            // OPTIMIZED: Frustum culling via pre-allocated sphere
             const sphere = bot.mesh?._frustumSphere;
             const frustum = this.camera?.frustum;
             const isInFrustum = sphere && frustum
                 ? frustum.intersectsSphere(sphere.set(bot.mesh.position, 1.2))
                 : distSq <= farBotCullDistSq;
             bot._visuallyRelevant = distSq <= midBotCullDistSq || isInFrustum;
+            bot._aiSkipFrame = !bot._visuallyRelevant && !isCombat(bot) && ((this.botFrameCounter + botIndex) % 3 !== 0);
 
             // FAR bots: update every 4 frames if idle, every 2 if combat
-            if (distSq > farBotCullDistSq) {
+            if (distSq > farBotCullDistSq && !isInFrustum) {
                 const skip = isCombat(bot)
                     ? ((this.botFrameCounter + botIndex) % 2) !== 0
                     : ((this.botFrameCounter + botIndex) % 4) !== 0;
                 if (skip) {
                     if (bot.mesh) {
                         bot.mesh.position.copy(bot.position);
-                        bot.mesh.position.y = bot.position.y - (bot.physics.height - 0.2);
+                        bot.mesh.position.y = bot.position.y - (bot.physics.height - 0.15);
                     }
                     continue;
                 }
             }
 
             // MID bots: update every 3 frames if idle, every frame if combat
-            if (distSq > midBotCullDistSq && !isCombat(bot)) {
+            if (distSq > midBotCullDistSq && !isInFrustum && !isCombat(bot)) {
                 if ((this.botFrameCounter + botIndex) % 3 !== 0) {
                     if (bot.mesh) {
                         bot.mesh.position.copy(bot.position);
-                        bot.mesh.position.y = bot.position.y - (bot.physics.height - 0.2);
+                        bot.mesh.position.y = bot.position.y - (bot.physics.height - 0.15);
                     }
                     continue;
                 }
@@ -1889,7 +1886,7 @@ class Game {
             } else {
                 // During countdown, just update mesh position
                 bot.mesh.position.copy(bot.position);
-                bot.mesh.position.y = bot.position.y - (bot.physics.height - 0.38);
+                bot.mesh.position.y = bot.position.y - (bot.physics.height - 0.15);
                 if (bot.healthBar) bot.updateHealthBar(0.05);
             }
         }

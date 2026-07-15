@@ -107,7 +107,7 @@ export class Bot {
                 gear: true,
                 hat: 'cap',
                 skin: 0xffd6b5,
-                scale: 2.0
+                scale: 1
             },
             {
                 shirt: 0xff7043,
@@ -119,7 +119,7 @@ export class Bot {
                 gear: true,
                 hat: 'beanie',
                 skin: 0xf2c9a0,
-                scale: 2.05
+                scale: 1
             },
             {
                 shirt: 0x8e24aa,
@@ -131,7 +131,7 @@ export class Bot {
                 gear: false,
                 hat: null,
                 skin: 0xf5d7b2,
-                scale: 2.0
+                scale: 1
             },
             {
                 shirt: 0x43a047,
@@ -143,7 +143,7 @@ export class Bot {
                 gear: true,
                 hat: 'helmet',
                 skin: 0xffd1a6,
-                scale: 2.1
+                scale: 1
             },
             {
                 shirt: 0xfdd835,
@@ -155,7 +155,7 @@ export class Bot {
                 gear: false,
                 hat: 'hair',
                 skin: 0xf7c59f,
-                scale: 1.95
+                scale: 1
             },
             {
                 shirt: 0x26a69a,
@@ -167,7 +167,7 @@ export class Bot {
                 gear: true,
                 hat: 'cap',
                 skin: 0xeec4a0,
-                scale: 2.05
+                scale: 1
             }
         ];
         this.variant = Math.floor(Math.random() * this.variants.length);
@@ -186,6 +186,7 @@ export class Bot {
         this.enemyEncounters = [];
 
         this.mesh = this.createMesh();
+        this.mesh.scale.setScalar(this.outfit.scale);
         // Pre-allocate bounding sphere for frustum culling
         this.mesh._frustumSphere = new THREE.Sphere(new THREE.Vector3(), 1.0);
         this.healthBar = this.createHealthBar();
@@ -495,8 +496,8 @@ export class Bot {
         group.add(bg);
         group.add(fill);
         group.position.set(0, 2.65, 0);
-        bg.renderOrder = 900;
-        fill.renderOrder = 901;
+        bg.renderOrder = 2;
+        fill.renderOrder = 3;
         group.traverse(child => {
             if (child.material) {
                 child.material.depthTest = true;
@@ -979,9 +980,8 @@ export class Bot {
                 return;
             }
 
-            // OPTIMIZED: Increase LOS interval and stagger by bot ID
-            const losInterval = 0.35 + ((this.id % 7) * 0.04);
-            if (!isMobile && this.healthBarLosTimer <= 0) {
+            const losInterval = (isMobile ? 0.5 : 0.35) + ((this.id % 7) * 0.04);
+            if (this.healthBarLosTimer <= 0) {
                 const entityManager = this.scene.userData?.entityManager;
                 if (entityManager?.hasLineOfSight) {
                     this._tmpLosFrom.copy(camera.position);
@@ -991,7 +991,7 @@ export class Bot {
                 this.healthBarLosTimer = losInterval;
             }
 
-            this.healthBar.visible = isMobile ? visible : (visible && this.healthBarVisibleCached);
+            this.healthBar.visible = visible && this.healthBarVisibleCached;
 
             if (this.healthBar.visible) {
                 this.healthBar.lookAt(camera.position);
@@ -1008,7 +1008,7 @@ export class Bot {
 
         // Handle crouch effect for HIDE state
         const crouchFactor = this.state === 'hide' ? 0.75 : 1.0;
-        this.mesh.scale.setScalar(crouchFactor);
+        this.mesh.scale.setScalar(this.outfit.scale * crouchFactor);
 
         this.mesh.position.copy(this.position);
         this.mesh.position.y = this.position.y - (this.physics.height * crouchFactor - 0.15);
@@ -1388,7 +1388,6 @@ export class Bot {
         return a + diff * t;
     }
 }
-
 
 
 

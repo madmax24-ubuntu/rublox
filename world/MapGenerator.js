@@ -1586,144 +1586,95 @@ export class MapGenerator {
         stoneFloor.userData.mapGenerated = true;
         this.scene.add(stoneFloor);
 
-        // Maze grid - cell size 12 для масштабных стен замка
-        const cellSize = 12;
-        const cols = Math.floor(size / cellSize);
-        const rows = Math.floor(size / cellSize);
-
-        const mazeCols = cols % 2 === 0 ? cols - 1 : cols;
-        const mazeRows = rows % 2 === 0 ? rows - 1 : rows;
-
-        // Grid: 1 = wall, 0 = passage
-        const grid = [];
-        for (let r = 0; r < mazeRows; r++) {
-            grid[r] = new Array(mazeCols).fill(1);
-        }
-
-        // Iterative recursive backtracker
-        const stack = [];
-        grid[1][1] = 0;
-        stack.push({ cx: 1, cy: 1 });
-
-        while (stack.length > 0) {
-            const cur = stack[stack.length - 1];
-            const cx = cur.cx;
-            const cy = cur.cy;
-
-            const neighbors = [];
-            const dirs = [
-                { dx: 0, dy: -2 },
-                { dx: 2, dy: 0 },
-                { dx: 0, dy: 2 },
-                { dx: -2, dy: 0 }
-            ];
-
-            for (const d of dirs) {
-                const nx = cx + d.dx;
-                const ny = cy + d.dy;
-                if (nx > 0 && nx < mazeCols - 1 && ny > 0 && ny < mazeRows - 1 && grid[ny][nx] === 1) {
-                    neighbors.push({ nx, ny, wx: cx + d.dx / 2, wy: cy + d.dy / 2 });
+        const margin = 14;
+        const mazeCols = 11;
+        const mazeRows = 11;
+        const cellSize = (size - margin * 2) / mazeCols;
+        const cells = Array.from({ length: mazeRows }, () => Array.from({ length: mazeCols }, () => ({ visited: false, n: true, e: true, s: true, w: true })));
+        const stack = [[0, 0]];
+        cells[0][0].visited = true;
+        const directions = [
+            [-1, 0, 'n', 's'],
+            [0, 1, 'e', 'w'],
+            [1, 0, 's', 'n'],
+            [0, -1, 'w', 'e']
+        ];
+        while (stack.length) {
+            const [r, c] = stack[stack.length - 1];
+            const candidates = [];
+            for (const [dr, dc, side, opposite] of directions) {
+                const nr = r + dr;
+                const nc = c + dc;
+                if (nr >= 0 && nr < mazeRows && nc >= 0 && nc < mazeCols && !cells[nr][nc].visited) {
+                    candidates.push([nr, nc, side, opposite]);
                 }
             }
-
-            if (neighbors.length > 0) {
-                const chosen = neighbors[Math.floor(this._rand() * neighbors.length)];
-                grid[chosen.wy][chosen.wx] = 0;
-                grid[chosen.ny][chosen.nx] = 0;
-                stack.push({ cx: chosen.nx, cy: chosen.ny });
-            } else {
+            if (!candidates.length) {
                 stack.pop();
+                continue;
             }
+            const [nr, nc, side, opposite] = candidates[Math.floor(this._rand() * candidates.length)];
+            cells[r][c][side] = false;
+            cells[nr][nc][opposite] = false;
+            cells[nr][nc].visited = true;
+            stack.push([nr, nc]);
         }
+        cells[mazeRows - 1][0].s = false;
+        cells[mazeRows - 1][0].w = false;
 
-        // Add small rooms (clear 3x3 areas)
-        for (let i = 0; i < 6; i++) {
-            const rx = 3 + Math.floor(this._rand() * (mazeCols - 6));
-            const ry = 3 + Math.floor(this._rand() * (mazeRows - 6));
-            for (let dr = -1; dr <= 1; dr++) {
-                for (let dc = -1; dc <= 1; dc++) {
-                    const r = ry + dr;
-                    const c = rx + dc;
-                    if (r > 0 && r < mazeRows - 1 && c > 0 && c < mazeCols - 1) {
-                        grid[r][c] = 0;
-                    }
-                }
-            }
-        }
-
-        // Add dead-end corridors
-        for (let i = 0; i < 10; i++) {
-            const sx = 1 + Math.floor(this._rand() * (mazeCols - 2));
-            const sy = 1 + Math.floor(this._rand() * (mazeRows - 2));
-            if (grid[sy][sx] === 0) {
-                const len = 1 + Math.floor(this._rand() * 4);
-                const dirs = [{ dx: 1, dy: 0 }, { dx: -1, dy: 0 }, { dx: 0, dy: 1 }, { dx: 0, dy: -1 }];
-                const d = dirs[Math.floor(this._rand() * 4)];
-                for (let step = 1; step <= len; step++) {
-                    const nx = sx + d.dx * step;
-                    const ny = sy + d.dy * step;
-                    if (nx > 0 && nx < mazeCols - 1 && ny > 0 && ny < mazeRows - 1) {
-                        grid[ny][nx] = 0;
-                    } else break;
-                }
-            }
-        }
-
-        // Build walls — varied stone colors
         const clearingCX = startX + size * 0.5;
         const clearingCZ = startZ + size * 0.5;
-        const clearingRadius = 25;
-
-        // Central clearing — open area in the center (apply BEFORE wall creation)
-        for (let r = 0; r < mazeRows; r++) {
-            for (let c = 0; c < mazeCols; c++) {
-                const wx = startX + c * cellSize + cellSize / 2;
-                const wz = startZ + r * cellSize + cellSize / 2;
-                const dist = Math.sqrt((wx - clearingCX) ** 2 + (wz - clearingCZ) ** 2);
-                if (dist < clearingRadius) {
-                    grid[r][c] = 0;
-                }
-            }
-        }
-
-        // Register hidden loot spots (after clearing applied)
+        const clearingRadius = 27;
         let hiddenMazeLoot = 0;
-        for (let r = 1; r < mazeRows - 1 && hiddenMazeLoot < 28; r++) {
-            for (let c = 1; c < mazeCols - 1 && hiddenMazeLoot < 28; c++) {
-                if (grid[r][c] !== 0) continue;
-                const adjacentWalls = Number(grid[r - 1][c] === 1) + Number(grid[r + 1][c] === 1) + Number(grid[r][c - 1] === 1) + Number(grid[r][c + 1] === 1);
-                if (adjacentWalls < 3) continue;
-                this._registerChestSpot(startX + c * cellSize + cellSize / 2, startZ + r * cellSize + cellSize / 2, 'maze');
+        for (let r = 0; r < mazeRows && hiddenMazeLoot < 28; r++) {
+            for (let c = 0; c < mazeCols && hiddenMazeLoot < 28; c++) {
+                const cell = cells[r][c];
+                const adjacentWalls = Number(cell.n) + Number(cell.e) + Number(cell.s) + Number(cell.w);
+                if (adjacentWalls !== 3) continue;
+                this._registerChestSpot(startX + margin + (c + 0.5) * cellSize, startZ + margin + (r + 0.5) * cellSize, 'maze');
                 hiddenMazeLoot++;
             }
         }
 
-        const wallColors = [0x666666, 0x777777, 0x5a5a5a, 0x6b6b6b, 0x5e5e5e];
+        const wallThickness = 1.35;
+        const segments = [];
+        const segmentKeys = new Set();
+        const addSegment = (x, z, width, depth) => {
+            if (Math.hypot(x - clearingCX, z - clearingCZ) < clearingRadius) return;
+            const key = `${Math.round(x * 10)},${Math.round(z * 10)},${width > depth ? 'h' : 'v'}`;
+            if (segmentKeys.has(key)) return;
+            segmentKeys.add(key);
+            segments.push({ x, z, width, depth });
+        };
         for (let r = 0; r < mazeRows; r++) {
             for (let c = 0; c < mazeCols; c++) {
-                const wx = startX + c * cellSize + cellSize / 2;
-                const wz = startZ + r * cellSize + cellSize / 2;
-
-                if (Math.sqrt(wx*wx + wz*wz) < 35) continue;
-
-                if (grid[r][c] === 1) {
-                    const wallWidth = cellSize * 0.9;
-                    const geo = this.pool.getGeoBox(wallWidth, wallHeight, wallWidth);
-                    const color = wallColors[Math.floor(this._rand() * wallColors.length)];
-                    const wallMat2 = this.pool.getMatStd(color, 0.85, 0, true, false, 1, 0, 0, true);
-                    const wall = new THREE.Mesh(geo, wallMat2);
-                    wall.position.set(wx, wallHeight / 2, wz);
-                    wall.userData.mapGenerated = true;
-                    wall.userData.isWall = true;
-                    this.scene.add(wall);
-
-                    this.addColliderBox(
-                        new THREE.Vector3(wx, wallHeight / 2, wz),
-                        wallWidth, wallHeight, wallWidth, false
-                    );
-                }
+                const cell = cells[r][c];
+                const cx = startX + margin + (c + 0.5) * cellSize;
+                const cz = startZ + margin + (r + 0.5) * cellSize;
+                if (r === 0 && cell.n) addSegment(cx, cz - cellSize / 2, cellSize + wallThickness, wallThickness);
+                if (c === 0 && cell.w) addSegment(cx - cellSize / 2, cz, wallThickness, cellSize + wallThickness);
+                if (cell.e) addSegment(cx + cellSize / 2, cz, wallThickness, cellSize + wallThickness);
+                if (cell.s) addSegment(cx, cz + cellSize / 2, cellSize + wallThickness, wallThickness);
             }
         }
+        const wallGeometry = this.pool.getGeoBox(1, 1, 1);
+        const mazeWalls = new THREE.InstancedMesh(wallGeometry, wallMat, segments.length);
+        const matrix = new THREE.Matrix4();
+        for (let i = 0; i < segments.length; i++) {
+            const segment = segments[i];
+            matrix.compose(
+                new THREE.Vector3(segment.x, wallHeight / 2, segment.z),
+                new THREE.Quaternion(),
+                new THREE.Vector3(segment.width, wallHeight, segment.depth)
+            );
+            mazeWalls.setMatrixAt(i, matrix);
+            this.addColliderBox(new THREE.Vector3(segment.x, wallHeight / 2, segment.z), segment.width, wallHeight, segment.depth, false);
+        }
+        mazeWalls.instanceMatrix.needsUpdate = true;
+        mazeWalls.computeBoundingSphere();
+        mazeWalls.userData.mapGenerated = true;
+        mazeWalls.userData.isWall = true;
+        this.scene.add(mazeWalls);
 
         this._registerChestSpot(clearingCX - 4, clearingCZ, 'tower');
         this._registerChestSpot(clearingCX + 4, clearingCZ, 'tower');
@@ -1747,7 +1698,10 @@ export class MapGenerator {
             segment.userData.mapGenerated = true;
             segment.userData.isWall = true;
             this.scene.add(segment);
-            this.addColliderBox(new THREE.Vector3(sx, towerHeight / 2, sz), 0.8, towerHeight, segmentLength, false);
+            // Account for rotation in collider — tower walls are rotated
+            const cosA = Math.abs(Math.cos(angle));
+            const sinA = Math.abs(Math.sin(angle));
+            this.addColliderBox(new THREE.Vector3(sx, towerHeight / 2, sz), 0.8 * cosA + segmentLength * sinA, towerHeight, 0.8 * sinA + segmentLength * cosA, false);
         }
 
         // Tower floor
@@ -1816,10 +1770,10 @@ export class MapGenerator {
 
         // Corner towers
         const corners = [
-            { x: startX + cellSize, z: startZ + cellSize },
-            { x: startX + (mazeCols - 1) * cellSize, z: startZ + cellSize },
-            { x: startX + cellSize, z: startZ + (mazeRows - 1) * cellSize },
-            { x: startX + (mazeCols - 1) * cellSize, z: startZ + (mazeRows - 1) * cellSize }
+            { x: startX + margin + cellSize * 0.5, z: startZ + margin + cellSize * 0.5 },
+            { x: startX + margin + (mazeCols - 0.5) * cellSize, z: startZ + margin + cellSize * 0.5 },
+            { x: startX + margin + cellSize * 0.5, z: startZ + margin + (mazeRows - 0.5) * cellSize },
+            { x: startX + margin + (mazeCols - 0.5) * cellSize, z: startZ + margin + (mazeRows - 0.5) * cellSize }
         ];
 
         for (const tp of corners) {
@@ -1853,7 +1807,7 @@ export class MapGenerator {
         // Battlements along outer perimeter walls (castle crenellations)
 
         // Castle gate at entrance from center (south-west side)
-        this._addCastleGate(startX + cellSize * 2, startZ + cellSize, wallHeight);
+        this._addCastleGate(startX + margin + cellSize * 0.5, startZ + size - margin, wallHeight);
 
         // Moss and vines — removed (not on reference)
         // this._addMazeMoss(startX, startZ, size);
