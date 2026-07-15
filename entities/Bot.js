@@ -14,7 +14,7 @@ export class Bot {
             velocity: new THREE.Vector3(0, 0, 0),
             onGround: false,
             height: 1.7,
-            radius: 0.5,
+            radius: 0.4,
             speed: 6.6 + Math.random() * 2.2
         };
 
@@ -186,22 +186,6 @@ export class Bot {
         this.enemyEncounters = [];
 
         this.mesh = this.createMesh();
-        // Normalize bot height to match player (~1.7m) via Box3
-        const box = new THREE.Box3().setFromObject(this.mesh);
-        const modelHeight = box.max.y - box.min.y;
-        const targetHeight = 1.7;
-        this.mesh.scale.setScalar(targetHeight / modelHeight);
-        // Save base scale — all future scaling is relative to this
-        this._baseScale = this.mesh.scale.x;
-        // After scaling, compute the actual bottom Y of the model — used for correct mesh offset
-        const scaledBox = new THREE.Box3().setFromObject(this.mesh);
-        this._modelBottomY_normal = scaledBox.min.y;
-        // Compute bottom Y for crouch state (0.75x base scale)
-        this.mesh.scale.setScalar(this._baseScale * 0.75);
-        const crouchBox = new THREE.Box3().setFromObject(this.mesh);
-        this._modelBottomY_crouch = crouchBox.min.y;
-        // Restore normal scale
-        this.mesh.scale.setScalar(this._baseScale);
         // Pre-allocate bounding sphere for frustum culling
         this.mesh._frustumSphere = new THREE.Sphere(new THREE.Vector3(), 1.0);
         this.healthBar = this.createHealthBar();
@@ -549,7 +533,7 @@ export class Bot {
         // OPTIMIZED: Skip expensive AI for near-idle bots every other frame
         if (this._aiSkipFrame) {
             this.mesh.position.copy(this.position);
-            this.mesh.position.y = this.position.y - (this.physics.height + this._modelBottomY_normal);
+            this.mesh.position.y = this.position.y - (this.physics.height - 0.15);
             this.mesh.rotation.y = this.rotation.y;
             if (this._visuallyRelevant) {
                 this._animTime = performance.now() / 1000;
@@ -583,7 +567,7 @@ export class Bot {
             this.physics.velocity.x = 0;
             this.physics.velocity.z = 0;
             this.mesh.position.copy(this.position);
-            this.mesh.position.y = this.position.y - (this.physics.height + this._modelBottomY_normal);
+            this.mesh.position.y = this.position.y - (this.physics.height - 0.15);
             this.mesh.rotation.y = this.rotation.y;
             this.updateWeaponTransform();
             return;
@@ -593,7 +577,7 @@ export class Bot {
             this.assistTimer = Math.max(0, this.assistTimer - delta);
             this.moveTowards(this.assistTarget.position, this.physics.speed * 1.35);
             this.mesh.position.copy(this.position);
-            this.mesh.position.y = this.position.y - (this.physics.height + this._modelBottomY_normal);
+            this.mesh.position.y = this.position.y - (this.physics.height - 0.15);
             this.mesh.rotation.y = this.rotation.y;
             this.animateLimbs();
             this.updateHealthBar(delta);
@@ -620,7 +604,7 @@ export class Bot {
             this.patrolTarget.copy(center);
             this.moveTowards(center, this.physics.speed * 1.25);
             this.mesh.position.copy(this.position);
-            this.mesh.position.y = this.position.y - (this.physics.height + this._modelBottomY_normal);
+            this.mesh.position.y = this.position.y - (this.physics.height - 0.15);
             this.mesh.rotation.y = this.rotation.y;
             this.animateLimbs();
             this.updateHealthBar(delta);
@@ -682,7 +666,7 @@ export class Bot {
         }
 
         this.mesh.position.copy(this.position);
-        this.mesh.position.y = this.position.y - (this.physics.height + this._modelBottomY_normal);
+        this.mesh.position.y = this.position.y - (this.physics.height - 0.15);
         this.mesh.rotation.y = this.rotation.y;
         if (this._visuallyRelevant) {
             this.animateLimbs();
@@ -876,7 +860,7 @@ export class Bot {
             this.isFrozen = true;
             this.physics.velocity.set(0, 0, 0);
             this.mesh.position.copy(this.position);
-            this.mesh.position.y = this.position.y - (this.physics.height + this._modelBottomY_normal) - 0.8;
+            this.mesh.position.y = this.position.y - (this.physics.height - 0.15) - 0.8;
             this.mesh.rotation.set(-Math.PI / 2, this.rotation.y, 0);
             this.syncWeaponVisibility();
             if (attacker?.stats) {
@@ -1024,11 +1008,10 @@ export class Bot {
 
         // Handle crouch effect for HIDE state
         const crouchFactor = this.state === 'hide' ? 0.75 : 1.0;
-        this.mesh.scale.setScalar(this._baseScale * crouchFactor);
-        const bottomY = crouchFactor === 1.0 ? this._modelBottomY_normal : this._modelBottomY_crouch;
+        this.mesh.scale.setScalar(crouchFactor);
 
         this.mesh.position.copy(this.position);
-        this.mesh.position.y = this.position.y - (this.physics.height * crouchFactor + bottomY);
+        this.mesh.position.y = this.position.y - (this.physics.height * crouchFactor - 0.15);
         this.mesh.rotation.y = this.rotation.y;
         this.animateLimbs();
         if (this.healthBar) this.updateHealthBar(delta);

@@ -1490,6 +1490,7 @@ export class MapGenerator {
             const sideWall = new THREE.Mesh(sideGeo, wallMat);
             sideWall.position.set(side * w / 2, h / 2, 0);
             sideWall.userData.mapGenerated = true;
+            sideWall.userData.isWall = true;
             cabin.add(sideWall);
         }
 
@@ -1497,11 +1498,13 @@ export class MapGenerator {
         const front = new THREE.Mesh(frontGeo, wallMat);
         front.position.set(0, h / 2, d / 2);
         front.userData.mapGenerated = true;
+        front.userData.isWall = true;
         cabin.add(front);
 
         const back = new THREE.Mesh(frontGeo, wallMat);
         back.position.set(0, h / 2, -d / 2);
         back.userData.mapGenerated = true;
+        back.userData.isWall = true;
         cabin.add(back);
 
         // Roof (pitched)
@@ -2800,6 +2803,7 @@ export class MapGenerator {
         const leftWall = new THREE.Mesh(leftWallGeo, wallMat);
         leftWall.position.set(-width / 2, floorH / 2 + 0.3, 0);
         leftWall.userData.mapGenerated = true;
+        leftWall.userData.isWall = true;
         building.add(leftWall);
         this.addColliderBox(new THREE.Vector3(x - width / 2, floorH / 2 + 0.3, z), wallThick, floorH, depth, false);
 
@@ -2809,12 +2813,14 @@ export class MapGenerator {
         const rwBack = new THREE.Mesh(rightWallBack, wallMat);
         rwBack.position.set(width / 2, floorH / 2 + 0.3, -depth * 0.3);
         rwBack.userData.mapGenerated = true;
+        rwBack.userData.isWall = true;
         building.add(rwBack);
         this.addColliderBox(new THREE.Vector3(x + width / 2, floorH / 2 + 0.3, z - depth * 0.3), wallThick, floorH, depth * 0.4, false);
 
         const rwFront = new THREE.Mesh(rightWallFront, wallMat);
         rwFront.position.set(width / 2, floorH / 2 + 0.3, depth * 0.35);
         rwFront.userData.mapGenerated = true;
+        rwFront.userData.isWall = true;
         building.add(rwFront);
         this.addColliderBox(new THREE.Vector3(x + width / 2, floorH / 2 + 0.3, z + depth * 0.35), wallThick, floorH, depth * 0.3, false);
 
@@ -2823,6 +2829,7 @@ export class MapGenerator {
         const backWall = new THREE.Mesh(backWallGeo, wallMat);
         backWall.position.set(0, floorH / 2 + 0.3, -depth / 2);
         backWall.userData.mapGenerated = true;
+        backWall.userData.isWall = true;
         building.add(backWall);
         this.addColliderBox(new THREE.Vector3(x, floorH / 2 + 0.3, z - depth / 2), width, floorH, wallThick, false);
 
@@ -2836,6 +2843,7 @@ export class MapGenerator {
         const frontLeft = new THREE.Mesh(frontLeftGeo, wallMat);
         frontLeft.position.set(-width / 2 + frontLeftW / 2, floorH / 2 + 0.3, depth / 2);
         frontLeft.userData.mapGenerated = true;
+        frontLeft.userData.isWall = true;
         building.add(frontLeft);
         this.addColliderBox(new THREE.Vector3(x - width / 2 + frontLeftW / 2, floorH / 2 + 0.3, z + depth / 2), frontLeftW, floorH, wallThick, false);
 
@@ -2843,6 +2851,7 @@ export class MapGenerator {
         const frontRight = new THREE.Mesh(frontRightGeo, wallMat);
         frontRight.position.set(width / 2 - frontRightW / 2, floorH / 2 + 0.3, depth / 2);
         frontRight.userData.mapGenerated = true;
+        frontRight.userData.isWall = true;
         building.add(frontRight);
         this.addColliderBox(new THREE.Vector3(x + width / 2 - frontRightW / 2, floorH / 2 + 0.3, z + depth / 2), frontRightW, floorH, wallThick, false);
 
@@ -2850,6 +2859,7 @@ export class MapGenerator {
         const frontTop = new THREE.Mesh(frontTopGeo, wallMat);
         frontTop.position.set(0, doorH + (floorH - doorH - 0.5) / 2 + 0.3, depth / 2);
         frontTop.userData.mapGenerated = true;
+        frontTop.userData.isWall = true;
         building.add(frontTop);
         this.addColliderBox(new THREE.Vector3(x, doorH + (floorH - doorH - 0.5) / 2 + 0.3, z + depth / 2), width, floorH - doorH - 0.5, wallThick, false);
 
@@ -2892,6 +2902,7 @@ export class MapGenerator {
         const leftWall2 = new THREE.Mesh(leftWall2Geo, wallMat);
         leftWall2.position.set(-width / 2, floorH + floorH / 2 + 0.3, 0);
         leftWall2.userData.mapGenerated = true;
+        leftWall2.userData.isWall = true;
         building.add(leftWall2);
         this.addColliderBox(new THREE.Vector3(x - width / 2, floorH + floorH / 2 + 0.3, z), wallThick, floorH, depth, false);
 
@@ -2900,6 +2911,7 @@ export class MapGenerator {
         const rightWall2 = new THREE.Mesh(rightWall2Geo, wallMat);
         rightWall2.position.set(width / 2, floorH + floorH / 2 + 0.3, -depth * 0.2);
         rightWall2.userData.mapGenerated = true;
+        rightWall2.userData.isWall = true;
         building.add(rightWall2);
         this.addColliderBox(new THREE.Vector3(x + width / 2, floorH + floorH / 2 + 0.3, z - depth * 0.2), wallThick, floorH, depth * 0.6, false);
 
@@ -2908,6 +2920,7 @@ export class MapGenerator {
         const backWall2 = new THREE.Mesh(backWall2Geo, wallMat);
         backWall2.position.set(0, floorH + floorH / 2 + 0.3, -depth / 2);
         backWall2.userData.mapGenerated = true;
+        backWall2.userData.isWall = true;
         building.add(backWall2);
         this.addColliderBox(new THREE.Vector3(x, floorH + floorH / 2 + 0.3, z - depth / 2), width, floorH, wallThick, false);
 
@@ -2916,6 +2929,7 @@ export class MapGenerator {
         const front2Left = new THREE.Mesh(front2LeftGeo, wallMat);
         front2Left.position.set(-width / 3, floorH + floorH / 2 + 0.3, depth / 2);
         front2Left.userData.mapGenerated = true;
+        front2Left.userData.isWall = true;
         building.add(front2Left);
         this.addColliderBox(new THREE.Vector3(x - width / 3, floorH + floorH / 2 + 0.3, z + depth / 2), width / 3, floorH, wallThick, false);
 
@@ -2923,6 +2937,7 @@ export class MapGenerator {
         const front2Right = new THREE.Mesh(front2RightGeo, wallMat);
         front2Right.position.set(width / 3, floorH + floorH / 2 + 0.3, depth / 2);
         front2Right.userData.mapGenerated = true;
+        front2Right.userData.isWall = true;
         building.add(front2Right);
         this.addColliderBox(new THREE.Vector3(x + width / 3, floorH + floorH / 2 + 0.3, z + depth / 2), width / 3, floorH, wallThick, false);
 
@@ -2949,6 +2964,7 @@ export class MapGenerator {
         const leftWall3 = new THREE.Mesh(leftWall3Geo, wallMat);
         leftWall3.position.set(-width / 2, floorH * 2 + floorH / 2 + 0.3, -depth * 0.15);
         leftWall3.userData.mapGenerated = true;
+        leftWall3.userData.isWall = true;
         building.add(leftWall3);
         this.addColliderBox(new THREE.Vector3(x - width / 2, floorH * 2 + floorH / 2 + 0.3, z - depth * 0.15), wallThick, floorH, depth * 0.7, false);
 
@@ -2956,6 +2972,7 @@ export class MapGenerator {
         const rightWall3 = new THREE.Mesh(rightWall3Geo, wallMat);
         rightWall3.position.set(width / 2, floorH * 2 + floorH / 2 + 0.3, -depth * 0.25);
         rightWall3.userData.mapGenerated = true;
+        rightWall3.userData.isWall = true;
         building.add(rightWall3);
         this.addColliderBox(new THREE.Vector3(x + width / 2, floorH * 2 + floorH / 2 + 0.3, z - depth * 0.25), wallThick, floorH, depth * 0.5, false);
 
@@ -2964,6 +2981,7 @@ export class MapGenerator {
         const backWall3 = new THREE.Mesh(backWall3Geo, wallMat);
         backWall3.position.set(0, floorH * 2 + floorH / 2 + 0.3, -depth / 2);
         backWall3.userData.mapGenerated = true;
+        backWall3.userData.isWall = true;
         building.add(backWall3);
         this.addColliderBox(new THREE.Vector3(x, floorH * 2 + floorH / 2 + 0.3, z - depth / 2), width, floorH, wallThick, false);
 
