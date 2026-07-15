@@ -74,6 +74,7 @@ export class InteriorGenerator {
         const mesh = new THREE.Mesh(geo, mat);
         mesh.position.set(center.x, center.y + height / 2, center.z);
         mesh.userData.mapGenerated = true;
+        mesh.userData.isWall = true;
         scene.add(mesh);
         meshes.push(mesh);
 

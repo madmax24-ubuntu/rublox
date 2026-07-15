@@ -704,6 +704,7 @@ export class MapGenerator {
             const sideWall = new THREE.Mesh(sideGeo, wallMat);
             sideWall.position.set(side * w / 2, storyH / 2 + 0.3, 0);
             sideWall.userData.mapGenerated = true;
+            sideWall.userData.isWall = true;
             cabin.add(sideWall);
         }
 
@@ -717,16 +718,19 @@ export class MapGenerator {
         const fwl = new THREE.Mesh(frontWallLeft, wallMat);
         fwl.position.set(-w / 4 + doorW / 2 + 0.25, storyH / 2 + 0.3, d / 2);
         fwl.userData.mapGenerated = true;
+        fwl.userData.isWall = true;
         cabin.add(fwl);
 
         const fwr = new THREE.Mesh(frontWallRight, wallMat);
         fwr.position.set(w / 4 - doorW / 2 - 0.25, storyH / 2 + 0.3, d / 2);
         fwr.userData.mapGenerated = true;
+        fwr.userData.isWall = true;
         cabin.add(fwr);
 
         const fwt = new THREE.Mesh(frontWallTop, wallMat);
         fwt.position.set(0, doorH + (storyH - doorH - 0.5) / 2 + 0.3, d / 2);
         fwt.userData.mapGenerated = true;
+        fwt.userData.isWall = true;
         cabin.add(fwt);
 
         // Задняя стена
@@ -734,6 +738,7 @@ export class MapGenerator {
         const backWall = new THREE.Mesh(backGeo, wallMat);
         backWall.position.set(0, storyH / 2 + 0.3, -d / 2);
         backWall.userData.mapGenerated = true;
+        backWall.userData.isWall = true;
         cabin.add(backWall);
 
         // Дверь
@@ -773,6 +778,7 @@ export class MapGenerator {
             const sideWall = new THREE.Mesh(sideGeo, wallMat);
             sideWall.position.set(side * w / 2, storyH + storyH / 2 + 0.3, 0);
             sideWall.userData.mapGenerated = true;
+            sideWall.userData.isWall = true;
             cabin.add(sideWall);
         }
 
@@ -781,12 +787,14 @@ export class MapGenerator {
         const front2 = new THREE.Mesh(front2Geo, wallMat);
         front2.position.set(0, storyH + storyH / 2 + 0.3, d / 2);
         front2.userData.mapGenerated = true;
+        front2.userData.isWall = true;
         cabin.add(front2);
 
         // Задняя стена второго этажа
         const back2 = new THREE.Mesh(front2Geo, wallMat);
         back2.position.set(0, storyH + storyH / 2 + 0.3, -d / 2);
         back2.userData.mapGenerated = true;
+        back2.userData.isWall = true;
         cabin.add(back2);
 
         // Окна второго этажа
@@ -891,6 +899,7 @@ export class MapGenerator {
             const sw = new THREE.Mesh(this.pool.getGeoBox(wt, h, d), wallMat);
             sw.position.set(side * w / 2, h / 2 + 0.3, 0);
             sw.userData.mapGenerated = true;
+            sw.userData.isWall = true;
             hut.add(sw);
         }
 
@@ -899,22 +908,26 @@ export class MapGenerator {
         const fwL = new THREE.Mesh(this.pool.getGeoBox(w / 2 - dw / 2 - 0.3, h, wt), wallMat);
         fwL.position.set(-w / 4 + dw / 2 + 0.15, h / 2 + 0.3, d / 2);
         fwL.userData.mapGenerated = true;
+        fwL.userData.isWall = true;
         hut.add(fwL);
 
         const fwR = new THREE.Mesh(this.pool.getGeoBox(w / 2 - dw / 2 - 0.3, h, wt), wallMat);
         fwR.position.set(w / 4 - dw / 2 - 0.15, h / 2 + 0.3, d / 2);
         fwR.userData.mapGenerated = true;
+        fwR.userData.isWall = true;
         hut.add(fwR);
 
         const fwT = new THREE.Mesh(this.pool.getGeoBox(w, h - dh - 0.3, wt), wallMat);
         fwT.position.set(0, dh + (h - dh - 0.3) / 2 + 0.3, d / 2);
         fwT.userData.mapGenerated = true;
+        fwT.userData.isWall = true;
         hut.add(fwT);
 
         // Back wall
         const bw = new THREE.Mesh(this.pool.getGeoBox(w, h, wt), wallMat);
         bw.position.set(0, h / 2 + 0.3, -d / 2);
         bw.userData.mapGenerated = true;
+        bw.userData.isWall = true;
         hut.add(bw);
 
         // Door
@@ -1697,6 +1710,7 @@ export class MapGenerator {
                     const wall = new THREE.Mesh(geo, wallMat2);
                     wall.position.set(wx, wallHeight / 2, wz);
                     wall.userData.mapGenerated = true;
+                    wall.userData.isWall = true;
                     this.scene.add(wall);
 
                     this.addColliderBox(
@@ -1727,6 +1741,7 @@ export class MapGenerator {
             segment.position.set(sx, towerHeight / 2, sz);
             segment.rotation.y = -angle;
             segment.userData.mapGenerated = true;
+            segment.userData.isWall = true;
             this.scene.add(segment);
             this.addColliderBox(new THREE.Vector3(sx, towerHeight / 2, sz), 0.8, towerHeight, segmentLength, false);
         }
@@ -2021,6 +2036,7 @@ export class MapGenerator {
         arch.rotation.y = Math.PI / 2;
         arch.position.set(0, wallHeight + 2.5, 0);
         arch.userData.mapGenerated = true;
+        arch.userData.isWall = true;
         gateGroup.add(arch);
 
         // Gate pillars
@@ -2029,6 +2045,7 @@ export class MapGenerator {
             const pillar = new THREE.Mesh(pillarGeo, mat);
             pillar.position.set(side * 5, (wallHeight + 6) / 2, 0);
             pillar.userData.mapGenerated = true;
+            pillar.userData.isWall = true;
             gateGroup.add(pillar);
         }
 
@@ -2039,6 +2056,7 @@ export class MapGenerator {
             const bar = new THREE.Mesh(barGeo, barMat);
             bar.position.set(i * 1.8, wallHeight / 2 + 3, 0);
             bar.userData.mapGenerated = true;
+            bar.userData.isWall = true;
             gateGroup.add(bar);
         }
 
@@ -2289,6 +2307,7 @@ export class MapGenerator {
             const wall = new THREE.Mesh(this.pool.getGeoBox(0.9, h, d), wallMat);
             wall.position.set(side * w / 2, h / 2, 0);
             wall.userData.mapGenerated = true;
+            wall.userData.isWall = true;
             group.add(wall);
             this.addColliderBox(new THREE.Vector3(x + side * w / 2, h / 2, z), 0.9, h, d, false);
         }
@@ -2336,6 +2355,7 @@ export class MapGenerator {
             const wall = new THREE.Mesh(this.pool.getGeoBox(sw, sh, sd), wallMat);
             wall.position.set(lx, ly, lz);
             wall.userData.mapGenerated = true;
+            wall.userData.isWall = true;
             group.add(wall);
             this.addColliderBox(new THREE.Vector3(x + lx, ly, z + lz), sw, sh, sd, false);
         }
@@ -2683,6 +2703,7 @@ export class MapGenerator {
             const wall = new THREE.Mesh(wallGeo, trenchMat);
             wall.position.set(x + side * 1.5, 0.5, z);
             wall.userData.mapGenerated = true;
+            wall.userData.isWall = true;
             this.scene.add(wall);
             this.addColliderBox(new THREE.Vector3(x + side * 1.5, 0.5, z), 0.3, 1, length, false);
         }
@@ -2699,6 +2720,7 @@ export class MapGenerator {
             const wall = new THREE.Mesh(wallGeo, trenchMat);
             wall.position.set(x + length / 2, 0.5, z + length / 2 + side * 1.5);
             wall.userData.mapGenerated = true;
+            wall.userData.isWall = true;
             this.scene.add(wall);
             this.addColliderBox(new THREE.Vector3(x + length / 2, 0.5, z + length / 2 + side * 1.5), length, 1, 0.3, false);
         }
@@ -3365,6 +3387,7 @@ export class MapGenerator {
             wallMesh.position.set(15 + this._rand() * 230, wallH / 2, 15 + this._rand() * 230);
             wallMesh.rotation.y = this._rand() * Math.PI;
             wallMesh.userData.mapGenerated = true;
+            wallMesh.userData.isWall = true;
             this.scene.add(wallMesh);
             const c = Math.abs(Math.cos(wallMesh.rotation.y));
             const s = Math.abs(Math.sin(wallMesh.rotation.y));
