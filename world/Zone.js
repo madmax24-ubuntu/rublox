@@ -6,7 +6,7 @@ export class Zone {
         this.mapSize = mapSize;
         this.currentRadius = mapSize / 2;
         this.targetRadius = mapSize / 2;
-        this.shrinkSpeed = 1.2;
+        this.shrinkSpeed = 0;
         this.damagePerSecond = 22;
         this.zoneMesh = null;
         this.ringMesh = null;
@@ -75,7 +75,7 @@ export class Zone {
     }
 
     shrink(newRadius) {
-        this.targetRadius = Math.max(10, newRadius);
+        // Zone is static — does not shrink
     }
 
     setCurrentRadius(radius) {
