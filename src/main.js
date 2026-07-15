@@ -125,6 +125,7 @@ import { Environment } from './world/Environment.js';
 import { Physics } from './world/Physics.js';
 import { Zone } from './world/Zone.js';
 import { GameLoop } from './core/GameLoop.js';
+import { CameraController } from './core/CameraController.js';
 import { Input } from './core/Input.js';
 import { AudioSynth } from './core/AudioSynth.js';
 import { Player } from './entities/Player.js';
@@ -455,6 +456,8 @@ class Game {
         
        // Создаём остальные объекты, которые зависят от карты
         this.physics = new Physics(this.scene, this.map);
+        this.cameraControls = new CameraController(this.scene, this.camera, this.renderer.domElement, this.physics);
+        this.cameraControls.init(this.isMobile());
         this.zone = new Zone(this.scene, this.map.size);
         this.zoneDuration = GAME_CONFIG.zone.durationSeconds;
         this.zoneMinRadius = Math.max(
@@ -748,13 +751,9 @@ class Game {
     syncCameraToPlayer() {
         const isTestMode = this._testMode || (typeof localStorage !== 'undefined' && localStorage.getItem('testMode') === 'true');
         if (isTestMode) return;
-        if (!this.player || !this.camera) return;
+        if (!this.player || !this.camera || !this.cameraControls) return;
         if (!this.player.parent && this.scene) this.scene.add(this.player);
-        if (this.player.pitch && this.camera.parent !== this.player.pitch) {
-            this.player.pitch.add(this.camera);
-            this.camera.position.set(0, 0, 0);
-            this.camera.rotation.set(0, 0, 0);
-        }
+        this.cameraControls.update(0, this.input, this.player.position, this.player.isCameraFrozen);
     }
 
     getSafePlayerSpawn() {
@@ -1993,9 +1992,9 @@ class Game {
         this.physics.update(delta);
 
         this.resetInvalidPlayerState();
-        this.player.update(delta, this.audioSynth, this.lootManager, this.entityManager);
+        this.player.update(delta, this.audioSynth, this.lootManager, this.entityManager, this.cameraControls);
         this.map?.activateTrapsNearEntity?.(this.player);
-        this.syncCameraToPlayer();
+        this.cameraControls.update(delta, this.input, this.player.position, this.player.isCameraFrozen);
         this.map.update?.(delta, this.player.position);
         this.tileMapGenerator?.update?.(delta);
         this.updateRadiationRainEffect(delta);

@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 
 export class CameraController {
-    constructor(scene, camera, domElement) {
+    constructor(scene, camera, domElement, physics) {
         this.camera = camera;
         this.scene = scene;
         this.domElement = domElement;
+        this.physics = physics;
         this.rotation = new THREE.Euler(0, 0, 0, 'YXZ');
         this.fov = 75;
         this.isLocked = false;
@@ -21,6 +22,11 @@ export class CameraController {
         this._maxPitch = Math.PI / 2.4;
         this._mouseDx = 0;
         this._mouseDy = 0;
+        this._cameraRadius = 0.15;
+        this._tmpVec1 = new THREE.Vector3();
+        this._tmpVec2 = new THREE.Vector3();
+        this._tmpVec3 = new THREE.Vector3();
+        this._tmpVec4 = new THREE.Vector3();
     }
 
     init(isMobile) {
@@ -43,6 +49,72 @@ export class CameraController {
                 if (!this.isLocked) this.lock();
             };
             this.domElement.addEventListener('pointerdown', this._onPointerDown);
+        }
+    }
+
+    resolveCollision(cameraPos, playerPos) {
+        const colliders = this.physics?.colliders;
+        if (!colliders || colliders.length === 0) return;
+        const grid = this.physics.colliderGrid;
+        const cellSize = this.physics.colliderGridCellSize;
+        const r = this._cameraRadius;
+
+        // Query nearby cells
+        const cx = Math.floor(cameraPos.x / cellSize);
+        const cz = Math.floor(cameraPos.z / cellSize);
+        const nearby = [];
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dz = -1; dz <= 1; dz++) {
+                const key = `${cx + dx},${cz + dz}`;
+                const cell = grid.get(key);
+                if (cell) {
+                    for (let i = 0; i < cell.length; i++) {
+                        nearby.push(cell[i]);
+                    }
+                }
+            }
+        }
+
+        // AABB point test + push-out on shortest axis
+        let pushed = true;
+        let iterations = 0;
+        while (pushed && iterations < 4) {
+            pushed = false;
+            iterations++;
+            for (const box of nearby) {
+                if (!box.min || !box.max) continue;
+                const min = box.min;
+                const max = box.max;
+
+                // Check if camera is inside this collider
+                if (cameraPos.x + r <= min.x || cameraPos.x - r >= max.x) continue;
+                if (cameraPos.y + r <= min.y || cameraPos.y - r >= max.y) continue;
+                if (cameraPos.z + r <= min.z || cameraPos.z - r >= max.z) continue;
+
+                // Camera is inside — push out along shortest axis
+                const overlapX = Math.min(cameraPos.x + r - min.x, max.x - (cameraPos.x - r));
+                const overlapY = Math.min(cameraPos.y + r - min.y, max.y - (cameraPos.y - r));
+                const overlapZ = Math.min(cameraPos.z + r - min.z, max.z - (cameraPos.z - r));
+
+                let axis = 'x', amount = overlapX;
+                if (overlapY < amount) { axis = 'y'; amount = overlapY; }
+                if (overlapZ < amount) { axis = 'z'; amount = overlapZ; }
+
+                // Push away from center of collider
+                const center = this._tmpVec1;
+                center.set(
+                    (min.x + max.x) * 0.5,
+                    (min.y + max.y) * 0.5,
+                    (min.z + max.z) * 0.5
+                );
+                const dir = this._tmpVec2.subVectors(cameraPos, center).normalize();
+
+                if (axis === 'x') cameraPos.x += dir.x * amount;
+                else if (axis === 'y') cameraPos.y += dir.y * amount;
+                else cameraPos.z += dir.z * amount;
+
+                pushed = true;
+            }
         }
     }
 
@@ -97,6 +169,10 @@ export class CameraController {
                 targetY + this._shakeOffset.y,
                 playerPos.z + this._shakeOffset.z
             );
+
+            // Resolve camera collision with world
+            this.resolveCollision(this.camera.position, playerPos);
+
             if (!hasShake) {
                 this._lastPos.x = playerPos.x;
                 this._lastPos.y = targetY;
