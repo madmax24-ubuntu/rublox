@@ -30,6 +30,7 @@ await page.evaluate(async () => {
     if (g && g.camera && g.scene && g.player) {
         // Disable camera sync
         g.syncCameraToPlayer = () => {};
+        if (g.cameraController) g.cameraController.update = () => {};
         
         // Disable Player.updateCamera
         g.player.updateCamera = () => {};
@@ -45,6 +46,8 @@ await page.evaluate(async () => {
         
         // Set top-down camera
         g.camera.position.set(0, 800, 0);
+        g.camera.up.set(0, 0, -1);
+        g.camera.far = 5000;
         g.camera.lookAt(0, 0, 0);
         g.camera.updateProjectionMatrix();
         
@@ -64,6 +67,7 @@ for (let i = 0; i < 10; i++) {
         const g = window.game;
         if (g && g.camera && g.scene) {
             g.syncCameraToPlayer = () => {};
+            if (g.cameraController) g.cameraController.update = () => {};
             if (g.player?.updateCamera) g.player.updateCamera = () => {};
             
             if (g.player?.pitch && g.player.pitch.children.includes(g.camera)) {
@@ -74,6 +78,8 @@ for (let i = 0; i < 10; i++) {
             }
             g.scene.add(g.camera);
             g.camera.position.set(0, 800, 0);
+            g.camera.up.set(0, 0, -1);
+            g.camera.far = 5000;
             g.camera.lookAt(0, 0, 0);
             g.camera.updateProjectionMatrix();
             if (g.player) {

@@ -140,7 +140,7 @@ export class MapGenerator {
         // Skip biomeBoundary objects — they are the walls between biomes
         const toRemove = [];
         for (const child of this.scene.children) {
-            if (child.userData?.mapGenerated && !child.userData?.isCornucopia && !child.userData?.biomeBoundary) {
+            if (child.userData?.mapGenerated && !child.isInstancedMesh && !child.userData?.isCornucopia && !child.userData?.biomeBoundary) {
                 const dist = Math.sqrt(child.position.x * child.position.x + child.position.z * child.position.z);
                 if (dist < 75) {
                     toRemove.push(child);
@@ -1671,6 +1671,7 @@ export class MapGenerator {
         }
         mazeWalls.instanceMatrix.needsUpdate = true;
         mazeWalls.computeBoundingSphere();
+        mazeWalls.frustumCulled = false;
         mazeWalls.userData.mapGenerated = true;
         mazeWalls.userData.isWall = true;
         this.scene.add(mazeWalls);

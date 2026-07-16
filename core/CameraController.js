@@ -198,7 +198,7 @@ export class CameraController {
     }
 
     update(delta, input, playerPos, frozen = false) {
-        const targetY = playerPos.y + 1.5;
+        const targetY = playerPos.y + 0.15;
         const hasShake = this._shakeOffset.lengthSq() > 0;
 
         if (frozen) {
