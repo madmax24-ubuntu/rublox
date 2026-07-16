@@ -1684,6 +1684,8 @@ class Game {
                 this.eventTimelineIndex = 0;
                 this.activeEvent = { type: null, timer: 0, prevFog: null };
                 this.initialZombieWaveQueued = false;
+                this.queueZombieBurst(true, 1.1, 110, this.isMobile() ? 12 : 18, this.isMobile() ? 2 : 3);
+                this.queuePoiBurst(0.9, this.isMobile() ? 8 : 12, this.isMobile() ? 2 : 3);
                 this.randomEventTimer = GAME_CONFIG.events.randomTimerMin + Math.random() * GAME_CONFIG.events.randomTimerVariance;
                 this.startZoneCycle();
                 this.player.setInvulnerable(false);
@@ -1999,25 +2001,24 @@ class Game {
 
             if (elapsed >= gracePeriod && !this.initialZombieWaveQueued) {
                 this.initialZombieWaveQueued = true;
-                this.queueZombieBurst(true, 1.35, 120, this.isMobile() ? 14 : 20, this.isMobile() ? 3 : 5);
+                this.queueZombieBurst(false, 1.35, 140, this.isMobile() ? 14 : 20, this.isMobile() ? 3 : 5);
                 this.queuePoiBurst(1.2, this.isMobile() ? 12 : 18, this.isMobile() ? 3 : 4);
             }
 
-            if (elapsed >= gracePeriod) {
-                this.zombieMaintainTimer = Math.max(0, this.zombieMaintainTimer - delta);
-                if (this.zombieMaintainTimer <= 0) {
-                    const aliveZombies = this.zombies.filter(z => z?.isAlive).length;
-                    const growth = Math.floor(Math.min(5, elapsed / 120)) * 2;
-                    const nightBonus = isNight ? (this.isMobile() ? 8 : 14) : 0;
-                    const minAlive = (this.isMobile() ? 16 : 22) + growth + nightBonus;
-                    if (aliveZombies < minAlive) {
-                        const need = minAlive - aliveZombies;
-                        this.queuePoiBurst(1.45, Math.min(14, need + 2), this.isMobile() ? 3 : 4);
-                        this.queueZombieBurst(false, 2.0, 180, Math.max(0, need - 2), this.isMobile() ? 4 : 5);
-                    }
-                    this.ensurePoiZombiePresence(this.isMobile() ? 8 : 12);
-                    this.zombieMaintainTimer = 3.2 + Math.random() * 1.4;
+            this.zombieMaintainTimer = Math.max(0, this.zombieMaintainTimer - delta);
+            if (this.zombieMaintainTimer <= 0) {
+                const aliveZombies = this.zombies.filter(z => z?.isAlive).length;
+                const growth = Math.floor(Math.min(5, elapsed / 120)) * 2;
+                const nightBonus = isNight ? (this.isMobile() ? 8 : 14) : 0;
+                const basePersistent = elapsed < gracePeriod ? (this.isMobile() ? 10 : 14) : (this.isMobile() ? 16 : 22);
+                const minAlive = basePersistent + growth + nightBonus;
+                if (aliveZombies < minAlive) {
+                    const need = minAlive - aliveZombies;
+                    this.queuePoiBurst(1.45, Math.min(14, need + 2), this.isMobile() ? 3 : 4);
+                    this.queueZombieBurst(false, 2.0, 180, Math.max(0, need - 2), this.isMobile() ? 4 : 5);
                 }
+                this.ensurePoiZombiePresence(this.isMobile() ? 8 : 12);
+                this.zombieMaintainTimer = 3.2 + Math.random() * 1.4;
             }
 
             if (elapsed >= gracePeriod) {
@@ -2026,7 +2027,9 @@ class Game {
                     if (this.waveTimer <= 0) {
                         this.waveActive = true;
                         this.waveRemaining = GAME_CONFIG.events.waveDurationSeconds;
-                        this.queueZombieBurst(false, 2.5, 120, GAME_CONFIG.events.zombieRush.zombieCount, 4);
+                        const waveTier = 1 + Math.min(5, Math.floor(elapsed / 120));
+                        this.queueZombieBurst(false, 2.35 + waveTier * 0.3, 180, GAME_CONFIG.events.zombieRush.zombieCount + waveTier * 4, this.isMobile() ? 3 : 5);
+                        this.queuePoiBurst(1.2 + waveTier * 0.12, this.isMobile() ? 8 : 12, this.isMobile() ? 2 : 4);
                         this.hud.showGameMessage("Волна зомби! Готовьтесь к бою!");
                     }
                 } else {

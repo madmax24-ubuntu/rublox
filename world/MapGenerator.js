@@ -16,7 +16,7 @@ import { MeshPool } from "./MeshPool.js";
 //   5. Spawn pads only on walkable surfaces (platforms, bridges, clearings)
 // ============================================================================
 
-const MAP_SIZE = 512;
+const MAP_SIZE = 480;
 const TILE_SIZE = 4;
 const GRID_W = MAP_SIZE / TILE_SIZE; // 128
 const GRID_H = MAP_SIZE / TILE_SIZE; // 128
@@ -121,6 +121,7 @@ export class MapGenerator {
 
         // Phase 2: Central cornucopia + spawn courtyard
         this._generateCornucopia();
+        this._addPlatformExitRamps();
 
         // Phase 3: River + bridges (simplified - just thin dividers)
         this._generateRiver();
@@ -141,7 +142,7 @@ export class MapGenerator {
         // Skip biomeBoundary objects — they are the walls between biomes
         const toRemove = [];
         for (const child of this.scene.children) {
-            if (child.userData?.mapGenerated && !child.isInstancedMesh && !child.userData?.isCornucopia && !child.userData?.biomeBoundary) {
+            if (child.userData?.mapGenerated && !child.isInstancedMesh && !child.userData?.isCornucopia && !child.userData?.biomeBoundary && !child.userData?.isBiomeEntrance) {
                 const dist = Math.sqrt(child.position.x * child.position.x + child.position.z * child.position.z);
                 if (dist < 75) {
                     toRemove.push(child);
@@ -158,6 +159,7 @@ export class MapGenerator {
         }
         this.colliders = this.colliders.filter(c => {
             if (c.isCornucopia) return true;
+            if (c.isBiomeEntrance) return true;
             if (c.userData?.biomeBoundary) return true;
             const cx = (c.min.x + c.max.x) / 2;
             const cz = (c.min.z + c.max.z) / 2;
@@ -267,10 +269,10 @@ export class MapGenerator {
     _generateTerrain() {
         // 4 плоскости для каждого квадранта (центр каждого квадранта)
         const quadrants = [
-            { x: -128, z: -128, color: COLORS.forestTerrain },   // СЗ
-            { x: 128, z: -128, color: COLORS.mazeTerrain },      // СВ
-            { x: -128, z: 128, color: COLORS.militaryTerrain },  // ЮЗ
-            { x: 128, z: 128, color: COLORS.iceTerrain }         // ЮВ
+            { x: -HALF / 2, z: -HALF / 2, color: COLORS.forestTerrain },
+            { x: HALF / 2, z: -HALF / 2, color: COLORS.mazeTerrain },
+            { x: -HALF / 2, z: HALF / 2, color: COLORS.militaryTerrain },
+            { x: HALF / 2, z: HALF / 2, color: COLORS.iceTerrain }
         ];
 
         for (const q of quadrants) {
@@ -386,6 +388,32 @@ export class MapGenerator {
         columnCol.isCornucopia = true;
         const upperCol = this.addColliderBox(new THREE.Vector3(0, 2 + 5.4 * fountainScale, 0), 6.2 * fountainScale, 0.8 * fountainScale, 6.2 * fountainScale, false);
         upperCol.isCornucopia = true;
+    }
+
+    _addPlatformExitRamps() {
+        const material = this.pool.getMatStd(0x8f826b, 0.92, 0, true, false, 1, 0, 0);
+        const steps = 10;
+        const width = 9;
+        const depth = 1.35;
+        for (const angle of [Math.PI / 4, Math.PI * 3 / 4, Math.PI * 5 / 4, Math.PI * 7 / 4]) {
+            for (let i = 0; i < steps; i++) {
+                const radius = 53.6 + (i + 0.5) * depth;
+                const top = 1.9 - i * 0.19;
+                const x = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
+                const mesh = new THREE.Mesh(this.pool.getGeoBox(width, top, depth + 0.08), material);
+                mesh.position.set(x, top / 2, z);
+                mesh.rotation.y = -angle;
+                mesh.userData.mapGenerated = true;
+                mesh.userData.isCornucopia = true;
+                mesh.userData.walkable = true;
+                this.scene.add(mesh);
+                const c = Math.abs(Math.cos(angle));
+                const s = Math.abs(Math.sin(angle));
+                const collider = this.addColliderBox(new THREE.Vector3(x, top / 2, z), width * c + depth * s, top, width * s + depth * c, true);
+                collider.isCornucopia = true;
+            }
+        }
     }
 
     // =========================================================================
@@ -1828,7 +1856,10 @@ export class MapGenerator {
         // Battlements along outer perimeter walls (castle crenellations)
 
         // Castle gate at entrance from center (south-west side)
-        this._addCastleGate(startX + margin + cellWidth * 0.5, startZ + depth - margin, wallHeight);
+        const entranceX = startX + margin + cellWidth * 0.5;
+        const entranceZ = startZ + depth - margin;
+        this._addCastleGate(entranceX, entranceZ, wallHeight);
+        this._addMazeToCenterPath(entranceX, entranceZ);
 
     }
 
@@ -2126,32 +2157,45 @@ export class MapGenerator {
         }
     }
 
-    _addMazeToCenterPath(clearingCX, clearingCZ) {
-        const pathMat = this.pool.getMatStd(0x9e9e9e, 1.0, 0, true, false, 1, 0, 0);
-
-        // Path from maze clearing to biome border (toward center)
-        const startX2 = clearingCX;
-        const startZ2 = clearingCZ;
-        const endX = 15;
-        const endZ = clearingCZ;
-
-        let px = startX2;
-        let pz = startZ2;
-        for (let i = 0; i < 15; i++) {
-            const t = i / 14;
-            const segGeo = this.pool.getGeoBox(3, 0.05, 4);
-            const seg = new THREE.Mesh(segGeo, pathMat);
-            seg.position.set(
-                px + (endX - px) * t,
-                0.03,
-                pz + (endZ - pz) * t
-            );
-            seg.userData.mapGenerated = true;
-            seg.userData.walkable = true;
-            this.scene.add(seg);
-            this.addColliderBox(new THREE.Vector3(seg.position.x, 0.03, seg.position.z), 3, 0.05, 4, true);
-            px += (endX - px) * 0.15 + (this._rand() - 0.5) * 2;
-            pz += (endZ - pz) * 0.15 + (this._rand() - 0.5) * 2;
+    _addMazeToCenterPath(entranceX, entranceZ) {
+        const gateAngle = -Math.PI / 4;
+        const start = new THREE.Vector3(Math.cos(gateAngle) * 66, 0, Math.sin(gateAngle) * 66);
+        const end = new THREE.Vector3(entranceX, 0, entranceZ);
+        const dx = end.x - start.x;
+        const dz = end.z - start.z;
+        const length = Math.hypot(dx, dz);
+        const angle = Math.atan2(dx, dz);
+        const midpoint = start.clone().add(end).multiplyScalar(0.5);
+        const floorMat = this.pool.getMatStd(0x8a8174, 0.96, 0, true, false, 1, 0, 0);
+        const wallMat = this.pool.getMatStd(0x666666, 0.88, 0, true, false, 1, 0, 0, true);
+        const floor = new THREE.Mesh(this.pool.getGeoBox(9, 0.18, length + 1.5), floorMat);
+        floor.position.set(midpoint.x, 0.09, midpoint.z);
+        floor.rotation.y = angle;
+        floor.userData.mapGenerated = true;
+        floor.userData.walkable = true;
+        floor.userData.isBiomeEntrance = true;
+        this.scene.add(floor);
+        const floorCollider = this.addColliderBox(new THREE.Vector3(midpoint.x, 0.09, midpoint.z), 9 * Math.abs(Math.cos(angle)) + length * Math.abs(Math.sin(angle)), 0.18, 9 * Math.abs(Math.sin(angle)) + length * Math.abs(Math.cos(angle)), true);
+        floorCollider.isBiomeEntrance = true;
+        const sideX = Math.cos(angle) * 5.5;
+        const sideZ = -Math.sin(angle) * 5.5;
+        const segmentCount = Math.max(1, Math.ceil(length / 4));
+        const segmentLength = length / segmentCount + 0.2;
+        for (const side of [-1, 1]) {
+            for (let i = 0; i < segmentCount; i++) {
+                const t = (i + 0.5) / segmentCount;
+                const x = start.x + dx * t + sideX * side;
+                const z = start.z + dz * t + sideZ * side;
+                const wall = new THREE.Mesh(this.pool.getGeoBox(1.4, 18, segmentLength), wallMat);
+                wall.position.set(x, 9, z);
+                wall.rotation.y = angle;
+                wall.userData.mapGenerated = true;
+                wall.userData.isBiomeEntrance = true;
+                wall.userData.isWall = true;
+                this.scene.add(wall);
+                const collider = this.addColliderBox(new THREE.Vector3(x, 9, z), 1.4 * Math.abs(Math.cos(angle)) + segmentLength * Math.abs(Math.sin(angle)), 18, 1.4 * Math.abs(Math.sin(angle)) + segmentLength * Math.abs(Math.cos(angle)), false);
+                collider.isBiomeEntrance = true;
+            }
         }
     }
 

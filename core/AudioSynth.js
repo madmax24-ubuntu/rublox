@@ -43,6 +43,7 @@ export class AudioSynth {
         this.sampleBuffers = new Map();
         this.sampleLoadStarted = false;
         this.sampleLoadPromise = null;
+        this._initPromise = null;
         this._unlockHandlersBound = false;
         this._unlockInProgress = null;
         this.lastWeaponSfxTime = Object.create(null);
@@ -151,9 +152,11 @@ export class AudioSynth {
     }
 
     _ensureLazyInit() {
-        if (this._lazyInitCalled) return;
-        this._lazyInitCalled = true;
-        this.init().catch(() => {});
+        if (!this._initPromise) {
+            this._lazyInitCalled = true;
+            this._initPromise = this.init().catch(() => false);
+        }
+        return this._initPromise;
     }
 
     async init() {
@@ -195,8 +198,9 @@ export class AudioSynth {
 
             this.musicGain.gain.value = this.musicVolume;
             this.masterSfxGain.gain.value = this.sfxVolume;
-            await this.loadSamples();
+            this.loadSamples().catch(() => {});
             this.bindUnlockHandlers();
+            return true;
         } catch (e) {
             console.warn('Web Audio API not supported');
         }
@@ -220,7 +224,7 @@ export class AudioSynth {
         window.addEventListener('keydown', unlockOnce, { passive: true });
     }
     async unlock() {
-        this._ensureLazyInit();
+        await this._ensureLazyInit();
         if (!this.audioContext) return false;
         if (this.audioContext.state === 'running') return true;
         if (this._unlockInProgress) return this._unlockInProgress;
@@ -367,15 +371,14 @@ export class AudioSynth {
             await this.unlock();
             if (this.audioContext.state !== 'running') return false;
         }
-        const path = this.pickSample(pathList);
-        if (!path) return false;
-
-        let buffer = this.sampleBuffers.get(path);
-        if (!buffer && this.sampleLoadPromise) {
+        let path = this.pickSample(pathList);
+        if (!path && this.sampleLoadPromise) {
             await Promise.race([this.sampleLoadPromise, new Promise(r => setTimeout(r, 2000))]);
-            buffer = this.sampleBuffers.get(path);
-            if (!buffer) return false;
+            path = this.pickSample(pathList);
         }
+        if (!path) return false;
+        const buffer = this.sampleBuffers.get(path);
+        if (!buffer) return false;
 
         const ctx = this.audioContext;
         const now = ctx.currentTime + (options.delay || 0);
@@ -811,14 +814,17 @@ export class AudioSynth {
 
     playLaser(position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`laser:${emitterKey}`, this.weaponSfxCooldown.laser)) return;
-        this.playSample(this.sampleCatalog.laser, { volume: (this.isMobileDevice ? 0.48 : 0.56) * this.getEmitterSfxScale(emitterKey), rateMin: 0.96, rateMax: 1.04, position, category: 'weapon', maxDuration: 0.16, voiceKey: `weapon:laser:${emitterKey}` });
+        const scale = this.getEmitterSfxScale(emitterKey);
+        this.playSample(this.sampleCatalog.laser, { volume: (this.isMobileDevice ? 0.48 : 0.56) * scale, rateMin: 0.96, rateMax: 1.04, position, category: 'weapon', maxDuration: 0.16, voiceKey: `weapon:laser:${emitterKey}` })
+            .then(played => { if (!played) this.playProceduralShot('laser', 0.2 * scale, position); });
     }
 
     playShotgun(volume = 1, position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`shotgun:${emitterKey}`, this.weaponSfxCooldown.shotgun)) return;
         const scaled = clamp(volume, 0.1, 1.5);
+        const scale = this.getEmitterSfxScale(emitterKey);
         this.playSample(this.sampleCatalog.shotgun, {
-            volume: (this.isMobileDevice ? 0.88 : 1.2) * scaled * this.getEmitterSfxScale(emitterKey),
+            volume: (this.isMobileDevice ? 0.88 : 1.2) * scaled * scale,
             rateMin: 0.92,
             rateMax: 1.04,
             reverbSend: 0.08,
@@ -826,13 +832,14 @@ export class AudioSynth {
             position,
             category: 'weapon',
             voiceKey: `weapon:shotgun:${emitterKey}`
-        });
+        }).then(played => { if (!played) this.playProceduralShot('shotgun', 0.32 * scaled * scale, position); });
     }
 
     playPistol(position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`pistol:${emitterKey}`, this.weaponSfxCooldown.pistol)) return;
+        const scale = this.getEmitterSfxScale(emitterKey);
         this.playSample(this.sampleCatalog.pistol, {
-            volume: (this.isMobileDevice ? 1.2 : 1.35) * this.getEmitterSfxScale(emitterKey),
+            volume: (this.isMobileDevice ? 1.2 : 1.35) * scale,
             rateMin: 0.98,
             rateMax: 1.03,
             reverbSend: 0.01,
@@ -841,13 +848,14 @@ export class AudioSynth {
             position,
             category: 'weapon',
             voiceKey: `weapon:pistol:${emitterKey}`
-        });
+        }).then(played => { if (!played) this.playNoiseBurst({ duration: 0.11, volume: 0.24 * scale, highpass: 180, lowpass: 3600, position, category: 'weapon' }); });
     }
 
     playRifle(position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`rifle:${emitterKey}`, this.weaponSfxCooldown.rifle)) return;
+        const scale = this.getEmitterSfxScale(emitterKey);
         this.playSample(this.sampleCatalog.rifle, {
-            volume: (this.isMobileDevice ? 1.05 : 1.2) * this.getEmitterSfxScale(emitterKey),
+            volume: (this.isMobileDevice ? 1.05 : 1.2) * scale,
             rateMin: 0.95,
             rateMax: 1.02,
             reverbSend: 0.015,
@@ -856,13 +864,14 @@ export class AudioSynth {
             position,
             category: 'weapon',
             voiceKey: `weapon:rifle:${emitterKey}`
-        });
+        }).then(played => { if (!played) this.playNoiseBurst({ duration: 0.13, volume: 0.28 * scale, highpass: 120, lowpass: 3200, position, category: 'weapon' }); });
     }
 
     playMachinegun(position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`machinegun:${emitterKey}`, this.weaponSfxCooldown.machinegun)) return;
+        const scale = this.getEmitterSfxScale(emitterKey);
         return this.playSample(this.sampleCatalog.machinegun, {
-            volume: (this.isMobileDevice ? 0.95 : 1.08) * this.getEmitterSfxScale(emitterKey),
+            volume: (this.isMobileDevice ? 0.95 : 1.08) * scale,
             rateMin: 1.02,
             rateMax: 1.15,
             reverbSend: 0.005,
@@ -872,7 +881,7 @@ export class AudioSynth {
             category: 'weapon',
             voiceKey: `weapon:machinegun:${emitterKey}`
         }).then(played => played || this.playSample(this.sampleCatalog.rifle, {
-            volume: (this.isMobileDevice ? 0.86 : 0.98) * this.getEmitterSfxScale(emitterKey),
+            volume: (this.isMobileDevice ? 0.86 : 0.98) * scale,
             rateMin: 1.08,
             rateMax: 1.18,
             reverbSend: 0.005,
@@ -881,13 +890,17 @@ export class AudioSynth {
             position,
             category: 'weapon',
             voiceKey: `weapon:machinegun:${emitterKey}`
-        }));
+        })).then(played => {
+            if (!played) this.playNoiseBurst({ duration: 0.09, volume: 0.22 * scale, highpass: 150, lowpass: 3500, position, category: 'weapon' });
+            return played;
+        });
     }
 
     playFlamethrower(position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`flamethrower:${emitterKey}`, this.weaponSfxCooldown.flamethrower)) return;
+        const scale = this.getEmitterSfxScale(emitterKey);
         this.playSample(this.sampleCatalog.flamethrower, {
-            volume: (this.isMobileDevice ? 0.52 : 0.7) * this.getEmitterSfxScale(emitterKey),
+            volume: (this.isMobileDevice ? 0.52 : 0.7) * scale,
             rateMin: 0.45,
             rateMax: 0.62,
             reverbSend: 0.08,
@@ -895,7 +908,7 @@ export class AudioSynth {
             position,
             category: 'weapon',
             voiceKey: `weapon:flamethrower:${emitterKey}`
-        });
+        }).then(played => { if (!played) this.playProceduralShot('flamethrower', 0.22 * scale, position); });
     }
 
     playTimerTick(volume = 1) {

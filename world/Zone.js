@@ -4,7 +4,7 @@ export class Zone {
     constructor(scene, mapSize) {
         this.scene = scene;
         this.mapSize = mapSize;
-        this.currentRadius = mapSize / 2 + 1;
+        this.currentRadius = mapSize / 2 - 0.6;
         this.targetRadius = this.currentRadius;
         this.shrinkSpeed = 0;
         this.damagePerSecond = 22;

@@ -371,7 +371,8 @@ export class Weapon {
         this.animateAttack();
         if (audioSynth) {
             const srcPos = owner?.position || null;
-            const srcKey = owner?.id !== undefined ? `id:${owner.id}` : (owner?.constructor?.name || 'entity');
+            const ownerType = owner?.constructor?.name || 'entity';
+            const srcKey = ownerType === 'Player' ? 'player' : (owner?.id !== undefined ? `id:${owner.id}` : ownerType);
             if (this.type === 'knife' || this.type === 'fists') audioSynth.playHit?.(srcPos, srcKey);
             else if (this.type === 'bow') audioSynth.playBowShot?.(srcPos, srcKey);
             else if (this.type === 'laser') audioSynth.playLaser?.(srcPos, srcKey);
