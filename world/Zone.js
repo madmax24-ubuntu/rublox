@@ -4,8 +4,8 @@ export class Zone {
     constructor(scene, mapSize) {
         this.scene = scene;
         this.mapSize = mapSize;
-        this.currentRadius = mapSize / 2;
-        this.targetRadius = mapSize / 2;
+        this.currentRadius = mapSize / 2 + 1;
+        this.targetRadius = this.currentRadius;
         this.shrinkSpeed = 0;
         this.damagePerSecond = 22;
         this.zoneMesh = null;
@@ -15,7 +15,11 @@ export class Zone {
 
     syncVisuals() {
         if (this.zoneMesh) {
-            this.zoneMesh.scale.set(this.currentRadius, 1, this.currentRadius);
+            const walls = this.zoneMesh.children;
+            walls[0]?.position.set(0, 50, -this.currentRadius);
+            walls[1]?.position.set(0, 50, this.currentRadius);
+            walls[2]?.position.set(-this.currentRadius, 50, 0);
+            walls[3]?.position.set(this.currentRadius, 50, 0);
         }
         if (this.ringMesh) {
             this.ringMesh.scale.set(this.currentRadius, 1, this.currentRadius);
@@ -23,7 +27,6 @@ export class Zone {
     }
 
     createZone() {
-        const geometry = new THREE.CylinderGeometry(1, 1, 200, 48, 1, true);
         const material = new THREE.MeshBasicMaterial({
             color: 0x4fc3ff,
             transparent: true,
@@ -31,19 +34,24 @@ export class Zone {
             depthWrite: false,
             side: THREE.DoubleSide
         });
-
-        this.zoneMesh = new THREE.Mesh(geometry, material);
-        this.zoneMesh.position.y = 50;
-        this.zoneMesh.scale.set(this.currentRadius, 1, this.currentRadius);
-        this.zoneMesh.visible = true;
+        this.zoneMesh = new THREE.Group();
+        const horizontal = new THREE.BoxGeometry(this.mapSize + 4, 100, 0.8);
+        const vertical = new THREE.BoxGeometry(0.8, 100, this.mapSize + 4);
+        this.zoneMesh.add(
+            new THREE.Mesh(horizontal, material),
+            new THREE.Mesh(horizontal, material),
+            new THREE.Mesh(vertical, material),
+            new THREE.Mesh(vertical, material)
+        );
         this.scene.add(this.zoneMesh);
+        this.syncVisuals();
 
-        const ringPoints = [];
-        const ringSegments = 128;
-        for (let i = 0; i < ringSegments; i++) {
-            const angle = (i / ringSegments) * Math.PI * 2;
-            ringPoints.push(new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle)));
-        }
+        const ringPoints = [
+            new THREE.Vector3(-1, 0, -1),
+            new THREE.Vector3(1, 0, -1),
+            new THREE.Vector3(1, 0, 1),
+            new THREE.Vector3(-1, 0, 1)
+        ];
         const ringGeo = new THREE.BufferGeometry().setFromPoints(ringPoints);
         const ringMat = new THREE.LineBasicMaterial({
             color: 0x4fc3ff,
@@ -70,7 +78,7 @@ export class Zone {
         }
         if (this.zoneMesh) {
             const pulse = 0.2 + Math.sin(performance.now() * 0.003) * 0.04;
-            this.zoneMesh.material.opacity = Math.max(0.14, pulse);
+            for (const wall of this.zoneMesh.children) wall.material.opacity = Math.max(0.14, pulse);
         }
     }
 
@@ -87,13 +95,11 @@ export class Zone {
     }
 
     isInsideZone(position) {
-        const distanceFromCenter = Math.sqrt(position.x ** 2 + position.z ** 2);
-        return distanceFromCenter < this.currentRadius;
+        return Math.max(Math.abs(position.x), Math.abs(position.z)) < this.currentRadius;
     }
 
     getDistanceFromZone(position) {
-        const distanceFromCenter = Math.sqrt(position.x ** 2 + position.z ** 2);
-        return Math.max(0, distanceFromCenter - this.currentRadius);
+        return Math.max(0, Math.max(Math.abs(position.x), Math.abs(position.z)) - this.currentRadius);
     }
 
     getDamage(delta, position = null) {

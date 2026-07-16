@@ -1666,7 +1666,12 @@ class Game {
                     bot.assignedBiome = biomeDefs[biomeIndex][0];
                     bot.assignedBiomeUntil = performance.now() + 180000;
                     const signs = [[-1, -1], [1, -1], [-1, 1], [1, 1]][biomeIndex];
-                    bot.assignedBiomeEntry = new THREE.Vector3(signs[0] * 56, 0, signs[1] * 56);
+                    const laneIndex = assignedCounts[biomeIndex] - 1;
+                    const laneOffset = ((laneIndex % 9) - 4) * 1.05;
+                    const entryDistance = 54 + Math.floor(laneIndex / 9) * 4;
+                    const entryX = signs[0] * entryDistance + signs[1] * laneOffset;
+                    const entryZ = signs[1] * entryDistance - signs[0] * laneOffset;
+                    bot.assignedBiomeEntry = new THREE.Vector3(entryX, 0, entryZ);
                     bot.assignedBiomeTarget = bot.patrolTarget.clone();
                 }
                 this.spawnScatterInitialized = true;
@@ -2137,6 +2142,7 @@ class Game {
             this.hud.updateMinimap?.({
                 mapSize: this.map.size,
                 zoneRadius: this.zone.getCurrentRadius(),
+                zoneShape: 'square',
                 player: this.player.position,
                 bots: botPoints,
                 zombies: zombiePoints

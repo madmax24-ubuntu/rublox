@@ -459,7 +459,7 @@ export class BotBrain {
         // Caution adjusts undergeared threshold: cautious bots hide with less gear
         const undergearedThreshold = 0.3 + cau * 0.2;
         // Aggression adjusts crowd tolerance: aggressive bots tolerate more crowd in combat
-        const crowdTolerance = Math.max(1, Math.round(1 + agg * 3));
+        const crowdTolerance = ctx.earlyGamePhase ? 1 : Math.max(1, Math.round(1 + agg));
         // Caution adjusts retreat threshold: cautious bots retreat at higher HP
         const retreatHpThreshold = 0.2 + cau * 0.15;
 
@@ -625,7 +625,7 @@ export class BotBrain {
         const agg = Math.min(1, (bot.personality?.aggression ?? 0.5) + ctx.gear * 0.18);
         // During loot phase or high crowd, scatter to opposite directions
         // Cautious bots scatter more easily; aggressive bots tolerate more crowd
-        const scatterThreshold = Math.max(1, Math.round(3 - agg * 2));
+        const scatterThreshold = ctx.earlyGamePhase ? 1 : Math.max(1, Math.round(2 - agg));
         const isScatterPhase = ctx.earlyGamePhase || ctx.inPreLootPhase;
         const needsScatter = isScatterPhase || ctx.crowdNear >= scatterThreshold;
 
@@ -654,24 +654,21 @@ export class BotBrain {
             let scatterTarget = null;
             if (count >= 2) {
                 // Scatter AWAY from the center of nearby entities
-                const dir = this._tmpVec.set(
-                    bot.position.x - avgX,
-                    0,
-                    bot.position.z - avgZ
-                ).normalize();
-                // Add unique offset per bot ID to prevent bots from following same path
-                const idOffset = bot.id * 0.15;
-                const perpDir = this._tmpVec.set(-dir.z, 0, dir.x);
-                const combinedDir = this._tmpSpreadVec.set(
-                    dir.x + perpDir.x * idOffset,
-                    0,
-                    dir.z + perpDir.z * idOffset
-                ).normalize();
+                const dirX = bot.position.x - avgX;
+                const dirZ = bot.position.z - avgZ;
+                const dirLength = Math.max(0.001, Math.hypot(dirX, dirZ));
+                const nx = dirX / dirLength;
+                const nz = dirZ / dirLength;
+                const idAngle = ((Number(bot.id) || 0) * 2.399963229) % (Math.PI * 2);
+                const uniqueWeight = 0.42;
+                const combinedX = nx + Math.cos(idAngle) * uniqueWeight;
+                const combinedZ = nz + Math.sin(idAngle) * uniqueWeight;
+                const combinedLength = Math.max(0.001, Math.hypot(combinedX, combinedZ));
                 const dist = ctx.earlyGamePhase ? (120 + Math.random() * 60) : (80 + Math.random() * 40);
-                scatterTarget = this._tmpMoveTarget.set(
-                    bot.position.x + combinedDir.x * dist,
+                scatterTarget = new THREE.Vector3(
+                    bot.position.x + combinedX / combinedLength * dist,
                     bot.position.y,
-                    bot.position.z + combinedDir.z * dist
+                    bot.position.z + combinedZ / combinedLength * dist
                 );
             } else if (ctx.nearestEnemy) {
                 const dir = this._tmpVec.set(
@@ -713,7 +710,7 @@ export class BotBrain {
                     Math.sin(angle) * (27 + 5 * pushDir)
                 );
             }
-            bot.patrolTarget = scatterTarget;
+            bot.patrolTarget = scatterTarget.clone();
             // Move at natural speed during scatter — no frantic sprinting
             const scatterSpeed = ctx.inPreLootPhase ? 1.1 : (ctx.earlyGamePhase ? 1.05 : 0.95);
             this.steerMove(bot, scatterTarget, bot.physics.speed * scatterSpeed);
@@ -1152,7 +1149,7 @@ export class BotBrain {
                 best = this._tmpSpreadVec.set(tile.x, 0, tile.z);
             }
         }
-        return best;
+        return best?.clone() || null;
     }
 
     isInAssignedBiome(bot, point) {

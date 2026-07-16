@@ -532,14 +532,6 @@ export class MapGenerator {
         const startZ = -236;
         const size = 220;
 
-        // Лесной пол с текстурой
-        const forestFloorMat = this.pool.getMatStd(0x2d5a27, 0.95, 0, true, false, 1, 0, 0);
-        const forestFloorGeo = this.pool.getGeoBox(size, 0.3, size);
-        const forestFloor = new THREE.Mesh(forestFloorGeo, forestFloorMat);
-        forestFloor.position.set(startX + size / 2, -0.15, startZ + size / 2); // top surface at Y=0
-        forestFloor.userData.mapGenerated = true;
-        this.scene.add(forestFloor);
-
         // Центральная поляна — светлая зона с травой
         const clearingCX = startX + size * 0.5;
         const clearingCZ = startZ + size * 0.5;
@@ -600,14 +592,6 @@ export class MapGenerator {
             }
         }
 
-        for (let i = 0; i < 24; i++) {
-            const fx = startX + 5 + this._rand() * (size - 10);
-            const fz = startZ + 5 + this._rand() * (size - 10);
-            if (!this._distToClearing(fx, fz, clearingCX, clearingCZ, clearingRadius + 5)) {
-                this._addForestFlowers(fx, fz);
-            }
-        }
-
         // Fallen logs for atmosphere
         for (let i = 0; i < 5; i++) {
             const lx = startX + 10 + this._rand() * (size - 20);
@@ -662,16 +646,6 @@ export class MapGenerator {
             river.userData.mapGenerated = true;
             this.scene.add(river);
 
-            // River banks — rocks along edges
-            for (let side of [-1, 1]) {
-                const bankGeo = this.pool.getGeoDodecahedron(0.4 + this._rand() * 0.4, 0);
-                const bankMat = this.pool.getMatStd(0x757575, 0.95, 0, true, false, 1, 0, 0);
-                const bank = new THREE.Mesh(bankGeo, bankMat);
-                bank.position.set(rx + side * width / 2, 0.15, rz + (this._rand() - 0.5) * 2);
-                bank.userData.mapGenerated = true;
-                bank.userData.instancable = true;
-                this.scene.add(bank);
-            }
         }
     }
 
@@ -1611,15 +1585,7 @@ export class MapGenerator {
         const wallHeight = 18; // Высокие стены замка
 
         const wallMat = this.pool.getMatStd(0x666666, 0.85, 0, true, false, 1, 0, 0, true);
-        const floorMat = this.pool.getMatStd(0x888888, 0.9, 0, true, false, 1, 0, 0);
         const darkMat = this.pool.getMatStd(COLORS.mazeTower, 0.9, 0, true, false, 1, 0, 0);
-
-        // Каменный пол по всему биому
-        const stoneFloorGeo = this.pool.getGeoBox(width, 0.3, depth);
-        const stoneFloor = new THREE.Mesh(stoneFloorGeo, floorMat);
-        stoneFloor.position.set(startX + width / 2, -0.15, startZ + depth / 2); // top surface at Y=0
-        stoneFloor.userData.mapGenerated = true;
-        this.scene.add(stoneFloor);
 
         const margin = 14;
         const mazeCols = 11;
@@ -2199,14 +2165,6 @@ export class MapGenerator {
         const cx = startX + size / 2;
         const cz = startZ + size / 2;
 
-        // Военный пол (бетон/асфальт)
-        const militaryFloorMat = this.pool.getMatStd(0x747474, 0.94, 0, true, false, 1, 0, 0);
-        const militaryFloorGeo = this.pool.getGeoBox(size, 0.3, size);
-        const militaryFloor = new THREE.Mesh(militaryFloorGeo, militaryFloorMat);
-        militaryFloor.position.set(cx, -0.15, cz); // top surface at Y=0
-        militaryFloor.userData.mapGenerated = true;
-        this.scene.add(militaryFloor);
-
         // Колючая проволока по периметру с входом
         this._addBarbedWireFence(startX, startZ, size);
 
@@ -2292,8 +2250,6 @@ export class MapGenerator {
 
         // Edge trees — dense military perimeter
 
-        // Path from military to center
-        this._addMilitaryToCenterPath(cx, cz);
     }
 
     _addMilitaryHangar(x, z, w, d, h) {
@@ -3324,13 +3280,6 @@ export class MapGenerator {
     // =========================================================================
     _generateIceQuadrant() {
         // ЮВ квадрант: x в [10, 256], z в [10, 256]
-        const iceFloorMat = this.pool.getMatStd(0xddeeff, 0.8, 0, true, false, 1, 0, 0);
-        const iceFloorGeo = this.pool.getGeoBox(220, 0.3, 220);
-        const iceFloor = new THREE.Mesh(iceFloorGeo, iceFloorMat);
-        iceFloor.position.set(126, -0.15, 126); // top surface at Y=0
-        iceFloor.userData.mapGenerated = true;
-        this.scene.add(iceFloor);
-
         // ---- СТУПЕНЧАТОЕ КВАДРАТНОЕ ОЗЕРО (как в референсе) ----
         this._generateSteppedIceLake(130, 130);
 
@@ -3357,9 +3306,6 @@ export class MapGenerator {
         for (const pos of iglooPositions) {
             this._addDetailedIgloo(pos.x, pos.z);
         }
-
-        // Ледяные трещины на поверхности озера
-        this._addIceCracks(130, 130);
 
         // Зимний костёр у озера
         this._addIceCampfire(175, 100);
@@ -3399,7 +3345,7 @@ export class MapGenerator {
             const wallW = 3 + this._rand() * 6;
             const wallH = 2 + this._rand() * 3;
             const wallGeo = this.pool.getGeoBox(wallW, wallH, 0.5);
-            const wallMat = this.pool.getMatStd(0xccddff, 0.4, 0, false, true, 0.7, 0, 0);
+            const wallMat = this.pool.getMatStd(0xb7d3e8, 0.72, 0.05, true, false, 1, 0, 0);
             const wallMesh = new THREE.Mesh(wallGeo, wallMat);
             wallMesh.position.set(18 + this._rand() * 216, wallH / 2, 18 + this._rand() * 216);
             wallMesh.rotation.y = this._rand() * Math.PI;
@@ -3417,15 +3363,6 @@ export class MapGenerator {
         // Edge trees — dense ice perimeter
         this._addIceEdgeTrees(10, 10, 236);
 
-        // Snow piles around igloos
-        this._addIceSnowPiles(10, 10, 236);
-
-        // POI items in ice zone
-        this._addIcePOI(10, 10, 236);
-
-        // Path from ice to center
-        this._addIceToCenterPath(100, 100);
-
         // Falling snow particles
         this._addSnowParticles();
     }
@@ -3434,9 +3371,9 @@ export class MapGenerator {
     // STEPPED ICE LAKE — квадратные ступенчатые платформы льда как в референсе
     // =========================================================================
     _generateSteppedIceLake(cx, cz) {
-        const lakeMat = this.pool.getMatStd(0x7ecff5, 0.15, 0.3, false, true, 0.82, 0, 0);
-        const icePlatMat = this.pool.getMatStd(0xaaddff, 0.4, 0.1, true, true, 0.9, 0, 0);
-        const shallowMat = this.pool.getMatStd(0x5ab8f0, 0.2, 0.2, false, true, 0.75, 0, 0);
+        const lakeMat = this.pool.getMatStd(0x65b9dd, 0.42, 0.08, true, false, 1, 0, 0);
+        const icePlatMat = this.pool.getMatStd(0xb8e5f4, 0.58, 0.04, true, false, 1, 0, 0);
+        const shallowMat = this.pool.getMatStd(0x8bd2eb, 0.5, 0.05, true, false, 1, 0, 0);
 
         // Центральное озеро — глубокая часть (самая синяя)
         const deepGeo = this.pool.getGeoBox(60, 0.3, 60);
@@ -3501,22 +3438,6 @@ export class MapGenerator {
                 new THREE.Vector3(cx + t.dx, t.y, cz + t.dz),
                 t.w, 0.15, t.d, true
             );
-        }
-
-        // Ледяные трещины и детали на центральной части
-        for (let i = 0; i < 4; i++) {
-            const angle = (i / 8) * Math.PI * 2;
-            const r = 10 + this._rand() * 15;
-            const crackX = cx + Math.cos(angle) * r;
-            const crackZ = cz + Math.sin(angle) * r;
-            const crackLen = 3 + this._rand() * 6;
-            const crackGeo = this.pool.getGeoBox(crackLen, 0.05, 0.15);
-            const crackMat = this.pool.getMatStd(0x336699, 0.3, 0, true, false, 1, 0, 0);
-            const crack = new THREE.Mesh(crackGeo, crackMat);
-            crack.position.set(crackX, 0.25, crackZ);
-            crack.rotation.y = angle + this._rand() * 0.5;
-            crack.userData.mapGenerated = true;
-            this.scene.add(crack);
         }
 
         // Снежные купола на льду (большие глыбы льда по краям)
@@ -3617,7 +3538,7 @@ export class MapGenerator {
         const fireMat = this.pool.getMatStd(0xff6600, 0.9, 0, true, true, 0.8, 0xff4400, 8.0);
 
         // Stone ring
-        for (let i = 0; i < 1; i++) {
+        for (let i = 0; i < 8; i++) {
             const angle = (i / 8) * Math.PI * 2;
             const stoneGeo = this.pool.getGeoDodecahedron(0.3);
             const stone = new THREE.Mesh(stoneGeo, stoneMat);
@@ -4122,7 +4043,7 @@ export class MapGenerator {
         const sides = 6 + Math.floor(this._rand() * 3);
 
         const geo = this.pool.getGeoCone(radius, height);
-        const mat = this.pool.getMatStd(COLORS.iceCrystal + Math.floor(this._rand() * 0x20 - 0x10), 0.2, 0.2, true, true, 0.85, 0, 0);
+        const mat = this.pool.getMatStd(COLORS.iceCrystal + Math.floor(this._rand() * 0x20 - 0x10), 0.55, 0.08, true, false, 1, 0, 0);
 
         const crystal = new THREE.Mesh(geo, mat);
         crystal.position.set(x, height / 2, z);
@@ -4215,9 +4136,8 @@ export class MapGenerator {
     // =========================================================================
     _placeBiomeDecor() {
         for (const [x, z] of [[-220, -72], [-188, -208], [-92, -190], [-212, -152], [-76, -92]]) this._addFallenLog(x, z);
-        const iceMat = this.pool.getMatStd(0xa9d9f4, 0.35, 0.08, true, true, 0.88, 0, 0);
         for (const [x, z] of [[-214, 92], [-174, 214], [-76, 92], [-74, 214]]) this._addGuardPost(x, z);
-        for (const [x, z, r] of [[78, 82, 0], [132, 70, Math.PI / 2], [194, 88, 0], [82, 192, Math.PI / 2], [192, 190, 0]]) this._addThemeArch(x, z, r, iceMat);
+        for (const [x, z] of [[82, 88], [142, 74], [202, 94], [86, 194], [194, 192], [148, 218]]) this._addIceChunk(x, z);
     }
 
     _addThemeArch(x, z, rotation, material) {
@@ -4274,15 +4194,8 @@ export class MapGenerator {
             if (x > -5 || z > -5 || Math.sqrt(x * x + z * z) < 80) continue;
             this._addBarrel(x, z);
         }
-        for (let i = 0; i < 4; i++) {
-            const x = -HALF + 15 + this._rand() * (HALF - 40);
-            const z = -HALF + 15 + this._rand() * (HALF - 40);
-            if (x > -5 || z > -5 || Math.sqrt(x * x + z * z) < 80) continue;
-            this._addMushroomCluster(x, z);
-        }
-
         // Military cover: ammo crates + sandbag stacks (SW quadrant only)
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < 8; i++) {
             const x = -HALF + 15 + this._rand() * (HALF - 40);
             const z = 5 + this._rand() * (HALF - 25);
             if (x > -5 || z < 5 || Math.sqrt(x * x + z * z) < 80) continue;
@@ -4295,8 +4208,8 @@ export class MapGenerator {
             this._addSandbagBarrier(x, z);
         }
 
-        // Ice cover: snow mounds + ice chunks (SE quadrant only)
-        for (let i = 0; i < 4; i++) {
+        // Ice cover: large opaque boulders (SE quadrant only)
+        for (let i = 0; i < 8; i++) {
             const x = 5 + this._rand() * (HALF - 25);
             const z = 5 + this._rand() * (HALF - 25);
             if (x < 5 || z < 5 || Math.sqrt(x * x + z * z) < MIN_BUILDING_DISTANCE) continue;
@@ -4402,21 +4315,24 @@ export class MapGenerator {
     }
 
     _addIceChunk(x, z) {
-        const size = 0.5 + this._rand() * 1.5;
-        const geo = this.pool.getGeoDodecahedron(size);
-        const mat = this.pool.getMatStd(COLORS.iceCrystal, 0.3, 0.1, true, true, 0.8, 0, 0);
+        const size = 3.2 + this._rand() * 3.4;
+        const height = size * (0.72 + this._rand() * 0.45);
+        const geo = this.pool.getGeoDodecahedron(1);
+        const mat = this.pool.getMatStd(0x9bc9df, 0.62, 0.08, true, false, 1, 0, 0);
         const chunk = new THREE.Mesh(geo, mat);
-        chunk.position.set(x, size * 0.3, z);
+        chunk.position.set(x, height * 0.48, z);
+        chunk.scale.set(size, height, size * (0.82 + this._rand() * 0.32));
         chunk.rotation.set(
+            (this._rand() - 0.5) * 0.16,
             this._rand() * Math.PI,
-            this._rand() * Math.PI,
-            this._rand() * Math.PI
+            (this._rand() - 0.5) * 0.16
         );
         chunk.userData.mapGenerated = true;
+        chunk.userData.isCover = true;
         this.scene.add(chunk);
         this.addColliderBox(
-            new THREE.Vector3(x, size * 0.3, z),
-            size * 1.0, size * 0.5, size * 1.0, false
+            new THREE.Vector3(x, height * 0.48, z),
+            size * 1.55, height * 0.92, size * 1.55, false
         );
     }
 

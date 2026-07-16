@@ -18,6 +18,7 @@ export class Environment {
         this.hemi = null;
         this.nightAmbientColor = new THREE.Color(0x0b132b);
         this.targetExposure = 1;
+        this.renderedSkyColor = new THREE.Color(0x8899aa);
 
         // Biome-specific fog/sky colors
         this.biomeFogColors = {
@@ -127,8 +128,8 @@ export class Environment {
                 this.targetExposure = 0.82;
             } else {
                 this.targetFog = 0.0036;
-        this.targetExposure = 1;
-        this.stormFlashTimer = 2;
+                this.targetExposure = 1;
+                this.stormFlashTimer = 2;
             }
         } else {
             this.targetFog = 0.0036;
@@ -161,12 +162,14 @@ export class Environment {
             this.targetFog = this.overrideFog;
         }
 
-        this.scene.background = skyColor;
+        const skyBlend = 1 - Math.exp(-Math.max(0, delta) * 0.55);
+        this.renderedSkyColor.lerp(skyColor, skyBlend);
+        this.scene.background.copy(this.renderedSkyColor);
         if (this.scene.fog) {
             if (this.overrideFogColor) {
                 this.scene.fog.color.lerp(this.overrideFogColor, delta * 2.5);
             } else {
-                this.scene.fog.color.lerp(skyColor, delta * 2);
+                this.scene.fog.color.lerp(this.renderedSkyColor, Math.min(1, delta * 0.8));
             }
             this.scene.fog.density = THREE.MathUtils.lerp(this.scene.fog.density, this.targetFog, delta * 0.6);
         }
@@ -212,6 +215,10 @@ export class Environment {
         this.stormIntensity = intensity;
         if (active) {
             this.weatherType = 'storm';
+            this.weatherChanged = true;
+        } else if (this.weatherType === 'storm') {
+            this.weatherType = 'clear';
+            this.currentWeather = 'clear';
             this.weatherChanged = true;
         }
     }

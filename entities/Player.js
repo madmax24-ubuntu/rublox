@@ -614,7 +614,8 @@ export class Player {
                     result.projectile.mesh.lookAt(this._tmpLookTarget);
                     entityManager.addProjectile(result.projectile);
                 }
-                this.viewKick = 0.25 * this.recoilScale;
+                const recoilByType = { laser: 0.09, shotgun: 0.42, flamethrower: 0.06, pistol: 0.26, rifle: 0.22, machinegun: 0.13 };
+                this.viewKick = (recoilByType[activeWeapon.type] || 0.2) * this.recoilScale;
                 this.weaponActionTime = this.weaponActionDuration;
                 this.weaponActionType = activeWeapon.type;
             } else {
@@ -772,6 +773,15 @@ export class Player {
                 this.viewWeapon.position.z -= swing * 0.08;
             }
 
+            if (this.viewWeaponType === 'bow' && this.bowCharge > 0) {
+                const draw = Math.min(1, this.bowCharge / this.bowChargeMax);
+                this.viewWeapon.position.x -= draw * 0.05;
+                this.viewWeapon.position.z += draw * 0.14;
+                this.viewWeapon.rotation.y -= draw * 0.045;
+                arms.leftHand.position.z -= draw * 0.08;
+                arms.rightHand.position.z += draw * 0.16;
+            }
+
             if ((this.viewWeaponType === 'bow' || this.viewWeaponType === 'laser' || this.viewWeaponType === 'shotgun' || this.viewWeaponType === 'pistol' || this.viewWeaponType === 'rifle' || this.viewWeaponType === 'flamethrower' || this.viewWeaponType === 'machinegun') && this.viewKick > 0) {
                 this.viewWeapon.position.z -= this.viewKick * 0.2;
                 this.viewWeapon.rotation.x -= this.viewKick * 0.6;
@@ -801,7 +811,7 @@ export class Player {
         const weaponType = this.currentWeapon?.type || 'fists';
         if (weaponType !== this._lastArmWeaponType) {
             this._lastArmWeaponType = weaponType;
-            const showArms = weaponType === 'fists';
+            const showArms = true;
             limbs.leftArm.visible = showArms;
             limbs.rightArm.visible = showArms;
             limbs.leftHand.visible = showArms;

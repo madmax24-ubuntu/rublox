@@ -116,14 +116,21 @@ function createBowModel() {
         stringMat
     );
     string.frustumCulled = false;
+    string.userData.isBowString = true;
     group.add(string);
+    const arrow = createArrowProjectileMesh();
+    arrow.scale.setScalar(0.48);
+    arrow.position.set(0.2, 0, 0);
+    arrow.userData.isNockedArrow = true;
+    group.add(arrow);
     group.scale.setScalar(0.84);
     return group;
 }
 
 function createGunModel(style) {
     const group = new THREE.Group();
-    const metal = getMaterial(`${style}_metal`, () => new THREE.MeshStandardMaterial({ color: 0x444b56, roughness: 0.44, metalness: 0.48, flatShading: true }));
+    const metalColors = { pistol: 0x626b76, rifle: 0x3f4852, machinegun: 0x343b43, shotgun: 0x555d66, flamethrower: 0x5d6268, laser: 0x3d5268 };
+    const metal = getMaterial(`${style}_metal`, () => new THREE.MeshStandardMaterial({ color: metalColors[style] || 0x444b56, roughness: 0.34, metalness: 0.62, flatShading: true }));
     const dark = getMaterial(`${style}_dark`, () => new THREE.MeshStandardMaterial({ color: 0x1d2128, roughness: 0.58, metalness: 0.22, flatShading: true }));
     const wood = getMaterial(`${style}_wood`, () => new THREE.MeshStandardMaterial({ color: 0x6b4a2f, roughness: 0.76, metalness: 0.05, flatShading: true }));
     const neon = getMaterial(`${style}_neon`, () => new THREE.MeshStandardMaterial({ color: 0x6ad3ff, emissive: 0x6ad3ff, emissiveIntensity: 0.35, roughness: 0.22, metalness: 0.36, flatShading: true }));
@@ -161,6 +168,11 @@ function createGunModel(style) {
         group.add(createPart(getGeom('laser_core', () => new THREE.CylinderGeometry(0.035, 0.035, 0.4, 8)), neon, 0.18, 0.06, 0, 0, 0, Math.PI / 2));
         group.add(createPart(getGeom('laser_grip', () => new THREE.BoxGeometry(0.12, 0.22, 0.12)), dark, -0.06, -0.17, 0));
         group.add(createPart(getGeom('laser_cell', () => new THREE.BoxGeometry(0.12, 0.18, 0.12)), neon, -0.04, -0.04, 0));
+    }
+
+    if (style !== 'flamethrower') {
+        group.add(createPart(getGeom(`${style}_front_sight`, () => new THREE.BoxGeometry(0.035, 0.09, 0.035)), dark, 0.48, 0.2, 0));
+        group.add(createPart(getGeom(`${style}_rear_sight`, () => new THREE.BoxGeometry(0.05, 0.07, 0.05)), dark, -0.06, 0.2, 0));
     }
 
     group.rotation.y = Math.PI;

@@ -1654,7 +1654,11 @@ export class HUD {
         const zoneRadius = Math.max(0, data.zoneRadius || 0) * scale;
         if (zoneRadius > 1) {
             ctx.beginPath();
-            ctx.arc(half, half, zoneRadius, 0, Math.PI * 2);
+            if (data.zoneShape === 'square') {
+                ctx.rect(half - zoneRadius, half - zoneRadius, zoneRadius * 2, zoneRadius * 2);
+            } else {
+                ctx.arc(half, half, zoneRadius, 0, Math.PI * 2);
+            }
             ctx.fillStyle = 'rgba(38, 140, 255, 0.08)';
             ctx.fill();
             ctx.strokeStyle = 'rgba(96, 190, 255, 0.95)';
