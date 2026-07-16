@@ -119,20 +119,6 @@ export class HUD {
         zoneInfo.textContent = '\u0417\u043e\u043d\u0430: \u0411\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u0430\u044f';
         topBar.appendChild(zoneInfo);
 
-        const modeInfo = document.createElement('div');
-        modeInfo.id = 'modeInfo';
-        modeInfo.style.cssText = `
-            background: rgba(255, 255, 255, 0.12);
-            padding: ${px(6)}px ${px(14)}px;
-            border-radius: ${px(10)}px;
-            border: 2px solid rgba(255, 255, 255, 0.08);
-            font-size: ${px(isMobile ? 11 : 12)}px;
-            font-weight: 700;
-            opacity: ${isMobile ? '0.88' : '1'};
-        `;
-        modeInfo.textContent = '\u0420\u0435\u0436\u0438\u043c: Classic';
-        topBar.appendChild(modeInfo);
-
         const perkInfo = document.createElement('div');
         perkInfo.id = 'perkInfo';
         perkInfo.style.cssText = `
@@ -1289,8 +1275,7 @@ export class HUD {
     }
 
     setRoundMode(label) {
-        const modeInfo = document.getElementById('modeInfo');
-        if (modeInfo) modeInfo.textContent = `\u0420\u0435\u0436\u0438\u043c: ${label}`;
+        return label;
     }
 
     setPerk(label) {
@@ -1299,8 +1284,9 @@ export class HUD {
         const perkButton = document.getElementById('perkButton');
         if (perkButton) {
             if (label && label !== '-') {
-                perkButton.textContent = `ПЕРК: ${label}`;
+                perkButton.style.display = 'none';
             } else {
+                perkButton.style.display = 'block';
                 perkButton.textContent = 'ПЕРК ДО СТАРТА';
             }
         }

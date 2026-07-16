@@ -127,6 +127,12 @@ export class BotBrain {
             }
         }
 
+        if (bot.assignedBiomeEntry && now < (bot.assignedBiomeUntil || 0) && Math.hypot(bot.position.x, bot.position.z) < 72 && !bot.forceShelterActive && !ctx.outsideZone) {
+            bot.state = STATES.EXPLORE;
+            this.steerMove(bot, bot.assignedBiomeEntry, bot.physics.speed * 1.25);
+            return;
+        }
+
         if (bot.state === STATES.SHELTER) {
             this.actShelter(bot, ctx, lootManager);
             return;
@@ -600,6 +606,13 @@ export class BotBrain {
 
     actExplore(bot, ctx) {
         const now = performance.now();
+        if (bot.assignedBiomeEntry && now < (bot.assignedBiomeUntil || 0)) {
+            if (Math.hypot(bot.position.x, bot.position.z) < 72) {
+                this.steerMove(bot, bot.assignedBiomeEntry, bot.physics.speed * 1.25);
+                return;
+            }
+            bot.assignedBiomeEntry = null;
+        }
         if (bot.assignedBiomeTarget && now < (bot.assignedBiomeUntil || 0)) {
             if (bot.position.distanceTo(bot.assignedBiomeTarget) > 7) {
                 bot.patrolTarget = bot.assignedBiomeTarget;
@@ -1144,6 +1157,7 @@ export class BotBrain {
 
     isInAssignedBiome(bot, point) {
         if (!bot.assignedBiome || performance.now() >= (bot.assignedBiomeUntil || 0)) return true;
+        if (Math.hypot(point.x, point.z) < 75) return false;
         if (bot.assignedBiome === 'forest') return point.x < -5 && point.z < -5;
         if (bot.assignedBiome === 'maze') return point.x > 5 && point.z < -5;
         if (bot.assignedBiome === 'military') return point.x < -5 && point.z > 5;

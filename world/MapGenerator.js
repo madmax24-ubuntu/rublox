@@ -1620,7 +1620,6 @@ export class MapGenerator {
             stack.push([nr, nc]);
         }
         cells[mazeRows - 1][0].s = false;
-        cells[mazeRows - 1][0].w = false;
 
         const clearingCX = startX + size * 0.5;
         const clearingCZ = startZ + size * 0.5;
@@ -1815,11 +1814,6 @@ export class MapGenerator {
         // Glowing crystals — removed (not on reference)
         // this._addMazeCrystals(startX, startZ, size, clearingCX, clearingCZ);
 
-        // POI items in maze
-        this._addMazePOI(startX, startZ, size, clearingCX, clearingCZ);
-
-        // Path from maze to center
-        this._addMazeToCenterPath(clearingCX, clearingCZ);
     }
 
     _addMazeLootChests(cx, cz, radius) {
@@ -2007,12 +2001,11 @@ export class MapGenerator {
             gateGroup.add(pillar);
         }
 
-        // Portcullis (vertical bars)
         const barMat = this.pool.getMatStd(0x333333, 0.8, 0, false, false, 1, 0, 0);
         for (let i = -3; i <= 3; i++) {
-            const barGeo = this.pool.getGeoBox(0.25, wallHeight - 6, 0.25);
+            const barGeo = this.pool.getGeoBox(0.25, 5, 0.25);
             const bar = new THREE.Mesh(barGeo, barMat);
-            bar.position.set(i * 1.8, wallHeight / 2 + 3, 0);
+            bar.position.set(i * 1.2, wallHeight + 1.5, 0);
             bar.userData.mapGenerated = true;
             bar.userData.isWall = true;
             gateGroup.add(bar);
@@ -2030,7 +2023,8 @@ export class MapGenerator {
         gateGroup.position.set(x, 0, z);
         gateGroup.userData.mapGenerated = true;
         this.scene.add(gateGroup);
-        this.addColliderBox(new THREE.Vector3(x, (wallHeight + 6) / 2, z), 13, wallHeight + 6, 6, false);
+        this.addColliderBox(new THREE.Vector3(x - 5, (wallHeight + 6) / 2, z), 3, wallHeight + 6, 3, false);
+        this.addColliderBox(new THREE.Vector3(x + 5, (wallHeight + 6) / 2, z), 3, wallHeight + 6, 3, false);
     }
 
     _addMazeMoss(startX, startZ, size) {
@@ -4171,9 +4165,7 @@ export class MapGenerator {
     // =========================================================================
     _placeBiomeDecor() {
         for (const [x, z] of [[-220, -72], [-188, -208], [-92, -190], [-212, -152], [-76, -92]]) this._addFallenLog(x, z);
-        const stoneMat = this.pool.getMatStd(0x59616b, 0.92, 0, true, false, 1, 0, 0);
         const iceMat = this.pool.getMatStd(0xa9d9f4, 0.35, 0.08, true, true, 0.88, 0, 0);
-        for (const [x, z, r] of [[82, -82, 0], [132, -68, Math.PI / 2], [194, -92, 0], [96, -192, Math.PI / 2], [192, -190, 0]]) this._addThemeArch(x, z, r, stoneMat);
         for (const [x, z] of [[-214, 92], [-174, 214], [-76, 92], [-74, 214]]) this._addGuardPost(x, z);
         for (const [x, z, r] of [[78, 82, 0], [132, 70, Math.PI / 2], [194, 88, 0], [82, 192, Math.PI / 2], [192, 190, 0]]) this._addThemeArch(x, z, r, iceMat);
     }
@@ -4237,14 +4229,6 @@ export class MapGenerator {
             const z = -HALF + 15 + this._rand() * (HALF - 40);
             if (x > -5 || z > -5 || Math.sqrt(x * x + z * z) < 80) continue;
             this._addMushroomCluster(x, z);
-        }
-
-        // Maze cover: stone crates + mossy rocks (NE quadrant only)
-        for (let i = 0; i < 5; i++) {
-            const x = 5 + this._rand() * (HALF - 25);
-            const z = -HALF + 15 + this._rand() * (HALF - 40);
-            if (x < 5 || z > -5 || Math.sqrt(x * x + z * z) < 80) continue;
-            this._addCrate(x, z);
         }
 
         // Military cover: ammo crates + sandbag stacks (SW quadrant only)

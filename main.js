@@ -992,11 +992,11 @@ class Game {
         if (this.radiationRainEffect?.lines) {
             this.radiationRainEffect.lines.visible = !!active;
         }
-        if (!active && this.bots?.length) {
+        if (this.bots?.length) {
             for (const bot of this.bots) {
                 if (!bot) continue;
-                bot.forceShelterActive = false;
-                if (bot.state === 'hide') bot.state = 'patrol';
+                bot.forceShelterActive = !!active;
+                if (!active && bot.state === 'hide') bot.state = 'patrol';
             }
         }
         this.hud?.setStormActive?.(!!active, active ? 'radiation' : 'storm');
@@ -1428,13 +1428,13 @@ class Game {
         if (this.spawnBurstCooldown > 0) return;
         const start = performance.now();
         let operations = 0;
-        const opBudget = this.isMobile() ? 2 : 3;
-        const msBudget = this.isMobile() ? 1.6 : 2.2;
+        const opBudget = 1;
+        const msBudget = this.isMobile() ? 0.9 : 1.4;
         while ((this.pendingZombieBursts.length || this.pendingPoiBursts.length) && operations < opBudget) {
             if ((performance.now() - start) > msBudget) break;
             if (this.pendingZombieBursts.length) {
                 const job = this.pendingZombieBursts[0];
-                const batch = Math.min(job.chunk, job.remaining);
+                const batch = Math.min(this.isMobile() ? 1 : 2, job.chunk, job.remaining);
                 this.spawnZombies(job.reset && !job.started, job.multiplier, job.capOverride, batch);
                 job.started = true;
                 job.remaining -= batch;
@@ -1444,7 +1444,7 @@ class Game {
             }
             if (this.pendingPoiBursts.length) {
                 const job = this.pendingPoiBursts[0];
-                const batch = Math.min(job.chunk, job.remaining);
+                const batch = Math.min(this.isMobile() ? 1 : 2, job.chunk, job.remaining);
                 this.spawnPoiZombieGuards(job.intensity, batch);
                 job.remaining -= batch;
                 if (job.remaining <= 0) this.pendingPoiBursts.shift();
@@ -1452,7 +1452,7 @@ class Game {
                 continue;
             }
         }
-        this.spawnBurstCooldown = this.isMobile() ? 0.03 : 0.02;
+        this.spawnBurstCooldown = this.isMobile() ? 0.045 : 0.025;
     }
 
     update(delta) {
@@ -1616,9 +1616,29 @@ class Game {
                     return r > minR && r < (this.map.halfSize || 256) - 18 && test(t) && this.map.isWalkableAt?.(t.x, t.z) !== false;
                 }));
                 const usedByBiome = pools.map(() => new Set());
+                const assignedCounts = [0, 0, 0, 0];
+                const assignmentLimits = [25, 25, 25, Math.max(0, this.bots.length - 75)];
+                const biomeAngles = [-Math.PI * 0.75, -Math.PI * 0.25, Math.PI * 0.75, Math.PI * 0.25];
                 for (let i = 0; i < this.bots.length; i++) {
                     const bot = this.bots[i];
-                    const biomeIndex = i % biomeDefs.length;
+                    let biomeIndex = bot.position.x < 0
+                        ? (bot.position.z < 0 ? 0 : 2)
+                        : (bot.position.z < 0 ? 1 : 3);
+                    if (assignedCounts[biomeIndex] >= assignmentLimits[biomeIndex]) {
+                        const spawnAngle = Math.atan2(bot.position.z, bot.position.x);
+                        let bestIndex = -1;
+                        let bestDelta = Infinity;
+                        for (let b = 0; b < biomeDefs.length; b++) {
+                            if (assignedCounts[b] >= assignmentLimits[b]) continue;
+                            const deltaAngle = Math.abs(Math.atan2(Math.sin(spawnAngle - biomeAngles[b]), Math.cos(spawnAngle - biomeAngles[b])));
+                            if (deltaAngle < bestDelta) {
+                                bestDelta = deltaAngle;
+                                bestIndex = b;
+                            }
+                        }
+                        if (bestIndex >= 0) biomeIndex = bestIndex;
+                    }
+                    assignedCounts[biomeIndex]++;
                     const pool = pools[biomeIndex];
                     const used = usedByBiome[biomeIndex];
                     bot.target = null;
@@ -1645,6 +1665,8 @@ class Game {
                     }
                     bot.assignedBiome = biomeDefs[biomeIndex][0];
                     bot.assignedBiomeUntil = performance.now() + 180000;
+                    const signs = [[-1, -1], [1, -1], [-1, 1], [1, 1]][biomeIndex];
+                    bot.assignedBiomeEntry = new THREE.Vector3(signs[0] * 56, 0, signs[1] * 56);
                     bot.assignedBiomeTarget = bot.patrolTarget.clone();
                 }
                 this.spawnScatterInitialized = true;
@@ -1863,7 +1885,7 @@ class Game {
                 if (skip) {
                     if (bot.mesh) {
                         bot.mesh.position.copy(bot.position);
-                        bot.mesh.position.y = bot.position.y - (bot.physics.height - 0.15);
+                        bot.mesh.position.y = bot.position.y - bot.physics.height + 0.03;
                     }
                     continue;
                 }
@@ -1874,7 +1896,7 @@ class Game {
                 if ((this.botFrameCounter + botIndex) % 3 !== 0) {
                     if (bot.mesh) {
                         bot.mesh.position.copy(bot.position);
-                        bot.mesh.position.y = bot.position.y - (bot.physics.height - 0.15);
+                        bot.mesh.position.y = bot.position.y - bot.physics.height + 0.03;
                     }
                     continue;
                 }
@@ -1886,34 +1908,14 @@ class Game {
             } else {
                 // During countdown, just update mesh position
                 bot.mesh.position.copy(bot.position);
-                bot.mesh.position.y = bot.position.y - (bot.physics.height - 0.15);
+                bot.mesh.position.y = bot.position.y - bot.physics.height + 0.03;
                 if (bot.healthBar) bot.updateHealthBar(0.05);
             }
         }
         if (this.gameState === 'playing') {
-            if (this.activeEvent?.type === 'radiationRain') {
-                for (const bot of this.bots) {
-                    if (!bot?.isAlive) continue;
-                    bot.forceShelterActive = true;
-                    if (this.isShelteredFromRadiation(bot.position)) {
-                        bot.target = null;
-                        bot.assistTarget = null;
-                        bot.lootTarget = null;
-                        bot.state = 'hide';
-                        continue;
-                    }
-                    const shelter = this.getNearestShelterTarget(bot.position);
-                    if (!shelter) continue;
-                    bot.target = null;
-                    bot.assistTarget = null;
-                    bot.lootTarget = null;
-                    bot.patrolTarget = shelter.clone();
-                    bot.state = 'retreat';
-                }
-            }
             const hazardBatch = Math.max(
-                this.isMobile() ? 10 : 16,
-                Math.min(this.bots.length, Math.ceil(this.bots.length * (this.isMobile() ? 0.35 : 0.5)))
+                this.isMobile() ? 8 : 12,
+                Math.min(this.bots.length, Math.ceil(this.bots.length * (this.isMobile() ? 0.14 : 0.22)))
             );
             const hazardScale = this.bots.length > 0 ? (this.bots.length / hazardBatch) : 1;
             for (let i = 0; i < hazardBatch && i < this.bots.length; i++) {
@@ -1954,15 +1956,15 @@ class Game {
         }
 
         const zombieCount = this.zombies.length;
-        const zombiesPerFrame = Math.max(
-            this.isMobile() ? 10 : 16,
-            Math.min(zombieCount, Math.ceil(zombieCount * (this.isMobile() ? 0.28 : 0.4)))
-        );
+        const zombiesPerFrame = Math.min(zombieCount, Math.max(
+            this.isMobile() ? 8 : 12,
+            Math.ceil(zombieCount * (this.isMobile() ? 0.18 : 0.28))
+        ));
         for (let i = 0; i < zombiesPerFrame && i < zombieCount; i++) {
             const zIndex = (this.zombieUpdateIndex + i) % zombieCount;
             const zombie = this.zombies[zIndex];
             if (zombie?.isAlive) {
-                zombie.update(delta, this.entityManager, this.audioSynth);
+                zombie.update(Math.min(0.1, delta * zombieCount / Math.max(1, zombiesPerFrame)), this.entityManager, this.audioSynth);
             }
         }
         if (zombieCount > 0) {

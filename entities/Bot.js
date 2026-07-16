@@ -1011,7 +1011,7 @@ export class Bot {
         this.mesh.scale.setScalar(this.outfit.scale * crouchFactor);
 
         this.mesh.position.copy(this.position);
-        this.mesh.position.y = this.position.y - (this.physics.height * crouchFactor - 0.15);
+        this.mesh.position.y = this.position.y - this.physics.height + 0.03;
         this.mesh.rotation.y = this.rotation.y;
         this.animateLimbs();
         if (this.healthBar) this.updateHealthBar(delta);
@@ -1388,6 +1388,5 @@ export class Bot {
         return a + diff * t;
     }
 }
-
 
 
