@@ -16,12 +16,12 @@ export class AudioSynth {
             sfx: null
         };
         this.categoryBaseVolumes = {
-            weapon: 2.85,
-            ambient: 0.62,
-            ui: 0.8,
-            zombie: 1.35,
-            weather: 0.78,
-            sfx: 0.85
+            weapon: 1.65,
+            ambient: 0.45,
+            ui: 0.7,
+            zombie: 0.9,
+            weather: 0.38,
+            sfx: 0.75
         };
         this.reverb = null;
         this.reverbGain = null;
@@ -39,7 +39,7 @@ export class AudioSynth {
         this.musicThemeIndex = 0;
         this.rainNoiseBuffer = null;
         this.musicVolume = this.isMobileDevice ? 0.2 : 0.11;
-        this.sfxVolume = this.isMobileDevice ? 0.7 : 0.48;
+        this.sfxVolume = this.isMobileDevice ? 0.58 : 0.48;
         this.sampleBuffers = new Map();
         this.sampleLoadStarted = false;
         this.sampleLoadPromise = null;
@@ -139,9 +139,7 @@ export class AudioSynth {
                 'assets/audio/rpg/metalPot2.ogg',
                 'assets/audio/rpg/metalPot3.ogg'
             ],
-            storm: [
-                'assets/audio/rpg/doorClose_4.ogg'
-            ],
+            storm: [],
             rain: [
                 'assets/audio/weather_rain.ogg'
             ],
@@ -650,75 +648,48 @@ export class AudioSynth {
     startRadiationRain(position = null) {
         if (!this.audioContext || this.radiationRainNodes) return;
         const ctx = this.audioContext;
-        const noiseBuffer = this.createRainNoiseBuffer();
-        if (!noiseBuffer) return;
-
-        const makeLayer = (highpass, lowpass, gainValue, rate = 1) => {
-            const source = ctx.createBufferSource();
-            source.buffer = noiseBuffer;
-            source.loop = true;
-            source.playbackRate.value = rate;
-
-            const hp = ctx.createBiquadFilter();
-            hp.type = 'highpass';
-            hp.frequency.value = highpass;
-
-            const lp = ctx.createBiquadFilter();
-            lp.type = 'lowpass';
-            lp.frequency.value = lowpass;
-
-            const gain = ctx.createGain();
-            gain.gain.value = gainValue;
-
-            source.connect(hp);
-            hp.connect(lp);
-            lp.connect(gain);
-            gain.connect(this.getCategoryGain('weather'));
-
-            const send = ctx.createGain();
-            send.gain.value = this.isMobileDevice ? 0.12 : 0.2;
-            gain.connect(send);
-            send.connect(this.reverb);
-
-            source.start();
-            return { source, hp, lp, gain, send };
-        };
-
-        const layerSoft = makeLayer(320, 2900, this.isMobileDevice ? 0.1 : 0.13, 0.94);
-        const layerDrops = makeLayer(820, 6400, this.isMobileDevice ? 0.08 : 0.1, 1.06);
-
-        const tickTimer = setInterval(() => {
-            this.playSample(this.sampleCatalog.rain, { volume: this.isMobileDevice ? 0.035 : 0.045, rateMin: 0.7, rateMax: 1.3, category: 'weather', maxDuration: 0.2 });
-        }, this.isMobileDevice ? 1200 : 950);
+        const rainPath = this.pickSample(this.sampleCatalog.rain);
+        const buffer = rainPath ? this.sampleBuffers.get(rainPath) : null;
+        const source = ctx.createBufferSource();
+        source.buffer = buffer || this.createRainNoiseBuffer();
+        if (!source.buffer) return;
+        source.loop = true;
+        source.playbackRate.value = buffer ? 0.96 : 0.82;
+        const hp = ctx.createBiquadFilter();
+        hp.type = 'highpass';
+        hp.frequency.value = 180;
+        const lp = ctx.createBiquadFilter();
+        lp.type = 'lowpass';
+        lp.frequency.value = buffer ? 4300 : 2400;
+        const gain = ctx.createGain();
+        gain.gain.value = this.isMobileDevice ? 0.026 : 0.034;
+        source.connect(hp);
+        hp.connect(lp);
+        lp.connect(gain);
+        gain.connect(this.getCategoryGain('weather'));
+        source.start();
 
         const rumbleTimer = setInterval(() => {
             this.playSample(this.sampleCatalog.storm, {
-                volume: this.isMobileDevice ? 0.02 : 0.035,
+                volume: this.isMobileDevice ? 0.012 : 0.02,
                 rateMin: 0.72,
                 rateMax: 0.94,
                 position,
                 reverbSend: 0.35,
                 category: 'weather'
             });
-        }, this.isMobileDevice ? 7800 : 6200);
+        }, this.isMobileDevice ? 11000 : 9000);
 
-        this.radiationRainNodes = { layerSoft, layerDrops, tickTimer, rumbleTimer };
+        this.radiationRainNodes = { source, hp, lp, gain, rumbleTimer };
     }
 
     stopRadiationRain() {
         if (!this.radiationRainNodes) return;
-        const stopLayer = (layer) => {
-            if (!layer) return;
-            try { layer.source?.stop?.(); } catch {}
-            try { layer.source?.disconnect?.(); } catch {}
-            try { layer.hp?.disconnect?.(); } catch {}
-            try { layer.lp?.disconnect?.(); } catch {}
-            try { layer.gain?.disconnect?.(); } catch {}
-            try { layer.send?.disconnect?.(); } catch {}
-        };
-        stopLayer(this.radiationRainNodes.layerSoft);
-        stopLayer(this.radiationRainNodes.layerDrops);
-        if (this.radiationRainNodes.tickTimer) clearInterval(this.radiationRainNodes.tickTimer);
+        try { this.radiationRainNodes.source?.stop?.(); } catch {}
+        try { this.radiationRainNodes.source?.disconnect?.(); } catch {}
+        try { this.radiationRainNodes.hp?.disconnect?.(); } catch {}
+        try { this.radiationRainNodes.lp?.disconnect?.(); } catch {}
+        try { this.radiationRainNodes.gain?.disconnect?.(); } catch {}
         if (this.radiationRainNodes.rumbleTimer) clearInterval(this.radiationRainNodes.rumbleTimer);
         this.radiationRainNodes = null;
     }
@@ -843,7 +814,7 @@ export class AudioSynth {
     playPistol(position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`pistol:${emitterKey}`, this.weaponSfxCooldown.pistol)) return;
         this.playSample(this.sampleCatalog.pistol, {
-            volume: (this.isMobileDevice ? 2.6 : 3.05) * this.getEmitterSfxScale(emitterKey),
+            volume: (this.isMobileDevice ? 1.2 : 1.35) * this.getEmitterSfxScale(emitterKey),
             rateMin: 0.98,
             rateMax: 1.03,
             reverbSend: 0.01,
@@ -856,7 +827,7 @@ export class AudioSynth {
     playRifle(position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`rifle:${emitterKey}`, this.weaponSfxCooldown.rifle)) return;
         this.playSample(this.sampleCatalog.rifle, {
-            volume: (this.isMobileDevice ? 2.1 : 2.65) * this.getEmitterSfxScale(emitterKey),
+            volume: (this.isMobileDevice ? 1.05 : 1.2) * this.getEmitterSfxScale(emitterKey),
             rateMin: 0.95,
             rateMax: 1.02,
             reverbSend: 0.015,
@@ -869,7 +840,7 @@ export class AudioSynth {
     playMachinegun(position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`machinegun:${emitterKey}`, this.weaponSfxCooldown.machinegun)) return;
         const playedPrimary = this.playSample(this.sampleCatalog.machinegun, {
-            volume: (this.isMobileDevice ? 2.0 : 2.45) * this.getEmitterSfxScale(emitterKey),
+            volume: (this.isMobileDevice ? 0.95 : 1.08) * this.getEmitterSfxScale(emitterKey),
             rateMin: 1.02,
             rateMax: 1.15,
             reverbSend: 0.005,
@@ -878,7 +849,7 @@ export class AudioSynth {
             category: 'weapon'
         });
         const played = playedPrimary || this.playSample(this.sampleCatalog.rifle, {
-            volume: (this.isMobileDevice ? 1.65 : 2.0) * this.getEmitterSfxScale(emitterKey),
+            volume: (this.isMobileDevice ? 0.86 : 0.98) * this.getEmitterSfxScale(emitterKey),
             rateMin: 1.08,
             rateMax: 1.18,
             reverbSend: 0.005,
@@ -931,18 +902,18 @@ export class AudioSynth {
             this.startWeatherLoop({
                 continuous: true,
                 category: 'weather',
-                volume: this.isMobileDevice ? 0.06 : 0.09,
+                volume: this.isMobileDevice ? 0.028 : 0.04,
                 sampleList: this.sampleCatalog.rain
             });
         } else if (state === 'snow') {
             this.startWeatherLoop({
                 intervalMs: this.isMobileDevice ? 3400 : 2600,
                 category: 'weather',
-                volume: this.isMobileDevice ? 0.02 : 0.03,
+                volume: this.isMobileDevice ? 0.014 : 0.02,
                 rateMin: 0.7,
                 rateMax: 0.95,
                 sampleList: this.sampleCatalog.wind,
-                fallback: () => this.playSample(this.sampleCatalog.wind, { volume: this.isMobileDevice ? 0.02 : 0.03, rateMin: 0.6, rateMax: 0.9, category: 'weather', maxDuration: 0.4 })
+                fallback: () => this.playSample(this.sampleCatalog.wind, { volume: this.isMobileDevice ? 0.014 : 0.02, rateMin: 0.6, rateMax: 0.9, category: 'weather', maxDuration: 0.4 })
             });
         }
     }

@@ -646,17 +646,37 @@ export class Player {
         this.wasFireHeld = fireHeld;
 
         if (!isFrozen && this.input.isKeyPressed('KeyE')) {
-            const nearestChest = lootManager.getNearestClosedChest
-                ? lootManager.getNearestClosedChest(this.position, 3.2)
-                : lootManager.getChests().find(chest => {
-                    if (chest.userData.isOpen) return false;
-                    return this.position.distanceTo(chest.position) < 3;
-                });
+            const poi = this.mapRef?.getNearestInteractivePOI?.(this.position, 3.2);
+            if (poi) {
+                const type = poi.userData.poiType;
+                let consumed = false;
+                if (type === 'weapon') {
+                    const weapons = ['pistol', 'rifle', 'shotgun', 'bow', 'machinegun', 'laser', 'flamethrower'];
+                    const index = Math.abs(Math.round(poi.position.x * 13 + poi.position.z * 7)) % weapons.length;
+                    this.pickupLoot({ type: 'weapon', weaponType: weapons[index] });
+                    consumed = true;
+                } else if (type === 'medkit' && (this.health < this.maxHealth || this.armor < this.maxArmor)) {
+                    this.pickupLoot({ type: 'heal', amount: 35 });
+                    consumed = true;
+                } else if (type === 'ammo' && this.inventory.getItems().some(item => item?.ammo !== null && item?.ammo < item?.maxAmmo)) {
+                    this.pickupLoot({ type: 'ammo', amount: 25 });
+                    consumed = true;
+                }
+                if (consumed) {
+                    this.mapRef.consumeInteractivePOI(poi);
+                    audioSynth.playPickup();
+                }
+            } else {
+                const nearestChest = lootManager.getNearestClosedChest
+                    ? lootManager.getNearestClosedChest(this.position, 3.2)
+                    : lootManager.getChests().find(chest => {
+                        if (chest.userData.isOpen) return false;
+                        return this.position.distanceTo(chest.position) < 3;
+                    });
 
-            if (nearestChest) {
-                const loot = lootManager.tryOpenChest(nearestChest, this, audioSynth);
-                if (loot) {
-                    this.pickupLoot(loot);
+                if (nearestChest) {
+                    const loot = lootManager.tryOpenChest(nearestChest, this, audioSynth);
+                    if (loot) this.pickupLoot(loot);
                 }
             }
         }

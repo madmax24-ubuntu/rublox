@@ -85,6 +85,7 @@ export class MapGenerator {
         this._chestSpots = [];
         this._biomeGates = [];
         this._biomeGateColliders = [];
+        this._interactivePOIs = [];
         this._floorTiles = [];
         this._navigationTiles = [];
         this._spawnTiles = [];
@@ -206,6 +207,7 @@ export class MapGenerator {
         this._chestSpots = [];
         this._biomeGates = [];
         this._biomeGateColliders = [];
+        this._interactivePOIs = [];
 
         const toRemove = [];
         for (const child of this.scene.children) {
@@ -526,9 +528,9 @@ export class MapGenerator {
     // =========================================================================
     _generateForestQuadrant() {
         // СЗ квадрант: x в [-256, -10], z в [-256, -10]
-        const startX = -250;
-        const startZ = -250;
-        const size = 240;
+        const startX = -236;
+        const startZ = -236;
+        const size = 220;
 
         // Лесной пол с текстурой
         const forestFloorMat = this.pool.getMatStd(0x2d5a27, 0.95, 0, true, false, 1, 0, 0);
@@ -1422,8 +1424,11 @@ export class MapGenerator {
         drop.position.set(x, 0, z);
         drop.userData.isPOI = true;
         drop.userData.poiType = 'weapon';
+        drop.userData.baseY = 0;
+        drop.userData.phase = this._rand() * Math.PI * 2;
         drop.userData.mapGenerated = true;
         this.scene.add(drop);
+        this._interactivePOIs.push(drop);
     }
 
     _addMedkitDrop(x, z) {
@@ -1452,8 +1457,11 @@ export class MapGenerator {
         drop.position.set(x, 0, z);
         drop.userData.isPOI = true;
         drop.userData.poiType = 'medkit';
+        drop.userData.baseY = 0;
+        drop.userData.phase = this._rand() * Math.PI * 2;
         drop.userData.mapGenerated = true;
         this.scene.add(drop);
+        this._interactivePOIs.push(drop);
     }
 
     _addAmmoDrop(x, z) {
@@ -1469,8 +1477,34 @@ export class MapGenerator {
         drop.position.set(x, 0, z);
         drop.userData.isPOI = true;
         drop.userData.poiType = 'ammo';
+        drop.userData.baseY = 0;
+        drop.userData.phase = this._rand() * Math.PI * 2;
         drop.userData.mapGenerated = true;
         this.scene.add(drop);
+        this._interactivePOIs.push(drop);
+    }
+
+    getNearestInteractivePOI(position, radius = 3.2) {
+        let nearest = null;
+        let bestSq = radius * radius;
+        for (const poi of this._interactivePOIs) {
+            if (!poi?.parent || !poi.visible || poi.userData.used) continue;
+            const dx = poi.position.x - position.x;
+            const dy = poi.position.y - position.y;
+            const dz = poi.position.z - position.z;
+            const distSq = dx * dx + dy * dy + dz * dz;
+            if (distSq >= bestSq) continue;
+            nearest = poi;
+            bestSq = distSq;
+        }
+        return nearest;
+    }
+
+    consumeInteractivePOI(poi) {
+        if (!poi || poi.userData.used) return false;
+        poi.userData.used = true;
+        poi.visible = false;
+        return true;
     }
 
     _addLogCabin(x, z) {
@@ -1569,10 +1603,10 @@ export class MapGenerator {
     // =========================================================================
     _generateMazeQuadrant() {
         // СВ квадрант: x в [10, 245], z в [-250, -10]
-        const startX = 10;
-        const startZ = -HALF + 6;
-        const width = HALF - 16;
-        const depth = HALF - 78;
+        const startX = 16;
+        const startZ = -HALF + 16;
+        const width = HALF - 36;
+        const depth = HALF - 88;
 
         const wallHeight = 18; // Высокие стены замка
 
@@ -1728,10 +1762,18 @@ export class MapGenerator {
         );
 
         // Spiral staircase
-        const totalSteps = 80;
+        const totalSteps = 120;
         const stepH = towerHeight / totalSteps;
         const spiralR = towerRadius - 2;
-        const angleStep = Math.PI * 0.45;
+        const angleStep = 0.18;
+        const stepWidth = 3.2;
+        const stepDepth = 2.2;
+        const stepGeo = this.pool.getGeoBox(stepWidth, stepH, stepDepth);
+        const towerSteps = new THREE.InstancedMesh(stepGeo, darkMat, totalSteps);
+        const stepMatrix = new THREE.Matrix4();
+        const stepQuaternion = new THREE.Quaternion();
+        const stepScale = new THREE.Vector3(1, 1, 1);
+        const upAxis = new THREE.Vector3(0, 1, 0);
 
         for (let i = 0; i < totalSteps; i++) {
             const angle = i * angleStep;
@@ -1739,20 +1781,24 @@ export class MapGenerator {
 
             const sx = towerCX + Math.cos(angle) * spiralR;
             const sz = towerCZ + Math.sin(angle) * spiralR;
-
-            const stepGeo = this.pool.getGeoBox(3, stepH, 1.5);
-            const stepMesh = new THREE.Mesh(stepGeo, darkMat);
-            stepMesh.position.set(sx, stepY, sz);
-            stepMesh.rotation.y = -angle + Math.PI / 2;
-            stepMesh.userData.mapGenerated = true;
-            stepMesh.userData.walkable = true;
-            this.scene.add(stepMesh);
-
+            const rotation = -angle + Math.PI / 2;
+            stepQuaternion.setFromAxisAngle(upAxis, rotation);
+            stepMatrix.compose(new THREE.Vector3(sx, stepY, sz), stepQuaternion, stepScale);
+            towerSteps.setMatrixAt(i, stepMatrix);
+            const c = Math.abs(Math.cos(rotation));
+            const s = Math.abs(Math.sin(rotation));
             this.addColliderBox(
                 new THREE.Vector3(sx, stepY, sz),
-                3, stepH, 1.5, true
+                stepWidth * c + stepDepth * s, stepH, stepWidth * s + stepDepth * c, true
             );
         }
+        towerSteps.instanceMatrix.needsUpdate = true;
+        towerSteps.computeBoundingSphere();
+        towerSteps.frustumCulled = false;
+        towerSteps.userData.mapGenerated = true;
+        towerSteps.userData.walkable = true;
+        towerSteps.userData.isTowerStairs = true;
+        this.scene.add(towerSteps);
 
         // Tower top platform
         const topY = totalSteps * stepH + 0.5;
@@ -2147,9 +2193,9 @@ export class MapGenerator {
     // MILITARY RUINS QUADRANT (SW: x < 0, z > 0)
     // =========================================================================
     _generateMilitaryQuadrant() {
-        const startX = -250;
-        const startZ = 10;
-        const size = 240;
+        const startX = -236;
+        const startZ = 16;
+        const size = 220;
         const cx = startX + size / 2;
         const cz = startZ + size / 2;
 
@@ -3279,9 +3325,9 @@ export class MapGenerator {
     _generateIceQuadrant() {
         // ЮВ квадрант: x в [10, 256], z в [10, 256]
         const iceFloorMat = this.pool.getMatStd(0xddeeff, 0.8, 0, true, false, 1, 0, 0);
-        const iceFloorGeo = this.pool.getGeoBox(246, 0.3, 246);
+        const iceFloorGeo = this.pool.getGeoBox(220, 0.3, 220);
         const iceFloor = new THREE.Mesh(iceFloorGeo, iceFloorMat);
-        iceFloor.position.set(133, -0.15, 133); // top surface at Y=0
+        iceFloor.position.set(126, -0.15, 126); // top surface at Y=0
         iceFloor.userData.mapGenerated = true;
         this.scene.add(iceFloor);
 
@@ -3296,7 +3342,7 @@ export class MapGenerator {
             const driftGeo = this.pool.getGeoSphere(driftW);
             const driftMat = this.pool.getMatStd(0xeef4ff, 0.9, 0, true, false, 1, 0, 0);
             const driftMesh = new THREE.Mesh(driftGeo, driftMat);
-            driftMesh.position.set(15 + this._rand() * 230, 0, 15 + this._rand() * 230);
+            driftMesh.position.set(18 + this._rand() * 216, 0, 18 + this._rand() * 216);
             driftMesh.scale.set(1, driftH / driftW, driftD / driftW);
             driftMesh.userData.mapGenerated = true;
             this.scene.add(driftMesh);
@@ -3318,7 +3364,7 @@ export class MapGenerator {
         // Зимний костёр у озера
         this._addIceCampfire(175, 100);
 
-        this._addSnowShelters(10, 10, 236);
+        this._addSnowShelters(16, 16, 220);
         this._addSnowBarrack(60, 58);
         this._addSnowBarrack(205, 166);
 
@@ -3340,8 +3386,8 @@ export class MapGenerator {
 
         // Снежные деревья — сгруппированные как в референсе
         for (let i = 0; i < 30; i++) {
-            const tx = 12 + this._rand() * 232;
-            const tz = 12 + this._rand() * 232;
+            const tx = 18 + this._rand() * 216;
+            const tz = 18 + this._rand() * 216;
             // Не ставим деревья прямо в озеро
             const distToLake = Math.sqrt((tx - 130) ** 2 + (tz - 130) ** 2);
             if (distToLake < 55) continue;
@@ -3355,7 +3401,7 @@ export class MapGenerator {
             const wallGeo = this.pool.getGeoBox(wallW, wallH, 0.5);
             const wallMat = this.pool.getMatStd(0xccddff, 0.4, 0, false, true, 0.7, 0, 0);
             const wallMesh = new THREE.Mesh(wallGeo, wallMat);
-            wallMesh.position.set(15 + this._rand() * 230, wallH / 2, 15 + this._rand() * 230);
+            wallMesh.position.set(18 + this._rand() * 216, wallH / 2, 18 + this._rand() * 216);
             wallMesh.rotation.y = this._rand() * Math.PI;
             wallMesh.userData.mapGenerated = true;
             wallMesh.userData.isWall = true;
@@ -4842,6 +4888,16 @@ export class MapGenerator {
         this.updateGlowAnimation(delta);
         this.updateSnowParticles(delta);
         this.updateWindTurbines(delta);
+        this.updateInteractivePOIs();
+    }
+
+    updateInteractivePOIs() {
+        const time = performance.now() * 0.002;
+        for (const poi of this._interactivePOIs) {
+            if (!poi?.visible || poi.userData.used) continue;
+            poi.position.y = poi.userData.baseY + 0.08 + Math.sin(time + poi.userData.phase) * 0.08;
+            poi.rotation.y = (time + poi.userData.phase) * 0.25;
+        }
     }
 
     updateZoneAnimations(delta) {
