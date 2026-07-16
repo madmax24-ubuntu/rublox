@@ -46,6 +46,7 @@ export class AudioSynth {
         this._unlockHandlersBound = false;
         this._unlockInProgress = null;
         this.lastWeaponSfxTime = Object.create(null);
+        this.lastNpcWeaponSfxTime = 0;
         this.weaponSfxCooldown = {
             bow: 0.09,
             laser: 0.12,
@@ -527,8 +528,17 @@ export class AudioSynth {
         const interval = Math.max(0, Number.isFinite(minInterval) ? minInterval : 0);
         const last = this.lastWeaponSfxTime[key] || 0;
         if (now - last < interval) return false;
+        if (key.includes(':id:')) {
+            const npcInterval = this.isMobileDevice ? 0.14 : 0.1;
+            if (now - this.lastNpcWeaponSfxTime < npcInterval) return false;
+            this.lastNpcWeaponSfxTime = now;
+        }
         this.lastWeaponSfxTime[key] = now;
         return true;
+    }
+
+    getEmitterSfxScale(emitterKey) {
+        return String(emitterKey || '').startsWith('id:') ? (this.isMobileDevice ? 0.045 : 0.065) : 1;
     }
 
     startAmbient() {
@@ -630,7 +640,7 @@ export class AudioSynth {
 
     playHit(position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`hit:${emitterKey}`, 0.055)) return;
-        this.playSample(this.sampleCatalog.hit, { volume: this.isMobileDevice ? 0.26 : 0.34, rateMin: 0.95, rateMax: 1.12, reverbSend: 0.06, position, category: 'weapon', maxDuration: 0.2 });
+        this.playSample(this.sampleCatalog.hit, { volume: (this.isMobileDevice ? 0.26 : 0.34) * this.getEmitterSfxScale(emitterKey), rateMin: 0.95, rateMax: 1.12, reverbSend: 0.06, position, category: 'weapon', maxDuration: 0.2 });
     }
 
     playStorm(position) {
@@ -808,19 +818,19 @@ export class AudioSynth {
 
     playBowShot(position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`bow:${emitterKey}`, this.weaponSfxCooldown.bow)) return;
-        this.playSample(this.sampleCatalog.bow, { volume: this.isMobileDevice ? 0.36 : 0.48, rateMin: 0.9, rateMax: 1.1, position, category: 'weapon', maxDuration: 0.3 });
+        this.playSample(this.sampleCatalog.bow, { volume: (this.isMobileDevice ? 0.36 : 0.48) * this.getEmitterSfxScale(emitterKey), rateMin: 0.9, rateMax: 1.1, position, category: 'weapon', maxDuration: 0.3 });
     }
 
     playLaser(position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`laser:${emitterKey}`, this.weaponSfxCooldown.laser)) return;
-        this.playSample(this.sampleCatalog.laser, { volume: this.isMobileDevice ? 0.44 : 0.58, rateMin: 0.85, rateMax: 1.15, position, category: 'weapon', maxDuration: 0.3 });
+        this.playSample(this.sampleCatalog.laser, { volume: (this.isMobileDevice ? 0.44 : 0.58) * this.getEmitterSfxScale(emitterKey), rateMin: 0.85, rateMax: 1.15, position, category: 'weapon', maxDuration: 0.3 });
     }
 
     playShotgun(volume = 1, position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`shotgun:${emitterKey}`, this.weaponSfxCooldown.shotgun)) return;
         const scaled = clamp(volume, 0.1, 1.5);
         this.playSample(this.sampleCatalog.shotgun, {
-            volume: (this.isMobileDevice ? 0.88 : 1.2) * scaled,
+            volume: (this.isMobileDevice ? 0.88 : 1.2) * scaled * this.getEmitterSfxScale(emitterKey),
             rateMin: 0.92,
             rateMax: 1.04,
             reverbSend: 0.08,
@@ -833,7 +843,7 @@ export class AudioSynth {
     playPistol(position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`pistol:${emitterKey}`, this.weaponSfxCooldown.pistol)) return;
         this.playSample(this.sampleCatalog.pistol, {
-            volume: this.isMobileDevice ? 2.6 : 3.05,
+            volume: (this.isMobileDevice ? 2.6 : 3.05) * this.getEmitterSfxScale(emitterKey),
             rateMin: 0.98,
             rateMax: 1.03,
             reverbSend: 0.01,
@@ -846,7 +856,7 @@ export class AudioSynth {
     playRifle(position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`rifle:${emitterKey}`, this.weaponSfxCooldown.rifle)) return;
         this.playSample(this.sampleCatalog.rifle, {
-            volume: this.isMobileDevice ? 2.1 : 2.65,
+            volume: (this.isMobileDevice ? 2.1 : 2.65) * this.getEmitterSfxScale(emitterKey),
             rateMin: 0.95,
             rateMax: 1.02,
             reverbSend: 0.015,
@@ -859,7 +869,7 @@ export class AudioSynth {
     playMachinegun(position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`machinegun:${emitterKey}`, this.weaponSfxCooldown.machinegun)) return;
         const playedPrimary = this.playSample(this.sampleCatalog.machinegun, {
-            volume: this.isMobileDevice ? 2.0 : 2.45,
+            volume: (this.isMobileDevice ? 2.0 : 2.45) * this.getEmitterSfxScale(emitterKey),
             rateMin: 1.02,
             rateMax: 1.15,
             reverbSend: 0.005,
@@ -868,7 +878,7 @@ export class AudioSynth {
             category: 'weapon'
         });
         const played = playedPrimary || this.playSample(this.sampleCatalog.rifle, {
-            volume: this.isMobileDevice ? 1.65 : 2.0,
+            volume: (this.isMobileDevice ? 1.65 : 2.0) * this.getEmitterSfxScale(emitterKey),
             rateMin: 1.08,
             rateMax: 1.18,
             reverbSend: 0.005,
@@ -882,7 +892,7 @@ export class AudioSynth {
     playFlamethrower(position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`flamethrower:${emitterKey}`, this.weaponSfxCooldown.flamethrower)) return;
         this.playSample(this.sampleCatalog.flamethrower, {
-            volume: this.isMobileDevice ? 0.52 : 0.7,
+            volume: (this.isMobileDevice ? 0.52 : 0.7) * this.getEmitterSfxScale(emitterKey),
             rateMin: 0.45,
             rateMax: 0.62,
             reverbSend: 0.08,

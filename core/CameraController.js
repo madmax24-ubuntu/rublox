@@ -27,9 +27,11 @@ export class CameraController {
         this._tmpVec2 = new THREE.Vector3();
         this._tmpVec3 = new THREE.Vector3();
         this._tmpVec4 = new THREE.Vector3();
+        this.isMobile = false;
     }
 
     init(isMobile) {
+        this.isMobile = !!isMobile;
         this.scene.add(this.camera);
         if (!isMobile) {
             this.domElement.tabIndex = 0;
@@ -198,7 +200,7 @@ export class CameraController {
     }
 
     update(delta, input, playerPos, frozen = false) {
-        const targetY = playerPos.y + 0.15;
+        const targetY = playerPos.y + (this.isMobile ? 0.55 : 0.15);
         const hasShake = this._shakeOffset.lengthSq() > 0;
 
         if (frozen) {
