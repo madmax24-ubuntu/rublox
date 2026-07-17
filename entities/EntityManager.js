@@ -21,7 +21,6 @@ export class EntityManager {
         this.aliveSurvivorCount = 0;
         this._lastRebuildCount = 0;
         this._impactGeoCache = new Map();
-        this._trailGeo = new THREE.PlaneGeometry(0.6, 0.25);
         this._tmpVecG = new THREE.Vector3();
     }
 
@@ -401,41 +400,16 @@ export class EntityManager {
         this.effects.push(group);
     }
 
-    spawnSpeedTrail(position, color = 0x4bb3ff) {
-        const mat = new THREE.MeshBasicMaterial({
-            color,
-            transparent: true,
-            opacity: 0.5,
-            side: THREE.DoubleSide
-        });
-        const mesh = new THREE.Mesh(this._trailGeo, mat);
-        mesh.rotation.x = -Math.PI / 2;
-        mesh.position.copy(position);
-        mesh.position.y += 0.05;
-        mesh.userData.effect = true;
-        mesh.userData.type = 'trail';
-        mesh.userData.life = 0.35;
-        this.scene.add(mesh);
-        this.effects.push(mesh);
-    }
-
     updateEffects(delta) {
         for (let i = this.effects.length - 1; i >= 0; i--) {
             const fx = this.effects[i];
             fx.userData.life -= delta;
-            if (fx.userData.type === 'trail') {
-                fx.scale.addScalar(delta * 0.8);
-                if (fx.material) {
-                    fx.material.opacity = Math.max(0, fx.userData.life * 2);
+            fx.scale.addScalar(delta * 1.8);
+            fx.traverse(child => {
+                if (child.material) {
+                    child.material.opacity = Math.max(0, fx.userData.life * 2);
                 }
-            } else {
-                fx.scale.addScalar(delta * 1.8);
-                fx.traverse(child => {
-                    if (child.material) {
-                        child.material.opacity = Math.max(0, fx.userData.life * 2);
-                    }
-                });
-            }
+            });
             if (fx.userData.life <= 0) {
                 this.scene.remove(fx);
                 this.effects.splice(i, 1);

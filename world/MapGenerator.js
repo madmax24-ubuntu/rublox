@@ -123,9 +123,6 @@ export class MapGenerator {
         this._generateCornucopia();
         this._addPlatformExitRamps();
 
-        // Phase 3: River + bridges (simplified - just thin dividers)
-        this._generateRiver();
-
         // Phase 4: Forest quadrant (NW)
         this._generateForestQuadrant();
 
@@ -417,45 +414,6 @@ export class MapGenerator {
     }
 
     // =========================================================================
-    // RIVER — Thin dividers between quadrants
-    // =========================================================================
-    _generateRiver() {
-        const riverMat = this.pool.getMatStd(COLORS.river, 0.2, 0.3, false, true, 0.6, 0, 0);
-        const bankMat = this.pool.getMatStd(0x1565c0, 0.7, 0, true, false, 1, 0, 0);
-        const strips = [
-            { x: -7, z: -154, w: 10, d: 192 },
-            { x: 7, z: 154, w: 10, d: 192 },
-            { x: 154, z: 7, w: 192, d: 10 }
-        ];
-        for (const strip of strips) {
-            const water = new THREE.Mesh(this.pool.getGeoBox(strip.w, 0.08, strip.d), riverMat);
-            water.position.set(strip.x, 0.04, strip.z);
-            water.userData.mapGenerated = true;
-            this.scene.add(water);
-            const horizontal = strip.w > strip.d;
-            for (const side of [-1, 1]) {
-                const bank = new THREE.Mesh(
-                    this.pool.getGeoBox(horizontal ? strip.w : 1.2, 0.12, horizontal ? 1.2 : strip.d),
-                    bankMat
-                );
-                bank.position.set(
-                    strip.x + (horizontal ? 0 : side * strip.w * 0.56),
-                    0.06,
-                    strip.z + (horizontal ? side * strip.d * 0.56 : 0)
-                );
-                bank.userData.mapGenerated = true;
-                this.scene.add(bank);
-            }
-        }
-        const roadMat = this.pool.getMatStd(0x6d4c41, 0.95, 0, true, false, 1, 0, 0);
-        const forestMilitaryRoad = new THREE.Mesh(this.pool.getGeoBox(192, 0.12, 10), roadMat);
-        forestMilitaryRoad.position.set(-154, 0.06, 0);
-        forestMilitaryRoad.userData.mapGenerated = true;
-        forestMilitaryRoad.userData.walkable = true;
-        this.scene.add(forestMilitaryRoad);
-    }
-
-    // =========================================================================
     // BIOME BOUNDARIES — Clear visual separators between quadrants (no walls)
     // =========================================================================
     _placeBiomeBoundaries() {
@@ -655,26 +613,15 @@ export class MapGenerator {
     _addForestRiver(x1, z1, x2, z2) {
         const dx = x2 - x1;
         const dz = z2 - z1;
-        const length = Math.sqrt(dx * dx + dz * dz);
-        const segments = Math.floor(length / 3);
-
-        for (let i = 0; i < segments; i++) {
-            const t = i / segments;
-            const rx = x1 + dx * t + (this._rand() - 0.5) * 2;
-            const rz = z1 + dz * t + (this._rand() - 0.5) * 2;
-
-            // Wider, more visible river segments
-            const width = 8 + this._rand() * 4;
-            const riverMat = this.pool.getMatStd(0x29b6f6, 0.1, 0.5, false, true, 0.8, 0, 0);
-
-            const riverGeo = this.pool.getGeoPlane(width, 5);
-            const river = new THREE.Mesh(riverGeo, riverMat);
-            river.rotation.x = -Math.PI / 2;
-            river.position.set(rx, 0.04, rz);
-            river.userData.mapGenerated = true;
-            this.scene.add(river);
-
-        }
+        const length = Math.hypot(dx, dz);
+        const angle = Math.atan2(dx, dz);
+        const riverMat = this.pool.getMatStd(0x2389a6, 0.24, 0.18, false, true, 0.82, 0, 0);
+        const river = new THREE.Mesh(this.pool.getGeoBox(7.5, 0.06, length), riverMat);
+        river.position.set((x1 + x2) * 0.5, 0.035, (z1 + z2) * 0.5);
+        river.rotation.y = angle;
+        river.userData.mapGenerated = true;
+        river.userData.isRiver = true;
+        this.scene.add(river);
     }
 
     _addTwoStoryCabin(x, z) {
@@ -1605,17 +1552,17 @@ export class MapGenerator {
     // =========================================================================
     _generateMazeQuadrant() {
         // СВ квадрант: x в [10, 245], z в [-250, -10]
-        const startX = 16;
-        const startZ = -HALF + 16;
-        const width = HALF - 36;
-        const depth = HALF - 88;
+        const startX = 2;
+        const startZ = -HALF + 2;
+        const width = HALF - 4;
+        const depth = HALF - 4;
 
         const wallHeight = 18; // Высокие стены замка
 
         const wallMat = this.pool.getMatStd(0x666666, 0.85, 0, true, false, 1, 0, 0, true);
         const darkMat = this.pool.getMatStd(COLORS.mazeTower, 0.9, 0, true, false, 1, 0, 0);
 
-        const margin = 14;
+        const margin = 3;
         const mazeCols = 11;
         const mazeRows = 11;
         const cellWidth = (width - margin * 2) / mazeCols;
@@ -1649,19 +1596,11 @@ export class MapGenerator {
             cells[nr][nc].visited = true;
             stack.push([nr, nc]);
         }
-        cells[mazeRows - 1][0].s = false;
-        for (let r = mazeRows - 1; r > 5; r--) {
-            cells[r][0].n = false;
-            cells[r - 1][0].s = false;
-        }
-        for (let c = 0; c < 5; c++) {
-            cells[5][c].e = false;
-            cells[5][c + 1].w = false;
-        }
-
         const clearingCX = startX + width * 0.5;
         const clearingCZ = startZ + depth * 0.5;
-        const clearingRadius = 27;
+        const clearingRadius = 11.5;
+        const entranceX = Math.cos(-Math.PI / 4) * 72;
+        const entranceZ = Math.sin(-Math.PI / 4) * 72;
         let hiddenMazeLoot = 0;
         for (let r = 0; r < mazeRows && hiddenMazeLoot < 28; r++) {
             for (let c = 0; c < mazeCols && hiddenMazeLoot < 28; c++) {
@@ -1677,6 +1616,8 @@ export class MapGenerator {
         const segments = [];
         const segmentKeys = new Set();
         const addSegment = (x, z, width, depth) => {
+            if (Math.hypot(x, z) < 67) return;
+            if (Math.hypot(x - entranceX, z - entranceZ) < 9) return;
             if (Math.hypot(x - clearingCX, z - clearingCZ) < clearingRadius) return;
             const key = `${Math.round(x * 10)},${Math.round(z * 10)},${width > depth ? 'h' : 'v'}`;
             if (segmentKeys.has(key)) return;
@@ -1856,8 +1797,6 @@ export class MapGenerator {
         // Battlements along outer perimeter walls (castle crenellations)
 
         // Castle gate at entrance from center (south-west side)
-        const entranceX = startX + margin + cellWidth * 0.5;
-        const entranceZ = startZ + depth - margin;
         this._addCastleGate(entranceX, entranceZ, wallHeight);
         this._addMazeToCenterPath(entranceX, entranceZ);
 
