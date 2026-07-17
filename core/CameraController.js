@@ -203,13 +203,7 @@ export class CameraController {
         const targetY = playerPos.y + (this.isMobile ? 0.55 : 0.15);
         const hasShake = this._shakeOffset.lengthSq() > 0;
 
-        if (frozen) {
-            this._tmpFrozenTarget.set(0, targetY, 0);
-            this.camera.lookAt(this._tmpFrozenTarget);
-            this.rotation.setFromQuaternion(this.camera.quaternion, 'YXZ');
-            this._yaw = this.rotation.y;
-            this._pitch = this.rotation.x;
-        } else if (this.isLocked) {
+        if (this.isLocked) {
             const sensitivity = 0.002;
             this._yaw -= this._mouseDx * sensitivity;
             this._pitch -= this._mouseDy * sensitivity;
@@ -218,22 +212,15 @@ export class CameraController {
             this.rotation.set(this._pitch, this._yaw, 0, 'YXZ');
             this.camera.quaternion.setFromEuler(this.rotation);
         } else {
-            if (input.isMobile) {
-                this._yaw = input.yaw;
-                this._pitch = input.pitch;
+            const look = input.getLookDelta();
+            if (look.x !== 0 || look.y !== 0) {
+                const sensitivity = input.isMobile ? 0.0052 : 0.0042;
+                this._yaw -= look.x * sensitivity;
+                this._pitch -= look.y * sensitivity;
+                if (this._pitch > this._maxPitch) this._pitch = this._maxPitch;
+                if (this._pitch < -this._maxPitch) this._pitch = -this._maxPitch;
                 this.rotation.set(this._pitch, this._yaw, 0, 'YXZ');
                 this.camera.quaternion.setFromEuler(this.rotation);
-            } else {
-                const look = input.getLookDelta();
-                if (look.x !== 0 || look.y !== 0) {
-                    const sensitivity = 0.0042;
-                    this._yaw -= look.x * sensitivity;
-                    this._pitch -= look.y * sensitivity;
-                    if (this._pitch > this._maxPitch) this._pitch = this._maxPitch;
-                    if (this._pitch < -this._maxPitch) this._pitch = -this._maxPitch;
-                    this.rotation.set(this._pitch, this._yaw, 0, 'YXZ');
-                    this.camera.quaternion.setFromEuler(this.rotation);
-                }
             }
         }
 

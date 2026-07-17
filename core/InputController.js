@@ -194,10 +194,10 @@ export class InputController {
         this._onTouchEnd = (e) => { this._handleTouchEnd(e); };
         this._onTouchCancel = (e) => { this._handleTouchEnd(e); };
 
-        this._domElement.addEventListener('touchstart', this._onTouchStart, { passive: false });
-        this._domElement.addEventListener('touchmove', this._onTouchMove, { passive: false });
-        this._domElement.addEventListener('touchend', this._onTouchEnd, { passive: false });
-        this._domElement.addEventListener('touchcancel', this._onTouchCancel, { passive: false });
+        document.addEventListener('touchstart', this._onTouchStart, { passive: false });
+        document.addEventListener('touchmove', this._onTouchMove, { passive: false });
+        document.addEventListener('touchend', this._onTouchEnd, { passive: false });
+        document.addEventListener('touchcancel', this._onTouchCancel, { passive: false });
 
         this._bindHoldButton('touchJump', 'Space');
         this._bindHoldButton('touchAttack', 'MouseLeft');
@@ -205,10 +205,10 @@ export class InputController {
     }
 
     _detachTouchListeners() {
-        this._domElement.removeEventListener('touchstart', this._onTouchStart);
-        this._domElement.removeEventListener('touchmove', this._onTouchMove);
-        this._domElement.removeEventListener('touchend', this._onTouchEnd);
-        this._domElement.removeEventListener('touchcancel', this._onTouchCancel);
+        document.removeEventListener('touchstart', this._onTouchStart);
+        document.removeEventListener('touchmove', this._onTouchMove);
+        document.removeEventListener('touchend', this._onTouchEnd);
+        document.removeEventListener('touchcancel', this._onTouchCancel);
     }
 
     _bindHoldButton(elementId, key) {
@@ -235,10 +235,11 @@ export class InputController {
     }
 
     _handleTouchStart(e) {
-        e.preventDefault();
         const half = this._domElement.clientWidth / 2;
+        let handled = false;
 
         for (const touch of e.changedTouches) {
+            if (touch.target?.closest?.('.touch-btn, #touchButtons, #inventory, #perkPanel, #pauseOverlay, button, input')) continue;
             const x = touch.clientX;
             const id = touch.identifier;
 
@@ -252,18 +253,21 @@ export class InputController {
                 this.joystick.currentY = touch.clientY;
                 this.joystick.dx = 0;
                 this.joystick.dy = 0;
+                handled = true;
             } else {
                 if (this.trackpad.active) continue;
                 this.trackpad.active = true;
                 this.trackpad.touchId = id;
                 this.trackpad.startX = x;
                 this.trackpad.startY = touch.clientY;
+                handled = true;
             }
         }
+        if (handled) e.preventDefault();
     }
 
     _handleTouchMove(e) {
-        e.preventDefault();
+        let handled = false;
 
         for (const touch of e.changedTouches) {
             const id = touch.identifier;
@@ -271,6 +275,7 @@ export class InputController {
             const y = touch.clientY;
 
             if (this.joystick.active && this.joystick.touchId === id) {
+                handled = true;
                 let dx = x - this.joystick.baseX;
                 let dy = y - this.joystick.baseY;
                 const dist = Math.sqrt(dx * dx + dy * dy);
@@ -295,6 +300,7 @@ export class InputController {
             }
 
             if (this.trackpad.active && this.trackpad.touchId === id) {
+                handled = true;
                 const dx = x - this.trackpad.startX;
                 const dy = y - this.trackpad.startY;
                 this._lookDx += dx;
@@ -313,15 +319,17 @@ export class InputController {
                 }
             }
         }
+        if (handled) e.preventDefault();
     }
 
     _handleTouchEnd(e) {
-        e.preventDefault();
+        let handled = false;
 
         for (const touch of e.changedTouches) {
             const id = touch.identifier;
 
             if (this.joystick.active && this.joystick.touchId === id) {
+                handled = true;
                 this.joystick.active = false;
                 this.joystick.dx = 0;
                 this.joystick.dy = 0;
@@ -329,10 +337,12 @@ export class InputController {
             }
 
             if (this.trackpad.active && this.trackpad.touchId === id) {
+                handled = true;
                 this.trackpad.active = false;
                 this.trackpad.touchId = -1;
             }
         }
+        if (handled) e.preventDefault();
     }
 
     _detectMobile() {

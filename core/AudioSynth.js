@@ -16,12 +16,12 @@ export class AudioSynth {
             sfx: null
         };
         this.categoryBaseVolumes = {
-            weapon: 1.65,
-            ambient: 0.45,
-            ui: 0.7,
-            zombie: 0.9,
-            weather: 0.38,
-            sfx: 0.75
+            weapon: 1,
+            ambient: 0.28,
+            ui: 0.62,
+            zombie: 0.58,
+            weather: 0.24,
+            sfx: 0.62
         };
         this.reverb = null;
         this.reverbGain = null;
@@ -49,6 +49,10 @@ export class AudioSynth {
         this.lastWeaponSfxTime = Object.create(null);
         this.lastNpcWeaponSfxTime = 0;
         this.activeSampleVoices = new Map();
+        this.activeCategoryVoices = new Map();
+        this.categoryVoiceLimits = this.isMobileDevice
+            ? { weapon: 7, ambient: 2, ui: 3, zombie: 4, weather: 1, sfx: 5 }
+            : { weapon: 12, ambient: 3, ui: 4, zombie: 7, weather: 2, sfx: 8 };
         this.weaponSfxCooldown = {
             bow: 0.09,
             laser: 0.12,
@@ -176,12 +180,12 @@ export class AudioSynth {
             this.sfxLimiter = this.audioContext.createDynamicsCompressor();
 
             this.reverb.buffer = this.createImpulse(1.6, 1.8);
-            this.reverbGain.gain.value = 0.1;
-            this.sfxLimiter.threshold.value = -22;
-            this.sfxLimiter.knee.value = 18;
-            this.sfxLimiter.ratio.value = 5.5;
-            this.sfxLimiter.attack.value = 0.008;
-            this.sfxLimiter.release.value = 0.22;
+            this.reverbGain.gain.value = 0.055;
+            this.sfxLimiter.threshold.value = -12;
+            this.sfxLimiter.knee.value = 10;
+            this.sfxLimiter.ratio.value = 8;
+            this.sfxLimiter.attack.value = 0.003;
+            this.sfxLimiter.release.value = 0.12;
 
             this.musicGain.connect(this.audioContext.destination);
             Object.keys(this.categoryGains).forEach((key) => {
@@ -192,12 +196,11 @@ export class AudioSynth {
             });
             this.masterSfxGain.connect(this.sfxLimiter);
             this.sfxLimiter.connect(this.audioContext.destination);
-            this.sfxLimiter.connect(this.reverb);
             this.reverb.connect(this.reverbGain);
             this.reverbGain.connect(this.audioContext.destination);
 
             this.musicGain.gain.value = this.musicVolume;
-            this.masterSfxGain.gain.value = this.sfxVolume;
+            this.masterSfxGain.gain.value = this.getAudibleVolume(this.sfxVolume);
             this.loadSamples().catch(() => {});
             this.bindUnlockHandlers();
             return true;
@@ -291,7 +294,12 @@ export class AudioSynth {
 
     setSfxVolume(value = 0.48) {
         this.sfxVolume = clamp(value, 0, 1);
-        if (this.masterSfxGain) this.masterSfxGain.gain.value = this.sfxVolume;
+        if (this.masterSfxGain) this.masterSfxGain.gain.value = this.getAudibleVolume(this.sfxVolume);
+    }
+
+    getAudibleVolume(value) {
+        const normalized = clamp(Number(value) || 0, 0, 1);
+        return normalized === 0 ? 0 : 0.34 + Math.sqrt(normalized) * 0.66;
     }
 
     setCategoryVolume(category, value = 1) {
@@ -391,6 +399,14 @@ export class AudioSynth {
         const gainNode = ctx.createGain();
         gainNode.gain.value = clamp(Number.isFinite(options.volume) ? options.volume : 0.2, 0, 2);
 
+        const category = String(options.category || 'sfx').toLowerCase();
+        const priority = Number.isFinite(options.priority) ? options.priority : (category === 'ui' ? 3 : category === 'weapon' ? 2 : 1);
+        if (!this.reserveCategoryVoice(category, source, gainNode, priority)) {
+            source.disconnect();
+            gainNode.disconnect();
+            return true;
+        }
+
         source.connect(gainNode);
         if (options.reverbSend > 0) {
             const send = ctx.createGain();
@@ -405,7 +421,7 @@ export class AudioSynth {
             }
         }
 
-        this.connectSfx(gainNode, options.position || null, options.category || 'sfx');
+        this.connectSfx(gainNode, options.position || null, category);
         const voiceKey = options.voiceKey ? String(options.voiceKey) : null;
         if (voiceKey) {
             const previous = this.activeSampleVoices.get(voiceKey);
@@ -554,8 +570,38 @@ export class AudioSynth {
         return true;
     }
 
+    reserveCategoryVoice(category, source, gain, priority) {
+        const limit = this.categoryVoiceLimits[category] || 6;
+        const voices = this.activeCategoryVoices.get(category) || [];
+        while (voices.length >= limit) {
+            let candidate = 0;
+            for (let i = 1; i < voices.length; i++) {
+                if (voices[i].priority < voices[candidate].priority) candidate = i;
+            }
+            if (voices[candidate].priority > priority) return false;
+            const [voice] = voices.splice(candidate, 1);
+            try { voice.source.stop(); } catch (_) {}
+            try { voice.source.disconnect(); } catch (_) {}
+            try { voice.gain.disconnect(); } catch (_) {}
+        }
+        const voice = { source, gain, priority };
+        voices.push(voice);
+        this.activeCategoryVoices.set(category, voices);
+        source.addEventListener('ended', () => {
+            const active = this.activeCategoryVoices.get(category);
+            if (!active) return;
+            const index = active.indexOf(voice);
+            if (index >= 0) active.splice(index, 1);
+        }, { once: true });
+        return true;
+    }
+
     getEmitterSfxScale(emitterKey) {
         return String(emitterKey || '').startsWith('id:') ? (this.isMobileDevice ? 0.045 : 0.065) : 1;
+    }
+
+    getEmitterSfxPriority(emitterKey) {
+        return String(emitterKey || '').startsWith('id:') ? 0 : 3;
     }
 
     startAmbient() {
@@ -808,14 +854,14 @@ export class AudioSynth {
 
     playBowShot(position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`bow:${emitterKey}`, this.weaponSfxCooldown.bow)) return;
-        this.playSample(this.sampleCatalog.bow, { volume: (this.isMobileDevice ? 0.48 : 0.56) * this.getEmitterSfxScale(emitterKey), rateMin: 0.96, rateMax: 1.04, position, category: 'weapon', maxDuration: 0.42, voiceKey: `weapon:bow:${emitterKey}` })
+        this.playSample(this.sampleCatalog.bow, { volume: (this.isMobileDevice ? 0.48 : 0.56) * this.getEmitterSfxScale(emitterKey), rateMin: 0.96, rateMax: 1.04, position, category: 'weapon', priority: this.getEmitterSfxPriority(emitterKey), maxDuration: 0.42, voiceKey: `weapon:bow:${emitterKey}` })
             .then(played => { if (!played) this.playProceduralShot('bow', 0.2 * this.getEmitterSfxScale(emitterKey), position); });
     }
 
     playLaser(position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`laser:${emitterKey}`, this.weaponSfxCooldown.laser)) return;
         const scale = this.getEmitterSfxScale(emitterKey);
-        this.playSample(this.sampleCatalog.laser, { volume: (this.isMobileDevice ? 0.48 : 0.56) * scale, rateMin: 0.96, rateMax: 1.04, position, category: 'weapon', maxDuration: 0.16, voiceKey: `weapon:laser:${emitterKey}` })
+        this.playSample(this.sampleCatalog.laser, { volume: (this.isMobileDevice ? 0.48 : 0.56) * scale, rateMin: 0.96, rateMax: 1.04, position, category: 'weapon', priority: this.getEmitterSfxPriority(emitterKey), maxDuration: 0.16, voiceKey: `weapon:laser:${emitterKey}` })
             .then(played => { if (!played) this.playProceduralShot('laser', 0.2 * scale, position); });
     }
 
@@ -831,6 +877,7 @@ export class AudioSynth {
             maxDuration: 0.34,
             position,
             category: 'weapon',
+            priority: this.getEmitterSfxPriority(emitterKey),
             voiceKey: `weapon:shotgun:${emitterKey}`
         }).then(played => { if (!played) this.playProceduralShot('shotgun', 0.32 * scaled * scale, position); });
     }
@@ -847,6 +894,7 @@ export class AudioSynth {
             maxDuration: 0.48,
             position,
             category: 'weapon',
+            priority: this.getEmitterSfxPriority(emitterKey),
             voiceKey: `weapon:pistol:${emitterKey}`
         }).then(played => { if (!played) this.playNoiseBurst({ duration: 0.11, volume: 0.24 * scale, highpass: 180, lowpass: 3600, position, category: 'weapon' }); });
     }
@@ -863,6 +911,7 @@ export class AudioSynth {
             maxDuration: 0.54,
             position,
             category: 'weapon',
+            priority: this.getEmitterSfxPriority(emitterKey),
             voiceKey: `weapon:rifle:${emitterKey}`
         }).then(played => { if (!played) this.playNoiseBurst({ duration: 0.13, volume: 0.28 * scale, highpass: 120, lowpass: 3200, position, category: 'weapon' }); });
     }
@@ -889,6 +938,7 @@ export class AudioSynth {
             maxDuration: 0.2,
             position,
             category: 'weapon',
+            priority: this.getEmitterSfxPriority(emitterKey),
             voiceKey: `weapon:machinegun:${emitterKey}`
         })).then(played => {
             if (!played) this.playNoiseBurst({ duration: 0.09, volume: 0.22 * scale, highpass: 150, lowpass: 3500, position, category: 'weapon' });
@@ -907,6 +957,7 @@ export class AudioSynth {
             maxDuration: 0.2,
             position,
             category: 'weapon',
+            priority: this.getEmitterSfxPriority(emitterKey),
             voiceKey: `weapon:flamethrower:${emitterKey}`
         }).then(played => { if (!played) this.playProceduralShot('flamethrower', 0.22 * scale, position); });
     }

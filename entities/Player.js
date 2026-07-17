@@ -167,8 +167,8 @@ export class Player {
             flatShading: true
         });
         const handMat = new THREE.MeshStandardMaterial({
-            color: 0xffc9a6,
-            roughness: 0.4,
+            color: 0x111820,
+            roughness: 0.72,
             metalness: 0.0,
             flatShading: true
         });
@@ -464,13 +464,6 @@ export class Player {
             this.physics.velocity.x *= 0.8;
             this.physics.velocity.z *= 0.8;
             this.animationState = 'idle';
-        }
-
-        if (this.perk === 'fastRun' && entityManager && moveVector.length() > 0.2 && this.trailCooldown === 0) {
-            const trailPos = this._tmpTrailPos.copy(this.position);
-            trailPos.y = 0.4;
-            entityManager.spawnSpeedTrail?.(trailPos, 0x4bb3ff);
-            this.trailCooldown = 0.08;
         }
 
         if (!isFrozen && this.input.isKeyPressed('Space')) {
