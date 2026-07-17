@@ -16,11 +16,11 @@ import { MeshPool } from "./MeshPool.js";
 //   5. Spawn pads only on walkable surfaces (platforms, bridges, clearings)
 // ============================================================================
 
-const MAP_SIZE = 480;
+const MAP_SIZE = 512;
 const TILE_SIZE = 4;
-const GRID_W = MAP_SIZE / TILE_SIZE; // 128
-const GRID_H = MAP_SIZE / TILE_SIZE; // 128
-const HALF = MAP_SIZE / 2; // 256
+const GRID_W = MAP_SIZE / TILE_SIZE;
+const GRID_H = MAP_SIZE / TILE_SIZE;
+const HALF = MAP_SIZE / 2;
 
 // Safety constants for building placement to prevent overlap with central cornucopia zone
 const CORNUCOPIA_RADIUS = 30;
@@ -4250,50 +4250,17 @@ export class MapGenerator {
     // PERIMETER WALLS — Glass blue border walls like in reference image
     // =========================================================================
     _generatePerimeterWalls() {
-        const wallH = 30;   // Wall height
-        const wallT = 1.5;  // Thickness
-        const half = HALF;  // 256
-        const wallMat = this.pool.getMatStd(0x4dd0e1, 0.1, 0.2, false, true, 0.55, 0x006064, 0.4);
-
-        // Bottom base plate (solid floor under walls)
-        const baseMat = this.pool.getMatStd(0x1565c0, 0.7, 0, true, false, 1, 0, 0);
-
-        // Four perimeter walls
+        const wallH = 30;
+        const wallT = 1.5;
+        const half = HALF;
         const walls = [
-            // North wall
             { x: 0, y: wallH / 2, z: -half, w: half * 2 + wallT * 2, h: wallH, d: wallT },
-            // South wall
             { x: 0, y: wallH / 2, z: half,  w: half * 2 + wallT * 2, h: wallH, d: wallT },
-            // West wall
             { x: -half, y: wallH / 2, z: 0, w: wallT, h: wallH, d: half * 2 },
-            // East wall
             { x: half,  y: wallH / 2, z: 0, w: wallT, h: wallH, d: half * 2 },
         ];
-
         for (const w of walls) {
-            const geo = this.pool.getGeoBox(w.w, w.h, w.d);
-            const mesh = new THREE.Mesh(geo, wallMat);
-            mesh.position.set(w.x, w.y, w.z);
-            mesh.userData.mapGenerated = true;
-            this.scene.add(mesh);
             this.addColliderBox(new THREE.Vector3(w.x, w.y, w.z), w.w, w.h, w.d, false);
-        }
-
-        // Blue base strip (floor level frame)
-        const baseWalls = [
-            { x: 0, z: -half - wallT * 0.5, w: half * 2 + wallT * 4, d: wallT * 2 },
-            { x: 0, z: half + wallT * 0.5,  w: half * 2 + wallT * 4, d: wallT * 2 },
-            { x: -half - wallT * 0.5, z: 0, w: wallT * 2, d: half * 2 },
-            { x: half + wallT * 0.5,  z: 0, w: wallT * 2, d: half * 2 },
-        ];
-
-        for (const b of baseWalls) {
-            const geo = this.pool.getGeoBox(b.w, 0.5, b.d);
-            const mesh = new THREE.Mesh(geo, baseMat);
-            mesh.position.set(b.x, 0.25, b.z);
-            mesh.userData.mapGenerated = true;
-            this.scene.add(mesh);
-            this.addColliderBox(new THREE.Vector3(b.x, 0.25, b.z), b.w, 0.5, b.d, false);
         }
     }
 
