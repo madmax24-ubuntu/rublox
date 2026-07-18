@@ -346,6 +346,18 @@ export class BotBrain {
             }
         }
 
+        const retaliationTarget = bot._retaliationTarget;
+        if (retaliationTarget?.isAlive && now < (bot._retaliateUntil || 0)) {
+            const retaliationDist = bot.position.distanceTo(retaliationTarget.position);
+            if (retaliationDist <= 65) {
+                nearestEnemy = retaliationTarget;
+                nearestEnemyDist = retaliationDist;
+            }
+        } else {
+            bot._retaliationTarget = null;
+            bot._retaliateUntil = 0;
+        }
+
         return {
             now,
             hp,
@@ -448,6 +460,9 @@ export class BotBrain {
         const armed = !!bot.currentWeapon && bot.currentWeapon.type !== 'fists';
         const wellArmed = ctx.combatReady;
         const hasMedkit = (bot.medkits || 0) > 0;
+        const retaliating = !!bot._retaliationTarget
+            && bot._retaliationTarget.isAlive
+            && performance.now() < (bot._retaliateUntil || 0);
 
         // Personality-driven thresholds
         const agg = Math.min(1, (bot.personality?.aggression ?? 0.5) + ctx.gear * 0.18);
@@ -471,6 +486,7 @@ export class BotBrain {
         // === PHASE 1: Pre-loot (noCombatUntil not expired) ===
         // Bots scatter and loot, almost never fight
         if (ctx.inPreLootPhase) {
+            if (retaliating && ctx.nearestEnemy && ctx.nearestEnemyDist < 35 && !veryLowHp) return STATES.ENGAGE;
             if (ctx.lootTarget) return STATES.LOOT;
             // Only engage if very close AND being shot AND well-armed (aggression can override)
             if (ctx.nearestEnemy && ctx.nearestEnemyDist < 12 && ctx.heardShot && wellArmed && agg > 0.7) {
@@ -489,6 +505,7 @@ export class BotBrain {
             if (veryLowHp && ctx.shelterTarget && (!ctx.nearestEnemy || ctx.nearestEnemyDist > 10)) {
                 return STATES.ZONE_RETREAT;
             }
+            if (retaliating && ctx.nearestEnemy && ctx.nearestEnemyDist < 45 && !veryLowHp) return STATES.ENGAGE;
 
             // 2. Scatter if crowd nearby (aggressive bots tolerate more)
             if (ctx.crowdNear >= crowdTolerance) {
@@ -533,6 +550,7 @@ export class BotBrain {
         if ((veryLowHp && hasMedkit) || (lowHp && hasMedkit && underPressure)) {
             return STATES.SURVIVAL;
         }
+        if (retaliating && ctx.nearestEnemy && ctx.nearestEnemyDist < 55 && !veryLowHp) return STATES.ENGAGE;
 
         // 2. Retreat/Hide if in trouble (caution-adjusted)
         if (ctx.hp < retreatHpThreshold && ctx.shelterTarget && (!ctx.nearestEnemy || ctx.nearestEnemyDist > 10)) return STATES.ZONE_RETREAT;
@@ -795,7 +813,10 @@ export class BotBrain {
 
         // Early-game check: retreat if not being actively shot at
         if (ctx.earlyGamePhase) {
-            const isBeingShot = ctx.heardShot;
+            const isBeingShot = ctx.heardShot || (
+                bot._retaliationTarget?.isAlive
+                && performance.now() < (bot._retaliateUntil || 0)
+            );
             const dist = ctx.nearestEnemy ? bot.position.distanceTo(ctx.nearestEnemy.position) : Infinity;
             // Aggressive bots stay in combat longer; cautious bots retreat easier
             const retreatDist = 10 - agg * 4 + cau * 3;
@@ -1059,22 +1080,23 @@ export class BotBrain {
         if (preferZombie) return ctx.nearestZombie;
         const t = ctx.nearestEnemy;
         if (!t?.isAlive) return null;
+        const retaliating = bot._retaliationTarget === t && performance.now() < (bot._retaliateUntil || 0);
 
         // Max attackers per target: aggressive bots tolerate more attackers
         const attackers = this.countAttackers(entityManager, t, bot);
         const maxAttackers = ctx.earlyGamePhase
             ? Math.max(2, Math.round(2 + agg * 2))
             : Math.min(4, Math.max(3, Math.round(3 + agg)));
-        if (attackers >= maxAttackers) return null;
+        if (!retaliating && attackers >= maxAttackers) return null;
 
         // Don't engage if surrounded (aggressive bots tolerate more)
         const maxCrowd = ctx.earlyGamePhase
             ? Math.min(5, Math.max(3, Math.round(3 + agg * 2)))
             : 5;
-        if (ctx.crowdNear >= maxCrowd) return null;
+        if (!retaliating && ctx.crowdNear >= maxCrowd) return null;
 
         // During early game, only fight if well-armed (aggressive bots less strict)
-        if (ctx.earlyGamePhase) {
+        if (ctx.earlyGamePhase && !retaliating) {
             const wellArmed = !!bot.currentWeapon && WEAPON_PRIORITY[bot.currentWeapon?.type] >= (agg > 0.7 ? 4 : 5);
             if (!wellArmed) return null;
         }

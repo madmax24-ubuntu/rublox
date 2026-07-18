@@ -76,6 +76,7 @@ export class ExplosiveBarrel {
 
     takeDamage(amount, _isHeadshot = false, _attacker = null) {
         if (!this.isAlive || this.isDetonating) return false;
+        if (_attacker) this.lastAttacker = _attacker;
         this.health -= Math.max(0, amount || 0);
         if (this.health <= 0) {
             this.health = 0;
@@ -118,14 +119,15 @@ export class ExplosiveBarrel {
 
         for (const ent of targets) {
             if (!ent?.isAlive) continue;
-            if (ent.constructor?.name !== 'Zombie') continue;
+            if (ent === this || typeof ent.takeDamage !== 'function') continue;
             const dx = ent.position.x - center.x;
+            const dy = (ent.position.y || 0) - center.y;
             const dz = ent.position.z - center.z;
-            const dist = Math.max(0.01, Math.hypot(dx, dz));
+            const dist = Math.max(0.01, Math.hypot(dx, dy, dz));
             if (dist > this.explosionRadius) continue;
             const t = 1 - dist / this.explosionRadius;
             const damage = this.explosionDamage * (0.45 + t * 0.55);
-            ent.takeDamage(damage, false, null, this.knockback * t, 'barrel');
+            ent.takeDamage(damage, false, this.lastAttacker || null, this.knockback * t, 'barrel');
             if (ent.physics?.velocity) {
                 ent.physics.velocity.x += (dx / dist) * this.knockback * t;
                 ent.physics.velocity.z += (dz / dist) * this.knockback * t;

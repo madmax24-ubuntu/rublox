@@ -374,10 +374,12 @@ class Game {
         this.lastEventType = null;
         this.eventTimeline = [
             { at: 90, type: 'supplyDrop', duration: 12 },
+            { at: 120, type: 'runnerHunt', duration: 18 },
             { at: 150, type: 'platformOpen', duration: 22 },
             { at: 210, type: 'night', duration: 40 },
             { at: 275, type: 'blindness', duration: 4 },
             { at: 320, type: 'radiationRain', duration: GAME_CONFIG.events.radiation.durationSeconds },
+            { at: 360, type: 'heavySiege', duration: 24 },
             { at: 390, type: 'supplyDrop', duration: 12 },
             { at: 450, type: 'platformOpen', duration: 18 },
             { at: 490, type: 'storm', duration: GAME_CONFIG.events.storm.durationSeconds },
@@ -391,6 +393,7 @@ class Game {
         this.rainUpdateAccumulator = 0;
         this.weatherSyncTimer = 0;
         this.lastWeatherType = 'clear';
+        this.lastAudioWeatherType = 'clear';
         this.lastAmbientBiome = null;
         this.poiWarmupTimer = 0;
         this.zombieMaintainTimer = 3.6;
@@ -949,30 +952,29 @@ class Game {
     initRadiationRainEffect() {
         const dropCount = this.isMobile() ? 72 : 120;
         const geometry = new THREE.BufferGeometry();
-        const positions = new Float32Array(dropCount * 2 * 3);
+        const positions = new Float32Array(dropCount * 3);
         const speeds = new Float32Array(dropCount);
         const area = this.isMobile() ? 22 : 28;
         for (let i = 0; i < dropCount; i++) {
             const x = (Math.random() - 0.5) * area;
             const z = (Math.random() - 0.5) * area;
             const y = 6 + Math.random() * 18;
-            const idx = i * 6;
+            const idx = i * 3;
             positions[idx] = x;
             positions[idx + 1] = y;
             positions[idx + 2] = z;
-            positions[idx + 3] = x;
-            positions[idx + 4] = y - (1.8 + Math.random() * 1.2);
-            positions[idx + 5] = z;
             speeds[i] = 11 + Math.random() * 10;
         }
         geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        const material = new THREE.LineBasicMaterial({
+        const material = new THREE.PointsMaterial({
             color: 0x7fff9a,
+            size: this.isMobile() ? 0.12 : 0.1,
             transparent: true,
-            opacity: this.isMobile() ? 0.58 : 0.72,
-            depthWrite: false
+            opacity: this.isMobile() ? 0.5 : 0.62,
+            depthWrite: false,
+            sizeAttenuation: true
         });
-        const lines = new THREE.LineSegments(geometry, material);
+        const lines = new THREE.Points(geometry, material);
         lines.visible = false;
         lines.renderOrder = 28;
         lines.frustumCulled = false;
@@ -1020,19 +1022,15 @@ class Game {
         const centerX = this.player.position.x;
         const centerZ = this.player.position.z;
         for (let i = 0; i < effect.speeds.length; i++) {
-            const idx = i * 6;
+            const idx = i * 3;
             positions[idx + 1] -= effect.speeds[i] * delta;
-            positions[idx + 4] = positions[idx + 1] - 2.2;
-            if (positions[idx + 4] <= -0.5) {
+            if (positions[idx + 1] <= this.map.getHeightAt(positions[idx], positions[idx + 2])) {
                 const x = centerX + (Math.random() - 0.5) * area;
                 const z = centerZ + (Math.random() - 0.5) * area;
                 const topY = this.map.getHeightAt(x, z) + 18 + Math.random() * 10;
                 positions[idx] = x;
                 positions[idx + 1] = topY;
                 positions[idx + 2] = z;
-                positions[idx + 3] = x;
-                positions[idx + 4] = topY - (1.8 + Math.random() * 1.4);
-                positions[idx + 5] = z;
                 effect.speeds[i] = 11 + Math.random() * 10;
             }
         }
@@ -1314,6 +1312,7 @@ class Game {
         if (event === "blindness") {
             this.activeEvent.type = "blindness";
             this.activeEvent.timer = scheduled.duration;
+            this.queueZombieBurst(false, 1.6, 180, this.isMobile() ? 8 : 12, this.isMobile() ? 2 : 4);
             if (this.env?.setFogOverride) {
                 this.env.setFogOverride(0.085, 0x030307);
             } else if (this.scene?.fog) {
@@ -1324,11 +1323,14 @@ class Game {
             this.activeEvent.type = "night";
             this.activeEvent.timer = scheduled.duration;
             this.env.forceNight(scheduled.duration);
+            this.queueZombieBurst(false, 2.4, 200, this.isMobile() ? 20 : 30, this.isMobile() ? 3 : 5);
+            this.queuePoiBurst(1.8, this.isMobile() ? 10 : 16, this.isMobile() ? 2 : 4);
             this.hud.showGameMessage("Событие: Ночь. Заражённые слышат и видят дальше!");
         } else if (event === "radiationRain") {
             this.activeEvent.type = "radiationRain";
             this.activeEvent.timer = scheduled.duration;
             this.setRadiationRainActive(true);
+            this.queueZombieBurst(false, 1.7, 180, this.isMobile() ? 10 : 16, this.isMobile() ? 2 : 4);
             this.hud.showGameMessage("Событие: Радиационный дождь. Прячьтесь в домах или ангарах!");
         } else if (event === "supplyDrop") {
             this.activeEvent.type = "supplyDrop";
@@ -1338,6 +1340,7 @@ class Game {
         } else if (event === "storm") {
             this.activeEvent.type = "storm";
             this.activeEvent.timer = scheduled.duration;
+            this.queueZombieBurst(false, 1.8, 180, this.isMobile() ? 10 : 16, this.isMobile() ? 2 : 4);
             this.hud.showGameMessage("Событие: Шторм! Укрытия снижают урон!");
             if (this.env?.setStormActive) {
                 this.env.setStormActive(true, GAME_CONFIG.events.storm.visualIntensity);
@@ -1347,6 +1350,16 @@ class Game {
             this.activeEvent.timer = scheduled.duration;
             this.queueZombieBurst(false, 2.5, 120, GAME_CONFIG.events.zombieRush.zombieCount, 4);
             this.hud.showGameMessage("Событие: Зомби-волна! Готовьтесь к бою!");
+        } else if (event === 'runnerHunt') {
+            this.activeEvent.type = 'runnerHunt';
+            this.activeEvent.timer = scheduled.duration;
+            this.queueZombieBurst(false, 2.2, 180, this.isMobile() ? 14 : 22, this.isMobile() ? 3 : 5, 'runner');
+            this.hud.showGameMessage('Событие: Охота спринтеров! Не стойте на месте!');
+        } else if (event === 'heavySiege') {
+            this.activeEvent.type = 'heavySiege';
+            this.activeEvent.timer = scheduled.duration;
+            this.queueZombieBurst(false, 2.6, 180, this.isMobile() ? 8 : 14, this.isMobile() ? 2 : 3, 'heavy');
+            this.hud.showGameMessage('Событие: Осада тяжёлых заражённых! Используйте укрытия и бочки!');
         } else if (event === 'platformOpen') {
             this.activeEvent.type = 'platformOpen';
             this.activeEvent.timer = scheduled.duration;
@@ -1366,13 +1379,14 @@ class Game {
         }
     }
 
-    queueZombieBurst(reset, multiplier, capOverride, count, chunk = 6) {
+    queueZombieBurst(reset, multiplier, capOverride, count, chunk = 6, variant = null) {
         this.pendingZombieBursts.push({
             reset,
             multiplier,
             capOverride,
             remaining: Math.max(0, count | 0),
             chunk: Math.max(1, chunk | 0),
+            variant,
             started: false
         });
     }
@@ -1435,7 +1449,7 @@ class Game {
             if (this.pendingZombieBursts.length) {
                 const job = this.pendingZombieBursts[0];
                 const batch = Math.min(this.isMobile() ? 1 : 2, job.chunk, job.remaining);
-                this.spawnZombies(job.reset && !job.started, job.multiplier, job.capOverride, batch);
+                this.spawnZombies(job.reset && !job.started, job.multiplier, job.capOverride, batch, job.variant);
                 job.started = true;
                 job.remaining -= batch;
                 if (job.remaining <= 0) this.pendingZombieBursts.shift();
@@ -1684,8 +1698,8 @@ class Game {
                 this.eventTimelineIndex = 0;
                 this.activeEvent = { type: null, timer: 0, prevFog: null };
                 this.initialZombieWaveQueued = false;
-                this.queueZombieBurst(true, 1.1, 110, this.isMobile() ? 12 : 18, this.isMobile() ? 2 : 3);
-                this.queuePoiBurst(0.9, this.isMobile() ? 8 : 12, this.isMobile() ? 2 : 3);
+                this.queueZombieBurst(true, 1.1, 110, this.isMobile() ? 18 : 28, this.isMobile() ? 2 : 3);
+                this.queuePoiBurst(0.9, this.isMobile() ? 12 : 18, this.isMobile() ? 2 : 3);
                 this.randomEventTimer = GAME_CONFIG.events.randomTimerMin + Math.random() * GAME_CONFIG.events.randomTimerVariance;
                 this.startZoneCycle();
                 this.player.setInvulnerable(false);
@@ -1970,9 +1984,7 @@ class Game {
         for (let i = 0; i < zombiesPerFrame && i < zombieCount; i++) {
             const zIndex = (this.zombieUpdateIndex + i) % zombieCount;
             const zombie = this.zombies[zIndex];
-            if (zombie?.isAlive) {
-                zombie.update(Math.min(0.1, delta * zombieCount / Math.max(1, zombiesPerFrame)), this.entityManager, this.audioSynth);
-            }
+            if (zombie) zombie.update(Math.min(0.1, delta * zombieCount / Math.max(1, zombiesPerFrame)), this.entityManager, this.audioSynth);
         }
         if (zombieCount > 0) {
             this.zombieUpdateIndex = (this.zombieUpdateIndex + zombiesPerFrame) % zombieCount;
@@ -2010,7 +2022,7 @@ class Game {
                 const aliveZombies = this.zombies.filter(z => z?.isAlive).length;
                 const growth = Math.floor(Math.min(5, elapsed / 120)) * 2;
                 const nightBonus = isNight ? (this.isMobile() ? 8 : 14) : 0;
-                const basePersistent = elapsed < gracePeriod ? (this.isMobile() ? 10 : 14) : (this.isMobile() ? 16 : 22);
+                const basePersistent = elapsed < gracePeriod ? (this.isMobile() ? 16 : 22) : (this.isMobile() ? 22 : 30);
                 const minAlive = basePersistent + growth + nightBonus;
                 if (aliveZombies < minAlive) {
                     const need = minAlive - aliveZombies;
@@ -2166,17 +2178,29 @@ class Game {
         if (this.weatherSyncTimer <= 0) {
             const changedWeather = this.env?.consumeWeatherChange?.();
             const weatherType = changedWeather || this.env?.getWeatherType?.() || 'clear';
-            if (weatherType !== this.lastWeatherType) {
-                this.lastWeatherType = weatherType;
+            if (weatherType !== this.lastAudioWeatherType) {
+                this.lastAudioWeatherType = weatherType;
                 this.audioSynth?.setWeatherState?.(weatherType);
+            }
+            const displayedWeather = this.activeEvent?.type === 'radiationRain'
+                ? 'radiationRain'
+                : this.activeEvent?.type === 'storm'
+                    ? 'storm'
+                    : this.activeEvent?.type === 'night'
+                        ? 'night'
+                        : weatherType;
+            if (displayedWeather !== this.lastWeatherType) {
+                this.lastWeatherType = displayedWeather;
                 if (this.gameState === 'playing') {
-                    if (weatherType === 'rain') {
-                        this.hud.showGameMessage('Погода: Дождь');
-                    } else if (weatherType === 'snow') {
-                        this.hud.showGameMessage('Погода: Снег');
-                    } else {
-                        this.hud.showGameMessage('Погода: Ясно');
-                    }
+                    const weatherLabels = {
+                        clear: 'Ясно',
+                        rain: 'Дождь',
+                        snow: 'Снег',
+                        storm: 'Шторм',
+                        night: 'Ночь',
+                        radiationRain: 'Радиационный дождь'
+                    };
+                    this.hud.showGameMessage(`Погода: ${weatherLabels[displayedWeather] || 'Ясно'}`);
                 }
             }
             const radius = Math.hypot(this.player.position.x, this.player.position.z);
@@ -2369,10 +2393,10 @@ class Game {
         return injected;
     }
 
-    spawnZombies(reset = true, multiplier = 1, capOverride = null, forceCount = null) {
+    spawnZombies(reset = true, multiplier = 1, capOverride = null, forceCount = null, forcedVariant = null) {
         if (reset) {
             for (const zombie of this.zombies) {
-                this.zombiePool.release(zombie);
+                this.zombiePool.release(zombie, true);
             }
             this.zombies = [];
         }
@@ -2408,7 +2432,7 @@ class Game {
             const pos = new THREE.Vector3(tile.x, baseY + 1.8, tile.z);
             if (pos.distanceTo(this.player.position) < (reset ? 20 : 24)) continue;
             if (!this.map.isWalkableAt?.(tile.x, tile.z)) continue;
-            const zombie = this.zombiePool.acquire(pos);
+            const zombie = this.zombiePool.acquire(pos, forcedVariant);
             this.zombies.push(zombie);
             spawned++;
         }

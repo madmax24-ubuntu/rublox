@@ -176,7 +176,7 @@ export class Bot {
 
         // Personality traits — each bot is unique
         this.personality = {
-            aggression: 0.15 + Math.random() * 0.85,
+            aggression: 0.35 + Math.random() * 0.65,
             caution: 0.15 + Math.random() * 0.85,
             lootFocus: 0.15 + Math.random() * 0.85
         };
@@ -838,6 +838,11 @@ export class Bot {
         if (attacker && attacker.position) {
             const isDotDamage = source === 'zone' || source === 'storm' || source === 'burn' || source === 'trap';
             if (!isDotDamage) {
+                const now = performance.now();
+                this._lastAttackedBy = now;
+                this._retaliationTarget = attacker;
+                this._retaliateUntil = now + 8000;
+                this._fsmCtx = null;
                 this.enemyEncounters.push({ pos: attacker.position.clone(), time: performance.now(), damage: finalDamage });
                 if (this.enemyEncounters.length > 15) this.enemyEncounters.shift();
             }
@@ -1388,5 +1393,4 @@ export class Bot {
         return a + diff * t;
     }
 }
-
 

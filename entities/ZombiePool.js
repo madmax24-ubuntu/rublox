@@ -9,15 +9,20 @@ export class ZombiePool {
         this.nextId = 1;
     }
 
-    acquire(spawnPosition) {
+    acquire(spawnPosition, forcedVariant = null) {
         let zombie;
-        if (this.pool.length > 0) {
-            zombie = this.pool.pop();
+        const poolIndex = forcedVariant
+            ? this.pool.findIndex(candidate => candidate.variant === forcedVariant)
+            : this.pool.length - 1;
+        if (poolIndex >= 0) {
+            zombie = this.pool.splice(poolIndex, 1)[0];
             zombie.isAlive = true;
+            zombie.health = zombie.maxHealth;
             zombie.position.copy(spawnPosition);
             zombie.rotation.set(0, 0, 0);
             zombie.physics.velocity.set(0, 0, 0);
             zombie.mesh.visible = true;
+            if (!zombie.mesh.parent) this.scene.add(zombie.mesh);
             zombie.mesh.position.copy(spawnPosition);
             zombie.mesh.rotation.set(0, 0, 0);
             zombie.mesh.scale.copy(zombie.mesh.userData._origScale || new THREE.Vector3(1, 1, 1));
@@ -32,8 +37,13 @@ export class ZombiePool {
             zombie._roamTimer = 3 + Math.random() * 5;
             zombie.attackCooldown = 0;
             zombie.soundTimer = 2 + Math.random() * 3;
+            zombie.target = null;
+            zombie._corpseTimer = 0;
+            zombie.burnTickTimer = 0;
+            zombie.burnDamagePerSecond = 0;
+            zombie.burnAttacker = null;
         } else {
-            zombie = new Zombie(this.scene, this.nextId++, spawnPosition);
+            zombie = new Zombie(this.scene, this.nextId++, spawnPosition, forcedVariant);
             zombie.mesh.userData._origScale = zombie.mesh.scale.clone();
         }
         this.physics.addEntity(zombie);
@@ -41,8 +51,9 @@ export class ZombiePool {
         return zombie;
     }
 
-    release(zombie) {
-        if (!zombie || zombie.isAlive) return;
+    release(zombie, force = false) {
+        if (!zombie || (zombie.isAlive && !force)) return;
+        zombie.isAlive = false;
         zombie.mesh.visible = false;
         if (zombie.mesh.parent) zombie.mesh.parent.remove(zombie.mesh);
         this.physics.removeEntity?.(zombie);

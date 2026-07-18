@@ -59,9 +59,11 @@ export class LootManager {
     
     generateChests() {
         const floorTiles = this.mapGenerator.getFloorTiles?.() || [];
-        const targetByMapSize = Math.floor(Math.max(80, floorTiles.length * (this.isMobile ? 0.05 : 0.07)));
-        const chestCount = Math.max(this.isMobile ? 90 : 140, Math.floor(targetByMapSize * this.lootDensity));
+        const targetByMapSize = Math.floor(Math.max(120, floorTiles.length * (this.isMobile ? 0.08 : 0.1)));
+        const chestCount = Math.max(this.isMobile ? 160 : 220, Math.floor(targetByMapSize * this.lootDensity));
         const spots = this.mapGenerator.getChestSpots?.() || [];
+        const occupied = new Set();
+        const keyFor = (x, z) => `${Math.round(x / 3)}:${Math.round(z / 3)}`;
 
         if (spots.length > 0) {
             const shuffled = [...spots].sort(() => Math.random() - 0.5);
@@ -73,31 +75,34 @@ export class LootManager {
                 if (y < this.mapGenerator.waterLevel + 1) continue;
                 const chest = this.createChest(spot.x, y, spot.z, spot.grade || 'house');
                 this.chests.push(chest);
+                occupied.add(keyFor(spot.x, spot.z));
                 this.addChestToIndex(chest);
-            }
-            if (this.chests.length > 0) {
-                this.rebuildChestIndex();
-                return;
             }
         }
 
-        if (floorTiles.length) {
+        if (floorTiles.length && this.chests.length < chestCount) {
             const shuffled = [...floorTiles].sort(() => Math.random() - 0.5);
-            const limit = Math.min(chestCount, shuffled.length);
+            const limit = shuffled.length;
             for (let i = 0; i < limit; i++) {
+                if (this.chests.length >= chestCount) break;
                 const tile = shuffled[i];
+                const key = keyFor(tile.x, tile.z);
+                if (occupied.has(key)) continue;
                 const y = this.getChestPlacementY(tile.x, tile.z);
                 if (y < this.mapGenerator.waterLevel + 1) continue;
                 if (!this.isHiddenSpawn(tile.x, y, tile.z)) continue;
                 const chest = this.createChest(tile.x, y, tile.z);
                 this.chests.push(chest);
+                occupied.add(key);
                 this.addChestToIndex(chest);
             }
-            this.rebuildChestIndex();
-            return;
+            if (this.chests.length >= chestCount) {
+                this.rebuildChestIndex();
+                return;
+            }
         }
 
-        for (let i = 0; i < chestCount; i++) {
+        for (let i = this.chests.length, attempts = 0; i < chestCount && attempts < chestCount * 20; attempts++) {
             const angle = Math.random() * Math.PI * 2;
             const distance = 40 + Math.random() * 150;
             const x = Math.cos(angle) * distance;
@@ -105,17 +110,19 @@ export class LootManager {
             const y = this.getChestPlacementY(x, z);
 
             if (y < this.mapGenerator.waterLevel + 1) {
-                i--;
                 continue;
             }
             if (!this.isHiddenSpawn(x, y, z)) {
-                i--;
                 continue;
             }
+            const key = keyFor(x, z);
+            if (occupied.has(key)) continue;
 
             const chest = this.createChest(x, y, z);
             this.chests.push(chest);
+            occupied.add(key);
             this.addChestToIndex(chest);
+            i++;
         }
         this.rebuildChestIndex();
     }
@@ -123,9 +130,11 @@ export class LootManager {
     // Асинхронная версия generateChests для устранения фризов при старте
     async generateChestsAsync() {
         const floorTiles = this.mapGenerator.getFloorTiles?.() || [];
-        const targetByMapSize = Math.floor(Math.max(80, floorTiles.length * (this.isMobile ? 0.05 : 0.07)));
-        const chestCount = Math.max(this.isMobile ? 90 : 140, Math.floor(targetByMapSize * this.lootDensity));
+        const targetByMapSize = Math.floor(Math.max(120, floorTiles.length * (this.isMobile ? 0.08 : 0.1)));
+        const chestCount = Math.max(this.isMobile ? 160 : 220, Math.floor(targetByMapSize * this.lootDensity));
         const spots = this.mapGenerator.getChestSpots?.() || [];
+        const occupied = new Set();
+        const keyFor = (x, z) => `${Math.round(x / 3)}:${Math.round(z / 3)}`;
         console.log(`[LootManager] generateChestsAsync: floorTiles=${floorTiles.length}, spots=${spots.length}, chestCount=${chestCount}`);
 
         if (spots.length > 0) {
@@ -139,25 +148,29 @@ export class LootManager {
                 
                 const chest = this.createChest(spot.x, y, spot.z, spot.grade || 'house');
                 this.chests.push(chest);
+                occupied.add(keyFor(spot.x, spot.z));
 
                 // Даем браузеру "прододхнуть" каждые 25 сундуков
                 if (i > 0 && i % 25 === 0) {
                     await new Promise(resolve => requestAnimationFrame(resolve));
                 }
             }
-            if (this.chests.length > 0) return;
         }
 
-        if (floorTiles.length) {
+        if (floorTiles.length && this.chests.length < chestCount) {
             const shuffled = [...floorTiles].sort(() => Math.random() - 0.5);
-            const limit = Math.min(chestCount, shuffled.length);
+            const limit = shuffled.length;
             for (let i = 0; i < limit; i++) {
+                if (this.chests.length >= chestCount) break;
                 const tile = shuffled[i];
+                const key = keyFor(tile.x, tile.z);
+                if (occupied.has(key)) continue;
                 const y = this.getChestPlacementY(tile.x, tile.z);
                 if (y < this.mapGenerator.waterLevel + 1) continue;
                 if (!this.isHiddenSpawn(tile.x, y, tile.z)) continue;
                 const chest = this.createChest(tile.x, y, tile.z);
                 this.chests.push(chest);
+                occupied.add(key);
                 if (i > 0 && i % 25 === 0) {
                     await new Promise(resolve => requestAnimationFrame(resolve));
                 }
@@ -165,13 +178,13 @@ export class LootManager {
             console.log(`[LootManager] floorTiles path: created ${this.chests.length} chests`);
             if (this.chests.length === 0) {
                 console.log(`[LootManager] floorTiles created 0 chests, falling through to random fallback`);
-            } else {
+            } else if (this.chests.length >= chestCount) {
                 return;
             }
         }
 
         console.log(`[LootManager] random fallback path, chestCount=${chestCount}`);
-        for (let i = 0; i < chestCount; i++) {
+        for (let i = this.chests.length, attempts = 0; i < chestCount && attempts < chestCount * 20; attempts++) {
             const angle = Math.random() * Math.PI * 2;
             const distance = 40 + Math.random() * 150;
             const x = Math.cos(angle) * distance;
@@ -179,16 +192,18 @@ export class LootManager {
             const y = this.getChestPlacementY(x, z);
 
             if (y < this.mapGenerator.waterLevel + 1) {
-                i--;
                 continue;
             }
             if (!this.isHiddenSpawn(x, y, z)) {
-                i--;
                 continue;
             }
+            const key = keyFor(x, z);
+            if (occupied.has(key)) continue;
 
             const chest = this.createChest(x, y, z);
             this.chests.push(chest);
+            occupied.add(key);
+            i++;
             if (i > 0 && i % 25 === 0) {
                 await new Promise(resolve => requestAnimationFrame(resolve));
             }

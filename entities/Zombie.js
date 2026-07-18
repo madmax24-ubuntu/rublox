@@ -39,7 +39,7 @@ const VARIANT_CONFIG = {
 };
 
 export class Zombie {
-    constructor(scene, id, spawnPosition) {
+    constructor(scene, id, spawnPosition, forcedVariant = null) {
         this.scene = scene;
         this.id = id;
         this.isAlive = true;
@@ -53,7 +53,9 @@ export class Zombie {
             speed: 4.8
         };
 
-        this.variant = Math.random() < 0.5 ? 'runner' : (Math.random() < 0.65 ? 'normal' : 'heavy');
+        this.variant = VARIANT_CONFIG[forcedVariant]
+            ? forcedVariant
+            : (Math.random() < 0.5 ? 'runner' : (Math.random() < 0.65 ? 'normal' : 'heavy'));
         const cfg = VARIANT_CONFIG[this.variant];
         this.maxHealth = cfg.health;
         this.health = cfg.health;

@@ -16,7 +16,7 @@ export class Environment {
         this.overrideFogColor = null;
         this.ambient = null;
         this.hemi = null;
-        this.nightAmbientColor = new THREE.Color(0x0b132b);
+        this.nightAmbientColor = new THREE.Color(0x294b78);
         this.targetExposure = 1;
         this.renderedSkyColor = new THREE.Color(0x8899aa);
 
@@ -91,6 +91,7 @@ export class Environment {
         const biomeBlendAmount = 0.25; // How much biome color affects the sky
         daySky.lerp(biomeColor, biomeBlendAmount);
         const sunHeight = Math.sin(angle);
+        const nightActive = forcedNight || sunHeight < -0.18;
         // Polyfill for THREE.MathUtils.smoothstep (removed in newer Three.js)
         const smoothstep = (value, edge0, edge1) => {
             const t = Math.max(0, Math.min(1, (value - edge0) / (edge1 - edge0)));
@@ -152,11 +153,15 @@ export class Environment {
             }
         }
 
-        if (forcedNight) {
+        if (nightActive) {
+            this.sunLight.position.set(-220, 280, -160);
+            this.sunLight.color.lerp(new THREE.Color(0x8fb9ff), Math.min(1, delta * 2.5));
             skyColor.copy(this.nightAmbientColor);
-            intensity = 0.0;
-            this.targetFog = Math.max(this.targetFog, 0.0058);
-            this.targetExposure = Math.min(this.targetExposure, 0.65);
+            intensity = 0.32;
+            this.targetFog = Math.max(this.targetFog, 0.0038);
+            this.targetExposure = 1.05;
+        } else {
+            this.sunLight.color.lerp(new THREE.Color(0xffd166), Math.min(1, delta * 1.8));
         }
         if (this.overrideFog !== null) {
             this.targetFog = this.overrideFog;
@@ -176,17 +181,17 @@ export class Environment {
         this.sunLight.intensity = THREE.MathUtils.lerp(this.sunLight.intensity, intensity, delta * 1.8);
         this.sunLight.visible = intensity > 0.03;
         if (this.ambient) {
-            const target = forcedNight ? 0.2 : 0.25 + intensity * 0.7;
+            const target = nightActive ? 0.65 : 0.25 + intensity * 0.7;
             this.ambient.intensity = THREE.MathUtils.lerp(this.ambient.intensity, target, delta * 0.8);
-            if (forcedNight) this.ambient.color.lerp(this.nightAmbientColor, delta * 2.4);
+            if (nightActive) this.ambient.color.lerp(this.nightAmbientColor, delta * 2.4);
             else this.ambient.color.lerp(new THREE.Color(0xffffff), delta * 1.8);
         }
         if (this.hemi) {
-            const target = forcedNight ? 0.18 : 0.2 + intensity * 0.75;
+            const target = nightActive ? 0.55 : 0.2 + intensity * 0.75;
             this.hemi.intensity = THREE.MathUtils.lerp(this.hemi.intensity, target, delta * 0.8);
-            if (forcedNight) {
+            if (nightActive) {
                 this.hemi.color.lerp(this.nightAmbientColor, delta * 2.6);
-                this.hemi.groundColor.lerp(new THREE.Color(0x080b14), delta * 2.6);
+                this.hemi.groundColor.lerp(new THREE.Color(0x263852), delta * 2.6);
             } else {
                 this.hemi.color.lerp(new THREE.Color(0xbad5ff), delta * 1.8);
                 this.hemi.groundColor.lerp(new THREE.Color(0x4a3a28), delta * 1.8);

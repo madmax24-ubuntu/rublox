@@ -139,7 +139,7 @@ export class MapGenerator {
         // Skip biomeBoundary objects — they are the walls between biomes
         const toRemove = [];
         for (const child of this.scene.children) {
-            if (child.userData?.mapGenerated && !child.isInstancedMesh && !child.userData?.isCornucopia && !child.userData?.biomeBoundary && !child.userData?.isBiomeEntrance) {
+            if (child.userData?.mapGenerated && !child.isInstancedMesh && !child.userData?.isCornucopia && !child.userData?.biomeBoundary && !child.userData?.isBiomeEntrance && !child.userData?.isSnowParticles) {
                 const dist = Math.sqrt(child.position.x * child.position.x + child.position.z * child.position.z);
                 if (dist < 75) {
                     toRemove.push(child);
@@ -333,6 +333,17 @@ export class MapGenerator {
     // LARGE DETAILED GOLDEN FOUNTAIN + SPAWN TILE GRID
     // =========================================================================
     _generateCornucopia() {
+        const courtyard = new THREE.Mesh(
+            this.pool.getGeoCylinder(75, 75, 0.12),
+            this.pool.getMatStd(0x8f8778, 0.96, 0, true, false, 1, 0, 0)
+        );
+        courtyard.position.set(0, 0.08, 0);
+        courtyard.userData.mapGenerated = true;
+        courtyard.userData.isCornucopia = true;
+        courtyard.userData.walkable = true;
+        courtyard.frustumCulled = false;
+        this.scene.add(courtyard);
+
         // Use the high-detail MapGeneratorNode implementation for the central hub to reach 99% fidelity
         const node = new MapGeneratorNode(this.scene);
         node.init();
@@ -1601,6 +1612,10 @@ export class MapGenerator {
         const clearingRadius = 11.5;
         const entranceX = Math.cos(-Math.PI / 4) * 72;
         const entranceZ = Math.sin(-Math.PI / 4) * 72;
+        const corridorStart = new THREE.Vector2(Math.cos(-Math.PI / 4) * 62, Math.sin(-Math.PI / 4) * 62);
+        const corridorEnd = new THREE.Vector2(Math.cos(-Math.PI / 4) * 106, Math.sin(-Math.PI / 4) * 106);
+        const corridorDelta = corridorEnd.clone().sub(corridorStart);
+        const corridorLengthSq = corridorDelta.lengthSq();
         let hiddenMazeLoot = 0;
         for (let r = 0; r < mazeRows && hiddenMazeLoot < 28; r++) {
             for (let c = 0; c < mazeCols && hiddenMazeLoot < 28; c++) {
@@ -1617,7 +1632,11 @@ export class MapGenerator {
         const segmentKeys = new Set();
         const addSegment = (x, z, width, depth) => {
             if (Math.hypot(x, z) < 67) return;
-            if (Math.hypot(x - entranceX, z - entranceZ) < 9) return;
+            const point = new THREE.Vector2(x, z);
+            const t = THREE.MathUtils.clamp(point.clone().sub(corridorStart).dot(corridorDelta) / corridorLengthSq, 0, 1);
+            const closest = corridorStart.clone().addScaledVector(corridorDelta, t);
+            const normalExtent = (width + depth) * 0.36;
+            if (point.distanceTo(closest) < 7 + normalExtent) return;
             if (Math.hypot(x - clearingCX, z - clearingCZ) < clearingRadius) return;
             const key = `${Math.round(x * 10)},${Math.round(z * 10)},${width > depth ? 'h' : 'v'}`;
             if (segmentKeys.has(key)) return;
@@ -2007,10 +2026,16 @@ export class MapGenerator {
         gateGroup.add(roof);
 
         gateGroup.position.set(x, 0, z);
+        const gateRotation = Math.atan2(x, z);
+        gateGroup.rotation.y = gateRotation;
         gateGroup.userData.mapGenerated = true;
         this.scene.add(gateGroup);
-        this.addColliderBox(new THREE.Vector3(x - 5, (wallHeight + 6) / 2, z), 3, wallHeight + 6, 3, false);
-        this.addColliderBox(new THREE.Vector3(x + 5, (wallHeight + 6) / 2, z), 3, wallHeight + 6, 3, false);
+        const sideX = Math.cos(gateRotation) * 5;
+        const sideZ = -Math.sin(gateRotation) * 5;
+        const left = this.addColliderBox(new THREE.Vector3(x - sideX, (wallHeight + 6) / 2, z - sideZ), 3, wallHeight + 6, 3, false);
+        const right = this.addColliderBox(new THREE.Vector3(x + sideX, (wallHeight + 6) / 2, z + sideZ), 3, wallHeight + 6, 3, false);
+        left.isBiomeEntrance = true;
+        right.isBiomeEntrance = true;
     }
 
     _addMazeMoss(startX, startZ, size) {
@@ -2106,36 +2131,15 @@ export class MapGenerator {
         const angle = Math.atan2(dx, dz);
         const midpoint = start.clone().add(end).multiplyScalar(0.5);
         const floorMat = this.pool.getMatStd(0x8a8174, 0.96, 0, true, false, 1, 0, 0);
-        const wallMat = this.pool.getMatStd(0x666666, 0.88, 0, true, false, 1, 0, 0, true);
-        const floor = new THREE.Mesh(this.pool.getGeoBox(9, 0.18, length + 1.5), floorMat);
+        const floor = new THREE.Mesh(this.pool.getGeoBox(12, 0.18, length + 1.5), floorMat);
         floor.position.set(midpoint.x, 0.09, midpoint.z);
         floor.rotation.y = angle;
         floor.userData.mapGenerated = true;
         floor.userData.walkable = true;
         floor.userData.isBiomeEntrance = true;
         this.scene.add(floor);
-        const floorCollider = this.addColliderBox(new THREE.Vector3(midpoint.x, 0.09, midpoint.z), 9 * Math.abs(Math.cos(angle)) + length * Math.abs(Math.sin(angle)), 0.18, 9 * Math.abs(Math.sin(angle)) + length * Math.abs(Math.cos(angle)), true);
+        const floorCollider = this.addColliderBox(new THREE.Vector3(midpoint.x, 0.09, midpoint.z), 12 * Math.abs(Math.cos(angle)) + length * Math.abs(Math.sin(angle)), 0.18, 12 * Math.abs(Math.sin(angle)) + length * Math.abs(Math.cos(angle)), true);
         floorCollider.isBiomeEntrance = true;
-        const sideX = Math.cos(angle) * 5.5;
-        const sideZ = -Math.sin(angle) * 5.5;
-        const segmentCount = Math.max(1, Math.ceil(length / 4));
-        const segmentLength = length / segmentCount + 0.2;
-        for (const side of [-1, 1]) {
-            for (let i = 0; i < segmentCount; i++) {
-                const t = (i + 0.5) / segmentCount;
-                const x = start.x + dx * t + sideX * side;
-                const z = start.z + dz * t + sideZ * side;
-                const wall = new THREE.Mesh(this.pool.getGeoBox(1.4, 18, segmentLength), wallMat);
-                wall.position.set(x, 9, z);
-                wall.rotation.y = angle;
-                wall.userData.mapGenerated = true;
-                wall.userData.isBiomeEntrance = true;
-                wall.userData.isWall = true;
-                this.scene.add(wall);
-                const collider = this.addColliderBox(new THREE.Vector3(x, 9, z), 1.4 * Math.abs(Math.cos(angle)) + segmentLength * Math.abs(Math.sin(angle)), 18, 1.4 * Math.abs(Math.sin(angle)) + segmentLength * Math.abs(Math.cos(angle)), false);
-                collider.isBiomeEntrance = true;
-            }
-        }
     }
 
     // =========================================================================
@@ -3857,7 +3861,9 @@ export class MapGenerator {
     }
 
     _addSnowParticles() {
-        const snowCount = 500;
+        const snowCount = 320;
+        const snowMin = 82;
+        const snowRange = HALF - snowMin - 8;
         const positions = new Float32Array(snowCount * 3);
         const snowMat = new THREE.PointsMaterial({
             color: 0xffffff,
@@ -3868,9 +3874,9 @@ export class MapGenerator {
         });
 
         for (let i = 0; i < snowCount; i++) {
-            const x = 10 + Math.random() * 236;
+            const x = snowMin + Math.random() * snowRange;
             const y = 5 + Math.random() * 20;
-            const z = 10 + Math.random() * 236;
+            const z = snowMin + Math.random() * snowRange;
             positions[i * 3] = x;
             positions[i * 3 + 1] = y;
             positions[i * 3 + 2] = z;
@@ -3881,26 +3887,28 @@ export class MapGenerator {
         const snowParticles = new THREE.Points(geo, snowMat);
         snowParticles.userData.isSnowParticles = true;
         snowParticles.userData.mapGenerated = true;
+        snowParticles.userData.snowMin = snowMin;
+        snowParticles.userData.snowRange = snowRange;
         this.scene.add(snowParticles);
     }
 
     updateSnowParticles(delta) {
         const particles = this._cachedSnow;
         if (!particles) return;
-        // Distance check — skip if player > 200m away
         const px = this._lastPlayerPos?.x, pz = this._lastPlayerPos?.z;
-        if (px) {
-            const dx = px - particles.position.x, dz = pz - particles.position.z;
-            if (dx * dx + dz * dz > 40000) return;
-        }
+        const insideIce = Number.isFinite(px) && Number.isFinite(pz) && px > 64 && pz > 64;
+        particles.visible = insideIce;
+        if (!insideIce) return;
+        const snowMin = particles.userData.snowMin ?? 82;
+        const snowRange = particles.userData.snowRange ?? (HALF - snowMin - 8);
         const pos = particles.geometry.attributes.position;
         const t = performance.now() * 0.001;
         for (let i = 0; i < pos.count; i++) {
             let y = pos.getY(i) - delta * 2;
             if (y < 0) {
                 y = 20 + Math.random() * 10;
-                pos.setX(i, 10 + Math.random() * 236);
-                pos.setZ(i, 10 + Math.random() * 236);
+                pos.setX(i, snowMin + Math.random() * snowRange);
+                pos.setZ(i, snowMin + Math.random() * snowRange);
             }
             pos.setY(i, y);
             pos.setX(i, pos.getX(i) + Math.sin(t + i) * delta * 0.5);

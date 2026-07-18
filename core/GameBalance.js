@@ -59,7 +59,7 @@ export const GAME_CONFIG = {
 
 export const ROUND_MODES = {
     hybrid: {
-        lootDensity: 0.85,
+        lootDensity: 1,
         zombieMultiplier: 1.4,
         footstepVolume: 0.7,
         botVision: 0.9,
