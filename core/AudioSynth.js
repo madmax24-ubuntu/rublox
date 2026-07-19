@@ -38,6 +38,7 @@ export class AudioSynth {
         this.musicStarted = false;
         this.musicLoopTimer = null;
         this.musicThemeIndex = 0;
+        this.musicSource = null;
         this.rainNoiseBuffer = null;
         this.musicVolume = this.isMobileDevice ? 0.2 : 0.11;
         this.sfxVolume = this.isMobileDevice ? 0.58 : 0.48;
@@ -1154,6 +1155,36 @@ export class AudioSynth {
         });
     }
 
+    createSurvivalMusicBuffer() {
+        if (!this.audioContext) return null;
+        const rate = this.audioContext.sampleRate;
+        const duration = 32;
+        const buffer = this.audioContext.createBuffer(2, rate * duration, rate);
+        const notes = [73.416, 82.407, 97.999, 110];
+        for (let channel = 0; channel < 2; channel++) {
+            const data = buffer.getChannelData(channel);
+            let noiseState = 7919 + channel * 104729;
+            for (let i = 0; i < data.length; i++) {
+                const t = i / rate;
+                const section = Math.floor(t / 8) % notes.length;
+                const root = notes[section];
+                const fade = Math.min(1, t * 0.8, (duration - t) * 0.8);
+                const breath = 0.58 + Math.sin(t * Math.PI / 4) * 0.22;
+                const drone = Math.sin(Math.PI * 2 * root * t + channel * 0.035) * 0.105;
+                const fifth = Math.sin(Math.PI * 2 * root * 1.5 * t + 0.4) * 0.042;
+                const high = Math.sin(Math.PI * 2 * root * 3 * t + channel * 0.8) * 0.013;
+                const hornPulse = Math.pow(Math.max(0, Math.sin(Math.PI * 2 * t / 8)), 3);
+                const horn = Math.sin(Math.PI * 2 * root * 0.5 * t) * hornPulse * 0.075;
+                const beatPhase = (t * 0.75) % 1;
+                const drum = Math.sin(Math.PI * 2 * 52 * t) * Math.exp(-beatPhase * 18) * 0.055;
+                noiseState = (noiseState * 1664525 + 1013904223) >>> 0;
+                const noise = ((noiseState / 4294967295) * 2 - 1) * Math.exp(-beatPhase * 24) * 0.012;
+                data[i] = (drone + fifth + high + horn + drum + noise) * breath * fade;
+            }
+        }
+        return buffer;
+    }
+
     playMusic() {
         this._ensureLazyInit();
         if (!this.audioContext || this.musicStarted) return;
@@ -1162,8 +1193,7 @@ export class AudioSynth {
         const playMusicTheme = (index) => {
             if (!this.audioContext || !this.musicGain) return;
             const theme = this.sampleCatalog.music[index % this.sampleCatalog.music.length];
-            if (!theme) return;
-            const buffer = this.sampleBuffers.get(theme);
+            const buffer = theme ? this.sampleBuffers.get(theme) : this.createSurvivalMusicBuffer();
             if (!buffer) return;
 
             const source = this.audioContext.createBufferSource();
@@ -1171,13 +1201,16 @@ export class AudioSynth {
             source.loop = true;
             source.connect(this.musicGain);
             source.start();
+            this.musicSource = source;
 
             clearTimeout(this.musicLoopTimer);
-            this.musicLoopTimer = setTimeout(() => {
-                source.stop();
-                this.musicThemeIndex = (index + 1) % this.sampleCatalog.music.length;
-                playMusicTheme(this.musicThemeIndex);
-            }, 180000);
+            if (this.sampleCatalog.music.length > 1) {
+                this.musicLoopTimer = setTimeout(() => {
+                    source.stop();
+                    this.musicThemeIndex = (index + 1) % this.sampleCatalog.music.length;
+                    playMusicTheme(this.musicThemeIndex);
+                }, 180000);
+            }
         };
 
         playMusicTheme(this.musicThemeIndex);

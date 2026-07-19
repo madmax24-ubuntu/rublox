@@ -5,7 +5,7 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const VARIANT_CONFIG = {
     runner: {
         health: 42, speed: 7.6, damage: 5.8, knockbackMultiplier: 1.2,
-        scale: 1.2, radius: 0.48, bodyColor: 0x55755e, headColor: 0x78927d,
+        scale: 1.2, radius: 0.48, bodyColor: 0xc34b2f, headColor: 0xc8c2a7, detailColor: 0xf0a13b,
         eyeColor: 0xff4411, glowColor: 0x44ff22, glowIntensity: 1.8,
         attackCooldown: 0.52, patrolSpeed: 0.7, alertRadius: 80,
         moanInterval: [1.2, 2.4], attackInterval: [0.3, 0.8],
@@ -16,7 +16,7 @@ const VARIANT_CONFIG = {
     },
     normal: {
         health: 72, speed: 5.1, damage: 7.2, knockbackMultiplier: 0.8,
-        scale: 1.35, radius: 0.54, bodyColor: 0x526b58, headColor: 0x79907d,
+        scale: 1.35, radius: 0.54, bodyColor: 0x6f3434, headColor: 0xb9b49b, detailColor: 0xd7c7a2,
         eyeColor: 0xff6600, glowColor: 0x8bff4f, glowIntensity: 1.35,
         attackCooldown: 0.72, patrolSpeed: 0.7, alertRadius: 68,
         moanInterval: [1.8, 3.6], attackInterval: [0.5, 1.2],
@@ -27,7 +27,7 @@ const VARIANT_CONFIG = {
     },
     heavy: {
         health: 180, speed: 3.2, damage: 9.2, knockbackMultiplier: 0,
-        scale: 1.56, radius: 0.6, bodyColor: 0x6b4b42, headColor: 0x8d6c61,
+        scale: 1.56, radius: 0.6, bodyColor: 0x3f4a50, headColor: 0x9c7a70, detailColor: 0xb23b2f,
         eyeColor: 0xff2200, glowColor: 0x3dff1f, glowIntensity: 2.2,
         attackCooldown: 1.05, patrolSpeed: 0.7, alertRadius: 55,
         moanInterval: [2.5, 4.5], attackInterval: [0.8, 1.8],
@@ -38,7 +38,7 @@ const VARIANT_CONFIG = {
     },
     crawler: {
         health: 58, speed: 6.4, damage: 6.4, knockbackMultiplier: 1.05,
-        scale: 1.15, radius: 0.5, bodyColor: 0x587383, headColor: 0x8ca5ad,
+        scale: 1.15, radius: 0.5, bodyColor: 0x405e72, headColor: 0xa8bbc0, detailColor: 0x5dd9ef,
         eyeColor: 0xb7f4ff, glowColor: 0x38b9d6, glowIntensity: 1.15,
         attackCooldown: 0.58, patrolSpeed: 0.82, alertRadius: 76,
         moanInterval: [1.5, 3.0], attackInterval: [0.4, 0.9],
@@ -49,7 +49,7 @@ const VARIANT_CONFIG = {
     },
     toxic: {
         health: 105, speed: 4.35, damage: 8.1, knockbackMultiplier: 0.55,
-        scale: 1.42, radius: 0.57, bodyColor: 0x77854b, headColor: 0xa9b96b,
+        scale: 1.42, radius: 0.57, bodyColor: 0xb5a52f, headColor: 0xc4bd82, detailColor: 0x24352e,
         eyeColor: 0xe8ff3d, glowColor: 0xa6ff19, glowIntensity: 2.7,
         attackCooldown: 0.82, patrolSpeed: 0.68, alertRadius: 88,
         moanInterval: [2.0, 4.0], attackInterval: [0.6, 1.3],
@@ -135,6 +135,9 @@ export class Zombie {
         });
         const eyeMat = new THREE.MeshStandardMaterial({
             color: cfg.eyeColor, emissive: cfg.eyeColor, emissiveIntensity: 2.4
+        });
+        const detailMat = new THREE.MeshStandardMaterial({
+            color: cfg.detailColor, roughness: 0.72, flatShading: true
         });
 
         if (this.variant === 'runner') {
@@ -437,6 +440,48 @@ export class Zombie {
             group.add(spine);
         }
 
+        if (this.variant !== 'crawler') {
+            const chestWidth = this.variant === 'heavy' ? 0.82 : 0.58;
+            const chestY = this.variant === 'heavy' ? 1.02 : 0.92;
+            const chestZ = this.variant === 'heavy' ? 0.43 : 0.34;
+            const chest = new THREE.Mesh(new THREE.BoxGeometry(chestWidth, 0.48, 0.08), detailMat);
+            chest.position.set(0, chestY, chestZ);
+            group.add(chest);
+            const bootMat = new THREE.MeshStandardMaterial({ color: 0x17191b, roughness: 0.92, flatShading: true });
+            for (const x of [-0.22, 0.22]) {
+                const boot = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.22, 0.38), bootMat);
+                boot.position.set(x, 0.08, 0.08);
+                group.add(boot);
+            }
+        } else {
+            const ribs = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.12, 0.78), detailMat);
+            ribs.position.set(0, 0.65, 0.18);
+            group.add(ribs);
+        }
+        if (this.variant === 'toxic') {
+            const respirator = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.28, 0.22), detailMat);
+            respirator.position.set(0.12, 1.72, 0.42);
+            group.add(respirator);
+            for (const x of [-0.22, 0.22]) {
+                const filter = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.16, 8), glowMat);
+                filter.rotation.z = Math.PI / 2;
+                filter.position.set(x + 0.12, 1.68, 0.43);
+                group.add(filter);
+            }
+        }
+        if (this.variant === 'normal') {
+            for (const x of [-0.23, 0, 0.23]) {
+                const rib = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.08, 0.12), detailMat);
+                rib.position.set(x, 1.02, 0.38);
+                group.add(rib);
+            }
+        }
+        group.traverse((child) => {
+            if (!child.isMesh) return;
+            child.castShadow = true;
+            child.receiveShadow = true;
+            child.userData.zombieVariant = this.variant;
+        });
         group.userData.isEntity = true;
         group.userData.isZombie = true;
         group.userData.limbs = group.children.filter(c =>

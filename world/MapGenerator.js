@@ -177,6 +177,7 @@ export class MapGenerator {
                 child.material?.dispose?.();
             }
         }
+        this._removeStripeArtifacts();
 
         // Phase 9.8: Map perimeter walls (glass/blue like reference)
         this._generatePerimeterWalls();
@@ -201,6 +202,23 @@ export class MapGenerator {
         // Cache animated object references for per-frame updates
         this._cacheAnimatedObjects();
         this._resolveReady?.();
+    }
+
+    _removeStripeArtifacts() {
+        const remove = [];
+        const bounds = new THREE.Box3();
+        const size = new THREE.Vector3();
+        this.scene.traverse((child) => {
+            if (!child.isMesh || child.isInstancedMesh || !child.userData?.mapGenerated || child.userData?.gameplayBoundary) return;
+            bounds.setFromObject(child);
+            bounds.getSize(size);
+            const shortSide = Math.min(size.x, size.z);
+            const longSide = Math.max(size.x, size.z);
+            if (size.y <= 0.3 && shortSide <= 1.8 && longSide >= 8) remove.push(child);
+        });
+        for (const mesh of remove) {
+            mesh.parent?.remove(mesh);
+        }
     }
 
     _reset() {
@@ -981,15 +999,6 @@ export class MapGenerator {
         this.scene.add(clearing);
         this.addColliderBox(new THREE.Vector3(x, 0.02, z), 12, 0.04, 12, true);
 
-        // Small stream from clearing to river
-        const streamMat = this.pool.getMatStd(0x29b6f6, 0.2, 0.3, false, true, 0.6, 0, 0);
-        const streamGeo = this.pool.getGeoPlane(1.5, 15);
-        const stream = new THREE.Mesh(streamGeo, streamMat);
-        stream.rotation.x = -Math.PI / 2;
-        stream.position.set(x + 3, 0.04, z - 5);
-        stream.userData.mapGenerated = true;
-        this.scene.add(stream);
-        this.addColliderBox(new THREE.Vector3(x + 3, 0.04, z - 5), 1.5, 0.01, 15, true);
     }
 
     // Small flowers in forest
@@ -1690,7 +1699,7 @@ export class MapGenerator {
         // Central tall tower with spiral staircase
         const towerCX = clearingCX;
         const towerCZ = clearingCZ;
-        const towerHeight = 50;
+        const towerHeight = 30;
         const towerRadius = 8;
 
         const towerWallSegments = 20;
@@ -1726,12 +1735,12 @@ export class MapGenerator {
         );
 
         // Spiral staircase
-        const totalSteps = 120;
+        const totalSteps = 180;
         const stepH = towerHeight / totalSteps;
         const spiralR = towerRadius - 2;
-        const angleStep = 0.18;
-        const stepWidth = 3.2;
-        const stepDepth = 2.2;
+        const angleStep = 0.14;
+        const stepWidth = 2.8;
+        const stepDepth = 1.45;
         const stepGeo = this.pool.getGeoBox(stepWidth, stepH, stepDepth);
         const towerSteps = new THREE.InstancedMesh(stepGeo, darkMat, totalSteps);
         const stepMatrix = new THREE.Matrix4();
@@ -1741,7 +1750,7 @@ export class MapGenerator {
 
         for (let i = 0; i < totalSteps; i++) {
             const angle = i * angleStep;
-            const stepY = i * stepH + 0.5;
+            const stepY = i * stepH + stepH * 0.5 + 0.5;
 
             const sx = towerCX + Math.cos(angle) * spiralR;
             const sz = towerCZ + Math.sin(angle) * spiralR;
@@ -1749,11 +1758,9 @@ export class MapGenerator {
             stepQuaternion.setFromAxisAngle(upAxis, rotation);
             stepMatrix.compose(new THREE.Vector3(sx, stepY, sz), stepQuaternion, stepScale);
             towerSteps.setMatrixAt(i, stepMatrix);
-            const c = Math.abs(Math.cos(rotation));
-            const s = Math.abs(Math.sin(rotation));
             this.addColliderBox(
                 new THREE.Vector3(sx, stepY, sz),
-                stepWidth * c + stepDepth * s, stepH, stepWidth * s + stepDepth * c, true
+                1.65, stepH, 1.65, true
             );
         }
         towerSteps.instanceMatrix.needsUpdate = true;
@@ -1765,7 +1772,7 @@ export class MapGenerator {
         this.scene.add(towerSteps);
 
         // Tower top platform
-        const topY = totalSteps * stepH + 0.5;
+        const topY = towerHeight;
         const topPlatGeo = this.pool.getGeoCylinder(towerRadius + 0.5, towerRadius + 0.5, 0.5);
         const topPlat = new THREE.Mesh(topPlatGeo, darkMat);
         topPlat.position.set(towerCX, topY + 0.25, towerCZ);
@@ -2095,7 +2102,7 @@ export class MapGenerator {
                 plate.userData.mapGenerated = true;
                 plate.userData.isTrap = true;
                 this.scene.add(plate);
-                this._traps.push({ position: new THREE.Vector3(x, 0, z), radius: 1.55, slow: 0.45, damage: 15 });
+                this._traps.push({ type: 'pressure', position: new THREE.Vector3(x, 0, z), radius: 1.55, slow: 0.45, damage: 15 });
                 placed++;
             }
         }
@@ -4163,6 +4170,92 @@ export class MapGenerator {
             this._addIceChunk(x, z);
             this._registerChestSpot(x - 2.2, z + 1.6, 'ice');
         }
+        this._addBiomeSurvivalFeatures();
+    }
+
+    _addBiomeSurvivalFeatures() {
+        for (const [x, z] of [[-196, -118], [-148, -214], [-92, -154], [-212, -202]]) {
+            this._addSurvivalTrap('snare', x, z);
+            this._addForestBush(x + 3.5, z - 2.5);
+        }
+        for (const [x, z] of [[96, -102], [152, -198], [214, -142], [112, -226]]) {
+            this._addSurvivalTrap('spikes', x, z);
+            this._registerChestSpot(x + 3.2, z + 2.4, 'maze');
+        }
+        for (const [x, z] of [[-202, 92], [-138, 184], [-86, 126], [-218, 222]]) {
+            this._addSurvivalTrap('mine', x, z);
+            this._addSandbagBarrier(x + 4.5, z);
+        }
+        for (const [x, z] of [[92, 124], [158, 206], [216, 108], [112, 224]]) {
+            this._addSurvivalTrap('ice', x, z);
+        }
+        this._addThemeArch(104, -88, Math.PI / 2, this.pool.getMatStd(0x5f6368, 0.9, 0, true, false, 1, 0, 0));
+        this._addThemeArch(192, -214, 0, this.pool.getMatStd(0x51555a, 0.9, 0, true, false, 1, 0, 0));
+        this._addGuardPost(-108, 112);
+        this._addGuardPost(-196, 176);
+        this._addIceCampfire(126, 174);
+        this._addIceCampfire(208, 212);
+    }
+
+    _addSurvivalTrap(type, x, z) {
+        const group = new THREE.Group();
+        let radius = 1.6;
+        let slow = 0.5;
+        let damage = 8;
+        if (type === 'snare') {
+            const mat = this.pool.getMatStd(0x5b3a22, 0.92, 0.05, true, false, 1, 0, 0);
+            const ring = new THREE.Mesh(new THREE.TorusGeometry(1.15, 0.09, 6, 18), mat);
+            ring.rotation.x = Math.PI / 2;
+            ring.position.y = 0.08;
+            group.add(ring);
+            radius = 1.35;
+            slow = 0.24;
+            damage = 2;
+        } else if (type === 'spikes') {
+            const baseMat = this.pool.getMatStd(0x3d342f, 0.94, 0, true, false, 1, 0, 0);
+            const spikeMat = this.pool.getMatStd(0x777b80, 0.5, 0.5, true, false, 1, 0, 0);
+            const base = new THREE.Mesh(this.pool.getGeoBox(3.4, 0.14, 3.4), baseMat);
+            base.position.y = 0.07;
+            group.add(base);
+            for (const [sx, sz] of [[-0.9, -0.9], [0.9, -0.9], [0, 0], [-0.9, 0.9], [0.9, 0.9]]) {
+                const spike = new THREE.Mesh(this.pool.getGeoCone(0.18, 1.3), spikeMat);
+                spike.position.set(sx, 0.68, sz);
+                group.add(spike);
+            }
+            radius = 1.8;
+            slow = 0.48;
+            damage = 18;
+        } else if (type === 'mine') {
+            const bodyMat = this.pool.getMatStd(0x263238, 0.62, 0.55, true, false, 1, 0, 0);
+            const glowMat = this.pool.getMatStd(0xa91414, 0.35, 0.2, true, false, 1, 0xff2200, 1.8);
+            const body = new THREE.Mesh(this.pool.getGeoCylinder(0.7, 0.85, 0.22), bodyMat);
+            body.position.y = 0.11;
+            group.add(body);
+            const light = new THREE.Mesh(this.pool.getGeoSphere(0.12), glowMat);
+            light.position.y = 0.3;
+            group.add(light);
+            radius = 1.2;
+            slow = 0.7;
+            damage = 30;
+        } else {
+            const iceMat = this.pool.getMatStd(0x8ac7df, 0.18, 0.2, true, true, 0.72, 0, 0);
+            const patch = new THREE.Mesh(this.pool.getGeoCylinder(2.1, 2.5, 0.08, 9), iceMat);
+            patch.position.y = 0.04;
+            patch.scale.z = 0.72;
+            group.add(patch);
+            radius = 2.2;
+            slow = 0.3;
+            damage = 1;
+        }
+        group.position.set(x, 0, z);
+        group.userData.mapGenerated = true;
+        group.userData.isTrap = true;
+        group.userData.trapType = type;
+        group.traverse((child) => {
+            if (child.isMesh) child.userData.mapGenerated = true;
+        });
+        this.scene.add(group);
+        this._traps.push({ type, position: new THREE.Vector3(x, 0, z), radius, slow, damage });
     }
 
     _addThemeArch(x, z, rotation, material) {
