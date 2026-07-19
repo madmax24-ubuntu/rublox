@@ -4,10 +4,10 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 const VARIANT_CONFIG = {
     runner: {
-        health: 42, speed: 7.6, damage: 5.8, knockbackMultiplier: 1.2,
+        health: 42, speed: 9.0, damage: 6.4, knockbackMultiplier: 1.2,
         scale: 1.2, radius: 0.48, bodyColor: 0xc34b2f, headColor: 0xc8c2a7, detailColor: 0xf0a13b,
         eyeColor: 0xff4411, glowColor: 0x44ff22, glowIntensity: 1.8,
-        attackCooldown: 0.52, patrolSpeed: 0.7, alertRadius: 80,
+        attackCooldown: 0.46, patrolSpeed: 0.82, alertRadius: 94,
         moanInterval: [1.2, 2.4], attackInterval: [0.3, 0.8],
         hasHorns: false, hasMask: true, hasSpikes: false, hasBackpack: false,
         hasArmorPlates: false, armAngle: -0.8, clawLength: 0.25,
@@ -15,10 +15,10 @@ const VARIANT_CONFIG = {
         behavior: 'rush'
     },
     normal: {
-        health: 72, speed: 5.1, damage: 7.2, knockbackMultiplier: 0.8,
+        health: 72, speed: 6.15, damage: 7.8, knockbackMultiplier: 0.8,
         scale: 1.35, radius: 0.54, bodyColor: 0x6f3434, headColor: 0xb9b49b, detailColor: 0xd7c7a2,
         eyeColor: 0xff6600, glowColor: 0x8bff4f, glowIntensity: 1.35,
-        attackCooldown: 0.72, patrolSpeed: 0.7, alertRadius: 68,
+        attackCooldown: 0.64, patrolSpeed: 0.78, alertRadius: 82,
         moanInterval: [1.8, 3.6], attackInterval: [0.5, 1.2],
         hasHorns: true, hasMask: false, hasSpikes: false, hasBackpack: false,
         hasArmorPlates: true, armAngle: -0.85, clawLength: 0.3,
@@ -26,10 +26,10 @@ const VARIANT_CONFIG = {
         behavior: 'patrol'
     },
     heavy: {
-        health: 180, speed: 3.2, damage: 9.2, knockbackMultiplier: 0,
+        health: 180, speed: 3.85, damage: 10.2, knockbackMultiplier: 0,
         scale: 1.56, radius: 0.6, bodyColor: 0x3f4a50, headColor: 0x9c7a70, detailColor: 0xb23b2f,
         eyeColor: 0xff2200, glowColor: 0x3dff1f, glowIntensity: 2.2,
-        attackCooldown: 1.05, patrolSpeed: 0.7, alertRadius: 55,
+        attackCooldown: 0.94, patrolSpeed: 0.76, alertRadius: 70,
         moanInterval: [2.5, 4.5], attackInterval: [0.8, 1.8],
         hasHorns: true, hasMask: false, hasSpikes: true, hasBackpack: true,
         hasArmorPlates: true, armAngle: -0.95, clawLength: 0.35,
@@ -37,10 +37,10 @@ const VARIANT_CONFIG = {
         behavior: 'tank'
     },
     crawler: {
-        health: 58, speed: 6.4, damage: 6.4, knockbackMultiplier: 1.05,
+        health: 58, speed: 7.7, damage: 7.0, knockbackMultiplier: 1.05,
         scale: 1.15, radius: 0.5, bodyColor: 0x405e72, headColor: 0xa8bbc0, detailColor: 0x5dd9ef,
         eyeColor: 0xb7f4ff, glowColor: 0x38b9d6, glowIntensity: 1.15,
-        attackCooldown: 0.58, patrolSpeed: 0.82, alertRadius: 76,
+        attackCooldown: 0.5, patrolSpeed: 0.92, alertRadius: 90,
         moanInterval: [1.5, 3.0], attackInterval: [0.4, 0.9],
         hasHorns: false, hasMask: false, hasSpikes: true, hasBackpack: false,
         hasArmorPlates: false, armAngle: -1.25, clawLength: 0.38,
@@ -48,10 +48,10 @@ const VARIANT_CONFIG = {
         behavior: 'crawl'
     },
     toxic: {
-        health: 105, speed: 4.35, damage: 8.1, knockbackMultiplier: 0.55,
+        health: 105, speed: 5.25, damage: 8.8, knockbackMultiplier: 0.55,
         scale: 1.42, radius: 0.57, bodyColor: 0xb5a52f, headColor: 0xc4bd82, detailColor: 0x24352e,
         eyeColor: 0xe8ff3d, glowColor: 0xa6ff19, glowIntensity: 2.7,
-        attackCooldown: 0.82, patrolSpeed: 0.68, alertRadius: 88,
+        attackCooldown: 0.72, patrolSpeed: 0.78, alertRadius: 102,
         moanInterval: [2.0, 4.0], attackInterval: [0.6, 1.3],
         hasHorns: false, hasMask: true, hasSpikes: false, hasBackpack: true,
         hasArmorPlates: false, armAngle: -0.72, clawLength: 0.28,
@@ -546,12 +546,11 @@ export class Zombie {
             }
         }
 
-        let target = this.findNearestTarget(entityManager, 68 * aggression);
+        const cfg = VARIANT_CONFIG[this.variant];
+        let target = this.findNearestTarget(entityManager, cfg.alertRadius * aggression);
         if (!target && this.alertTarget?.isAlive && this.alertTimer > 0 && this.isFinitePosition(this.alertTarget.position)) {
             target = this.alertTarget;
         }
-
-        const cfg = VARIANT_CONFIG[this.variant];
 
         if (target) {
             const dist = this.position.distanceTo(target.position);
@@ -578,6 +577,21 @@ export class Zombie {
                     this.physics.velocity.x = dir.x * this.physics.speed * rush;
                     this.physics.velocity.z = dir.z * this.physics.speed * rush;
                     this.rotation.y = Math.atan2(dir.x, dir.z);
+                } else if (this.variant === 'crawler') {
+                    const dir = new THREE.Vector3().subVectors(target.position, this.position).normalize();
+                    const flank = Math.sin(this._animTime * 4.2 + this.id) * 0.48;
+                    const x = dir.x - dir.z * flank;
+                    const z = dir.z + dir.x * flank;
+                    const length = Math.hypot(x, z) || 1;
+                    this.physics.velocity.x = x / length * this.physics.speed * rush;
+                    this.physics.velocity.z = z / length * this.physics.speed * rush;
+                    this.rotation.y = Math.atan2(x, z);
+                } else if (this.variant === 'toxic') {
+                    const dir = new THREE.Vector3().subVectors(target.position, this.position).normalize();
+                    const sway = Math.sin(this._animTime * 2.1 + this.id * 0.7) * 0.22;
+                    this.physics.velocity.x = (dir.x - dir.z * sway) * this.physics.speed * rush;
+                    this.physics.velocity.z = (dir.z + dir.x * sway) * this.physics.speed * rush;
+                    this.rotation.y = Math.atan2(this.physics.velocity.x, this.physics.velocity.z);
                 } else {
                     this.moveTowards(target.position, this.physics.speed * rush);
                 }
@@ -614,7 +628,7 @@ export class Zombie {
         }
 
         this.mesh.position.copy(this.position);
-        this.mesh.position.y = this.position.y - this.physics.height + 0.03;
+        this.mesh.position.y = this.position.y - this.physics.height;
         this.mesh.rotation.y = this.rotation.y;
         this.animateLimbs(delta);
     }

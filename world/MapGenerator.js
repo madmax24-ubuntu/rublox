@@ -15,7 +15,7 @@ import { MeshPool } from "./MeshPool.js";
 //   5. Spawn pads only on walkable surfaces (platforms, bridges, clearings)
 // ============================================================================
 
-const MAP_SIZE = 400;
+const MAP_SIZE = 256;
 const TILE_SIZE = 4;
 const GRID_W = MAP_SIZE / TILE_SIZE;
 const GRID_H = MAP_SIZE / TILE_SIZE;
@@ -90,8 +90,8 @@ export class MapGenerator {
         this._navigationTiles = [];
         this._spawnTiles = [];
         this._meshes = [];
-        this._cullDistance = 400;
-        this._cullDistanceMobile = 300;
+        this._cullDistance = 280;
+        this._cullDistanceMobile = 220;
         this.pool = new MeshPool();
         const _origAdd = this.scene.add.bind(this.scene);
         this.scene.add = (obj) => {
@@ -167,7 +167,7 @@ export class MapGenerator {
         this._placeCoverObjects();
         this._placeBiomeDecor();
         this._pruneOutsidePlayableBounds();
-        this._ensureBiomeLootDensity(30);
+        this._ensureBiomeLootDensity(24);
 
         this._placeBiomeBoundaries();
         for (const child of [...this.scene.children]) {
@@ -639,15 +639,14 @@ export class MapGenerator {
     // FOREST QUADRANT (NW: x < 0, z < 0)
     // =========================================================================
     _generateForestQuadrant() {
-        // СЗ квадрант: x в [-256, -10], z в [-256, -10]
-        const startX = -236;
-        const startZ = -236;
-        const size = 220;
+        const startX = -124;
+        const startZ = -124;
+        const size = 120;
 
         // Центральная поляна — светлая зона с травой
         const clearingCX = startX + size * 0.5;
         const clearingCZ = startZ + size * 0.5;
-        const clearingRadius = 24;
+        const clearingRadius = 16;
 
         // Clearing ground patch
         const clearingGeo = new THREE.CircleGeometry(clearingRadius, 32);
@@ -660,7 +659,7 @@ export class MapGenerator {
         this.scene.add(clearingMesh);
 
         // Grid-based tree placement with wider corridors
-        const gridStep = 18;
+        const gridStep = 12;
         const corridorWidth = 8; // Wider corridors for player movement
         const treeTypes = ['pine', 'oak', 'birch', 'spruce'];
         let forestLootSpots = 0;
@@ -696,7 +695,7 @@ export class MapGenerator {
         }
 
         // Dense undergrowth — bushes and flowers
-        for (let i = 0; i < 48; i++) {
+        for (let i = 0; i < 30; i++) {
             const bx = startX + 5 + this._rand() * (size - 10);
             const bz = startZ + 5 + this._rand() * (size - 10);
             if (!this._distToClearing(bx, bz, clearingCX, clearingCZ, clearingRadius + 5)) {
@@ -1258,12 +1257,13 @@ export class MapGenerator {
 
     _generateForestPaths() {
         const pathMat = this.pool.getMatStd(COLORS.forestPath, 1.0, 0, true, false, 1, 0, 0);
+        const c = -64;
         const routes = [
-            [[-238, -120], [-196, -126], [-160, -132], [-130, -130]],
-            [[-130, -130], [-108, -104], [-82, -82], [-58, -58]],
-            [[-130, -130], [-148, -164], [-174, -194], [-205, -230]],
-            [[-130, -130], [-104, -156], [-72, -186], [-38, -220]],
-            [[-130, -130], [-158, -102], [-190, -74], [-226, -44]]
+            [[-123, -64], [-101, -65], [-82, -66], [c, c]],
+            [[c, c], [-55, -55], [-48, -48], [-42, -42]],
+            [[c, c], [-73, -82], [-91, -101], [-112, -122]],
+            [[c, c], [-51, -78], [-38, -96], [-22, -116]],
+            [[c, c], [-80, -51], [-99, -37], [-120, -22]]
         ];
         for (const route of routes) {
             for (let p = 0; p < route.length - 1; p++) {
@@ -1290,11 +1290,11 @@ export class MapGenerator {
 
     _isForestPathClearance(x, z) {
         const segments = [
-            [-238, -120, -196, -126], [-196, -126, -160, -132], [-160, -132, -130, -130],
-            [-130, -130, -108, -104], [-108, -104, -82, -82], [-82, -82, -58, -58],
-            [-130, -130, -148, -164], [-148, -164, -174, -194], [-174, -194, -205, -230],
-            [-130, -130, -104, -156], [-104, -156, -72, -186], [-72, -186, -38, -220],
-            [-130, -130, -158, -102], [-158, -102, -190, -74], [-190, -74, -226, -44]
+            [-123, -64, -101, -65], [-101, -65, -82, -66], [-82, -66, -64, -64],
+            [-64, -64, -55, -55], [-55, -55, -48, -48], [-48, -48, -42, -42],
+            [-64, -64, -73, -82], [-73, -82, -91, -101], [-91, -101, -112, -122],
+            [-64, -64, -51, -78], [-51, -78, -38, -96], [-38, -96, -22, -116],
+            [-64, -64, -80, -51], [-80, -51, -99, -37], [-99, -37, -120, -22]
         ];
         return segments.some(([x1, z1, x2, z2]) => {
             const dx = x2 - x1;
@@ -1777,7 +1777,7 @@ export class MapGenerator {
         mazeWalls.computeBoundingSphere();
         mazeWalls.frustumCulled = false;
         mazeWalls.userData.mapGenerated = true;
-        mazeWalls.userData.isWall = true;
+        mazeWalls.userData.isMazeWalls = true;
         this.scene.add(mazeWalls);
 
         this._registerChestSpot(clearingCX - 4, clearingCZ, 'tower');
@@ -2274,9 +2274,9 @@ export class MapGenerator {
     // MILITARY RUINS QUADRANT (SW: x < 0, z > 0)
     // =========================================================================
     _generateMilitaryQuadrant() {
-        const startX = -236;
-        const startZ = 16;
-        const size = 220;
+        const startX = -124;
+        const startZ = 4;
+        const size = 120;
         const cx = startX + size / 2;
         const cz = startZ + size / 2;
 
@@ -2296,7 +2296,7 @@ export class MapGenerator {
             const tz = startZ + 15 + this._rand() * (size - 30);
             this._addDestroyedTank(tx, tz);
         }
-        [[-212, 70], [-104, 54], [-72, 188]].forEach(([x, z]) => this._addMilitaryTank(x, z));
+        [[startX + 18, startZ + 36], [startX + 64, startZ + 26]].forEach(([x, z]) => this._addMilitaryTank(x, z));
 
         // Окопы - больше и заметнее
         this._addTrench(startX + 20, startZ + 20, size * 0.4);
@@ -2310,11 +2310,10 @@ export class MapGenerator {
             this._addSandbagBunker(sx, sz);
         }
 
-        this._addReferenceMilitaryRuin(startX + 42, startZ + 42, 34, 28);
-        this._addReferenceMilitaryRuin(startX + 188, startZ + 44, 32, 30);
-        this._addReferenceMilitaryRuin(startX + 46, startZ + 188, 36, 26);
-        this._addReferenceMilitaryRuin(startX + 184, startZ + 184, 34, 30);
-        this._addMilitaryHangar(cx, cz, 42, 54, 16);
+        this._addReferenceMilitaryRuin(startX + 24, startZ + 26, 22, 20);
+        this._addReferenceMilitaryRuin(startX + 94, startZ + 24, 22, 20);
+        this._addReferenceMilitaryRuin(startX + 26, startZ + 94, 24, 18);
+        this._addMilitaryHangar(cx + 16, cz + 18, 28, 34, 14);
 
         // Дорога между домами (асфальт)
         const roadMat = this.pool.getMatStd(0x333333, 0.95, 0, false, false, 1, 0, 0);
@@ -2325,11 +2324,11 @@ export class MapGenerator {
         this.scene.add(road);
 
         // Бетонные баррикады вдоль дороги
-        for (let b = 0; b < 6; b++) {
+        for (let b = 0; b < 4; b++) {
             const barrierGeo = this.pool.getGeoBox(5, 3.5, 2.5);
             const barrierMat = this.pool.getMatStd(0x666655, 0.9, 0, false, false, 1, 0, 0);
             const barrier = new THREE.Mesh(barrierGeo, barrierMat);
-            barrier.position.set(startX + 34 + b * 34, 1.75, cz);
+            barrier.position.set(startX + 24 + b * 24, 1.75, cz);
             barrier.rotation.y = this._rand() * 0.3;
             barrier.userData.mapGenerated = true;
             this.scene.add(barrier);
@@ -3394,9 +3393,11 @@ export class MapGenerator {
     // ICE/SNOW QUADRANT (SE: x > 0, z > 0)
     // =========================================================================
     _generateIceQuadrant() {
-        // ЮВ квадрант: x в [10, 256], z в [10, 256]
-        // ---- СТУПЕНЧАТОЕ КВАДРАТНОЕ ОЗЕРО (как в референсе) ----
-        this._generateSteppedIceLake(130, 130);
+        const min = 6;
+        const max = HALF - 6;
+        const span = max - min;
+        const center = (min + max) * 0.5;
+        this._generateSteppedIceLake(center, center);
 
         // Снежные дюны — больше
         for (let drift = 0; drift < 6; drift++) {
@@ -3406,7 +3407,7 @@ export class MapGenerator {
             const driftGeo = this.pool.getGeoSphere(driftW);
             const driftMat = this.pool.getMatStd(0xeef4ff, 0.9, 0, true, false, 1, 0, 0);
             const driftMesh = new THREE.Mesh(driftGeo, driftMat);
-            driftMesh.position.set(18 + this._rand() * 216, 0, 18 + this._rand() * 216);
+            driftMesh.position.set(min + this._rand() * span, driftH * 0.5, min + this._rand() * span);
             driftMesh.scale.set(1, driftH / driftW, driftD / driftW);
             driftMesh.userData.mapGenerated = true;
             this.scene.add(driftMesh);
@@ -3415,24 +3416,24 @@ export class MapGenerator {
 
         // Иглу — детализированные, ближе к краям как в референсе
         const iglooPositions = [
-            { x: 210, z: 70 }, { x: 205, z: 205 },
-            { x: 130, z: 220 }, { x: 55, z: 205 }
+            { x: 104, z: 38 }, { x: 102, z: 104 },
+            { x: 66, z: 112 }, { x: 34, z: 102 }
         ];
         for (const pos of iglooPositions) {
             this._addDetailedIgloo(pos.x, pos.z);
         }
 
         // Зимний костёр у озера
-        this._addIceCampfire(175, 100);
+        this._addIceCampfire(88, 52);
 
-        this._addSnowShelters(16, 16, 220);
-        this._addSnowBarrack(60, 58);
-        this._addSnowBarrack(205, 166);
+        this._addSnowShelters(min, min, span);
+        this._addSnowBarrack(34, 34);
+        this._addSnowBarrack(102, 88);
 
         // Крупные ледяные кристаллы по краям
         const crystalPositions = [
-            { x: 225, z: 35 }, { x: 225, z: 225 },
-            { x: 35, z: 225 }, { x: 35, z: 45 }
+            { x: 112, z: 24 }, { x: 112, z: 112 },
+            { x: 24, z: 112 }, { x: 24, z: 28 }
         ];
         for (const cp of crystalPositions) {
             this._addIceCrystal(cp.x, cp.z);
@@ -3446,12 +3447,12 @@ export class MapGenerator {
         }
 
         // Снежные деревья — сгруппированные как в референсе
-        for (let i = 0; i < 30; i++) {
-            const tx = 18 + this._rand() * 216;
-            const tz = 18 + this._rand() * 216;
+        for (let i = 0; i < 24; i++) {
+            const tx = min + this._rand() * span;
+            const tz = min + this._rand() * span;
             // Не ставим деревья прямо в озеро
-            const distToLake = Math.sqrt((tx - 130) ** 2 + (tz - 130) ** 2);
-            if (distToLake < 55) continue;
+            const distToLake = Math.sqrt((tx - center) ** 2 + (tz - center) ** 2);
+            if (distToLake < 30) continue;
             this._addSnowTree(tx, tz);
         }
 
@@ -3462,7 +3463,7 @@ export class MapGenerator {
             const wallGeo = this.pool.getGeoBox(wallW, wallH, 0.5);
             const wallMat = this.pool.getMatStd(0xb7d3e8, 0.72, 0.05, true, false, 1, 0, 0);
             const wallMesh = new THREE.Mesh(wallGeo, wallMat);
-            wallMesh.position.set(18 + this._rand() * 216, wallH / 2, 18 + this._rand() * 216);
+            wallMesh.position.set(min + this._rand() * span, wallH / 2, min + this._rand() * span);
             wallMesh.rotation.y = this._rand() * Math.PI;
             wallMesh.userData.mapGenerated = true;
             wallMesh.userData.isWall = true;
@@ -3473,10 +3474,10 @@ export class MapGenerator {
         }
 
         // Радиовышка (как в референсе — справа от озера)
-        this._addRadioTower(185, 105);
+        this._addRadioTower(96, 56);
 
         // Edge trees — dense ice perimeter
-        this._addIceEdgeTrees(10, 10, 236);
+        this._addIceEdgeTrees(min, min, span);
 
         // Falling snow particles
         this._addSnowParticles();
@@ -3491,25 +3492,26 @@ export class MapGenerator {
         const shallowMat = this.pool.getMatStd(0x8bd2eb, 0.5, 0.05, true, false, 1, 0, 0);
 
         // Центральное озеро — глубокая часть (самая синяя)
-        const deepGeo = this.pool.getGeoBox(60, 0.3, 60);
+        const deepSize = 34;
+        const deepGeo = this.pool.getGeoBox(deepSize, 0.3, deepSize);
         const deep = new THREE.Mesh(deepGeo, lakeMat);
         deep.position.set(cx, 0.15, cz);
         deep.userData.mapGenerated = true;
         this.scene.add(deep);
-        this.addColliderBox(new THREE.Vector3(cx, 0.15, cz), 60, 0.3, 60, true);
+        this.addColliderBox(new THREE.Vector3(cx, 0.15, cz), deepSize, 0.3, deepSize, true);
 
         // Мелкие зоны вокруг — квадратные плитки
-        const tileSize = 20;
+        const tileSize = 10;
         const steps = [
             // Первый уровень ступеней (ближние к центру)
-            { dx: -40, dz: -40, w: tileSize, d: tileSize },
-            { dx: 0,   dz: -50, w: tileSize * 2, d: tileSize },
-            { dx: 40,  dz: -40, w: tileSize, d: tileSize },
-            { dx: 50,  dz: 0,   w: tileSize, d: tileSize * 2 },
-            { dx: 40,  dz: 40,  w: tileSize, d: tileSize },
-            { dx: 0,   dz: 50,  w: tileSize * 2, d: tileSize },
-            { dx: -40, dz: 40,  w: tileSize, d: tileSize },
-            { dx: -50, dz: 0,   w: tileSize, d: tileSize * 2 },
+            { dx: -20, dz: -20, w: tileSize, d: tileSize },
+            { dx: 0,   dz: -25, w: tileSize * 2, d: tileSize },
+            { dx: 20,  dz: -20, w: tileSize, d: tileSize },
+            { dx: 25,  dz: 0,   w: tileSize, d: tileSize * 2 },
+            { dx: 20,  dz: 20,  w: tileSize, d: tileSize },
+            { dx: 0,   dz: 25,  w: tileSize * 2, d: tileSize },
+            { dx: -20, dz: 20,  w: tileSize, d: tileSize },
+            { dx: -25, dz: 0,   w: tileSize, d: tileSize * 2 },
         ];
 
         for (const s of steps) {
@@ -3523,23 +3525,23 @@ export class MapGenerator {
 
         // Внешние квадратные плитки льда (разной высоты) — как в референсе
         const outerTiles = [
-            { dx: -80, dz: -80, w: 28, d: 28, y: 0.08 },
-            { dx: 0,   dz: -85, w: 40, d: 20, y: 0.08 },
-            { dx: 80,  dz: -80, w: 28, d: 28, y: 0.08 },
-            { dx: 85,  dz: 0,   w: 20, d: 40, y: 0.08 },
-            { dx: 80,  dz: 80,  w: 28, d: 28, y: 0.08 },
-            { dx: 0,   dz: 85,  w: 40, d: 20, y: 0.08 },
-            { dx: -80, dz: 80,  w: 28, d: 28, y: 0.08 },
-            { dx: -85, dz: 0,   w: 20, d: 40, y: 0.08 },
+            { dx: -40, dz: -40, w: 14, d: 14, y: 0.08 },
+            { dx: 0,   dz: -43, w: 20, d: 10, y: 0.08 },
+            { dx: 40,  dz: -40, w: 14, d: 14, y: 0.08 },
+            { dx: 43,  dz: 0,   w: 10, d: 20, y: 0.08 },
+            { dx: 40,  dz: 40,  w: 14, d: 14, y: 0.08 },
+            { dx: 0,   dz: 43,  w: 20, d: 10, y: 0.08 },
+            { dx: -40, dz: 40,  w: 14, d: 14, y: 0.08 },
+            { dx: -43, dz: 0,   w: 10, d: 20, y: 0.08 },
             // Угловые дополнительные
-            { dx: -40, dz: -80, w: 18, d: 18, y: 0.06 },
-            { dx: 40,  dz: -80, w: 18, d: 18, y: 0.06 },
-            { dx: 80,  dz: -40, w: 18, d: 18, y: 0.06 },
-            { dx: 80,  dz: 40,  w: 18, d: 18, y: 0.06 },
-            { dx: 40,  dz: 80,  w: 18, d: 18, y: 0.06 },
-            { dx: -40, dz: 80,  w: 18, d: 18, y: 0.06 },
-            { dx: -80, dz: 40,  w: 18, d: 18, y: 0.06 },
-            { dx: -80, dz: -40, w: 18, d: 18, y: 0.06 },
+            { dx: -20, dz: -40, w: 9, d: 9, y: 0.06 },
+            { dx: 20,  dz: -40, w: 9, d: 9, y: 0.06 },
+            { dx: 40,  dz: -20, w: 9, d: 9, y: 0.06 },
+            { dx: 40,  dz: 20,  w: 9, d: 9, y: 0.06 },
+            { dx: 20,  dz: 40,  w: 9, d: 9, y: 0.06 },
+            { dx: -20, dz: 40,  w: 9, d: 9, y: 0.06 },
+            { dx: -40, dz: 20,  w: 9, d: 9, y: 0.06 },
+            { dx: -40, dz: -20, w: 9, d: 9, y: 0.06 },
         ];
 
         for (const t of outerTiles) {
@@ -3559,7 +3561,7 @@ export class MapGenerator {
         const snowMat = this.pool.getMatStd(0xffffff, 0.85, 0, true, false, 1, 0, 0);
         for (let i = 0; i < 12; i++) {
             const angle = (i / 12) * Math.PI * 2 + this._rand() * 0.3;
-            const r = 70 + this._rand() * 15;
+            const r = 35 + this._rand() * 7;
             const bx = cx + Math.cos(angle) * r;
             const bz = cz + Math.sin(angle) * r;
             const size = 3 + this._rand() * 4;
@@ -3966,15 +3968,16 @@ export class MapGenerator {
     }
 
     _addIcePOI(startX, startZ, size) {
+        const q = size / 4;
         const poiPositions = [
-            { x: 80, z: 80, type: 'weapon' },
-            { x: 180, z: 100, type: 'medkit' },
-            { x: 100, z: 180, type: 'ammo' },
-            { x: 180, z: 180, type: 'weapon' },
-            { x: 60, z: 160, type: 'medkit' },
-            { x: 160, z: 60, type: 'ammo' },
-            { x: 130, z: 80, type: 'weapon' },
-            { x: 80, z: 130, type: 'medkit' },
+            { x: startX + q, z: startZ + q, type: 'weapon' },
+            { x: startX + q * 3, z: startZ + q * 1.4, type: 'medkit' },
+            { x: startX + q * 1.4, z: startZ + q * 3, type: 'ammo' },
+            { x: startX + q * 3, z: startZ + q * 3, type: 'weapon' },
+            { x: startX + q * 0.8, z: startZ + q * 2.6, type: 'medkit' },
+            { x: startX + q * 2.6, z: startZ + q * 0.8, type: 'ammo' },
+            { x: startX + q * 2.1, z: startZ + q * 1.2, type: 'weapon' },
+            { x: startX + q * 1.2, z: startZ + q * 2.1, type: 'medkit' },
         ];
 
         for (const poi of poiPositions) {
@@ -4254,18 +4257,18 @@ export class MapGenerator {
     // COVER OBJECTS — Biome-specific placement
     // =========================================================================
     _placeBiomeDecor() {
-        for (const [x, z] of [[-220, -72], [-188, -208], [-92, -190], [-212, -152], [-76, -92]]) this._addFallenLog(x, z);
-        for (const [x, z] of [[-214, 92], [-174, 214], [-76, 92], [-74, 214]]) this._addGuardPost(x, z);
-        for (const [x, z] of [[82, 88], [142, 74], [202, 94], [86, 194], [194, 192], [148, 218]]) this._addIceChunk(x, z);
-        for (const [x, z] of [[-214, -96], [-166, -184], [-96, -216], [-82, -126]]) {
+        for (const [x, z] of [[-116, -42], [-98, -110], [-50, -98], [-112, -78], [-42, -48]]) this._addFallenLog(x, z);
+        for (const [x, z] of [[-112, 48], [-92, 108], [-42, 48], [-40, 110]]) this._addGuardPost(x, z);
+        for (const [x, z] of [[44, 46], [72, 40], [104, 50], [46, 100], [100, 98], [76, 110]]) this._addIceChunk(x, z);
+        for (const [x, z] of [[-112, -50], [-86, -96], [-50, -112], [-42, -66]]) {
             this._addBarrel(x, z);
             this._registerChestSpot(x + 2.4, z - 1.8, 'forest');
         }
-        for (const [x, z] of [[-202, 118], [-158, 198], [-92, 146], [-76, 226]]) {
+        for (const [x, z] of [[-106, 62], [-82, 102], [-48, 76], [-40, 114]]) {
             this._addMilitaryCrate(x, z);
             this._registerChestSpot(x + 1.8, z + 1.5, 'military');
         }
-        for (const [x, z] of [[96, 106], [176, 92], [218, 154], [116, 214]]) {
+        for (const [x, z] of [[50, 56], [90, 48], [112, 80], [60, 110]]) {
             this._addIceChunk(x, z);
             this._registerChestSpot(x - 2.2, z + 1.6, 'ice');
         }
@@ -4274,27 +4277,24 @@ export class MapGenerator {
 
     _addBiomeSurvivalFeatures() {
         const forestTraps = [
-            [-188, -88], [-164, -108], [-136, -88], [-104, -112],
-            [-188, -136], [-160, -148], [-128, -140], [-88, -156],
-            [-184, -180], [-152, -188], [-116, -184], [-84, -190],
-            [-192, -116], [-144, -168], [-108, -82], [-176, -192]
+            [-102, -46], [-86, -58], [-72, -46], [-56, -60],
+            [-102, -72], [-84, -78], [-68, -74], [-46, -82],
+            [-98, -96], [-80, -102], [-60, -98], [-44, -104]
         ];
         const militaryTraps = [
-            [-188, 88], [-164, 92], [-132, 94], [-88, 102],
-            [-190, 130], [-166, 140], [-128, 136], [-86, 148],
-            [-184, 174], [-154, 188], [-116, 180], [-82, 190],
-            [-176, 116], [-142, 164], [-102, 122], [-190, 188]
+            [-102, 46], [-86, 50], [-68, 50], [-46, 54],
+            [-102, 68], [-86, 74], [-66, 72], [-44, 78],
+            [-98, 92], [-80, 100], [-60, 96], [-42, 104]
         ];
         const iceTraps = [
-            [86, 90], [122, 88], [156, 94], [188, 102],
-            [92, 132], [132, 142], [166, 136], [190, 152],
-            [84, 174], [124, 188], [158, 178], [188, 190],
-            [112, 116], [148, 166], [182, 122], [102, 190]
+            [46, 48], [64, 46], [82, 50], [100, 54],
+            [48, 70], [70, 74], [86, 72], [102, 80],
+            [44, 92], [66, 100], [82, 94], [100, 102]
         ];
         for (const [x, z] of forestTraps) {
             this._addSurvivalTrap('snare', x, z);
         }
-        for (const [x, z] of [[96, -102], [142, -178], [184, -132], [110, -188]]) {
+        for (const [x, z] of [[52, -56], [74, -92], [96, -70], [58, -100]]) {
             this._addSurvivalTrap('spikes', x, z);
             this._registerChestSpot(x + 3.2, z + 2.4, 'maze');
         }
@@ -4304,12 +4304,12 @@ export class MapGenerator {
         for (const [x, z] of iceTraps) {
             this._addSurvivalTrap('ice', x, z);
         }
-        this._addThemeArch(104, -88, Math.PI / 2, this.pool.getMatStd(0x5f6368, 0.9, 0, true, false, 1, 0, 0));
-        this._addThemeArch(192, -214, 0, this.pool.getMatStd(0x51555a, 0.9, 0, true, false, 1, 0, 0));
-        this._addGuardPost(-108, 112);
-        this._addGuardPost(-196, 176);
-        this._addIceCampfire(126, 174);
-        this._addIceCampfire(208, 212);
+        this._addThemeArch(56, -48, Math.PI / 2, this.pool.getMatStd(0x5f6368, 0.9, 0, true, false, 1, 0, 0));
+        this._addThemeArch(100, -112, 0, this.pool.getMatStd(0x51555a, 0.9, 0, true, false, 1, 0, 0));
+        this._addGuardPost(-58, 60);
+        this._addGuardPost(-102, 92);
+        this._addIceCampfire(66, 92);
+        this._addIceCampfire(108, 110);
     }
 
     _addSurvivalTrap(type, x, z) {
@@ -4749,7 +4749,7 @@ export class MapGenerator {
 
     _buildNavigationTiles() {
         this._navigationTiles.length = 0;
-        const step = 12;
+        const step = 5;
         const limit = this.halfSize - 8;
         for (let x = -limit; x <= limit; x += step) {
             for (let z = -limit; z <= limit; z += step) {

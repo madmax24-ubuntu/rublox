@@ -22,7 +22,11 @@ export class Zone {
             walls[3]?.position.set(this.currentRadius, 50, 0);
         }
         if (this.ringMesh) {
-            this.ringMesh.scale.set(this.currentRadius, 1, this.currentRadius);
+            const walls = this.ringMesh.children;
+            walls[0]?.position.set(0, 0.08, -this.currentRadius);
+            walls[1]?.position.set(0, 0.08, this.currentRadius);
+            walls[2]?.position.set(-this.currentRadius, 0.08, 0);
+            walls[3]?.position.set(this.currentRadius, 0.08, 0);
         }
     }
 
@@ -46,22 +50,24 @@ export class Zone {
         this.scene.add(this.zoneMesh);
         this.syncVisuals();
 
-        const ringPoints = [
-            new THREE.Vector3(-1, 0, -1),
-            new THREE.Vector3(1, 0, -1),
-            new THREE.Vector3(1, 0, 1),
-            new THREE.Vector3(-1, 0, 1)
-        ];
-        const ringGeo = new THREE.BufferGeometry().setFromPoints(ringPoints);
-        const ringMat = new THREE.LineBasicMaterial({
+        const ringMat = new THREE.MeshBasicMaterial({
             color: 0x4fc3ff,
             transparent: true,
-            opacity: 1.0
+            opacity: 0.7,
+            depthWrite: false
         });
-        this.ringMesh = new THREE.LineLoop(ringGeo, ringMat);
-        this.ringMesh.position.y = 0.5;
-        this.ringMesh.scale.set(this.currentRadius, 1, this.currentRadius);
+        this.ringMesh = new THREE.Group();
+        const ringHorizontal = new THREE.BoxGeometry(this.mapSize, 0.12, 0.3);
+        const ringVertical = new THREE.BoxGeometry(0.3, 0.12, this.mapSize);
+        this.ringMesh.add(
+            new THREE.Mesh(ringHorizontal, ringMat),
+            new THREE.Mesh(ringHorizontal, ringMat),
+            new THREE.Mesh(ringVertical, ringMat),
+            new THREE.Mesh(ringVertical, ringMat)
+        );
+        this.ringMesh.userData.gameplayBoundary = true;
         this.scene.add(this.ringMesh);
+        this.syncVisuals();
     }
 
     update(delta) {
@@ -74,7 +80,7 @@ export class Zone {
         }
         if (this.ringMesh) {
             const pulse = 0.9 + Math.sin(performance.now() * 0.004) * 0.08;
-            this.ringMesh.material.opacity = Math.max(0.75, pulse);
+            for (const wall of this.ringMesh.children) wall.material.opacity = Math.max(0.55, pulse * 0.72);
         }
         if (this.zoneMesh) {
             const pulse = 0.2 + Math.sin(performance.now() * 0.003) * 0.04;

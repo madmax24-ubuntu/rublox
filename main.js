@@ -1714,7 +1714,7 @@ class Game {
                         bot.patrolTarget = new THREE.Vector3(scatter.x, 0, scatter.z);
                     } else {
                         const signs = [[-1, -1], [1, -1], [-1, 1], [1, 1]][biomeIndex];
-                        const offset = 95 + (Math.floor(i / 4) % 6) * 9;
+                        const offset = 78 + (Math.floor(i / 4) % 5) * 6;
                         bot.patrolTarget = new THREE.Vector3(signs[0] * offset, 0, signs[1] * offset);
                     }
                     bot.assignedBiome = biomeDefs[biomeIndex][0];
@@ -1740,9 +1740,9 @@ class Game {
                 this.eventTimelineIndex = 0;
                 this.activeEvent = { type: null, timer: 0, prevFog: null };
                 this.initialZombieWaveQueued = false;
-                const initialZombieCount = this.isMobile() ? 9 : 12;
+                const initialZombieCount = this.isMobile() ? 12 : 16;
                 this.spawnZombies(true, 1.1, 110, initialZombieCount);
-                this.queueZombieBurst(false, 1.1, 110, (this.isMobile() ? 24 : 36) - initialZombieCount, this.isMobile() ? 2 : 3);
+                this.queueZombieBurst(false, 1.1, 110, (this.isMobile() ? 32 : 44) - initialZombieCount, this.isMobile() ? 3 : 4);
                 this.queuePoiBurst(0.9, this.isMobile() ? 16 : 22, this.isMobile() ? 2 : 3);
                 this.randomEventTimer = GAME_CONFIG.events.randomTimerMin + Math.random() * GAME_CONFIG.events.randomTimerVariance;
                 this.startZoneCycle();
@@ -2066,8 +2066,8 @@ class Game {
             if (this.zombieMaintainTimer <= 0) {
                 const aliveZombies = this.zombies.filter(z => z?.isAlive).length;
                 const growth = Math.floor(Math.min(5, elapsed / 120)) * 2;
-                const nightBonus = isNight ? (this.isMobile() ? 12 : 18) : 0;
-                const basePersistent = elapsed < gracePeriod ? (this.isMobile() ? 20 : 28) : (this.isMobile() ? 28 : 38);
+                const nightBonus = isNight ? (this.isMobile() ? 16 : 24) : 0;
+                const basePersistent = elapsed < gracePeriod ? (this.isMobile() ? 24 : 34) : (this.isMobile() ? 34 : 46);
                 const minAlive = basePersistent + growth + nightBonus;
                 if (aliveZombies < minAlive) {
                     const need = minAlive - aliveZombies;

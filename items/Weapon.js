@@ -298,6 +298,10 @@ export class Weapon {
         this.assetSwapPromise = null;
         this.assetModelApplied = false;
         this._meshChangeListeners = new Set();
+        this._attackAnimationToken = 0;
+        this._attackAnimationTimer = null;
+        this._attackBasePosition = null;
+        this._attackBaseRotation = null;
 
         this.createMesh();
     }
@@ -522,38 +526,35 @@ export class Weapon {
     animateAttack() {
         if (!this.mesh) return;
         this.ensureFiniteTransform();
-        const originalRotation = this.mesh.rotation.clone();
-        const originalPosition = this.mesh.position.clone();
-
-        if (this.type === 'knife') {
-            this.mesh.rotation.x = originalRotation.x - 0.6;
-            this.mesh.position.z = originalPosition.z - 0.1;
-            setTimeout(() => {
-                if (!this.mesh) return;
-                this.mesh.rotation.copy(originalRotation);
-                this.mesh.position.copy(originalPosition);
-            }, 120);
-        } else if (this.type === 'bow') {
-            this.mesh.rotation.z = originalRotation.z - 0.2;
-            setTimeout(() => {
-                if (!this.mesh) return;
-                this.mesh.rotation.copy(originalRotation);
-            }, 200);
-        } else if (this.type === 'laser' || this.type === 'shotgun' || this.type === 'pistol' || this.type === 'rifle' || this.type === 'machinegun') {
-            this.mesh.rotation.x = originalRotation.x - 0.25;
-            this.mesh.position.z = originalPosition.z - 0.06;
-            setTimeout(() => {
-                if (!this.mesh) return;
-                this.mesh.rotation.copy(originalRotation);
-                this.mesh.position.copy(originalPosition);
-            }, 120);
-        } else if (this.type === 'flamethrower') {
-            this.mesh.rotation.x = originalRotation.x - 0.12;
-            setTimeout(() => {
-                if (!this.mesh) return;
-                this.mesh.rotation.copy(originalRotation);
-            }, 120);
+        if (!this._attackAnimationTimer) {
+            if (!this._attackBasePosition) this._attackBasePosition = this.mesh.position.clone();
+            else this._attackBasePosition.copy(this.mesh.position);
+            if (!this._attackBaseRotation) this._attackBaseRotation = this.mesh.rotation.clone();
+            else this._attackBaseRotation.copy(this.mesh.rotation);
+        } else {
+            clearTimeout(this._attackAnimationTimer);
         }
+        this.mesh.position.copy(this._attackBasePosition);
+        this.mesh.rotation.copy(this._attackBaseRotation);
+        const token = ++this._attackAnimationToken;
+        const duration = this.type === 'bow' ? 200 : 120;
+        if (this.type === 'knife') {
+            this.mesh.rotation.x -= 0.6;
+            this.mesh.position.z -= 0.1;
+        } else if (this.type === 'bow') {
+            this.mesh.rotation.z -= 0.2;
+        } else if (this.type === 'flamethrower') {
+            this.mesh.rotation.x -= 0.12;
+        } else {
+            this.mesh.rotation.x -= 0.25;
+            this.mesh.position.z -= 0.06;
+        }
+        this._attackAnimationTimer = setTimeout(() => {
+            if (!this.mesh || token !== this._attackAnimationToken) return;
+            this.mesh.position.copy(this._attackBasePosition);
+            this.mesh.rotation.copy(this._attackBaseRotation);
+            this._attackAnimationTimer = null;
+        }, duration);
     }
 
     setVisible(visible) {

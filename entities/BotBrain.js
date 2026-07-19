@@ -109,7 +109,7 @@ export class BotBrain {
             bot.state = nextState;
             if (nextState !== STATES.LOOT && nextState !== STATES.EXPLORE) this.releaseLootReservation(bot);
             if (nextState !== STATES.ENGAGE) this.releaseCombatReservation(bot);
-            this.decisionCooldown = 1.0 + ((bot.id * 0.009) % 0.5); // 1.0-1.5s between decisions
+            this.decisionCooldown = 0.62 + ((bot.id * 0.009) % 0.34);
         } else {
             // Refresh earlyGamePhase on cached context so actEngage / actExplore see current phase
             ctx.earlyGamePhase = earlyGamePhase;
@@ -206,8 +206,8 @@ export class BotBrain {
         const zoneDistance = zone?.getDistanceFromZone ? zone.getDistanceFromZone(bot.position) : 0;
 
         // OPTIMIZED: Smaller radius for better performance
-        const queryRadius = earlyGamePhase ? 32 : Math.min(58, this.baseVisionRange * this.visionMultiplier * 0.72);
-        const closeCombatRadius = 24;
+        const queryRadius = earlyGamePhase ? 38 : Math.min(68, this.baseVisionRange * this.visionMultiplier * 0.86);
+        const closeCombatRadius = 30;
 
         // OPTIMIZED: Cache nearby query — reuse if bot hasn't moved much (extended cache to 200ms)
         const cacheAge = (bot._nearbyCacheTime || 0) + 0.2 - (now / 1000);
@@ -480,12 +480,12 @@ export class BotBrain {
             && performance.now() < (bot._retaliateUntil || 0);
 
         // Personality-driven thresholds
-        const agg = Math.min(1, (bot.personality?.aggression ?? 0.5) + ctx.gear * 0.18);
+        const agg = Math.min(1, (bot.personality?.aggression ?? 0.5) + ctx.gear * 0.32);
         const cau = bot.personality?.caution ?? 0.5;
         const lootF = bot.personality?.lootFocus ?? 0.5;
 
         // Aggression adjusts engagement distance: aggressive bots engage from further away
-        const engageDist = ctx.closeCombatRadius * (0.6 + agg * 0.8);
+        const engageDist = ctx.closeCombatRadius * (0.82 + agg * 0.9);
         // Caution adjusts undergeared threshold: cautious bots hide with less gear
         const undergearedThreshold = 0.3 + cau * 0.2;
         // Aggression adjusts crowd tolerance: aggressive bots tolerate more crowd in combat
@@ -546,7 +546,7 @@ export class BotBrain {
                     return STATES.ENGAGE;
                 }
                 // Very aggressive bots engage even without being shot
-                if (agg > 0.8 && wellArmed && ctx.gear >= undergearedThreshold && ctx.crowdNear < crowdTolerance) {
+                if (agg > 0.58 && armed && ctx.gear >= undergearedThreshold * 0.82 && ctx.crowdNear < crowdTolerance + 1) {
                     return STATES.ENGAGE;
                 }
                 // Otherwise loot or scatter
@@ -593,7 +593,7 @@ export class BotBrain {
                 return STATES.ENGAGE;
             }
             // Very aggressive bots engage even without being attacked
-            if (agg > 0.85 && wellArmed && armed && ctx.crowdNear < crowdTolerance) {
+            if (agg > 0.62 && armed && ctx.crowdNear < crowdTolerance + 1) {
                 return STATES.ENGAGE;
             }
             // If just armed but not attacked, keep looting/exploring
@@ -655,7 +655,7 @@ export class BotBrain {
             bot.assignedBiomeTarget = null;
         }
 
-        const agg = Math.min(1, (bot.personality?.aggression ?? 0.5) + ctx.gear * 0.18);
+        const agg = Math.min(1, (bot.personality?.aggression ?? 0.5) + ctx.gear * 0.32);
         // During loot phase or high crowd, scatter to opposite directions
         // Cautious bots scatter more easily; aggressive bots tolerate more crowd
         const scatterThreshold = ctx.earlyGamePhase ? 1 : Math.max(1, Math.round(2 - agg));
@@ -697,7 +697,7 @@ export class BotBrain {
                 const combinedX = nx + Math.cos(idAngle) * uniqueWeight;
                 const combinedZ = nz + Math.sin(idAngle) * uniqueWeight;
                 const combinedLength = Math.max(0.001, Math.hypot(combinedX, combinedZ));
-                const dist = ctx.earlyGamePhase ? (120 + Math.random() * 60) : (80 + Math.random() * 40);
+                const dist = ctx.earlyGamePhase ? (44 + Math.random() * 28) : (32 + Math.random() * 24);
                 scatterTarget = new THREE.Vector3(
                     bot.position.x + combinedX / combinedLength * dist,
                     bot.position.y,
@@ -709,7 +709,7 @@ export class BotBrain {
                     0,
                     bot.position.z - ctx.nearestEnemy.position.z
                 ).normalize();
-                const dist = (ctx.earlyGamePhase ? 100 : 70) + Math.random() * 40;
+                const dist = (ctx.earlyGamePhase ? 48 : 34) + Math.random() * 24;
                 scatterTarget = this._tmpSpreadVec.set(
                     bot.position.x + dir.x * dist,
                     bot.position.y,
@@ -719,7 +719,7 @@ export class BotBrain {
                 // Unique deterministic direction per bot
                 const seedAngle = bot.id * 2.399963227949204;
                 const angle = seedAngle + Math.random() * 0.5;
-                const radius = ctx.earlyGamePhase ? (110 + Math.random() * 50) : (75 + Math.random() * 30);
+                const radius = ctx.earlyGamePhase ? (46 + Math.random() * 26) : (34 + Math.random() * 20);
                 scatterTarget = this._tmpSpreadVec.set(
                     bot.position.x + Math.cos(angle) * radius,
                     bot.position.y,
@@ -729,7 +729,7 @@ export class BotBrain {
 
             if (!scatterTarget) return;
             if (!this.isInAssignedBiome(bot, scatterTarget)) {
-                scatterTarget = this.pickSpreadTarget(bot, 35, 110);
+                scatterTarget = this.pickSpreadTarget(bot, 18, 68);
                 if (!scatterTarget) return;
             }
             // Avoid laser ring at radius 27
@@ -749,7 +749,7 @@ export class BotBrain {
             this.steerMove(bot, scatterTarget, bot.physics.speed * scatterSpeed);
         } else {
             if (!bot.patrolTarget || bot.position.distanceTo(bot.patrolTarget) < 5) {
-                bot.patrolTarget = this.pickSpreadTarget(bot, 35, 90);
+                bot.patrolTarget = this.pickSpreadTarget(bot, 16, 58);
             }
             if (bot.patrolTarget) {
                 // Avoid laser ring
@@ -1063,6 +1063,11 @@ export class BotBrain {
         const rBlocked = !!bot.isDirectionBlocked?.(this._tmpMoveRight);
         let move = dir;
         if (fBlocked) {
+            const waypoint = this.pickLocalNavigationStep(bot, target);
+            if (waypoint) {
+                bot.moveTowards(waypoint, effectiveSpeed);
+                return;
+            }
             if (!lBlocked && !rBlocked) move = (bot.id % 2 === 0) ? this._tmpMoveLeft : this._tmpMoveRight;
             else if (!lBlocked) move = this._tmpMoveLeft;
             else if (!rBlocked) move = this._tmpMoveRight;
@@ -1087,6 +1092,30 @@ export class BotBrain {
         } else {
             bot.moveTowards(target, finalSpeed * 0.75);
         }
+    }
+
+    pickLocalNavigationStep(bot, target) {
+        const tiles = bot.mapRef?.getNavigationTiles?.();
+        if (!tiles?.length) return null;
+        const start = ((Number(bot.id) || 0) * 37 + Math.floor(performance.now() * 0.001) * 13) % tiles.length;
+        const currentDist = Math.hypot(target.x - bot.position.x, target.z - bot.position.z);
+        let best = null;
+        let bestScore = currentDist;
+        for (let i = 0; i < Math.min(64, tiles.length); i++) {
+            const tile = tiles[(start + i * 29) % tiles.length];
+            if (!this.isInAssignedBiome(bot, tile)) continue;
+            const localDist = Math.hypot(tile.x - bot.position.x, tile.z - bot.position.z);
+            if (localDist < 3 || localDist > 15) continue;
+            this._tmpRandomDir.set(tile.x - bot.position.x, 0, tile.z - bot.position.z).normalize();
+            if (bot.isDirectionBlocked?.(this._tmpRandomDir)) continue;
+            const targetDist = Math.hypot(target.x - tile.x, target.z - tile.z);
+            const crowd = this.countBotsNearPointForSpread(bot, tile.x, tile.z, 4);
+            const score = targetDist + localDist * 0.18 + crowd * 5;
+            if (score >= bestScore) continue;
+            bestScore = score;
+            best = tile;
+        }
+        return best ? this._tmpCoverVec.set(best.x, bot.position.y, best.z) : null;
     }
 
     pickCombatTarget(bot, ctx, entityManager) {

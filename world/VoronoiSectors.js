@@ -19,8 +19,8 @@ export class VoronoiSectors {
         this.seed = seed;
         this.sectors = [];
         this._randState = seed;
-        this.size = 512;
-        this.halfSize = 256;
+        this.size = 256;
+        this.halfSize = 128;
     }
 
     _rand() {

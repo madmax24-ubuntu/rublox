@@ -781,8 +781,8 @@ export class Player {
             }
 
             if (this.weaponActionTime > 0 && this.weaponActionType) {
-                const t = 1 - this.weaponActionTime / this.weaponActionDuration;
-                const ease = Math.sin(t * Math.PI);
+                const t = THREE.MathUtils.clamp(1 - this.weaponActionTime / this.weaponActionDuration, 0, 1);
+                const ease = Math.sin(Math.min(1, t * 2.2) * Math.PI);
                 if (this.weaponActionType === 'bow') {
                     this.viewWeapon.position.z -= ease * 0.09;
                     this.viewWeapon.position.x -= ease * 0.03;
