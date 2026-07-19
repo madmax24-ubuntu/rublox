@@ -56,6 +56,45 @@ export class LootManager {
         // on uneven or stepped walkable colliders.
         return baseY + 0.38;
     }
+
+    isChestPlacementClear(x, y, z) {
+        if (![x, y, z].every(Number.isFinite)) return false;
+        const half = Number(this.mapGenerator?.halfSize) || 128;
+        if (Math.abs(x) > half - 2 || Math.abs(z) > half - 2) return false;
+        if (this.mapGenerator.isWalkableAt && !this.mapGenerator.isWalkableAt(x, z)) return false;
+        const colliders = this.mapGenerator.getNearbyCollidersForSpawn?.({ x, y, z }, 2)
+            || this.mapGenerator.getColliders?.()
+            || [];
+        const minX = x - 0.72;
+        const maxX = x + 0.72;
+        const minZ = z - 0.57;
+        const maxZ = z + 0.57;
+        const minY = y + 0.04;
+        const maxY = y + 1.04;
+        for (const box of colliders) {
+            if (!box || box.enabled === false || box.walkable || !box.min || !box.max) continue;
+            if (maxX <= box.min.x || minX >= box.max.x || maxZ <= box.min.z || minZ >= box.max.z) continue;
+            if (maxY <= box.min.y || minY >= box.max.y) continue;
+            return false;
+        }
+        return true;
+    }
+
+    resolveChestPlacement(x, z) {
+        const offsets = [
+            [0, 0], [1.6, 0], [-1.6, 0], [0, 1.6], [0, -1.6],
+            [2.8, 0], [-2.8, 0], [0, 2.8], [0, -2.8],
+            [1.8, 1.8], [-1.8, 1.8], [1.8, -1.8], [-1.8, -1.8]
+        ];
+        for (const [ox, oz] of offsets) {
+            const px = x + ox;
+            const pz = z + oz;
+            const py = this.getChestPlacementY(px, pz);
+            if (py < this.mapGenerator.waterLevel + 1) continue;
+            if (this.isChestPlacementClear(px, py, pz)) return { x: px, y: py, z: pz };
+        }
+        return null;
+    }
     
     generateChests() {
         const floorTiles = this.mapGenerator.getFloorTiles?.() || [];
@@ -71,11 +110,11 @@ export class LootManager {
 
             for (let i = 0; i < limit; i++) {
                 const spot = shuffled[i];
-                const y = this.getChestPlacementY(spot.x, spot.z);
-                if (y < this.mapGenerator.waterLevel + 1) continue;
-                const chest = this.createChest(spot.x, y, spot.z, spot.grade || 'house');
+                const placement = this.resolveChestPlacement(spot.x, spot.z);
+                if (!placement) continue;
+                const chest = this.createChest(placement.x, placement.y, placement.z, spot.grade || 'house');
                 this.chests.push(chest);
-                occupied.add(keyFor(spot.x, spot.z));
+                occupied.add(keyFor(placement.x, placement.z));
                 this.addChestToIndex(chest);
             }
         }
@@ -91,6 +130,7 @@ export class LootManager {
                 const y = this.getChestPlacementY(tile.x, tile.z);
                 if (y < this.mapGenerator.waterLevel + 1) continue;
                 if (!this.isHiddenSpawn(tile.x, y, tile.z)) continue;
+                if (!this.isChestPlacementClear(tile.x, y, tile.z)) continue;
                 const chest = this.createChest(tile.x, y, tile.z);
                 this.chests.push(chest);
                 occupied.add(key);
@@ -104,7 +144,8 @@ export class LootManager {
 
         for (let i = this.chests.length, attempts = 0; i < chestCount && attempts < chestCount * 20; attempts++) {
             const angle = Math.random() * Math.PI * 2;
-            const distance = 40 + Math.random() * 150;
+            const maxRadius = Math.max(42, (Number(this.mapGenerator.halfSize) || 128) - 6);
+            const distance = 40 + Math.random() * Math.max(2, maxRadius - 40);
             const x = Math.cos(angle) * distance;
             const z = Math.sin(angle) * distance;
             const y = this.getChestPlacementY(x, z);
@@ -115,6 +156,7 @@ export class LootManager {
             if (!this.isHiddenSpawn(x, y, z)) {
                 continue;
             }
+            if (!this.isChestPlacementClear(x, y, z)) continue;
             const key = keyFor(x, z);
             if (occupied.has(key)) continue;
 
@@ -143,12 +185,12 @@ export class LootManager {
 
             for (let i = 0; i < limit; i++) {
                 const spot = shuffled[i];
-                const y = this.getChestPlacementY(spot.x, spot.z);
-                if (y < this.mapGenerator.waterLevel + 1) continue;
-                
-                const chest = this.createChest(spot.x, y, spot.z, spot.grade || 'house');
+                const placement = this.resolveChestPlacement(spot.x, spot.z);
+                if (!placement) continue;
+
+                const chest = this.createChest(placement.x, placement.y, placement.z, spot.grade || 'house');
                 this.chests.push(chest);
-                occupied.add(keyFor(spot.x, spot.z));
+                occupied.add(keyFor(placement.x, placement.z));
 
                 // Даем браузеру "прододхнуть" каждые 25 сундуков
                 if (i > 0 && i % 25 === 0) {
@@ -168,6 +210,7 @@ export class LootManager {
                 const y = this.getChestPlacementY(tile.x, tile.z);
                 if (y < this.mapGenerator.waterLevel + 1) continue;
                 if (!this.isHiddenSpawn(tile.x, y, tile.z)) continue;
+                if (!this.isChestPlacementClear(tile.x, y, tile.z)) continue;
                 const chest = this.createChest(tile.x, y, tile.z);
                 this.chests.push(chest);
                 occupied.add(key);
@@ -186,7 +229,8 @@ export class LootManager {
         console.log(`[LootManager] random fallback path, chestCount=${chestCount}`);
         for (let i = this.chests.length, attempts = 0; i < chestCount && attempts < chestCount * 20; attempts++) {
             const angle = Math.random() * Math.PI * 2;
-            const distance = 40 + Math.random() * 150;
+            const maxRadius = Math.max(42, (Number(this.mapGenerator.halfSize) || 128) - 6);
+            const distance = 40 + Math.random() * Math.max(2, maxRadius - 40);
             const x = Math.cos(angle) * distance;
             const z = Math.sin(angle) * distance;
             const y = this.getChestPlacementY(x, z);
@@ -197,6 +241,7 @@ export class LootManager {
             if (!this.isHiddenSpawn(x, y, z)) {
                 continue;
             }
+            if (!this.isChestPlacementClear(x, y, z)) continue;
             const key = keyFor(x, z);
             if (occupied.has(key)) continue;
 

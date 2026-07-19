@@ -944,6 +944,8 @@ export class Player {
         if (this.audioSynthRef && tookRealDamage) {
             if (source === 'zone' && this.audioSynthRef.playZoneDamage) {
                 this.audioSynthRef.playZoneDamage();
+            } else if (this.audioSynthRef.playPlayerHurt) {
+                this.audioSynthRef.playPlayerHurt();
             } else if (this.audioSynthRef.playHurt) {
                 this.audioSynthRef.playHurt();
             }

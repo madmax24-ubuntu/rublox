@@ -1100,12 +1100,12 @@ export class BotBrain {
         const start = ((Number(bot.id) || 0) * 37 + Math.floor(performance.now() * 0.001) * 13) % tiles.length;
         const currentDist = Math.hypot(target.x - bot.position.x, target.z - bot.position.z);
         let best = null;
-        let bestScore = currentDist;
-        for (let i = 0; i < Math.min(64, tiles.length); i++) {
+        let bestScore = currentDist + 8;
+        for (let i = 0; i < Math.min(192, tiles.length); i++) {
             const tile = tiles[(start + i * 29) % tiles.length];
             if (!this.isInAssignedBiome(bot, tile)) continue;
             const localDist = Math.hypot(tile.x - bot.position.x, tile.z - bot.position.z);
-            if (localDist < 3 || localDist > 15) continue;
+            if (localDist < 3 || localDist > 28) continue;
             this._tmpRandomDir.set(tile.x - bot.position.x, 0, tile.z - bot.position.z).normalize();
             if (bot.isDirectionBlocked?.(this._tmpRandomDir)) continue;
             const targetDist = Math.hypot(target.x - tile.x, target.z - tile.z);

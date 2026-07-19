@@ -890,6 +890,8 @@ export class Bot {
         if (this.audioSynthRef) {
             if (source === 'zone' && this.audioSynthRef.playZoneDamage) {
                 this.audioSynthRef.playZoneDamage();
+            } else if (this.audioSynthRef.playNpcHurt) {
+                this.audioSynthRef.playNpcHurt(this.position, `id:${this.id}`);
             } else if (this.audioSynthRef.playHurt) {
                 this.audioSynthRef.playHurt(this.position, `id:${this.id}`);
             }
@@ -1069,17 +1071,11 @@ export class Bot {
         const invLen = 1 / Math.sqrt(lenSq);
         const direction = this._tmpDirection.set(toTargetX * invLen, 0, toTargetZ * invLen);
 
-        // Slow down if approaching a wall — prevents clipping
-        let wallFactor = 1;
-        if (this.isDirectionBlocked(direction)) {
-            wallFactor = 0.3;
-        }
-
-        if (this._hasEscapeDir && this.escapeTimer > 0) {
+        if (this._hasEscapeDir && this.escapeTimer > 0 && !this.isDirectionBlocked(this.escapeDir, 2.2)) {
             direction.copy(this.escapeDir);
         }
 
-        if (this.steeringCooldown <= 0) {
+        if (this.steeringCooldown <= 0 || this.isDirectionBlocked(this.cachedMoveDir, 2.2)) {
             this.computeAvoidance(direction, this._tmpAvoid);
             if (this._tmpAvoid.lengthSq() > 0.0001) {
                 direction.addScaledVector(this._tmpAvoid, 1.2).normalize();
@@ -1090,18 +1086,27 @@ export class Bot {
                 direction.addScaledVector(this._tmpTrainAvoid, 1.35).normalize();
             }
 
-            const angles = [0, Math.PI / 10, -Math.PI / 10, Math.PI / 4, -Math.PI / 4];
+            const angles = [
+                0,
+                Math.PI / 8, -Math.PI / 8,
+                Math.PI / 4, -Math.PI / 4,
+                Math.PI * 3 / 8, -Math.PI * 3 / 8,
+                Math.PI / 2, -Math.PI / 2,
+                Math.PI * 3 / 4, -Math.PI * 3 / 4,
+                Math.PI
+            ];
             let bestScore = Infinity;
             let found = false;
             this._tmpProbe2.copy(direction);
             for (const angle of angles) {
                 this._tmpProbe3.copy(direction).applyAxisAngle(this._tmpUp, angle);
-                if (this.isDirectionBlocked(this._tmpProbe3)) continue;
-                const px = this.position.x + this._tmpProbe3.x * 2.2;
-                const pz = this.position.z + this._tmpProbe3.z * 2.2;
+                if (this.isDirectionBlocked(this._tmpProbe3, 5.5)) continue;
+                const px = this.position.x + this._tmpProbe3.x * 5;
+                const pz = this.position.z + this._tmpProbe3.z * 5;
+                if (this.mapRef?.isWalkableAt && !this.mapRef.isWalkableAt(px, pz)) continue;
                 const dx = target.x - px;
                 const dz = target.z - pz;
-                const score = dx * dx + dz * dz;
+                const score = dx * dx + dz * dz + Math.abs(angle) * 8;
                 if (score < bestScore) {
                     bestScore = score;
                     this._tmpProbe2.copy(this._tmpProbe3);
@@ -1109,19 +1114,24 @@ export class Bot {
                 }
             }
             if (!found) {
-                const angle = (Math.random() * 0.8 - 0.4) + Math.PI / 2;
-                this._tmpProbe2.copy(direction).applyAxisAngle(this._tmpUp, angle);
+                this._tmpProbe2.copy(direction).multiplyScalar(-1);
                 this.escapeDir.copy(this._tmpProbe2);
                 this._hasEscapeDir = true;
-                this.escapeTimer = 0.8;
+                this.escapeTimer = 1.1;
             }
             this.cachedMoveDir.copy(this._tmpProbe2).normalize();
-            this.steeringCooldown = 0.2 + Math.random() * 0.15;
-        } else {
-            direction.copy(this.cachedMoveDir);
+            this.steeringCooldown = 0.28 + Math.random() * 0.18;
+        }
+        direction.copy(this.cachedMoveDir);
+
+        if (this.isDirectionBlocked(direction, 1.25)) {
+            this.physics.velocity.x *= 0.35;
+            this.physics.velocity.z *= 0.35;
+            this.steeringCooldown = 0;
+            return;
         }
 
-        const finalSpeed = speed * this.slowFactor * wallFactor;
+        const finalSpeed = speed * this.slowFactor;
         // Movement inertia — blend toward new direction instead of snapping
         const inertia = 0.65;
         this.physics.velocity.x = this.physics.velocity.x * inertia + direction.x * finalSpeed * (1 - inertia);
@@ -1272,20 +1282,21 @@ export class Bot {
         }
     }
 
-    isDirectionBlocked(dir) {
+    isDirectionBlocked(dir, distance = 3.5) {
         if (!this.physicsRef?.getNearbyColliders) return false;
-        this._tmpProbe.copy(this.position).addScaledVector(dir, 3.5);
-        if (this.mapRef?.isWalkableAt && !this.mapRef.isWalkableAt(this._tmpProbe.x, this._tmpProbe.z)) {
-            return true;
-        }
-        const nearby = this.physicsRef.getNearbyColliders(this._tmpProbe, 1.8);
         const bottom = this.position.y - this.physics.height + 0.2;
-        for (const box of nearby) {
-            if (box.enabled === false) continue;
-            if (this._tmpProbe.x < box.min.x - 0.1 || this._tmpProbe.x > box.max.x + 0.1) continue;
-            if (this._tmpProbe.z < box.min.z - 0.1 || this._tmpProbe.z > box.max.z + 0.1) continue;
-            if (bottom > box.max.y - 0.1) continue;
-            return true;
+        const maxDistance = Math.max(0.8, Number(distance) || 3.5);
+        for (let probeDistance = Math.min(1.1, maxDistance); probeDistance <= maxDistance + 0.01; probeDistance += 1.1) {
+            this._tmpProbe.copy(this.position).addScaledVector(dir, probeDistance);
+            if (this.mapRef?.isWalkableAt && !this.mapRef.isWalkableAt(this._tmpProbe.x, this._tmpProbe.z)) return true;
+            const nearby = this.physicsRef.getNearbyColliders(this._tmpProbe, 1.2);
+            for (const box of nearby) {
+                if (box.enabled === false || box.walkable) continue;
+                if (this._tmpProbe.x < box.min.x - 0.45 || this._tmpProbe.x > box.max.x + 0.45) continue;
+                if (this._tmpProbe.z < box.min.z - 0.45 || this._tmpProbe.z > box.max.z + 0.45) continue;
+                if (bottom > box.max.y - 0.1) continue;
+                return true;
+            }
         }
         return false;
     }

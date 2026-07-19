@@ -84,6 +84,16 @@ export class AudioSynth {
                 'assets/audio/rpg/cloth3.ogg',
                 'assets/audio/rpg/cloth4.ogg'
             ],
+            playerHurt: [
+                'assets/audio/rpg/clothBelt.ogg',
+                'assets/audio/rpg/clothBelt2.ogg',
+                'assets/audio/rpg/cloth4.ogg'
+            ],
+            npcHurt: [
+                'assets/audio/rpg/chop.ogg',
+                'assets/audio/rpg/cloth3.ogg',
+                'assets/audio/rpg/cloth4.ogg'
+            ],
             zoneDamage: [
                 'assets/audio/rpg/cloth3.ogg',
                 'assets/audio/rpg/cloth4.ogg'
@@ -383,11 +393,7 @@ export class AudioSynth {
             await this.unlock();
             if (this.audioContext.state !== 'running') return false;
         }
-        let path = this.pickSample(pathList);
-        if (!path && this.sampleLoadPromise) {
-            await Promise.race([this.sampleLoadPromise, new Promise(r => setTimeout(r, 2000))]);
-            path = this.pickSample(pathList);
-        }
+        const path = this.pickSample(pathList);
         if (!path) return false;
         const buffer = this.sampleBuffers.get(path);
         if (!buffer) return false;
@@ -788,6 +794,33 @@ export class AudioSynth {
         });
     }
 
+    playPlayerHurt() {
+        if (!this.canPlayWeaponSfx('hurt:player', 0.1)) return;
+        this.playSample(this.sampleCatalog.playerHurt, {
+            volume: this.isMobileDevice ? 0.34 : 0.42,
+            rateMin: 0.9,
+            rateMax: 1.04,
+            category: 'sfx',
+            priority: 3,
+            voiceKey: 'hurt:player',
+            maxDuration: 0.3
+        });
+    }
+
+    playNpcHurt(position = null, emitterKey = 'npc') {
+        if (!this.canPlayWeaponSfx(`hurt:${emitterKey}`, 0.16)) return;
+        this.playSample(this.sampleCatalog.npcHurt, {
+            volume: this.isMobileDevice ? 0.14 : 0.2,
+            rateMin: 0.88,
+            rateMax: 1.12,
+            position,
+            category: 'sfx',
+            priority: 1,
+            voiceKey: `hurt:${emitterKey}`,
+            maxDuration: 0.26
+        });
+    }
+
     playZombieAttack(position = null, opts = null) {
         const variant = opts?.variant || 'normal';
         const emitterKey = `id:${opts?.emitterKey ?? 'zombie'}`;
@@ -941,7 +974,6 @@ export class AudioSynth {
             rateMin: 0.98,
             rateMax: 1.03,
             reverbSend: 0.01,
-            offset: 0.22,
             maxDuration: 0.34,
             position,
             category: 'weapon',
@@ -958,7 +990,6 @@ export class AudioSynth {
             rateMin: 0.95,
             rateMax: 1.02,
             reverbSend: 0.015,
-            offset: 0.45,
             maxDuration: 0.42,
             position,
             category: 'weapon',
@@ -975,7 +1006,6 @@ export class AudioSynth {
             rateMin: 1.02,
             rateMax: 1.15,
             reverbSend: 0.005,
-            offset: 0.35,
             maxDuration: 0.16,
             position,
             category: 'weapon',
@@ -985,7 +1015,6 @@ export class AudioSynth {
             rateMin: 1.08,
             rateMax: 1.18,
             reverbSend: 0.005,
-            offset: 0.45,
             maxDuration: 0.16,
             position,
             category: 'weapon',
@@ -1168,26 +1197,22 @@ export class AudioSynth {
         const rate = this.audioContext.sampleRate;
         const duration = 32;
         const buffer = this.audioContext.createBuffer(2, rate * duration, rate);
-        const notes = [73.416, 82.407, 97.999, 110];
         for (let channel = 0; channel < 2; channel++) {
             const data = buffer.getChannelData(channel);
             let noiseState = 7919 + channel * 104729;
+            let wind = 0;
             for (let i = 0; i < data.length; i++) {
                 const t = i / rate;
-                const section = Math.floor(t / 8) % notes.length;
-                const root = notes[section];
-                const fade = Math.min(1, t * 0.8, (duration - t) * 0.8);
-                const breath = 0.58 + Math.sin(t * Math.PI / 4) * 0.22;
-                const drone = Math.sin(Math.PI * 2 * root * t + channel * 0.035) * 0.105;
-                const fifth = Math.sin(Math.PI * 2 * root * 1.5 * t + 0.4) * 0.042;
-                const high = Math.sin(Math.PI * 2 * root * 3 * t + channel * 0.8) * 0.013;
-                const hornPulse = Math.pow(Math.max(0, Math.sin(Math.PI * 2 * t / 8)), 3);
-                const horn = Math.sin(Math.PI * 2 * root * 0.5 * t) * hornPulse * 0.075;
-                const beatPhase = (t * 0.75) % 1;
-                const drum = Math.sin(Math.PI * 2 * 52 * t) * Math.exp(-beatPhase * 18) * 0.055;
                 noiseState = (noiseState * 1664525 + 1013904223) >>> 0;
-                const noise = ((noiseState / 4294967295) * 2 - 1) * Math.exp(-beatPhase * 24) * 0.012;
-                data[i] = (drone + fifth + high + horn + drum + noise) * breath * fade;
+                const white = noiseState / 2147483647.5 - 1;
+                wind = wind * 0.9975 + white * 0.0025;
+                const fade = Math.min(1, t * 0.6, (duration - t) * 0.6);
+                const breeze = wind * (0.018 + 0.007 * Math.sin(t * 0.17 + channel));
+                const pad = Math.sin(Math.PI * 2 * 55 * t + channel * 0.04) * 0.018
+                    + Math.sin(Math.PI * 2 * 82.407 * t + 0.7) * 0.009;
+                const birdWindow = Math.max(0, 1 - Math.abs(((t + channel * 5.3) % 13) - 6.5) * 3.4);
+                const bird = Math.sin(Math.PI * 2 * (1450 + Math.sin(t * 5) * 240) * t) * birdWindow * 0.006;
+                data[i] = (breeze + pad + bird) * fade;
             }
         }
         return buffer;
