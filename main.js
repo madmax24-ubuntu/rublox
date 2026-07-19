@@ -2125,6 +2125,7 @@ class Game {
             const applyTrap = (entity) => {
                 if (!entity.isAlive) return;
                 for (const trap of this.traps) {
+                    if (trap.active === false) continue;
                     const dx = entity.position.x - trap.position.x;
                     const dz = entity.position.z - trap.position.z;
                     const dist = Math.sqrt(dx * dx + dz * dz);

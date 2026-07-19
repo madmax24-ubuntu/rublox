@@ -2102,7 +2102,19 @@ export class MapGenerator {
                 plate.userData.mapGenerated = true;
                 plate.userData.isTrap = true;
                 this.scene.add(plate);
-                this._traps.push({ type: 'pressure', position: new THREE.Vector3(x, 0, z), radius: 1.55, slow: 0.45, damage: 15 });
+                this._traps.push({
+                    type: 'pressure',
+                    position: new THREE.Vector3(x, 0, z),
+                    radius: 1.55,
+                    slow: 0.45,
+                    damage: 15,
+                    visual: plate,
+                    active: true,
+                    period: 5.2,
+                    activeFor: 2.1,
+                    phase: Math.abs(x * 0.17 + z * 0.11) % 5.2,
+                    baseY: plate.position.y
+                });
                 placed++;
             }
         }
@@ -4174,19 +4186,35 @@ export class MapGenerator {
     }
 
     _addBiomeSurvivalFeatures() {
-        for (const [x, z] of [[-196, -118], [-148, -214], [-92, -154], [-212, -202]]) {
+        const forestTraps = [
+            [-214, -92], [-184, -118], [-146, -94], [-104, -122],
+            [-220, -154], [-178, -162], [-132, -154], [-86, -174],
+            [-208, -206], [-166, -214], [-122, -208], [-82, -222],
+            [-232, -126], [-156, -188], [-116, -84], [-196, -232]
+        ];
+        const militaryTraps = [
+            [-218, 92], [-174, 92], [-126, 96], [-82, 104],
+            [-226, 142], [-182, 148], [-134, 144], [-88, 154],
+            [-214, 198], [-168, 206], [-122, 198], [-78, 216],
+            [-198, 122], [-150, 178], [-102, 126], [-224, 230]
+        ];
+        const iceTraps = [
+            [88, 94], [132, 92], [178, 98], [222, 106],
+            [96, 146], [142, 152], [188, 146], [226, 164],
+            [88, 206], [136, 214], [180, 204], [222, 222],
+            [118, 122], [166, 182], [206, 126], [108, 230]
+        ];
+        for (const [x, z] of forestTraps) {
             this._addSurvivalTrap('snare', x, z);
-            this._addForestBush(x + 3.5, z - 2.5);
         }
         for (const [x, z] of [[96, -102], [152, -198], [214, -142], [112, -226]]) {
             this._addSurvivalTrap('spikes', x, z);
             this._registerChestSpot(x + 3.2, z + 2.4, 'maze');
         }
-        for (const [x, z] of [[-202, 92], [-138, 184], [-86, 126], [-218, 222]]) {
+        for (const [x, z] of militaryTraps) {
             this._addSurvivalTrap('mine', x, z);
-            this._addSandbagBarrier(x + 4.5, z);
         }
-        for (const [x, z] of [[92, 124], [158, 206], [216, 108], [112, 224]]) {
+        for (const [x, z] of iceTraps) {
             this._addSurvivalTrap('ice', x, z);
         }
         this._addThemeArch(104, -88, Math.PI / 2, this.pool.getMatStd(0x5f6368, 0.9, 0, true, false, 1, 0, 0));
@@ -4251,11 +4279,30 @@ export class MapGenerator {
         group.userData.mapGenerated = true;
         group.userData.isTrap = true;
         group.userData.trapType = type;
+        group.userData.baseY = 0;
         group.traverse((child) => {
             if (child.isMesh) child.userData.mapGenerated = true;
         });
         this.scene.add(group);
-        this._traps.push({ type, position: new THREE.Vector3(x, 0, z), radius, slow, damage });
+        const timing = type === 'snare'
+            ? [6.2, 3.1]
+            : type === 'spikes'
+                ? [4.8, 1.8]
+                : type === 'mine'
+                    ? [6.8, 2.4]
+                    : [5.6, 2.8];
+        this._traps.push({
+            type,
+            position: new THREE.Vector3(x, 0, z),
+            radius,
+            slow,
+            damage,
+            visual: group,
+            active: true,
+            period: timing[0],
+            activeFor: timing[1],
+            phase: Math.abs(x * 0.13 + z * 0.19) % timing[0]
+        });
     }
 
     _addThemeArch(x, z, rotation, material) {
@@ -4889,7 +4936,37 @@ export class MapGenerator {
         this.updateGlowAnimation(delta);
         this.updateSnowParticles(delta);
         this.updateWindTurbines(delta);
+        this.updateTrapAnimations();
         this.updateInteractivePOIs();
+    }
+
+    updateTrapAnimations() {
+        const now = performance.now() * 0.001;
+        for (const trap of this._traps) {
+            if (!trap.visual || !trap.period) continue;
+            const phaseTime = (now + trap.phase) % trap.period;
+            const active = phaseTime < trap.activeFor;
+            const warning = !active && phaseTime > trap.period - 0.8;
+            const pulse = 1 + Math.sin(now * 12 + trap.phase) * 0.08;
+            trap.active = active;
+            if (trap.type === 'pressure') {
+                trap.visual.position.y = active ? trap.baseY : warning ? trap.baseY + 0.035 : trap.baseY - 0.07;
+                trap.visual.scale.set(active ? pulse : 0.92, 1, active ? pulse : 0.92);
+            } else if (trap.type === 'snare') {
+                const scale = active ? pulse : warning ? 0.95 : 0.76;
+                trap.visual.scale.set(scale, active ? 1 : 0.7, scale);
+                trap.visual.rotation.y += active ? 0.2 : 0.035;
+            } else if (trap.type === 'spikes') {
+                trap.visual.position.y = active ? 0 : warning ? -0.3 : -0.85;
+            } else if (trap.type === 'mine') {
+                const scale = active ? pulse : warning ? 0.92 : 0.68;
+                trap.visual.scale.set(scale, active ? 1 : 0.72, scale);
+            } else if (trap.type === 'ice') {
+                const scale = active ? pulse : warning ? 0.9 : 0.72;
+                trap.visual.scale.set(scale, active ? 1 : 0.55, scale);
+                trap.visual.rotation.y += active ? 0.05 : 0.01;
+            }
+        }
     }
 
     updateInteractivePOIs() {
