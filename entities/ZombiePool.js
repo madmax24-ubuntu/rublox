@@ -8,9 +8,12 @@ export class ZombiePool {
         this.entityManager = entityManager;
         this.pool = [];
         this.nextId = 1;
+        this.variantCursor = 0;
+        this.variantSequence = ['normal', 'runner', 'crawler', 'toxic', 'normal', 'runner', 'heavy', 'crawler', 'toxic', 'normal'];
     }
 
     acquire(spawnPosition, forcedVariant = null) {
+        forcedVariant ||= this.variantSequence[this.variantCursor++ % this.variantSequence.length];
         let zombie;
         const poolIndex = forcedVariant
             ? this.pool.findIndex(candidate => candidate.variant === forcedVariant)

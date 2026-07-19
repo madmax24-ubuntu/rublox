@@ -1,7 +1,6 @@
 import * as THREE from "three";
 import { MapGeneratorNode } from "./MapGeneratorNode.js?v=1783108959290";
 import { AABBGrid } from "./AABBGrid.js";
-import { DebugOverlay } from "./DebugOverlay.js";
 import { InstancedMeshSystem } from "./InstancedMeshSystem.js";
 import { MeshPool } from "./MeshPool.js";
 
@@ -86,6 +85,7 @@ export class MapGenerator {
         this._biomeGates = [];
         this._biomeGateColliders = [];
         this._interactivePOIs = [];
+        this._traps = [];
         this._floorTiles = [];
         this._navigationTiles = [];
         this._spawnTiles = [];
@@ -168,6 +168,15 @@ export class MapGenerator {
         this._placeBiomeDecor();
 
         this._placeBiomeBoundaries();
+        for (const child of [...this.scene.children]) {
+            if (!(child.isLine || child.isLineSegments) || child.userData?.gameplayBoundary) continue;
+            const color = child.material?.color?.getHex?.();
+            if (color === 0x00ffff || color === 0x00ff00 || color === 0x29b6f6 || color === 0x4bb3ff) {
+                this.scene.remove(child);
+                child.geometry?.dispose?.();
+                child.material?.dispose?.();
+            }
+        }
 
         // Phase 9.8: Map perimeter walls (glass/blue like reference)
         this._generatePerimeterWalls();
@@ -207,6 +216,7 @@ export class MapGenerator {
         this._biomeGates = [];
         this._biomeGateColliders = [];
         this._interactivePOIs = [];
+        this._traps = [];
 
         const toRemove = [];
         for (const child of this.scene.children) {
@@ -1818,6 +1828,8 @@ export class MapGenerator {
         // Castle gate at entrance from center (south-west side)
         this._addCastleGate(entranceX, entranceZ, wallHeight);
         this._addMazeToCenterPath(entranceX, entranceZ);
+        this._addMazeMoss(segments);
+        this._addMazeTraps(cells, startX, startZ, margin, cellWidth, cellDepth);
 
     }
 
@@ -2038,44 +2050,54 @@ export class MapGenerator {
         right.isBiomeEntrance = true;
     }
 
-    _addMazeMoss(startX, startZ, size) {
+    _addMazeMoss(segments) {
         const mossMat = this.pool.getMatStd(0x4caf50, 1.0, 0, true, false, 1, 0, 0);
         const vineMat = this.pool.getMatStd(0x2e7d32, 0.9, 0, true, false, 1, 0, 0);
 
-        // Moss patches on walls
-        for (let i = 0; i < 15; i++) {
-            const x = startX + this._rand() * size;
-            const z = startZ + this._rand() * size;
-            const geo = this.pool.getGeoDodecahedron(0.3 + this._rand() * 0.5, 5);
-            const face = Math.floor(this._rand() * 4);
-            const moss = new THREE.Mesh(geo, mossMat);
-            if (face === 0) {
-                moss.rotation.y = 0;
-                moss.position.set(x + 0.1, 1 + this._rand() * 3, z);
-            } else if (face === 1) {
-                moss.rotation.y = Math.PI;
-                moss.position.set(x - 0.1, 1 + this._rand() * 3, z);
-            } else if (face === 2) {
-                moss.rotation.y = Math.PI / 2;
-                moss.position.set(x, z + 0.1, 1 + this._rand() * 3);
-            } else {
-                moss.rotation.y = -Math.PI / 2;
-                moss.position.set(x, z - 0.1, 1 + this._rand() * 3);
-            }
+        const count = Math.min(34, segments.length);
+        for (let i = 0; i < count; i++) {
+            const segment = segments[(i * 17) % segments.length];
+            const horizontal = segment.width > segment.depth;
+            const patchW = 1.2 + this._rand() * 2.8;
+            const patchH = 1.5 + this._rand() * 4.5;
+            const side = i % 2 ? 1 : -1;
+            const moss = new THREE.Mesh(this.pool.getGeoBox(horizontal ? patchW : 0.08, patchH, horizontal ? 0.08 : patchW), mossMat);
+            moss.position.set(
+                segment.x + (horizontal ? (this._rand() - 0.5) * Math.max(0, segment.width - patchW) : side * (segment.width * 0.5 + 0.055)),
+                1.5 + this._rand() * 10,
+                segment.z + (horizontal ? side * (segment.depth * 0.5 + 0.055) : (this._rand() - 0.5) * Math.max(0, segment.depth - patchW))
+            );
             moss.userData.mapGenerated = true;
-            moss.userData.instancable = true;
             this.scene.add(moss);
         }
 
-        // Vines hanging from wall tops
-        for (let i = 0; i < 8; i++) {
-            const x = startX + this._rand() * size;
-            const z = startZ + this._rand() * size;
+        for (let i = 0; i < Math.min(12, segments.length); i++) {
+            const segment = segments[(i * 29 + 5) % segments.length];
             const vineGeo = this.pool.getGeoCylinder(0.05, 0.08, 2 + this._rand() * 3, 4);
             const vine = new THREE.Mesh(vineGeo, vineMat);
-            vine.position.set(x, 5 + this._rand() * 3, z);
+            vine.position.set(segment.x, 13 + this._rand() * 3, segment.z);
             vine.userData.mapGenerated = true;
             this.scene.add(vine);
+        }
+    }
+
+    _addMazeTraps(cells, startX, startZ, margin, cellWidth, cellDepth) {
+        const plateMat = this.pool.getMatStd(0x4a342e, 0.72, 0.15, true, false, 1, 0x5a160d, 0.18);
+        let placed = 0;
+        for (let r = 0; r < cells.length && placed < 12; r++) {
+            for (let c = 0; c < cells[r].length && placed < 12; c++) {
+                if ((r * 7 + c * 11) % 9 !== 0) continue;
+                const x = startX + margin + (c + 0.5) * cellWidth;
+                const z = startZ + margin + (r + 0.5) * cellDepth;
+                if (Math.hypot(x, z) < 80) continue;
+                const plate = new THREE.Mesh(this.pool.getGeoBox(2.6, 0.08, 2.6), plateMat);
+                plate.position.set(x, 0.06, z);
+                plate.userData.mapGenerated = true;
+                plate.userData.isTrap = true;
+                this.scene.add(plate);
+                this._traps.push({ position: new THREE.Vector3(x, 0, z), radius: 1.55, slow: 0.45, damage: 15 });
+                placed++;
+            }
         }
     }
 
@@ -4129,6 +4151,18 @@ export class MapGenerator {
         for (const [x, z] of [[-220, -72], [-188, -208], [-92, -190], [-212, -152], [-76, -92]]) this._addFallenLog(x, z);
         for (const [x, z] of [[-214, 92], [-174, 214], [-76, 92], [-74, 214]]) this._addGuardPost(x, z);
         for (const [x, z] of [[82, 88], [142, 74], [202, 94], [86, 194], [194, 192], [148, 218]]) this._addIceChunk(x, z);
+        for (const [x, z] of [[-214, -96], [-166, -184], [-96, -216], [-82, -126]]) {
+            this._addBarrel(x, z);
+            this._registerChestSpot(x + 2.4, z - 1.8, 'forest');
+        }
+        for (const [x, z] of [[-202, 118], [-158, 198], [-92, 146], [-76, 226]]) {
+            this._addMilitaryCrate(x, z);
+            this._registerChestSpot(x + 1.8, z + 1.5, 'military');
+        }
+        for (const [x, z] of [[96, 106], [176, 92], [218, 154], [116, 214]]) {
+            this._addIceChunk(x, z);
+            this._registerChestSpot(x - 2.2, z + 1.6, 'ice');
+        }
     }
 
     _addThemeArch(x, z, rotation, material) {
@@ -4537,7 +4571,7 @@ export class MapGenerator {
     }
 
     getTraps() {
-        return [];
+        return this._traps;
     }
 
     getOneWayGates() {
@@ -4788,13 +4822,6 @@ export class MapGenerator {
 
     setRainPuddles(active, center) {
         // No puddles
-    }
-
-    enableDebugOverlay() {
-        if (!this.debugOverlay) {
-            this.debugOverlay = new DebugOverlay(this.scene, this, null, null, null);
-            this.debugOverlay.enable();
-        }
     }
 
     // =========================================================================

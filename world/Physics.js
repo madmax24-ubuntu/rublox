@@ -196,19 +196,14 @@ export class Physics {
 
             // --- Boundary enforcement ---
             if (!isFrozen && entity.isInvulnerable !== true) {
-                const distSq = pos.x * pos.x + pos.z * pos.z;
-                if (distSq > this.boundaryMargin * this.boundaryMargin) {
-                    const dist = Math.sqrt(distSq);
-                    const pushBack = (dist - this.boundaryMargin) / Math.max(1, dist);
-                    this._boundForce.set(-pos.x * pushBack, 0, -pos.z * pushBack);
-                    const mag = this._boundForce.length();
-                    if (mag > 0.01) {
-                        this._boundForce.normalize().multiplyScalar(this.boundaryForce * delta);
-                        pos.x += this._boundForce.x;
-                        pos.z += this._boundForce.z;
-                        vel.x -= this._boundForce.x * 0.5;
-                        vel.z -= this._boundForce.z * 0.5;
-                    }
+                const limit = this.boundaryMargin;
+                if (pos.x < -limit || pos.x > limit) {
+                    pos.x = THREE.MathUtils.clamp(pos.x, -limit, limit);
+                    vel.x = 0;
+                }
+                if (pos.z < -limit || pos.z > limit) {
+                    pos.z = THREE.MathUtils.clamp(pos.z, -limit, limit);
+                    vel.z = 0;
                 }
             }
         }

@@ -51,7 +51,6 @@ THREE.DefaultLoadingManager.onLoad = function() {
 };
 
 import { MapGenerator } from './world/MapGenerator.js?v=1783108938526';
-import { DebugOverlay } from './world/DebugOverlay.js?v=1783108938526';
 import { Environment } from './world/Environment.js?v=1783108938526';
 import { Physics } from './world/Physics.js?v=1783108938526';
 import { Zone } from './world/Zone.js?v=1783108938526';

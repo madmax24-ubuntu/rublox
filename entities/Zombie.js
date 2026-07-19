@@ -5,7 +5,7 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const VARIANT_CONFIG = {
     runner: {
         health: 42, speed: 7.6, damage: 5.8, knockbackMultiplier: 1.2,
-        scale: 1.2, radius: 0.48, bodyColor: 0x1a2e24, headColor: 0x2c3c31,
+        scale: 1.2, radius: 0.48, bodyColor: 0x55755e, headColor: 0x78927d,
         eyeColor: 0xff4411, glowColor: 0x44ff22, glowIntensity: 1.8,
         attackCooldown: 0.52, patrolSpeed: 0.7, alertRadius: 80,
         moanInterval: [1.2, 2.4], attackInterval: [0.3, 0.8],
@@ -16,7 +16,7 @@ const VARIANT_CONFIG = {
     },
     normal: {
         health: 72, speed: 5.1, damage: 7.2, knockbackMultiplier: 0.8,
-        scale: 1.35, radius: 0.54, bodyColor: 0x1f2a23, headColor: 0x263029,
+        scale: 1.35, radius: 0.54, bodyColor: 0x526b58, headColor: 0x79907d,
         eyeColor: 0xff6600, glowColor: 0x8bff4f, glowIntensity: 1.35,
         attackCooldown: 0.72, patrolSpeed: 0.7, alertRadius: 68,
         moanInterval: [1.8, 3.6], attackInterval: [0.5, 1.2],
@@ -27,7 +27,7 @@ const VARIANT_CONFIG = {
     },
     heavy: {
         health: 180, speed: 3.2, damage: 9.2, knockbackMultiplier: 0,
-        scale: 1.56, radius: 0.6, bodyColor: 0x1b241f, headColor: 0x222c26,
+        scale: 1.56, radius: 0.6, bodyColor: 0x6b4b42, headColor: 0x8d6c61,
         eyeColor: 0xff2200, glowColor: 0x3dff1f, glowIntensity: 2.2,
         attackCooldown: 1.05, patrolSpeed: 0.7, alertRadius: 55,
         moanInterval: [2.5, 4.5], attackInterval: [0.8, 1.8],
@@ -35,6 +35,28 @@ const VARIANT_CONFIG = {
         hasArmorPlates: true, armAngle: -0.95, clawLength: 0.35,
         walkSpeed: 4, idleBreathe: 0.01,
         behavior: 'tank'
+    },
+    crawler: {
+        health: 58, speed: 6.4, damage: 6.4, knockbackMultiplier: 1.05,
+        scale: 1.15, radius: 0.5, bodyColor: 0x587383, headColor: 0x8ca5ad,
+        eyeColor: 0xb7f4ff, glowColor: 0x38b9d6, glowIntensity: 1.15,
+        attackCooldown: 0.58, patrolSpeed: 0.82, alertRadius: 76,
+        moanInterval: [1.5, 3.0], attackInterval: [0.4, 0.9],
+        hasHorns: false, hasMask: false, hasSpikes: true, hasBackpack: false,
+        hasArmorPlates: false, armAngle: -1.25, clawLength: 0.38,
+        walkSpeed: 9, idleBreathe: 0.025,
+        behavior: 'crawl'
+    },
+    toxic: {
+        health: 105, speed: 4.35, damage: 8.1, knockbackMultiplier: 0.55,
+        scale: 1.42, radius: 0.57, bodyColor: 0x77854b, headColor: 0xa9b96b,
+        eyeColor: 0xe8ff3d, glowColor: 0xa6ff19, glowIntensity: 2.7,
+        attackCooldown: 0.82, patrolSpeed: 0.68, alertRadius: 88,
+        moanInterval: [2.0, 4.0], attackInterval: [0.6, 1.3],
+        hasHorns: false, hasMask: true, hasSpikes: false, hasBackpack: true,
+        hasArmorPlates: false, armAngle: -0.72, clawLength: 0.28,
+        walkSpeed: 5.5, idleBreathe: 0.035,
+        behavior: 'toxic'
     }
 };
 
@@ -53,9 +75,8 @@ export class Zombie {
             speed: 4.8
         };
 
-        this.variant = VARIANT_CONFIG[forcedVariant]
-            ? forcedVariant
-            : (Math.random() < 0.5 ? 'runner' : (Math.random() < 0.65 ? 'normal' : 'heavy'));
+        const variants = ['normal', 'runner', 'crawler', 'toxic', 'heavy'];
+        this.variant = VARIANT_CONFIG[forcedVariant] ? forcedVariant : variants[Math.floor(Math.random() * variants.length)];
         const cfg = VARIANT_CONFIG[this.variant];
         this.maxHealth = cfg.health;
         this.health = cfg.health;
@@ -83,6 +104,11 @@ export class Zombie {
         this._roamTimer = 3 + Math.random() * 5;
 
         this.mesh = this.createMesh();
+        this.mesh.traverse(child => {
+            if (!child.material?.emissive) return;
+            child.material.userData.baseEmissive = child.material.emissive.getHex();
+            child.material.userData.baseEmissiveIntensity = child.material.emissiveIntensity;
+        });
         this.mesh.scale.setScalar(cfg.scale);
         this.scene.add(this.mesh);
     }
@@ -92,10 +118,10 @@ export class Zombie {
         const cfg = VARIANT_CONFIG[this.variant];
 
         const bodyMat = new THREE.MeshStandardMaterial({
-            color: cfg.bodyColor, roughness: 0.85, flatShading: true
+            color: cfg.bodyColor, emissive: cfg.bodyColor, emissiveIntensity: 0.08, roughness: 0.85, flatShading: true
         });
         const headMat = new THREE.MeshStandardMaterial({
-            color: cfg.headColor, roughness: 0.85, flatShading: true
+            color: cfg.headColor, emissive: cfg.headColor, emissiveIntensity: 0.07, roughness: 0.85, flatShading: true
         });
         const grimeMat = new THREE.MeshStandardMaterial({
             color: 0x2e3b2e, roughness: 0.95, flatShading: true
@@ -260,6 +286,81 @@ export class Zombie {
                 group.add(spike);
             }
 
+        } else if (this.variant === 'crawler') {
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.55, 1.15), bodyMat);
+            body.position.set(0, 0.58, 0.12);
+            body.rotation.x = -0.08;
+            group.add(body);
+
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.52, 0.66), headMat);
+            head.position.set(0, 0.68, 0.82);
+            head.rotation.x = -0.28;
+            group.add(head);
+
+            for (const x of [-0.16, 0.16]) {
+                const eye = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.08, 0.04), eyeMat);
+                eye.position.set(x, 0.76, 1.16);
+                group.add(eye);
+            }
+
+            const limbGeo = new THREE.BoxGeometry(0.17, 0.62, 0.17);
+            const limbs = [
+                [-0.47, 0.36, 0.48, -1.25],
+                [0.47, 0.36, 0.48, -1.25],
+                [-0.42, 0.32, -0.32, -0.9],
+                [0.42, 0.32, -0.32, -0.9]
+            ];
+            for (const [x, y, z, rot] of limbs) {
+                const limb = new THREE.Mesh(limbGeo, bodyMat);
+                limb.position.set(x, y, z);
+                limb.rotation.x = rot;
+                group.add(limb);
+            }
+
+            const ridgeGeo = new THREE.ConeGeometry(0.08, 0.3, 5);
+            for (let i = 0; i < 5; i++) {
+                const ridge = new THREE.Mesh(ridgeGeo, glowMat);
+                ridge.position.set(0, 0.9, -0.3 + i * 0.22);
+                ridge.rotation.x = -Math.PI / 2;
+                group.add(ridge);
+            }
+        } else if (this.variant === 'toxic') {
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.95, 1.2, 0.68), bodyMat);
+            body.position.set(0, 0.95, 0);
+            body.rotation.z = 0.08;
+            group.add(body);
+
+            const head = new THREE.Mesh(new THREE.DodecahedronGeometry(0.46, 0), headMat);
+            head.position.set(0.12, 1.82, 0.08);
+            group.add(head);
+
+            for (const x of [-0.13, 0.17]) {
+                const eye = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.06), eyeMat);
+                eye.position.set(x, 1.87, 0.48);
+                group.add(eye);
+            }
+
+            const armGeo = new THREE.BoxGeometry(0.22, 0.76, 0.22);
+            const leftArm = new THREE.Mesh(armGeo, bodyMat);
+            const rightArm = new THREE.Mesh(armGeo, bodyMat);
+            leftArm.position.set(-0.58, 1.02, 0.12);
+            rightArm.position.set(0.6, 0.94, 0.18);
+            leftArm.rotation.x = -0.68;
+            rightArm.rotation.x = -0.92;
+            group.add(leftArm, rightArm);
+
+            const legGeo = new THREE.BoxGeometry(0.23, 0.72, 0.23);
+            const leftLeg = new THREE.Mesh(legGeo, grimeMat);
+            const rightLeg = new THREE.Mesh(legGeo, grimeMat);
+            leftLeg.position.set(-0.23, 0.28, 0);
+            rightLeg.position.set(0.23, 0.28, 0);
+            group.add(leftLeg, rightLeg);
+
+            for (const [x, y, z, s] of [[-0.42, 1.28, -0.34, 0.3], [0.38, 1.02, -0.4, 0.38], [0.06, 1.5, -0.38, 0.24]]) {
+                const sac = new THREE.Mesh(new THREE.IcosahedronGeometry(s, 1), glowMat);
+                sac.position.set(x, y, z);
+                group.add(sac);
+            }
         } else {
             const body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.1, 0.6), bodyMat);
             body.position.y = 0.9;
@@ -350,6 +451,14 @@ export class Zombie {
                 rightArm: arms[1] || null,
                 leftLeg: legs[0] || null,
                 rightLeg: legs[1] || null
+            };
+        }
+        if (this.variant === 'crawler') {
+            group.userData.limbs = {
+                leftArm: group.children[4],
+                rightArm: group.children[5],
+                leftLeg: group.children[6],
+                rightLeg: group.children[7]
             };
         }
         return group;
@@ -528,7 +637,21 @@ export class Zombie {
         const t = this._animTime;
         const cfg = VARIANT_CONFIG[this.variant];
 
-        if (this.variant === 'runner') {
+        if (this.variant === 'crawler') {
+            const swing = Math.sin(t * 12) * 0.5 * speedNorm;
+            limbs.leftArm.rotation.z = -0.45 + swing;
+            limbs.rightArm.rotation.z = 0.45 - swing;
+            limbs.leftLeg.rotation.z = -0.35 - swing;
+            limbs.rightLeg.rotation.z = 0.35 + swing;
+            this.mesh.rotation.x = 0.04 + Math.sin(t * 8) * 0.025 * speedNorm;
+        } else if (this.variant === 'toxic') {
+            const swing = Math.sin(t * 5.5) * 0.5 * speedNorm;
+            limbs.leftLeg.rotation.x = -swing;
+            limbs.rightLeg.rotation.x = swing;
+            limbs.leftArm.rotation.x = -0.55 + Math.sin(t * 4.2) * 0.28;
+            limbs.rightArm.rotation.x = -0.75 + Math.sin(t * 4.2 + 1.1) * 0.28;
+            this.mesh.rotation.z = Math.sin(t * 2.1) * 0.045;
+        } else if (this.variant === 'runner') {
             const swing = Math.sin(t * 10) * 0.7 * speedNorm;
             limbs.leftLeg.rotation.x = -swing;
             limbs.rightLeg.rotation.x = swing;
@@ -654,8 +777,13 @@ export class Zombie {
     setBurnVisual(intensity) {
         this.mesh.traverse(child => {
             if (!child.material || !child.material.emissive) return;
-            child.material.emissive.setHex(0xff6d00);
-            child.material.emissiveIntensity = intensity;
+            if (intensity > 0) {
+                child.material.emissive.setHex(0xff6d00);
+                child.material.emissiveIntensity = intensity;
+            } else {
+                child.material.emissive.setHex(child.material.userData.baseEmissive ?? 0x000000);
+                child.material.emissiveIntensity = child.material.userData.baseEmissiveIntensity ?? 0;
+            }
         });
     }
 

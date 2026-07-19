@@ -783,9 +783,16 @@ export class AudioSynth {
         const variant = opts?.variant || 'normal';
         const emitterKey = `id:${opts?.emitterKey ?? 'zombie'}`;
         if (!this.canPlayZombieSfx('attack', emitterKey, 0.4)) return;
-        const offset = variant === 'runner' ? 0 : variant === 'heavy' ? 8 : 4;
-        const rates = variant === 'runner' ? [1.1, 1.28] : variant === 'heavy' ? [0.7, 0.86] : [0.92, 1.08];
-        this.playSample(this.sampleCatalog.zombieAttack.slice(offset, offset + 4), { volume: this.isMobileDevice ? 0.16 : 0.24, rateMin: rates[0], rateMax: rates[1], position, reverbSend: 0.08, category: 'zombie', priority: 0, maxDuration: variant === 'heavy' ? 0.65 : 0.42, voiceKey: `zombie:attack:${emitterKey}` });
+        const profiles = {
+            runner: [0, 1.1, 1.28],
+            normal: [2, 0.92, 1.08],
+            heavy: [4, 0.7, 0.86],
+            crawler: [6, 1.28, 1.5],
+            toxic: [8, 0.76, 0.94]
+        };
+        const [offset, rateMin, rateMax] = profiles[variant] || profiles.normal;
+        const rates = [rateMin, rateMax];
+        this.playSample(this.sampleCatalog.zombieAttack.slice(offset, offset + 2), { volume: this.isMobileDevice ? 0.16 : 0.24, rateMin: rates[0], rateMax: rates[1], position, reverbSend: 0.08, category: 'zombie', priority: 0, maxDuration: variant === 'heavy' ? 0.65 : 0.42, voiceKey: `zombie:attack:${emitterKey}` });
     }
 
     playZoneDamage() {
@@ -796,9 +803,16 @@ export class AudioSynth {
         const variant = opts?.variant || 'normal';
         const emitterKey = `id:${opts?.emitterKey ?? 'zombie'}`;
         if (!this.canPlayZombieSfx('moan', emitterKey, 3.5)) return;
-        const offset = variant === 'runner' ? 0 : variant === 'heavy' ? 8 : 4;
-        const rates = variant === 'runner' ? [1.12, 1.3] : variant === 'heavy' ? [0.66, 0.82] : [0.9, 1.06];
-        this.playSample(this.sampleCatalog.zombieMoan.slice(offset, offset + 4), { volume: this.isMobileDevice ? 0.13 : 0.2, rateMin: rates[0], rateMax: rates[1], position, reverbSend: 0.1, category: 'zombie', priority: 0, maxDuration: variant === 'heavy' ? 1.1 : 0.75, voiceKey: `zombie:moan:${emitterKey}` });
+        const profiles = {
+            runner: [0, 1.12, 1.3],
+            normal: [2, 0.9, 1.06],
+            heavy: [4, 0.66, 0.82],
+            crawler: [6, 1.3, 1.52],
+            toxic: [8, 0.72, 0.9]
+        };
+        const [offset, rateMin, rateMax] = profiles[variant] || profiles.normal;
+        const rates = [rateMin, rateMax];
+        this.playSample(this.sampleCatalog.zombieMoan.slice(offset, offset + 2), { volume: this.isMobileDevice ? 0.13 : 0.2, rateMin: rates[0], rateMax: rates[1], position, reverbSend: 0.1, category: 'zombie', priority: 0, maxDuration: variant === 'heavy' ? 1.1 : 0.75, voiceKey: `zombie:moan:${emitterKey}` });
     }
 
     canPlayZombieSfx(kind, emitterKey, emitterInterval) {
