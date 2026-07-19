@@ -2712,11 +2712,13 @@ window.addEventListener('DOMContentLoaded', () => {
 
         let _startHandled = false;
 
-        button.addEventListener('click', async () => {
+        const handleStart = async (event) => {
+            if (event?.cancelable) event.preventDefault();
             if (_startHandled || game.startingGame || game.isStarted) return;
             _startHandled = true;
             button.setAttribute('aria-busy', 'true');
-            try { await (game.audioSynth?.unlock?.() ?? Promise.resolve()); } catch {}
+            game.audioSynth?.unlock?.().catch(() => {});
+            game.enterFullscreen?.().catch(() => {});
             try {
                 await game.ready;
                 await game.startGame();
@@ -2726,8 +2728,11 @@ window.addEventListener('DOMContentLoaded', () => {
                 button.removeAttribute('aria-busy');
                 if (!game.isStarted) _startHandled = false;
             }
-        });
+        };
 
+        button.addEventListener('pointerup', handleStart);
+        button.addEventListener('click', handleStart);
+        button.addEventListener('touchend', handleStart, { passive: false });
     };
 
     bindStartButton(document.getElementById('startButtonDesktop'));
