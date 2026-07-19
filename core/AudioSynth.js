@@ -16,12 +16,12 @@ export class AudioSynth {
             sfx: null
         };
         this.categoryBaseVolumes = {
-            weapon: 1,
-            ambient: 0.28,
+            weapon: 0.9,
+            ambient: 0.22,
             ui: 0.62,
-            zombie: 0.58,
-            weather: 0.24,
-            sfx: 0.62
+            zombie: 0.46,
+            weather: 0.18,
+            sfx: 0.52
         };
         this.reverb = null;
         this.reverbGain = null;
@@ -32,6 +32,7 @@ export class AudioSynth {
         this.currentBiomeAmbient = null;
         this.radiationRainNodes = null;
         this.weatherLoopNodes = null;
+        this.weatherTransitionTimer = null;
         this.currentWeatherState = 'clear';
         this.footstepWeatherFactor = 1;
         this.musicStarted = false;
@@ -48,11 +49,13 @@ export class AudioSynth {
         this._unlockInProgress = null;
         this.lastWeaponSfxTime = Object.create(null);
         this.lastNpcWeaponSfxTime = 0;
+        this.lastZombieSfxTime = { attack: 0, moan: 0 };
+        this.lastZombieEmitterSfx = new Map();
         this.activeSampleVoices = new Map();
         this.activeCategoryVoices = new Map();
         this.categoryVoiceLimits = this.isMobileDevice
-            ? { weapon: 7, ambient: 2, ui: 3, zombie: 4, weather: 1, sfx: 5 }
-            : { weapon: 12, ambient: 3, ui: 4, zombie: 7, weather: 2, sfx: 8 };
+            ? { weapon: 5, ambient: 1, ui: 2, zombie: 3, weather: 1, sfx: 3 }
+            : { weapon: 7, ambient: 2, ui: 3, zombie: 4, weather: 1, sfx: 4 };
         this.weaponSfxCooldown = {
             bow: 0.09,
             laser: 0.12,
@@ -181,11 +184,11 @@ export class AudioSynth {
 
             this.reverb.buffer = this.createImpulse(1.6, 1.8);
             this.reverbGain.gain.value = 0.055;
-            this.sfxLimiter.threshold.value = -12;
-            this.sfxLimiter.knee.value = 10;
-            this.sfxLimiter.ratio.value = 8;
+            this.sfxLimiter.threshold.value = -18;
+            this.sfxLimiter.knee.value = 8;
+            this.sfxLimiter.ratio.value = 12;
             this.sfxLimiter.attack.value = 0.003;
-            this.sfxLimiter.release.value = 0.12;
+            this.sfxLimiter.release.value = 0.18;
 
             this.musicGain.connect(this.audioContext.destination);
             Object.keys(this.categoryGains).forEach((key) => {
@@ -562,7 +565,7 @@ export class AudioSynth {
         const last = this.lastWeaponSfxTime[key] || 0;
         if (now - last < interval) return false;
         if (key.includes(':id:')) {
-            const npcInterval = this.isMobileDevice ? 0.14 : 0.1;
+            const npcInterval = this.isMobileDevice ? 0.22 : 0.17;
             if (now - this.lastNpcWeaponSfxTime < npcInterval) return false;
             this.lastNpcWeaponSfxTime = now;
         }
@@ -597,7 +600,7 @@ export class AudioSynth {
     }
 
     getEmitterSfxScale(emitterKey) {
-        return String(emitterKey || '').startsWith('id:') ? (this.isMobileDevice ? 0.045 : 0.065) : 1;
+        return String(emitterKey || '').startsWith('id:') ? (this.isMobileDevice ? 0.032 : 0.045) : 1;
     }
 
     getEmitterSfxPriority(emitterKey) {
@@ -697,7 +700,9 @@ export class AudioSynth {
             volume: (this.isMobileDevice ? 0.14 : 0.2) * gainScale,
             rateMin: 0.92,
             rateMax: 1.08,
-            category: 'sfx'
+            category: 'sfx',
+            voiceKey: 'footstep:player',
+            maxDuration: 0.24
         });
     }
 
@@ -759,20 +764,28 @@ export class AudioSynth {
         this.radiationRainNodes = null;
     }
 
-    playHurt() {
+    playHurt(position = null, emitterKey = 'global') {
+        if (!this.canPlayWeaponSfx(`hurt:${emitterKey}`, emitterKey === 'global' ? 0.08 : 0.2)) return;
+        const scale = this.getEmitterSfxScale(emitterKey);
         this.playSample(this.sampleCatalog.hurt, {
-            volume: this.isMobileDevice ? 0.14 : 0.2,
+            volume: (this.isMobileDevice ? 0.14 : 0.2) * scale,
             rateMin: 0.82,
             rateMax: 1.08,
-            category: 'sfx'
+            position,
+            category: 'sfx',
+            priority: this.getEmitterSfxPriority(emitterKey),
+            voiceKey: `hurt:${emitterKey}`,
+            maxDuration: 0.28
         });
     }
 
     playZombieAttack(position = null, opts = null) {
         const variant = opts?.variant || 'normal';
+        const emitterKey = `id:${opts?.emitterKey ?? 'zombie'}`;
+        if (!this.canPlayZombieSfx('attack', emitterKey, 0.4)) return;
         const offset = variant === 'runner' ? 0 : variant === 'heavy' ? 8 : 4;
         const rates = variant === 'runner' ? [1.1, 1.28] : variant === 'heavy' ? [0.7, 0.86] : [0.92, 1.08];
-        this.playSample(this.sampleCatalog.zombieAttack.slice(offset, offset + 4), { volume: this.isMobileDevice ? 0.24 : 0.36, rateMin: rates[0], rateMax: rates[1], position, reverbSend: 0.12, category: 'zombie', maxDuration: variant === 'heavy' ? 0.65 : 0.42 });
+        this.playSample(this.sampleCatalog.zombieAttack.slice(offset, offset + 4), { volume: this.isMobileDevice ? 0.16 : 0.24, rateMin: rates[0], rateMax: rates[1], position, reverbSend: 0.08, category: 'zombie', priority: 0, maxDuration: variant === 'heavy' ? 0.65 : 0.42, voiceKey: `zombie:attack:${emitterKey}` });
     }
 
     playZoneDamage() {
@@ -781,9 +794,24 @@ export class AudioSynth {
 
     playZombieMoan(position = null, opts = null) {
         const variant = opts?.variant || 'normal';
+        const emitterKey = `id:${opts?.emitterKey ?? 'zombie'}`;
+        if (!this.canPlayZombieSfx('moan', emitterKey, 3.5)) return;
         const offset = variant === 'runner' ? 0 : variant === 'heavy' ? 8 : 4;
         const rates = variant === 'runner' ? [1.12, 1.3] : variant === 'heavy' ? [0.66, 0.82] : [0.9, 1.06];
-        this.playSample(this.sampleCatalog.zombieMoan.slice(offset, offset + 4), { volume: this.isMobileDevice ? 0.2 : 0.32, rateMin: rates[0], rateMax: rates[1], position, reverbSend: 0.18, category: 'zombie', maxDuration: variant === 'heavy' ? 1.1 : 0.75 });
+        this.playSample(this.sampleCatalog.zombieMoan.slice(offset, offset + 4), { volume: this.isMobileDevice ? 0.13 : 0.2, rateMin: rates[0], rateMax: rates[1], position, reverbSend: 0.1, category: 'zombie', priority: 0, maxDuration: variant === 'heavy' ? 1.1 : 0.75, voiceKey: `zombie:moan:${emitterKey}` });
+    }
+
+    canPlayZombieSfx(kind, emitterKey, emitterInterval) {
+        const now = performance.now() * 0.001;
+        const globalInterval = kind === 'attack'
+            ? (this.isMobileDevice ? 0.16 : 0.11)
+            : (this.isMobileDevice ? 0.55 : 0.4);
+        if (now - (this.lastZombieSfxTime[kind] || 0) < globalInterval) return false;
+        const key = `${kind}:${emitterKey}`;
+        if (now - (this.lastZombieEmitterSfx.get(key) || 0) < emitterInterval) return false;
+        this.lastZombieSfxTime[kind] = now;
+        this.lastZombieEmitterSfx.set(key, now);
+        return true;
     }
 
     fallbackZombieMoan(type, freq, dur, vol, pos, cat) {
@@ -985,26 +1013,33 @@ export class AudioSynth {
         const state = String(nextState || 'clear').toLowerCase();
         if (state === this.currentWeatherState) return;
         this.currentWeatherState = state;
+        if (this.weatherTransitionTimer) clearTimeout(this.weatherTransitionTimer);
+        this.weatherTransitionTimer = null;
         this.stopWeatherLoop();
         this.footstepWeatherFactor = state === 'rain' ? 0.62 : state === 'snow' ? 0.82 : 1;
-        if (state === 'rain') {
-            this.startWeatherLoop({
-                continuous: true,
-                category: 'weather',
-                volume: this.isMobileDevice ? 0.028 : 0.04,
-                sampleList: this.sampleCatalog.rain
-            });
-        } else if (state === 'snow') {
-            this.startWeatherLoop({
-                intervalMs: this.isMobileDevice ? 3400 : 2600,
-                category: 'weather',
-                volume: this.isMobileDevice ? 0.014 : 0.02,
-                rateMin: 0.7,
-                rateMax: 0.95,
-                sampleList: this.sampleCatalog.wind,
-                fallback: () => this.playSample(this.sampleCatalog.wind, { volume: this.isMobileDevice ? 0.014 : 0.02, rateMin: 0.6, rateMax: 0.9, category: 'weather', maxDuration: 0.4 })
-            });
-        }
+        if (state === 'clear') return;
+        this.weatherTransitionTimer = setTimeout(() => {
+            this.weatherTransitionTimer = null;
+            if (this.currentWeatherState !== state) return;
+            if (state === 'rain') {
+                this.startWeatherLoop({
+                    continuous: true,
+                    category: 'weather',
+                    volume: this.isMobileDevice ? 0.022 : 0.03,
+                    sampleList: this.sampleCatalog.rain
+                });
+            } else if (state === 'snow') {
+                this.startWeatherLoop({
+                    intervalMs: this.isMobileDevice ? 4200 : 3400,
+                    category: 'weather',
+                    volume: this.isMobileDevice ? 0.01 : 0.014,
+                    rateMin: 0.7,
+                    rateMax: 0.95,
+                    sampleList: this.sampleCatalog.wind,
+                    fallback: () => this.playSample(this.sampleCatalog.wind, { volume: this.isMobileDevice ? 0.01 : 0.014, rateMin: 0.6, rateMax: 0.9, category: 'weather', maxDuration: 0.4 })
+                });
+            }
+        }, 1100);
     }
 
     startWeatherLoop(options = {}) {

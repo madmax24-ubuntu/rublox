@@ -321,6 +321,8 @@ class Game {
         this.renderer.polygonOffsetFactor = 12;
         this.renderer.polygonOffsetUnits = 6;
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        this.renderer.toneMappingExposure = 1.15;
         this.renderer.frustumCulled = true; // Enable frustum culling globally
         this.renderer.autoClear = true; // Auto-clear buffers (default, but explicit)
 
@@ -374,14 +376,12 @@ class Game {
         this.lastEventType = null;
         this.eventTimeline = [
             { at: 90, type: 'supplyDrop', duration: 12 },
-            { at: 120, type: 'runnerHunt', duration: 18 },
-            { at: 210, type: 'night', duration: 40 },
-            { at: 275, type: 'blindness', duration: 4 },
-            { at: 320, type: 'radiationRain', duration: GAME_CONFIG.events.radiation.durationSeconds },
-            { at: 360, type: 'heavySiege', duration: 24 },
-            { at: 390, type: 'supplyDrop', duration: 12 },
-            { at: 490, type: 'storm', duration: GAME_CONFIG.events.storm.durationSeconds },
-            { at: 545, type: 'zombieRush', duration: GAME_CONFIG.events.zombieRush.durationSeconds }
+            { at: 170, type: 'runnerHunt', duration: 18 },
+            { at: 255, type: 'night', duration: 45 },
+            { at: 345, type: 'blindness', duration: 4 },
+            { at: 425, type: 'radiationRain', duration: GAME_CONFIG.events.radiation.durationSeconds },
+            { at: 510, type: 'heavySiege', duration: 24 },
+            { at: 575, type: 'zombieRush', duration: GAME_CONFIG.events.zombieRush.durationSeconds }
         ];
         this.eventTimelineIndex = 0;
         this.radiationRainGraceTimer = 0;
@@ -400,7 +400,7 @@ class Game {
         this.waveActive = false;
         this.waveRemaining = 0;
         this.platformGateCycleOpen = false;
-        this.platformGateCycleTimer = 75;
+        this.platformGateCycleTimer = 100;
 
         this.env = new Environment(this.scene);
         this.env.enableWeather = true;
@@ -463,6 +463,9 @@ class Game {
         this.spawnBurstCooldown = 0;
         this.zombieSpawnCandidates = [];
         this.zombieSpawnCursor = 0;
+        this.zombieSpawnCandidatesByBiome = [[], [], [], []];
+        this.zombieSpawnBiomeCursors = [0, 0, 0, 0];
+        this.zombieSpawnBiomeCursor = 0;
         this.poiSpawnCandidates = [];
         this.poiSpawnCursor = 0;
         this.spawnPlayerAndBots();
@@ -1003,9 +1006,15 @@ class Game {
         }
         this.hud?.setStormActive?.(!!active, active ? 'radiation' : 'storm');
         if (active) {
+            this.audioSynth?.stopWeatherLoop?.();
             this.audioSynth?.startRadiationRain?.();
         } else {
             this.audioSynth?.stopRadiationRain?.();
+            if (this.audioSynth && this.env) {
+                const weather = this.env.getWeatherType?.() || 'clear';
+                this.audioSynth.currentWeatherState = '';
+                this.audioSynth.setWeatherState?.(weather);
+            }
         }
     }
 
@@ -1203,7 +1212,7 @@ class Game {
         if (this.platformGateCycleTimer > 0) return;
         if (this.platformGateCycleOpen) {
             this.platformGateCycleOpen = false;
-            this.platformGateCycleTimer = 75;
+            this.platformGateCycleTimer = 110;
             this.triggerPlatformUnavailable(false);
             this.hud.showGameMessage('Ворота центральной платформы закрыты');
             return;
@@ -1417,6 +1426,13 @@ class Game {
             && this.map?.isWalkableAt?.(x, z) !== false;
     }
 
+    getZombieBiomeIndex(x, z) {
+        if (x < 0 && z < 0) return 0;
+        if (x >= 0 && z < 0) return 1;
+        if (x < 0) return 2;
+        return 3;
+    }
+
     rebuildSpawnCaches() {
         const floorTiles = (this.map.getNavigationTiles?.() || this.map.getFloorTiles?.() || []).filter(tile => this.isBiomeZombieSpawnPoint(tile.x, tile.z));
         const houseSpots = (this.map.getHouseSpots?.() || []).filter(spot => this.isBiomeZombieSpawnPoint(spot.x, spot.z));
@@ -1446,6 +1462,12 @@ class Game {
             scored.sort((a, b) => b.score - a.score);
             this.zombieSpawnCandidates = scored.map((s) => s.tile);
             this.zombieSpawnCursor = Math.floor(Math.random() * Math.max(1, this.zombieSpawnCandidates.length));
+            this.zombieSpawnCandidatesByBiome = [[], [], [], []];
+            for (const candidate of this.zombieSpawnCandidates) {
+                this.zombieSpawnCandidatesByBiome[this.getZombieBiomeIndex(candidate.x, candidate.z)].push(candidate);
+            }
+            this.zombieSpawnBiomeCursors = this.zombieSpawnCandidatesByBiome.map(pool => Math.floor(Math.random() * Math.max(1, pool.length)));
+            this.zombieSpawnBiomeCursor = Math.floor(Math.random() * 4);
         }
 
         this.poiSpawnCandidates = [
@@ -1714,7 +1736,7 @@ class Game {
                 this.triggerPlatformUnavailable();
                 this.gameState = 'playing';
                 this.platformGateCycleOpen = false;
-                this.platformGateCycleTimer = 75;
+                this.platformGateCycleTimer = 100;
                 this.roundStartTime = performance.now() * 0.001;
                 this.eventTimelineIndex = 0;
                 this.activeEvent = { type: null, timer: 0, prevFog: null };
@@ -2198,6 +2220,9 @@ class Game {
         }
 
         this.env.update(delta);
+        const targetExposure = Number.isFinite(this.scene?.userData?.targetExposure) ? this.scene.userData.targetExposure : 1;
+        const currentExposure = Number.isFinite(this.renderer.toneMappingExposure) ? this.renderer.toneMappingExposure : 1;
+        this.renderer.toneMappingExposure = THREE.MathUtils.lerp(currentExposure, targetExposure, Math.min(1, delta * 1.2));
         this.weatherSyncTimer = Math.max(0, this.weatherSyncTimer - delta);
         if (this.weatherSyncTimer <= 0) {
             const changedWeather = this.env?.consumeWeatherChange?.();
@@ -2449,8 +2474,20 @@ class Game {
         let attempts = 0;
         const attemptLimit = Math.max(48, floorTiles.length * 2);
         while (spawned < count && attempts < attemptLimit) {
-            const tile = floorTiles[this.zombieSpawnCursor % floorTiles.length];
-            this.zombieSpawnCursor = (this.zombieSpawnCursor + 1) % floorTiles.length;
+            const biomePools = this.zombieSpawnCandidatesByBiome;
+            const balanced = biomePools?.length === 4 && biomePools.every(pool => pool.length > 0);
+            let tile;
+            if (balanced) {
+                const biomeIndex = this.zombieSpawnBiomeCursor % 4;
+                const pool = biomePools[biomeIndex];
+                const cursor = this.zombieSpawnBiomeCursors[biomeIndex] % pool.length;
+                tile = pool[cursor];
+                this.zombieSpawnBiomeCursors[biomeIndex] = (cursor + 1) % pool.length;
+                this.zombieSpawnBiomeCursor = (biomeIndex + 1) % 4;
+            } else {
+                tile = floorTiles[this.zombieSpawnCursor % floorTiles.length];
+                this.zombieSpawnCursor = (this.zombieSpawnCursor + 1) % floorTiles.length;
+            }
             attempts++;
             if (spawned >= count) break;
             if (!this.isBiomeZombieSpawnPoint(tile.x, tile.z)) continue;

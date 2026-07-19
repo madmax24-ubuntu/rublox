@@ -891,7 +891,7 @@ export class Bot {
             if (source === 'zone' && this.audioSynthRef.playZoneDamage) {
                 this.audioSynthRef.playZoneDamage();
             } else if (this.audioSynthRef.playHurt) {
-                this.audioSynthRef.playHurt();
+                this.audioSynthRef.playHurt(this.position, `id:${this.id}`);
             }
         }
         if (attacker && this.isAlive) {

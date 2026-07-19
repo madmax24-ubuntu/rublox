@@ -6,7 +6,7 @@ export class Environment {
         this.sunLight = null;
         this.dayTime = 0.3;
         this.weatherType = 'clear';
-        this.weatherTimer = 18 + Math.random() * 18;
+        this.weatherTimer = 90 + Math.random() * 45;
         this.enableWeather = false;
         this.targetFog = 0.0028;
         this.currentWeather = 'clear';
@@ -16,7 +16,7 @@ export class Environment {
         this.overrideFogColor = null;
         this.ambient = null;
         this.hemi = null;
-        this.nightAmbientColor = new THREE.Color(0x294b78);
+        this.nightAmbientColor = new THREE.Color(0x4d6f9f);
         this.targetExposure = 1;
         this.renderedSkyColor = new THREE.Color(0x8899aa);
 
@@ -73,7 +73,7 @@ export class Environment {
             this.forceNightTimer = Math.max(0, this.forceNightTimer - delta);
             this.dayTime = 0.92;
         } else {
-            this.dayTime += delta * 0.0072;
+            this.dayTime += delta * 0.0025;
             if (this.dayTime > 1) this.dayTime = 0;
         }
 
@@ -114,14 +114,14 @@ export class Environment {
                 if (prev !== this.weatherType) {
                     this.weatherChanged = true;
                 }
-                this.weatherTimer = 20 + Math.random() * 25;
+                this.weatherTimer = 90 + Math.random() * 60;
             }
 
             if (this.weatherType === 'rain') {
                 this.targetFog = 0.0048;
                 intensity *= 0.65;
                 skyColor.lerp(new THREE.Color(0x7a8a9a), 0.35);
-                this.targetExposure = 0.4;
+                this.targetExposure = 0.82;
             } else if (this.weatherType === 'snow') {
                 this.targetFog = 0.0059;
                 intensity *= 0.78;
@@ -157,9 +157,9 @@ export class Environment {
             this.sunLight.position.set(-220, 280, -160);
             this.sunLight.color.lerp(new THREE.Color(0x8fb9ff), Math.min(1, delta * 2.5));
             skyColor.copy(this.nightAmbientColor);
-            intensity = 0.32;
+            intensity = 0.55;
             this.targetFog = Math.max(this.targetFog, 0.0038);
-            this.targetExposure = 1.05;
+            this.targetExposure = 1.28;
         } else {
             this.sunLight.color.lerp(new THREE.Color(0xffd166), Math.min(1, delta * 1.8));
         }
@@ -181,13 +181,13 @@ export class Environment {
         this.sunLight.intensity = THREE.MathUtils.lerp(this.sunLight.intensity, intensity, delta * 1.8);
         this.sunLight.visible = intensity > 0.03;
         if (this.ambient) {
-            const target = nightActive ? 0.65 : 0.25 + intensity * 0.7;
+            const target = nightActive ? 0.95 : 0.25 + intensity * 0.7;
             this.ambient.intensity = THREE.MathUtils.lerp(this.ambient.intensity, target, delta * 0.8);
             if (nightActive) this.ambient.color.lerp(this.nightAmbientColor, delta * 2.4);
             else this.ambient.color.lerp(new THREE.Color(0xffffff), delta * 1.8);
         }
         if (this.hemi) {
-            const target = nightActive ? 0.55 : 0.2 + intensity * 0.75;
+            const target = nightActive ? 0.8 : 0.2 + intensity * 0.75;
             this.hemi.intensity = THREE.MathUtils.lerp(this.hemi.intensity, target, delta * 0.8);
             if (nightActive) {
                 this.hemi.color.lerp(this.nightAmbientColor, delta * 2.6);

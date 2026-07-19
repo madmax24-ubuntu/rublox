@@ -412,7 +412,7 @@ export class Zombie {
                 target.takeDamage(damage, false, this, 3.2);
                 this.attackCooldown = cfg.attackCooldown;
                 if (audioSynth) {
-                    audioSynth.playZombieAttack?.(this.position, { variant: this.variant });
+                    audioSynth.playZombieAttack?.(this.position, { variant: this.variant, emitterKey: this.id });
                 }
             } else {
                 const rush = (dist < 8 ? 1.32 : dist < 18 ? 1.18 : 1.04) * Math.min(1.55, 0.88 + aggression * 0.17);
@@ -431,7 +431,7 @@ export class Zombie {
 
             if (audioSynth && this.soundTimer <= 0) {
                 const moanInterval = cfg.moanInterval;
-                audioSynth.playZombieMoan?.(this.position, { variant: this.variant });
+                audioSynth.playZombieMoan?.(this.position, { variant: this.variant, emitterKey: this.id });
                 this.soundTimer = moanInterval[0] + Math.random() * (moanInterval[1] - moanInterval[0]);
             }
         } else {
@@ -453,7 +453,7 @@ export class Zombie {
 
                 if (audioSynth && this.soundTimer <= 0) {
                     const moanInterval = cfg.moanInterval;
-                    audioSynth.playZombieMoan?.(this.position, { variant: this.variant });
+                    audioSynth.playZombieMoan?.(this.position, { variant: this.variant, emitterKey: this.id });
                     this.soundTimer = moanInterval[0] + Math.random() * (moanInterval[1] - moanInterval[0]);
                 }
             }
