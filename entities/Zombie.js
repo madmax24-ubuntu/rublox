@@ -1,4 +1,25 @@
 import * as THREE from 'three';
+import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
+
+let zombieLodGeometry = null;
+const getZombieLodGeometry = () => {
+    if (zombieLodGeometry) return zombieLodGeometry;
+    const parts = [
+        [0.9, 1.1, 0.62, 0, 0.9, 0],
+        [0.68, 0.68, 0.68, 0, 1.72, 0],
+        [0.22, 0.8, 0.22, -0.54, 0.98, 0.08],
+        [0.22, 0.8, 0.22, 0.54, 0.98, 0.08],
+        [0.24, 0.72, 0.24, -0.21, 0.3, 0],
+        [0.24, 0.72, 0.24, 0.21, 0.3, 0]
+    ].map(([w, h, d, x, y, z]) => {
+        const geometry = new THREE.BoxGeometry(w, h, d);
+        geometry.translate(x, y, z);
+        return geometry;
+    });
+    zombieLodGeometry = BufferGeometryUtils.mergeGeometries(parts);
+    for (const part of parts) part.dispose();
+    return zombieLodGeometry;
+};
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
@@ -506,6 +527,12 @@ export class Zombie {
                 rightLeg: group.children[7]
             };
         }
+        group.userData.detailChildren = [...group.children];
+        const lodProxy = new THREE.Mesh(getZombieLodGeometry(), bodyMat);
+        lodProxy.visible = false;
+        lodProxy.userData.isLodProxy = true;
+        group.add(lodProxy);
+        group.userData.lodProxy = lodProxy;
         return group;
     }
 
@@ -630,7 +657,25 @@ export class Zombie {
         this.mesh.position.copy(this.position);
         this.mesh.position.y = this.position.y - this.physics.height;
         this.mesh.rotation.y = this.rotation.y;
-        this.animateLimbs(delta);
+        if (this.updateRenderLod(delta)) this.animateLimbs(delta);
+    }
+
+    updateRenderLod(delta) {
+        this._lodTimer = (this._lodTimer ?? ((this.id % 10) * 0.03)) - delta;
+        if (this._lodTimer > 0) return this._lodDetailed !== false;
+        this._lodTimer = 0.3;
+        const camera = this.scene?.userData?.camera;
+        if (!camera) return true;
+        const dx = camera.position.x - this.position.x;
+        const dz = camera.position.z - this.position.z;
+        const isMobile = !!this.scene?.userData?.mobileMode;
+        const threshold = isMobile ? 13 : 18;
+        const detailed = dx * dx + dz * dz <= threshold * threshold;
+        if (this._lodDetailed === detailed) return detailed;
+        this._lodDetailed = detailed;
+        for (const child of this.mesh.userData.detailChildren || []) child.visible = detailed;
+        if (this.mesh.userData.lodProxy) this.mesh.userData.lodProxy.visible = !detailed;
+        return detailed;
     }
 
     findNearestTarget(entityManager, maxDistance) {

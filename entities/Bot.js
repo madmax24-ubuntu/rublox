@@ -1,7 +1,28 @@
 import * as THREE from 'three';
+import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 import { Inventory } from '../items/Inventory.js';
 import { Weapon } from '../items/Weapon.js';
 import { spawnDamagePopup } from './DamagePopup.js';
+
+let botLodGeometry = null;
+const getBotLodGeometry = () => {
+    if (botLodGeometry) return botLodGeometry;
+    const parts = [
+        [0.9, 1.0, 0.5, 0, 1.05, 0],
+        [0.65, 0.65, 0.65, 0, 1.9, 0],
+        [0.25, 0.9, 0.25, -0.58, 1.05, 0],
+        [0.25, 0.9, 0.25, 0.58, 1.05, 0],
+        [0.3, 0.8, 0.3, -0.22, 0.4, 0],
+        [0.3, 0.8, 0.3, 0.22, 0.4, 0]
+    ].map(([w, h, d, x, y, z]) => {
+        const geometry = new THREE.BoxGeometry(w, h, d);
+        geometry.translate(x, y, z);
+        return geometry;
+    });
+    botLodGeometry = BufferGeometryUtils.mergeGeometries(parts);
+    for (const part of parts) part.dispose();
+    return botLodGeometry;
+};
 
 export class Bot {
     constructor(scene, id, spawnPosition) {
@@ -200,7 +221,7 @@ export class Bot {
         const items = this.inventory.getItems?.() || [];
         for (const item of items) {
             if (item?.mesh) {
-                const isActive = item === this.currentWeapon && this.isAlive;
+                const isActive = item === this.currentWeapon && this.isAlive && this._lodDetailed !== false;
                 item.setVisible(isActive);
                 if (!isActive && item.mesh.parent && item.mesh.parent !== this.scene) {
                     item.mesh.parent.remove(item.mesh);
@@ -479,6 +500,13 @@ export class Bot {
             group.add(helmet);
         }
 
+        group.userData.detailChildren = [...group.children];
+        const lodProxy = new THREE.Mesh(getBotLodGeometry(), shirtMat);
+        lodProxy.visible = false;
+        lodProxy.userData.isLodProxy = true;
+        lodProxy.userData.tintable = true;
+        group.add(lodProxy);
+        group.userData.lodProxy = lodProxy;
         group.userData.isEntity = true;
         group.userData.isBot = true;
         group.userData.botId = this.id;
@@ -1025,10 +1053,30 @@ export class Bot {
         this.mesh.position.copy(this.position);
         this.mesh.position.y = this.position.y - this.physics.height;
         this.mesh.rotation.y = this.rotation.y;
-        this.animateLimbs();
+        const detailed = this.updateRenderLod(delta);
+        if (detailed) this.animateLimbs();
         if (this.healthBar) this.updateHealthBar(delta);
 
-        this.updateWeaponTransform();
+        if (detailed) this.updateWeaponTransform();
+    }
+
+    updateRenderLod(delta) {
+        this._lodTimer = (this._lodTimer ?? ((this.id % 10) * 0.03)) - delta;
+        if (this._lodTimer > 0) return this._lodDetailed !== false;
+        this._lodTimer = 0.3;
+        const camera = this._cachedCamera || (this._cachedCamera = this.scene?.userData?.camera);
+        if (!camera) return true;
+        const dx = camera.position.x - this.position.x;
+        const dz = camera.position.z - this.position.z;
+        const isMobile = !!this.scene?.userData?.mobileMode;
+        const threshold = isMobile ? 14 : 20;
+        const detailed = dx * dx + dz * dz <= threshold * threshold;
+        if (this._lodDetailed === detailed) return detailed;
+        this._lodDetailed = detailed;
+        for (const child of this.mesh.userData.detailChildren || []) child.visible = detailed;
+        if (this.mesh.userData.lodProxy) this.mesh.userData.lodProxy.visible = !detailed;
+        if (this.currentWeapon?.mesh) this.currentWeapon.mesh.visible = detailed && this.isAlive;
+        return detailed;
     }
 
     setInvulnerable(value) {
@@ -1071,11 +1119,11 @@ export class Bot {
         const invLen = 1 / Math.sqrt(lenSq);
         const direction = this._tmpDirection.set(toTargetX * invLen, 0, toTargetZ * invLen);
 
-        if (this._hasEscapeDir && this.escapeTimer > 0 && !this.isDirectionBlocked(this.escapeDir, 2.2)) {
+        if (this._hasEscapeDir && this.escapeTimer > 0) {
             direction.copy(this.escapeDir);
         }
 
-        if (this.steeringCooldown <= 0 || this.isDirectionBlocked(this.cachedMoveDir, 2.2)) {
+        if (this.steeringCooldown <= 0) {
             this.computeAvoidance(direction, this._tmpAvoid);
             if (this._tmpAvoid.lengthSq() > 0.0001) {
                 direction.addScaledVector(this._tmpAvoid, 1.2).normalize();
@@ -1090,20 +1138,18 @@ export class Bot {
                 0,
                 Math.PI / 8, -Math.PI / 8,
                 Math.PI / 4, -Math.PI / 4,
-                Math.PI * 3 / 8, -Math.PI * 3 / 8,
                 Math.PI / 2, -Math.PI / 2,
-                Math.PI * 3 / 4, -Math.PI * 3 / 4,
                 Math.PI
             ];
             let bestScore = Infinity;
             let found = false;
             this._tmpProbe2.copy(direction);
+            const steeringColliders = this.physicsRef?.getNearbyColliders?.(this.position, 7) || [];
             for (const angle of angles) {
                 this._tmpProbe3.copy(direction).applyAxisAngle(this._tmpUp, angle);
-                if (this.isDirectionBlocked(this._tmpProbe3, 5.5)) continue;
-                const px = this.position.x + this._tmpProbe3.x * 5;
-                const pz = this.position.z + this._tmpProbe3.z * 5;
-                if (this.mapRef?.isWalkableAt && !this.mapRef.isWalkableAt(px, pz)) continue;
+                if (this.isDirectionBlocked(this._tmpProbe3, 4.5, steeringColliders)) continue;
+                const px = this.position.x + this._tmpProbe3.x * 4;
+                const pz = this.position.z + this._tmpProbe3.z * 4;
                 const dx = target.x - px;
                 const dz = target.z - pz;
                 const score = dx * dx + dz * dz + Math.abs(angle) * 8;
@@ -1123,13 +1169,6 @@ export class Bot {
             this.steeringCooldown = 0.28 + Math.random() * 0.18;
         }
         direction.copy(this.cachedMoveDir);
-
-        if (this.isDirectionBlocked(direction, 1.25)) {
-            this.physics.velocity.x *= 0.35;
-            this.physics.velocity.z *= 0.35;
-            this.steeringCooldown = 0;
-            return;
-        }
 
         const finalSpeed = speed * this.slowFactor;
         // Movement inertia — blend toward new direction instead of snapping
@@ -1282,14 +1321,16 @@ export class Bot {
         }
     }
 
-    isDirectionBlocked(dir, distance = 3.5) {
+    isDirectionBlocked(dir, distance = 3.5, colliders = null) {
         if (!this.physicsRef?.getNearbyColliders) return false;
         const bottom = this.position.y - this.physics.height + 0.2;
         const maxDistance = Math.max(0.8, Number(distance) || 3.5);
+        const endX = this.position.x + dir.x * maxDistance;
+        const endZ = this.position.z + dir.z * maxDistance;
+        if (this.mapRef?.isWalkableAt && !this.mapRef.isWalkableAt(endX, endZ)) return true;
+        const nearby = colliders || this.physicsRef.getNearbyColliders(this.position, maxDistance + 1.5);
         for (let probeDistance = Math.min(1.1, maxDistance); probeDistance <= maxDistance + 0.01; probeDistance += 1.1) {
             this._tmpProbe.copy(this.position).addScaledVector(dir, probeDistance);
-            if (this.mapRef?.isWalkableAt && !this.mapRef.isWalkableAt(this._tmpProbe.x, this._tmpProbe.z)) return true;
-            const nearby = this.physicsRef.getNearbyColliders(this._tmpProbe, 1.2);
             for (const box of nearby) {
                 if (box.enabled === false || box.walkable) continue;
                 if (this._tmpProbe.x < box.min.x - 0.45 || this._tmpProbe.x > box.max.x + 0.45) continue;

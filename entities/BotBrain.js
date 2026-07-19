@@ -1054,28 +1054,14 @@ export class BotBrain {
             if (newLen > 0.001) dir.multiplyScalar(1 / newLen);
         }
         
-        const sin = Math.sin(Math.PI / 6);
-        const cos = Math.cos(Math.PI / 6);
-        this._tmpMoveLeft.set(dir.x * cos - dir.z * sin, 0, dir.x * sin + dir.z * cos);
-        this._tmpMoveRight.set(dir.x * cos + dir.z * sin, 0, -dir.x * sin + dir.z * cos);
-        const fBlocked = !!bot.isDirectionBlocked?.(dir);
-        const lBlocked = !!bot.isDirectionBlocked?.(this._tmpMoveLeft);
-        const rBlocked = !!bot.isDirectionBlocked?.(this._tmpMoveRight);
         let move = dir;
-        if (fBlocked) {
+        if (bot.isStuck) {
             const waypoint = this.pickLocalNavigationStep(bot, target);
             if (waypoint) {
+                bot.isStuck = false;
                 bot.moveTowards(waypoint, effectiveSpeed);
                 return;
             }
-            if (!lBlocked && !rBlocked) move = (bot.id % 2 === 0) ? this._tmpMoveLeft : this._tmpMoveRight;
-            else if (!lBlocked) move = this._tmpMoveLeft;
-            else if (!rBlocked) move = this._tmpMoveRight;
-            else { this._tmpMoveTarget.copy(dir).multiplyScalar(-1); move = this._tmpMoveTarget; }
-        }
-        if (bot.computeAvoidance) {
-            const avoid = bot.computeAvoidance(move);
-            if (avoid?.lengthSq?.() > 1e-4) move = this._tmpMoveTarget.copy(move).addScaledVector(avoid, 0.75).normalize();
         }
         
         // Cautious movement: if in HIDE or low gear, move slower and more carefully
@@ -1101,7 +1087,7 @@ export class BotBrain {
         const currentDist = Math.hypot(target.x - bot.position.x, target.z - bot.position.z);
         let best = null;
         let bestScore = currentDist + 8;
-        for (let i = 0; i < Math.min(192, tiles.length); i++) {
+        for (let i = 0; i < Math.min(48, tiles.length); i++) {
             const tile = tiles[(start + i * 29) % tiles.length];
             if (!this.isInAssignedBiome(bot, tile)) continue;
             const localDist = Math.hypot(tile.x - bot.position.x, tile.z - bot.position.z);

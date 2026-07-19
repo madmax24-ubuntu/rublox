@@ -12,17 +12,23 @@ export class GameLoop {
         // Fixed timestep for deterministic game logic (60 Hz)
         this._fixedDt = 1 / 60;
         this._accumulator = 0;
+        this._boundAnimate = () => this.animate();
+        this._frameHandle = 0;
     }
 
     start() {
+        if (this.isRunning) return;
         this.isRunning = true;
         this.clock.start();
         this.resetDelta();
-        this.animate();
+        this.game.renderer?.setAnimationLoop?.(null);
+        this._frameHandle = requestAnimationFrame(this._boundAnimate);
     }
 
     stop() {
         this.isRunning = false;
+        if (this._frameHandle) cancelAnimationFrame(this._frameHandle);
+        this._frameHandle = 0;
     }
 
     resetDelta() {
@@ -41,48 +47,25 @@ export class GameLoop {
         const isHeadless = typeof navigator !== 'undefined' && navigator.userAgent?.includes('Headless');
         if (typeof document !== 'undefined' && document.hidden && !window.__kilo_test__ && !isHeadless) {
             this.resetDelta();
-            requestAnimationFrame(() => this.animate());
+            this._frameHandle = requestAnimationFrame(this._boundAnimate);
             return;
         }
 
         const delta = this.clock.getDelta();
-        // Use real delta for accumulator (time must flow correctly).
-        // Clamp ONLY when passing to update() to prevent physics explosions.
-        const safeDelta = Number.isFinite(delta) ? delta : this._fixedDt;
-        this._accumulator += safeDelta;
-
-        // Fixed timestep: process game logic at fixed 60 Hz intervals
-        while (this._accumulator >= this._fixedDt) {
-            if (this.game.update) {
-                this.game.update(this._fixedDt);
-            }
-            this._accumulator -= this._fixedDt;
-        }
-
-        // Prevent accumulator from growing indefinitely (if FPS very low)
-        if (this._accumulator > this._fixedDt * 2) {
-            this._accumulator = 0;
-        }
-
-        // FPS tracking: accumulate frames, sample every second (use real delta)
+        const safeDelta = Math.min(0.05, Math.max(0.001, Number.isFinite(delta) ? delta : this._fixedDt));
+        if (this.game.update) this.game.update(safeDelta);
         this._fpsFrameCount++;
-        this._fpsAccumulator += delta;
-        if (this._fpsAccumulator >= 1.0) {
-            this.fpsSamples.push(this._fpsFrameCount);
+        this._fpsAccumulator += Number.isFinite(delta) ? delta : safeDelta;
+        if (this._fpsAccumulator >= 0.5) {
+            const fps = Math.round(this._fpsFrameCount / this._fpsAccumulator);
+            this.fpsSamples.push(fps);
+            this.game.hud?.updateFpsDisplay?.(fps);
             this._fpsFrameCount = 0;
-            this._fpsAccumulator -= 1.0;
+            this._fpsAccumulator = 0;
         }
 
-        // Render every frame (independent of fixed timestep)
-        if (this.game.render) {
-            this.game.render();
-        }
+        if (this.game.render) this.game.render();
 
-        // Use renderer.setAnimationLoop for better performance with Three.js
-        if (this.game.renderer) {
-            this.game.renderer.setAnimationLoop(() => this.animate());
-        } else {
-            requestAnimationFrame(() => this.animate());
-        }
+        this._frameHandle = requestAnimationFrame(this._boundAnimate);
     }
 }

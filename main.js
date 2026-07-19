@@ -1510,16 +1510,6 @@ class Game {
     }
 
     update(delta) {
-        // FPS tracking — update display every 0.5s
-        this._fpsFrameCount = (this._fpsFrameCount || 0) + 1;
-        this._fpsAccumulator = (this._fpsAccumulator || 0) + delta;
-        if (this._fpsAccumulator >= 0.5) {
-            const fps = Math.round(this._fpsFrameCount / this._fpsAccumulator);
-            this.hud.updateFpsDisplay?.(fps);
-            this._fpsFrameCount = 0;
-            this._fpsAccumulator = 0;
-        }
-
         this.enforceNoBugPolicy(delta);
         if (this.isStarted && loadingOverlay && loadingOverlay.style.display !== 'none') {
             loadingOverlay.style.display = 'none';

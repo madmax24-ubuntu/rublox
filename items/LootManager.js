@@ -29,12 +29,17 @@ export class LootManager {
         this.isMobile = typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
         this.chestCellSize = 24;
         this.chestIndex = new Map();
+        this.chestObstacleCellSize = 12;
+        this.chestObstacleIndex = new Map();
+        this.visibilityUpdateAt = 0;
         this.activeGlowChests = new Set();
         this.chestMaterials = this.createChestMaterials();
         this.chestReady = false;
         this.claimTTL = 2.4;
         this.lootCount = 0; // counter for test validation
+        this.buildChestObstacleIndex();
         this.generateChestsAsync().then(() => {
+            this.validateChestPlacements();
             this.rebuildChestIndex();
             this.chestReady = true;
             console.log(`[LootManager] Generated ${this.chests.length} chests`);
@@ -42,6 +47,67 @@ export class LootManager {
             console.error(`[LootManager] generateChestsAsync error:`, e);
             this.chestReady = true;
         });
+    }
+
+    buildChestObstacleIndex() {
+        this.chestObstacleIndex.clear();
+        this.scene.updateMatrixWorld(true);
+        const box = new THREE.Box3();
+        const size = new THREE.Vector3();
+        const instanceMatrix = new THREE.Matrix4();
+        const worldMatrix = new THREE.Matrix4();
+        const addBounds = source => {
+            source.getSize(size);
+            if (![source.min.x, source.min.y, source.min.z, source.max.x, source.max.y, source.max.z].every(Number.isFinite)) return;
+            if (size.x < 0.05 || size.y < 0.05 || size.z < 0.05) return;
+            const stored = source.clone().expandByScalar(0.12);
+            const minCellX = Math.floor(stored.min.x / this.chestObstacleCellSize);
+            const maxCellX = Math.floor(stored.max.x / this.chestObstacleCellSize);
+            const minCellZ = Math.floor(stored.min.z / this.chestObstacleCellSize);
+            const maxCellZ = Math.floor(stored.max.z / this.chestObstacleCellSize);
+            for (let cx = minCellX; cx <= maxCellX; cx++) {
+                for (let cz = minCellZ; cz <= maxCellZ; cz++) {
+                    const key = `${cx}:${cz}`;
+                    let cell = this.chestObstacleIndex.get(key);
+                    if (!cell) this.chestObstacleIndex.set(key, cell = []);
+                    cell.push(stored);
+                }
+            }
+        };
+        this.scene.traverse(object => {
+            if (!object.isMesh || !object.userData?.isWall) return;
+            if (object.isInstancedMesh) {
+                object.geometry.computeBoundingBox();
+                const localBox = object.geometry.boundingBox;
+                for (let i = 0; i < object.count; i++) {
+                    object.getMatrixAt(i, instanceMatrix);
+                    worldMatrix.multiplyMatrices(object.matrixWorld, instanceMatrix);
+                    box.copy(localBox).applyMatrix4(worldMatrix);
+                    addBounds(box);
+                }
+                return;
+            }
+            box.setFromObject(object);
+            addBounds(box);
+        });
+    }
+
+    validateChestPlacements() {
+        const valid = [];
+        for (const chest of this.chests) {
+            if (this.isChestPlacementClear(chest.position.x, chest.position.y, chest.position.z)) {
+                valid.push(chest);
+                continue;
+            }
+            const placement = this.resolveChestPlacement(chest.position.x, chest.position.z);
+            if (placement) {
+                chest.position.set(placement.x, placement.y, placement.z);
+                valid.push(chest);
+            } else {
+                this.scene.remove(chest);
+            }
+        }
+        this.chests = valid;
     }
 
     getChestPlacementY(x, z) {
@@ -71,8 +137,22 @@ export class LootManager {
         const maxZ = z + 0.57;
         const minY = y + 0.04;
         const maxY = y + 1.04;
+        const chestBounds = new THREE.Box3(
+            new THREE.Vector3(minX, minY, minZ),
+            new THREE.Vector3(maxX, maxY, maxZ)
+        );
+        const minCellX = Math.floor(minX / this.chestObstacleCellSize);
+        const maxCellX = Math.floor(maxX / this.chestObstacleCellSize);
+        const minCellZ = Math.floor(minZ / this.chestObstacleCellSize);
+        const maxCellZ = Math.floor(maxZ / this.chestObstacleCellSize);
+        for (let cx = minCellX; cx <= maxCellX; cx++) {
+            for (let cz = minCellZ; cz <= maxCellZ; cz++) {
+                const cell = this.chestObstacleIndex.get(`${cx}:${cz}`);
+                if (cell?.some(box => box.intersectsBox(chestBounds))) return false;
+            }
+        }
         for (const box of colliders) {
-            if (!box || box.enabled === false || box.walkable || !box.min || !box.max) continue;
+            if (!box || box.walkable || !box.min || !box.max) continue;
             if (maxX <= box.min.x || minX >= box.max.x || maxZ <= box.min.z || minZ >= box.max.z) continue;
             if (maxY <= box.min.y || minY >= box.max.y) continue;
             return false;
@@ -625,6 +705,17 @@ export class LootManager {
     }
 
     checkNearbyChests(position, audioSynth) {
+        const now = performance.now();
+        if (now >= this.visibilityUpdateAt) {
+            const range = this.isMobile ? 40 : 60;
+            const rangeSq = range * range;
+            for (const chest of this.chests) {
+                const dx = chest.position.x - position.x;
+                const dz = chest.position.z - position.z;
+                chest.visible = dx * dx + dz * dz <= rangeSq;
+            }
+            this.visibilityUpdateAt = now + 350;
+        }
         const checkDistance = 15;
         const nearby = this.getNearbyChests(position, checkDistance, true);
         const nextActive = new Set();

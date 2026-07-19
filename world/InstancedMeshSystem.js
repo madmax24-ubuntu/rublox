@@ -33,7 +33,8 @@ export class InstancedMeshSystem {
             const matKey = this.pool.matKey(mesh.material);
             if (!matKey) { skipped++; continue; }
 
-            const groupKey = `${geoKey}__${matKey}`;
+            const semanticKey = mesh.userData?.isWall ? 'wall' : (mesh.userData?.walkable ? 'walkable' : 'visual');
+            const groupKey = `${geoKey}__${matKey}__${semanticKey}`;
             if (!this._grouped.has(groupKey)) {
                 this._grouped.set(groupKey, { geoKey, matKey, entries: [] });
             }
@@ -63,6 +64,7 @@ export class InstancedMeshSystem {
             instanced.userData.instanced = true;
             instanced.frustumCulled = false;
             if (entries[0].userData?.walkable) instanced.userData.walkable = true;
+            if (entries[0].userData?.isWall) instanced.userData.isWall = true;
 
             const positions = new Float32Array(entries.length * 3);
 
@@ -205,7 +207,7 @@ export class InstancedMeshSystem {
             obj.userData.isSnowParticles || obj.userData.isPOI || obj.userData.isSpawnPlatform ||
             obj.userData.isFirstPersonArm || obj.userData.isViewWeapon ||
             obj.userData.isTerrain || obj.userData.biomeGate || obj.userData.biomeBoundary ||
-            obj.userData.isWall) { skipReasons.aniInt++; return; }
+            obj.userData.dynamic) { skipReasons.aniInt++; return; }
         const geoKey = this.pool.geoKey(obj.geometry);
         if (!geoKey) { skipReasons.noGeoKey++; return; }
         const matKey = this.pool.matKey(obj.material);
