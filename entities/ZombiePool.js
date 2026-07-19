@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { Zombie } from './Zombie.js';
 
 export class ZombiePool {

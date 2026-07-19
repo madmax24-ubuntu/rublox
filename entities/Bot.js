@@ -94,6 +94,7 @@ export class Bot {
         this._tmpScale = new THREE.Vector3(1, 1, 1);
         this._animTime = 0;
         this._tintedChildren = new Set();
+        this._damageFlashUntil = 0;
         this._weaponRecoilTimer = 0;
 
         this.variants = [
@@ -518,6 +519,7 @@ export class Bot {
 
     update(delta, brain, entityManager, lootManager, audioSynth, physics, zone) {
         this._deferredDelta = (this._deferredDelta || 0) + delta;
+        this.updateDamageFlash();
         if (![this.position.x, this.position.y, this.position.z].every(Number.isFinite)) {
             this.position.copy(this._safePosition);
             this.physics.velocity.set(0, 0, 0);
@@ -842,6 +844,9 @@ export class Bot {
                 this._lastAttackedBy = now;
                 this._retaliationTarget = attacker;
                 this._retaliateUntil = now + 8000;
+                this.noCombatUntil = 0;
+                this.target = attacker;
+                this.state = 'engage';
                 this._fsmCtx = null;
                 this.enemyEncounters.push({ pos: attacker.position.clone(), time: performance.now(), damage: finalDamage });
                 if (this.enemyEncounters.length > 15) this.enemyEncounters.shift();
@@ -1370,6 +1375,7 @@ export class Bot {
         const now = performance.now();
         if (now - this.lastFlashTime < 90) return;
         this.lastFlashTime = now;
+        this._damageFlashUntil = now + 120;
         this.mesh.traverse(child => {
             if (child.userData?.ignoreDamageTint) return;
             if (!child.material || !child.material.emissive) return;
@@ -1377,13 +1383,14 @@ export class Bot {
             child.material.emissive.setHex(0xff2d2d);
             child.material.emissiveIntensity = 0.7;
         });
-        const tinted = this._tintedChildren;
-        setTimeout(() => {
-            for (const child of tinted) {
-                if (child?.material?.emissive) child.material.emissiveIntensity = 0;
-            }
-            tinted.clear();
-        }, 120);
+    }
+
+    updateDamageFlash() {
+        if (!this._damageFlashUntil || performance.now() < this._damageFlashUntil) return;
+        this._damageFlashUntil = 0;
+        for (const child of this._tintedChildren) {
+            if (child?.material?.emissive) child.material.emissiveIntensity = 0;
+        }
     }
 
     lerpAngle(a, b, t) {
@@ -1393,4 +1400,3 @@ export class Bot {
         return a + diff * t;
     }
 }
-

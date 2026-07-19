@@ -4203,7 +4203,7 @@ export class MapGenerator {
         for (let i = 0; i < 8; i++) {
             const x = 5 + this._rand() * (HALF - 25);
             const z = 5 + this._rand() * (HALF - 25);
-            if (x < 5 || z < 5 || Math.sqrt(x * x + z * z) < MIN_BUILDING_DISTANCE) continue;
+            if (x < 5 || z < 5 || Math.sqrt(x * x + z * z) < 80) continue;
             this._addIceChunk(x, z);
         }
     }

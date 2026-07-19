@@ -17,7 +17,7 @@ export class Physics {
         // Wall sliding
         this.slideDamping = 0.85;
         this.maxCompression = 1.5;
-        this.boundaryMargin = Math.max(180, (mapGenerator?.halfSize || 256) - 4);
+        this.boundaryMargin = Math.max(180, (mapGenerator?.halfSize || 256) - 0.75);
         this.boundaryForce = 12;
 
         // Reusable vectors

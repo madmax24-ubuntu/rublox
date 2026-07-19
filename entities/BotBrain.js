@@ -60,8 +60,8 @@ export class BotBrain {
         this.hearingRange = 34;
         this.shotHearingRange = 76;
         this.losMemorySeconds = 1.4;
-        this.reactionMin = 0.5;
-        this.reactionMax = 1.0;
+        this.reactionMin = 0.2;
+        this.reactionMax = 0.5;
     }
 
     update(bot, delta, entityManager, lootManager, audioSynth) {
@@ -127,7 +127,22 @@ export class BotBrain {
             }
         }
 
-        if (bot.assignedBiomeEntry && now < (bot.assignedBiomeUntil || 0) && Math.hypot(bot.position.x, bot.position.z) < 72 && !bot.forceShelterActive && !ctx.outsideZone) {
+        const retaliating = bot._retaliationTarget?.isAlive && now < (bot._retaliateUntil || 0);
+        if (
+            retaliating
+            && bot.position.distanceTo(bot._retaliationTarget.position) <= 65
+            && !bot.forceShelterActive
+            && !ctx.outsideZone
+        ) {
+            ctx.nearestEnemy = bot._retaliationTarget;
+            ctx.nearestEnemyDist = bot.position.distanceTo(bot._retaliationTarget.position);
+            ctx.inPreLootPhase = false;
+            ctx.earlyGamePhase = false;
+            bot.state = STATES.ENGAGE;
+            this.actEngage(bot, ctx, entityManager);
+            return;
+        }
+        if (!retaliating && bot.assignedBiomeEntry && now < (bot.assignedBiomeUntil || 0) && Math.hypot(bot.position.x, bot.position.z) < 72 && !bot.forceShelterActive && !ctx.outsideZone) {
             bot.state = STATES.EXPLORE;
             this.steerMove(bot, bot.assignedBiomeEntry, bot.physics.speed * 1.25);
             return;
@@ -1076,6 +1091,10 @@ export class BotBrain {
 
     pickCombatTarget(bot, ctx, entityManager) {
         const agg = bot.personality?.aggression ?? 0.5;
+        const retaliationTarget = bot._retaliationTarget;
+        if (retaliationTarget?.isAlive && performance.now() < (bot._retaliateUntil || 0)) {
+            return retaliationTarget;
+        }
         const preferZombie = ctx.nearestZombie && ctx.nearestZombieDist < 11;
         if (preferZombie) return ctx.nearestZombie;
         const t = ctx.nearestEnemy;

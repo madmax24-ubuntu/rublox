@@ -219,7 +219,7 @@ export class Player {
         rightHand.position.set(0.34, -0.66, -0.98);
         group.add(rightHand);
 
-        group.userData.limbs = { leftArm, rightArm, leftHand, rightHand };
+        group.userData.limbs = { leftArm, rightArm, leftCuff, rightCuff, leftHand, rightHand };
         group.userData.base = {
             leftArm: leftArm.position.clone(),
             rightArm: rightArm.position.clone(),
@@ -804,9 +804,11 @@ export class Player {
         const weaponType = this.currentWeapon?.type || 'fists';
         if (weaponType !== this._lastArmWeaponType) {
             this._lastArmWeaponType = weaponType;
-            const showArms = true;
+            const showArms = weaponType === 'fists';
             limbs.leftArm.visible = showArms;
             limbs.rightArm.visible = showArms;
+            limbs.leftCuff.visible = showArms;
+            limbs.rightCuff.visible = showArms;
             limbs.leftHand.visible = showArms;
             limbs.rightHand.visible = showArms;
         }

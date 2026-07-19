@@ -155,9 +155,9 @@ export class MapGeneratorNode {
         // Water in lower basin
         const waterMat = new THREE.MeshStandardMaterial({
             color: 0x4488FF, emissive: 0x2244AA, emissiveIntensity: 0.3,
-            roughness: 0.1, transparent: true, opacity: 0.7, flatShading: true
+            roughness: 0.1, transparent: true, opacity: 0.48, depthWrite: false
         });
-        const waterGeo = new THREE.CylinderGeometry(5.8, 5.8, 0.3, 12);
+        const waterGeo = new THREE.CylinderGeometry(5.8, 5.8, 0.12, 48);
         const water = new THREE.Mesh(waterGeo, waterMat.clone());
         water.position.y = 1.2;
         water.userData.isWater = true;
@@ -176,7 +176,7 @@ export class MapGeneratorNode {
         fountain.add(upperBasin);
 
         // Water in upper basin
-        const upperWaterGeo = new THREE.CylinderGeometry(2.8, 2.8, 0.2, 8);
+        const upperWaterGeo = new THREE.CylinderGeometry(2.8, 2.8, 0.1, 32);
         const upperWater = new THREE.Mesh(upperWaterGeo, waterMat.clone());
         upperWater.position.y = 5.6;
         upperWater.userData.isWater = true;

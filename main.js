@@ -375,13 +375,11 @@ class Game {
         this.eventTimeline = [
             { at: 90, type: 'supplyDrop', duration: 12 },
             { at: 120, type: 'runnerHunt', duration: 18 },
-            { at: 150, type: 'platformOpen', duration: 22 },
             { at: 210, type: 'night', duration: 40 },
             { at: 275, type: 'blindness', duration: 4 },
             { at: 320, type: 'radiationRain', duration: GAME_CONFIG.events.radiation.durationSeconds },
             { at: 360, type: 'heavySiege', duration: 24 },
             { at: 390, type: 'supplyDrop', duration: 12 },
-            { at: 450, type: 'platformOpen', duration: 18 },
             { at: 490, type: 'storm', duration: GAME_CONFIG.events.storm.durationSeconds },
             { at: 545, type: 'zombieRush', duration: GAME_CONFIG.events.zombieRush.durationSeconds }
         ];
@@ -401,6 +399,8 @@ class Game {
         this.waveTimer = GAME_CONFIG.events.waveIntervalSeconds;
         this.waveActive = false;
         this.waveRemaining = 0;
+        this.platformGateCycleOpen = false;
+        this.platformGateCycleTimer = 75;
 
         this.env = new Environment(this.scene);
         this.env.enableWeather = true;
@@ -1054,7 +1054,7 @@ class Game {
         }
 
         const mapSize = this.map?.size || 512;
-        const maxAbs = mapSize * 0.78;
+        const maxAbs = Math.max(1, (this.map?.halfSize || mapSize * 0.5) - 0.75);
         const sanitize = (entity) => {
             if (!entity?.position) return;
             const p = entity.position;
@@ -1198,6 +1198,22 @@ class Game {
         }
     }
 
+    updatePlatformGateCycle(delta) {
+        this.platformGateCycleTimer = Math.max(0, this.platformGateCycleTimer - delta);
+        if (this.platformGateCycleTimer > 0) return;
+        if (this.platformGateCycleOpen) {
+            this.platformGateCycleOpen = false;
+            this.platformGateCycleTimer = 75;
+            this.triggerPlatformUnavailable(false);
+            this.hud.showGameMessage('Ворота центральной платформы закрыты');
+            return;
+        }
+        this.platformGateCycleOpen = true;
+        this.platformGateCycleTimer = 20;
+        this.setCenterPlatformOpen(true);
+        this.hud.showGameMessage('Ворота центральной платформы открыты на 20 секунд!');
+    }
+
     updateCenterDetonation(delta) {
         if (!this.centerBlast.active) return;
         this.centerBlast.timer = Math.max(0, this.centerBlast.timer - delta);
@@ -1293,9 +1309,6 @@ class Game {
                     this.env?.setStormActive?.(false, 0);
                     this.hud?.setStormActive?.(false, 'storm');
                 }
-                if (this.activeEvent.type === 'platformOpen') {
-                    this.triggerPlatformUnavailable();
-                }
                 this.lastEventType = this.activeEvent.type;
                 this.activeEvent = { type: null, timer: 0, prevFog: null };
                 this.hud.showGameMessage("Событие завершено");
@@ -1360,11 +1373,6 @@ class Game {
             this.activeEvent.timer = scheduled.duration;
             this.queueZombieBurst(false, 2.6, 180, this.isMobile() ? 8 : 14, this.isMobile() ? 2 : 3, 'heavy');
             this.hud.showGameMessage('Событие: Осада тяжёлых заражённых! Используйте укрытия и бочки!');
-        } else if (event === 'platformOpen') {
-            this.activeEvent.type = 'platformOpen';
-            this.activeEvent.timer = scheduled.duration;
-            this.setCenterPlatformOpen(true);
-            this.hud.showGameMessage(`Центральная платформа открыта на ${scheduled.duration}с! Можно сменить биом.`);
         }
     }
 
@@ -1399,10 +1407,20 @@ class Game {
         });
     }
 
+    isBiomeZombieSpawnPoint(x, z) {
+        if (!Number.isFinite(x) || !Number.isFinite(z)) return false;
+        const minRadius = Math.max(70, (this.map?.spawnCourtyardRadius || 54) + 16);
+        const maxCoordinate = (this.map?.halfSize || 256) - 2;
+        return Math.hypot(x, z) >= minRadius
+            && Math.abs(x) <= maxCoordinate
+            && Math.abs(z) <= maxCoordinate
+            && this.map?.isWalkableAt?.(x, z) !== false;
+    }
+
     rebuildSpawnCaches() {
-        const floorTiles = this.map.getFloorTiles?.() || [];
-        const houseSpots = this.map.getHouseSpots?.() || [];
-        const hangarSpots = this.map.getHangarSpots?.() || [];
+        const floorTiles = (this.map.getNavigationTiles?.() || this.map.getFloorTiles?.() || []).filter(tile => this.isBiomeZombieSpawnPoint(tile.x, tile.z));
+        const houseSpots = (this.map.getHouseSpots?.() || []).filter(spot => this.isBiomeZombieSpawnPoint(spot.x, spot.z));
+        const hangarSpots = (this.map.getHangarSpots?.() || []).filter(spot => this.isBiomeZombieSpawnPoint(spot.x, spot.z));
 
         if (!floorTiles.length) {
             this.zombieSpawnCandidates = [];
@@ -1438,6 +1456,7 @@ class Game {
     }
 
     processDeferredSpawns(delta) {
+        if (this.gameState !== 'playing') return;
         this.spawnBurstCooldown = Math.max(0, this.spawnBurstCooldown - delta);
         if (this.spawnBurstCooldown > 0) return;
         const start = performance.now();
@@ -1694,11 +1713,15 @@ class Game {
             if (this.spawnTimer <= 0) {
                 this.triggerPlatformUnavailable();
                 this.gameState = 'playing';
+                this.platformGateCycleOpen = false;
+                this.platformGateCycleTimer = 75;
                 this.roundStartTime = performance.now() * 0.001;
                 this.eventTimelineIndex = 0;
                 this.activeEvent = { type: null, timer: 0, prevFog: null };
                 this.initialZombieWaveQueued = false;
-                this.queueZombieBurst(true, 1.1, 110, this.isMobile() ? 18 : 28, this.isMobile() ? 2 : 3);
+                const initialZombieCount = this.isMobile() ? 6 : 8;
+                this.spawnZombies(true, 1.1, 110, initialZombieCount);
+                this.queueZombieBurst(false, 1.1, 110, (this.isMobile() ? 18 : 28) - initialZombieCount, this.isMobile() ? 2 : 3);
                 this.queuePoiBurst(0.9, this.isMobile() ? 12 : 18, this.isMobile() ? 2 : 3);
                 this.randomEventTimer = GAME_CONFIG.events.randomTimerMin + Math.random() * GAME_CONFIG.events.randomTimerVariance;
                 this.startZoneCycle();
@@ -1729,6 +1752,7 @@ class Game {
         }
 
         if (this.gameState === 'playing') {
+            this.updatePlatformGateCycle(delta);
             if (!this.poiZombieSeeded && this.poiWarmupTimer > 0) {
                 this.poiWarmupTimer = Math.max(0, this.poiWarmupTimer - delta);
                 if (this.poiWarmupTimer <= 0) {
@@ -2244,10 +2268,11 @@ class Game {
     }
 
     spawnPoiZombieGuards(intensity = 1, maxSpawn = Infinity) {
+        if (this.gameState !== 'playing') return 0;
         const points = this.poiSpawnCandidates?.length ? this.poiSpawnCandidates : [
             ...(this.map.getHouseSpots?.() || []).map(s => ({ ...s, type: "house" })),
             ...(this.map.getHangarSpots?.() || []).map(s => ({ ...s, type: "hangar" }))
-        ];
+        ].filter(point => this.isBiomeZombieSpawnPoint(point.x, point.z));
         if (!points.length) return 0;
         const houseSpots = points.filter(p => p.type === 'house');
         const hangarSpots = points.filter(p => p.type === 'hangar');
@@ -2276,6 +2301,7 @@ class Game {
                 : (point.type === "hangar" ? 2.0 : 1.05);
             const x = fallbackSpot.x + (Math.random() - 0.5) * jitter;
             const z = fallbackSpot.z + (Math.random() - 0.5) * jitter;
+            if (!this.isBiomeZombieSpawnPoint(x, z)) return false;
             if (!interiorSpot && !this.map.isWalkableAt?.(x, z)) return false;
             const baseY = this.map.raycastGroundY?.(
                 x,
@@ -2332,10 +2358,11 @@ class Game {
     }
 
     ensurePoiZombiePresence(limitPerTick = 6) {
+        if (this.gameState !== 'playing') return 0;
         const points = this.poiSpawnCandidates?.length ? this.poiSpawnCandidates : [
             ...(this.map.getHouseSpots?.() || []).map(s => ({ ...s, type: 'house' })),
             ...(this.map.getHangarSpots?.() || []).map(s => ({ ...s, type: 'hangar' }))
-        ];
+        ].filter(point => this.isBiomeZombieSpawnPoint(point.x, point.z));
         if (!points.length) return 0;
         const checks = Math.min(points.length, Math.max(1, limitPerTick | 0));
         let injected = 0;
@@ -2362,6 +2389,7 @@ class Game {
                 const jitter = interiorSpot ? (point.type === 'hangar' ? 1.25 : 0.85) : (point.type === 'hangar' ? 2.25 : 1.15);
                 const x = guardSpot.x + (Math.random() - 0.5) * jitter;
                 const z = guardSpot.z + (Math.random() - 0.5) * jitter;
+                if (!this.isBiomeZombieSpawnPoint(x, z)) continue;
                 if (!interiorSpot && !this.map.isWalkableAt?.(x, z)) continue;
                 const y = this.map.getHeightAt?.(x, z) ?? 0;
                 const pos = new THREE.Vector3(x, y + 1.8, z);
@@ -2394,6 +2422,7 @@ class Game {
     }
 
     spawnZombies(reset = true, multiplier = 1, capOverride = null, forceCount = null, forcedVariant = null) {
+        if (this.gameState !== 'playing') return 0;
         if (reset) {
             for (const zombie of this.zombies) {
                 this.zombiePool.release(zombie, true);
@@ -2424,6 +2453,7 @@ class Game {
             this.zombieSpawnCursor = (this.zombieSpawnCursor + 1) % floorTiles.length;
             attempts++;
             if (spawned >= count) break;
+            if (!this.isBiomeZombieSpawnPoint(tile.x, tile.z)) continue;
             const baseY = this.map.raycastGroundY?.(
                 tile.x,
                 tile.z,
