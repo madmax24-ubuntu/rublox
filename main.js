@@ -777,12 +777,12 @@ class Game {
             const raw = localStorage.getItem('mazearena_settings');
             const saved = raw ? JSON.parse(raw) : {};
             return {
-                musicVolume: Math.max(0, Math.min(0.4, Number(saved.musicVolume ?? 0.14))),
+                musicVolume: Math.max(0, Math.min(0.4, Number(saved.musicVolume ?? 0.17))),
                 sfxVolume: Math.max(0, Math.min(1, Number(saved.sfxVolume ?? 0.48))),
                 lookSensitivity: Math.max(0.5, Math.min(2.4, Number(saved.lookSensitivity ?? 1)))
             };
         } catch (_) {
-            return { musicVolume: 0.14, sfxVolume: 0.48, lookSensitivity: 1 };
+            return { musicVolume: 0.17, sfxVolume: 0.48, lookSensitivity: 1 };
         }
     }
 
@@ -795,7 +795,7 @@ class Game {
 
     applyUserSettings(settings = {}) {
         const safe = {
-            musicVolume: Math.max(0, Math.min(0.4, Number(settings.musicVolume ?? 0.14))),
+            musicVolume: Math.max(0, Math.min(0.4, Number(settings.musicVolume ?? 0.17))),
             sfxVolume: Math.max(0, Math.min(1, Number(settings.sfxVolume ?? 0.48))),
             lookSensitivity: Math.max(0.5, Math.min(2.4, Number(settings.lookSensitivity ?? 1)))
         };
@@ -806,7 +806,7 @@ class Game {
     }
 
     resetUserSettings() {
-        const defaults = { musicVolume: 0.14, sfxVolume: 0.48, lookSensitivity: 1 };
+        const defaults = { musicVolume: 0.17, sfxVolume: 0.48, lookSensitivity: 1 };
         localStorage.setItem('mazearena_settings', JSON.stringify(defaults));
         this.applyUserSettings(defaults);
         this.hud?.showGameMessage?.('Настройки сброшены');
@@ -1740,10 +1740,10 @@ class Game {
                 this.eventTimelineIndex = 0;
                 this.activeEvent = { type: null, timer: 0, prevFog: null };
                 this.initialZombieWaveQueued = false;
-                const initialZombieCount = this.isMobile() ? 6 : 8;
+                const initialZombieCount = this.isMobile() ? 9 : 12;
                 this.spawnZombies(true, 1.1, 110, initialZombieCount);
-                this.queueZombieBurst(false, 1.1, 110, (this.isMobile() ? 18 : 28) - initialZombieCount, this.isMobile() ? 2 : 3);
-                this.queuePoiBurst(0.9, this.isMobile() ? 12 : 18, this.isMobile() ? 2 : 3);
+                this.queueZombieBurst(false, 1.1, 110, (this.isMobile() ? 24 : 36) - initialZombieCount, this.isMobile() ? 2 : 3);
+                this.queuePoiBurst(0.9, this.isMobile() ? 16 : 22, this.isMobile() ? 2 : 3);
                 this.randomEventTimer = GAME_CONFIG.events.randomTimerMin + Math.random() * GAME_CONFIG.events.randomTimerVariance;
                 this.startZoneCycle();
                 this.player.setInvulnerable(false);
@@ -1951,7 +1951,7 @@ class Game {
                 if (skip) {
                     if (bot.mesh) {
                         bot.mesh.position.copy(bot.position);
-                        bot.mesh.position.y = bot.position.y - bot.physics.height + 0.03;
+                        bot.mesh.position.y = bot.position.y - bot.physics.height;
                     }
                     continue;
                 }
@@ -1962,7 +1962,7 @@ class Game {
                 if ((this.botFrameCounter + botIndex) % 3 !== 0) {
                     if (bot.mesh) {
                         bot.mesh.position.copy(bot.position);
-                        bot.mesh.position.y = bot.position.y - bot.physics.height + 0.03;
+                        bot.mesh.position.y = bot.position.y - bot.physics.height;
                     }
                     continue;
                 }
@@ -1974,7 +1974,7 @@ class Game {
             } else {
                 // During countdown, just update mesh position
                 bot.mesh.position.copy(bot.position);
-                bot.mesh.position.y = bot.position.y - bot.physics.height + 0.03;
+                bot.mesh.position.y = bot.position.y - bot.physics.height;
                 if (bot.healthBar) bot.updateHealthBar(0.05);
             }
         }
@@ -2066,8 +2066,8 @@ class Game {
             if (this.zombieMaintainTimer <= 0) {
                 const aliveZombies = this.zombies.filter(z => z?.isAlive).length;
                 const growth = Math.floor(Math.min(5, elapsed / 120)) * 2;
-                const nightBonus = isNight ? (this.isMobile() ? 8 : 14) : 0;
-                const basePersistent = elapsed < gracePeriod ? (this.isMobile() ? 16 : 22) : (this.isMobile() ? 22 : 30);
+                const nightBonus = isNight ? (this.isMobile() ? 12 : 18) : 0;
+                const basePersistent = elapsed < gracePeriod ? (this.isMobile() ? 20 : 28) : (this.isMobile() ? 28 : 38);
                 const minAlive = basePersistent + growth + nightBonus;
                 if (aliveZombies < minAlive) {
                     const need = minAlive - aliveZombies;

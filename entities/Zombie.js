@@ -614,7 +614,7 @@ export class Zombie {
         }
 
         this.mesh.position.copy(this.position);
-        this.mesh.position.y = this.position.y - (this.physics.height - 0.2);
+        this.mesh.position.y = this.position.y - this.physics.height + 0.03;
         this.mesh.rotation.y = this.rotation.y;
         this.animateLimbs(delta);
     }

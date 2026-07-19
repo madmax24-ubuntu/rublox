@@ -2,14 +2,14 @@ import * as THREE from 'three';
 
 const WEAPON_BALANCE = {
     fists: { damage: 8, range: 2.4, cooldown: 0.38, ammo: null, durability: null, projectileSpeed: 0 },
-    knife: { damage: 22, range: 3.4, cooldown: 0.42, ammo: null, durability: 80, projectileSpeed: 0 },
-    bow: { damage: 20, range: 20, cooldown: 1.18, ammo: 48, durability: null, projectileSpeed: 46 },
-    laser: { damage: 23, range: 86, cooldown: 0.34, ammo: 30, durability: null, projectileSpeed: 62 },
-    shotgun: { damage: 13, range: 14, cooldown: 0.98, ammo: 36, durability: null, projectileSpeed: 48, pellets: 7 },
-    flamethrower: { damage: 7.5, range: 13.5, cooldown: 0.08, ammo: 260, durability: null, projectileSpeed: 16, flameCount: 4 },
-    pistol: { damage: 20, range: 62, cooldown: 0.36, ammo: 90, durability: null, projectileSpeed: 82 },
-    rifle: { damage: 27, range: 96, cooldown: 0.28, ammo: 120, durability: null, projectileSpeed: 98 },
-    machinegun: { damage: 16, range: 86, cooldown: 0.12, ammo: 180, durability: null, projectileSpeed: 94 }
+    knife: { damage: 24, range: 3.4, cooldown: 0.42, ammo: null, durability: 80, projectileSpeed: 0 },
+    bow: { damage: 28, range: 20, cooldown: 1.18, ammo: 48, durability: null, projectileSpeed: 46 },
+    laser: { damage: 24, range: 86, cooldown: 0.34, ammo: 30, durability: null, projectileSpeed: 62 },
+    shotgun: { damage: 18, range: 11.5, cooldown: 0.98, ammo: 36, durability: null, projectileSpeed: 48, pellets: 9 },
+    flamethrower: { damage: 6.8, range: 13.5, cooldown: 0.08, ammo: 260, durability: null, projectileSpeed: 16, flameCount: 4 },
+    pistol: { damage: 23, range: 62, cooldown: 0.36, ammo: 90, durability: null, projectileSpeed: 82 },
+    rifle: { damage: 29, range: 96, cooldown: 0.3, ammo: 120, durability: null, projectileSpeed: 98 },
+    machinegun: { damage: 14, range: 82, cooldown: 0.105, ammo: 180, durability: null, projectileSpeed: 94 }
 };
 
 const TYPE_ALIASES = {
@@ -134,12 +134,15 @@ function createGunModel(style) {
     const dark = getMaterial(`${style}_dark`, () => new THREE.MeshStandardMaterial({ color: 0x1d2128, roughness: 0.58, metalness: 0.22, flatShading: true }));
     const wood = getMaterial(`${style}_wood`, () => new THREE.MeshStandardMaterial({ color: 0x6b4a2f, roughness: 0.76, metalness: 0.05, flatShading: true }));
     const neon = getMaterial(`${style}_neon`, () => new THREE.MeshStandardMaterial({ color: 0x6ad3ff, emissive: 0x6ad3ff, emissiveIntensity: 0.35, roughness: 0.22, metalness: 0.36, flatShading: true }));
+    const accent = getMaterial(`${style}_accent`, () => new THREE.MeshStandardMaterial({ color: style === 'shotgun' ? 0xb94a35 : 0xb9c3cc, roughness: 0.3, metalness: 0.7, flatShading: true }));
 
     if (style === 'pistol') {
         group.add(createPart(getGeom('pistol_body', () => new THREE.BoxGeometry(0.48, 0.16, 0.14)), metal, 0.06, 0.06, 0));
         group.add(createPart(getGeom('pistol_slide', () => new THREE.BoxGeometry(0.36, 0.06, 0.16)), dark, 0.06, 0.18, 0));
         group.add(createPart(getGeom('pistol_grip', () => new THREE.BoxGeometry(0.14, 0.26, 0.12)), dark, -0.08, -0.14, 0));
         group.add(createPart(getGeom('pistol_barrel', () => new THREE.CylinderGeometry(0.035, 0.035, 0.22, 8)), metal, 0.36, 0.06, 0, 0, 0, Math.PI / 2));
+        group.add(createPart(getGeom('pistol_trigger', () => new THREE.TorusGeometry(0.06, 0.012, 4, 8, Math.PI)), accent, 0.02, -0.04, 0, Math.PI / 2, 0, 0));
+        group.add(createPart(getGeom('pistol_mag_base', () => new THREE.BoxGeometry(0.17, 0.04, 0.14)), accent, -0.08, -0.28, 0));
     } else if (style === 'rifle' || style === 'machinegun') {
         const length = style === 'machinegun' ? 1.4 : 1.16;
         group.add(createPart(getGeom(`${style}_body`, () => new THREE.BoxGeometry(length, 0.14, 0.14)), metal, 0.26, 0.06, 0));
@@ -147,8 +150,12 @@ function createGunModel(style) {
         group.add(createPart(getGeom(`${style}_stock`, () => new THREE.BoxGeometry(0.34, 0.2, 0.15)), wood, -0.34, 0.04, 0));
         group.add(createPart(getGeom(`${style}_mag`, () => new THREE.BoxGeometry(0.13, 0.24, 0.1)), dark, 0.12, -0.11, 0));
         group.add(createPart(getGeom(`${style}_grip`, () => new THREE.BoxGeometry(0.12, 0.2, 0.11)), dark, -0.04, -0.13, 0));
+        group.add(createPart(getGeom(`${style}_rail`, () => new THREE.BoxGeometry(0.48, 0.035, 0.1)), accent, 0.18, 0.16, 0));
+        group.add(createPart(getGeom(`${style}_muzzle`, () => new THREE.CylinderGeometry(0.055, 0.045, 0.16, 8)), accent, 1.2, 0.06, 0, 0, 0, Math.PI / 2));
         if (style === 'machinegun') {
             group.add(createPart(getGeom('machinegun_drum', () => new THREE.CylinderGeometry(0.11, 0.11, 0.08, 12)), dark, 0.04, -0.2, 0, Math.PI / 2, 0, 0));
+            group.add(createPart(getGeom('machinegun_bipod_l', () => new THREE.BoxGeometry(0.04, 0.3, 0.04)), accent, 0.72, -0.12, 0.12, 0, 0, -0.32));
+            group.add(createPart(getGeom('machinegun_bipod_r', () => new THREE.BoxGeometry(0.04, 0.3, 0.04)), accent, 0.72, -0.12, -0.12, 0, 0, -0.32));
         }
     } else if (style === 'shotgun') {
         group.add(createPart(getGeom('shotgun_body', () => new THREE.BoxGeometry(0.38, 0.16, 0.13)), dark, -0.08, 0.03, 0));
@@ -156,6 +163,7 @@ function createGunModel(style) {
         group.add(createPart(getGeom('shotgun_b2', () => new THREE.BoxGeometry(0.82, 0.08, 0.06)), metal, 0.34, 0.08, -0.05));
         group.add(createPart(getGeom('shotgun_stock', () => new THREE.BoxGeometry(0.42, 0.16, 0.16)), wood, -0.42, 0.02, 0));
         group.add(createPart(getGeom('shotgun_pump', () => new THREE.BoxGeometry(0.24, 0.11, 0.14)), wood, 0.22, -0.02, 0));
+        for (let i = 0; i < 4; i++) group.add(createPart(getGeom('shotgun_shell', () => new THREE.CylinderGeometry(0.025, 0.025, 0.12, 6)), accent, -0.32 + i * 0.08, 0.13, 0.1, Math.PI / 2));
     } else if (style === 'flamethrower') {
         group.add(createPart(getGeom('flame_body', () => new THREE.BoxGeometry(0.68, 0.2, 0.2)), metal, 0.08, 0.04, 0));
         group.add(createPart(getGeom('flame_nozzle', () => new THREE.CylinderGeometry(0.055, 0.055, 0.5, 8)), dark, 0.52, 0.06, 0, 0, 0, Math.PI / 2));
@@ -417,9 +425,9 @@ export class Weapon {
 
         if (this.type === 'shotgun') {
             const pellets = [];
-            const pelletCount = this.getProfile().pellets || 7;
+            const pelletCount = this.getProfile().pellets || 9;
             for (let i = 0; i < pelletCount; i++) {
-                const spread = new THREE.Vector3((Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.14, (Math.random() - 0.5) * 0.2);
+                const spread = new THREE.Vector3((Math.random() - 0.5) * 0.14, (Math.random() - 0.5) * 0.09, (Math.random() - 0.5) * 0.14);
                 const dir = direction.clone().add(spread).normalize();
                 const pellet = this.createProjectile(owner.position.clone(), dir, 'shotgun');
                 pellet.lifetime = Math.max(0.2, this.getProfile().range / Math.max(1, pellet.speed));

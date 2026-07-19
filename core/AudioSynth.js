@@ -40,7 +40,7 @@ export class AudioSynth {
         this.musicThemeIndex = 0;
         this.musicSource = null;
         this.rainNoiseBuffer = null;
-        this.musicVolume = this.isMobileDevice ? 0.2 : 0.11;
+        this.musicVolume = this.isMobileDevice ? 0.24 : 0.15;
         this.sfxVolume = this.isMobileDevice ? 0.58 : 0.48;
         this.sampleBuffers = new Map();
         this.sampleLoadStarted = false;
@@ -292,7 +292,7 @@ export class AudioSynth {
     }
 
     setMusicVolume(value = 0.14) {
-        this.musicVolume = clamp(value, 0, 0.5);
+        this.musicVolume = clamp(value * 1.18, 0, 0.5);
         if (this.musicGain) this.musicGain.gain.value = this.musicVolume;
     }
 
@@ -430,9 +430,13 @@ export class AudioSynth {
         if (voiceKey) {
             const previous = this.activeSampleVoices.get(voiceKey);
             if (previous) {
-                try { previous.source.stop(); } catch (_) {}
-                try { previous.source.disconnect(); } catch (_) {}
-                try { previous.gain.disconnect(); } catch (_) {}
+                const fadeAt = ctx.currentTime;
+                try {
+                    previous.gain.gain.cancelScheduledValues(fadeAt);
+                    previous.gain.gain.setValueAtTime(Math.max(0.0001, previous.gain.gain.value), fadeAt);
+                    previous.gain.gain.exponentialRampToValueAtTime(0.0001, fadeAt + 0.018);
+                    previous.source.stop(fadeAt + 0.02);
+                } catch (_) {}
             }
             this.activeSampleVoices.set(voiceKey, { source, gain: gainNode });
             source.addEventListener('ended', () => {
@@ -444,7 +448,11 @@ export class AudioSynth {
         if (!source.loop) {
             const availableDuration = Math.max(0.01, buffer.duration - offset);
             const maxDuration = options.maxDuration || availableDuration;
-            source.stop(now + clamp(maxDuration, 0.01, availableDuration));
+            const end = now + clamp(maxDuration, 0.01, availableDuration);
+            const fade = Math.min(0.04, Math.max(0.008, (end - now) * 0.18));
+            gainNode.gain.setValueAtTime(gainNode.gain.value, Math.max(now, end - fade));
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, end);
+            source.stop(end + 0.005);
         }
         return true;
     }
@@ -934,7 +942,7 @@ export class AudioSynth {
             rateMax: 1.03,
             reverbSend: 0.01,
             offset: 0.22,
-            maxDuration: 0.48,
+            maxDuration: 0.34,
             position,
             category: 'weapon',
             priority: this.getEmitterSfxPriority(emitterKey),
@@ -950,8 +958,8 @@ export class AudioSynth {
             rateMin: 0.95,
             rateMax: 1.02,
             reverbSend: 0.015,
-            offset: 0.38,
-            maxDuration: 0.54,
+            offset: 0.45,
+            maxDuration: 0.42,
             position,
             category: 'weapon',
             priority: this.getEmitterSfxPriority(emitterKey),
@@ -967,8 +975,8 @@ export class AudioSynth {
             rateMin: 1.02,
             rateMax: 1.15,
             reverbSend: 0.005,
-            offset: 0.28,
-            maxDuration: 0.22,
+            offset: 0.35,
+            maxDuration: 0.16,
             position,
             category: 'weapon',
             voiceKey: `weapon:machinegun:${emitterKey}`
@@ -977,8 +985,8 @@ export class AudioSynth {
             rateMin: 1.08,
             rateMax: 1.18,
             reverbSend: 0.005,
-            offset: 0.38,
-            maxDuration: 0.2,
+            offset: 0.45,
+            maxDuration: 0.16,
             position,
             category: 'weapon',
             priority: this.getEmitterSfxPriority(emitterKey),

@@ -55,9 +55,9 @@ export class BotBrain {
         this._tmpSideTarget = new THREE.Vector3();
         this._tmpCoverVec = new THREE.Vector3();
         this._tmpSpreadVec = new THREE.Vector3();
-        this.baseVisionRange = 68;
-        this.fov = 60 * (Math.PI / 180);
-        this.hearingRange = 34;
+        this.baseVisionRange = 78;
+        this.fov = 88 * (Math.PI / 180);
+        this.hearingRange = 40;
         this.shotHearingRange = 76;
         this.losMemorySeconds = 1.4;
         this.reactionMin = 0.2;
@@ -206,7 +206,7 @@ export class BotBrain {
         const zoneDistance = zone?.getDistanceFromZone ? zone.getDistanceFromZone(bot.position) : 0;
 
         // OPTIMIZED: Smaller radius for better performance
-        const queryRadius = earlyGamePhase ? 25 : Math.min(50, this.baseVisionRange * this.visionMultiplier * 0.6);
+        const queryRadius = earlyGamePhase ? 32 : Math.min(58, this.baseVisionRange * this.visionMultiplier * 0.72);
         const closeCombatRadius = 24;
 
         // OPTIMIZED: Cache nearby query — reuse if bot hasn't moved much (extended cache to 200ms)
@@ -239,7 +239,7 @@ export class BotBrain {
         const fovCos = Math.cos(this.fov / 2);
 
         // OPTIMIZED: Skip LOS checks every other collectContext call
-        const skipLos = (bot.id % 2 === 0) || earlyGamePhase;
+        const skipLos = ((Math.floor(now / 180) + bot.id) & 1) === 0;
         const skipLosEarlyGame = earlyGamePhase;
 
         const hearingRangeSq = this.hearingRange * this.hearingRange;
@@ -265,7 +265,7 @@ export class BotBrain {
                 } else if (!skipLos) {
                     hasLos = this.hasLoS(bot, ent, entityManager);
                 } else {
-                    hasLos = bot._cachedLosTarget === ent.id && !!bot._cachedLos;
+                    hasLos = (bot._cachedLosTarget === ent.id && !!bot._cachedLos) || d < 12;
                 }
                 const heard = dSq <= hearingRangeSq || (heardShot && dSq <= shotHearingSq);
                 if (hasLos || heard) {
@@ -319,9 +319,9 @@ export class BotBrain {
             const dSq = dx * dx + dz * dz;
             if (dSq < avoidRadiusSq && dSq > 0.01) {
                 const d = Math.sqrt(dSq);
-                const force = earlyGamePhase ? (4.5 / (dSq + 0.5)) : (1.8 / (dSq + 0.5));
-                avoidX += (dx / d) * force;
-                avoidZ += (dz / d) * force;
+                const force = earlyGamePhase ? (8.5 / (dSq + 0.35)) : (4.2 / (dSq + 0.35));
+                avoidX -= (dx / d) * force;
+                avoidZ -= (dz / d) * force;
                 avoidCount++;
                 if (avoidCount >= (earlyGamePhase ? 8 : 6)) break;
             }
@@ -793,7 +793,7 @@ export class BotBrain {
         if (loot) bot.pickupLoot(loot, chest.position);
         this.releaseLootReservation(bot);
         // Pause after looting — bot stands still for a bit instead of immediately rushing
-        bot._lootPauseUntil = performance.now() + 1500 + Math.random() * 1000;
+        bot._lootPauseUntil = performance.now() + 450 + Math.random() * 450;
         bot.patrolTarget = this.pickSpreadTarget(bot, 10, 36);
     }
 
@@ -823,7 +823,7 @@ export class BotBrain {
     }
 
     actEngage(bot, ctx, entityManager) {
-        const agg = Math.min(1, (bot.personality?.aggression ?? 0.5) + ctx.gear * 0.18);
+        const agg = Math.min(1, (bot.personality?.aggression ?? 0.5) + ctx.gear * 0.24);
         const cau = bot.personality?.caution ?? 0.5;
 
         // Early-game check: retreat if not being actively shot at
@@ -944,7 +944,7 @@ export class BotBrain {
                 bot.attack(target, entityManager);
                 bot.applyWeaponRecoil();
 
-                this.attackCooldown = Math.max(0.1, (weapon.cooldown || 0.2) * 1.2);
+                this.attackCooldown = Math.max(0.08, (weapon.cooldown || 0.2) * 1.02);
             }
             return;
         }
@@ -953,7 +953,7 @@ export class BotBrain {
         bot.patrolTarget = target.position;
         
         // Cautious approach: move slower when approaching a target from distance
-        const approachMult = dist > 20 ? 0.7 : 1.3;
+        const approachMult = dist > 20 ? 0.92 : 1.3;
         const cauMod = 1 - (cau - 0.5) * 0.3;
         const approachSpeed = bot.physics.speed * approachMult * cauMod;
         this.steerMove(bot, target.position, approachSpeed);

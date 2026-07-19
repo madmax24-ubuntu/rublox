@@ -177,8 +177,8 @@ export class Bot {
 
         // Personality traits — each bot is unique
         this.personality = {
-            aggression: 0.35 + Math.random() * 0.65,
-            caution: 0.15 + Math.random() * 0.85,
+            aggression: 0.5 + Math.random() * 0.48,
+            caution: 0.12 + Math.random() * 0.68,
             lootFocus: 0.15 + Math.random() * 0.85
         };
 
@@ -536,7 +536,7 @@ export class Bot {
         // OPTIMIZED: Skip expensive AI for near-idle bots every other frame
         if (this._aiSkipFrame) {
             this.mesh.position.copy(this.position);
-            this.mesh.position.y = this.position.y - (this.physics.height - 0.15);
+            this.mesh.position.y = this.position.y - this.physics.height;
             this.mesh.rotation.y = this.rotation.y;
             if (this._visuallyRelevant) {
                 this._animTime = performance.now() / 1000;
@@ -570,7 +570,7 @@ export class Bot {
             this.physics.velocity.x = 0;
             this.physics.velocity.z = 0;
             this.mesh.position.copy(this.position);
-            this.mesh.position.y = this.position.y - (this.physics.height - 0.15);
+            this.mesh.position.y = this.position.y - this.physics.height;
             this.mesh.rotation.y = this.rotation.y;
             this.updateWeaponTransform();
             return;
@@ -580,7 +580,7 @@ export class Bot {
             this.assistTimer = Math.max(0, this.assistTimer - delta);
             this.moveTowards(this.assistTarget.position, this.physics.speed * 1.35);
             this.mesh.position.copy(this.position);
-            this.mesh.position.y = this.position.y - (this.physics.height - 0.15);
+            this.mesh.position.y = this.position.y - this.physics.height;
             this.mesh.rotation.y = this.rotation.y;
             this.animateLimbs();
             this.updateHealthBar(delta);
@@ -607,7 +607,7 @@ export class Bot {
             this.patrolTarget.copy(center);
             this.moveTowards(center, this.physics.speed * 1.25);
             this.mesh.position.copy(this.position);
-            this.mesh.position.y = this.position.y - (this.physics.height - 0.15);
+            this.mesh.position.y = this.position.y - this.physics.height;
             this.mesh.rotation.y = this.rotation.y;
             this.animateLimbs();
             this.updateHealthBar(delta);
@@ -669,7 +669,7 @@ export class Bot {
         }
 
         this.mesh.position.copy(this.position);
-        this.mesh.position.y = this.position.y - (this.physics.height - 0.15);
+        this.mesh.position.y = this.position.y - this.physics.height;
         this.mesh.rotation.y = this.rotation.y;
         if (this._visuallyRelevant) {
             this.animateLimbs();
@@ -1021,7 +1021,7 @@ export class Bot {
         this.mesh.scale.setScalar(this.outfit.scale * crouchFactor);
 
         this.mesh.position.copy(this.position);
-        this.mesh.position.y = this.position.y - this.physics.height + 0.03;
+        this.mesh.position.y = this.position.y - this.physics.height;
         this.mesh.rotation.y = this.rotation.y;
         this.animateLimbs();
         if (this.healthBar) this.updateHealthBar(delta);

@@ -208,6 +208,7 @@ export class MapGenerator {
 
     _removeStripeArtifacts() {
         const remove = [];
+        const removedBounds = [];
         const bounds = new THREE.Box3();
         const size = new THREE.Vector3();
         this.scene.traverse((child) => {
@@ -216,11 +217,26 @@ export class MapGenerator {
             bounds.getSize(size);
             const shortSide = Math.min(size.x, size.z);
             const longSide = Math.max(size.x, size.z);
-            if (size.y <= 0.3 && shortSide <= 1.8 && longSide >= 8) remove.push(child);
+            if (size.y <= 0.3 && shortSide <= 1.8 && longSide >= 8) {
+                remove.push(child);
+                removedBounds.push(bounds.clone());
+            }
         });
         for (const mesh of remove) {
             mesh.parent?.remove(mesh);
         }
+        this._meshes = this._meshes.filter(mesh => !remove.includes(mesh) && mesh.parent);
+        this.colliders = this.colliders.filter((collider) => {
+            if (collider.enabled === false || collider.walkable || collider.gameplayBoundary || collider.isBiomeEntrance) return true;
+            const cx = (collider.min.x + collider.max.x) * 0.5;
+            const cy = (collider.min.y + collider.max.y) * 0.5;
+            const cz = (collider.min.z + collider.max.z) * 0.5;
+            return !removedBounds.some(box =>
+                cx >= box.min.x - 0.2 && cx <= box.max.x + 0.2 &&
+                cy >= box.min.y - 0.2 && cy <= box.max.y + 0.2 &&
+                cz >= box.min.z - 0.2 && cz <= box.max.z + 0.2
+            );
+        });
     }
 
     _pruneOutsidePlayableBounds() {
@@ -383,7 +399,7 @@ export class MapGenerator {
             this.scene.add(plane);
         }
 
-        this.addColliderBox(new THREE.Vector3(0, 0.01, 0), HALF * 2, 0.1, HALF * 2, true);
+        this.addColliderBox(new THREE.Vector3(0, -0.03, 0), HALF * 2, 0.1, HALF * 2, true);
 
         // Height map (flat = 0)
         this.heightMap = [];
