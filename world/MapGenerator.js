@@ -15,7 +15,7 @@ import { MeshPool } from "./MeshPool.js";
 //   5. Spawn pads only on walkable surfaces (platforms, bridges, clearings)
 // ============================================================================
 
-const MAP_SIZE = 512;
+const MAP_SIZE = 400;
 const TILE_SIZE = 4;
 const GRID_W = MAP_SIZE / TILE_SIZE;
 const GRID_H = MAP_SIZE / TILE_SIZE;
@@ -166,6 +166,8 @@ export class MapGenerator {
         // Phase 8: Cover objects
         this._placeCoverObjects();
         this._placeBiomeDecor();
+        this._pruneOutsidePlayableBounds();
+        this._ensureBiomeLootDensity(30);
 
         this._placeBiomeBoundaries();
         for (const child of [...this.scene.children]) {
@@ -218,6 +220,75 @@ export class MapGenerator {
         });
         for (const mesh of remove) {
             mesh.parent?.remove(mesh);
+        }
+    }
+
+    _pruneOutsidePlayableBounds() {
+        const limit = HALF - 2;
+        const removed = new Set();
+        for (const child of [...this.scene.children]) {
+            if (!child.userData?.mapGenerated || child.userData?.isCornucopia || child.userData?.isTerrain) continue;
+            if (Math.abs(child.position.x) <= limit && Math.abs(child.position.z) <= limit) continue;
+            removed.add(child);
+            this.scene.remove(child);
+        }
+        this._meshes = this._meshes.filter(mesh => !removed.has(mesh) && mesh.parent);
+        this.colliders = this.colliders.filter(collider => {
+            if (collider.isCornucopia || collider.isBiomeEntrance || collider.biomeBoundary) return true;
+            const x = (collider.min.x + collider.max.x) * 0.5;
+            const z = (collider.min.z + collider.max.z) * 0.5;
+            return Math.abs(x) <= limit && Math.abs(z) <= limit;
+        });
+        const inside = point => Math.abs(point.x) <= limit && Math.abs(point.z) <= limit;
+        this._buildings = this._buildings.filter(inside);
+        this._chestSpots = this._chestSpots.filter(inside);
+        this._interactivePOIs = this._interactivePOIs.filter(poi => inside(poi.position || poi));
+        this._traps = this._traps.filter(trap => inside(trap.position));
+    }
+
+    _ensureBiomeLootDensity(minimum) {
+        const limit = HALF - 6;
+        const definitions = [
+            { key: 'forest', sx: -1, sz: -1 },
+            { key: 'maze', sx: 1, sz: -1 },
+            { key: 'military', sx: -1, sz: 1 },
+            { key: 'ice', sx: 1, sz: 1 }
+        ];
+        const biomeOf = (x, z) => x < 0 ? (z < 0 ? 'forest' : 'military') : (z < 0 ? 'maze' : 'ice');
+        const blocked = (x, z) => this.colliders.some(collider =>
+            !collider.walkable &&
+            collider.enabled !== false &&
+            x >= collider.min.x - 0.7 &&
+            x <= collider.max.x + 0.7 &&
+            z >= collider.min.z - 0.7 &&
+            z <= collider.max.z + 0.7
+        );
+        for (const biome of definitions) {
+            let count = this._chestSpots.filter(spot => biomeOf(spot.x, spot.z) === biome.key).length;
+            for (const collider of this.colliders) {
+                if (count >= minimum) break;
+                if (collider.walkable || collider.enabled === false || collider.biomeBoundary || collider.isCornucopia) continue;
+                const cx = (collider.min.x + collider.max.x) * 0.5;
+                const cz = (collider.min.z + collider.max.z) * 0.5;
+                if (biomeOf(cx, cz) !== biome.key) continue;
+                const width = collider.max.x - collider.min.x;
+                const depth = collider.max.z - collider.min.z;
+                if (width > 32 || depth > 32) continue;
+                const candidates = [
+                    [collider.max.x + 1.8, cz],
+                    [collider.min.x - 1.8, cz],
+                    [cx, collider.max.z + 1.8],
+                    [cx, collider.min.z - 1.8]
+                ];
+                for (const [x, z] of candidates) {
+                    if (count >= minimum) break;
+                    if (Math.abs(x) > limit || Math.abs(z) > limit || Math.hypot(x, z) < 78) continue;
+                    if (Math.sign(x) !== biome.sx || Math.sign(z) !== biome.sz || blocked(x, z)) continue;
+                    if (this._chestSpots.some(spot => Math.hypot(spot.x - x, spot.z - z) < 5)) continue;
+                    this._registerChestSpot(x, z, biome.key);
+                    count++;
+                }
+            }
         }
     }
 
@@ -4187,27 +4258,27 @@ export class MapGenerator {
 
     _addBiomeSurvivalFeatures() {
         const forestTraps = [
-            [-214, -92], [-184, -118], [-146, -94], [-104, -122],
-            [-220, -154], [-178, -162], [-132, -154], [-86, -174],
-            [-208, -206], [-166, -214], [-122, -208], [-82, -222],
-            [-232, -126], [-156, -188], [-116, -84], [-196, -232]
+            [-188, -88], [-164, -108], [-136, -88], [-104, -112],
+            [-188, -136], [-160, -148], [-128, -140], [-88, -156],
+            [-184, -180], [-152, -188], [-116, -184], [-84, -190],
+            [-192, -116], [-144, -168], [-108, -82], [-176, -192]
         ];
         const militaryTraps = [
-            [-218, 92], [-174, 92], [-126, 96], [-82, 104],
-            [-226, 142], [-182, 148], [-134, 144], [-88, 154],
-            [-214, 198], [-168, 206], [-122, 198], [-78, 216],
-            [-198, 122], [-150, 178], [-102, 126], [-224, 230]
+            [-188, 88], [-164, 92], [-132, 94], [-88, 102],
+            [-190, 130], [-166, 140], [-128, 136], [-86, 148],
+            [-184, 174], [-154, 188], [-116, 180], [-82, 190],
+            [-176, 116], [-142, 164], [-102, 122], [-190, 188]
         ];
         const iceTraps = [
-            [88, 94], [132, 92], [178, 98], [222, 106],
-            [96, 146], [142, 152], [188, 146], [226, 164],
-            [88, 206], [136, 214], [180, 204], [222, 222],
-            [118, 122], [166, 182], [206, 126], [108, 230]
+            [86, 90], [122, 88], [156, 94], [188, 102],
+            [92, 132], [132, 142], [166, 136], [190, 152],
+            [84, 174], [124, 188], [158, 178], [188, 190],
+            [112, 116], [148, 166], [182, 122], [102, 190]
         ];
         for (const [x, z] of forestTraps) {
             this._addSurvivalTrap('snare', x, z);
         }
-        for (const [x, z] of [[96, -102], [152, -198], [214, -142], [112, -226]]) {
+        for (const [x, z] of [[96, -102], [142, -178], [184, -132], [110, -188]]) {
             this._addSurvivalTrap('spikes', x, z);
             this._registerChestSpot(x + 3.2, z + 2.4, 'maze');
         }
@@ -4434,7 +4505,7 @@ export class MapGenerator {
     _generatePerimeterWalls() {
         const wallH = 30;
         const wallT = 1.5;
-        const half = HALF;
+        const half = this.halfSize;
         const walls = [
             { x: 0, y: wallH / 2, z: -half, w: half * 2 + wallT * 2, h: wallH, d: wallT },
             { x: 0, y: wallH / 2, z: half,  w: half * 2 + wallT * 2, h: wallH, d: wallT },
@@ -4663,7 +4734,7 @@ export class MapGenerator {
     _buildNavigationTiles() {
         this._navigationTiles.length = 0;
         const step = 12;
-        const limit = HALF - 8;
+        const limit = this.halfSize - 8;
         for (let x = -limit; x <= limit; x += step) {
             for (let z = -limit; z <= limit; z += step) {
                 if (Math.hypot(x, z) < 38 || !this.isWalkableAt(x, z)) continue;
@@ -4760,8 +4831,8 @@ export class MapGenerator {
         const spots = [];
         for (let i = 0; i < 15; i++) {
             spots.push({
-                x: -HALF + 30 + this._rand() * (MAP_SIZE - 60),
-                z: -HALF + 30 + this._rand() * (MAP_SIZE - 60)
+                x: -this.halfSize + 30 + this._rand() * (this.size - 60),
+                z: -this.halfSize + 30 + this._rand() * (this.size - 60)
             });
         }
         return spots;
