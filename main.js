@@ -266,7 +266,7 @@ class Game {
         if (this.map?.instancedMeshSystem?.updateCulling && this.player?.position) {
             const distSq = this._lastCullPos.distanceToSquared(this.player.position);
             if (distSq > 25) {
-                const cullDist = this.isMobile() ? 200 : 300;
+                const cullDist = this.isMobile() ? 115 : 155;
                 this.map.instancedMeshSystem.updateCulling(this.player.position, cullDist);
                 this._lastCullPos.copy(this.player.position);
             }
@@ -659,6 +659,46 @@ class Game {
             this.entityManager.addEntity(bot);
             this.bots.push(bot);
         }
+        this.setupBotLodBatch();
+    }
+
+    setupBotLodBatch() {
+        this.botLodBatch?.parent?.remove(this.botLodBatch);
+        const source = this.bots[0]?.mesh?.userData?.lodProxy;
+        if (!source || !this.bots.length) return;
+        const material = source.material.clone();
+        material.color.setHex(0xffffff);
+        material.vertexColors = true;
+        const batch = new THREE.InstancedMesh(source.geometry, material, this.bots.length);
+        batch.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        batch.frustumCulled = false;
+        batch.count = 0;
+        batch.userData.entityLodBatch = true;
+        for (const bot of this.bots) {
+            bot.mesh.userData.useBatchedLod = true;
+            if (bot.mesh.userData.lodProxy) bot.mesh.userData.lodProxy.visible = false;
+        }
+        this.scene.add(batch);
+        this.botLodBatch = batch;
+        this._botLodColor = new THREE.Color();
+    }
+
+    updateBotLodBatch() {
+        const batch = this.botLodBatch;
+        if (!batch) return;
+        let count = 0;
+        for (const bot of this.bots) {
+            if (!bot.isAlive || bot._lodDetailed !== false) continue;
+            bot.mesh.updateMatrixWorld(true);
+            batch.setMatrixAt(count, bot.mesh.matrixWorld);
+            this._botLodColor.setHex(bot.color || 0x5588aa);
+            batch.setColorAt(count, this._botLodColor);
+            count++;
+        }
+        batch.count = count;
+        batch.visible = count > 0;
+        batch.instanceMatrix.needsUpdate = true;
+        if (batch.instanceColor) batch.instanceColor.needsUpdate = true;
     }
 
     /**
@@ -1842,6 +1882,10 @@ class Game {
             const movedSq = this.lastPropVisibilityPos.distanceToSquared(this.player.position);
             if (movedSq > 9 || this.propVisibilityTimer <= -0.7 || this.resumeGraceTimer > 0) {
                 this.map.updatePropVisibility?.(this.player.position);
+                this.map.instancedMeshSystem?.updateCulling?.(
+                    this.player.position,
+                    this.isMobile() ? 115 : 155
+                );
                 this.lastPropVisibilityPos.copy(this.player.position);
             }
             this.propVisibilityTimer = this.isMobile() ? 0.5 : 0.35;
@@ -1932,6 +1976,7 @@ class Game {
                 : distSq <= farBotCullDistSq;
             bot._visuallyRelevant = distSq <= midBotCullDistSq || isInFrustum;
             bot._aiSkipFrame = !bot._visuallyRelevant && !isCombat(bot) && ((this.botFrameCounter + botIndex) % 3 !== 0);
+            if (this.gameState === 'spawn' && ((this.botFrameCounter + botIndex) % 3 !== 0)) bot._aiSkipFrame = true;
 
             // FAR bots: update every 4 frames if idle, every 2 if combat
             if (distSq > farBotCullDistSq && !isInFrustum) {
@@ -2094,6 +2139,7 @@ class Game {
             if (!bot?.isAlive) continue;
             bot.syncVisualAfterPhysics?.(delta);
         }
+        this.updateBotLodBatch();
         if (this.gameState === 'playing') {
             this.trySupplyDrop(aliveCountBeforeHazards);
             this.updateRandomEvents(delta);

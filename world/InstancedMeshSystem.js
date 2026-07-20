@@ -28,12 +28,12 @@ export class InstancedMeshSystem {
 
         let skipped = 0;
         for (const mesh of candidates) {
-            const geoKey = this.pool.geoKey(mesh.geometry);
+            const geoKey = this.pool.geoKey(mesh.geometry) || `uuid:${mesh.geometry.uuid}`;
             if (!geoKey) { skipped++; continue; }
-            const matKey = this.pool.matKey(mesh.material);
+            const matKey = this.pool.matKey(mesh.material) || (Array.isArray(mesh.material) ? null : `uuid:${mesh.material.uuid}`);
             if (!matKey) { skipped++; continue; }
 
-            const semanticKey = mesh.userData?.isWall ? 'wall' : (mesh.userData?.walkable ? 'walkable' : 'visual');
+            const semanticKey = mesh.userData?.isCornucopia ? 'cornucopia' : mesh.userData?.isWall ? 'wall' : (mesh.userData?.walkable ? 'walkable' : 'visual');
             const groupKey = `${geoKey}__${matKey}__${semanticKey}`;
             if (!this._grouped.has(groupKey)) {
                 this._grouped.set(groupKey, { geoKey, matKey, entries: [] });
@@ -65,6 +65,7 @@ export class InstancedMeshSystem {
             instanced.frustumCulled = false;
             if (entries[0].userData?.walkable) instanced.userData.walkable = true;
             if (entries[0].userData?.isWall) instanced.userData.isWall = true;
+            if (entries[0].userData?.isCornucopia) instanced.userData.isCornucopia = true;
 
             const positions = new Float32Array(entries.length * 3);
 
@@ -174,6 +175,7 @@ export class InstancedMeshSystem {
                 if (!mesh.visible) mesh.visible = true;
                 mesh.count = target;
             }
+            mesh.instanceMatrix.needsUpdate = true;
         }
     }
 
@@ -208,9 +210,9 @@ export class InstancedMeshSystem {
             obj.userData.isFirstPersonArm || obj.userData.isViewWeapon ||
             obj.userData.isTerrain || obj.userData.biomeGate || obj.userData.biomeBoundary ||
             obj.userData.dynamic) { skipReasons.aniInt++; return; }
-        const geoKey = this.pool.geoKey(obj.geometry);
+        const geoKey = this.pool.geoKey(obj.geometry) || `uuid:${obj.geometry.uuid}`;
         if (!geoKey) { skipReasons.noGeoKey++; return; }
-        const matKey = this.pool.matKey(obj.material);
+        const matKey = this.pool.matKey(obj.material) || (Array.isArray(obj.material) ? null : `uuid:${obj.material.uuid}`);
         if (!matKey) { skipReasons.noMatKey++; return; }
         out.push(obj);
     }

@@ -210,10 +210,12 @@ export class Bot {
         this.enemyEncounters = [];
 
         this.mesh = this.createMesh();
+        this._lodDetailed = false;
         this.mesh.scale.setScalar(this.outfit.scale);
         // Pre-allocate bounding sphere for frustum culling
         this.mesh._frustumSphere = new THREE.Sphere(new THREE.Vector3(), 1.0);
         this.healthBar = this.createHealthBar();
+        this.healthBar.visible = false;
         this.mesh.add(this.healthBar);
         this.scene.add(this.mesh);
         this.updateColor();
@@ -504,7 +506,8 @@ export class Bot {
 
         group.userData.detailChildren = [...group.children];
         const lodProxy = new THREE.Mesh(getBotLodGeometry(), shirtMat);
-        lodProxy.visible = false;
+        for (const child of group.userData.detailChildren) child.visible = false;
+        lodProxy.visible = true;
         lodProxy.userData.isLodProxy = true;
         lodProxy.userData.tintable = true;
         group.add(lodProxy);
@@ -570,9 +573,10 @@ export class Bot {
             this.mesh.rotation.y = this.rotation.y;
             if (this._visuallyRelevant) {
                 this._animTime = performance.now() / 1000;
-                this.animateLimbs();
+                const detailed = this.updateRenderLod(delta);
+                if (detailed) this.animateLimbs();
                 this.updateHealthBar(delta);
-                this.updateWeaponTransform();
+                if (detailed) this.updateWeaponTransform();
             }
             return;
         }
@@ -1080,11 +1084,12 @@ export class Bot {
         const horizontalFov = 2 * Math.atan(Math.tan(verticalFov * 0.5) * (camera.aspect || 1));
         const visibleAngle = Math.max(verticalFov, horizontalFov) * 0.5 + 0.22;
         const inView = distance > 0.001 && this._lodToEntity.dot(this._lodCameraForward) / distance >= Math.cos(visibleAngle);
-        const detailed = distanceSq <= 64 || inView;
+        const detailDistance = this.scene?.userData?.mobileMode ? 32 : 46;
+        const detailed = distanceSq <= 100 || (inView && distanceSq <= detailDistance * detailDistance);
         if (this._lodDetailed === detailed) return detailed;
         this._lodDetailed = detailed;
         for (const child of this.mesh.userData.detailChildren || []) child.visible = detailed;
-        if (this.mesh.userData.lodProxy) this.mesh.userData.lodProxy.visible = !detailed;
+        if (this.mesh.userData.lodProxy) this.mesh.userData.lodProxy.visible = !detailed && !this.mesh.userData.useBatchedLod;
         if (this.currentWeapon?.mesh) this.currentWeapon.mesh.visible = detailed && this.isAlive;
         return detailed;
     }

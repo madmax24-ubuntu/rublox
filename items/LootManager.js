@@ -125,6 +125,7 @@ export class LootManager {
 
     isChestPlacementClear(x, y, z) {
         if (![x, y, z].every(Number.isFinite)) return false;
+        if (x * x + z * z < 78 * 78) return false;
         const half = Number(this.mapGenerator?.halfSize) || 128;
         if (Math.abs(x) > half - 2 || Math.abs(z) > half - 2) return false;
         if (this.mapGenerator.isWalkableAt && !this.mapGenerator.isWalkableAt(x, z)) return false;
@@ -225,7 +226,7 @@ export class LootManager {
         for (let i = this.chests.length, attempts = 0; i < chestCount && attempts < chestCount * 20; attempts++) {
             const angle = Math.random() * Math.PI * 2;
             const maxRadius = Math.max(42, (Number(this.mapGenerator.halfSize) || 128) - 6);
-            const distance = 40 + Math.random() * Math.max(2, maxRadius - 40);
+            const distance = 80 + Math.random() * Math.max(2, maxRadius - 80);
             const x = Math.cos(angle) * distance;
             const z = Math.sin(angle) * distance;
             const y = this.getChestPlacementY(x, z);
@@ -310,7 +311,7 @@ export class LootManager {
         for (let i = this.chests.length, attempts = 0; i < chestCount && attempts < chestCount * 20; attempts++) {
             const angle = Math.random() * Math.PI * 2;
             const maxRadius = Math.max(42, (Number(this.mapGenerator.halfSize) || 128) - 6);
-            const distance = 40 + Math.random() * Math.max(2, maxRadius - 40);
+            const distance = 80 + Math.random() * Math.max(2, maxRadius - 80);
             const x = Math.cos(angle) * distance;
             const z = Math.sin(angle) * distance;
             const y = this.getChestPlacementY(x, z);
@@ -707,7 +708,7 @@ export class LootManager {
     checkNearbyChests(position, audioSynth) {
         const now = performance.now();
         if (now >= this.visibilityUpdateAt) {
-            const range = this.isMobile ? 40 : 60;
+            const range = this.isMobile ? 28 : 38;
             const rangeSq = range * range;
             for (const chest of this.chests) {
                 const dx = chest.position.x - position.x;

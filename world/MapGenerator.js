@@ -90,8 +90,8 @@ export class MapGenerator {
         this._navigationTiles = [];
         this._spawnTiles = [];
         this._meshes = [];
-        this._cullDistance = 280;
-        this._cullDistanceMobile = 220;
+        this._cullDistance = 155;
+        this._cullDistanceMobile = 115;
         this.pool = new MeshPool();
         const _origAdd = this.scene.add.bind(this.scene);
         this.scene.add = (obj) => {
@@ -134,39 +134,14 @@ export class MapGenerator {
         // Phase 7: Ice quadrant (SE)
         this._generateIceQuadrant();
 
-        // CLEANUP PASS: Remove any biome objects that encroached on the central Cornucopia zone
-        // Skip biomeBoundary objects — they are the walls between biomes
-        const toRemove = [];
-        for (const child of this.scene.children) {
-            if (child.userData?.mapGenerated && !child.isInstancedMesh && !child.userData?.isCornucopia && !child.userData?.biomeBoundary && !child.userData?.isBiomeEntrance && !child.userData?.isSnowParticles) {
-                const dist = Math.sqrt(child.position.x * child.position.x + child.position.z * child.position.z);
-                if (dist < 75) {
-                    toRemove.push(child);
-                }
-            }
-        }
-        for (const obj of toRemove) {
-            this.scene.remove(obj);
-            if (obj.geometry) obj.geometry.dispose();
-            if (obj.material) {
-                if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
-                else obj.material.dispose();
-            }
-        }
-        this.colliders = this.colliders.filter(c => {
-            if (c.isCornucopia) return true;
-            if (c.isBiomeEntrance) return true;
-            if (c.userData?.biomeBoundary) return true;
-            const cx = (c.min.x + c.max.x) / 2;
-            const cz = (c.min.z + c.max.z) / 2;
-            return Math.sqrt(cx*cx + cz*cz) >= 75;
-        });
+        this._clearCentralBiomeIntrusions();
 
         // Phase 8: Cover objects
         this._placeCoverObjects();
         this._placeBiomeDecor();
         this._pruneOutsidePlayableBounds();
         this._ensureBiomeLootDensity(24);
+        this._clearCentralBiomeIntrusions();
 
         this._placeBiomeBoundaries();
         for (const child of [...this.scene.children]) {
@@ -203,6 +178,58 @@ export class MapGenerator {
         // Cache animated object references for per-frame updates
         this._cacheAnimatedObjects();
         this._resolveReady?.();
+    }
+
+    _clearCentralBiomeIntrusions(radius = 76) {
+        const preserved = obj => obj.userData?.isCornucopia || obj.userData?.isTerrain || obj.userData?.biomeBoundary || obj.userData?.isBiomeEntrance || obj.userData?.isSnowParticles || obj.userData?.gameplayBoundary;
+        const intrudes = box => {
+            const x = box.min.x > 0 ? box.min.x : box.max.x < 0 ? box.max.x : 0;
+            const z = box.min.z > 0 ? box.min.z : box.max.z < 0 ? box.max.z : 0;
+            return x * x + z * z < radius * radius;
+        };
+        const removed = new Set();
+        const box = new THREE.Box3();
+        const localMatrix = new THREE.Matrix4();
+        const worldMatrix = new THREE.Matrix4();
+        for (const child of [...this.scene.children]) {
+            if (!child.userData?.mapGenerated || preserved(child)) continue;
+            if (child.isInstancedMesh) {
+                child.geometry.computeBoundingBox();
+                let write = 0;
+                child.updateMatrixWorld(true);
+                for (let read = 0; read < child.count; read++) {
+                    child.getMatrixAt(read, localMatrix);
+                    worldMatrix.multiplyMatrices(child.matrixWorld, localMatrix);
+                    box.copy(child.geometry.boundingBox).applyMatrix4(worldMatrix);
+                    if (intrudes(box)) continue;
+                    if (write !== read) child.setMatrixAt(write, localMatrix);
+                    write++;
+                }
+                child.count = write;
+                child.instanceMatrix.needsUpdate = true;
+                child.computeBoundingSphere();
+                if (!write) {
+                    child.parent?.remove(child);
+                    removed.add(child);
+                }
+                continue;
+            }
+            box.setFromObject(child);
+            if (!box.isEmpty() && intrudes(box)) {
+                child.parent?.remove(child);
+                removed.add(child);
+            }
+        }
+        this._meshes = this._meshes.filter(mesh => !removed.has(mesh) && mesh.parent);
+        this.colliders = this.colliders.filter(collider => {
+            if (collider.isCornucopia || collider.isBiomeEntrance || collider.biomeBoundary || collider.gameplayBoundary) return true;
+            return !intrudes(collider);
+        });
+        const outside = point => Math.hypot(point.x, point.z) >= radius;
+        this._buildings = this._buildings.filter(outside);
+        this._chestSpots = this._chestSpots.filter(outside);
+        this._interactivePOIs = this._interactivePOIs.filter(poi => outside(poi.position || poi));
+        this._traps = this._traps.filter(trap => outside(trap.position));
     }
 
     _removeStripeArtifacts() {
@@ -459,16 +486,17 @@ export class MapGenerator {
         this.scene.add(courtyard);
 
         // Use the high-detail MapGeneratorNode implementation for the central hub to reach 99% fidelity
+        const existingRoots = new Set(this.scene.children);
         const node = new MapGeneratorNode(this.scene);
         node.init();
 
-        // The init() method adds objects directly to this.scene. We mark them as mapGenerated so they can be cleaned up later.
-        this.scene.traverse((child) => {
-            if (child.userData && !child.userData.mapGenerated) {
+        for (const root of this.scene.children) {
+            if (existingRoots.has(root)) continue;
+            root.traverse((child) => {
                 child.userData.mapGenerated = true;
                 child.userData.isCornucopia = true;
-            }
-        });
+            });
+        }
 
         // Sync spawn pads from the high-detail node to our main generator's tracking system.
         const nodePads = node.getSpawnPads();
@@ -2505,134 +2533,85 @@ export class MapGenerator {
 
     _addBarbedWireFence(startX, startZ, size) {
         const postMat = this.pool.getMatStd(0x4a5238, 0.9, 0, false, false, 1, 0, 0);
-        const wireMat = this.pool.getMatStd(0x888888, 0.5, 0.6, false, false, 1, 0, 0);
-
+        const wireMat = this.pool.getMatStd(0xb0b5ba, 0.38, 0.72, false, false, 1, 0, 0);
         const postH = 2.5;
-        const postGeo = this.pool.getGeoBox(0.1, postH, 0.1);
         const postSpacing = 8;
-        const entranceWidth = 12;
-        const entranceStart = size * 0.4;
-        const entranceEnd = size * 0.6;
-
-        // Северная сторона
-        for (let px = startX; px < startX + size; px += postSpacing) {
-            if (px > entranceStart && px < entranceEnd) continue;
-            const post = new THREE.Mesh(postGeo, postMat);
-            post.position.set(px, postH / 2, startZ);
-            post.userData.mapGenerated = true;
-            this.scene.add(post);
-            this.addColliderBox(new THREE.Vector3(px, postH / 2, startZ), 0.1, postH, 0.1, false);
-        }
-
-        // Южная сторона
-        for (let px = startX; px < startX + size; px += postSpacing) {
-            if (px > entranceStart && px < entranceEnd) continue;
-            const post = new THREE.Mesh(postGeo, postMat);
-            post.position.set(px, postH / 2, startZ + size);
-            post.userData.mapGenerated = true;
-            this.scene.add(post);
-            this.addColliderBox(new THREE.Vector3(px, postH / 2, startZ + size), 0.1, postH, 0.1, false);
-        }
-
-        // Западная сторона
-        for (let pz = startZ; pz < startZ + size; pz += postSpacing) {
-            const post = new THREE.Mesh(postGeo, postMat);
-            post.position.set(startX, postH / 2, pz);
-            post.userData.mapGenerated = true;
-            this.scene.add(post);
-            this.addColliderBox(new THREE.Vector3(startX, postH / 2, pz), 0.1, postH, 0.1, false);
-        }
-
-        // Восточная сторона
-        for (let pz = startZ; pz < startZ + size; pz += postSpacing) {
-            const post = new THREE.Mesh(postGeo, postMat);
-            post.position.set(startX + size, postH / 2, pz);
-            post.userData.mapGenerated = true;
-            this.scene.add(post);
-            this.addColliderBox(new THREE.Vector3(startX + size, postH / 2, pz), 0.1, postH, 0.1, false);
-        }
-
-        // Проволока между столбами (горизонтальные линии)
-        const wireHeight = [0.8, 1.5, 2.2];
-        for (let h of wireHeight) {
-            // Север
-            const nPoints = [];
-            for (let px = startX; px < startX + size; px += postSpacing) {
-                if (px > entranceStart && px < entranceEnd) {
-                    nPoints.push(null);
-                    continue;
+        const endX = startX + size;
+        const endZ = startZ + size;
+        const gate = 18;
+        const runs = [
+            [new THREE.Vector3(startX, 0, startZ), new THREE.Vector3(endX - gate, 0, startZ)],
+            [new THREE.Vector3(startX, 0, endZ), new THREE.Vector3(endX, 0, endZ)],
+            [new THREE.Vector3(startX, 0, startZ), new THREE.Vector3(startX, 0, endZ)],
+            [new THREE.Vector3(endX, 0, startZ + gate), new THREE.Vector3(endX, 0, endZ)]
+        ];
+        const postPositions = [];
+        const wireSegments = [];
+        for (const [from, to] of runs) {
+            const length = from.distanceTo(to);
+            const steps = Math.max(1, Math.ceil(length / postSpacing));
+            const points = [];
+            for (let i = 0; i <= steps; i++) {
+                const point = from.clone().lerp(to, i / steps);
+                points.push(point);
+                postPositions.push(point);
+            }
+            for (let i = 0; i < points.length - 1; i++) {
+                for (const height of [0.72, 1.42, 2.12]) {
+                    wireSegments.push([
+                        new THREE.Vector3(points[i].x, height, points[i].z),
+                        new THREE.Vector3(points[i + 1].x, height, points[i + 1].z)
+                    ]);
                 }
-                nPoints.push(new THREE.Vector3(px, h, startZ));
-            }
-            for (let i = 0; i < nPoints.length - 1; i++) {
-                if (nPoints[i] && nPoints[i + 1]) {
-                    const wireGeo = this.pool.getGeoCylinder(0.02, 0.02, nPoints[i].distanceTo(nPoints[i + 1]), 4);
-                    const wire = new THREE.Mesh(wireGeo, wireMat);
-                    wire.position.set((nPoints[i].x + nPoints[i + 1].x) / 2, h, startZ);
-                    wire.rotation.z = Math.PI / 2;
-                    wire.userData.mapGenerated = true;
-                    this.scene.add(wire);
-                }
-            }
-
-            // Юг
-            const sPoints = [];
-            for (let px = startX; px < startX + size; px += postSpacing) {
-                if (px > entranceStart && px < entranceEnd) {
-                    sPoints.push(null);
-                    continue;
-                }
-                sPoints.push(new THREE.Vector3(px, h, startZ + size));
-            }
-            for (let i = 0; i < sPoints.length - 1; i++) {
-                if (sPoints[i] && sPoints[i + 1]) {
-                    const wireGeo = this.pool.getGeoCylinder(0.02, 0.02, sPoints[i].distanceTo(sPoints[i + 1]), 4);
-                    const wire = new THREE.Mesh(wireGeo, wireMat);
-                    wire.position.set((sPoints[i].x + sPoints[i + 1].x) / 2, h, startZ + size);
-                    wire.rotation.z = Math.PI / 2;
-                    wire.userData.mapGenerated = true;
-                    this.scene.add(wire);
-                }
-            }
-
-            // Запад
-            for (let pz = startZ; pz < startZ + size; pz += postSpacing) {
-                const wireGeo = this.pool.getGeoCylinder(0.02, 0.02, postSpacing);
-                const wire = new THREE.Mesh(wireGeo, wireMat);
-                wire.position.set(startX, h, pz + postSpacing / 2);
-                wire.rotation.z = Math.PI / 2;
-                wire.userData.mapGenerated = true;
-                this.scene.add(wire);
-            }
-
-            // Восток
-            for (let pz = startZ; pz < startZ + size; pz += postSpacing) {
-                const wireGeo = this.pool.getGeoCylinder(0.02, 0.02, postSpacing);
-                const wire = new THREE.Mesh(wireGeo, wireMat);
-                wire.position.set(startX + size, h, pz + postSpacing / 2);
-                wire.rotation.z = Math.PI / 2;
-                wire.userData.mapGenerated = true;
-                this.scene.add(wire);
+                wireSegments.push([
+                    new THREE.Vector3(points[i].x, 0.68, points[i].z),
+                    new THREE.Vector3(points[i + 1].x, 2.18, points[i + 1].z)
+                ]);
+                wireSegments.push([
+                    new THREE.Vector3(points[i].x, 2.18, points[i].z),
+                    new THREE.Vector3(points[i + 1].x, 0.68, points[i + 1].z)
+                ]);
             }
         }
-
-        // Колючие шипы на проволоке
-        const spikeMat = this.pool.getMatStd(0x999999, 0.3, 0.7, false, false, 1, 0, 0);
-        for (let i = 0; i < 8; i++) {
-            const side = Math.floor(this._rand() * 4);
-            let sx, sz;
-            if (side === 0) { sx = startX + this._rand() * size; sz = startZ; }
-            else if (side === 1) { sx = startX + this._rand() * size; sz = startZ + size; }
-            else if (side === 2) { sx = startX; sz = startZ + this._rand() * size; }
-            else { sx = startX + size; sz = startZ + this._rand() * size; }
-
-            const spikeGeo = this.pool.getGeoCone(0.15, 0.5);
-            const spike = new THREE.Mesh(spikeGeo, spikeMat);
-            spike.position.set(sx, 1.5 + this._rand(), sz);
-            spike.rotation.x = Math.PI;
-            spike.userData.mapGenerated = true;
-            this.scene.add(spike);
+        const uniquePosts = [...new Map(postPositions.map(p => [`${p.x.toFixed(2)}:${p.z.toFixed(2)}`, p])).values()];
+        const postMesh = new THREE.InstancedMesh(this.pool.getGeoBox(0.22, postH, 0.22), postMat, uniquePosts.length);
+        const matrix = new THREE.Matrix4();
+        const quaternion = new THREE.Quaternion();
+        const scale = new THREE.Vector3(1, 1, 1);
+        for (let i = 0; i < uniquePosts.length; i++) {
+            const p = uniquePosts[i];
+            matrix.compose(new THREE.Vector3(p.x, postH / 2, p.z), quaternion.identity(), scale);
+            postMesh.setMatrixAt(i, matrix);
         }
+        postMesh.instanceMatrix.needsUpdate = true;
+        postMesh.userData.mapGenerated = true;
+        postMesh.userData.isBarbedWire = true;
+        this.scene.add(postMesh);
+
+        const wireMesh = new THREE.InstancedMesh(this.pool.getGeoCylinder(0.055, 0.055, 1, 5), wireMat, wireSegments.length);
+        const up = new THREE.Vector3(0, 1, 0);
+        const direction = new THREE.Vector3();
+        const midpoint = new THREE.Vector3();
+        for (let i = 0; i < wireSegments.length; i++) {
+            const [from, to] = wireSegments[i];
+            direction.subVectors(to, from);
+            const length = direction.length();
+            quaternion.setFromUnitVectors(up, direction.normalize());
+            midpoint.addVectors(from, to).multiplyScalar(0.5);
+            matrix.compose(midpoint, quaternion, scale.set(1, length, 1));
+            wireMesh.setMatrixAt(i, matrix);
+        }
+        wireMesh.instanceMatrix.needsUpdate = true;
+        wireMesh.userData.mapGenerated = true;
+        wireMesh.userData.isBarbedWire = true;
+        this.scene.add(wireMesh);
+
+        const northLength = size - gate;
+        this.addColliderBox(new THREE.Vector3(startX + northLength / 2, postH / 2, startZ), northLength, postH, 0.35, false);
+        this.addColliderBox(new THREE.Vector3(startX + size / 2, postH / 2, endZ), size, postH, 0.35, false);
+        this.addColliderBox(new THREE.Vector3(startX, postH / 2, startZ + size / 2), 0.35, postH, size, false);
+        const eastLength = size - gate;
+        this.addColliderBox(new THREE.Vector3(endX, postH / 2, startZ + gate + eastLength / 2), 0.35, postH, eastLength, false);
     }
 
     _addCzechHedgehog(x, z) {
