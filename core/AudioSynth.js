@@ -40,6 +40,7 @@ export class AudioSynth {
         this.musicThemeIndex = 0;
         this.musicSource = null;
         this.rainNoiseBuffer = null;
+        this.survivalMusicBuffer = null;
         this.musicVolume = this.isMobileDevice ? 0.24 : 0.15;
         this.sfxVolume = this.isMobileDevice ? 0.58 : 0.48;
         this.sampleBuffers = new Map();
@@ -631,11 +632,11 @@ export class AudioSynth {
     setBiomeAmbience(biome) {
         if (!this.audioContext || !this.ambientRunning || this.currentBiomeAmbient === biome) return;
         const profiles = {
-            center: { type: 'lowpass', frequency: 420, gain: 0, rate: 0.72 },
-            forest: { type: 'bandpass', frequency: 1750, gain: 0.016, rate: 0.9 },
-            maze: { type: 'lowpass', frequency: 620, gain: 0.011, rate: 0.78 },
-            military: { type: 'bandpass', frequency: 520, gain: 0.012, rate: 0.8 },
-            ice: { type: 'highpass', frequency: 980, gain: 0.013, rate: 0.84 }
+            center: { type: 'lowpass', frequency: 540, gain: 0.003, rate: 0.74 },
+            forest: { type: 'lowpass', frequency: 920, gain: 0.007, rate: 0.88 },
+            maze: { type: 'lowpass', frequency: 610, gain: 0.005, rate: 0.76 },
+            military: { type: 'lowpass', frequency: 720, gain: 0.005, rate: 0.8 },
+            ice: { type: 'lowpass', frequency: 1100, gain: 0.006, rate: 0.84 }
         };
         const profile = profiles[biome] || profiles.center;
         const now = this.audioContext.currentTime;
@@ -663,7 +664,7 @@ export class AudioSynth {
         source.playbackRate.value = profile.rate;
         filter.type = profile.type;
         filter.frequency.value = profile.frequency;
-        filter.Q.value = biome === 'forest' ? 0.7 : 0.35;
+        filter.Q.value = 0.12;
         gain.gain.setValueAtTime(0, now);
         gain.gain.linearRampToValueAtTime(profile.gain * (this.isMobileDevice ? 0.8 : 1), now + 0.8);
         source.connect(filter);
@@ -1194,28 +1195,28 @@ export class AudioSynth {
 
     createSurvivalMusicBuffer() {
         if (!this.audioContext) return null;
+        if (this.survivalMusicBuffer) return this.survivalMusicBuffer;
         const rate = this.audioContext.sampleRate;
-        const duration = 32;
+        const duration = 24;
         const buffer = this.audioContext.createBuffer(2, rate * duration, rate);
         for (let channel = 0; channel < 2; channel++) {
             const data = buffer.getChannelData(channel);
             let noiseState = 7919 + channel * 104729;
-            let wind = 0;
+            let air = 0;
+            let drift = 0;
             for (let i = 0; i < data.length; i++) {
                 const t = i / rate;
                 noiseState = (noiseState * 1664525 + 1013904223) >>> 0;
                 const white = noiseState / 2147483647.5 - 1;
-                wind = wind * 0.9975 + white * 0.0025;
-                const fade = Math.min(1, t * 0.6, (duration - t) * 0.6);
-                const breeze = wind * (0.018 + 0.007 * Math.sin(t * 0.17 + channel));
-                const pad = Math.sin(Math.PI * 2 * 55 * t + channel * 0.04) * 0.018
-                    + Math.sin(Math.PI * 2 * 82.407 * t + 0.7) * 0.009;
-                const birdWindow = Math.max(0, 1 - Math.abs(((t + channel * 5.3) % 13) - 6.5) * 3.4);
-                const bird = Math.sin(Math.PI * 2 * (1450 + Math.sin(t * 5) * 240) * t) * birdWindow * 0.006;
-                data[i] = (breeze + pad + bird) * fade;
+                air = air * 0.982 + white * 0.018;
+                drift = drift * 0.9993 + white * 0.0007;
+                const fade = Math.min(1, t * 0.8, (duration - t) * 0.8);
+                const breeze = (air - drift) * (0.034 + 0.009 * Math.sin(t * 0.11 + channel * 0.3));
+                data[i] = breeze * fade;
             }
         }
-        return buffer;
+        this.survivalMusicBuffer = buffer;
+        return this.survivalMusicBuffer;
     }
 
     playMusic() {

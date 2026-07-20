@@ -121,7 +121,6 @@ export class MapGenerator {
 
         // Phase 2: Central cornucopia + spawn courtyard
         this._generateCornucopia();
-        this._addPlatformExitRamps();
 
         // Phase 4: Forest quadrant (NW)
         this._generateForestQuadrant();
@@ -511,32 +510,6 @@ export class MapGenerator {
         columnCol.isCornucopia = true;
         const upperCol = this.addColliderBox(new THREE.Vector3(0, 2 + 5.4 * fountainScale, 0), 6.2 * fountainScale, 0.8 * fountainScale, 6.2 * fountainScale, false);
         upperCol.isCornucopia = true;
-    }
-
-    _addPlatformExitRamps() {
-        const material = this.pool.getMatStd(0x8f826b, 0.92, 0, true, false, 1, 0, 0);
-        const steps = 10;
-        const width = 9;
-        const depth = 1.35;
-        for (const angle of [Math.PI / 4, Math.PI * 3 / 4, Math.PI * 5 / 4, Math.PI * 7 / 4]) {
-            for (let i = 0; i < steps; i++) {
-                const radius = 53.6 + (i + 0.5) * depth;
-                const top = 1.9 - i * 0.19;
-                const x = Math.cos(angle) * radius;
-                const z = Math.sin(angle) * radius;
-                const mesh = new THREE.Mesh(this.pool.getGeoBox(width, top, depth + 0.08), material);
-                mesh.position.set(x, top / 2, z);
-                mesh.rotation.y = -angle;
-                mesh.userData.mapGenerated = true;
-                mesh.userData.isCornucopia = true;
-                mesh.userData.walkable = true;
-                this.scene.add(mesh);
-                const c = Math.abs(Math.cos(angle));
-                const s = Math.abs(Math.sin(angle));
-                const collider = this.addColliderBox(new THREE.Vector3(x, top / 2, z), width * c + depth * s, top, width * s + depth * c, true);
-                collider.isCornucopia = true;
-            }
-        }
     }
 
     // =========================================================================
@@ -1923,7 +1896,6 @@ export class MapGenerator {
         this._addCastleGate(entranceX, entranceZ, wallHeight);
         this._addMazeToCenterPath(entranceX, entranceZ);
         this._addMazeMoss(segments);
-        this._addMazeTraps(cells, startX, startZ, margin, cellWidth, cellDepth);
 
     }
 
@@ -4276,33 +4248,30 @@ export class MapGenerator {
     }
 
     _addBiomeSurvivalFeatures() {
-        const forestTraps = [
-            [-102, -46], [-86, -58], [-72, -46], [-56, -60],
-            [-102, -72], [-84, -78], [-68, -74], [-46, -82],
-            [-98, -96], [-80, -102], [-60, -98], [-44, -104]
+        const definitions = [
+            ['snare', -1, -1],
+            ['spikes', 1, -1],
+            ['mine', -1, 1],
+            ['ice', 1, 1]
         ];
-        const militaryTraps = [
-            [-102, 46], [-86, 50], [-68, 50], [-46, 54],
-            [-102, 68], [-86, 74], [-66, 72], [-44, 78],
-            [-98, 92], [-80, 100], [-60, 96], [-42, 104]
-        ];
-        const iceTraps = [
-            [46, 48], [64, 46], [82, 50], [100, 54],
-            [48, 70], [70, 74], [86, 72], [102, 80],
-            [44, 92], [66, 100], [82, 94], [100, 102]
-        ];
-        for (const [x, z] of forestTraps) {
-            this._addSurvivalTrap('snare', x, z);
-        }
-        for (const [x, z] of [[52, -56], [74, -92], [96, -70], [58, -100]]) {
-            this._addSurvivalTrap('spikes', x, z);
-            this._registerChestSpot(x + 3.2, z + 2.4, 'maze');
-        }
-        for (const [x, z] of militaryTraps) {
-            this._addSurvivalTrap('mine', x, z);
-        }
-        for (const [x, z] of iceTraps) {
-            this._addSurvivalTrap('ice', x, z);
+        const blocked = (x, z) => this.colliders.some(collider =>
+            collider.enabled !== false &&
+            !collider.walkable &&
+            x >= collider.min.x - 2.2 &&
+            x <= collider.max.x + 2.2 &&
+            z >= collider.min.z - 2.2 &&
+            z <= collider.max.z + 2.2
+        );
+        for (const [type, sx, sz] of definitions) {
+            let placed = 0;
+            for (let attempt = 0; attempt < 500 && placed < 12; attempt++) {
+                const x = sx * (38 + Math.random() * (HALF - 44));
+                const z = sz * (38 + Math.random() * (HALF - 44));
+                if (Math.hypot(x, z) < 78 || blocked(x, z)) continue;
+                if (this._traps.some(trap => Math.hypot(x - trap.position.x, z - trap.position.z) < 7)) continue;
+                this._addSurvivalTrap(type, x, z);
+                placed++;
+            }
         }
         this._addThemeArch(56, -48, Math.PI / 2, this.pool.getMatStd(0x5f6368, 0.9, 0, true, false, 1, 0, 0));
         this._addThemeArch(100, -112, 0, this.pool.getMatStd(0x51555a, 0.9, 0, true, false, 1, 0, 0));
@@ -4319,9 +4288,9 @@ export class MapGenerator {
         let damage = 8;
         if (type === 'snare') {
             const mat = this.pool.getMatStd(0x5b3a22, 0.92, 0.05, true, false, 1, 0, 0);
-            const ring = new THREE.Mesh(new THREE.TorusGeometry(1.15, 0.09, 6, 18), mat);
+            const ring = new THREE.Mesh(new THREE.TorusGeometry(0.82, 0.055, 5, 14), mat);
             ring.rotation.x = Math.PI / 2;
-            ring.position.y = 0.08;
+            ring.position.y = 0.025;
             group.add(ring);
             radius = 1.35;
             slow = 0.24;
@@ -4329,12 +4298,12 @@ export class MapGenerator {
         } else if (type === 'spikes') {
             const baseMat = this.pool.getMatStd(0x3d342f, 0.94, 0, true, false, 1, 0, 0);
             const spikeMat = this.pool.getMatStd(0x777b80, 0.5, 0.5, true, false, 1, 0, 0);
-            const base = new THREE.Mesh(this.pool.getGeoBox(3.4, 0.14, 3.4), baseMat);
-            base.position.y = 0.07;
+            const base = new THREE.Mesh(this.pool.getGeoBox(2.8, 0.1, 2.8), baseMat);
+            base.position.y = -0.03;
             group.add(base);
             for (const [sx, sz] of [[-0.9, -0.9], [0.9, -0.9], [0, 0], [-0.9, 0.9], [0.9, 0.9]]) {
-                const spike = new THREE.Mesh(this.pool.getGeoCone(0.18, 1.3), spikeMat);
-                spike.position.set(sx, 0.68, sz);
+                const spike = new THREE.Mesh(this.pool.getGeoCone(0.14, 0.9), spikeMat);
+                spike.position.set(sx * 0.78, 0.38, sz * 0.78);
                 group.add(spike);
             }
             radius = 1.8;
@@ -4343,30 +4312,30 @@ export class MapGenerator {
         } else if (type === 'mine') {
             const bodyMat = this.pool.getMatStd(0x263238, 0.62, 0.55, true, false, 1, 0, 0);
             const glowMat = this.pool.getMatStd(0xa91414, 0.35, 0.2, true, false, 1, 0xff2200, 1.8);
-            const body = new THREE.Mesh(this.pool.getGeoCylinder(0.7, 0.85, 0.22), bodyMat);
-            body.position.y = 0.11;
+            const body = new THREE.Mesh(this.pool.getGeoCylinder(0.42, 0.52, 0.13), bodyMat);
+            body.position.y = 0.025;
             group.add(body);
             const light = new THREE.Mesh(this.pool.getGeoSphere(0.12), glowMat);
-            light.position.y = 0.3;
+            light.position.y = 0.11;
             group.add(light);
             radius = 1.2;
             slow = 0.7;
             damage = 30;
         } else {
             const iceMat = this.pool.getMatStd(0x8ac7df, 0.18, 0.2, true, true, 0.72, 0, 0);
-            const patch = new THREE.Mesh(this.pool.getGeoCylinder(2.1, 2.5, 0.08, 9), iceMat);
-            patch.position.y = 0.04;
+            const patch = new THREE.Mesh(this.pool.getGeoCylinder(1.7, 2.1, 0.05, 9), iceMat);
+            patch.position.y = -0.015;
             patch.scale.z = 0.72;
             group.add(patch);
             radius = 2.2;
             slow = 0.3;
             damage = 1;
         }
-        group.position.set(x, 0, z);
+        group.position.set(x, -0.02, z);
         group.userData.mapGenerated = true;
         group.userData.isTrap = true;
         group.userData.trapType = type;
-        group.userData.baseY = 0;
+        group.userData.baseY = -0.02;
         group.traverse((child) => {
             if (child.isMesh) child.userData.mapGenerated = true;
         });
@@ -4380,7 +4349,7 @@ export class MapGenerator {
                     : [5.6, 2.8];
         this._traps.push({
             type,
-            position: new THREE.Vector3(x, 0, z),
+            position: new THREE.Vector3(x, -0.02, z),
             radius,
             slow,
             damage,

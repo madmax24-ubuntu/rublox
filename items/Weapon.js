@@ -472,8 +472,8 @@ export class Weapon {
         let gravity = 0.003;
 
         if (type === 'laser') {
-            const m = getMaterial('proj_laser', () => new THREE.MeshStandardMaterial({ color: 0x53f5ff, emissive: 0x53f5ff, emissiveIntensity: 0.48, roughness: 0.18, metalness: 0.4, flatShading: true }));
-            mesh = createPart(getGeom('proj_laser', () => new THREE.CylinderGeometry(0.05, 0.05, 0.34, 8)), m, 0, 0, 0, 0, 0, Math.PI / 2);
+            const m = getMaterial('proj_laser_v2', () => new THREE.MeshBasicMaterial({ color: 0x7ff8ff }));
+            mesh = createPart(getGeom('proj_laser_v2', () => new THREE.CylinderGeometry(0.07, 0.07, 0.8, 8)), m, 0, 0, 0, 0, 0, Math.PI / 2);
             knockback = 5;
             gravity = 0;
         } else if (type === 'bow') {
@@ -481,12 +481,12 @@ export class Weapon {
             knockback = 6;
             gravity = 0.02;
         } else if (type === 'pistol' || type === 'rifle' || type === 'machinegun' || type === 'shotgun') {
-            const m = getMaterial('proj_bullet', () => new THREE.MeshStandardMaterial({ color: 0xffd54f, emissive: 0xffc107, emissiveIntensity: 0.35, roughness: 0.28, metalness: 0.35, flatShading: true }));
-            mesh = createPart(getGeom('proj_bullet', () => new THREE.CylinderGeometry(0.04, 0.04, 0.3, 8)), m, 0, 0, 0, 0, 0, Math.PI / 2);
+            const m = getMaterial('proj_bullet_v2', () => new THREE.MeshBasicMaterial({ color: 0xffd54f }));
+            mesh = createPart(getGeom('proj_bullet_v2', () => new THREE.CylinderGeometry(0.055, 0.055, 0.7, 8)), m, 0, 0, 0, 0, 0, Math.PI / 2);
             knockback = type === 'rifle' || type === 'machinegun' ? 4 : 3;
         } else if (type === 'flame') {
-            const m = getMaterial('proj_flame', () => new THREE.MeshStandardMaterial({ color: 0xff6d00, emissive: 0xff8f00, emissiveIntensity: 0.68, roughness: 0.45, transparent: true, opacity: 0.82, flatShading: true }));
-            mesh = createPart(getGeom('proj_flame', () => new THREE.ConeGeometry(0.2, 0.6, 6)), m, 0, 0, 0, 0, 0, Math.PI / 2);
+            const m = getMaterial('proj_flame_v2', () => new THREE.MeshBasicMaterial({ color: 0xff7a00, transparent: true, opacity: 0.88 }));
+            mesh = createPart(getGeom('proj_flame_v2', () => new THREE.ConeGeometry(0.28, 0.85, 7)), m, 0, 0, 0, 0, 0, Math.PI / 2);
             knockback = 2;
             gravity = 0;
         } else {

@@ -113,6 +113,8 @@ export class Bot {
         this._tmpWeaponRot = new THREE.Vector3();
         this._tmpErr = new THREE.Vector3();
         this._tmpScale = new THREE.Vector3(1, 1, 1);
+        this._lodCameraForward = new THREE.Vector3();
+        this._lodToEntity = new THREE.Vector3();
         this._animTime = 0;
         this._tintedChildren = new Set();
         this._damageFlashUntil = 0;
@@ -1066,11 +1068,19 @@ export class Bot {
         this._lodTimer = 0.3;
         const camera = this._cachedCamera || (this._cachedCamera = this.scene?.userData?.camera);
         if (!camera) return true;
-        const dx = camera.position.x - this.position.x;
-        const dz = camera.position.z - this.position.z;
-        const isMobile = !!this.scene?.userData?.mobileMode;
-        const threshold = isMobile ? 14 : 20;
-        const detailed = dx * dx + dz * dz <= threshold * threshold;
+        camera.getWorldDirection(this._lodCameraForward);
+        this._lodToEntity.set(
+            this.position.x - camera.position.x,
+            this.position.y + 0.9 - camera.position.y,
+            this.position.z - camera.position.z
+        );
+        const distanceSq = this._lodToEntity.lengthSq();
+        const distance = Math.sqrt(distanceSq);
+        const verticalFov = THREE.MathUtils.degToRad(camera.fov || 60);
+        const horizontalFov = 2 * Math.atan(Math.tan(verticalFov * 0.5) * (camera.aspect || 1));
+        const visibleAngle = Math.max(verticalFov, horizontalFov) * 0.5 + 0.22;
+        const inView = distance > 0.001 && this._lodToEntity.dot(this._lodCameraForward) / distance >= Math.cos(visibleAngle);
+        const detailed = distanceSq <= 64 || inView;
         if (this._lodDetailed === detailed) return detailed;
         this._lodDetailed = detailed;
         for (const child of this.mesh.userData.detailChildren || []) child.visible = detailed;
@@ -1259,9 +1269,6 @@ export class Bot {
             if (projectileData && projectileData.projectiles) {
                 for (const proj of projectileData.projectiles) {
                     proj.owner = this;
-                    if (proj.type === 'bow' && proj.mesh) {
-                        proj.mesh.visible = false;
-                    }
                     entityManager?.addProjectile(proj);
                 }
                 this.nextAttackTime = now + cadence;
@@ -1270,9 +1277,6 @@ export class Bot {
             if (projectileData && projectileData.projectile) {
                 projectileData.projectile.direction = direction;
                 projectileData.projectile.owner = this;
-                if (projectileData.projectile.type === 'bow' && projectileData.projectile.mesh) {
-                    projectileData.projectile.mesh.visible = false;
-                }
                 if (entityManager) {
                     entityManager.addProjectile(projectileData.projectile);
                 }

@@ -118,6 +118,8 @@ export class Zombie {
         this.burnAttacker = null;
         this.hitStaggerTimer = 0;
         this._deathAudioSynth = null;
+        this._lodCameraForward = new THREE.Vector3();
+        this._lodToEntity = new THREE.Vector3();
         this._corpseTimer = 0;
         this._animTime = performance.now() * 0.001;
         this._moanPhase = Math.random() * Math.PI * 2;
@@ -666,11 +668,19 @@ export class Zombie {
         this._lodTimer = 0.3;
         const camera = this.scene?.userData?.camera;
         if (!camera) return true;
-        const dx = camera.position.x - this.position.x;
-        const dz = camera.position.z - this.position.z;
-        const isMobile = !!this.scene?.userData?.mobileMode;
-        const threshold = isMobile ? 13 : 18;
-        const detailed = dx * dx + dz * dz <= threshold * threshold;
+        camera.getWorldDirection(this._lodCameraForward);
+        this._lodToEntity.set(
+            this.position.x - camera.position.x,
+            this.position.y + 0.9 - camera.position.y,
+            this.position.z - camera.position.z
+        );
+        const distanceSq = this._lodToEntity.lengthSq();
+        const distance = Math.sqrt(distanceSq);
+        const verticalFov = THREE.MathUtils.degToRad(camera.fov || 60);
+        const horizontalFov = 2 * Math.atan(Math.tan(verticalFov * 0.5) * (camera.aspect || 1));
+        const visibleAngle = Math.max(verticalFov, horizontalFov) * 0.5 + 0.22;
+        const inView = distance > 0.001 && this._lodToEntity.dot(this._lodCameraForward) / distance >= Math.cos(visibleAngle);
+        const detailed = distanceSq <= 64 || inView;
         if (this._lodDetailed === detailed) return detailed;
         this._lodDetailed = detailed;
         for (const child of this.mesh.userData.detailChildren || []) child.visible = detailed;

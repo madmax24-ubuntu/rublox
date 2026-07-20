@@ -37,6 +37,9 @@ export class EntityManager {
     }
 
     addProjectile(projectile) {
+        if (!projectile?.mesh) return;
+        projectile.mesh.visible = true;
+        projectile.mesh.frustumCulled = false;
         this.projectiles.push(projectile);
         this.scene.add(projectile.mesh);
     }
@@ -88,7 +91,6 @@ export class EntityManager {
             if (proj.type === 'flame' && proj.mesh.material) {
                 const flicker = 0.85 + Math.random() * 0.3;
                 proj.mesh.scale.setScalar(flicker);
-                proj.mesh.material.opacity = Math.max(0, proj.lifetime / 0.6);
             }
             if (proj.align === 'arrow') {
                 const forward = proj._forward || (proj._forward = new THREE.Vector3(1, 0, 0));
