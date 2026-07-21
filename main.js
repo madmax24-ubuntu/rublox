@@ -669,8 +669,8 @@ class Game {
         const material = source.material.clone();
         material.color.setHex(0xffffff);
         material.vertexColors = true;
-        material.emissive = new THREE.Color(0x000000);
-        material.emissiveIntensity = 0;
+        material.emissive = new THREE.Color(0x444444);
+        material.emissiveIntensity = 0.8;
         const batch = new THREE.InstancedMesh(source.geometry, material, this.bots.length);
         batch.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
         batch.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(batch.count * 3), 3);
