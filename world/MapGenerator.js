@@ -962,8 +962,8 @@ export class MapGenerator {
         this.addColliderBox(new THREE.Vector3(x + w / 2, storyH + 0.3, z), wallThick, storyH * 2, d, false);
         this.addColliderBox(new THREE.Vector3(x, storyH + 0.3, z - d / 2), w, storyH * 2, wallThick, false);
         const frontSegmentW = (w - doorW) / 2;
-        this.addColliderBox(new THREE.Vector3(x - (doorW + frontSegmentW) / 2, storyH / 2 + 0.3, z + d / 2), frontSegmentW, storyH, wallThick, false);
-        this.addColliderBox(new THREE.Vector3(x + (doorW + frontSegmentW) / 2, storyH / 2 + 0.3, z + d / 2), frontSegmentW, storyH, wallThick, false);
+        this.addColliderBox(new THREE.Vector3(x - w / 2 + frontSegmentW / 2, storyH / 2 + 0.3, z + d / 2), frontSegmentW, storyH, wallThick, false);
+        this.addColliderBox(new THREE.Vector3(x + w / 2 - frontSegmentW / 2, storyH / 2 + 0.3, z + d / 2), frontSegmentW, storyH, wallThick, false);
         this.addColliderBox(new THREE.Vector3(x, doorH + (storyH - doorH) / 2 + 0.3, z + d / 2), w, storyH - doorH, wallThick, false);
         this.addColliderBox(new THREE.Vector3(x - w / 2 + w / 4, storyH + storyH / 2 + 0.3, z + d / 2), w / 2, storyH, wallThick, false);
         this.addColliderBox(new THREE.Vector3(x + w / 2 - w / 4, storyH + storyH / 2 + 0.3, z + d / 2), w / 2, storyH, wallThick, false);
@@ -1071,8 +1071,8 @@ export class MapGenerator {
         this.addColliderBox(new THREE.Vector3(x - w / 2, h / 2 + 0.3, z), wt, h, d, false);
         this.addColliderBox(new THREE.Vector3(x + w / 2, h / 2 + 0.3, z), wt, h, d, false);
         this.addColliderBox(new THREE.Vector3(x, h / 2 + 0.3, z - d / 2), w, h, wt, false);
-        this.addColliderBox(new THREE.Vector3(x - (dw + frontSegmentW) / 2, h / 2 + 0.3, z + d / 2), frontSegmentW, h, wt, false);
-        this.addColliderBox(new THREE.Vector3(x + (dw + frontSegmentW) / 2, h / 2 + 0.3, z + d / 2), frontSegmentW, h, wt, false);
+        this.addColliderBox(new THREE.Vector3(x - w / 2 + frontSegmentW / 2, h / 2 + 0.3, z + d / 2), frontSegmentW, h, wt, false);
+        this.addColliderBox(new THREE.Vector3(x + w / 2 - frontSegmentW / 2, h / 2 + 0.3, z + d / 2), frontSegmentW, h, wt, false);
         this.addColliderBox(new THREE.Vector3(x, dh + (h - dh - 0.3) / 2 + 0.3, z + d / 2), w, h - dh - 0.3, wt, false);
     }
 

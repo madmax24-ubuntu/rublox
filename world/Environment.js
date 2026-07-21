@@ -8,7 +8,7 @@ export class Environment {
         this.weatherType = 'clear';
         this.weatherTimer = 90 + Math.random() * 45;
         this.enableWeather = false;
-        this.targetFog = 0.0028;
+        this.targetFog = 0.002;
         this.currentWeather = 'clear';
         this.weatherChanged = true;
         this.forceNightTimer = 0;

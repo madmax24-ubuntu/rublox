@@ -63,27 +63,27 @@ export const ROUND_MODES = {
         zombieMultiplier: 1.4,
         footstepVolume: 0.7,
         botVision: 0.9,
-        fogDensity: 0.0058
+        fogDensity: 0.003
     },
     nightmare: {
         lootDensity: 0.6,
         zombieMultiplier: 2.2,
         footstepVolume: 1,
         botVision: 1.05,
-        fogDensity: 0.0068
+        fogDensity: 0.0035
     },
     stealth: {
         lootDensity: 0.9,
         zombieMultiplier: 1.1,
         footstepVolume: 0.35,
         botVision: 0.7,
-        fogDensity: 0.0076
+        fogDensity: 0.004
     },
     classic: {
         lootDensity: 1,
         zombieMultiplier: 1,
         footstepVolume: 1,
         botVision: 1,
-        fogDensity: 0.0052
+        fogDensity: 0.0028
     }
 };

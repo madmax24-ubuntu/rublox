@@ -68,8 +68,8 @@ export class InteriorGenerator {
         const geo = new THREE.BoxGeometry(width, height, depth);
         const color = data.template?.wallColor || 0xbcaaa4;
         const mat = new THREE.MeshStandardMaterial({
-            color, roughness: 0.85, flatShading: true, side: THREE.DoubleSide,
-            polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6
+            color, roughness: 0.85, flatShading: true, side: THREE.FrontSide,
+            polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1
         });
         const mesh = new THREE.Mesh(geo, mat);
         mesh.position.set(center.x, center.y + height / 2, center.z);
@@ -136,7 +136,7 @@ export class InteriorGenerator {
     static _addTable(data, scene, addCollider, colliders, meshes, x, y, z, prop) {
         // Table top
         const topGeo = new THREE.BoxGeometry(prop.w, 0.06, prop.d);
-        const topMat = new THREE.MeshStandardMaterial({ color: 0x8d6e63, roughness: 0.7 , side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6});
+        const topMat = new THREE.MeshStandardMaterial({ color: 0x8d6e63, roughness: 0.7 , side: THREE.FrontSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1});
         const top = new THREE.Mesh(topGeo, topMat);
         top.position.set(x, y + prop.h, z);
         top.userData.mapGenerated = true;
@@ -145,7 +145,7 @@ export class InteriorGenerator {
 
         // Legs
         const legGeo = new THREE.BoxGeometry(0.08, prop.h, 0.08);
-        const legMat = new THREE.MeshStandardMaterial({ color: 0x6d4c41, roughness: 0.8 , side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6});
+        const legMat = new THREE.MeshStandardMaterial({ color: 0x6d4c41, roughness: 0.8 , side: THREE.FrontSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1});
         const legPositions = [
             [x - prop.w / 3, y + prop.h / 2, z - prop.d / 3],
             [x + prop.w / 3, y + prop.h / 2, z - prop.d / 3],
@@ -166,7 +166,7 @@ export class InteriorGenerator {
     static _addCrate(data, scene, addCollider, colliders, meshes, x, y, z, prop) {
         const size = prop.w || 0.75;
         const geo = new THREE.BoxGeometry(size, size, size);
-        const mat = new THREE.MeshStandardMaterial({ color: 0xa1887f, roughness: 0.9, flatShading: true , side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6});
+        const mat = new THREE.MeshStandardMaterial({ color: 0xa1887f, roughness: 0.9, flatShading: true , side: THREE.FrontSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1});
         const mesh = new THREE.Mesh(geo, mat);
         mesh.position.set(x, y + size / 2, z);
         mesh.userData.mapGenerated = true;
@@ -180,7 +180,7 @@ export class InteriorGenerator {
         const d = prop.d || 0.9;
         const h = prop.h || 0.75;
         const geo = new THREE.BoxGeometry(w, h, d);
-        const mat = new THREE.MeshStandardMaterial({ color: 0x6b4226, roughness: 0.85 , side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6});
+        const mat = new THREE.MeshStandardMaterial({ color: 0x6b4226, roughness: 0.85 , side: THREE.FrontSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1});
         const mesh = new THREE.Mesh(geo, mat);
         mesh.position.set(x, y + h / 2, z);
         mesh.userData.mapGenerated = true;
@@ -193,7 +193,7 @@ export class InteriorGenerator {
         const radius = prop.w || 0.6;
         const height = prop.h || 1.2;
         const geo = new THREE.CylinderGeometry(radius, radius, height, 12);
-        const mat = new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.9 , side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6});
+        const mat = new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.9 , side: THREE.FrontSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1});
         const mesh = new THREE.Mesh(geo, mat);
         mesh.position.set(x, y + height / 2, z);
         mesh.userData.mapGenerated = true;
@@ -207,7 +207,7 @@ export class InteriorGenerator {
         const d = prop.d || 0.6;
         const h = prop.h || 0.9;
         const geo = new THREE.BoxGeometry(w, h, d);
-        const mat = new THREE.MeshStandardMaterial({ color: 0x8d7b63, roughness: 0.95, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6 });
+        const mat = new THREE.MeshStandardMaterial({ color: 0x8d7b63, roughness: 0.95, side: THREE.FrontSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1 });
         const mesh = new THREE.Mesh(geo, mat);
         mesh.position.set(x, y + h / 2, z);
         mesh.userData.mapGenerated = true;
@@ -221,7 +221,7 @@ export class InteriorGenerator {
         const d = prop.d || 0.6;
         const h = prop.h || 0.6;
         const geo = new THREE.BoxGeometry(w, h, d);
-        const mat = new THREE.MeshStandardMaterial({ color: 0x808080, roughness: 0.9 , side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6});
+        const mat = new THREE.MeshStandardMaterial({ color: 0x808080, roughness: 0.9 , side: THREE.FrontSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1});
         const mesh = new THREE.Mesh(geo, mat);
         mesh.position.set(x, y + h / 2, z);
         mesh.userData.mapGenerated = true;
@@ -250,7 +250,7 @@ export class InteriorGenerator {
             const stepY = baseY + stepRise * (i + 0.5);
             const stepZ = startZ + stepDepth * i - stepDepth * stepCount / 2;
             const stepGeo = new THREE.BoxGeometry(stairWidth, 0.06, stepDepth);
-            const stepMat = new THREE.MeshStandardMaterial({ color: 0xbcaaa4, roughness: 0.8 , side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6});
+            const stepMat = new THREE.MeshStandardMaterial({ color: 0xbcaaa4, roughness: 0.8 , side: THREE.FrontSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1});
             const step = new THREE.Mesh(stepGeo, stepMat);
             step.position.set(startX, stepY, stepZ);
             step.userData.mapGenerated = true;
@@ -262,7 +262,7 @@ export class InteriorGenerator {
         }
 
         // Railing
-        const railMat = new THREE.MeshStandardMaterial({ color: 0x757575, metalness: 0.5, roughness: 0.6 , side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6});
+        const railMat = new THREE.MeshStandardMaterial({ color: 0x757575, metalness: 0.5, roughness: 0.6 , side: THREE.FrontSide, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1});
         const railGeo = new THREE.CylinderGeometry(0.03, 0.03, totalRise + 0.5, 6);
 
         for (let side = -1; side <= 1; side += 2) {

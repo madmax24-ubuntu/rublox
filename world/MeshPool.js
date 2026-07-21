@@ -346,8 +346,8 @@ export class MeshPool {
                 color: cHex, roughness: r, metalness: 0,
                 flatShading: flatShading,
                 polygonOffset: true,
-                polygonOffsetFactor: -1,
-                polygonOffsetUnits: -0.5
+                polygonOffsetFactor: 1,
+                polygonOffsetUnits: 1
             }));
         }
         return this.mats.get(key);
