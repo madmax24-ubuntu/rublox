@@ -321,13 +321,13 @@ export class MeshPool {
                 emissive: eHex, emissiveIntensity
             };
             if (!transparent) {
-                opts.side = THREE.DoubleSide;
+                opts.side = wall ? THREE.FrontSide : THREE.DoubleSide;
             }
             const mat = new THREE.MeshStandardMaterial(opts);
             if (!transparent) {
                 mat.polygonOffset = true;
-                mat.polygonOffsetFactor = 8;
-                mat.polygonOffsetUnits = 4;
+                mat.polygonOffsetFactor = wall ? 12 : 8;
+                mat.polygonOffsetUnits = wall ? 6 : 4;
             }
             this.mats.set(key, mat);
         }

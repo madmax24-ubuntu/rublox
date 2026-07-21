@@ -143,10 +143,10 @@ export class Zombie {
         const cfg = VARIANT_CONFIG[this.variant];
 
         const bodyMat = new THREE.MeshStandardMaterial({
-            color: cfg.bodyColor, emissive: cfg.bodyColor, emissiveIntensity: 0.08, roughness: 0.85, flatShading: true
+            color: cfg.bodyColor, emissive: cfg.bodyColor, emissiveIntensity: 0.25, roughness: 0.75, flatShading: true
         });
         const headMat = new THREE.MeshStandardMaterial({
-            color: cfg.headColor, emissive: cfg.headColor, emissiveIntensity: 0.07, roughness: 0.85, flatShading: true
+            color: cfg.headColor, emissive: cfg.headColor, emissiveIntensity: 0.2, roughness: 0.75, flatShading: true
         });
         const grimeMat = new THREE.MeshStandardMaterial({
             color: 0x2e3b2e, roughness: 0.95, flatShading: true

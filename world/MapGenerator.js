@@ -695,15 +695,6 @@ export class MapGenerator {
             }
         }
 
-        // Dense undergrowth — bushes and flowers
-        for (let i = 0; i < 30; i++) {
-            const bx = startX + 5 + this._rand() * (size - 10);
-            const bz = startZ + 5 + this._rand() * (size - 10);
-            if (!this._distToClearing(bx, bz, clearingCX, clearingCZ, clearingRadius + 5)) {
-                this._addForestBush(bx, bz);
-            }
-        }
-
         // Fallen logs for atmosphere
         for (let i = 0; i < 5; i++) {
             const lx = startX + 10 + this._rand() * (size - 20);
@@ -718,6 +709,17 @@ export class MapGenerator {
 
         this._addTwoStoryCabin(clearingCX - 34, clearingCZ - 18);
         this._addTwoStoryCabin(clearingCX + 34, clearingCZ - 18);
+
+        // Dense undergrowth — bushes and flowers (after buildings to avoid spawning inside)
+        for (let i = 0; i < 30; i++) {
+            const bx = startX + 5 + this._rand() * (size - 10);
+            const bz = startZ + 5 + this._rand() * (size - 10);
+            if (!this._distToClearing(bx, bz, clearingCX, clearingCZ, clearingRadius + 5)) {
+                if (!this.getStructureAtPoint(bx, bz, 4)) {
+                    this._addForestBush(bx, bz);
+                }
+            }
+        }
 
         // Rocks and moss on clearing
         this._addClearingRocks(clearingCX, clearingCZ, clearingRadius);
@@ -1651,6 +1653,7 @@ export class MapGenerator {
         const door = new THREE.Mesh(this.pool.getGeoBox(doorW, doorH, 0.1), doorMat);
         door.position.set(0, doorH / 2, d / 2 + 0.05);
         door.userData.mapGenerated = true;
+        door.userData.isWall = false;
         cabin.add(door);
 
         const backGeo = this.pool.getGeoBox(w, h, wallThick);
