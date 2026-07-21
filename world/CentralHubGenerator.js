@@ -55,7 +55,7 @@ export default class CentralHubGenerator {
         const baseGeo = new THREE.CircleGeometry(outerR, 64);
         const baseMesh = new THREE.Mesh(
             baseGeo,
-            new THREE.MeshStandardMaterial({ color: 0xe8dcc8, roughness: 0.8 , side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6})
+            new THREE.MeshStandardMaterial({ color: 0xe8dcc8, roughness: 0.8 , polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6})
         );
         baseMesh.rotation.x = -Math.PI / 2;
         baseMesh.position.y = -0.3;
@@ -96,7 +96,6 @@ export default class CentralHubGenerator {
                 new THREE.MeshStandardMaterial({
                     color: isRed ? 0xb87a4e : 0xd4c4a8,
                     roughness: 0.7,
-                    side: THREE.DoubleSide,
                     polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6
                 })
             );
@@ -109,7 +108,7 @@ export default class CentralHubGenerator {
         const innerGeo = new THREE.CircleGeometry(innerR, 48);
         const innerMesh = new THREE.Mesh(
             innerGeo,
-            new THREE.MeshStandardMaterial({ color: 0xffd700, roughness: 0.5, metalness: 0.3 , side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6})
+            new THREE.MeshStandardMaterial({ color: 0xffd700, roughness: 0.5, metalness: 0.3 , polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6})
         );
         innerMesh.rotation.x = -Math.PI / 2;
         innerMesh.position.y = -0.1;
@@ -119,7 +118,7 @@ export default class CentralHubGenerator {
         const rimGeo = new THREE.TorusGeometry(outerR, 0.6, 8, 48);
         const rimMesh = new THREE.Mesh(
             rimGeo,
-            new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.5, metalness: 0.2 , side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6})
+            new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.5, metalness: 0.2 , polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6})
         );
         rimMesh.rotation.x = -Math.PI / 2;
         rimMesh.position.y = -0.1;
@@ -129,7 +128,7 @@ export default class CentralHubGenerator {
         const innerRingGeo = new THREE.TorusGeometry(innerR, 0.3, 8, 48);
         const innerRingMesh = new THREE.Mesh(
             innerRingGeo,
-            new THREE.MeshStandardMaterial({ color: 0x777777, roughness: 0.5 , side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6})
+            new THREE.MeshStandardMaterial({ color: 0x777777, roughness: 0.5 , polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6})
         );
         innerRingMesh.rotation.x = -Math.PI / 2;
         innerRingMesh.position.y = -0.15;
@@ -309,7 +308,7 @@ export default class CentralHubGenerator {
         // Основание розы
         const baseRing = new THREE.Mesh(
             new THREE.RingGeometry(10, 12, 32),
-            new THREE.MeshBasicMaterial({ color: 0xff4400, side: THREE.DoubleSide })
+            new THREE.MeshBasicMaterial({ color: 0xff4400, })
         );
         baseRing.rotation.x = -Math.PI / 2;
         roseGroup.add(baseRing);

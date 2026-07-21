@@ -415,7 +415,7 @@ export class MapGenerator {
 
         for (const q of quadrants) {
             const geo = this.pool.getGeoPlane(HALF, HALF);
-            const mat = this.pool.getMatTerrain(q.color, 0.9, true);
+            const mat = this.pool.getMatTerrain(q.color, 0.9, false);
             const plane = new THREE.Mesh(geo, mat);
             plane.rotation.x = -Math.PI / 2;
             plane.position.set(q.x, 0.02, q.z); // Raise above platform base (y=0) so terrain is visible
@@ -425,7 +425,7 @@ export class MapGenerator {
             this.scene.add(plane);
         }
 
-        this.addColliderBox(new THREE.Vector3(0, -0.03, 0), HALF * 2, 0.1, HALF * 2, true);
+        this.addColliderBox(new THREE.Vector3(0, -0.03, 0), HALF * 2, 0.1, HALF * 2, false);
 
         // Height map (flat = 0)
         this.heightMap = [];
@@ -518,7 +518,7 @@ export class MapGenerator {
         // Base platform: BoxGeometry(50,2,50) at y=1 → top surface at y=2
         // Collider: center.y=1, height=2 → min.y=0, max.y=2 ✅
         const baseRadius = 55;
-        const platformCollider = this.addColliderBox(new THREE.Vector3(0, 1, 0), baseRadius * 2, 2, baseRadius * 2, true);
+        const platformCollider = this.addColliderBox(new THREE.Vector3(0, 1, 0), baseRadius * 2, 2, baseRadius * 2, false);
         platformCollider.isCornucopia = true;
 
         // Fountain collision — solid basin ring + column (fountain positioned at y=2 in scene)
@@ -546,7 +546,7 @@ export class MapGenerator {
     _placeBiomeBoundaries() {
         const wallH = 30;
         const wallT = 2.4;
-        const wallMat = this.pool.getMatStd(0x58636b, 0.9, 0, true, false, 1, 0, 0, true);
+        const wallMat = this.pool.getMatStd(0x58636b, 0.9, 0, true, false, 1, 0, 0, false);
         wallMat.polygonOffset = true;
         wallMat.polygonOffsetFactor = 12;
         wallMat.polygonOffsetUnits = 6;
@@ -564,7 +564,7 @@ export class MapGenerator {
             this.scene.add(mesh);
             const c = Math.abs(Math.cos(rotation));
             const s = Math.abs(Math.sin(rotation));
-            this.addColliderBox(new THREE.Vector3(x, wallH / 2, z), w * c + d * s, wallH, w * s + d * c, false, true);
+            this.addColliderBox(new THREE.Vector3(x, wallH / 2, z), w * c + d * s, wallH, w * s + d * c, false, false);
         };
         const ringRadius = 64;
         const ringSegments = 40;
@@ -585,7 +585,7 @@ export class MapGenerator {
                 this.scene.add(gate);
                 const c = Math.abs(Math.cos(rotation));
                 const s = Math.abs(Math.sin(rotation));
-                const collider = this.addColliderBox(new THREE.Vector3(x, 8, z), segmentLength * c + wallT * s, 16, segmentLength * s + wallT * c, false, true);
+                const collider = this.addColliderBox(new THREE.Vector3(x, 8, z), segmentLength * c + wallT * s, 16, segmentLength * s + wallT * c, false, false);
                 collider.enabled = false;
                 this._biomeGates.push(gate);
                 this._biomeGateColliders.push(collider);
@@ -614,7 +614,7 @@ export class MapGenerator {
         deck.userData.mapGenerated = true;
         deck.userData.walkable = true;
         this.scene.add(deck);
-        this.addColliderBox(new THREE.Vector3(x, 1, z), 12, 0.5, 8, true);
+        this.addColliderBox(new THREE.Vector3(x, 1, z), 12, 0.5, 8, false);
 
         // Bridge rails
         const railGeo = this.pool.getGeoBox(0.3, 1.5, 8);
@@ -754,9 +754,9 @@ export class MapGenerator {
 
     _addTwoStoryCabin(x, z) {
         const cabin = new THREE.Group();
-        const wallMat = this.pool.getMatStd(0x5d4037, 0.75, 0, true, false, 1, 0, 0, true);
-        const roofMat = this.pool.getMatStd(0x3e2723, 0.85, 0, true, false, 1, 0, 0, true);
-        const woodMat = this.pool.getMatStd(0x795548, 0.8, 0, true, false, 1, 0, 0, true);
+        const wallMat = this.pool.getMatStd(0x5d4037, 0.75, 0, true, false, 1, 0, 0, false);
+        const roofMat = this.pool.getMatStd(0x3e2723, 0.85, 0, true, false, 1, 0, 0, false);
+        const woodMat = this.pool.getMatStd(0x795548, 0.8, 0, true, false, 1, 0, 0, false);
 
         // Размеры хижины — более крупные и заметные
         const w = 14;
@@ -821,7 +821,7 @@ export class MapGenerator {
         cabin.add(backWall);
 
         // Дверь
-        const doorMat = this.pool.getMatStd(0x4e342e, 0.9, 0, false, false, 1, 0, 0, true);
+        const doorMat = this.pool.getMatStd(0x4e342e, 0.9, 0, false, false, 1, 0, 0, false);
         const doorGeo = this.pool.getGeoBox(doorW, doorH, 0.1);
         const door = new THREE.Mesh(doorGeo, doorMat);
         door.position.set(0, doorH / 2 + 0.3, d / 2 + 0.05);
@@ -884,9 +884,9 @@ export class MapGenerator {
         floor2RightB.userData.walkable = true;
         cabin.add(floor2RightB);
 
-        this.addColliderBox(new THREE.Vector3(x - floor2LeftW / 2 - 0.15, floor2YL, z), floor2LeftW, 0.3, d, true);
-        this.addColliderBox(new THREE.Vector3(x + floor2RightW / 2 + 0.15, floor2YL, z + d / 4 + stairD / 2 + floor2FrontD / 2), floor2RightW, 0.3, floor2FrontD, true);
-        this.addColliderBox(new THREE.Vector3(x + floor2RightW / 2 + 0.15, floor2YL, z - d / 4 - stairD / 2 - floor2BackD / 2), floor2RightW, 0.3, floor2BackD, true);
+        this.addColliderBox(new THREE.Vector3(x - floor2LeftW / 2 - 0.15, floor2YL, z), floor2LeftW, 0.3, d, false);
+        this.addColliderBox(new THREE.Vector3(x + floor2RightW / 2 + 0.15, floor2YL, z + d / 4 + stairD / 2 + floor2FrontD / 2), floor2RightW, 0.3, floor2FrontD, false);
+        this.addColliderBox(new THREE.Vector3(x + floor2RightW / 2 + 0.15, floor2YL, z - d / 4 - stairD / 2 - floor2BackD / 2), floor2RightW, 0.3, floor2BackD, false);
 
         // Стены второго этажа
         for (let side of [-1, 1]) {
@@ -978,8 +978,8 @@ export class MapGenerator {
     /** Small 1-story wooden hut (6x8) — matches reference forest houses */
     _addSmallHut(x, z) {
         const hut = new THREE.Group();
-        const wallMat = this.pool.getMatStd(0x8d6e63, 0.8, 0, true, false, 1, 0, 0, true);
-        const roofMat = this.pool.getMatStd(0x5d4037, 0.85, 0, true, false, 1, 0, 0, true);
+        const wallMat = this.pool.getMatStd(0x8d6e63, 0.8, 0, true, false, 1, 0, 0, false);
+        const roofMat = this.pool.getMatStd(0x5d4037, 0.85, 0, true, false, 1, 0, 0, false);
         const w = 10;
         const d = 12;
         const h = 5;
@@ -1030,7 +1030,7 @@ export class MapGenerator {
         hut.add(bw);
 
         // Door
-        const doorMat = this.pool.getMatStd(0x4e342e, 0.9, 0, false, false, 1, 0, 0, true);
+        const doorMat = this.pool.getMatStd(0x4e342e, 0.9, 0, false, false, 1, 0, 0, false);
         const door = new THREE.Mesh(this.pool.getGeoBox(dw, dh, 0.1), doorMat);
         door.position.set(0, dh / 2 + 0.3, d / 2 + 0.05);
         door.userData.mapGenerated = true;
@@ -1064,7 +1064,7 @@ export class MapGenerator {
         this.scene.add(hut);
 
         // Floor collider
-        this.addColliderBox(new THREE.Vector3(x, 0.15, z), w, 0.3, d, true);
+        this.addColliderBox(new THREE.Vector3(x, 0.15, z), w, 0.3, d, false);
         // Wall colliders — match visual walls exactly
         const frontSegmentW = w / 2 - dw / 2 - 0.3;
         this.addColliderBox(new THREE.Vector3(x - w / 2, h / 2 + 0.3, z), wt, h, d, false);
@@ -1079,7 +1079,7 @@ export class MapGenerator {
         const bush = new THREE.Group();
         bush.userData.mapGenerated = true;
         bush.userData.instancable = true;
-        const bushMat = this.pool.getMat(0x388e3c, true);
+        const bushMat = this.pool.getMat(0x388e3c, false);
 
         const count = 3 + Math.floor(this._rand() * 3);
         for (let i = 0; i < count; i++) {
@@ -1111,7 +1111,7 @@ export class MapGenerator {
         clearing.userData.mapGenerated = true;
         clearing.userData.walkable = true;
         this.scene.add(clearing);
-        this.addColliderBox(new THREE.Vector3(x, 0.02, z), 12, 0.04, 12, true);
+        this.addColliderBox(new THREE.Vector3(x, 0.02, z), 12, 0.04, 12, false);
 
     }
 
@@ -1152,7 +1152,7 @@ export class MapGenerator {
         const trunkR = 0.6 + this._rand() * 0.4;
 
         const trunkGeo = this.pool.getGeoCylinder(trunkR * 0.4, trunkR, trunkH);
-        const trunkMat = this.pool.getMat(0x8B4513, true);
+        const trunkMat = this.pool.getMat(0x8B4513, false);
         const trunk = new THREE.Mesh(trunkGeo, trunkMat);
         trunk.position.set(x, trunkH / 2, z);
         trunk.userData.mapGenerated = true;
@@ -1167,7 +1167,7 @@ export class MapGenerator {
             const layerR = 4 - layer * 0.7;
             const layerY = trunkH - 3 + layer * 3;
             const crownGeo = this.pool.getGeoCone(layerR, 4);
-            const crownMat = this.pool.getMat(crownColor, true);
+            const crownMat = this.pool.getMat(crownColor, false);
             const crown = new THREE.Mesh(crownGeo, crownMat);
             crown.position.set(x, layerY, z);
             crown.userData.mapGenerated = true;
@@ -1180,7 +1180,7 @@ export class MapGenerator {
         const trunkR = 1.0 + this._rand() * 0.6;
 
         const trunkGeo = this.pool.getGeoCylinder(trunkR * 0.5, trunkR, trunkH);
-        const trunkMat = this.pool.getMat(0x8B4513, true);
+        const trunkMat = this.pool.getMat(0x8B4513, false);
         const trunk = new THREE.Mesh(trunkGeo, trunkMat);
         trunk.position.set(x, trunkH / 2, z);
         trunk.userData.mapGenerated = true;
@@ -1195,7 +1195,7 @@ export class MapGenerator {
         for (let i = 0; i < crownCount; i++) {
             const r = 2 + this._rand() * 2;
             const crownGeo = this.pool.getGeoDodecahedron(r);
-            const crownMat = this.pool.getMat(crownColor, true);
+            const crownMat = this.pool.getMat(crownColor, false);
             const crown = new THREE.Mesh(crownGeo, crownMat);
             crown.position.set(
                 x + (this._rand() - 0.5) * 3,
@@ -1227,7 +1227,7 @@ export class MapGenerator {
         for (let i = 0; i < crownCount; i++) {
             const r = 1.5 + this._rand() * 1.5;
             const crownGeo = this.pool.getGeoDodecahedron(r);
-            const crownMat = this.pool.getMat(crownColor, true);
+            const crownMat = this.pool.getMat(crownColor, false);
             const crown = new THREE.Mesh(crownGeo, crownMat);
             crown.position.set(
                 x + (this._rand() - 0.5) * 2,
@@ -1244,7 +1244,7 @@ export class MapGenerator {
         const trunkR = 0.5 + this._rand() * 0.4;
 
         const trunkGeo = this.pool.getGeoCylinder(trunkR * 0.4, trunkR, trunkH);
-        const trunkMat = this.pool.getMat(0x8B4513, true);
+        const trunkMat = this.pool.getMat(0x8B4513, false);
         const trunk = new THREE.Mesh(trunkGeo, trunkMat);
         trunk.position.set(x, trunkH / 2, z);
         trunk.userData.mapGenerated = true;
@@ -1259,7 +1259,7 @@ export class MapGenerator {
             const layerR = 5 - layer * 0.7;
             const layerY = trunkH - 5 + layer * 2.5;
             const crownGeo = this.pool.getGeoCone(layerR, 3);
-            const crownMat = this.pool.getMat(crownColor, true);
+            const crownMat = this.pool.getMat(crownColor, false);
             const crown = new THREE.Mesh(crownGeo, crownMat);
             crown.position.set(x, layerY, z);
             crown.userData.mapGenerated = true;
@@ -1272,7 +1272,7 @@ export class MapGenerator {
         const length = 4 + this._rand() * 4;
         const radius = 0.4 + this._rand() * 0.3;
         const geo = this.pool.getGeoCylinder(radius * 0.8, radius, length);
-        const mat = this.pool.getMat(0x5d4037, true);
+        const mat = this.pool.getMat(0x5d4037, false);
         const log = new THREE.Mesh(geo, mat);
         log.position.set(x, radius, z);
         log.rotation.z = Math.PI / 2;
@@ -1312,7 +1312,7 @@ export class MapGenerator {
                     seg.userData.mapGenerated = true;
                     seg.userData.walkable = true;
                     this.scene.add(seg);
-                    this.addColliderBox(new THREE.Vector3(seg.position.x, 0.3, seg.position.z), 8.5, 0.5, 8.5, true);
+                    this.addColliderBox(new THREE.Vector3(seg.position.x, 0.3, seg.position.z), 8.5, 0.5, 8.5, false);
                 }
             }
         }
@@ -1357,7 +1357,7 @@ export class MapGenerator {
             const rz = cz + Math.sin(angle) * dist;
             const size = 0.3 + this._rand() * 0.8;
             const geo = this.pool.getGeoDodecahedron(size);
-            const rock = new THREE.Mesh(geo, Math.random() > 0.3 ? this.pool.getMat(0x757575, true) : this.pool.getMat(0x4caf50, true));
+            const rock = new THREE.Mesh(geo, Math.random() > 0.3 ? this.pool.getMat(0x757575, false) : this.pool.getMat(0x4caf50, false));
             rock.position.set(rx, size * 0.3, rz);
             rock.rotation.set(this._rand() * Math.PI, this._rand() * Math.PI, this._rand() * Math.PI);
             rock.userData.mapGenerated = true;
@@ -1371,7 +1371,7 @@ export class MapGenerator {
             const mx = cx + (this._rand() - 0.5) * radius * 1.2;
             const mz = cz + (this._rand() - 0.5) * radius * 1.2;
             const mossGeo = this.pool.getGeoDodecahedron(0.5 + this._rand() * 0.8);
-            const moss = new THREE.Mesh(mossGeo, this.pool.getMat(0x4caf50, true));
+            const moss = new THREE.Mesh(mossGeo, this.pool.getMat(0x4caf50, false));
             moss.rotation.x = -Math.PI / 2;
             moss.position.set(mx, 0.07, mz);
             moss.userData.mapGenerated = true;
@@ -1606,8 +1606,8 @@ export class MapGenerator {
 
     _addLogCabin(x, z) {
         const cabin = new THREE.Group();
-        const wallMat = this.pool.getMatStd(0x5d4037, 0.75, 0, true, false, 1, 0, 0, true);
-        const roofMat = this.pool.getMatStd(0x3e2723, 0.85, 0, true, false, 1, 0, 0, true);
+        const wallMat = this.pool.getMatStd(0x5d4037, 0.75, 0, true, false, 1, 0, 0, false);
+        const roofMat = this.pool.getMatStd(0x3e2723, 0.85, 0, true, false, 1, 0, 0, false);
 
         // Large cabin
         const w = 14 + this._rand() * 6;
@@ -1630,7 +1630,7 @@ export class MapGenerator {
         const frontLeftW = w / 2 - doorW / 2 - 0.5;
         const frontRightW = w / 2 - doorW / 2 - 0.5;
         const frontTopH = h - doorH - 0.5;
-        const doorMat = this.pool.getMatStd(0x4e342e, 0.9, 0, false, false, 1, 0, 0, true);
+        const doorMat = this.pool.getMatStd(0x4e342e, 0.9, 0, false, false, 1, 0, 0, false);
         if (frontLeftW > 0) {
             const fl = new THREE.Mesh(this.pool.getGeoBox(frontLeftW, h, wallThick), wallMat);
             fl.position.set(-frontLeftW / 2 - 0.5, h / 2, d / 2);
@@ -1731,7 +1731,7 @@ export class MapGenerator {
 
         const wallHeight = 18; // Высокие стены замка
 
-        const wallMat = this.pool.getMatStd(0x666666, 0.85, 0, true, false, 1, 0, 0, true);
+        const wallMat = this.pool.getMatStd(0x666666, 0.85, 0, true, false, 1, 0, 0, false);
         const darkMat = this.pool.getMatStd(COLORS.mazeTower, 0.9, 0, true, false, 1, 0, 0);
 
         const margin = 3;
@@ -2178,7 +2178,7 @@ export class MapGenerator {
 
         // Gate roof
         const roofGeo = this.pool.getGeoCone(7, 4, 4);
-        const roofMat = this.pool.getMatStd(0x3e2723, 0.85, 0, true, false, 1, 0, 0, true);
+        const roofMat = this.pool.getMatStd(0x3e2723, 0.85, 0, true, false, 1, 0, 0, false);
         const roof = new THREE.Mesh(roofGeo, roofMat);
         roof.position.set(0, wallHeight + 6.5, 0);
         roof.rotation.y = Math.PI / 4;
@@ -2272,7 +2272,7 @@ export class MapGenerator {
             const size2 = 0.3 + this._rand() * 0.7;
 
             const geo = this.pool.getGeoDodecahedron(size2);
-            const crystal = new THREE.Mesh(geo, this.pool.getMat(0x7c4dff, true));
+            const crystal = new THREE.Mesh(geo, this.pool.getMat(0x7c4dff, false));
             crystal.position.set(cx2, size2, cz2);
             crystal.rotation.set(this._rand() * Math.PI, this._rand() * Math.PI, 0);
             crystal.userData.isCrystal = true;
@@ -2320,7 +2320,7 @@ export class MapGenerator {
         floor.userData.walkable = true;
         floor.userData.isBiomeEntrance = true;
         this.scene.add(floor);
-        const floorCollider = this.addColliderBox(new THREE.Vector3(midpoint.x, 0.09, midpoint.z), 12 * Math.abs(Math.cos(angle)) + length * Math.abs(Math.sin(angle)), 0.18, 12 * Math.abs(Math.sin(angle)) + length * Math.abs(Math.cos(angle)), true);
+        const floorCollider = this.addColliderBox(new THREE.Vector3(midpoint.x, 0.09, midpoint.z), 12 * Math.abs(Math.cos(angle)) + length * Math.abs(Math.sin(angle)), 0.18, 12 * Math.abs(Math.sin(angle)) + length * Math.abs(Math.cos(angle)), false);
         floorCollider.isBiomeEntrance = true;
     }
 
@@ -2423,7 +2423,7 @@ export class MapGenerator {
     _addMilitaryHangar(x, z, w, d, h) {
         const group = new THREE.Group();
         const floorMat = this.pool.getMatStd(0x34383d, 0.94, 0.05, true, false, 1, 0, 0);
-        const wallMat = this.pool.getMatStd(0x59636c, 0.72, 0.28, true, false, 1, 0, 0, true);
+        const wallMat = this.pool.getMatStd(0x59636c, 0.72, 0.28, true, false, 1, 0, 0, false);
         const floor = new THREE.Mesh(this.pool.getGeoBox(w, 0.3, d), floorMat);
         floor.position.y = 0.15;
         floor.userData.mapGenerated = true;
@@ -2439,7 +2439,7 @@ export class MapGenerator {
         }
         const doorW = 4;
         const doorH = 3.5;
-        const doorMat = this.pool.getMatStd(0x4e342e, 0.9, 0, false, false, 1, 0, 0, true);
+        const doorMat = this.pool.getMatStd(0x4e342e, 0.9, 0, false, false, 1, 0, 0, false);
         const doorLeftW = w / 2 - doorW / 2 - 0.5;
         const doorRightW = w / 2 - doorW / 2 - 0.5;
         const doorTopH = h - doorH - 0.5;
@@ -2510,7 +2510,7 @@ export class MapGenerator {
     _addReferenceMilitaryRuin(x, z, w, d) {
         const group = new THREE.Group();
         const floorMat = this.pool.getMatStd(0x34383d, 0.95, 0, true, false, 1, 0, 0);
-        const wallMat = this.pool.getMatStd(0x4f5963, 0.9, 0, true, false, 1, 0, 0, true);
+        const wallMat = this.pool.getMatStd(0x4f5963, 0.9, 0, true, false, 1, 0, 0, false);
         const floor = new THREE.Mesh(this.pool.getGeoBox(w, 0.35, d), floorMat);
         floor.position.y = 0.18;
         floor.userData.mapGenerated = true;
@@ -2540,7 +2540,7 @@ export class MapGenerator {
             slab.userData.mapGenerated = true;
             slab.userData.walkable = true;
             group.add(slab);
-            this.addColliderBox(new THREE.Vector3(x + side * w * 0.27, 6, z), slabW, 0.35, d * 0.78, true);
+            this.addColliderBox(new THREE.Vector3(x + side * w * 0.27, 6, z), slabW, 0.35, d * 0.78, false);
         }
         group.position.set(x, 0, z);
         group.userData.mapGenerated = true;
@@ -2626,7 +2626,7 @@ export class MapGenerator {
             seg.userData.mapGenerated = true;
             seg.userData.walkable = true;
             this.scene.add(seg);
-            this.addColliderBox(new THREE.Vector3(seg.position.x, 0.03, seg.position.z), 3, 0.05, 4, true);
+            this.addColliderBox(new THREE.Vector3(seg.position.x, 0.03, seg.position.z), 3, 0.05, 4, false);
             px += (endX - px) * 0.12 + (this._rand() - 0.5) * 2;
             pz += (endZ - pz) * 0.12 + (this._rand() - 0.5) * 2;
         }
@@ -2899,9 +2899,9 @@ export class MapGenerator {
     _addThreeStoryApartment(x, z, w = 20, d = 16) {
         const building = new THREE.Group();
         // Soviet-style concrete panel colors - warm gray
-        const wallMat = this.pool.getMatStd(0x9e9e96, 0.85, 0, true, false, 1, 0, 0, true);
+        const wallMat = this.pool.getMatStd(0x9e9e96, 0.85, 0, true, false, 1, 0, 0, false);
         const concreteMat = this.pool.getMatStd(0xb0b0a8, 0.9, 0, true, false, 1, 0, 0);
-        const doorMat = this.pool.getMatStd(0x4a3525, 0.8, 0, false, false, 1, 0, 0, true);
+        const doorMat = this.pool.getMatStd(0x4a3525, 0.8, 0, false, false, 1, 0, 0, false);
 
         const width = w;
         const depth = d;
@@ -2914,7 +2914,7 @@ export class MapGenerator {
         floor1.userData.mapGenerated = true;
         floor1.userData.walkable = true;
         building.add(floor1);
-        this.addColliderBox(new THREE.Vector3(x, 0.15, z), width, 0.3, depth, true);
+        this.addColliderBox(new THREE.Vector3(x, 0.15, z), width, 0.3, depth, false);
 
         // Стены первого этажа (с разрушениями)
         const wallThick = 0.5;
@@ -3007,7 +3007,7 @@ export class MapGenerator {
         floor2Left.userData.mapGenerated = true;
         floor2Left.userData.walkable = true;
         building.add(floor2Left);
-        this.addColliderBox(new THREE.Vector3(x - width / 4, floorH + 0.15, z), width / 2, 0.3, depth, true);
+        this.addColliderBox(new THREE.Vector3(x - width / 4, floorH + 0.15, z), width / 2, 0.3, depth, false);
 
         const floor2RightGeo = this.pool.getGeoBox(width / 2 - 2, 0.3, depth);
         const floor2Right = new THREE.Mesh(floor2RightGeo, concreteMat);
@@ -3015,7 +3015,7 @@ export class MapGenerator {
         floor2Right.userData.mapGenerated = true;
         floor2Right.userData.walkable = true;
         building.add(floor2Right);
-        this.addColliderBox(new THREE.Vector3(x + width / 4 + 1, floorH + 0.15, z), width / 2 - 2, 0.3, depth, true);
+        this.addColliderBox(new THREE.Vector3(x + width / 4 + 1, floorH + 0.15, z), width / 2 - 2, 0.3, depth, false);
 
         // Стены второго этажа
         const leftWall2Geo = this.pool.getGeoBox(wallThick, floorH, depth);
@@ -3077,7 +3077,7 @@ export class MapGenerator {
         floor3.userData.mapGenerated = true;
         floor3.userData.walkable = true;
         building.add(floor3);
-        this.addColliderBox(new THREE.Vector3(x + 1, floorH * 2 + 0.15, z), width - 2, 0.3, depth, true);
+        this.addColliderBox(new THREE.Vector3(x + 1, floorH * 2 + 0.15, z), width - 2, 0.3, depth, false);
 
         // Стены третьего этажа (сильно разрушены)
         const leftWall3Geo = this.pool.getGeoBox(wallThick, floorH, depth * 0.7);
@@ -3261,7 +3261,7 @@ export class MapGenerator {
         const h = 8 + this._rand() * 6;
 
         const buildingMat = this.pool.getMatStd(COLORS.militaryBuilding, 0.75, 0, true, false, 1, 0, 0);
-        const wallMat = this.pool.getMatStd(COLORS.militaryRuined, 0.85, 0, true, false, 1, 0, 0, true);
+        const wallMat = this.pool.getMatStd(COLORS.militaryRuined, 0.85, 0, true, false, 1, 0, 0, false);
 
         // Solid floor
         const floorGeo = this.pool.getGeoBox(w, 1, d);
@@ -3289,7 +3289,7 @@ export class MapGenerator {
         const frontLeftW = w / 2 - doorW / 2 - 0.5;
         const frontRightW = w / 2 - doorW / 2 - 0.5;
         const frontTopH = h - doorH - 0.5;
-        const doorMat = this.pool.getMatStd(0x4e342e, 0.9, 0, false, false, 1, 0, 0, true);
+        const doorMat = this.pool.getMatStd(0x4e342e, 0.9, 0, false, false, 1, 0, 0, false);
         if (frontLeftW > 0) {
             const fl = new THREE.Mesh(this.pool.getGeoBox(frontLeftW, h, wallThick), wallMat);
             fl.position.set(x - frontLeftW / 2 - 0.5, h / 2, z + d / 2);
@@ -3488,7 +3488,7 @@ export class MapGenerator {
             driftMesh.scale.set(1, driftH / driftW, driftD / driftW);
             driftMesh.userData.mapGenerated = true;
             this.scene.add(driftMesh);
-            this.addColliderBox(new THREE.Vector3(driftMesh.position.x, driftH / 2, driftMesh.position.z), driftW * 2, driftH, driftD * 2, true);
+            this.addColliderBox(new THREE.Vector3(driftMesh.position.x, driftH / 2, driftMesh.position.z), driftW * 2, driftH, driftD * 2, false);
         }
 
         // Иглу — детализированные, ближе к краям как в референсе
@@ -3575,7 +3575,7 @@ export class MapGenerator {
         deep.position.set(cx, 0.15, cz);
         deep.userData.mapGenerated = true;
         this.scene.add(deep);
-        this.addColliderBox(new THREE.Vector3(cx, 0.15, cz), deepSize, 0.3, deepSize, true);
+        this.addColliderBox(new THREE.Vector3(cx, 0.15, cz), deepSize, 0.3, deepSize, false);
 
         // Мелкие зоны вокруг — квадратные плитки
         const tileSize = 10;
@@ -3597,7 +3597,7 @@ export class MapGenerator {
             mesh.position.set(cx + s.dx, 0.1, cz + s.dz);
             mesh.userData.mapGenerated = true;
             this.scene.add(mesh);
-            this.addColliderBox(new THREE.Vector3(cx + s.dx, 0.1, cz + s.dz), s.w, 0.2, s.d, true);
+            this.addColliderBox(new THREE.Vector3(cx + s.dx, 0.1, cz + s.dz), s.w, 0.2, s.d, false);
         }
 
         // Внешние квадратные плитки льда (разной высоты) — как в референсе
@@ -3832,7 +3832,7 @@ export class MapGenerator {
     }
 
     _addSleighs(startX, startZ, size) {
-        const woodMat = this.pool.getMatStd(0x6d4c41, 0.8, 0, true, false, 1, 0, 0, true);
+        const woodMat = this.pool.getMatStd(0x6d4c41, 0.8, 0, true, false, 1, 0, 0, false);
         const metalMat = this.pool.getMatStd(0x757575, 0.6, 0.5, true, false, 1, 0, 0);
 
         for (let i = 0; i < 3; i++) {
@@ -3923,8 +3923,8 @@ export class MapGenerator {
 
     _addSnowBarrack(x, z) {
         const group = new THREE.Group();
-        const wallMat = this.pool.getMatStd(0xe8f2ff, 0.82, 0, true, false, 1, 0, 0, true);
-        const roofMat = this.pool.getMatStd(0x8fb7d7, 0.65, 0.05, true, false, 1, 0, 0, true);
+        const wallMat = this.pool.getMatStd(0xe8f2ff, 0.82, 0, true, false, 1, 0, 0, false);
+        const roofMat = this.pool.getMatStd(0x8fb7d7, 0.65, 0.05, true, false, 1, 0, 0, false);
         const floorMat = this.pool.getMatStd(0xb6cedf, 0.9, 0, true, false, 1, 0, 0);
         const w = 14;
         const d = 20;
@@ -3949,7 +3949,7 @@ export class MapGenerator {
         group.add(back);
         this.addColliderBox(new THREE.Vector3(x, h / 2, z - d / 2), w, h, wt, false);
         const frontW = (w - doorW) / 2;
-        const doorMat = this.pool.getMatStd(0x4e342e, 0.9, 0, false, false, 1, 0, 0, true);
+        const doorMat = this.pool.getMatStd(0x4e342e, 0.9, 0, false, false, 1, 0, 0, false);
         for (const side of [-1, 1]) {
             const front = new THREE.Mesh(this.pool.getGeoBox(frontW, h, wt), wallMat);
             front.position.set(side * (doorW + frontW) / 2, h / 2, d / 2);
@@ -3971,7 +3971,7 @@ export class MapGenerator {
             slab.userData.mapGenerated = true;
             slab.userData.walkable = true;
             group.add(slab);
-            this.addColliderBox(new THREE.Vector3(x + slab.position.x, upperY, z), upperSlabW, 0.3, d - 1.2, true);
+            this.addColliderBox(new THREE.Vector3(x + slab.position.x, upperY, z), upperSlabW, 0.3, d - 1.2, false);
         }
         const roofGeo = this.pool.getGeoBox(w * 0.58, 0.55, d + 1.5);
         for (const side of [-1, 1]) {
@@ -3984,7 +3984,7 @@ export class MapGenerator {
         group.position.set(x, 0, z);
         group.userData.mapGenerated = true;
         this.scene.add(group);
-        this.addColliderBox(new THREE.Vector3(x, 0.18, z), w, 0.35, d, true);
+        this.addColliderBox(new THREE.Vector3(x, 0.18, z), w, 0.35, d, false);
         this._buildings.push({ x, z, w, d, template: { type: 'snow_barrack' } });
         for (const ox of [-5, 0, 5]) {
             this._registerChestSpot(x + ox, z - 8, 'ice');
@@ -4153,7 +4153,7 @@ export class MapGenerator {
             seg.userData.mapGenerated = true;
             seg.userData.walkable = true;
             this.scene.add(seg);
-            this.addColliderBox(new THREE.Vector3(seg.position.x, 0.03, seg.position.z), 3, 0.05, 4, true);
+            this.addColliderBox(new THREE.Vector3(seg.position.x, 0.03, seg.position.z), 3, 0.05, 4, false);
             px += (endX - px) * 0.12 + (this._rand() - 0.5) * 2;
             pz += (endZ - pz) * 0.12 + (this._rand() - 0.5) * 2;
         }
@@ -4500,7 +4500,7 @@ export class MapGenerator {
     _addGuardPost(x, z) {
         const group = new THREE.Group();
         const postMat = this.pool.getMatStd(0x4c553d, 0.82, 0.2, true, false, 1, 0, 0);
-        const roofMat = this.pool.getMatStd(0x343b34, 0.72, 0.35, true, false, 1, 0, 0, true);
+        const roofMat = this.pool.getMatStd(0x343b34, 0.72, 0.35, true, false, 1, 0, 0, false);
         for (const px of [-2.5, 2.5]) {
             for (const pz of [-2.5, 2.5]) {
                 const post = new THREE.Mesh(this.pool.getGeoBox(0.7, 6, 0.7), postMat);
@@ -4567,7 +4567,7 @@ export class MapGenerator {
             seg.userData.mapGenerated = true;
             seg.userData.walkable = true;
             this.scene.add(seg);
-            this.addColliderBox(new THREE.Vector3(px, 0.03, pz), 2, 0.05, 2, true);
+            this.addColliderBox(new THREE.Vector3(px, 0.03, pz), 2, 0.05, 2, false);
         }
         // Military to Ice path (diagonal)
         for (let i = 0; i < 4; i++) {
@@ -4579,7 +4579,7 @@ export class MapGenerator {
             seg.userData.mapGenerated = true;
             seg.userData.walkable = true;
             this.scene.add(seg);
-            this.addColliderBox(new THREE.Vector3(px, 0.03, pz), 2, 0.05, 2, true);
+            this.addColliderBox(new THREE.Vector3(px, 0.03, pz), 2, 0.05, 2, false);
         }
 
         // Forest to Military path (vertical)
@@ -4592,7 +4592,7 @@ export class MapGenerator {
             seg.userData.mapGenerated = true;
             seg.userData.walkable = true;
             this.scene.add(seg);
-            this.addColliderBox(new THREE.Vector3(px, 0.03, pz), 2, 0.05, 2, true);
+            this.addColliderBox(new THREE.Vector3(px, 0.03, pz), 2, 0.05, 2, false);
         }
     }
 

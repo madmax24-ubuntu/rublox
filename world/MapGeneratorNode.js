@@ -18,7 +18,7 @@ export class MapGeneratorNode {
     }
 
     init() {
-        const baseMat = new THREE.MeshStandardMaterial({ color: 0x62584c, roughness: 0.94, metalness: 0.02, flatShading: true, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6 });
+        const baseMat = new THREE.MeshStandardMaterial({ color: 0x62584c, roughness: 0.94, metalness: 0.02, flatShading: true, polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6 });
         const baseMesh = new THREE.Mesh(new THREE.CylinderGeometry(PLATFORM_RADIUS, PLATFORM_RADIUS + 1.4, PLATFORM_HEIGHT, 64), baseMat);
         baseMesh.position.set(0, PLATFORM_HEIGHT / 2, 0);
         baseMesh.userData.mapGenerated = true;
@@ -27,7 +27,6 @@ export class MapGeneratorNode {
 
         const surfaceMat = new THREE.MeshStandardMaterial({
             color: 0xb7aa88, roughness: 0.88, metalness: 0.02,
-            side: THREE.DoubleSide,
             polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6
         });
         const surface = new THREE.Mesh(new THREE.CylinderGeometry(PLATFORM_RADIUS - 0.8, PLATFORM_RADIUS - 0.8, 0.22, 64), surfaceMat);
@@ -56,7 +55,7 @@ export class MapGeneratorNode {
 
         // Vibrant colors — clearly visible against beige platform
         const redMat = new THREE.MeshStandardMaterial({
-            color: 0x8f3f2e, roughness: 0.82, metalness: 0.02, side: THREE.DoubleSide,
+            color: 0x8f3f2e, roughness: 0.82, metalness: 0.02,
             polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4
         });
 
@@ -94,8 +93,9 @@ export class MapGeneratorNode {
         // Inner ring decoration
         const innerRingGeo = new THREE.TorusGeometry(innerR - 0.45, 0.17, 5, 64);
         const innerRingMat = new THREE.MeshStandardMaterial({
-            color: 0x6e6252, roughness: 0.8, metalness: 0.05, flatShading: true
-        , side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6});
+            color: 0x6e6252, roughness: 0.8, metalness: 0.05, flatShading: true,
+            polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6
+        });
         const innerRing = new THREE.Mesh(innerRingGeo, innerRingMat);
         innerRing.rotation.x = Math.PI / 2;
         innerRing.position.y = PLATFORM_TOP_Y + 0.29;
@@ -106,8 +106,9 @@ export class MapGeneratorNode {
         // Outer ring decoration
         const outerRingGeo = new THREE.TorusGeometry(outerR + 0.55, 0.2, 5, 96);
         const outerRingMat = new THREE.MeshStandardMaterial({
-            color: 0x766957, roughness: 0.82, metalness: 0.04, flatShading: true
-        , side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6});
+            color: 0x766957, roughness: 0.82, metalness: 0.04, flatShading: true,
+            polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6
+        });
         const outerRing = new THREE.Mesh(outerRingGeo, outerRingMat);
         outerRing.rotation.x = Math.PI / 2;
         outerRing.position.y = PLATFORM_TOP_Y + 0.29;
@@ -117,8 +118,8 @@ export class MapGeneratorNode {
     }
 
     _createStoneRings() {
-        const ringMat = new THREE.MeshStandardMaterial({ color: 0xd4c7a3, roughness: 0.9, metalness: 0.01 , side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6});
-        const seamMat = new THREE.MeshStandardMaterial({ color: 0x756956, roughness: 0.95 , side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6});
+        const ringMat = new THREE.MeshStandardMaterial({ color: 0xd4c7a3, roughness: 0.9, metalness: 0.01 , polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6});
+        const seamMat = new THREE.MeshStandardMaterial({ color: 0x756956, roughness: 0.95 , polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6});
         for (const radius of [8.6, 40.2, 53.8]) {
             const ring = new THREE.Mesh(new THREE.TorusGeometry(radius, radius === 53.8 ? 0.42 : 0.2, 5, 96), radius === 53.8 ? seamMat : ringMat);
             ring.rotation.x = Math.PI / 2;
@@ -142,7 +143,7 @@ export class MapGeneratorNode {
     _createFountain() {
         const fountain = new THREE.Group();
         const stoneMat = new THREE.MeshStandardMaterial({
-            color: 0x555555, roughness: 0.8, flatShading: true, side: THREE.DoubleSide,
+            color: 0x555555, roughness: 0.8, flatShading: true,
             polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6
         });
 
@@ -270,14 +271,14 @@ export class MapGeneratorNode {
     _createCenterProps() {
         const crateGeo = new THREE.BoxGeometry(1.8, 1.2, 1.5);
         const bandGeo = new THREE.BoxGeometry(1.92, 0.16, 1.62);
-        const crateMat = new THREE.MeshStandardMaterial({ color: 0x704421, roughness: 0.88, flatShading: true , side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6});
-        const bandMat = new THREE.MeshStandardMaterial({ color: 0x2e2925, roughness: 0.65, metalness: 0.45 , side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6});
+        const crateMat = new THREE.MeshStandardMaterial({ color: 0x704421, roughness: 0.88, flatShading: true , polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6});
+        const bandMat = new THREE.MeshStandardMaterial({ color: 0x2e2925, roughness: 0.65, metalness: 0.45 , polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6});
         const lootColors = [0x8b4513, 0x2e6f5e, 0x8b1e1e, 0x334f83, 0x76520e];
         for (let i = 0; i < 10; i++) {
             const angle = i / 10 * Math.PI * 2 + 0.18;
             const radius = 10.5 + (i % 2) * 2.2;
             const crate = new THREE.Group();
-            const body = new THREE.Mesh(crateGeo, i < 5 ? new THREE.MeshStandardMaterial({ color: lootColors[i], roughness: 0.82, flatShading: true , side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6}) : crateMat);
+            const body = new THREE.Mesh(crateGeo, i < 5 ? new THREE.MeshStandardMaterial({ color: lootColors[i], roughness: 0.82, flatShading: true , polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6}) : crateMat);
             body.position.y = 0.6;
             crate.add(body);
             const band = new THREE.Mesh(bandGeo, bandMat);
@@ -293,7 +294,7 @@ export class MapGeneratorNode {
 
         const poleGeo = new THREE.CylinderGeometry(0.09, 0.13, 2.3, 6);
         const flameGeo = new THREE.ConeGeometry(0.28, 0.7, 7);
-        const poleMat = new THREE.MeshStandardMaterial({ color: 0x35251d, roughness: 0.9 , side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6});
+        const poleMat = new THREE.MeshStandardMaterial({ color: 0x35251d, roughness: 0.9 , polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6});
         const flameMat = new THREE.MeshStandardMaterial({ color: 0xffbd20, emissive: 0xff5200, emissiveIntensity: 7, roughness: 0.28 });
         for (let i = 0; i < 8; i++) {
             const angle = i / 8 * Math.PI * 2 + Math.PI / 8;
@@ -315,12 +316,12 @@ export class MapGeneratorNode {
     _createSpawnPads() {
         const edgeRadius = SPAWN_PAD_RADIUS;
         const padGeo = new THREE.CylinderGeometry(1.03, 1.12, 0.34, 12);
-        const padMat = new THREE.MeshStandardMaterial({ color: 0x241d1a, roughness: 0.82, metalness: 0.18, flatShading: true , side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6});
+        const padMat = new THREE.MeshStandardMaterial({ color: 0x241d1a, roughness: 0.82, metalness: 0.18, flatShading: true , polygonOffset: true, polygonOffsetFactor: 12, polygonOffsetUnits: 6});
         const emberGeo = new THREE.CylinderGeometry(0.78, 0.84, 0.07, 12);
         const emberMat = new THREE.MeshStandardMaterial({ color: 0xe83b0c, emissive: 0xff2600, emissiveIntensity: 4.5, roughness: 0.38 });
         const ringGeo = new THREE.TorusGeometry(1.04, 0.12, 4, 12);
         const ringMat = new THREE.MeshStandardMaterial({ color: 0xff8a00, emissive: 0xff3c00, emissiveIntensity: 5.5, roughness: 0.28 });
-        const flameMat = new THREE.MeshStandardMaterial({ color: 0xffc21a, emissive: 0xff5a00, emissiveIntensity: 6, roughness: 0.3, side: THREE.DoubleSide });
+        const flameMat = new THREE.MeshStandardMaterial({ color: 0xffc21a, emissive: 0xff5a00, emissiveIntensity: 6, roughness: 0.3, });
         const flameGeo = new THREE.BufferGeometry();
         flameGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
             -0.34, 0, 0.22, 0.05, 0, -0.55, 0.38, 0, 0.25,
