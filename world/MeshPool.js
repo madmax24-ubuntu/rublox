@@ -326,8 +326,8 @@ export class MeshPool {
             const mat = new THREE.MeshStandardMaterial(opts);
             if (!transparent) {
                 mat.polygonOffset = true;
-                mat.polygonOffsetFactor = 12;
-                mat.polygonOffsetUnits = 6;
+                mat.polygonOffsetFactor = 4;
+                mat.polygonOffsetUnits = 2;
             }
             this.mats.set(key, mat);
         }

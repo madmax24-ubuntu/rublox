@@ -3183,12 +3183,37 @@ export class MapGenerator {
             );
         }
 
-        const frontGeo = this.pool.getGeoBox(w, h, wallThick);
-        const front = new THREE.Mesh(frontGeo, wallMat);
-        front.position.set(x, h / 2, z + d / 2);
-        front.userData.mapGenerated = true;
-        this.scene.add(front);
-        this.addColliderBox(new THREE.Vector3(x, h / 2, z + d / 2), w, h, wallThick, false);
+        const doorW = 2;
+        const doorH = 2.8;
+        const frontLeftW = w / 2 - doorW / 2 - 0.5;
+        const frontRightW = w / 2 - doorW / 2 - 0.5;
+        const frontTopH = h - doorH - 0.5;
+        const doorMat = this.pool.getMatStd(0x4e342e, 0.9, 0, false, false, 1, 0, 0, true);
+        if (frontLeftW > 0) {
+            const fl = new THREE.Mesh(this.pool.getGeoBox(frontLeftW, h, wallThick), wallMat);
+            fl.position.set(x - frontLeftW / 2 - 0.5, h / 2, z + d / 2);
+            fl.userData.mapGenerated = true;
+            this.scene.add(fl);
+            this.addColliderBox(new THREE.Vector3(x - frontLeftW / 2 - 0.5, h / 2, z + d / 2), frontLeftW, h, wallThick, false);
+        }
+        if (frontRightW > 0) {
+            const fr = new THREE.Mesh(this.pool.getGeoBox(frontRightW, h, wallThick), wallMat);
+            fr.position.set(x + frontRightW / 2 + 0.5, h / 2, z + d / 2);
+            fr.userData.mapGenerated = true;
+            this.scene.add(fr);
+            this.addColliderBox(new THREE.Vector3(x + frontRightW / 2 + 0.5, h / 2, z + d / 2), frontRightW, h, wallThick, false);
+        }
+        if (frontTopH > 0) {
+            const ft = new THREE.Mesh(this.pool.getGeoBox(w, frontTopH, wallThick), wallMat);
+            ft.position.set(x, doorH + frontTopH / 2, z + d / 2);
+            ft.userData.mapGenerated = true;
+            this.scene.add(ft);
+            this.addColliderBox(new THREE.Vector3(x, doorH + frontTopH / 2, z + d / 2), w, frontTopH, wallThick, false);
+        }
+        const door = new THREE.Mesh(this.pool.getGeoBox(doorW, doorH, 0.1), doorMat);
+        door.position.set(x, doorH / 2, z + d / 2 + 0.05);
+        door.userData.mapGenerated = true;
+        this.scene.add(door);
 
         const back = new THREE.Mesh(frontGeo, wallMat);
         back.position.set(x, h / 2, z - d / 2);
@@ -3823,6 +3848,7 @@ export class MapGenerator {
         group.add(back);
         this.addColliderBox(new THREE.Vector3(x, h / 2, z - d / 2), w, h, wt, false);
         const frontW = (w - doorW) / 2;
+        const doorMat = this.pool.getMatStd(0x4e342e, 0.9, 0, false, false, 1, 0, 0, true);
         for (const side of [-1, 1]) {
             const front = new THREE.Mesh(this.pool.getGeoBox(frontW, h, wt), wallMat);
             front.position.set(side * (doorW + frontW) / 2, h / 2, d / 2);
@@ -3830,6 +3856,12 @@ export class MapGenerator {
             group.add(front);
             this.addColliderBox(new THREE.Vector3(x + side * (doorW + frontW) / 2, h / 2, z + d / 2), frontW, h, wt, false);
         }
+        const doorH = 2.8;
+        const doorGeo = this.pool.getGeoBox(doorW, doorH, 0.1);
+        const door = new THREE.Mesh(doorGeo, doorMat);
+        door.position.set(0, doorH / 2, d / 2 + 0.05);
+        door.userData.mapGenerated = true;
+        group.add(door);
         const upperY = h * 0.54;
         const upperSlabW = (w - 4) / 2;
         for (const side of [-1, 1]) {
