@@ -23,6 +23,80 @@ const getZombieLodGeometry = () => {
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
+const ZOMBIE_TEXTURES = {};
+const _createZombieTexture = (variant, baseColorHex) => {
+    const key = `zombie_${variant}`;
+    if (ZOMBIE_TEXTURES[key]) return ZOMBIE_TEXTURES[key];
+    const size = 256;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    const baseColor = new THREE.Color(baseColorHex);
+    const r = Math.floor(baseColor.r * 255);
+    const g = Math.floor(baseColor.g * 255);
+    const b = Math.floor(baseColor.b * 255);
+    ctx.fillStyle = `rgb(${r},${g},${b})`;
+    ctx.fillRect(0, 0, size, size);
+    const addNoise = (intensity = 30) => {
+        for (let i = 0; i < 3000; i++) {
+            const x = Math.random() * size;
+            const y = Math.random() * size;
+            const v = (Math.random() - 0.5) * intensity;
+            ctx.fillStyle = `rgba(${clamp(r + v, 0, 255)},${clamp(g + v, 0, 255)},${clamp(b + v, 0, 255)},0.6)`;
+            ctx.fillRect(x, y, 1 + Math.random() * 2, 1);
+        }
+    };
+    const addStain = (x, y, radius, darkness = 40) => {
+        const grad = ctx.createRadialGradient(x, y, 0, x, y, radius);
+        grad.addColorStop(0, `rgba(${clamp(r - darkness, 0, 255)},${clamp(g - darkness, 0, 255)},${clamp(b - darkness, 0, 255)},0.5)`);
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, size, size);
+    };
+    const addScratch = () => {
+        ctx.strokeStyle = `rgba(${clamp(r - 50, 0, 255)},${clamp(g - 50, 0, 255)},${clamp(b - 50, 0, 255)},0.7)`;
+        ctx.lineWidth = 1 + Math.random();
+        ctx.beginPath();
+        ctx.moveTo(Math.random() * size, Math.random() * size);
+        ctx.lineTo(Math.random() * size, Math.random() * size);
+        ctx.stroke();
+    };
+    addNoise();
+    for (let i = 0; i < 8; i++) addStain(Math.random() * size, Math.random() * size, 15 + Math.random() * 30);
+    for (let i = 0; i < 6; i++) addScratch();
+    if (variant === 'runner') {
+        for (let i = 0; i < 5; i++) {
+            ctx.fillStyle = `rgba(80,40,30,0.4)`;
+            ctx.fillRect(Math.random() * size, Math.random() * size, 8 + Math.random() * 15, 2 + Math.random() * 3);
+        }
+    } else if (variant === 'heavy') {
+        for (let i = 0; i < 12; i++) {
+            ctx.fillStyle = `rgba(100,80,60,0.35)`;
+            ctx.fillRect(Math.random() * size, Math.random() * size, 3 + Math.random() * 5, 3 + Math.random() * 5);
+        }
+    } else if (variant === 'crawler') {
+        for (let i = 0; i < 15; i++) {
+            ctx.fillStyle = `rgba(60,120,140,0.3)`;
+            ctx.beginPath();
+            ctx.arc(Math.random() * size, Math.random() * size, 3 + Math.random() * 8, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    } else if (variant === 'toxic') {
+        for (let i = 0; i < 10; i++) {
+            ctx.fillStyle = `rgba(100,200,50,0.25)`;
+            ctx.beginPath();
+            ctx.arc(Math.random() * size, Math.random() * size, 5 + Math.random() * 12, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    ZOMBIE_TEXTURES[key] = texture;
+    return texture;
+};
+
 const VARIANT_CONFIG = {
     runner: {
         health: 42, speed: 9.0, damage: 6.4, knockbackMultiplier: 1.2,
@@ -142,11 +216,13 @@ export class Zombie {
         const group = new THREE.Group();
         const cfg = VARIANT_CONFIG[this.variant];
 
+        const bodyTex = _createZombieTexture(this.variant, cfg.bodyColor);
         const bodyMat = new THREE.MeshStandardMaterial({
-            color: cfg.bodyColor, emissive: cfg.bodyColor, emissiveIntensity: 0.25, roughness: 0.75, flatShading: true
+            color: cfg.bodyColor, map: bodyTex, emissive: cfg.bodyColor, emissiveIntensity: 0.25, roughness: 0.75, flatShading: true
         });
+        const headTex = _createZombieTexture(this.variant, cfg.headColor);
         const headMat = new THREE.MeshStandardMaterial({
-            color: cfg.headColor, emissive: cfg.headColor, emissiveIntensity: 0.2, roughness: 0.75, flatShading: true
+            color: cfg.headColor, map: headTex, emissive: cfg.headColor, emissiveIntensity: 0.2, roughness: 0.75, flatShading: true
         });
         const grimeMat = new THREE.MeshStandardMaterial({
             color: 0x2e3b2e, roughness: 0.95, flatShading: true

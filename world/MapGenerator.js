@@ -715,7 +715,7 @@ export class MapGenerator {
             const bx = startX + 5 + this._rand() * (size - 10);
             const bz = startZ + 5 + this._rand() * (size - 10);
             if (!this._distToClearing(bx, bz, clearingCX, clearingCZ, clearingRadius + 5)) {
-                if (!this.getStructureAtPoint(bx, bz, 4)) {
+                if (!this.getStructureAtPoint(bx, bz, 8)) {
                     this._addForestBush(bx, bz);
                 }
             }
@@ -789,7 +789,7 @@ export class MapGenerator {
 
         // Передняя стена с дверью
         const doorW = 2.5;
-        const doorH = 2.8;
+        const doorH = 3.2;
         const frontWallLeft = this.pool.getGeoBox(w / 2 - doorW / 2 - 0.5, storyH, wallThick);
         const frontWallRight = this.pool.getGeoBox(w / 2 - doorW / 2 - 0.5, storyH, wallThick);
         const frontWallTop = this.pool.getGeoBox(w, storyH - doorH - 0.5, wallThick);

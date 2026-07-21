@@ -135,10 +135,10 @@ export class MeshPool {
         this.mats.set(`Std_7c4dff_0.2_0.8_F`, new THREE.MeshStandardMaterial({ color: 0x7c4dff, roughness: 0.2, metalness: 0.8, flatShading: true }));
 
         // Светлячки
-        this.mats.set(`Std_feee58_0.9_0_F`, new THREE.MeshStandardMaterial({ color: 0xffee58, emissive: 0xffcc00, emissiveIntensity: 10, transparent: true, opacity: 0.9, flatShading: true }));
+        this.mats.set(`Std_feee58_0.9_0_F`, new THREE.MeshStandardMaterial({ color: 0xffee58, emissive: 0xffcc00, emissiveIntensity: 10, transparent: true, opacity: 0.9, flatShading: true, depthWrite: false }));
 
         // Факелы
-        this.mats.set(`Std_ff6d00_0.9_0_F`, new THREE.MeshStandardMaterial({ color: 0xff6d00, emissive: 0xff4500, emissiveIntensity: 5, transparent: true, opacity: 0.8, flatShading: true }));
+        this.mats.set(`Std_ff6d00_0.9_0_F`, new THREE.MeshStandardMaterial({ color: 0xff6d00, emissive: 0xff4500, emissiveIntensity: 5, transparent: true, opacity: 0.8, flatShading: true, depthWrite: false }));
 
         // Деревянные стены/пол
         this.mats.set(`Std_8B6914_0.9_0_F`, new THREE.MeshStandardMaterial({ color: 0x8B6914, roughness: 0.9, flatShading: true }));
@@ -150,7 +150,7 @@ export class MeshPool {
         this.mats.set(`Std_3e2723_0.9_0_F`, new THREE.MeshStandardMaterial({ color: 0x3e2723, roughness: 0.9, flatShading: true }));
 
         // Стекло (окна)
-        this.mats.set(`Std_aaddff_0.1_0.5_N`, new THREE.MeshStandardMaterial({ color: 0xaaddff, roughness: 0.1, metalness: 0.5, transparent: true, opacity: 0.3 }));
+        this.mats.set(`Std_aaddff_0.1_0.5_N`, new THREE.MeshStandardMaterial({ color: 0xaaddff, roughness: 0.1, metalness: 0.5, transparent: true, opacity: 0.3, depthWrite: false }));
 
         // Трава (пол леса)
         this.mats.set(`Std_66bb6a_1.0_0_N`, new THREE.MeshStandardMaterial({ color: 0x66bb6a, roughness: 1.0 }));
@@ -320,7 +320,9 @@ export class MeshPool {
                 flatShading: flatShading, transparent: transparent, opacity: opacity,
                 emissive: eHex, emissiveIntensity
             };
-            if (!transparent) {
+            if (transparent) {
+                opts.depthWrite = false;
+            } else {
                 opts.side = wall ? THREE.FrontSide : THREE.DoubleSide;
             }
             const mat = new THREE.MeshStandardMaterial(opts);
