@@ -180,8 +180,8 @@ export class MapGenerator {
         this._resolveReady?.();
     }
 
-    _clearCentralBiomeIntrusions(radius = 76) {
-        const preserved = obj => obj.userData?.isCornucopia || obj.userData?.isTerrain || obj.userData?.biomeBoundary || obj.userData?.isBiomeEntrance || obj.userData?.isSnowParticles || obj.userData?.gameplayBoundary;
+    _clearCentralBiomeIntrusions(radius = 82) {
+        const preserved = obj => obj.userData?.isCornucopia || obj.userData?.isTerrain || obj.userData?.biomeBoundary || obj.userData?.isBiomeEntrance || obj.userData?.isSnowParticles || obj.userData?.gameplayBoundary || obj.userData?.isBarbedWire;
         const intrudes = box => {
             const x = box.min.x > 0 ? box.min.x : box.max.x < 0 ? box.max.x : 0;
             const z = box.min.z > 0 ? box.min.z : box.max.z < 0 ? box.max.z : 0;
@@ -324,7 +324,7 @@ export class MapGenerator {
                 ];
                 for (const [x, z] of candidates) {
                     if (count >= minimum) break;
-                    if (Math.abs(x) > limit || Math.abs(z) > limit || Math.hypot(x, z) < 78) continue;
+                    if (Math.abs(x) > limit || Math.abs(z) > limit || Math.hypot(x, z) < 84) continue;
                     if (Math.sign(x) !== biome.sx || Math.sign(z) !== biome.sz || blocked(x, z)) continue;
                     if (this._chestSpots.some(spot => Math.hypot(spot.x - x, spot.z - z) < 5)) continue;
                     this._registerChestSpot(x, z, biome.key);
@@ -2183,7 +2183,7 @@ export class MapGenerator {
                 if ((r * 7 + c * 11) % 9 !== 0) continue;
                 const x = startX + margin + (c + 0.5) * cellWidth;
                 const z = startZ + margin + (r + 0.5) * cellDepth;
-                if (Math.hypot(x, z) < 80) continue;
+                if (Math.hypot(x, z) < 84) continue;
                 const plate = new THREE.Mesh(this.pool.getGeoBox(2.6, 0.08, 2.6), plateMat);
                 plate.position.set(x, 0.06, z);
                 plate.userData.mapGenerated = true;
@@ -4246,7 +4246,7 @@ export class MapGenerator {
             for (let attempt = 0; attempt < 500 && placed < 12; attempt++) {
                 const x = sx * (38 + Math.random() * (HALF - 44));
                 const z = sz * (38 + Math.random() * (HALF - 44));
-                if (Math.hypot(x, z) < 78 || blocked(x, z)) continue;
+                if (Math.hypot(x, z) < 84 || blocked(x, z)) continue;
                 if (this._traps.some(trap => Math.hypot(x - trap.position.x, z - trap.position.z) < 7)) continue;
                 this._addSurvivalTrap(type, x, z);
                 placed++;
@@ -4391,20 +4391,20 @@ export class MapGenerator {
         for (let i = 0; i < 20; i++) {
             const x = -HALF + 15 + this._rand() * (HALF - 40);
             const z = -HALF + 15 + this._rand() * (HALF - 40);
-            if (x > -5 || z > -5 || Math.sqrt(x * x + z * z) < 80) continue;
+            if (x > -5 || z > -5 || Math.sqrt(x * x + z * z) < 84) continue;
             this._addBarrel(x, z);
         }
         // Military cover: ammo crates + sandbag stacks (SW quadrant only)
         for (let i = 0; i < 8; i++) {
             const x = -HALF + 15 + this._rand() * (HALF - 40);
             const z = 5 + this._rand() * (HALF - 25);
-            if (x > -5 || z < 5 || Math.sqrt(x * x + z * z) < 80) continue;
+            if (x > -5 || z < 5 || Math.sqrt(x * x + z * z) < 84) continue;
             this._addMilitaryCrate(x, z);
         }
         for (let i = 0; i < 6; i++) {
             const x = -HALF + 15 + this._rand() * (HALF - 40);
             const z = 5 + this._rand() * (HALF - 25);
-            if (x > -5 || z < 5 || Math.sqrt(x * x + z * z) < 80) continue;
+            if (x > -5 || z < 5 || Math.sqrt(x * x + z * z) < 84) continue;
             this._addSandbagBarrier(x, z);
         }
 
@@ -4412,7 +4412,7 @@ export class MapGenerator {
         for (let i = 0; i < 8; i++) {
             const x = 5 + this._rand() * (HALF - 25);
             const z = 5 + this._rand() * (HALF - 25);
-            if (x < 5 || z < 5 || Math.sqrt(x * x + z * z) < 80) continue;
+            if (x < 5 || z < 5 || Math.sqrt(x * x + z * z) < 84) continue;
             this._addIceChunk(x, z);
         }
     }
