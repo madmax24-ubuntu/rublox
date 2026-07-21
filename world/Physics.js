@@ -63,11 +63,13 @@ export class Physics {
         const expBase = Math.min(delta, 0.05); // clamp to avoid explosion
         this._groundDamping = Math.exp(-14 * expBase);
         this._airDamping = Math.exp(-2.5 * expBase);
+        const isCountdown = gameState === 'countdown';
 
         for (const entity of this.entities) {
             if (!entity.physics) continue;
-            // Skip bots during countdown — they are frozen on spawn pads
-            if (gameState === 'countdown' && entity.constructor?.name === 'Bot') continue;
+            const type = entity.constructor?.name;
+            // Skip bots and zombies during countdown — frozen on spawn pads
+            if (isCountdown && (type === 'Bot' || type === 'Zombie')) continue;
             const pos = entity.position;
 
             // Validate position
@@ -137,12 +139,15 @@ export class Physics {
             if (!isFrozen) {
                 const moveX = vel.x * delta;
                 const moveZ = vel.z * delta;
-                const steps = Math.max(1, Math.ceil(Math.max(Math.abs(moveX), Math.abs(moveZ)) / 0.28));
+                const totalMove = Math.abs(moveX) + Math.abs(moveZ);
                 pos.y += vel.y * delta;
-                for (let step = 0; step < steps; step++) {
-                    pos.x += moveX / steps;
-                    pos.z += moveZ / steps;
-                    this.resolveCollisions(entity);
+                if (totalMove > 0.005) {
+                    const steps = Math.max(1, Math.ceil(totalMove / 0.28));
+                    for (let step = 0; step < steps; step++) {
+                        pos.x += moveX / steps;
+                        pos.z += moveZ / steps;
+                        this.resolveCollisions(entity);
+                    }
                 }
             }
 

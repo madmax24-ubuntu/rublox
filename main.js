@@ -306,12 +306,12 @@ class Game {
         this.scene.userData.camera = this.camera;
 
         this.renderer = new THREE.WebGLRenderer({
-            antialias: true,
+            antialias: false,
             powerPreference: "high-performance",
             precision: "highp",
             stencil: false,
             depth: true,
-            logarithmicDepthBuffer: true
+            logarithmicDepthBuffer: false
         });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.shadowMap.enabled = false;
@@ -1888,7 +1888,7 @@ class Game {
                 );
                 this.lastPropVisibilityPos.copy(this.player.position);
             }
-            this.propVisibilityTimer = this.isMobile() ? 0.5 : 0.35;
+            this.propVisibilityTimer = this.isMobile() ? 0.6 : 0.45;
         }
         this.noteCooldown = Math.max(0, this.noteCooldown - delta);
         if (this.noteCooldown === 0 && this.map.getStoryNotes) {
@@ -2057,16 +2057,25 @@ class Game {
         }
 
         const zombieCount = this.zombies.length;
-        const zombiesPerFrame = Math.min(zombieCount, Math.max(
-            this.isMobile() ? 8 : 12,
-            Math.ceil(zombieCount * (this.isMobile() ? 0.18 : 0.28))
-        ));
-        for (let i = 0; i < zombiesPerFrame && i < zombieCount; i++) {
-            const zIndex = (this.zombieUpdateIndex + i) % zombieCount;
-            const zombie = this.zombies[zIndex];
-            if (zombie) zombie.update(Math.min(0.1, delta * zombieCount / Math.max(1, zombiesPerFrame)), this.entityManager, this.audioSynth);
-        }
         if (zombieCount > 0) {
+            const farZombieCullDistSq = this.isMobile() ? 10000 : 20736;
+            const zombiesPerFrame = Math.min(zombieCount, Math.max(
+                this.isMobile() ? 8 : 12,
+                Math.ceil(zombieCount * (this.isMobile() ? 0.18 : 0.28))
+            ));
+            for (let i = 0; i < zombiesPerFrame && i < zombieCount; i++) {
+                const zIndex = (this.zombieUpdateIndex + i) % zombieCount;
+                const zombie = this.zombies[zIndex];
+                if (zombie && zombie.isAlive) {
+                    const distSq = zombie.position.distanceToSquared(this.player.position);
+                    const shouldUpdate = distSq < farZombieCullDistSq || zombie.alertTarget || zombie.alertTimer > 0;
+                    if (shouldUpdate) {
+                        zombie.update(Math.min(0.1, delta * zombieCount / Math.max(1, zombiesPerFrame)), this.entityManager, this.audioSynth);
+                    } else if (zombie.mesh) {
+                        zombie.mesh.position.copy(zombie.position);
+                    }
+                }
+            }
             this.zombieUpdateIndex = (this.zombieUpdateIndex + zombiesPerFrame) % zombieCount;
         }
 
@@ -2152,7 +2161,7 @@ class Game {
             this.hud.updateArmor(this.player.armor, this.player.maxArmor);
             this.hud.updatePlayersCount(aliveCountBeforeHazards);
             this.hud.updateAmmo(this.player.currentWeapon || this.player.fists);
-            this.hudStatsTimer = this.isMobile() ? 0.1 : 0.06;
+            this.hudStatsTimer = this.isMobile() ? 0.15 : 0.08;
         }
         if (this.isMobile()) {
             this.hud.updateJoystick?.(this.input.joystick);
@@ -2217,7 +2226,7 @@ class Game {
                 this.hud.updateInventory(inventoryItems, inv.selectedSlot);
                 this.lastInventorySignature = sig;
             }
-            this.hudInventoryTimer = this.isMobile() ? 0.14 : 0.08;
+            this.hudInventoryTimer = this.isMobile() ? 0.18 : 0.1;
         }
         this.minimapTimer -= delta;
         if (this.minimapTimer <= 0) {
@@ -2231,7 +2240,7 @@ class Game {
             }
             const zombiePoints = this._minimapZombiePoints || (this._minimapZombiePoints = []);
             zombiePoints.length = 0;
-            for (let i = 0; i < this.zombies.length && zombiePoints.length < 64; i++) {
+            for (let i = 0; i < this.zombies.length && zombiePoints.length < 48; i++) {
                 const zombie = this.zombies[i];
                 if (!zombie?.isAlive) continue;
                 zombiePoints.push(zombie.position);
@@ -2244,7 +2253,7 @@ class Game {
                 bots: botPoints,
                 zombies: zombiePoints
             });
-            this.minimapTimer = this.isMobile() ? 0.2 : 0.12;
+            this.minimapTimer = this.isMobile() ? 0.25 : 0.18;
         }
 
         if (this.gameState === 'playing' && !this.roundFinished) {
