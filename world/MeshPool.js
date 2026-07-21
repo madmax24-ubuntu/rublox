@@ -323,7 +323,7 @@ export class MeshPool {
             if (transparent) {
                 opts.depthWrite = false;
             } else {
-                opts.side = wall ? THREE.FrontSide : THREE.DoubleSide;
+                opts.side = wall ? THREE.DoubleSide : THREE.FrontSide;
             }
             const mat = new THREE.MeshStandardMaterial(opts);
             if (!transparent) {
