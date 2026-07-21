@@ -961,14 +961,11 @@ export class MapGenerator {
         this.addColliderBox(new THREE.Vector3(x - w / 2, storyH + 0.3, z), wallThick, storyH * 2, d, false);
         this.addColliderBox(new THREE.Vector3(x + w / 2, storyH + 0.3, z), wallThick, storyH * 2, d, false);
         this.addColliderBox(new THREE.Vector3(x, storyH + 0.3, z - d / 2), w, storyH * 2, wallThick, false);
-        const frontSegmentW = (w - doorW) / 2;
-        this.addColliderBox(new THREE.Vector3(x - w / 2 + frontSegmentW / 2, storyH / 2 + 0.3, z + d / 2), frontSegmentW, storyH, wallThick, false);
-        this.addColliderBox(new THREE.Vector3(x + w / 2 - frontSegmentW / 2, storyH / 2 + 0.3, z + d / 2), frontSegmentW, storyH, wallThick, false);
+        const frontSegmentW = w / 2 - doorW / 2 - 0.5;
+        this.addColliderBox(new THREE.Vector3(x - w / 4 + doorW / 2 + 0.25, storyH / 2 + 0.3, z + d / 2), frontSegmentW, storyH, wallThick, false);
+        this.addColliderBox(new THREE.Vector3(x + w / 4 - doorW / 2 - 0.25, storyH / 2 + 0.3, z + d / 2), frontSegmentW, storyH, wallThick, false);
         this.addColliderBox(new THREE.Vector3(x, doorH + (storyH - doorH) / 2 + 0.3, z + d / 2), w, storyH - doorH, wallThick, false);
-        const floor2FrontLeftW = w / 2 - doorW / 2;
-        const floor2FrontRightW = w / 2 - doorW / 2;
-        this.addColliderBox(new THREE.Vector3(x - w / 2 + floor2FrontLeftW / 2, storyH + storyH / 2 + 0.3, z + d / 2), floor2FrontLeftW, storyH, wallThick, false);
-        this.addColliderBox(new THREE.Vector3(x + w / 2 - floor2FrontRightW / 2, storyH + storyH / 2 + 0.3, z + d / 2), floor2FrontRightW, storyH, wallThick, false);
+        this.addColliderBox(new THREE.Vector3(x, storyH + storyH / 2 + 0.3, z + d / 2), w, storyH, wallThick, false);
         this._buildings.push({ x, z, w, d, template: { type: 'log_cabin' } });
         this._registerChestSpot(x - 3.5, z - 3.5, 'house');
         this._registerChestSpot(x + 3.5, z - 3.5, 'house');
@@ -1068,13 +1065,13 @@ export class MapGenerator {
 
         // Floor collider
         this.addColliderBox(new THREE.Vector3(x, 0.15, z), w, 0.3, d, true);
-        // Wall colliders
-        const frontSegmentW = (w - dw) / 2;
+        // Wall colliders — match visual walls exactly
+        const frontSegmentW = w / 2 - dw / 2 - 0.3;
         this.addColliderBox(new THREE.Vector3(x - w / 2, h / 2 + 0.3, z), wt, h, d, false);
         this.addColliderBox(new THREE.Vector3(x + w / 2, h / 2 + 0.3, z), wt, h, d, false);
         this.addColliderBox(new THREE.Vector3(x, h / 2 + 0.3, z - d / 2), w, h, wt, false);
-        this.addColliderBox(new THREE.Vector3(x - w / 2 + frontSegmentW / 2, h / 2 + 0.3, z + d / 2), frontSegmentW, h, wt, false);
-        this.addColliderBox(new THREE.Vector3(x + w / 2 - frontSegmentW / 2, h / 2 + 0.3, z + d / 2), frontSegmentW, h, wt, false);
+        this.addColliderBox(new THREE.Vector3(x - w / 4 + dw / 2 + 0.15, h / 2 + 0.3, z + d / 2), frontSegmentW, h, wt, false);
+        this.addColliderBox(new THREE.Vector3(x + w / 4 - dw / 2 - 0.15, h / 2 + 0.3, z + d / 2), frontSegmentW, h, wt, false);
         this.addColliderBox(new THREE.Vector3(x, dh + (h - dh - 0.3) / 2 + 0.3, z + d / 2), w, h - dh - 0.3, wt, false);
     }
 

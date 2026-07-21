@@ -266,7 +266,7 @@ class Game {
         if (this.map?.instancedMeshSystem?.updateCulling && this.player?.position) {
             const distSq = this._lastCullPos.distanceToSquared(this.player.position);
             if (distSq > 25) {
-                const cullDist = this.isMobile() ? 115 : 155;
+                const cullDist = this.isMobile() ? 180 : 250;
                 this.map.instancedMeshSystem.updateCulling(this.player.position, cullDist);
                 this._lastCullPos.copy(this.player.position);
             }
@@ -302,7 +302,7 @@ class Game {
         this.scene = new THREE.Scene();
         console.log('[initGame] scene created:', !!this.scene);
         this.scene.userData.mobileMode = isMobile;
-        this.scene.fog = new THREE.FogExp2(0x8899aa, 0.0015);
+        this.scene.fog = new THREE.FogExp2(0x8899aa, 0.0008);
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.5, 300);
         this.scene.userData.camera = this.camera;
 
@@ -670,8 +670,9 @@ class Game {
         const material = source.material.clone();
         material.color.setHex(0xffffff);
         material.vertexColors = true;
-        material.emissive = new THREE.Color(0x444444);
-        material.emissiveIntensity = 0.8;
+        material.emissive = new THREE.Color(0x000000);
+        material.emissiveIntensity = 0;
+        material.fog = true;
         const batch = new THREE.InstancedMesh(source.geometry, material, this.bots.length);
         batch.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
         batch.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(batch.count * 3), 3);

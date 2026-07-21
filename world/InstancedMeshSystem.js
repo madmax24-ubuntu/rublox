@@ -122,7 +122,7 @@ export class InstancedMeshSystem {
 
     updateCulling(playerPos, cullDist) {
         const distSq = this._lastCullPos.distanceToSquared(playerPos);
-        if (distSq < 0.01) return;
+        if (distSq < 4) return;
         this._lastCullPos.copy(playerPos);
 
         const cellSize = 64;
@@ -133,13 +133,9 @@ export class InstancedMeshSystem {
 
         for (const entry of this._instancedMeshes) {
             const { mesh, positions, count, grid } = entry;
-
-            if (!this._visibleIndices) {
-                this._visibleIndices = new Uint32Array(4096);
-                this._seenSet = new Set();
-            }
-            const visibleIndices = this._visibleIndices;
-            const seen = this._seenSet;
+            const maxCount = count || positions.length / 3;
+            const visibleIndices = entry._visBuf || (entry._visBuf = new Uint32Array(Math.max(4096, maxCount * 2)));
+            const seen = entry._seen || (entry._seen = new Set());
             let visCount = 0;
             seen.clear();
 
@@ -155,7 +151,7 @@ export class InstancedMeshSystem {
                         const ddz = pz - playerPos.z;
                         if (ddx * ddx + ddz * ddz <= cullDistSq && !seen.has(i)) {
                             seen.add(i);
-                            visibleIndices[visCount++] = i;
+                            if (visCount < visibleIndices.length) visibleIndices[visCount++] = i;
                         }
                     }
                 }
@@ -168,7 +164,6 @@ export class InstancedMeshSystem {
                 target++;
             }
 
-            // Hide mesh when count=0 — avoids wasted draw call
             if (target === 0) {
                 mesh.visible = false;
             } else {
