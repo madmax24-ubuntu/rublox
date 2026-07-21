@@ -1303,13 +1303,13 @@ export class MapGenerator {
                 const angle = Math.atan2(dx, dz);
                 for (let i = 0; i <= count; i++) {
                     const t = i / count;
-                    const seg = new THREE.Mesh(this.pool.getGeoBox(8.5, 0.25, 8.5), pathMat);
-                    seg.position.set(x1 + dx * t, 0.15, z1 + dz * t);
+                    const seg = new THREE.Mesh(this.pool.getGeoBox(8.5, 0.5, 8.5), pathMat);
+                    seg.position.set(x1 + dx * t, 0.3, z1 + dz * t);
                     seg.rotation.y = angle;
                     seg.userData.mapGenerated = true;
                     seg.userData.walkable = true;
                     this.scene.add(seg);
-                    this.addColliderBox(new THREE.Vector3(seg.position.x, 0.15, seg.position.z), 8.5, 0.25, 8.5, true);
+                    this.addColliderBox(new THREE.Vector3(seg.position.x, 0.3, seg.position.z), 8.5, 0.5, 8.5, true);
                 }
             }
         }
@@ -1621,8 +1621,8 @@ export class MapGenerator {
             cabin.add(sideWall);
         }
 
-        const doorW = 1.5;
-        const doorH = 2.5;
+        const doorW = 2.5;
+        const doorH = 2.8;
         const frontLeftW = w / 2 - doorW / 2 - 0.5;
         const frontRightW = w / 2 - doorW / 2 - 0.5;
         const frontTopH = h - doorH - 0.5;
