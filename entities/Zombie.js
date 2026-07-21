@@ -120,6 +120,7 @@ export class Zombie {
         this._deathAudioSynth = null;
         this._lodCameraForward = new THREE.Vector3();
         this._lodToEntity = new THREE.Vector3();
+        this._dirVec = new THREE.Vector3();
         this._corpseTimer = 0;
         this._animTime = performance.now() * 0.001;
         this._moanPhase = Math.random() * Math.PI * 2;
@@ -602,26 +603,26 @@ export class Zombie {
                 const rush = (dist < 8 ? 1.32 : dist < 18 ? 1.18 : 1.04) * Math.min(1.55, 0.88 + aggression * 0.17);
                 if (this.variant === 'runner') {
                     const zigzag = Math.sin(this._animTime * 3) * 0.3;
-                    const dir = new THREE.Vector3().subVectors(target.position, this.position).normalize();
-                    dir.x += zigzag;
-                    dir.normalize();
-                    this.physics.velocity.x = dir.x * this.physics.speed * rush;
-                    this.physics.velocity.z = dir.z * this.physics.speed * rush;
-                    this.rotation.y = Math.atan2(dir.x, dir.z);
+                    this._dirVec.subVectors(target.position, this.position).normalize();
+                    this._dirVec.x += zigzag;
+                    this._dirVec.normalize();
+                    this.physics.velocity.x = this._dirVec.x * this.physics.speed * rush;
+                    this.physics.velocity.z = this._dirVec.z * this.physics.speed * rush;
+                    this.rotation.y = Math.atan2(this._dirVec.x, this._dirVec.z);
                 } else if (this.variant === 'crawler') {
-                    const dir = new THREE.Vector3().subVectors(target.position, this.position).normalize();
+                    this._dirVec.subVectors(target.position, this.position).normalize();
                     const flank = Math.sin(this._animTime * 4.2 + this.id) * 0.48;
-                    const x = dir.x - dir.z * flank;
-                    const z = dir.z + dir.x * flank;
+                    const x = this._dirVec.x - this._dirVec.z * flank;
+                    const z = this._dirVec.z + this._dirVec.x * flank;
                     const length = Math.hypot(x, z) || 1;
                     this.physics.velocity.x = x / length * this.physics.speed * rush;
                     this.physics.velocity.z = z / length * this.physics.speed * rush;
                     this.rotation.y = Math.atan2(x, z);
                 } else if (this.variant === 'toxic') {
-                    const dir = new THREE.Vector3().subVectors(target.position, this.position).normalize();
+                    this._dirVec.subVectors(target.position, this.position).normalize();
                     const sway = Math.sin(this._animTime * 2.1 + this.id * 0.7) * 0.22;
-                    this.physics.velocity.x = (dir.x - dir.z * sway) * this.physics.speed * rush;
-                    this.physics.velocity.z = (dir.z + dir.x * sway) * this.physics.speed * rush;
+                    this.physics.velocity.x = (this._dirVec.x - this._dirVec.z * sway) * this.physics.speed * rush;
+                    this.physics.velocity.z = (this._dirVec.z + this._dirVec.x * sway) * this.physics.speed * rush;
                     this.rotation.y = Math.atan2(this.physics.velocity.x, this.physics.velocity.z);
                 } else {
                     this.moveTowards(target.position, this.physics.speed * rush);

@@ -986,9 +986,9 @@ class Game {
 
     getSafeZoneTarget(position) {
         const v = this._tmpSafeZone.set(position.x, 0, position.z);
-        if (v.lengthSq() < 1e-6) { this._tmpSafeZone.set(0, position.y, 0); return this._tmpSafeZone.clone(); }
-        v.normalize().multiplyScalar(Math.max(0, this.zone.getCurrentRadius() * 0.6));
-        return this._tmpSafeZone.clone();
+        if (v.lengthSq() < 1e-6) { this._tmpSafeZone.set(0, position.y, 0); }
+        else v.normalize().multiplyScalar(Math.max(0, this.zone.getCurrentRadius() * 0.6));
+        return this._tmpSafeZone;
     }
 
     initRadiationRainEffect() {
@@ -1298,22 +1298,25 @@ class Game {
     getNearestShelterTarget(position) {
         const houses = this.map?.getHouseSpots?.() || [];
         const hangars = this.map?.getHangarSpots?.() || [];
-        const structures = [...houses.map(s => ({ ...s, type: 'house' })), ...hangars.map(s => ({ ...s, type: 'hangar' }))];
-        if (!structures.length) return null;
+        if (!houses.length && !hangars.length) return null;
         let best = null;
         let bestScore = Infinity;
-        for (const s of structures) {
-            const approach = new THREE.Vector3(
-                s.x,
-                this.map.getHeightAt(s.x, s.z) + 0.2,
-                s.z + (s.depth || (s.type === 'hangar' ? 18 : 8)) * 0.34
-            );
-            const dist = position.distanceTo(approach);
-            if (dist < bestScore) {
-                bestScore = dist;
-                best = approach;
+        const check = (s, type) => {
+            const depth = s.depth || (type === 'hangar' ? 18 : 8);
+            const ax = s.x;
+            const ay = this.map.getHeightAt(s.x, s.z) + 0.2;
+            const az = s.z + depth * 0.34;
+            const dx = position.x - ax;
+            const dy = position.y - ay;
+            const dz = position.z - az;
+            const distSq = dx * dx + dy * dy + dz * dz;
+            if (distSq < bestScore) {
+                bestScore = distSq;
+                best = { x: ax, y: ay, z: az };
             }
-        }
+        };
+        for (const s of houses) check(s, 'house');
+        for (const s of hangars) check(s, 'hangar');
         return best;
     }
 
@@ -2040,7 +2043,9 @@ class Game {
                         bot.target = null;
                         bot.assistTarget = null;
                         bot.lootTarget = null;
-                        bot.patrolTarget = shelter.clone();
+                        bot.patrolTarget.x = shelter.x;
+                        bot.patrolTarget.y = shelter.y;
+                        bot.patrolTarget.z = shelter.z;
                         bot.state = 'retreat';
                     }
                     if (this.radiationRainDamageActive) {
