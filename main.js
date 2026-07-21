@@ -1257,14 +1257,14 @@ class Game {
         if (this.platformGateCycleOpen) {
             this.platformGateCycleOpen = false;
             this.platformGateCycleTimer = 110;
-            this.triggerPlatformUnavailable(false);
+            this.map?.setBiomeGatesOpen?.(false);
             this.hud.showGameMessage('Ворота центральной платформы закрыты');
             return;
         }
         this.platformGateCycleOpen = true;
-        this.platformGateCycleTimer = 20;
+        this.platformGateCycleTimer = 25;
         this.setCenterPlatformOpen(true);
-        this.hud.showGameMessage('Ворота центральной платформы открыты на 20 секунд!');
+        this.hud.showGameMessage('Ворота центральной платформы открыты на 25 секунд!');
     }
 
     updateCenterDetonation(delta) {
@@ -1770,10 +1770,10 @@ class Game {
             }
 
             if (this.spawnTimer <= 0) {
-                this.triggerPlatformUnavailable();
                 this.gameState = 'playing';
-                this.platformGateCycleOpen = false;
-                this.platformGateCycleTimer = 100;
+                this.setCenterPlatformOpen(true);
+                this.platformGateCycleOpen = true;
+                this.platformGateCycleTimer = 60;
                 this.roundStartTime = performance.now() * 0.001;
                 this.eventTimelineIndex = 0;
                 this.activeEvent = { type: null, timer: 0, prevFog: null };
@@ -2607,7 +2607,6 @@ class Game {
         this.startingGame = true;
         this.startAttemptAt = performance.now();
         this._destroyLaserRing();
-        this.triggerPlatformUnavailable(false);
         this.setCenterPlatformOpen(true);
         try {
             this.hideStartScreen();

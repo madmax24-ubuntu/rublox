@@ -518,7 +518,7 @@ export class MapGenerator {
         // Base platform: BoxGeometry(50,2,50) at y=1 → top surface at y=2
         // Collider: center.y=1, height=2 → min.y=0, max.y=2 ✅
         const baseRadius = 55;
-        const platformCollider = this.addColliderBox(new THREE.Vector3(0, 1, 0), baseRadius * 2, 2, baseRadius * 2, false);
+        const platformCollider = this.addColliderBox(new THREE.Vector3(0, 1, 0), baseRadius * 2, 2, baseRadius * 2, true);
         platformCollider.isCornucopia = true;
 
         // Fountain collision — solid basin ring + column (fountain positioned at y=2 in scene)
