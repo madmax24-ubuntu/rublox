@@ -1134,6 +1134,7 @@ export class MapGenerator {
 
     _addForestTree(x, z, type = 'pine') {
         if (Math.sqrt(x * x + z * z) < 75) return;
+        if (this.getStructureAtPoint(x, z, 6)) return;
         const trunkMat = this.pool.getMatStd(COLORS.forestTrunk, 0.8, 0, false, false, 1, 0, 0);
 
         if (type === 'pine') {
@@ -1268,6 +1269,7 @@ export class MapGenerator {
     }
 
     _addFallenLog(x, z) {
+        if (this.getStructureAtPoint(x, z, 6)) return;
         const length = 4 + this._rand() * 4;
         const radius = 0.4 + this._rand() * 0.3;
         const geo = this.pool.getGeoCylinder(radius * 0.8, radius, length);
@@ -1493,6 +1495,7 @@ export class MapGenerator {
 
         for (const poi of poiPositions) {
             if (this._distToClearing(poi.x, poi.z, cx, cz, 35)) continue;
+            if (this.getStructureAtPoint(poi.x, poi.z, 4)) continue;
 
             if (poi.type === 'weapon') {
                 this._addWeaponDrop(poi.x, poi.z);
