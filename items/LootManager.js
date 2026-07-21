@@ -210,6 +210,7 @@ export class LootManager {
                 if (occupied.has(key)) continue;
                 const y = this.getChestPlacementY(tile.x, tile.z);
                 if (y < this.mapGenerator.waterLevel + 1) continue;
+                if (this.mapGenerator.getStructureAtPoint?.(tile.x, tile.z, 1)) continue;
                 if (!this.isHiddenSpawn(tile.x, y, tile.z)) continue;
                 if (!this.isChestPlacementClear(tile.x, y, tile.z)) continue;
                 const chest = this.createChest(tile.x, y, tile.z);
@@ -234,6 +235,7 @@ export class LootManager {
             if (y < this.mapGenerator.waterLevel + 1) {
                 continue;
             }
+            if (this.mapGenerator.getStructureAtPoint?.(x, z, 1)) continue;
             if (!this.isHiddenSpawn(x, y, z)) {
                 continue;
             }
@@ -290,6 +292,7 @@ export class LootManager {
                 if (occupied.has(key)) continue;
                 const y = this.getChestPlacementY(tile.x, tile.z);
                 if (y < this.mapGenerator.waterLevel + 1) continue;
+                if (this.mapGenerator.getStructureAtPoint?.(tile.x, tile.z, 1)) continue;
                 if (!this.isHiddenSpawn(tile.x, y, tile.z)) continue;
                 if (!this.isChestPlacementClear(tile.x, y, tile.z)) continue;
                 const chest = this.createChest(tile.x, y, tile.z);
@@ -319,6 +322,7 @@ export class LootManager {
             if (y < this.mapGenerator.waterLevel + 1) {
                 continue;
             }
+            if (this.mapGenerator.getStructureAtPoint?.(x, z, 1)) continue;
             if (!this.isHiddenSpawn(x, y, z)) {
                 continue;
             }
