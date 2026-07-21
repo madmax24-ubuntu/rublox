@@ -1691,7 +1691,7 @@ class Game {
             this.bots.forEach(bot => { bot.isFrozen = false; });
             if (!this.spawnScatterInitialized) {
                 const floor = this.map.getNavigationTiles?.() || this.map.getFloorTiles?.() || [];
-                const minR = (this.map.spawnCourtyardRadius || 54) + 24;
+                const minR = (this.map.spawnCourtyardRadius || 54) + 18;
                 const biomeDefs = [
                     ['forest', t => t.x < -5 && t.z < -5],
                     ['maze', t => t.x > 5 && t.z < -5],

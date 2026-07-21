@@ -142,10 +142,13 @@ export class BotBrain {
             this.actEngage(bot, ctx, entityManager);
             return;
         }
-        if (!retaliating && bot.assignedBiomeEntry && now < (bot.assignedBiomeUntil || 0) && Math.hypot(bot.position.x, bot.position.z) < 72 && !bot.forceShelterActive && !ctx.outsideZone) {
-            bot.state = STATES.EXPLORE;
-            this.steerMove(bot, bot.assignedBiomeEntry, bot.physics.speed * 1.25);
-            return;
+        if (!retaliating && bot.assignedBiomeEntry && now < (bot.assignedBiomeUntil || 0) && !bot.forceShelterActive && !ctx.outsideZone) {
+            const distToEntry = bot.position.distanceTo(bot.assignedBiomeEntry);
+            if (distToEntry > 8) {
+                bot.state = STATES.EXPLORE;
+                this.steerMove(bot, bot.assignedBiomeEntry, bot.physics.speed * 1.25);
+                return;
+            }
         }
 
         if (bot.state === STATES.SHELTER) {
