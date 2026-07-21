@@ -3800,9 +3800,9 @@ export class MapGenerator {
         const wallMat = this.pool.getMatStd(0xe8f2ff, 0.82, 0, true, false, 1, 0, 0, true);
         const roofMat = this.pool.getMatStd(0x8fb7d7, 0.65, 0.05, true, false, 1, 0, 0, true);
         const floorMat = this.pool.getMatStd(0xb6cedf, 0.9, 0, true, false, 1, 0, 0);
-        const w = 18;
-        const d = 26;
-        const h = 8;
+        const w = 14;
+        const d = 20;
+        const h = 7.5;
         const wt = 0.55;
         const doorW = 3;
         const floor = new THREE.Mesh(this.pool.getGeoBox(w, 0.35, d), floorMat);

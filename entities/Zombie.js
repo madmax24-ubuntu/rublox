@@ -533,8 +533,7 @@ export class Zombie {
         }
         group.userData.detailChildren = [...group.children];
         const lodProxy = new THREE.Mesh(getZombieLodGeometry(), bodyMat);
-        for (const child of group.userData.detailChildren) child.visible = false;
-        lodProxy.visible = true;
+        lodProxy.visible = false;
         lodProxy.userData.isLodProxy = true;
         group.add(lodProxy);
         group.userData.lodProxy = lodProxy;
@@ -683,8 +682,8 @@ export class Zombie {
         const horizontalFov = 2 * Math.atan(Math.tan(verticalFov * 0.5) * (camera.aspect || 1));
         const visibleAngle = Math.max(verticalFov, horizontalFov) * 0.5 + 0.22;
         const inView = distance > 0.001 && this._lodToEntity.dot(this._lodCameraForward) / distance >= Math.cos(visibleAngle);
-        const detailDistance = this.scene?.userData?.mobileMode ? 28 : 42;
-        const detailed = distanceSq <= 100 || (inView && distanceSq <= detailDistance * detailDistance);
+        const detailDistance = this.scene?.userData?.mobileMode ? 50 : 70;
+        const detailed = distanceSq <= 225 || (inView && distanceSq <= detailDistance * detailDistance);
         if (this._lodDetailed === detailed) return detailed;
         this._lodDetailed = detailed;
         for (const child of this.mesh.userData.detailChildren || []) child.visible = detailed;
