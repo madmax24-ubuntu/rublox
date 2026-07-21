@@ -1205,7 +1205,7 @@ export class BotBrain {
                 best = this._tmpSpreadVec.set(tile.x, 0, tile.z);
             }
         }
-        return best?.clone() || null;
+        return best ? best.clone() : null;
     }
 
     isInAssignedBiome(bot, point) {

@@ -463,7 +463,8 @@ export class EntityManager {
     }
 
     getNearbyEntities(position, radius, onlyType = null) {
-        const out = [];
+        const out = this._nearbyOut || (this._nearbyOut = []);
+        out.length = 0;
         const r2 = radius * radius;
         const cellSize = this.spatialCellSize;
         const minCx = Math.floor((position.x - radius) / cellSize);
