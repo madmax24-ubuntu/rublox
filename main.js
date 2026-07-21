@@ -302,6 +302,7 @@ class Game {
         this.scene = new THREE.Scene();
         console.log('[initGame] scene created:', !!this.scene);
         this.scene.userData.mobileMode = isMobile;
+        this.scene.fog = new THREE.FogExp2(0x8899aa, 0.0015);
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.5, 300);
         this.scene.userData.camera = this.camera;
 

@@ -965,8 +965,10 @@ export class MapGenerator {
         this.addColliderBox(new THREE.Vector3(x - w / 2 + frontSegmentW / 2, storyH / 2 + 0.3, z + d / 2), frontSegmentW, storyH, wallThick, false);
         this.addColliderBox(new THREE.Vector3(x + w / 2 - frontSegmentW / 2, storyH / 2 + 0.3, z + d / 2), frontSegmentW, storyH, wallThick, false);
         this.addColliderBox(new THREE.Vector3(x, doorH + (storyH - doorH) / 2 + 0.3, z + d / 2), w, storyH - doorH, wallThick, false);
-        this.addColliderBox(new THREE.Vector3(x - w / 2 + w / 4, storyH + storyH / 2 + 0.3, z + d / 2), w / 2, storyH, wallThick, false);
-        this.addColliderBox(new THREE.Vector3(x + w / 2 - w / 4, storyH + storyH / 2 + 0.3, z + d / 2), w / 2, storyH, wallThick, false);
+        const floor2FrontLeftW = w / 2 - doorW / 2;
+        const floor2FrontRightW = w / 2 - doorW / 2;
+        this.addColliderBox(new THREE.Vector3(x - w / 2 + floor2FrontLeftW / 2, storyH + storyH / 2 + 0.3, z + d / 2), floor2FrontLeftW, storyH, wallThick, false);
+        this.addColliderBox(new THREE.Vector3(x + w / 2 - floor2FrontRightW / 2, storyH + storyH / 2 + 0.3, z + d / 2), floor2FrontRightW, storyH, wallThick, false);
         this._buildings.push({ x, z, w, d, template: { type: 'log_cabin' } });
         this._registerChestSpot(x - 3.5, z - 3.5, 'house');
         this._registerChestSpot(x + 3.5, z - 3.5, 'house');
