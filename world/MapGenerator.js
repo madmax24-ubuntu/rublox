@@ -595,11 +595,24 @@ export class MapGenerator {
         }
         const dividerStart = ringRadius - 10;
         const dividerEnd = HALF + wallT;
-        const dividerLength = dividerEnd - dividerStart;
-        const dividerCenter = dividerStart + dividerLength / 2;
+        const gateGap = 14;
+        const gateMid = (dividerStart + dividerEnd) * 0.5;
         for (const sign of [-1, 1]) {
-            addWall(0, sign * dividerCenter, wallT, dividerLength);
-            addWall(sign * dividerCenter, 0, dividerLength, wallT);
+            const halfGap = gateGap * 0.5;
+            const seg1End = gateMid - halfGap;
+            const seg2Start = gateMid + halfGap;
+            const len1 = seg1End - dividerStart;
+            const len2 = dividerEnd - seg2Start;
+            if (len1 > 1) {
+                const c1 = dividerStart + len1 * 0.5;
+                addWall(0, sign * c1, wallT, len1);
+                addWall(sign * c1, 0, len1, wallT);
+            }
+            if (len2 > 1) {
+                const c2 = seg2Start + len2 * 0.5;
+                addWall(0, sign * c2, wallT, len2);
+                addWall(sign * c2, 0, len2, wallT);
+            }
         }
         this.setBiomeGatesOpen(true);
     }
