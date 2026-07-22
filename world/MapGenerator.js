@@ -593,7 +593,7 @@ export class MapGenerator {
                 addWall(x, z, segmentLength, wallT, rotation);
             }
         }
-        const dividerStart = ringRadius - 1;
+        const dividerStart = ringRadius - 10;
         const dividerEnd = HALF + wallT;
         const dividerLength = dividerEnd - dividerStart;
         const dividerCenter = dividerStart + dividerLength / 2;

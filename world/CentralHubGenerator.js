@@ -308,7 +308,7 @@ export default class CentralHubGenerator {
         // Основание розы
         const baseRing = new THREE.Mesh(
             new THREE.RingGeometry(10, 12, 32),
-            new THREE.MeshBasicMaterial({ color: 0xff4400, })
+            new THREE.MeshBasicMaterial({ color: 0xff4400, side: THREE.DoubleSide })
         );
         baseRing.rotation.x = -Math.PI / 2;
         roseGroup.add(baseRing);
