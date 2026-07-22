@@ -235,7 +235,7 @@ export class Physics {
             if (position.z + radius < min.z || position.z - radius > max.z) continue;
             if (position.y + height < min.y - 0.5) continue;
             if (position.y > max.y + height + 0.5) continue;
-            if (bottom > max.y + 0.5) continue;
+            if (bottom > max.y + 0.5 || max.y > bottom + 0.65) continue;
             const dist = Math.abs(max.y - bottom);
             if (maxY === -Infinity || dist < Math.abs(maxY - bottom)) maxY = max.y;
         }
@@ -250,7 +250,7 @@ export class Physics {
                 if (position.z + radius < min.z || position.z - radius > max.z) continue;
                 if (position.y + height < min.y - 0.5) continue;
                 if (position.y > max.y + height + 0.5) continue;
-                if (bottom > max.y + 0.5) continue;
+                if (bottom > max.y + 0.5 || max.y > bottom + 0.65) continue;
                 const dist = Math.abs(max.y - bottom);
                 if (maxY === -Infinity || dist < Math.abs(maxY - bottom)) maxY = max.y;
             }
@@ -269,14 +269,14 @@ export class Physics {
         const pushDistSq = (baseRadius + 0.5) * (baseRadius + 0.5);
 
         // Limit per-step push to prevent teleportation when deeply embedded
-        const maxPushPerStep = 0.8;
+        const maxPushPerStep = 0.24;
 
         const nearby = this.getNearbyColliders(pos, baseRadius + 1.2);
         if (!nearby.length) return;
 
         // Multi-pass resolution with clamped push distance
         let pushed = false;
-        for (let pass = 0; pass < 3; pass++) {
+        for (let pass = 0; pass < 2; pass++) {
             pushed = false;
 
             for (const box of nearby) {
@@ -310,11 +310,11 @@ export class Physics {
                     const front = Math.abs(max.z - pos.z);
                     const minPen = Math.min(left, right, back, front);
 
-                    const pushAmt = Math.min(minPen, maxPushPerStep);
-                    if (minPen === left) pos.x = min.x - baseRadius + (minPen - pushAmt);
-                    else if (minPen === right) pos.x = max.x + baseRadius - (minPen - pushAmt);
-                    else if (minPen === back) pos.z = min.z - baseRadius + (minPen - pushAmt);
-                    else pos.z = max.z + baseRadius - (minPen - pushAmt);
+                    const pushAmt = Math.min(minPen + baseRadius, maxPushPerStep);
+                    if (minPen === left) pos.x -= pushAmt;
+                    else if (minPen === right) pos.x += pushAmt;
+                    else if (minPen === back) pos.z -= pushAmt;
+                    else pos.z += pushAmt;
                     pushed = true;
                 } else {
                     const dist = Math.sqrt(distSq);

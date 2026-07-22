@@ -272,9 +272,6 @@ export class CameraController {
             // Clamp camera so it never goes behind obstacles
             this._clampCamera(this.camera.position, playerPos);
 
-            // Resolve camera collision with world
-            this.resolveCollision(this.camera.position, playerPos);
-
             if (!hasShake) {
                 this._lastPos.x = playerPos.x;
                 this._lastPos.y = targetY;

@@ -303,7 +303,7 @@ class Game {
         console.log('[initGame] scene created:', !!this.scene);
         this.scene.userData.mobileMode = isMobile;
         this.scene.fog = new THREE.FogExp2(0x8899aa, 0.0008);
-        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.5, 400);
+        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.05, 400);
         this.scene.userData.camera = this.camera;
 
         this.renderer = new THREE.WebGLRenderer({
@@ -398,7 +398,7 @@ class Game {
         this.waveActive = false;
         this.waveRemaining = 0;
         this.platformGateCycleOpen = false;
-        this.platformGateCycleTimer = 100;
+        this.platformGateCycleTimer = 45;
 
         this.env = new Environment(this.scene);
         this.env.enableWeather = true;
@@ -663,45 +663,58 @@ class Game {
 
     setupBotLodBatch() {
         this.botLodBatch?.parent?.remove(this.botLodBatch);
-        const source = this.bots[0]?.mesh?.userData?.lodProxy;
-        if (!source || !this.bots.length) return;
-        const material = source.material.clone();
-        material.color.setHex(0xffffff);
-        material.vertexColors = true;
-        material.emissive = new THREE.Color(0x000000);
-        material.emissiveIntensity = 0;
-        material.fog = true;
-        const batch = new THREE.InstancedMesh(source.geometry, material, this.bots.length);
-        batch.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-        batch.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(batch.count * 3), 3);
-        batch.frustumCulled = false;
-        batch.count = 0;
-        batch.userData.entityLodBatch = true;
+        if (!this.bots.length) return;
+        const group = new THREE.Group();
+        const parts = [
+            ['shirt', new THREE.BoxGeometry(0.9, 1, 0.5), 1.05],
+            ['skin', new THREE.BoxGeometry(0.65, 0.65, 0.65), 1.9],
+            ['pants', new THREE.BoxGeometry(0.72, 0.8, 0.34), 0.4],
+            ['hair', new THREE.BoxGeometry(0.69, 0.22, 0.69), 2.24]
+        ];
+        this.botLodBatches = parts.map(([colorKey, geometry, y]) => {
+            const material = new THREE.MeshBasicMaterial({ color: 0xffffff, vertexColors: true, fog: true });
+            const batch = new THREE.InstancedMesh(geometry, material, this.bots.length);
+            batch.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+            batch.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(batch.count * 3), 3);
+            batch.frustumCulled = false;
+            batch.count = 0;
+            batch.userData.entityLodBatch = true;
+            batch.userData.colorKey = colorKey;
+            batch.userData.localMatrix = new THREE.Matrix4().makeTranslation(0, y, 0);
+            group.add(batch);
+            return batch;
+        });
         for (const bot of this.bots) {
             bot.mesh.userData.useBatchedLod = true;
             if (bot.mesh.userData.lodProxy) bot.mesh.userData.lodProxy.visible = false;
         }
-        this.scene.add(batch);
-        this.botLodBatch = batch;
+        this.scene.add(group);
+        this.botLodBatch = group;
         this._botLodColor = new THREE.Color();
+        this._botLodMatrix = new THREE.Matrix4();
     }
 
     updateBotLodBatch() {
-        const batch = this.botLodBatch;
-        if (!batch) return;
+        const batches = this.botLodBatches;
+        if (!batches?.length) return;
         let count = 0;
         for (const bot of this.bots) {
             if (!bot.isAlive || bot._lodDetailed !== false) continue;
             bot.mesh.updateMatrixWorld(true);
-            batch.setMatrixAt(count, bot.mesh.matrixWorld);
-            this._botLodColor.setHex(bot.color || 0x5588aa);
-            batch.setColorAt(count, this._botLodColor);
+            for (const batch of batches) {
+                this._botLodMatrix.multiplyMatrices(bot.mesh.matrixWorld, batch.userData.localMatrix);
+                batch.setMatrixAt(count, this._botLodMatrix);
+                this._botLodColor.setHex(bot.outfit?.[batch.userData.colorKey] || bot.color || 0x5588aa);
+                batch.setColorAt(count, this._botLodColor);
+            }
             count++;
         }
-        batch.count = count;
-        batch.visible = count > 0;
-        batch.instanceMatrix.needsUpdate = true;
-        if (batch.instanceColor) batch.instanceColor.needsUpdate = true;
+        for (const batch of batches) {
+            batch.count = count;
+            batch.visible = count > 0;
+            batch.instanceMatrix.needsUpdate = true;
+            batch.instanceColor.needsUpdate = true;
+        }
     }
 
     /**
@@ -1254,15 +1267,15 @@ class Game {
         if (this.platformGateCycleTimer > 0) return;
         if (this.platformGateCycleOpen) {
             this.platformGateCycleOpen = false;
-            this.platformGateCycleTimer = 110;
+            this.platformGateCycleTimer = 45;
             this.map?.setBiomeGatesOpen?.(false);
             this.hud.showGameMessage('Ворота центральной платформы закрыты');
             return;
         }
         this.platformGateCycleOpen = true;
-        this.platformGateCycleTimer = 25;
+        this.platformGateCycleTimer = 30;
         this.setCenterPlatformOpen(true);
-        this.hud.showGameMessage('Ворота центральной платформы открыты на 25 секунд!');
+        this.hud.showGameMessage('Ворота центральной платформы открыты на 30 секунд!');
     }
 
     updateCenterDetonation(delta) {
@@ -1890,7 +1903,7 @@ class Game {
                 this.map.updatePropVisibility?.(this.player.position);
                 this.map.instancedMeshSystem?.updateCulling?.(
                     this.player.position,
-                    this.isMobile() ? 115 : 155
+                    this.isMobile() ? 230 : 300
                 );
                 this.lastPropVisibilityPos.copy(this.player.position);
             }

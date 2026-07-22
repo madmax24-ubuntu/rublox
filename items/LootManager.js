@@ -118,9 +118,7 @@ export class LootManager {
         } else {
             baseY = this.mapGenerator.getSurfaceHeightAt?.(x, z) ?? this.mapGenerator.getHeightAt?.(x, z) ?? 0;
         }
-        // Keep chest bottom clearly above floor to avoid half-sunken look
-        // on uneven or stepped walkable colliders.
-        return baseY + 0.38;
+        return baseY + 0.02;
     }
 
     isChestPlacementClear(x, y, z) {

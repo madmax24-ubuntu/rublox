@@ -5,7 +5,6 @@ export class InstancedMeshSystem {
     constructor(pool) {
         this.pool = pool || new MeshPool();
         this._tmpMatrix = new THREE.Matrix4();
-        this._tmpMatrix2 = new THREE.Matrix4();
         this._tmpVec = new THREE.Vector3();
         this._lastCullPos = new THREE.Vector3(0, 0, 0);
         this._grouped = new Map();
@@ -68,12 +67,14 @@ export class InstancedMeshSystem {
             if (entries[0].userData?.isCornucopia) instanced.userData.isCornucopia = true;
 
             const positions = new Float32Array(entries.length * 3);
+            const matrices = new Float32Array(entries.length * 16);
 
             for (let i = 0; i < entries.length; i++) {
                 const m = entries[i];
                 m.updateWorldMatrix(true, false);
                 this._tmpMatrix.copy(m.matrixWorld);
                 instanced.setMatrixAt(i, this._tmpMatrix);
+                this._tmpMatrix.toArray(matrices, i * 16);
                 positions[i * 3] = this._tmpMatrix.elements[12];
                 positions[i * 3 + 1] = this._tmpMatrix.elements[13];
                 positions[i * 3 + 2] = this._tmpMatrix.elements[14];
@@ -95,6 +96,7 @@ export class InstancedMeshSystem {
             this._instancedMeshes.push({
                 mesh: instanced,
                 positions,
+                matrices,
                 count: entries.length,
                 grid,
             });
@@ -132,7 +134,7 @@ export class InstancedMeshSystem {
         const radius = Math.ceil(cullDist / cellSize) + 1;
 
         for (const entry of this._instancedMeshes) {
-            const { mesh, positions, count, grid } = entry;
+            const { mesh, positions, matrices, count, grid } = entry;
             const maxCount = count || positions.length / 3;
             const visibleIndices = entry._visBuf || (entry._visBuf = new Uint32Array(Math.max(4096, maxCount * 2)));
             const seen = entry._seen || (entry._seen = new Set());
@@ -160,7 +162,8 @@ export class InstancedMeshSystem {
             let target = 0;
             for (let v = 0; v < visCount; v++) {
                 const i = visibleIndices[v];
-                if (i !== target) this._swapInstance(entry, i, target);
+                this._tmpMatrix.fromArray(matrices, i * 16);
+                mesh.setMatrixAt(target, this._tmpMatrix);
                 target++;
             }
 
@@ -171,20 +174,6 @@ export class InstancedMeshSystem {
                 mesh.count = target;
             }
             mesh.instanceMatrix.needsUpdate = true;
-        }
-    }
-
-    _swapInstance(entry, a, b) {
-        const { mesh, positions } = entry;
-        mesh.getMatrixAt(a, this._tmpMatrix);
-        mesh.getMatrixAt(b, this._tmpMatrix2);
-        mesh.setMatrixAt(a, this._tmpMatrix2);
-        mesh.setMatrixAt(b, this._tmpMatrix);
-
-        for (let c = 0; c < 3; c++) {
-            const tmp = positions[a * 3 + c];
-            positions[a * 3 + c] = positions[b * 3 + c];
-            positions[b * 3 + c] = tmp;
         }
     }
 

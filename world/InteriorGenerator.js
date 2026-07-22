@@ -5,27 +5,7 @@ export class InteriorGenerator {
 
     // Generate all interior elements for a building
     static generate(buildingData, scene, addCollider) {
-        const { type, position, width, depth, height, floors, template } = buildingData;
-        const baseY = position.y || 0;
-        const elements = { colliders: [], meshes: [], lights: [] };
-
-        // Partition walls — only 2-story buildings
-        if (template && template.floors >= 2) {
-            const walls = this.generatePartitionWalls(buildingData, scene, addCollider);
-            elements.colliders.push(...walls.colliders);
-            elements.meshes.push(...walls.meshes);
-        }
-
-        // Furniture — reduced: only keep meaningful props (2-3 per building)
-        const furniture = this.generateFurniture(buildingData, scene, addCollider);
-        elements.colliders.push(...furniture.colliders);
-        elements.meshes.push(...furniture.meshes);
-
-        // Lighting
-        const lights = this.generateLighting(buildingData, scene);
-        elements.lights.push(...lights);
-
-        return elements;
+        return { colliders: [], meshes: [], lights: [] };
     }
 
     // Generate interior partition walls — only for large 2-story buildings

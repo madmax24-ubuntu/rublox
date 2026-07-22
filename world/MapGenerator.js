@@ -90,8 +90,8 @@ export class MapGenerator {
         this._navigationTiles = [];
         this._spawnTiles = [];
         this._meshes = [];
-        this._cullDistance = 155;
-        this._cullDistanceMobile = 115;
+        this._cullDistance = 300;
+        this._cullDistanceMobile = 230;
         this.pool = new MeshPool();
         const _origAdd = this.scene.add.bind(this.scene);
         this.scene.add = (obj) => {
@@ -730,8 +730,6 @@ export class MapGenerator {
         }
 
         // Rocks and moss on clearing
-        this._addClearingRocks(clearingCX, clearingCZ, clearingRadius);
-
         // Edge trees — dense forest near biome borders
         this._addEdgeTrees(startX, startZ, size);
 
