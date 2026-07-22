@@ -5085,10 +5085,20 @@ export class MapGenerator {
         if (isMobile) {
             this._cullDistance = this._cullDistanceMobile;
         }
-        // Enable frustum culling on all scene objects
+        // Enable frustum culling only on objects that have valid bounding boxes.
+        // Objects with frustumCulled explicitly set to false are left untouched.
         this.scene.traverse((obj) => {
-            if (obj.isMesh || obj.isGroup) {
-                obj.frustumCulled = true;
+            if (obj.isMesh) {
+                if (obj.frustumCulled === false) return;
+                try {
+                    obj.geometry.computeBoundingBox?.();
+                    obj.geometry.computeBoundingSphere?.();
+                } catch (_) {}
+                const bb = obj.geometry.boundingBox;
+                const bs = obj.geometry.boundingSphere;
+                if (bb || bs) {
+                    obj.frustumCulled = true;
+                }
             }
         });
     }

@@ -116,7 +116,7 @@ export class CameraController {
                     const box = cell[i];
                     if (!box.min || !box.max) continue;
                     const t = this._raycastAABB(playerPos, dir, box);
-                    if (t !== null && t > 0 && t < closestT && t < dist) {
+                    if (t !== null && t > 0.05 && t < closestT && t < dist) {
                         closestT = t;
                     }
                 }
@@ -124,13 +124,44 @@ export class CameraController {
         }
 
         // If an obstacle blocks the camera, move it closer to player
-        if (closestT < dist - 0.2) {
-            const newDist = closestT - 0.1; // small gap from obstacle
+        if (closestT < dist - 0.15) {
+            const newDist = closestT - 0.15;
             cameraPos.set(
                 playerPos.x + dir.x * newDist,
                 playerPos.y + dir.y * newDist,
                 playerPos.z + dir.z * newDist
             );
+        }
+
+        // Additional sphere-AABB check: ensure camera is not inside any collider
+        const r = this._cameraRadius;
+        for (let cx = Math.floor(cameraPos.x / cellSize) - 1; cx <= Math.floor(cameraPos.x / cellSize) + 1; cx++) {
+            for (let cz = Math.floor(cameraPos.z / cellSize) - 1; cz <= Math.floor(cameraPos.z / cellSize) + 1; cz++) {
+                const key = (cx << 16) | (cz & 0xFFFF);
+                const cell = grid.get(key);
+                if (!cell) continue;
+                for (let i = 0; i < cell.length; i++) {
+                    const box = cell[i];
+                    if (!box.min || !box.max) continue;
+                    // Sphere-AABB intersection test
+                    const closestX = Math.max(box.min.x, Math.min(cameraPos.x, box.max.x));
+                    const closestY = Math.max(box.min.y, Math.min(cameraPos.y, box.max.y));
+                    const closestZ = Math.max(box.min.z, Math.min(cameraPos.z, box.max.z));
+                    const dx = cameraPos.x - closestX;
+                    const dy = cameraPos.y - closestY;
+                    const dz = cameraPos.z - closestZ;
+                    const distSq = dx * dx + dy * dy + dz * dz;
+                    if (distSq < r * r && distSq > 0.0001) {
+                        // Camera sphere intersects collider — push away
+                        const dist = Math.sqrt(distSq);
+                        const push = r - dist + 0.05;
+                        const invDist = 1 / dist;
+                        cameraPos.x += dx * invDist * push;
+                        cameraPos.y += dy * invDist * push;
+                        cameraPos.z += dz * invDist * push;
+                    }
+                }
+            }
         }
     }
 

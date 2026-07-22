@@ -268,10 +268,13 @@ export class Physics {
         const bottom = pos.y - (entity.physics?.height || 1.7);
         const pushDistSq = (baseRadius + 0.5) * (baseRadius + 0.5);
 
+        // Limit per-step push to prevent teleportation when deeply embedded
+        const maxPushPerStep = 0.8;
+
         const nearby = this.getNearbyColliders(pos, baseRadius + 1.2);
         if (!nearby.length) return;
 
-        // Multi-pass resolution
+        // Multi-pass resolution with clamped push distance
         let pushed = false;
         for (let pass = 0; pass < 3; pass++) {
             pushed = false;
@@ -300,25 +303,27 @@ export class Physics {
                 if (distSq > pushDistSq) continue;
 
                 if (distSq < 0.0001) {
-                    // Center inside box — push to closest face
+                    // Center inside box — push along shortest axis, clamped
                     const left = Math.abs(pos.x - min.x);
                     const right = Math.abs(max.x - pos.x);
                     const back = Math.abs(pos.z - min.z);
                     const front = Math.abs(max.z - pos.z);
                     const minPen = Math.min(left, right, back, front);
 
-                    if (minPen === left) pos.x = min.x - baseRadius;
-                    else if (minPen === right) pos.x = max.x + baseRadius;
-                    else if (minPen === back) pos.z = min.z - baseRadius;
-                    else pos.z = max.z + baseRadius;
+                    const pushAmt = Math.min(minPen, maxPushPerStep);
+                    if (minPen === left) pos.x = min.x - baseRadius + (minPen - pushAmt);
+                    else if (minPen === right) pos.x = max.x + baseRadius - (minPen - pushAmt);
+                    else if (minPen === back) pos.z = min.z - baseRadius + (minPen - pushAmt);
+                    else pos.z = max.z + baseRadius - (minPen - pushAmt);
                     pushed = true;
                 } else {
                     const dist = Math.sqrt(distSq);
                     const penetration = baseRadius - dist;
                     if (penetration > 0.005) {
+                        const push = Math.min(penetration * this.maxCompression, maxPushPerStep);
                         const invDist = 1 / dist;
-                        pos.x += dx * invDist * Math.max(0.01, penetration * this.maxCompression);
-                        pos.z += dz * invDist * Math.max(0.01, penetration * this.maxCompression);
+                        pos.x += dx * invDist * Math.max(0.01, push);
+                        pos.z += dz * invDist * Math.max(0.01, push);
                         pushed = true;
                     }
                 }
