@@ -318,8 +318,8 @@ class Game {
         this.renderer.shadowMap.enabled = false;
         this.renderer.sortObjects = false; // Disable sorting for FPS
         this.renderer.polygonOffset = true;
-        this.renderer.polygonOffsetFactor = 12;
-        this.renderer.polygonOffsetUnits = 6;
+        this.renderer.polygonOffsetFactor = 1;
+        this.renderer.polygonOffsetUnits = 1;
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
         this.renderer.toneMappingExposure = 1.15;
