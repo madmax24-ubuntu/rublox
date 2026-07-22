@@ -110,7 +110,7 @@ export class Physics {
                 }
             }
 
-            if (insideNonWalkable) {
+            if (insideNonWalkable && type !== 'Player') {
                 entity.physics._stuckCount++;
                 if (entity.physics._stuckCount > 120) {
                     const pads = this.mapGenerator?.spawnPads || [];
