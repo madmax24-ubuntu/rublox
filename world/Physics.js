@@ -292,6 +292,13 @@ export class Physics {
 
                 // Walkable floor: skip when entity stands on top
                 if (box.walkable && bottom >= max.y - 0.5) continue;
+                const stepHeight = max.y - bottom;
+                if (stepHeight > 0.02 && stepHeight <= 0.78 && bottom >= min.y - 0.2) {
+                    pos.y = max.y + (entity.physics?.height || 1.7);
+                    entity.physics.onGround = true;
+                    if (entity.physics.velocity) entity.physics.velocity.y = 0;
+                    continue;
+                }
 
                 // AABB vs point (XZ plane)
                 const clampedX = min.x + Math.max(0, Math.min(max.x - min.x, pos.x - min.x));

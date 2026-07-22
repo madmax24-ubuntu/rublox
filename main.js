@@ -672,7 +672,7 @@ class Game {
             ['hair', new THREE.BoxGeometry(0.69, 0.22, 0.69), 2.24]
         ];
         this.botLodBatches = parts.map(([colorKey, geometry, y]) => {
-            const material = new THREE.MeshBasicMaterial({ color: 0xffffff, vertexColors: true, fog: true });
+            const material = new THREE.MeshBasicMaterial({ color: 0xffffff, vertexColors: true, fog: false, toneMapped: false });
             const batch = new THREE.InstancedMesh(geometry, material, this.bots.length);
             batch.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
             batch.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(batch.count * 3), 3);
@@ -1268,7 +1268,7 @@ class Game {
         if (this.platformGateCycleOpen) {
             this.platformGateCycleOpen = false;
             this.platformGateCycleTimer = 45;
-            this.map?.setBiomeGatesOpen?.(false);
+            this.setCenterPlatformOpen(false);
             this.hud.showGameMessage('Ворота центральной платформы закрыты');
             return;
         }
@@ -1784,7 +1784,7 @@ class Game {
                 this.gameState = 'playing';
                 this.setCenterPlatformOpen(true);
                 this.platformGateCycleOpen = true;
-                this.platformGateCycleTimer = 60;
+                this.platformGateCycleTimer = 30;
                 this.roundStartTime = performance.now() * 0.001;
                 this.eventTimelineIndex = 0;
                 this.activeEvent = { type: null, timer: 0, prevFog: null };
@@ -2617,7 +2617,6 @@ class Game {
         this.isStarted = true;
         this.startingGame = true;
         this.startAttemptAt = performance.now();
-        this._destroyLaserRing();
         this.setCenterPlatformOpen(true);
         try {
             this.hideStartScreen();

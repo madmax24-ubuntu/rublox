@@ -846,53 +846,58 @@ export class MapGenerator {
 
         // Лестница ВНУТРИ дома (справа от входа)
         const stairW = 2;
-        const stairD = 1.5;
+        const stairD = 7.5;
         const stairCount = 10;
-        const stairH = (storyH + 0.15) / stairCount;
+        const stairRise = (storyH + 0.15) / stairCount;
+        const stairStepD = stairD / stairCount;
+        const stairX = w / 2 - stairW / 2 - 0.4;
+        const stairStartZ = d / 2 - 1.1;
         for (let i = 0; i < stairCount; i++) {
-            const stepGeo = this.pool.getGeoBox(stairW, 0.15, stairD);
+            const stepH = (i + 1) * stairRise;
+            const stepZ = stairStartZ - (i + 0.5) * stairStepD;
+            const stepGeo = this.pool.getGeoBox(stairW, stepH, stairStepD);
             const step = new THREE.Mesh(stepGeo, woodMat);
-            step.position.set(w / 2 - stairW / 2 - 0.3, i * stairH + 0.2, d / 4);
+            step.position.set(stairX, 0.3 + stepH / 2, stepZ);
             step.userData.mapGenerated = true;
             step.userData.walkable = true;
             cabin.add(step);
             this.addColliderBox(
-                new THREE.Vector3(x + w / 2 - stairW / 2 - 0.3, i * stairH + 0.2, z + d / 4),
-                stairW, 0.15, stairD, true
+                new THREE.Vector3(x + stairX, 0.3 + stepH / 2, z + stepZ),
+                stairW, stepH, stairStepD, true
             );
         }
 
         // Второй этаж - пол с проёмом для лестницы
-        const floor2LeftW = w / 2 - stairW / 2 - 0.3;
-        const floor2RightW = stairW / 2 + 0.3;
-        const floor2FrontD = d / 2 - d / 4 - stairD / 2;
-        const floor2BackD = d / 2 + d / 4 + stairD / 2;
+        const floor2LeftW = w - stairW - 0.8;
+        const floor2FrontD = Math.max(0.6, d / 2 - stairStartZ);
+        const stairEndZ = stairStartZ - stairD;
+        const floor2BackD = Math.max(0.6, stairEndZ + d / 2);
         const floor2YL = storyH + 0.15;
 
         const floor2LeftGeo = this.pool.getGeoBox(floor2LeftW, 0.3, d);
         const floor2Left = new THREE.Mesh(floor2LeftGeo, woodMat);
-        floor2Left.position.set(-floor2LeftW / 2 - 0.15, floor2YL, 0);
+        floor2Left.position.set(-w / 2 + floor2LeftW / 2, floor2YL, 0);
         floor2Left.userData.mapGenerated = true;
         floor2Left.userData.walkable = true;
         cabin.add(floor2Left);
 
-        const floor2RightGeo = this.pool.getGeoBox(floor2RightW, 0.3, floor2FrontD);
+        const floor2RightGeo = this.pool.getGeoBox(stairW, 0.3, floor2FrontD);
         const floor2RightF = new THREE.Mesh(floor2RightGeo, woodMat);
-        floor2RightF.position.set(floor2RightW / 2 + 0.15, floor2YL, d / 4 + stairD / 2 + floor2FrontD / 2);
+        floor2RightF.position.set(stairX, floor2YL, d / 2 - floor2FrontD / 2);
         floor2RightF.userData.mapGenerated = true;
         floor2RightF.userData.walkable = true;
         cabin.add(floor2RightF);
 
-        const floor2RightBGeo = this.pool.getGeoBox(floor2RightW, 0.3, floor2BackD);
+        const floor2RightBGeo = this.pool.getGeoBox(stairW, 0.3, floor2BackD);
         const floor2RightB = new THREE.Mesh(floor2RightBGeo, woodMat);
-        floor2RightB.position.set(floor2RightW / 2 + 0.15, floor2YL, -d / 4 - stairD / 2 - floor2BackD / 2);
+        floor2RightB.position.set(stairX, floor2YL, -d / 2 + floor2BackD / 2);
         floor2RightB.userData.mapGenerated = true;
         floor2RightB.userData.walkable = true;
         cabin.add(floor2RightB);
 
-        this.addColliderBox(new THREE.Vector3(x - floor2LeftW / 2 - 0.15, floor2YL, z), floor2LeftW, 0.3, d, false);
-        this.addColliderBox(new THREE.Vector3(x + floor2RightW / 2 + 0.15, floor2YL, z + d / 4 + stairD / 2 + floor2FrontD / 2), floor2RightW, 0.3, floor2FrontD, false);
-        this.addColliderBox(new THREE.Vector3(x + floor2RightW / 2 + 0.15, floor2YL, z - d / 4 - stairD / 2 - floor2BackD / 2), floor2RightW, 0.3, floor2BackD, false);
+        this.addColliderBox(new THREE.Vector3(x - w / 2 + floor2LeftW / 2, floor2YL, z), floor2LeftW, 0.3, d, true);
+        this.addColliderBox(new THREE.Vector3(x + stairX, floor2YL, z + d / 2 - floor2FrontD / 2), stairW, 0.3, floor2FrontD, true);
+        this.addColliderBox(new THREE.Vector3(x + stairX, floor2YL, z - d / 2 + floor2BackD / 2), stairW, 0.3, floor2BackD, true);
 
         // Стены второго этажа
         for (let side of [-1, 1]) {
