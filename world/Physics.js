@@ -91,6 +91,7 @@ export class Physics {
             }
 
             // --- Stuck detection (throttled, shares nearby query) ---
+            const isPlayer = entity.type === 'Player' || type === 'Player';
             if (!entity.physics._stuckCount) entity.physics._stuckCount = 0;
             entity.physics._stuckCheckTimer = (entity.physics._stuckCheckTimer ?? 0) - delta;
             let insideNonWalkable = false;
@@ -110,7 +111,7 @@ export class Physics {
                 }
             }
 
-            if (insideNonWalkable && type !== 'Player') {
+            if (insideNonWalkable && !isPlayer) {
                 entity.physics._stuckCount++;
                 if (entity.physics._stuckCount > 120) {
                     const pads = this.mapGenerator?.spawnPads || [];

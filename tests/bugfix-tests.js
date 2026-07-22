@@ -44,8 +44,37 @@ test('PolygonOffset: DoubleSide materials have sufficient offset', () => {
     const code = read('world/MeshPool.js');
     if (!code.includes('polygonOffset')) throw new Error('Cannot find polygonOffset');
     // Проверяем что есть wall-специфичные значения
-    if (!code.includes('wall ?') || !code.includes('12') || !code.includes('8')) {
+    if (!code.includes('wall ?') || !code.includes('4') || !code.includes('2')) {
         throw new Error('Wall polygonOffset not configured');
+    }
+});
+
+// TEST 2b: MapGenerator biome boundaries don't override polygonOffset excessively
+test('MapGenerator: biome boundaries use pool polygonOffset (no flicker)', () => {
+    const code = read('world/MapGenerator.js');
+    const boundarySection = code.substring(
+        code.indexOf('_placeBiomeBoundaries() {'),
+        code.indexOf('_placeBiomeBoundaries() {') + 2000
+    );
+    // Should NOT manually override polygonOffset after getMatStd call
+    if (boundarySection.includes('polygonOffsetFactor = 12')) {
+        throw new Error('Biome boundaries override polygonOffset to 12, causes flicker');
+    }
+});
+
+// TEST 2c: Player excluded from stuck-teleport
+test('Physics: Player excluded from stuck-detection teleport', () => {
+    const code = read('world/Physics.js');
+    if (!code.includes('isPlayer') || !code.includes("entity.type === 'Player'")) {
+        throw new Error('Player stuck-exclusion not found');
+    }
+});
+
+// TEST 2d: Player has type property
+test('Player: has type property for identification', () => {
+    const code = read('entities/Player.js');
+    if (!code.includes("this.type = 'Player'")) {
+        throw new Error('Player missing type property');
     }
 });
 

@@ -5,6 +5,7 @@ import { spawnDamagePopup } from './DamagePopup.js';
 
 export class Player {
     constructor(scene, camera, input) {
+        this.type = 'Player';
         this.scene = scene;
         this.camera = camera;
         this.input = input;
