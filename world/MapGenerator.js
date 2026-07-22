@@ -561,6 +561,21 @@ export class MapGenerator {
             const s = Math.abs(Math.sin(rotation));
             this.addColliderBox(new THREE.Vector3(x, wallH / 2, z), w * c + d * s, wallH, w * s + d * c, false, false);
         };
+        const addGate = (x, z, w, d, rotation = 0) => {
+            const gate = new THREE.Mesh(this.pool.getGeoBox(w, 16, d), gateMat.clone());
+            gate.position.set(x, 8, z);
+            gate.rotation.y = rotation;
+            gate.userData.mapGenerated = true;
+            gate.userData.biomeGate = true;
+            gate.frustumCulled = false;
+            this.scene.add(gate);
+            const c = Math.abs(Math.cos(rotation));
+            const s = Math.abs(Math.sin(rotation));
+            const collider = this.addColliderBox(new THREE.Vector3(x, 8, z), w * c + d * s, 16, w * s + d * c, false, false);
+            collider.enabled = false;
+            this._biomeGates.push(gate);
+            this._biomeGateColliders.push(collider);
+        };
         const ringRadius = 64;
         const ringSegments = 40;
         const segmentLength = Math.PI * 2 * ringRadius / ringSegments + 0.8;
@@ -571,19 +586,7 @@ export class MapGenerator {
             const z = Math.sin(angle) * ringRadius;
             const rotation = Math.PI / 2 - angle;
             if (gateIndices.has(i)) {
-                const gate = new THREE.Mesh(this.pool.getGeoBox(segmentLength, 16, wallT), gateMat);
-                gate.position.set(x, 8, z);
-                gate.rotation.y = rotation;
-                gate.userData.mapGenerated = true;
-                gate.userData.biomeGate = true;
-                gate.frustumCulled = false;
-                this.scene.add(gate);
-                const c = Math.abs(Math.cos(rotation));
-                const s = Math.abs(Math.sin(rotation));
-                const collider = this.addColliderBox(new THREE.Vector3(x, 8, z), segmentLength * c + wallT * s, 16, segmentLength * s + wallT * c, false, false);
-                collider.enabled = false;
-                this._biomeGates.push(gate);
-                this._biomeGateColliders.push(collider);
+                addGate(x, z, segmentLength, wallT, rotation);
             } else {
                 addWall(x, z, segmentLength, wallT, rotation);
             }
@@ -607,6 +610,30 @@ export class MapGenerator {
                 const c2 = seg2Start + len2 * 0.5;
                 addWall(0, sign * c2, wallT, len2);
                 addWall(sign * c2, 0, len2, wallT);
+            }
+            addGate(0, sign * gateMid, wallT, gateGap);
+            addGate(sign * gateMid, 0, gateGap, wallT);
+        }
+        const stairColors = [0xd6b056, 0x658f63, 0xb8e5ff, 0x496f43];
+        const stairAngles = [Math.PI * 0.25, Math.PI * 0.75, Math.PI * 1.25, Math.PI * 1.75];
+        for (let entrance = 0; entrance < stairAngles.length; entrance++) {
+            const angle = stairAngles[entrance];
+            const stairMat = this.pool.getMatStd(stairColors[entrance], 0.7, 0.08, true, false, 1, stairColors[entrance], 0.12);
+            for (let step = 0; step < 6; step++) {
+                const radius = 54.5 + step * 2.25;
+                const top = 2 - step * 0.34;
+                const tread = new THREE.Mesh(this.pool.getGeoBox(12, top, 2.35), stairMat);
+                tread.position.set(Math.cos(angle) * radius, top * 0.5, Math.sin(angle) * radius);
+                tread.rotation.y = Math.PI * 0.5 - angle;
+                tread.userData.mapGenerated = true;
+                tread.userData.walkable = true;
+                tread.userData.isBiomeEntrance = true;
+                tread.frustumCulled = false;
+                this.scene.add(tread);
+                const c = Math.abs(Math.cos(tread.rotation.y));
+                const s = Math.abs(Math.sin(tread.rotation.y));
+                const collider = this.addColliderBox(tread.position.clone(), 12 * c + 2.35 * s, top, 12 * s + 2.35 * c, true, false);
+                collider.isBiomeEntrance = true;
             }
         }
         this.setBiomeGatesOpen(true);

@@ -73,18 +73,6 @@ export class BotBrain {
             return;
         }
 
-        // Push bots away from laser ring at radius 27
-        const botDistToCenter = Math.hypot(bot.position.x, bot.position.z);
-        if (botDistToCenter > 23 && botDistToCenter < 31) {
-            const pushDir = botDistToCenter < 27 ? 1 : -1;
-            const angle = Math.atan2(bot.position.z, bot.position.x);
-            const targetR = 27 + 5 * pushDir;
-            const tx = Math.cos(angle) * targetR;
-            const tz = Math.sin(angle) * targetR;
-            bot.position.x += (tx - bot.position.x) * delta * 3;
-            bot.position.z += (tz - bot.position.z) * delta * 3;
-        }
-
         this.decisionCooldown = Math.max(0, this.decisionCooldown - delta);
         this.attackCooldown = Math.max(0, this.attackCooldown - delta);
         this.retargetCooldown = Math.max(0, this.retargetCooldown - delta);
@@ -109,7 +97,7 @@ export class BotBrain {
             bot.state = nextState;
             if (nextState !== STATES.LOOT && nextState !== STATES.EXPLORE) this.releaseLootReservation(bot);
             if (nextState !== STATES.ENGAGE) this.releaseCombatReservation(bot);
-            this.decisionCooldown = 0.62 + ((bot.id * 0.009) % 0.34);
+            this.decisionCooldown = 0.44 + ((bot.id * 0.007) % 0.24);
         } else {
             // Refresh earlyGamePhase on cached context so actEngage / actExplore see current phase
             ctx.earlyGamePhase = earlyGamePhase;
@@ -575,7 +563,7 @@ export class BotBrain {
         if (lowHp && underPressure && !hasMedkit) return STATES.HIDE;
 
         // 3. Avoid crowds (aggressive bots tolerate more)
-        if (ctx.crowdNear >= crowdTolerance) {
+        if (ctx.crowdNear >= Math.max(3, crowdTolerance + 1)) {
             return STATES.EXPLORE;
         }
 
@@ -592,7 +580,8 @@ export class BotBrain {
         // 5. Engage only if well-positioned, armed, AND actively being attacked
         if (ctx.nearestEnemy && ctx.nearestEnemyDist < engageDist) {
             const isBeingAttacked = ctx.heardShot || (bot._lastAttackedBy && performance.now() - bot._lastAttackedBy < 3000);
-            if (isBeingAttacked && wellArmed && armed && ctx.crowdNear < crowdTolerance) {
+            const favorableFight = wellArmed && armed && ctx.hp > 0.48 && ctx.crowdNear < 4;
+            if ((isBeingAttacked || favorableFight) && ctx.crowdNear < Math.max(3, crowdTolerance + 1)) {
                 return STATES.ENGAGE;
             }
             // Very aggressive bots engage even without being attacked
@@ -666,6 +655,10 @@ export class BotBrain {
         const needsScatter = isScatterPhase || ctx.crowdNear >= scatterThreshold;
 
         if (needsScatter) {
+            if (bot.patrolTarget && now < (bot._scatterTargetUntil || 0) && bot.position.distanceTo(bot.patrolTarget) > 5) {
+                this.steerMove(bot, bot.patrolTarget, bot.physics.speed * (ctx.inPreLootPhase ? 1.1 : 1.0));
+                return;
+            }
             // Pick a target far away — avoid ALL nearby bots, not just the nearest enemy
             const entityManager = bot.entityManagerRef;
             const nearby = entityManager?.getNearbyEntities
@@ -747,6 +740,7 @@ export class BotBrain {
                 );
             }
             bot.patrolTarget = scatterTarget.clone();
+            bot._scatterTargetUntil = now + 2400 + (bot.id % 7) * 170;
             // Move at natural speed during scatter — no frantic sprinting
             const scatterSpeed = ctx.inPreLootPhase ? 1.1 : (ctx.earlyGamePhase ? 1.05 : 0.95);
             this.steerMove(bot, scatterTarget, bot.physics.speed * scatterSpeed);
