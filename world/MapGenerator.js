@@ -90,8 +90,9 @@ export class MapGenerator {
         this._navigationTiles = [];
         this._spawnTiles = [];
         this._meshes = [];
-        this._cullDistance = 300;
-        this._cullDistanceMobile = 230;
+        this._cullDistance = Infinity;
+        this._cullDistanceMobile = Infinity;
+        this._lastAddedMapObject = null;
         this.pool = new MeshPool();
         const _origAdd = this.scene.add.bind(this.scene);
         this.scene.add = (obj) => {
@@ -99,6 +100,7 @@ export class MapGenerator {
             if ((obj.isMesh || obj.isGroup) && !obj.isInstancedMesh && obj.userData?.mapGenerated) {
                 obj.userData._mapCulled = true;
                 this._meshes.push(obj);
+                this._lastAddedMapObject = obj;
             }
             return _origAdd(obj);
         };
@@ -154,6 +156,7 @@ export class MapGenerator {
             }
         }
         this._removeStripeArtifacts();
+        this._removeDetachedColliderSources();
 
         // Phase 9.8: Map perimeter walls (glass/blue like reference)
         this._generatePerimeterWalls();
@@ -263,6 +266,19 @@ export class MapGenerator {
                 cz >= box.min.z - 0.2 && cz <= box.max.z + 0.2
             );
         });
+    }
+
+    _isAttachedToScene(object) {
+        let current = object;
+        while (current) {
+            if (current === this.scene) return true;
+            current = current.parent;
+        }
+        return false;
+    }
+
+    _removeDetachedColliderSources() {
+        this.colliders = this.colliders.filter(collider => !collider.source || this._isAttachedToScene(collider.source));
     }
 
     _pruneOutsidePlayableBounds() {
@@ -559,7 +575,7 @@ export class MapGenerator {
             this.scene.add(mesh);
             const c = Math.abs(Math.cos(rotation));
             const s = Math.abs(Math.sin(rotation));
-            this.addColliderBox(new THREE.Vector3(x, wallH / 2, z), w * c + d * s, wallH, w * s + d * c, false, false);
+            this.addColliderBox(new THREE.Vector3(x, wallH / 2, z), w * c + d * s, wallH, w * s + d * c, false, true);
         };
         const addGate = (x, z, w, d, rotation = 0) => {
             const gate = new THREE.Mesh(this.pool.getGeoBox(w, 16, d), gateMat.clone());
@@ -573,6 +589,7 @@ export class MapGenerator {
             const s = Math.abs(Math.sin(rotation));
             const collider = this.addColliderBox(new THREE.Vector3(x, 8, z), w * c + d * s, 16, w * s + d * c, false, false);
             collider.enabled = false;
+            collider.isBiomeGate = true;
             this._biomeGates.push(gate);
             this._biomeGateColliders.push(collider);
         };
@@ -636,7 +653,7 @@ export class MapGenerator {
                 collider.isBiomeEntrance = true;
             }
         }
-        this.setBiomeGatesOpen(true);
+        this.setBiomeGatesOpen(false);
     }
 
     _addBridge(x, z) {
@@ -2358,7 +2375,7 @@ export class MapGenerator {
         floor.userData.walkable = true;
         floor.userData.isBiomeEntrance = true;
         this.scene.add(floor);
-        const floorCollider = this.addColliderBox(new THREE.Vector3(midpoint.x, 0.09, midpoint.z), 12 * Math.abs(Math.cos(angle)) + length * Math.abs(Math.sin(angle)), 0.18, 12 * Math.abs(Math.sin(angle)) + length * Math.abs(Math.cos(angle)), false);
+        const floorCollider = this.addColliderBox(new THREE.Vector3(midpoint.x, 0.09, midpoint.z), 12 * Math.abs(Math.cos(angle)) + length * Math.abs(Math.sin(angle)), 0.18, 12 * Math.abs(Math.sin(angle)) + length * Math.abs(Math.cos(angle)), true);
         floorCollider.isBiomeEntrance = true;
     }
 
@@ -4589,52 +4606,6 @@ export class MapGenerator {
     }
 
     // =========================================================================
-    // BIOME CONNECTIONS — Logical paths between quadrants
-    // =========================================================================
-    _generateBiomeConnections() {
-        // Path from forest (NW) to maze (NE) — crosses river
-        const pathMat = this.pool.getMatStd(0x8d6e63, 1.0, 0, true, false, 1, 0, 0);
-
-        // Forest to Maze path (horizontal) — spawn pads at path endpoints (tile-grid snapped)
-        for (let i = 0; i < 10; i++) {
-            const px = -80 + i * 16;
-            const pz = Math.round((-20 + this._rand() * 10) / TILE_SIZE) * TILE_SIZE;
-            const segGeo = this.pool.getGeoBox(2, 0.05, 2);
-            const seg = new THREE.Mesh(segGeo, pathMat);
-            seg.position.set(px, 0.03, pz);
-            seg.userData.mapGenerated = true;
-            seg.userData.walkable = true;
-            this.scene.add(seg);
-            this.addColliderBox(new THREE.Vector3(px, 0.03, pz), 2, 0.05, 2, false);
-        }
-        // Military to Ice path (diagonal)
-        for (let i = 0; i < 4; i++) {
-            const px = Math.round((-60 + i * 12) / TILE_SIZE) * TILE_SIZE;
-            const pz = Math.round((60 + i * 12) / TILE_SIZE) * TILE_SIZE;
-            const segGeo = this.pool.getGeoBox(2, 0.05, 2);
-            const seg = new THREE.Mesh(segGeo, pathMat);
-            seg.position.set(px, 0.03, pz);
-            seg.userData.mapGenerated = true;
-            seg.userData.walkable = true;
-            this.scene.add(seg);
-            this.addColliderBox(new THREE.Vector3(px, 0.03, pz), 2, 0.05, 2, false);
-        }
-
-        // Forest to Military path (vertical)
-        for (let i = 0; i < 4; i++) {
-            const px = Math.round((-60 + this._rand() * 10) / TILE_SIZE) * TILE_SIZE;
-            const pz = Math.round((20 + i * 16) / TILE_SIZE) * TILE_SIZE;
-            const segGeo = this.pool.getGeoBox(2, 0.05, 2);
-            const seg = new THREE.Mesh(segGeo, pathMat);
-            seg.position.set(px, 0.03, pz);
-            seg.userData.mapGenerated = true;
-            seg.userData.walkable = true;
-            this.scene.add(seg);
-            this.addColliderBox(new THREE.Vector3(px, 0.03, pz), 2, 0.05, 2, false);
-        }
-    }
-
-    // =========================================================================
     // PERIMETER WALLS — Glass blue border walls like in reference image
     // =========================================================================
     _generatePerimeterWalls() {
@@ -4835,6 +4806,12 @@ export class MapGenerator {
             physicsType: 'STATIC',
             biomeBoundary
         };
+        const source = this._lastAddedMapObject;
+        if (source && this._isAttachedToScene(source)) {
+            const sourceBounds = new THREE.Box3().setFromObject(source);
+            sourceBounds.expandByScalar(0.25);
+            if (!sourceBounds.isEmpty() && sourceBounds.containsPoint(center)) box.source = source;
+        }
         this.colliders.push(box);
         return box;
     }
@@ -5082,32 +5059,15 @@ export class MapGenerator {
     }
 
     updatePropVisibility(pos) {
-        const dist = this.isMobile === true ? this._cullDistanceMobile : this._cullDistance;
-        const distSq = dist * dist;
-        // Hysteresis margin — objects stay visible 30m past cull boundary to prevent flickering
-        const hysteresis = 30;
-        const nearDistSq = (dist - hysteresis) * (dist - hysteresis);
         for (let i = 0, n = this._meshes.length; i < n; i++) {
             const mesh = this._meshes[i];
             if (!mesh || !mesh.userData || !mesh.userData._mapCulled) continue;
-            // Never cull terrain planes, POI/loot, spawn pads, or interactive objects
-            if (mesh.userData.isTerrain || mesh.userData.isPOI || mesh.userData.isSpawnPlatform) continue;
-            const dx = mesh.position.x - pos.x;
-            const dz = mesh.position.z - pos.z;
-            const dSq = dx * dx + dz * dz;
-            if (dSq > distSq) {
-                // Far away — hide
-                mesh.visible = false;
-            } else if (dSq < nearDistSq) {
-                // Close enough — show
-                mesh.visible = true;
-            }
-            // Between nearDistSq and distSq — keep current state (hysteresis zone)
+            mesh.visible = true;
         }
     }
 
     enableOptimizedCulling() {
-        this._cullDistance = this.isMobile ? this._cullDistanceMobile : this._cullDistance;
+        this._cullDistance = Infinity;
     }
 
     setupLOD(isMobile) {
