@@ -92,20 +92,22 @@ export class Physics {
 
             // --- Stuck detection (throttled, shares nearby query) ---
             const isPlayer = entity.type === 'Player' || type === 'Player';
-            if (!entity.physics._stuckCount) entity.physics._stuckCount = 0;
-            entity.physics._stuckCheckTimer = (entity.physics._stuckCheckTimer ?? 0) - delta;
             let insideNonWalkable = false;
-            if (entity.physics._stuckCheckTimer <= 0) {
-                entity.physics._stuckCheckTimer = 0.3;
-                const bottom = pos.y - height;
-                const nearby = this.getNearbyColliders(pos, 2.0);
-                for (const box of nearby) {
-                    if (!box.walkable && box.min && box.max) {
-                        if (pos.x >= box.min.x && pos.x <= box.max.x &&
-                            pos.z >= box.min.z && pos.z <= box.max.z &&
-                            bottom < box.max.y && pos.y > box.min.y) {
-                            insideNonWalkable = true;
-                            break;
+            if (!isPlayer) {
+                if (!entity.physics._stuckCount) entity.physics._stuckCount = 0;
+                entity.physics._stuckCheckTimer = (entity.physics._stuckCheckTimer ?? 0) - delta;
+                if (entity.physics._stuckCheckTimer <= 0) {
+                    entity.physics._stuckCheckTimer = 0.3;
+                    const bottom = pos.y - height;
+                    const nearby = this.getNearbyColliders(pos, 2.0);
+                    for (const box of nearby) {
+                        if (!box.walkable && box.min && box.max) {
+                            if (pos.x >= box.min.x && pos.x <= box.max.x &&
+                                pos.z >= box.min.z && pos.z <= box.max.z &&
+                                bottom < box.max.y && pos.y > box.min.y) {
+                                insideNonWalkable = true;
+                                break;
+                            }
                         }
                     }
                 }

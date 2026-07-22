@@ -478,7 +478,7 @@ export class MapGenerator {
             this.pool.getGeoCylinder(75, 75, 0.12),
             this.pool.getMatStd(0x8f8778, 0.96, 0, true, false, 1, 0, 0)
         );
-        courtyard.position.set(0, 0.08, 0);
+        courtyard.position.set(0, -0.02, 0);
         courtyard.userData.mapGenerated = true;
         courtyard.userData.isCornucopia = true;
         courtyard.userData.walkable = true;
@@ -534,6 +534,7 @@ export class MapGenerator {
         }
         const basinFloor = this.addColliderBox(new THREE.Vector3(0, 2.08, 0), 13 * fountainScale, 0.16, 13 * fountainScale, false);
         basinFloor.isCornucopia = true;
+        basinFloor.enabled = false;
         const columnCol = this.addColliderBox(new THREE.Vector3(0, 2 + 3 * fountainScale, 0), 4.2 * fountainScale, 4 * fountainScale, 4.2 * fountainScale, false);
         columnCol.isCornucopia = true;
         const upperCol = this.addColliderBox(new THREE.Vector3(0, 2 + 5.4 * fountainScale, 0), 6.2 * fountainScale, 0.8 * fountainScale, 6.2 * fountainScale, false);

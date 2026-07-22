@@ -303,7 +303,7 @@ class Game {
         console.log('[initGame] scene created:', !!this.scene);
         this.scene.userData.mobileMode = isMobile;
         this.scene.fog = new THREE.FogExp2(0x8899aa, 0.0008);
-        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.5, 300);
+        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.5, 400);
         this.scene.userData.camera = this.camera;
 
         this.renderer = new THREE.WebGLRenderer({
@@ -317,9 +317,7 @@ class Game {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.shadowMap.enabled = false;
         this.renderer.sortObjects = false; // Disable sorting for FPS
-        this.renderer.polygonOffset = true;
-        this.renderer.polygonOffsetFactor = 1;
-        this.renderer.polygonOffsetUnits = 1;
+        this.renderer.polygonOffset = false;
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
         this.renderer.toneMappingExposure = 1.15;
