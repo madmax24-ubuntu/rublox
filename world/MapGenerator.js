@@ -191,6 +191,7 @@ export class MapGenerator {
             return x * x + z * z < radius * radius;
         };
         const removed = new Set();
+        const removedBounds = [];
         const box = new THREE.Box3();
         const localMatrix = new THREE.Matrix4();
         const worldMatrix = new THREE.Matrix4();
@@ -219,6 +220,7 @@ export class MapGenerator {
             }
             box.setFromObject(child);
             if (!box.isEmpty() && intrudes(box)) {
+                removedBounds.push(box.clone());
                 child.parent?.remove(child);
                 removed.add(child);
             }
@@ -226,7 +228,15 @@ export class MapGenerator {
         this._meshes = this._meshes.filter(mesh => !removed.has(mesh) && mesh.parent);
         this.colliders = this.colliders.filter(collider => {
             if (collider.isCornucopia || collider.isBiomeEntrance || collider.biomeBoundary || collider.gameplayBoundary) return true;
-            return !intrudes(collider);
+            if (intrudes(collider)) return false;
+            const x = (collider.min.x + collider.max.x) * 0.5;
+            const y = (collider.min.y + collider.max.y) * 0.5;
+            const z = (collider.min.z + collider.max.z) * 0.5;
+            return !removedBounds.some(bounds =>
+                x >= bounds.min.x - 0.2 && x <= bounds.max.x + 0.2 &&
+                y >= bounds.min.y - 0.2 && y <= bounds.max.y + 0.2 &&
+                z >= bounds.min.z - 0.2 && z <= bounds.max.z + 0.2
+            );
         });
         const outside = point => Math.hypot(point.x, point.z) >= radius;
         this._buildings = this._buildings.filter(outside);
@@ -536,6 +546,7 @@ export class MapGenerator {
         const baseRadius = 55;
         const platformCollider = this.addColliderBox(new THREE.Vector3(0, 1, 0), baseRadius * 2, 2, baseRadius * 2, true);
         platformCollider.isCornucopia = true;
+        platformCollider.surfaceCircle = { x: 0, z: 0, radius: baseRadius };
 
         // Fountain collision — solid basin ring + column (fountain positioned at y=2 in scene)
         const fountainScale = 3.2;
@@ -4883,6 +4894,11 @@ export class MapGenerator {
         for (const col of this.colliders) {
             if (!col.walkable) continue;
             if (col.max.y > maxSearchY) continue;
+            if (col.surfaceCircle) {
+                const dx = x - col.surfaceCircle.x;
+                const dz = z - col.surfaceCircle.z;
+                if (dx * dx + dz * dz > col.surfaceCircle.radius * col.surfaceCircle.radius) continue;
+            }
             if (x >= col.min.x && x <= col.max.x && z >= col.min.z && z <= col.max.z) {
                 if (!found || col.max.y > closestY) {
                     closestY = col.max.y;

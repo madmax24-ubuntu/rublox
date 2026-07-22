@@ -374,6 +374,9 @@ export class LootManager {
 
         if (chestResources.geometries[key]) {
             chestModel = chestResources.geometries[key].clone();
+            for (const child of [...chestModel.children]) {
+                if (child.userData?.isGlow) chestModel.remove(child);
+            }
             // Находим крышку в клонированной модели
             lidMesh = chestModel.children.find(child => child.name === 'chest_lid');
         } else {
@@ -421,7 +424,7 @@ export class LootManager {
 
             chestModel = new THREE.Group();
             chestModel.add(bodyMesh, lidMesh, bandMesh, metalMesh);
-            chestResources.geometries[key] = chestModel; // Кэшируем
+            chestResources.geometries[key] = chestModel.clone(); // Кэшируем
         }
 
         const glow = new THREE.Mesh(
@@ -430,10 +433,11 @@ export class LootManager {
                 color: 0xffff00,
                 transparent: true,
                 opacity: 0.3,
-                visible: false
+                depthWrite: false
             })
         );
         glow.userData.isGlow = true;
+        glow.visible = false;
         glow.position.y = 1.2;
         chestModel.add(glow);
 
@@ -708,17 +712,6 @@ export class LootManager {
     }
 
     checkNearbyChests(position, audioSynth) {
-        const now = performance.now();
-        if (now >= this.visibilityUpdateAt) {
-            const range = this.isMobile ? 28 : 38;
-            const rangeSq = range * range;
-            for (const chest of this.chests) {
-                const dx = chest.position.x - position.x;
-                const dz = chest.position.z - position.z;
-                chest.visible = dx * dx + dz * dz <= rangeSq;
-            }
-            this.visibilityUpdateAt = now + 350;
-        }
         const checkDistance = 15;
         const nearby = this.getNearbyChests(position, checkDistance, true);
         const nextActive = new Set();

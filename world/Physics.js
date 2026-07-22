@@ -228,6 +228,7 @@ export class Physics {
         let maxY = -Infinity;
         for (const box of nearby) {
             if (box.enabled === false || !box.walkable) continue;
+            if (!this._containsWalkableSurface(box, position.x, position.z, radius)) continue;
             const min = box.min;
             const max = box.max;
             if (!min || !max) continue;
@@ -243,6 +244,7 @@ export class Physics {
         if (maxY === -Infinity && !this.colliderGrid.size) {
             for (const box of this.colliders) {
                 if (box.enabled === false || !box.walkable) continue;
+                if (!this._containsWalkableSurface(box, position.x, position.z, radius)) continue;
                 const min = box.min;
                 const max = box.max;
                 if (!min || !max) continue;
@@ -257,6 +259,17 @@ export class Physics {
         }
 
         return maxY === -Infinity ? 0 : maxY;
+    }
+
+    _containsWalkableSurface(box, x, z, radius = 0) {
+        const source = box.source;
+        if (source && (!source.parent || source.visible === false)) return false;
+        const circle = box.surfaceCircle;
+        if (!circle) return true;
+        const dx = x - circle.x;
+        const dz = z - circle.z;
+        const limit = Math.max(0, circle.radius - radius);
+        return dx * dx + dz * dz <= limit * limit;
     }
 
     resolveCollisions(entity) {
