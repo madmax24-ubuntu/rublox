@@ -1045,7 +1045,7 @@ export class AudioSynth {
 
     playTimerTick(volume = 1) {
         this.playSample(this.sampleCatalog.timer, {
-            volume: (this.isMobileDevice ? 0.018 : 0.024) * clamp(volume, 0.4, 1.4),
+            volume: (this.isMobileDevice ? 0.036 : 0.06) * clamp(volume, 0.4, 1.4),
             rateMin: 0.98,
             rateMax: 1.02,
             category: 'ui'
