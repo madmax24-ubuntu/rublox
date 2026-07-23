@@ -155,7 +155,7 @@ export class Bot {
                 gear: false,
                 hat: null,
                 skin: 0xf5d7b2,
-                scale: 1
+                scale: 0.88
             },
             {
                 shirt: 0x43a047,
@@ -167,7 +167,7 @@ export class Bot {
                 gear: true,
                 hat: 'helmet',
                 skin: 0xffd1a6,
-                scale: 1
+                scale: 0.85
             },
             {
                 shirt: 0xfdd835,
@@ -179,7 +179,7 @@ export class Bot {
                 gear: false,
                 hat: 'hair',
                 skin: 0xf7c59f,
-                scale: 1
+                scale: 0.9
             },
             {
                 shirt: 0x26a69a,
@@ -191,7 +191,7 @@ export class Bot {
                 gear: true,
                 hat: 'cap',
                 skin: 0xeec4a0,
-                scale: 1
+                scale: 0.87
             }
         ];
         this.variant = Math.floor(Math.random() * this.variants.length);
