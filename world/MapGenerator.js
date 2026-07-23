@@ -1432,14 +1432,14 @@ export class MapGenerator {
             this.addColliderBox(new THREE.Vector3(rx, size * 0.3, rz), size * 1.15, size * 0.7, size * 1.15, false);
         }
 
-        // Moss patches on clearing ground
+        // Moss patches on clearing ground — flat patches, not floating spheres
         for (let i = 0; i < 8; i++) {
             const mx = cx + (this._rand() - 0.5) * radius * 1.2;
             const mz = cz + (this._rand() - 0.5) * radius * 1.2;
-            const mossGeo = this.pool.getGeoDodecahedron(0.5 + this._rand() * 0.8);
+            const mossGeo = new THREE.CircleGeometry(0.5 + this._rand() * 0.8, 8);
             const moss = new THREE.Mesh(mossGeo, this.pool.getMat(0x4caf50, false));
             moss.rotation.x = -Math.PI / 2;
-            moss.position.set(mx, 0.07, mz);
+            moss.position.set(mx, 0.04, mz);
             moss.userData.mapGenerated = true;
             moss.userData.instancable = true;
             this.scene.add(moss);
