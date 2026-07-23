@@ -1169,6 +1169,57 @@ class Game {
         this.commandState.gather = gatherPressed;
     }
 
+    _updatePerkMenu() {
+        const canSelectPerk = this.gameState === 'countdown' && !this.perkLocked;
+        if (this.input.isKeyPressed('KeyP') && canSelectPerk) {
+            if (!this.perkKeyLatch) {
+                this.perkMenuOpen = this.perkSelectionRequired ? true : !this.perkMenuOpen;
+                this.hud.togglePerkPanel(this.perkMenuOpen);
+                if (this.perkMenuOpen) {
+                    this.perkMenuIndex = this.hud.getPerkMenuSelection();
+                    this.hud.setPerkMenuSelection(this.perkMenuIndex);
+                }
+                this.perkKeyLatch = true;
+            }
+        } else {
+            this.perkKeyLatch = false;
+        }
+        if (this.perkSelectionRequired && canSelectPerk && !this.perkMenuOpen) {
+            this.perkMenuOpen = true;
+            this.hud.togglePerkPanel(true);
+        }
+
+        if (this.perkMenuOpen) {
+            const wPressed = this.input.isKeyPressed('KeyW');
+            const sPressed = this.input.isKeyPressed('KeyS');
+            const ePressed = this.input.isKeyPressed('KeyE');
+
+            if (wPressed && !this.menuKeyLatch.w) {
+                this.perkMenuIndex -= 1;
+                this.hud.setPerkMenuSelection(this.perkMenuIndex);
+            }
+            if (sPressed && !this.menuKeyLatch.s) {
+                this.perkMenuIndex += 1;
+                this.hud.setPerkMenuSelection(this.perkMenuIndex);
+            }
+            if (ePressed && !this.menuKeyLatch.e) {
+                const perk = this.hud.getPerkMenuValue();
+                if (perk) {
+                    document.dispatchEvent(new CustomEvent('selectPerk', { detail: perk }));
+                }
+                this.perkMenuOpen = false;
+                this.hud.togglePerkPanel(false);
+            }
+            this.menuKeyLatch.w = wPressed;
+            this.menuKeyLatch.s = sPressed;
+            this.menuKeyLatch.e = ePressed;
+        } else {
+            this.menuKeyLatch.w = false;
+            this.menuKeyLatch.s = false;
+            this.menuKeyLatch.e = false;
+        }
+    }
+
     trySupplyDrop(aliveCount) {
         const thresholds = [24, 16, 8];
         for (const threshold of thresholds) {
@@ -1995,6 +2046,303 @@ class Game {
         this._updateWeather(delta);
 
         // players count is updated by throttled hudStatsTimer block above
+    }
+
+    _updateBots(delta) {
+        const botCount = this.bots.length;
+        if (botCount === 0) return;
+
+        this.botFrameCounter++;
+        const playerPos = this.player.position;
+        const camPos = this.camera.position;
+        const midBotCullDistSq = this.isMobile() ? 122500 : 202500;
+        const frustum = new THREE.Frustum();
+        const projMatrix = new THREE.Matrix4();
+        projMatrix.multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse);
+        frustum.setFromProjectionMatrix(projMatrix);
+        const isInFrustum = (pos) => frustum.containsPoint(pos);
+
+        const isCombat = (bot) => {
+            if (!bot.target || !bot.target.isAlive) return false;
+            return bot.position.distanceToSquared(bot.target.position) < 3600;
+        };
+
+        for (let botIndex = 0; botIndex < botCount; botIndex++) {
+            const bot = this.bots[botIndex];
+            if (!bot?.isAlive) continue;
+
+            const distSq = bot.position.distanceToSquared(playerPos);
+            const isNear = distSq < midBotCullDistSq;
+            const inFrustum = isInFrustum(bot.position);
+
+            if (isNear && inFrustum && isCombat(bot)) {
+                if (this.gameState !== 'countdown') {
+                    bot.update(delta, this.botBrains[botIndex], this.entityManager, this.lootManager, this.audioSynth, this.physics, this.zone);
+                } else {
+                    bot.mesh.position.copy(bot.position);
+                    bot.mesh.position.y = bot.position.y - bot.physics.height;
+                    if (bot.healthBar) bot.updateHealthBar(0.05);
+                }
+                continue;
+            }
+
+            if (distSq > midBotCullDistSq && !isInFrustum && !isCombat(bot)) {
+                if ((this.botFrameCounter + botIndex) % 3 !== 0) {
+                    if (bot.mesh) {
+                        bot.mesh.position.copy(bot.position);
+                        bot.mesh.position.y = bot.position.y - bot.physics.height;
+                    }
+                    continue;
+                }
+            }
+
+            if (this.gameState !== 'countdown') {
+                bot.update(delta, this.botBrains[botIndex], this.entityManager, this.lootManager, this.audioSynth, this.physics, this.zone);
+            } else {
+                bot.mesh.position.copy(bot.position);
+                bot.mesh.position.y = bot.position.y - bot.physics.height;
+                if (bot.healthBar) bot.updateHealthBar(0.05);
+            }
+        }
+    }
+
+    _updateBotHazards(delta) {
+        if (this.gameState !== 'playing') return;
+
+        const hazardBatch = Math.max(
+            this.isMobile() ? 8 : 12,
+            Math.min(this.bots.length, Math.ceil(this.bots.length * (this.isMobile() ? 0.14 : 0.22)))
+        );
+        const hazardScale = this.bots.length > 0 ? (this.bots.length / hazardBatch) : 1;
+        for (let i = 0; i < hazardBatch && i < this.bots.length; i++) {
+            const botIndex = (this.botHazardCursor + i) % this.bots.length;
+            const bot = this.bots[botIndex];
+            if (!bot.isAlive) continue;
+            if (!this.zone.isInsideZone(bot.position)) {
+                const damage = this.zone.getDamage(delta * hazardScale, bot.position);
+                bot.takeDamage(damage, false, null, 0, 'zone');
+                const safePoint = this.getSafeZoneTarget(bot.position);
+                bot.target = null;
+                bot.assistTarget = null;
+                const outside = this.zone.getDistanceFromZone(bot.position);
+                if (outside > 10) {
+                    bot.position.lerp(safePoint, 0.18);
+                }
+            }
+            if (this.activeEvent?.type === 'radiationRain' && !this.isShelteredFromRadiation(bot.position)) {
+                const shelter = this.getNearestShelterTarget(bot.position);
+                if (shelter) {
+                    bot.target = null;
+                    bot.assistTarget = null;
+                    bot.lootTarget = null;
+                    bot.patrolTarget.x = shelter.x;
+                    bot.patrolTarget.y = shelter.y;
+                    bot.patrolTarget.z = shelter.z;
+                    bot.state = 'retreat';
+                }
+                if (this.radiationRainDamageActive) {
+                    const rainDps = shelter
+                        ? GAME_CONFIG.events.radiation.botDpsNearShelter
+                        : GAME_CONFIG.events.radiation.botDpsFarShelter;
+                    bot.takeDamage(rainDps * delta * hazardScale, false, null, 0, 'storm');
+                }
+            }
+        }
+        if (this.bots.length > 0) {
+            this.botHazardCursor = (this.botHazardCursor + hazardBatch) % this.bots.length;
+        }
+    }
+
+    _updateZombies(delta) {
+        const zombieCount = this.zombies.length;
+        if (zombieCount === 0) return;
+
+        const farZombieCullDistSq = this.isMobile() ? 10000 : 20736;
+        const zombiesPerFrame = Math.min(zombieCount, Math.max(
+            this.isMobile() ? 8 : 12,
+            Math.ceil(zombieCount * (this.isMobile() ? 0.18 : 0.28))
+        ));
+        for (let i = 0; i < zombiesPerFrame && i < zombieCount; i++) {
+            const zIndex = (this.zombieUpdateIndex + i) % zombieCount;
+            const zombie = this.zombies[zIndex];
+            if (zombie && zombie.isAlive) {
+                const distSq = zombie.position.distanceToSquared(this.player.position);
+                const shouldUpdate = distSq < farZombieCullDistSq || zombie.alertTarget || zombie.alertTimer > 0;
+                if (shouldUpdate) {
+                    zombie.update(Math.min(0.1, delta * zombieCount / Math.max(1, zombiesPerFrame)), this.entityManager, this.audioSynth);
+                } else if (zombie.mesh) {
+                    zombie.mesh.position.copy(zombie.position);
+                }
+            }
+        }
+        this.zombieUpdateIndex = (this.zombieUpdateIndex + zombiesPerFrame) % zombieCount;
+    }
+
+    _updateEnvironmentEntities(delta) {
+        if (!this.environmentEntities?.length) return;
+
+        const envCount = this.environmentEntities.length;
+        const perFrame = Math.max(
+            this.isMobile() ? 6 : 10,
+            Math.min(envCount, Math.ceil(envCount * 0.5))
+        );
+        for (let i = 0; i < perFrame; i++) {
+            const idx = (this.environmentUpdateIndex + i) % envCount;
+            const ent = this.environmentEntities[idx];
+            if (!ent?.isAlive) continue;
+            ent.update?.(delta, this.entityManager, this.map, this.audioSynth);
+        }
+        this.environmentUpdateIndex = (this.environmentUpdateIndex + perFrame) % envCount;
+    }
+
+    _updateZombieWaves(delta) {
+        if (this.gameState !== 'playing') return;
+
+        const elapsed = performance.now() * 0.001 - this.roundStartTime;
+        const gracePeriod = GAME_CONFIG.events.gracePeriodSeconds;
+        const isNight = this.env && (this.env.dayTime < 0.18 || this.env.dayTime > 0.78);
+        this.scene.userData.zombieAggression = 1 + Math.min(1, elapsed / 600) * 0.8 + (isNight ? 0.75 : 0);
+
+        if (elapsed >= gracePeriod && !this.initialZombieWaveQueued) {
+            this.initialZombieWaveQueued = true;
+            this.queueZombieBurst(false, 1.35, 140, this.isMobile() ? 14 : 20, this.isMobile() ? 3 : 5);
+            this.queuePoiBurst(1.2, this.isMobile() ? 12 : 18, this.isMobile() ? 3 : 4);
+        }
+
+        this.zombieMaintainTimer = Math.max(0, this.zombieMaintainTimer - delta);
+        if (this.zombieMaintainTimer <= 0) {
+            const aliveZombies = this.zombies.filter(z => z?.isAlive).length;
+            const growth = Math.floor(Math.min(5, elapsed / 120)) * 2;
+            const nightBonus = isNight ? (this.isMobile() ? 16 : 24) : 0;
+            const basePersistent = elapsed < gracePeriod ? (this.isMobile() ? 24 : 34) : (this.isMobile() ? 34 : 46);
+            const minAlive = basePersistent + growth + nightBonus;
+            if (aliveZombies < minAlive) {
+                const need = minAlive - aliveZombies;
+                this.queuePoiBurst(1.45, Math.min(14, need + 2), this.isMobile() ? 3 : 4);
+                this.queueZombieBurst(false, 2.0, 180, Math.max(0, need - 2), this.isMobile() ? 4 : 5);
+            }
+            this.ensurePoiZombiePresence(this.isMobile() ? 8 : 12);
+            this.zombieMaintainTimer = 3.2 + Math.random() * 1.4;
+        }
+
+        if (elapsed >= gracePeriod) {
+            if (!this.waveActive) {
+                this.waveTimer -= delta;
+                if (this.waveTimer <= 0) {
+                    this.waveActive = true;
+                    this.waveRemaining = GAME_CONFIG.events.waveDurationSeconds;
+                    const waveTier = 1 + Math.min(5, Math.floor(elapsed / 120));
+                    this.queueZombieBurst(false, 2.35 + waveTier * 0.3, 180, GAME_CONFIG.events.zombieRush.zombieCount + waveTier * 4, this.isMobile() ? 3 : 5);
+                    this.queuePoiBurst(1.2 + waveTier * 0.12, this.isMobile() ? 8 : 12, this.isMobile() ? 2 : 4);
+                    this.hud.showGameMessage("Волна зомби! Готовьтесь к бою!");
+                }
+            } else {
+                this.waveRemaining -= delta;
+                if (this.waveRemaining <= 0) {
+                    this.waveActive = false;
+                    this.waveTimer = GAME_CONFIG.events.waveIntervalSeconds;
+                }
+            }
+        }
+    }
+
+    _updateHUDStats(delta, aliveCount) {
+        this.hudStatsTimer -= delta;
+        if (this.hudStatsTimer <= 0) {
+            this.hud.updateHealth(this.player.health, this.player.maxHealth);
+            this.hud.updateArmor(this.player.armor, this.player.maxArmor);
+            this.hud.updatePlayersCount(aliveCount);
+            this.hud.updateAmmo(this.player.currentWeapon || this.player.fists);
+            this.hudStatsTimer = this.isMobile() ? 0.15 : 0.08;
+        }
+        if (this.isMobile()) {
+            this.hud.updateJoystick?.(this.input.joystick);
+        }
+    }
+
+    _updateHUDInventory(delta) {
+        this.hudInventoryTimer -= delta;
+        if (this.hudInventoryTimer <= 0) {
+            const inv = this.player.inventory;
+            const items = inv.getItems();
+            let sig = inv.selectedSlot + '|';
+            for (let i = 0; i < items.length; i++) {
+                sig += (items[i] ? items[i].type : '-') + ',';
+            }
+            if (sig !== this.lastInventorySignature) {
+                const inventoryItems = items.map(item => item ? { type: item.type } : null);
+                this.hud.updateInventory(inventoryItems, inv.selectedSlot);
+                this.lastInventorySignature = sig;
+            }
+            this.hudInventoryTimer = this.isMobile() ? 0.18 : 0.1;
+        }
+    }
+
+    _updateMinimap(delta) {
+        this.minimapTimer -= delta;
+        if (this.minimapTimer <= 0) {
+            const botPoints = this._minimapBotPoints || (this._minimapBotPoints = []);
+            botPoints.length = 0;
+            for (let i = 0; i < this.bots.length; i++) {
+                const bot = this.bots[i];
+                if (!bot?.isAlive) continue;
+                botPoints.push(bot.position);
+            }
+            const zombiePoints = this._minimapZombiePoints || (this._minimapZombiePoints = []);
+            zombiePoints.length = 0;
+            for (let i = 0; i < this.zombies.length && zombiePoints.length < 48; i++) {
+                const zombie = this.zombies[i];
+                if (!zombie?.isAlive) continue;
+                zombiePoints.push(zombie.position);
+            }
+            this.hud.updateMinimap?.({
+                mapSize: this.map.size,
+                zoneRadius: this.zone.getCurrentRadius(),
+                zoneShape: 'square',
+                player: this.player.position,
+                bots: botPoints,
+                zombies: zombiePoints
+            });
+            this.minimapTimer = this.isMobile() ? 0.25 : 0.18;
+        }
+    }
+
+    _updateWeather(delta) {
+        this.env.update(delta);
+        const targetExposure = Number.isFinite(this.scene?.userData?.targetExposure) ? this.scene.userData.targetExposure : 1;
+        const currentExposure = Number.isFinite(this.renderer.toneMappingExposure) ? this.renderer.toneMappingExposure : 1;
+        this.renderer.toneMappingExposure = THREE.MathUtils.lerp(currentExposure, targetExposure, Math.min(1, delta * 1.2));
+        this.weatherSyncTimer = Math.max(0, this.weatherSyncTimer - delta);
+        if (this.weatherSyncTimer <= 0) {
+            const changedWeather = this.env?.consumeWeatherChange?.();
+            const weatherType = changedWeather || this.env?.getWeatherType?.() || 'clear';
+            if (weatherType !== this.lastAudioWeatherType) {
+                this.lastAudioWeatherType = weatherType;
+                this.audioSynth?.setWeatherState?.(weatherType);
+            }
+            const displayedWeather = this.activeEvent?.type === 'radiationRain'
+                ? 'radiationRain'
+                : this.activeEvent?.type === 'storm'
+                    ? 'storm'
+                    : this.activeEvent?.type === 'night'
+                        ? 'night'
+                        : weatherType;
+            if (displayedWeather !== this.lastWeatherType) {
+                this.lastWeatherType = displayedWeather;
+                if (this.gameState === 'playing') {
+                    const weatherLabels = {
+                        clear: 'Ясно',
+                        rain: 'Дождь',
+                        snow: 'Снег',
+                        storm: 'Шторм',
+                        night: 'Ночь',
+                        radiationRain: 'Радиационный дождь'
+                    };
+                    this.hud.showGameMessage(`Погода: ${weatherLabels[displayedWeather] || 'Ясно'}`);
+                }
+            }
+            this.weatherSyncTimer = this.isMobile() ? 1.5 : 0.9;
+        }
     }
 
     getLocalizedFogBoost(position) {
