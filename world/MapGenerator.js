@@ -1863,7 +1863,7 @@ export class MapGenerator {
             const t = THREE.MathUtils.clamp(point.clone().sub(corridorStart).dot(corridorDelta) / corridorLengthSq, 0, 1);
             const closest = corridorStart.clone().addScaledVector(corridorDelta, t);
             const normalExtent = (width + depth) * 0.36;
-            if (point.distanceTo(closest) < 7 + normalExtent) return;
+            if (point.distanceTo(closest) < 10 + normalExtent) return;
             if (Math.hypot(x - clearingCX, z - clearingCZ) < clearingRadius) return;
             const key = `${Math.round(x * 10)},${Math.round(z * 10)},${width > depth ? 'h' : 'v'}`;
             if (segmentKeys.has(key)) return;
