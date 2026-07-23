@@ -676,7 +676,7 @@ class Game {
         for (let variant = 0; variant < this.bots[0].variants.length; variant++) {
             const outfit = this.bots[0].variants[variant];
             for (const [colorKey, geometry, y] of parts) {
-                const material = new THREE.MeshBasicMaterial({ color: outfit[colorKey] || 0x5588aa, fog: false, toneMapped: false });
+                const material = new THREE.MeshBasicMaterial({ color: outfit[colorKey] || 0x5588aa, fog: false, toneMapped: false, emissive: new THREE.Color(0x222222), emissiveIntensity: 0.15 });
                 const batch = new THREE.InstancedMesh(geometry, material, this.bots.length);
                 batch.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
                 batch.frustumCulled = false;
