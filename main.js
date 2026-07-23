@@ -2260,6 +2260,40 @@ class Game {
         }
     }
 
+    _applyTraps(delta) {
+        if (!this.traps?.length) return;
+
+        const applyTrap = (entity) => {
+            if (!entity.isAlive) return;
+            for (const trap of this.traps) {
+                if (trap.active === false) continue;
+                const dx = entity.position.x - trap.position.x;
+                const dz = entity.position.z - trap.position.z;
+                const dist = Math.sqrt(dx * dx + dz * dz);
+                if (dist < trap.radius) {
+                    if (typeof entity.applySlow === 'function') {
+                        entity.applySlow(trap.slow, 0.6);
+                    }
+                    if (typeof entity.takeDamage === 'function') {
+                        entity.takeDamage(trap.damage * delta, false, null, 0, 'trap');
+                    }
+                }
+            }
+        };
+        applyTrap(this.player);
+        const trapBatch = Math.max(
+            this.isMobile() ? 10 : 16,
+            Math.min(this.bots.length, Math.ceil(this.bots.length * (this.isMobile() ? 0.35 : 0.5)))
+        );
+        for (let i = 0; i < trapBatch && i < this.bots.length; i++) {
+            const botIndex = (this.trapBotCursor + i) % this.bots.length;
+            applyTrap(this.bots[botIndex]);
+        }
+        if (this.bots.length > 0) {
+            this.trapBotCursor = (this.trapBotCursor + trapBatch) % this.bots.length;
+        }
+    }
+
     _updateHUDInventory(delta) {
         this.hudInventoryTimer -= delta;
         if (this.hudInventoryTimer <= 0) {
