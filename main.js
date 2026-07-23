@@ -2048,6 +2048,9 @@ class Game {
             }
         }
         if (this.gameState === 'playing') {
+            // Batched hazard check: only process subset of bots per frame to avoid GC spikes.
+            // hazardScale compensates: damage is multiplied so total hazard impact matches full processing.
+            // Example: 100 bots, batch=20 → hazardScale=5, each checked bot takes 5x damage (as if all 100 processed).
             const hazardBatch = Math.max(
                 this.isMobile() ? 8 : 12,
                 Math.min(this.bots.length, Math.ceil(this.bots.length * (this.isMobile() ? 0.14 : 0.22)))
