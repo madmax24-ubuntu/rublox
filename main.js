@@ -1258,6 +1258,16 @@ class Game {
         }
     }
 
+    _checkWinLoseConditions() {
+        if (this.gameState !== 'playing' || this.roundFinished) return;
+        const survivors = this.entityManager.getAliveSurvivors?.() || [];
+        if (survivors.length === 0) {
+            this.endRound('\u0412 \u0436\u0438\u0432\u044b\u0445 \u043d\u0438\u043a\u043e\u0433\u043e \u043d\u0435 \u043e\u0441\u0442\u0430\u043b\u043e\u0441\u044c. \u041d\u0430\u0436\u043c\u0438\u0442\u0435 E \u0447\u0442\u043e\u0431\u044b \u043d\u0430\u0447\u0430\u0442\u044c \u0437\u0430\u043d\u043e\u0432\u043e');
+        } else if (survivors.length === 1 && survivors[0] === this.player) {
+            this.endRound('\u041f\u043e\u0431\u0435\u0434\u0430! \u0422\u044b \u043e\u0441\u0442\u0430\u043b\u0441\u044f \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u043c \u0432\u044b\u0436\u0438\u0432\u0448\u0438\u043c. \u041d\u0430\u0436\u043c\u0438\u0442\u0435 E \u0447\u0442\u043e\u0431\u044b \u043d\u0430\u0447\u0430\u0442\u044c \u0437\u0430\u043d\u043e\u0432\u043e');
+        }
+    }
+
     getSafeZoneTarget(position) {
         const v = this._tmpSafeZone.set(position.x, 0, position.z);
         if (v.lengthSq() < 1e-6) { this._tmpSafeZone.set(0, position.y, 0); }
@@ -1981,14 +1991,6 @@ class Game {
 
         this._updateHUDInventory(delta);
         this._updateMinimap(delta);
-
-        if (this.gameState === 'playing' && !this.roundFinished) {
-            if (aliveCount === 0) {
-                this.endRound('\u0412 \u0436\u0438\u0432\u044b\u0445 \u043d\u0438\u043a\u043e\u0433\u043e \u043d\u0435 \u043e\u0441\u0442\u0430\u043b\u043e\u0441\u044c. \u041d\u0430\u0436\u043c\u0438\u0442\u0435 E \u0447\u0442\u043e\u0431\u044b \u043d\u0430\u0447\u0430\u0442\u044c \u0437\u0430\u043d\u043e\u0432\u043e');
-            } else if (aliveCount === 1 && aliveSurvivors[0] === this.player) {
-                this.endRound('\u041f\u043e\u0431\u0435\u0434\u0430! \u0422\u044b \u043e\u0441\u0442\u0430\u043b\u0441\u044f \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u043c \u0432\u044b\u0436\u0438\u0432\u0448\u0438\u043c. \u041d\u0430\u0436\u043c\u0438\u0442\u0435 E \u0447\u0442\u043e\u0431\u044b \u043d\u0430\u0447\u0430\u0442\u044c \u0437\u0430\u043d\u043e\u0432\u043e');
-            }
-        }
 
         this._updateWeather(delta);
 
