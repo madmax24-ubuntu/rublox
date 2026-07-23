@@ -1743,7 +1743,18 @@ class Game {
                                 bestIndex = b;
                             }
                         }
-                        if (bestIndex >= 0) biomeIndex = bestIndex;
+                        if (bestIndex >= 0) {
+                            biomeIndex = bestIndex;
+                        } else {
+                            // All biomes at limit: pick the least loaded one to prevent overflow
+                            let minCount = Infinity;
+                            for (let b = 0; b < biomeDefs.length; b++) {
+                                if (assignedCounts[b] < minCount) {
+                                    minCount = assignedCounts[b];
+                                    biomeIndex = b;
+                                }
+                            }
+                        }
                     }
                     assignedCounts[biomeIndex]++;
                     const pool = pools[biomeIndex];
