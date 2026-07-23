@@ -357,8 +357,8 @@ class Game {
         this.perkKeyLatch = false;
         this.pauseKeyLatch = false;
         this.menuKeyLatch = { w: false, s: false, e: false };
-        this.hudStatsTimer = 0;
-        this.hudInventoryTimer = 0;
+        this.hudStatsTimer = 0.08; // Start at max interval to avoid immediate update on first frame
+        this.hudInventoryTimer = 0.1; // Start at max interval to avoid immediate update on first frame
         this.lastInventorySignature = '';
         this.lastCountdownSecond = null;
         this.noteCooldown = 0;
@@ -486,7 +486,7 @@ class Game {
             cooldown: 0
         };
         this.centerBlastVfx = null;
-        this.minimapTimer = 0;
+        this.minimapTimer = 0.18; // Start at max interval to avoid immediate update on first frame
         this.noBugCheckTimer = 0;
         this.poiZombieSeeded = false;
         this.isPaused = false;
