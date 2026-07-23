@@ -932,10 +932,12 @@ export class Bot {
         }
         if (attacker && this.isAlive) {
             const strength = knockbackStrength > 0 ? knockbackStrength : 3;
-            this._tmpDirection.subVectors(this.position, attacker.position).normalize();
-            const dir = this._tmpDirection;
-            this.physics.velocity.x += dir.x * strength;
-            this.physics.velocity.z += dir.z * strength;
+            // Use local vars instead of shared _tmpDirection to avoid race conditions
+            const dx = this.position.x - attacker.position.x;
+            const dz = this.position.z - attacker.position.z;
+            const len = Math.sqrt(dx * dx + dz * dz) || 1;
+            this.physics.velocity.x += (dx / len) * strength;
+            this.physics.velocity.z += (dz / len) * strength;
             this.physics.velocity.y += 2;
         }
 

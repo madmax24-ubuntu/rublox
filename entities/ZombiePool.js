@@ -20,6 +20,7 @@ export class ZombiePool {
             : this.pool.length - 1;
         if (poolIndex >= 0) {
             zombie = this.pool.splice(poolIndex, 1)[0];
+            // FULL STATE RESET — prevent stale references from previous use
             zombie.isAlive = true;
             zombie.health = zombie.maxHealth;
             zombie.position.copy(spawnPosition);
@@ -30,22 +31,24 @@ export class ZombiePool {
             zombie.mesh.position.copy(spawnPosition);
             zombie.mesh.rotation.set(0, 0, 0);
             zombie.mesh.scale.copy(zombie.mesh.userData._origScale || new THREE.Vector3(1, 1, 1));
-            zombie.patrolTarget = null;
-            zombie.alertTimer = 0;
+            // Entity references — MUST be null to prevent chasing ghosts
+            zombie.target = null;
             zombie.alertTarget = null;
             zombie.alertPosition = null;
+            zombie.patrolTarget = null;
+            zombie.burnAttacker = null;
+            // Timers
+            zombie.alertTimer = 0;
             zombie.burnTimer = 0;
+            zombie.burnTickTimer = 0;
+            zombie.burnDamagePerSecond = 0;
             zombie.hitStaggerTimer = 0;
+            zombie.attackCooldown = 0;
+            zombie.soundTimer = 2 + Math.random() * 3;
+            zombie._corpseTimer = 0;
             zombie._animTime = performance.now() * 0.001;
             zombie._roamAngle = Math.random() * Math.PI * 2;
             zombie._roamTimer = 3 + Math.random() * 5;
-            zombie.attackCooldown = 0;
-            zombie.soundTimer = 2 + Math.random() * 3;
-            zombie.target = null;
-            zombie._corpseTimer = 0;
-            zombie.burnTickTimer = 0;
-            zombie.burnDamagePerSecond = 0;
-            zombie.burnAttacker = null;
         } else {
             zombie = new Zombie(this.scene, this.nextId++, spawnPosition, forcedVariant);
             zombie.mesh.userData._origScale = zombie.mesh.scale.clone();
@@ -57,12 +60,30 @@ export class ZombiePool {
 
     release(zombie, force = false) {
         if (!zombie || (zombie.isAlive && !force)) return;
+
         zombie.isAlive = false;
         zombie.mesh.visible = false;
-        if (zombie.mesh.parent) zombie.mesh.parent.remove(zombie.mesh);
+
+        // Remove from scene graph
+        if (zombie.mesh.parent) {
+            zombie.mesh.parent.remove(zombie.mesh);
+        }
+
+        // Remove from physics world
         this.physics.removeEntity?.(zombie);
-        const idx = this.entityManager.entities?.indexOf(zombie);
-        if (idx >= 0) this.entityManager.entities.splice(idx, 1);
+
+        // Remove from entityManager.entities without calling dispose()
+        // (we're pooling, not destroying — dispose() would free shared materials)
+        const entities = this.entityManager.entities;
+        const idx = entities?.indexOf(zombie);
+        if (idx >= 0) {
+            entities.splice(idx, 1);
+        }
+
+        // Move off-map to prevent any stray references from causing issues
+        zombie.position.set(0, -100, 0);
+        zombie.physics.velocity.set(0, 0, 0);
+
         this.pool.push(zombie);
     }
 }

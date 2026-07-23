@@ -369,6 +369,8 @@ export class EntityManager {
             geo = new THREE.SphereGeometry(type === 'laser' ? 0.18 : 0.12, 8, 8);
             this._impactGeoCache.set(geoKey, geo);
         }
+        // Create material per effect (opacity is animated independently per effect)
+        // Materials are disposed when effect expires to prevent GPU memory leaks
         const mat = new THREE.MeshStandardMaterial({
             color,
             emissive: isHit ? color : 0x000000,
@@ -385,6 +387,7 @@ export class EntityManager {
                 crownGeo = new THREE.SphereGeometry(0.08, 6, 6);
                 this._impactGeoCache.set('crown', crownGeo);
             }
+            // Crown material is shared (no per-instance opacity animation on it)
             let crownMat = this._impactGeoCache.get('crownMat');
             if (!crownMat) {
                 crownMat = new THREE.MeshBasicMaterial({ color: 0xffeb3b, transparent: true, opacity: 0.9 });
@@ -413,6 +416,17 @@ export class EntityManager {
             });
             if (fx.userData.life <= 0) {
                 this.scene.remove(fx);
+                // Dispose non-cached materials to prevent GPU memory leaks
+                fx.traverse(child => {
+                    if (child.isMesh && child.material) {
+                        // Only dispose materials not in our geometry cache
+                        // Crown material is shared and cached — don't dispose it
+                        if (child.material !== this._impactGeoCache.get('crownMat')) {
+                            child.material.dispose();
+                        }
+                    }
+                });
+                fx.clear();
                 this.effects.splice(i, 1);
             }
         }
