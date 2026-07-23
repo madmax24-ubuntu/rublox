@@ -721,6 +721,260 @@ class Game {
         }
     }
 
+    _updateCountdownState(delta) {
+        const dt = Number.isFinite(delta) ? delta : 0.016;
+        this.countdownTimer -= dt;
+        const sec = Math.max(0, Math.ceil(this.countdownTimer));
+        if (sec !== this.lastCountdownSecond) {
+            this.lastCountdownSecond = sec;
+            if (sec > 0) {
+                this.audioSynth?.playTimerTick?.(sec <= 3 ? 1.25 : 0.9);
+            }
+        }
+
+        this.player.setInvulnerable(true);
+        this.bots.forEach(bot => bot.setInvulnerable(true));
+        this.player.isFrozen = true;
+        this.bots.forEach(bot => { bot.isFrozen = true; });
+        this.player.isCameraFrozen = true;
+
+        this.hud.showCountdown(sec);
+
+        if (this.countdownTimer <= 0) {
+            BotBrain.clearReservations();
+            if (!this.perkLocked) {
+                this.applyPerk('quickHands');
+                this.perkLocked = true;
+            }
+            this.spawnScatterInitialized = false;
+            this.gameState = 'spawn';
+            this.perkLocked = true;
+            this.perkSelectionRequired = false;
+            this.perkMenuOpen = false;
+            this.hud.setPerkPanelLock(false);
+            this.hud.togglePerkPanel(false);
+            if (this.renderer?.domElement) this.renderer.domElement.style.pointerEvents = 'auto';
+            this.hud.setPerkSelectionEnabled(false);
+            this.hud.hideCountdown();
+            const hudRoot = document.getElementById('hud');
+            if (hudRoot) {
+                hudRoot.style.display = 'block';
+                hudRoot.style.visibility = 'visible';
+                hudRoot.style.opacity = '1';
+            }
+            this.hud.updateHealth(this.player.health, this.player.maxHealth);
+            this.hud.updateArmor(this.player.armor, this.player.maxArmor);
+            this.hud.updateAmmo(this.player.currentWeapon || this.player.fists);
+            this.hud.showGameMessage('Добро пожаловать на Голодные игры, выживет сильнейший!');
+            this.audioSynth.playBoxArrival?.(new THREE.Vector3(0, 1, 0));
+            this.centerPlatformOpen = true;
+            this.map?.setBiomeGatesOpen?.(true);
+            this.player.isFrozen = false;
+            this.player.isCameraFrozen = false;
+            this.player._frozenCamPos = null;
+            this.bots.forEach(bot => { bot.isFrozen = false; });
+        }
+    }
+
+    _updateSpawnState(delta) {
+        this.spawnTimer -= delta;
+        this.player.isFrozen = false;
+        this.player.isCameraFrozen = false;
+        this.player.lastCameraPosition = null;
+        this.bots.forEach(bot => { bot.isFrozen = false; });
+
+        if (!this.spawnScatterInitialized) {
+            const floor = this.map.getNavigationTiles?.() || this.map.getFloorTiles?.() || [];
+            const minR = (this.map.spawnCourtyardRadius || 54) + 18;
+            const biomeDefs = [
+                ['forest', t => t.x < -5 && t.z < -5],
+                ['maze', t => t.x > 5 && t.z < -5],
+                ['military', t => t.x < -5 && t.z > 5],
+                ['ice', t => t.x > 5 && t.z > 5]
+            ];
+            const pools = biomeDefs.map(([, test]) => floor.filter(t => {
+                const r = Math.hypot(t.x, t.z);
+                return r > minR && r < (this.map.halfSize || 256) - 18 && test(t) && this.map.isWalkableAt?.(t.x, t.z) !== false;
+            }));
+            const usedByBiome = pools.map(() => new Set());
+            const assignedCounts = [0, 0, 0, 0];
+            const assignmentLimits = [25, 25, 25, Math.max(0, this.bots.length - 75)];
+            const biomeAngles = [-Math.PI * 0.75, -Math.PI * 0.25, Math.PI * 0.75, Math.PI * 0.25];
+            for (let i = 0; i < this.bots.length; i++) {
+                const bot = this.bots[i];
+                let biomeIndex = bot.position.x < 0
+                    ? (bot.position.z < 0 ? 0 : 2)
+                    : (bot.position.z < 0 ? 1 : 3);
+                if (assignedCounts[biomeIndex] >= assignmentLimits[biomeIndex]) {
+                    const spawnAngle = Math.atan2(bot.position.z, bot.position.x);
+                    let bestIndex = -1;
+                    let bestDelta = Infinity;
+                    for (let b = 0; b < biomeDefs.length; b++) {
+                        if (assignedCounts[b] >= assignmentLimits[b]) continue;
+                        const deltaAngle = Math.abs(Math.atan2(Math.sin(spawnAngle - biomeAngles[b]), Math.cos(spawnAngle - biomeAngles[b])));
+                        if (deltaAngle < bestDelta) {
+                            bestDelta = deltaAngle;
+                            bestIndex = b;
+                        }
+                    }
+                    if (bestIndex >= 0) {
+                        biomeIndex = bestIndex;
+                    } else {
+                        let minCount = Infinity;
+                        for (let b = 0; b < biomeDefs.length; b++) {
+                            if (assignedCounts[b] < minCount) {
+                                minCount = assignedCounts[b];
+                                biomeIndex = b;
+                            }
+                        }
+                    }
+                }
+                assignedCounts[biomeIndex]++;
+                const pool = pools[biomeIndex];
+                const used = usedByBiome[biomeIndex];
+                bot.target = null;
+                bot.assistTarget = null;
+                bot.allies = [];
+                bot.state = 'spawn';
+                let scatter = null;
+                if (pool.length) {
+                    for (let k = 0; k < pool.length; k++) {
+                        const idx = (Math.floor(i / 4) * 17 + k * 23) % pool.length;
+                        if (!used.has(idx)) {
+                            used.add(idx);
+                            scatter = pool[idx];
+                            break;
+                        }
+                    }
+                }
+                if (scatter) {
+                    bot.patrolTarget = new THREE.Vector3(scatter.x, 0, scatter.z);
+                } else {
+                    const signs = [[-1, -1], [1, -1], [-1, 1], [1, 1]][biomeIndex];
+                    const offset = 78 + (Math.floor(i / 4) % 5) * 6;
+                    bot.patrolTarget = new THREE.Vector3(signs[0] * offset, 0, signs[1] * offset);
+                }
+                bot.assignedBiome = biomeDefs[biomeIndex][0];
+                bot.assignedBiomeUntil = performance.now() + 180000;
+                const signs = [[-1, -1], [1, -1], [-1, 1], [1, 1]][biomeIndex];
+                const laneIndex = assignedCounts[biomeIndex] - 1;
+                const laneOffset = ((laneIndex % 9) - 4) * 1.05;
+                const entryDistance = 54 + Math.floor(laneIndex / 9) * 4;
+                const entryX = signs[0] * entryDistance + signs[1] * laneOffset;
+                const entryZ = signs[1] * entryDistance - signs[0] * laneOffset;
+                bot.assignedBiomeEntry = new THREE.Vector3(entryX, 0, entryZ);
+                bot.assignedBiomeTarget = bot.patrolTarget.clone();
+            }
+            this.spawnScatterInitialized = true;
+        }
+
+        if (this.spawnTimer <= 0) {
+            this.gameState = 'playing';
+            this.setCenterPlatformOpen(true);
+            this.platformGateCycleOpen = true;
+            this.platformGateCycleTimer = 30;
+            this.roundStartTime = performance.now() * 0.001;
+            this.eventTimelineIndex = 0;
+            this.activeEvent = { type: null, timer: 0, prevFog: null };
+            this.initialZombieWaveQueued = false;
+            const initialZombieCount = this.isMobile() ? 12 : 16;
+            this.spawnZombies(true, 1.1, 110, initialZombieCount);
+            this.queueZombieBurst(false, 1.1, 110, (this.isMobile() ? 32 : 44) - initialZombieCount, this.isMobile() ? 3 : 4);
+            this.queuePoiBurst(0.9, this.isMobile() ? 16 : 22, this.isMobile() ? 2 : 3);
+            this.randomEventTimer = GAME_CONFIG.events.randomTimerMin + Math.random() * GAME_CONFIG.events.randomTimerVariance;
+            this.startZoneCycle();
+            this.player.setInvulnerable(false);
+            this.bots.forEach(bot => bot.setInvulnerable(false));
+            const noCombatUntil = performance.now() + this.botLootPhaseDuration * 1000;
+            for (let i = 0; i < this.bots.length; i++) {
+                const bot = this.bots[i];
+                bot.noCombatUntil = noCombatUntil;
+                bot.target = null;
+                bot.assistTarget = null;
+                bot.state = 'explore';
+                bot._fsmCtx = null;
+                if (this.botBrains[i]) {
+                    this.botBrains[i].decisionCooldown = (i % 12) * 0.04 + Math.floor(i / 12) * 0.02;
+                }
+            }
+            this.hud.showGameMessage('Выживание началось!');
+            this.gateClosed = true;
+            this.audioSynth.playStoneDoorClose?.(this.map.getCourtyardExitPosition());
+            this.poiWarmupTimer = 7;
+        } else {
+            this.player.setInvulnerable(true);
+            this.bots.forEach(bot => bot.setInvulnerable(true));
+        }
+
+        this.hud.showInvulnerabilityTimer(this.spawnTimer);
+    }
+
+    _updatePlayingHazards(delta) {
+        this.updatePlatformGateCycle(delta);
+        if (!this.poiZombieSeeded && this.poiWarmupTimer > 0) {
+            this.poiWarmupTimer = Math.max(0, this.poiWarmupTimer - delta);
+            if (this.poiWarmupTimer <= 0) {
+                this.queuePoiBurst(1.65, this.isMobile() ? 16 : 22, this.isMobile() ? 4 : 5);
+            }
+        }
+        this.updateZoneCycle(delta);
+        this.chestRespawnTimer = Math.max(0, this.chestRespawnTimer - delta);
+        if (this.chestRespawnTimer <= 0) {
+            const restored = this.lootManager.refillOpenedChests?.(6) || 0;
+            if (restored > 0) {
+                this.hud.showLootNotification?.(`Сундуки пополнены: ${restored}`);
+            }
+            this.chestRespawnTimer = 55;
+        }
+
+        if (!this.zone.isInsideZone(this.player.position)) {
+            const damage = this.zone.getDamage(delta, this.player.position);
+            this.player.takeDamage(damage, false, null, 0, 'zone');
+        }
+
+        if (this.laserActive && this.laserRing) {
+            const center = this.map?.getCornucopiaCenter?.() || this.laserRing.position;
+            const damageCenter = (entity) => {
+                if (!entity?.isAlive || !entity.position || typeof entity.takeDamage !== 'function') return;
+                const dx = entity.position.x - center.x;
+                const dz = entity.position.z - center.z;
+                if (dx * dx + dz * dz < 57 * 57) {
+                    entity.takeDamage(34 * delta, false, null, 0, 'laser');
+                }
+            };
+            damageCenter(this.player);
+            for (const bot of this.bots) damageCenter(bot);
+            for (const zombie of this.zombies) damageCenter(zombie);
+        }
+        if (this.activeEvent?.type === 'radiationRain' && this.radiationRainDamageActive && !this.isShelteredFromRadiation(this.player.position)) {
+            this.player.takeDamage(GAME_CONFIG.events.radiation.playerDps * delta, false, null, 0, 'storm');
+        }
+
+        const distanceFromZone = this.zone.getDistanceFromZone(this.player.position);
+        if (distanceFromZone > 0) {
+            this.hud.updateZoneInfo(`Вне зоны! ${Math.ceil(distanceFromZone)}м`, true);
+        } else {
+            const radius = Math.ceil(this.zone.getCurrentRadius());
+            if (this.zonePhase === 'shrinking') {
+                this.hud.updateZoneInfo(`Зона сужается (радиус ${radius}м)`, true);
+            } else if (this.zonePhase === 'final') {
+                this.hud.updateZoneInfo(`Финальная зона (радиус ${radius}м)`, false);
+            } else {
+                this.hud.updateZoneInfo(`Безопасна: ${Math.ceil(this.zonePhaseTimer)}с (радиус ${radius}м)`, false);
+            }
+        }
+
+        const distanceOutside = this.zone.getDistanceFromZone(this.player.position);
+        const fogDensity = this.scene?.fog?.density || 0;
+        const nightBoost = this.env && (this.env.dayTime < 0.18 || this.env.dayTime > 0.78) ? 0.14 : 0;
+        const shrinkBoost = this.zonePhase === 'shrinking' ? 0.12 : 0;
+        const outsideBoost = distanceOutside > 0 ? Math.min(0.24, distanceOutside * 0.015) : 0;
+        const fogBoost = Math.min(0.24, Math.max(0, fogDensity - 0.004) * 30);
+        const blindnessBoost = this.activeEvent?.type === 'blindness' ? 0.55 : 0;
+        const radiationBoost = this.activeEvent?.type === 'radiationRain' && this.radiationRainDamageActive && !this.isShelteredFromRadiation(this.player.position) ? 0.08 : 0;
+        this.hud.setVisionIntensity?.(0.12 + nightBoost + shrinkBoost + outsideBoost + fogBoost + blindnessBoost + radiationBoost);
+    }
+
     /**
      * Spawn player and all bots on strictly reserved spawn pads.
      * One entity per pad — player gets pad[0], bots get pads[1..N].
