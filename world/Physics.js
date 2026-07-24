@@ -305,6 +305,8 @@ export class Physics {
 
                 // Walkable floor: skip when entity stands on top
                 if (box.walkable && bottom >= max.y - 0.5) continue;
+                // Only step onto walkable surfaces (stairs, platforms), not invisible colliders
+                if (!box.walkable) continue;
                 const stepHeight = max.y - bottom;
                 if (stepHeight > 0.02 && stepHeight <= 0.78 && bottom >= min.y - 0.2) {
                     pos.y = max.y + (entity.physics?.height || 1.7);
