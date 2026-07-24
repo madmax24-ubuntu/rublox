@@ -35,6 +35,7 @@ export class AudioSynth {
         this.weatherTransitionTimer = null;
         this.currentWeatherState = 'clear';
         this.footstepWeatherFactor = 1;
+        this.listenerPosition = { x: 0, y: 0, z: 0 };
         this.musicStarted = false;
         this.musicLoopTimer = null;
         this.musicThemeIndex = 0;
@@ -334,9 +335,9 @@ export class AudioSynth {
         const panner = ctx.createPanner();
         panner.panningModel = 'HRTF';
         panner.distanceModel = 'inverse';
-        panner.refDistance = 3;
-        panner.maxDistance = 220;
-        panner.rolloffFactor = 0.85;
+        panner.refDistance = 2.5;
+        panner.maxDistance = 80;
+        panner.rolloffFactor = 1.45;
         if (position) {
             panner.positionX.value = Number.isFinite(position.x) ? position.x : 0;
             panner.positionY.value = Number.isFinite(position.y) ? position.y : 0;
@@ -350,6 +351,9 @@ export class AudioSynth {
         // SAFETY: Guard against NaN/Infinity from camera position
         if (!Number.isFinite(position.x) || !Number.isFinite(position.y) || !Number.isFinite(position.z)) return;
         if (!Number.isFinite(forward.x) || !Number.isFinite(forward.y) || !Number.isFinite(forward.z)) return;
+        this.listenerPosition.x = position.x;
+        this.listenerPosition.y = position.y;
+        this.listenerPosition.z = position.z;
 
         const listener = this.audioContext.listener;
         if (listener.positionX) {
@@ -390,6 +394,12 @@ export class AudioSynth {
     async playSample(pathList, options = {}) {
         this._ensureLazyInit();
         if (!this.audioContext) return false;
+        if (options.position) {
+            const dx = options.position.x - this.listenerPosition.x;
+            const dy = options.position.y - this.listenerPosition.y;
+            const dz = options.position.z - this.listenerPosition.z;
+            if (dx * dx + dy * dy + dz * dz > 6400) return true;
+        }
         if (this.audioContext.state !== 'running') {
             await this.unlock();
             if (this.audioContext.state !== 'running') return false;
@@ -691,7 +701,7 @@ export class AudioSynth {
     }
 
     playGrieverMove(position) {
-        this.playSample(this.sampleCatalog.rumble, { volume: 0.13, rateMin: 0.7, rateMax: 1.0, position, reverbSend: 0.2, category: 'ambient' });
+        return false;
     }
 
     playGrieverRoar(position) {
@@ -860,6 +870,20 @@ export class AudioSynth {
             priority: 1,
             maxDuration: duration,
             voiceKey: `zombie:ability:${emitterKey}`
+        });
+    }
+
+    playRemoteFootstep(position, emitterKey = 'npc', volume = 1) {
+        if (!this.canPlayWeaponSfx(`step:${emitterKey}`, 0.38)) return;
+        this.playSample(this.sampleCatalog.footsteps, {
+            volume: (this.isMobileDevice ? 0.1 : 0.14) * clamp(volume, 0.2, 1),
+            rateMin: 0.9,
+            rateMax: 1.1,
+            position,
+            category: 'sfx',
+            priority: 0,
+            voiceKey: `footstep:${emitterKey}`,
+            maxDuration: 0.22
         });
     }
 
@@ -1078,19 +1102,14 @@ export class AudioSynth {
     }
 
     playWind() {
-        this.playSample(this.sampleCatalog.wind, {
-            volume: this.isMobileDevice ? 0.02 : 0.03,
-            rateMin: 0.78,
-            rateMax: 0.95,
-            reverbSend: 0.18,
-            category: 'ambient'
-        });
+        return false;
     }
 
     setWeatherState(nextState = 'clear') {
         const state = String(nextState || 'clear').toLowerCase();
         if (state === this.currentWeatherState) return;
         this.currentWeatherState = state;
+        this.applyMusicWeatherProfile(state);
         if (this.weatherTransitionTimer) clearTimeout(this.weatherTransitionTimer);
         this.weatherTransitionTimer = null;
         this.stopWeatherLoop();
@@ -1197,12 +1216,12 @@ export class AudioSynth {
         this.weatherLoopNodes = null;
     }
 
-    playChestOpen() {
-        this.playSample(this.sampleCatalog.chestOpen, { volume: this.isMobileDevice ? 0.1 : 0.16, rateMin: 0.92, rateMax: 1.08, reverbSend: 0.12, category: 'ui' });
+    playChestOpen(position = null) {
+        this.playSample(this.sampleCatalog.chestOpen, { volume: this.isMobileDevice ? 0.1 : 0.16, rateMin: 0.92, rateMax: 1.08, position, reverbSend: 0.12, category: 'sfx' });
     }
 
     playChestNearby() {
-        this.playSample(this.sampleCatalog.chestNearby, { volume: this.isMobileDevice ? 0.06 : 0.1, rateMin: 0.95, rateMax: 1.1, reverbSend: 0.08, category: 'ui' });
+        return false;
     }
 
     playGlassStep(position = null, emitterKey = 'global') {
@@ -1261,6 +1280,7 @@ export class AudioSynth {
             source.connect(this.musicGain);
             source.start();
             this.musicSource = source;
+            this.applyMusicWeatherProfile(this.currentWeatherState);
 
             clearTimeout(this.musicLoopTimer);
             if (this.sampleCatalog.music.length > 1) {
@@ -1273,6 +1293,24 @@ export class AudioSynth {
         };
 
         playMusicTheme(this.musicThemeIndex);
+    }
+
+    applyMusicWeatherProfile(state = 'clear') {
+        if (!this.audioContext || !this.musicGain) return;
+        const profile = state === 'rain'
+            ? { gain: 0.72, rate: 0.92 }
+            : state === 'snow'
+                ? { gain: 0.82, rate: 0.96 }
+                : { gain: 1, rate: 1 };
+        const now = this.audioContext.currentTime;
+        this.musicGain.gain.cancelScheduledValues(now);
+        this.musicGain.gain.setValueAtTime(this.musicGain.gain.value, now);
+        this.musicGain.gain.linearRampToValueAtTime(this.musicVolume * profile.gain, now + 2.5);
+        if (this.musicSource?.playbackRate) {
+            this.musicSource.playbackRate.cancelScheduledValues(now);
+            this.musicSource.playbackRate.setValueAtTime(this.musicSource.playbackRate.value, now);
+            this.musicSource.playbackRate.linearRampToValueAtTime(profile.rate, now + 2.5);
+        }
     }
 }
 

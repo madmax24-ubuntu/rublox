@@ -764,7 +764,7 @@ export class LootManager {
         }
 
         if (audioSynth) {
-            audioSynth.playChestOpen();
+            audioSynth.playChestOpen(chest.position);
         }
 
         if (entity?.stats) {
