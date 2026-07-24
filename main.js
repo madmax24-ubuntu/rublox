@@ -2018,7 +2018,7 @@ class Game {
             const botIndex = (this.botUpdateIndex + i) % botCount;
             const bot = this.bots[botIndex];
             if (!bot?.isAlive) continue;
-            bot.update(scaledDelta, this.botBrains[botIndex], this.entityManager, this.lootManager, this.audioSynth, this.physics, this.zone);
+            bot.update(scaledDelta, this.botBrains[botIndex], this.entityManager, this.lootManager, this.audioSynth, this.physics, this.zone, this.gameState);
         }
         this.botUpdateIndex = (this.botUpdateIndex + batch) % botCount;
     }

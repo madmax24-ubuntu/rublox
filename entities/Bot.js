@@ -561,7 +561,7 @@ export class Bot {
         });
     }
 
-    update(delta, brain, entityManager, lootManager, audioSynth, physics, zone) {
+    update(delta, brain, entityManager, lootManager, audioSynth, physics, zone, gameState) {
         this._deferredDelta = (this._deferredDelta || 0) + delta;
         this.updateDamageFlash();
         if (![this.position.x, this.position.y, this.position.z].every(Number.isFinite)) {
@@ -646,7 +646,9 @@ export class Bot {
             return;
         }
 
-        if (zone && typeof zone.isInsideZone === 'function' && !zone.isInsideZone(this.position)) {
+        // Skip zone retreat during countdown — bots should loot, not retreat to center
+        const isCountdown = gameState === 'countdown';
+        if (zone && typeof zone.isInsideZone === 'function' && !zone.isInsideZone(this.position) && !isCountdown) {
             const center = this._tmpCenter.set(0, this.position.y, 0);
             this.target = null;
             this.patrolTarget.copy(center);
@@ -674,7 +676,7 @@ export class Bot {
 
 
         this.ignoreTrainAvoidance = false;
-        brain.update(this, delta, entityManager, lootManager, audioSynth);
+        brain.update(this, delta, entityManager, lootManager, audioSynth, gameState);
         if (this.escapeTimer > 0) {
             this.escapeTimer = Math.max(0, this.escapeTimer - delta);
             if (this.escapeTimer === 0) {

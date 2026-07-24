@@ -64,7 +64,7 @@ export class BotBrain {
         this.reactionMax = 0.3;
     }
 
-    update(bot, delta, entityManager, lootManager, audioSynth) {
+    update(bot, delta, entityManager, lootManager, audioSynth, gameState) {
         if (!bot?.isAlive) {
             if (bot) {
                 this.releaseLootReservation(bot);
@@ -196,6 +196,12 @@ export class BotBrain {
         }
         if (bot.state === STATES.ENGAGE) {
             this.actEngage(bot, ctx, entityManager);
+            return;
+        }
+        // Handle 'spawn' state — transition to proper state immediately
+        if (bot.state === 'spawn') {
+            bot.state = STATES.EXPLORE;
+            this.actExplore(bot, ctx);
             return;
         }
         this.actIdle(bot, ctx);
