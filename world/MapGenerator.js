@@ -157,6 +157,7 @@ export class MapGenerator {
         }
         this._removeStripeArtifacts();
         this._removeDetachedColliderSources();
+        this._removeUnsupportedWalkableColliders();
 
         // Phase 9.8: Map perimeter walls (glass/blue like reference)
         this._generatePerimeterWalls();
@@ -289,6 +290,29 @@ export class MapGenerator {
 
     _removeDetachedColliderSources() {
         this.colliders = this.colliders.filter(collider => !collider.source || this._isAttachedToScene(collider.source));
+    }
+
+    _removeUnsupportedWalkableColliders() {
+        const bounds = [];
+        const box = new THREE.Box3();
+        this.scene.traverse((object) => {
+            if ((!object.isMesh && !object.isGroup) || object.isInstancedMesh || !object.userData?.mapGenerated || object.visible === false) return;
+            box.setFromObject(object);
+            if (!box.isEmpty()) bounds.push(box.clone());
+        });
+        this.colliders = this.colliders.filter((collider) => {
+            if (!collider.walkable || collider.max.y <= 0.3 || collider.isCornucopia || collider.isBiomeEntrance) return true;
+            if (collider.source && this._isAttachedToScene(collider.source) && collider.source.visible !== false) return true;
+            const x = (collider.min.x + collider.max.x) * 0.5;
+            const z = (collider.min.z + collider.max.z) * 0.5;
+            return bounds.some(candidate =>
+                x >= candidate.min.x - 0.2 &&
+                x <= candidate.max.x + 0.2 &&
+                z >= candidate.min.z - 0.2 &&
+                z <= candidate.max.z + 0.2 &&
+                Math.abs(candidate.max.y - collider.max.y) <= 0.45
+            );
+        });
     }
 
     _pruneOutsidePlayableBounds() {

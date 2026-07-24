@@ -4,6 +4,7 @@ export class Environment {
     constructor(scene) {
         this.scene = scene;
         this.sunLight = null;
+        this.moonLight = null;
         this.dayTime = 0.3;
         this.weatherType = 'clear';
         this.weatherTimer = 90 + Math.random() * 45;
@@ -58,6 +59,10 @@ export class Environment {
         } else {
             this.sunLight = this.scene.userData.globalSunLight;
         }
+        this.moonLight = new THREE.DirectionalLight(0xa8c9ff, 0);
+        this.moonLight.position.set(-180, 260, -120);
+        this.moonLight.castShadow = false;
+        this.scene.add(this.moonLight);
 
         // Fog is now handled by main.js
         if (!this.overrideFog) {
@@ -157,9 +162,9 @@ export class Environment {
             this.sunLight.position.set(-220, 280, -160);
             this.sunLight.color.lerp(new THREE.Color(0x8fb9ff), Math.min(1, delta * 2.5));
             skyColor.copy(this.nightAmbientColor);
-            intensity = 0.55;
-            this.targetFog = Math.max(this.targetFog, 0.0038);
-            this.targetExposure = 1.28;
+            intensity = 0.72;
+            this.targetFog = Math.max(this.targetFog, 0.0032);
+            this.targetExposure = 1.42;
         } else {
             this.sunLight.color.lerp(new THREE.Color(0xffd166), Math.min(1, delta * 1.8));
         }
@@ -180,14 +185,16 @@ export class Environment {
         }
         this.sunLight.intensity = THREE.MathUtils.lerp(this.sunLight.intensity, intensity, delta * 1.8);
         this.sunLight.visible = intensity > 0.03;
+        this.moonLight.intensity = THREE.MathUtils.lerp(this.moonLight.intensity, nightActive ? 0.9 : 0, delta * 1.8);
+        this.moonLight.visible = this.moonLight.intensity > 0.02;
         if (this.ambient) {
-            const target = nightActive ? 0.95 : 0.25 + intensity * 0.7;
+            const target = nightActive ? 1.12 : 0.25 + intensity * 0.7;
             this.ambient.intensity = THREE.MathUtils.lerp(this.ambient.intensity, target, delta * 0.8);
             if (nightActive) this.ambient.color.lerp(this.nightAmbientColor, delta * 2.4);
             else this.ambient.color.lerp(new THREE.Color(0xffffff), delta * 1.8);
         }
         if (this.hemi) {
-            const target = nightActive ? 0.8 : 0.2 + intensity * 0.75;
+            const target = nightActive ? 0.96 : 0.2 + intensity * 0.75;
             this.hemi.intensity = THREE.MathUtils.lerp(this.hemi.intensity, target, delta * 0.8);
             if (nightActive) {
                 this.hemi.color.lerp(this.nightAmbientColor, delta * 2.6);

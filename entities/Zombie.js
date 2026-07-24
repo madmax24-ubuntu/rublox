@@ -908,7 +908,8 @@ export class Zombie {
             this.mesh.position.copy(this.position);
             this.mesh.position.y = this.position.y - (this.physics.height - 0.2) - 0.8;
             this.mesh.rotation.set(-Math.PI / 2, this.rotation.y, 0);
-            this._corpseTimer = 10;
+            this._corpseTimer = this.scene?.userData?.mobileMode ? 1.2 : 2.2;
+            this._corpseExpiresAt = performance.now() + this._corpseTimer * 1000;
             if (attacker?.stats) {
                 attacker.stats.kills += 1;
             }

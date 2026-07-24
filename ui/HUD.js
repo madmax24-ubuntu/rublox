@@ -76,6 +76,56 @@ export class HUD {
         `;
         hud.appendChild(lootFeed);
 
+        const killReward = document.createElement('button');
+        killReward.id = 'killReward';
+        killReward.type = 'button';
+        killReward.style.cssText = `
+            position: absolute;
+            top: ${px(isMobile ? 192 : 246)}px;
+            right: ${px(16)}px;
+            width: ${px(72)}px;
+            height: ${px(72)}px;
+            display: none;
+            border: 2px solid #ffc21c;
+            border-radius: 16px;
+            background: rgba(14,26,36,.94);
+            color: #fff;
+            font-size: ${px(31)}px;
+            cursor: pointer;
+            pointer-events: auto;
+            z-index: 1600;
+            box-shadow: 0 0 24px rgba(255,194,28,.45);
+        `;
+        killReward.textContent = '🪂📦';
+        hud.appendChild(killReward);
+
+        const killRewardPanel = document.createElement('div');
+        killRewardPanel.id = 'killRewardPanel';
+        killRewardPanel.style.cssText = `
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(3,8,13,.72);
+            pointer-events: auto;
+            z-index: 1700;
+        `;
+        killRewardPanel.innerHTML = `
+            <div style="width:min(440px,88vw);padding:22px;border:2px solid #ffc21c;border-radius:18px;background:#101d27;box-shadow:0 18px 60px rgba(0,0,0,.55)">
+                <div id="killRewardTitle" style="font-size:24px;font-weight:900;color:#ffc21c;margin-bottom:8px"></div>
+                <div style="font-size:14px;color:#d4e0e8;margin-bottom:16px">Выберите одну награду за серию убийств</div>
+                <div id="killRewardOptions" style="display:grid;gap:10px"></div>
+            </div>
+        `;
+        hud.appendChild(killRewardPanel);
+        this.killRewardButton = killReward;
+        this.killRewardPanel = killRewardPanel;
+        killReward.addEventListener('click', () => {
+            killRewardPanel.style.display = 'flex';
+            document.exitPointerLock?.();
+        });
+
         const topBar = document.createElement('div');
         topBar.style.cssText = `
             position: absolute;
@@ -1449,6 +1499,35 @@ export class HUD {
             item.style.opacity = '0';
             setTimeout(() => item.remove(), 220);
         }, 2400);
+    }
+
+    showKillReward(kills, options, onSelect) {
+        if (!this.killRewardButton || !this.killRewardPanel || !options?.length) return;
+        this.killRewardButton.style.display = 'block';
+        this.killRewardButton.title = `Награда за ${kills} убийств`;
+        const title = this.killRewardPanel.querySelector('#killRewardTitle');
+        const list = this.killRewardPanel.querySelector('#killRewardOptions');
+        title.textContent = `Серия: ${kills} убийств`;
+        list.replaceChildren();
+        for (const option of options) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = option.label;
+            button.style.cssText = 'padding:13px 16px;border:1px solid rgba(255,255,255,.16);border-radius:10px;background:#22323e;color:#fff;font:700 15px Trebuchet MS;cursor:pointer';
+            button.addEventListener('click', () => {
+                this.killRewardPanel.style.display = 'none';
+                this.killRewardButton.style.display = 'none';
+                onSelect?.(option.id);
+                const canvas = document.querySelector('#gameRoot canvas');
+                if (canvas?.requestPointerLock && !this._isMobile) {
+                    const lock = canvas.requestPointerLock();
+                    lock?.catch?.(() => {});
+                }
+            });
+            list.appendChild(button);
+        }
+        this.killRewardPanel.style.display = 'flex';
+        document.exitPointerLock?.();
     }
 
     showHitMarker() {

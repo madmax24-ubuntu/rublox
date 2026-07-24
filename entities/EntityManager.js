@@ -51,8 +51,8 @@ export class EntityManager {
 
     update(delta, physics, audioSynth) {
         this.physicsRef = physics || this.physicsRef;
-        // OPTIMIZED: Batch spatial hash rebuilds — only rebuild when entity count changes OR every 5 frames
-        this._spatialFrameCounter = ((this._spatialFrameCounter || 0) + 1) % 5;
+        const rebuildInterval = this.scene.userData.mobileMode ? 8 : 6;
+        this._spatialFrameCounter = ((this._spatialFrameCounter || 0) + 1) % rebuildInterval;
         const shouldRebuild = this.entities.length !== this._lastRebuildCount || this._spatialFrameCounter === 0;
         if (shouldRebuild) {
             this._lastRebuildCount = this.entities.length;

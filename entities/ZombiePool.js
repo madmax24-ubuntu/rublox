@@ -46,12 +46,15 @@ export class ZombiePool {
             zombie.attackCooldown = 0;
             zombie.soundTimer = 2 + Math.random() * 3;
             zombie._corpseTimer = 0;
+            zombie._corpseExpiresAt = 0;
+            zombie._pooled = false;
             zombie._animTime = performance.now() * 0.001;
             zombie._roamAngle = Math.random() * Math.PI * 2;
             zombie._roamTimer = 3 + Math.random() * 5;
         } else {
             zombie = new Zombie(this.scene, this.nextId++, spawnPosition, forcedVariant);
             zombie.mesh.userData._origScale = zombie.mesh.scale.clone();
+            zombie._pooled = false;
         }
         this.physics.addEntity(zombie);
         this.entityManager.addEntity(zombie);
@@ -59,9 +62,10 @@ export class ZombiePool {
     }
 
     release(zombie, force = false) {
-        if (!zombie || (zombie.isAlive && !force)) return;
+        if (!zombie || zombie._pooled || (zombie.isAlive && !force)) return;
 
         zombie.isAlive = false;
+        zombie._pooled = true;
         zombie.mesh.visible = false;
 
         // Remove from scene graph

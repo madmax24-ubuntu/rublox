@@ -368,18 +368,18 @@ class Game {
             scavenger: false,
             survivor: false
         };
+        this.claimedKillRewards = new Set();
+        this.queuedKillRewards = new Set();
+        this.killRewardQueue = [];
+        this.killRewardActive = false;
         this.randomEventTimer = GAME_CONFIG.events.randomTimerMin + Math.random() * GAME_CONFIG.events.randomTimerVariance;
         this.activeEvent = { type: null, timer: 0, prevFog: null };
         this.eventDeck = [];
         this.lastEventType = null;
         this.eventTimeline = [
-            { at: 90, type: 'supplyDrop', duration: 12 },
-            { at: 170, type: 'runnerHunt', duration: 18 },
-            { at: 255, type: 'night', duration: 45 },
-            { at: 345, type: 'blindness', duration: 4 },
-            { at: 425, type: 'radiationRain', duration: GAME_CONFIG.events.radiation.durationSeconds },
-            { at: 510, type: 'heavySiege', duration: 24 },
-            { at: 575, type: 'zombieRush', duration: GAME_CONFIG.events.zombieRush.durationSeconds }
+            { at: 150, type: 'night', duration: 55 },
+            { at: 330, type: 'radiationRain', duration: GAME_CONFIG.events.radiation.durationSeconds },
+            { at: 510, type: 'night', duration: 65 }
         ];
         this.eventTimelineIndex = 0;
         this.radiationRainGraceTimer = 0;
@@ -395,13 +395,11 @@ class Game {
         this.zombieMaintainTimer = 3.6;
         this.roundStartTime = performance.now() * 0.001;
         this.waveTimer = GAME_CONFIG.events.waveIntervalSeconds;
-        this.waveActive = false;
-        this.waveRemaining = 0;
         this.platformGateCycleOpen = false;
         this.platformGateCycleTimer = 45;
 
         this.env = new Environment(this.scene);
-        this.env.enableWeather = true;
+        this.env.enableWeather = false;
         this.audioSynth?.setWeatherState?.(this.env.getWeatherType?.() || 'clear');
 
         // Map generation
@@ -452,6 +450,7 @@ class Game {
         this.environmentEntities = [];
         this.environmentUpdateIndex = 0;
         this.zombieUpdateIndex = 0;
+        this.corpseCleanupTimer = 0;
         this.botUpdateIndex = 0;
         this.botFrameCounter = 0;
         this.botHazardCursor = 0;
@@ -676,7 +675,7 @@ class Game {
         for (let variant = 0; variant < this.bots[0].variants.length; variant++) {
             const outfit = this.bots[0].variants[variant];
             for (const [colorKey, geometry, y] of parts) {
-                const material = new THREE.MeshBasicMaterial({ color: outfit[colorKey] || 0x5588aa, fog: false, toneMapped: false, emissive: new THREE.Color(0x222222), emissiveIntensity: 0.15 });
+                const material = new THREE.MeshBasicMaterial({ color: outfit[colorKey] || 0x5588aa, fog: false, toneMapped: false });
                 const batch = new THREE.InstancedMesh(geometry, material, this.bots.length);
                 batch.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
                 batch.frustumCulled = false;
@@ -970,9 +969,8 @@ class Game {
         const shrinkBoost = this.zonePhase === 'shrinking' ? 0.12 : 0;
         const outsideBoost = distanceOutside > 0 ? Math.min(0.24, distanceOutside * 0.015) : 0;
         const fogBoost = Math.min(0.24, Math.max(0, fogDensity - 0.004) * 30);
-        const blindnessBoost = this.activeEvent?.type === 'blindness' ? 0.55 : 0;
         const radiationBoost = this.activeEvent?.type === 'radiationRain' && this.radiationRainDamageActive && !this.isShelteredFromRadiation(this.player.position) ? 0.08 : 0;
-        this.hud.setVisionIntensity?.(0.12 + nightBoost + shrinkBoost + outsideBoost + fogBoost + blindnessBoost + radiationBoost);
+        this.hud.setVisionIntensity?.(0.12 + nightBoost + shrinkBoost + outsideBoost + fogBoost + radiationBoost);
     }
 
     /**
@@ -1682,18 +1680,11 @@ class Game {
                 }
             }
             if (this.activeEvent.timer <= 0) {
-                if (this.activeEvent.type === "blindness") {
-                    if (this.env?.clearFogOverride) this.env.clearFogOverride();
-                }
                 if (this.activeEvent.type === "night" && this.env?.forceNightTimer !== undefined) {
                     this.env.forceNightTimer = 0;
                 }
                 if (this.activeEvent.type === "radiationRain") {
                     this.setRadiationRainActive(false);
-                }
-                if (this.activeEvent.type === "storm") {
-                    this.env?.setStormActive?.(false, 0);
-                    this.hud?.setStormActive?.(false, 'storm');
                 }
                 this.lastEventType = this.activeEvent.type;
                 this.activeEvent = { type: null, timer: 0, prevFog: null };
@@ -1708,17 +1699,7 @@ class Game {
         this.eventTimelineIndex++;
         const event = scheduled.type;
 
-        if (event === "blindness") {
-            this.activeEvent.type = "blindness";
-            this.activeEvent.timer = scheduled.duration;
-            this.queueZombieBurst(false, 1.6, 180, this.isMobile() ? 8 : 12, this.isMobile() ? 2 : 4);
-            if (this.env?.setFogOverride) {
-                this.env.setFogOverride(0.085, 0x030307);
-            } else if (this.scene?.fog) {
-                this.scene.fog.density = 0.085;
-            }
-            this.hud.showGameMessage("Событие: Слепота");
-        } else if (event === "night" && this.env?.forceNight) {
+        if (event === "night" && this.env?.forceNight) {
             this.activeEvent.type = "night";
             this.activeEvent.timer = scheduled.duration;
             this.env.forceNight(scheduled.duration);
@@ -1731,34 +1712,6 @@ class Game {
             this.setRadiationRainActive(true);
             this.queueZombieBurst(false, 1.7, 180, this.isMobile() ? 10 : 16, this.isMobile() ? 2 : 4);
             this.hud.showGameMessage("Событие: Радиационный дождь. Прячьтесь в домах или ангарах!");
-        } else if (event === "supplyDrop") {
-            this.activeEvent.type = "supplyDrop";
-            this.activeEvent.timer = scheduled.duration;
-            this.spawnSupplyDrop();
-            this.hud.showGameMessage("Событие: Снаряжение упало! Ищите контейнеры!");
-        } else if (event === "storm") {
-            this.activeEvent.type = "storm";
-            this.activeEvent.timer = scheduled.duration;
-            this.queueZombieBurst(false, 1.8, 180, this.isMobile() ? 10 : 16, this.isMobile() ? 2 : 4);
-            this.hud.showGameMessage("Событие: Шторм! Укрытия снижают урон!");
-            if (this.env?.setStormActive) {
-                this.env.setStormActive(true, GAME_CONFIG.events.storm.visualIntensity);
-            }
-        } else if (event === "zombieRush") {
-            this.activeEvent.type = "zombieRush";
-            this.activeEvent.timer = scheduled.duration;
-            this.queueZombieBurst(false, 2.5, 120, GAME_CONFIG.events.zombieRush.zombieCount, 4);
-            this.hud.showGameMessage("Событие: Зомби-волна! Готовьтесь к бою!");
-        } else if (event === 'runnerHunt') {
-            this.activeEvent.type = 'runnerHunt';
-            this.activeEvent.timer = scheduled.duration;
-            this.queueZombieBurst(false, 2.2, 180, this.isMobile() ? 14 : 22, this.isMobile() ? 3 : 5, 'runner');
-            this.hud.showGameMessage('Событие: Охота спринтеров! Не стойте на месте!');
-        } else if (event === 'heavySiege') {
-            this.activeEvent.type = 'heavySiege';
-            this.activeEvent.timer = scheduled.duration;
-            this.queueZombieBurst(false, 2.6, 180, this.isMobile() ? 8 : 14, this.isMobile() ? 2 : 3, 'heavy');
-            this.hud.showGameMessage('Событие: Осада тяжёлых заражённых! Используйте укрытия и бочки!');
         }
     }
 
@@ -2001,9 +1954,7 @@ class Game {
             const fogPenalty = Math.max(0, (fogDensity - 0.004) * 9000);
             const localFogPenalty = localFog * 3800;
             const nightPenalty = isNight ? 35 : 0;
-            const targetFar = this.activeEvent?.type === 'blindness'
-                ? 15
-                : Math.max(55, Math.min(maxFar, this.zone.getCurrentRadius() * 0.2 + 90 - fogPenalty - localFogPenalty - nightPenalty));
+            const targetFar = Math.max(55, Math.min(maxFar, this.zone.getCurrentRadius() * 0.2 + 90 - fogPenalty - localFogPenalty - nightPenalty));
             if (this.camera.far !== targetFar) {
                 this.camera.far = targetFar;
                 this.camera.updateProjectionMatrix();
@@ -2018,6 +1969,7 @@ class Game {
         this._updateBotHazards(delta);
 
         this._updateZombies(delta);
+        this._cleanupCorpses(delta);
 
         this._updateEnvironmentEntities(delta);
 
@@ -2030,9 +1982,9 @@ class Game {
         }
         this.updateBotLodBatch();
         if (this.gameState === 'playing') {
-            this.trySupplyDrop(aliveCountBeforeHazards);
             this.updateRandomEvents(delta);
             this.updateAchievements(aliveCountBeforeHazards);
+            this.updateKillRewards();
         }
 
         this._updateHUDStats(delta, aliveCountBeforeHazards);
@@ -2051,59 +2003,16 @@ class Game {
     _updateBots(delta) {
         const botCount = this.bots.length;
         if (botCount === 0) return;
-
-        this.botFrameCounter++;
-        const playerPos = this.player.position;
-        const camPos = this.camera.position;
-        const midBotCullDistSq = this.isMobile() ? 122500 : 202500;
-        const frustum = new THREE.Frustum();
-        const projMatrix = new THREE.Matrix4();
-        projMatrix.multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse);
-        frustum.setFromProjectionMatrix(projMatrix);
-        const isInFrustum = (pos) => frustum.containsPoint(pos);
-
-        const isCombat = (bot) => {
-            if (!bot.target || !bot.target.isAlive) return false;
-            return bot.position.distanceToSquared(bot.target.position) < 3600;
-        };
-
-        for (let botIndex = 0; botIndex < botCount; botIndex++) {
+        if (this.gameState === 'countdown') return;
+        const batch = Math.min(botCount, this.isMobile() ? 18 : 28);
+        const scaledDelta = Math.min(0.1, delta * botCount / Math.max(1, batch));
+        for (let i = 0; i < batch; i++) {
+            const botIndex = (this.botUpdateIndex + i) % botCount;
             const bot = this.bots[botIndex];
             if (!bot?.isAlive) continue;
-
-            const distSq = bot.position.distanceToSquared(playerPos);
-            const isNear = distSq < midBotCullDistSq;
-            const inFrustum = isInFrustum(bot.position);
-
-            if (isNear && inFrustum && isCombat(bot)) {
-                if (this.gameState !== 'countdown') {
-                    bot.update(delta, this.botBrains[botIndex], this.entityManager, this.lootManager, this.audioSynth, this.physics, this.zone);
-                } else {
-                    bot.mesh.position.copy(bot.position);
-                    bot.mesh.position.y = bot.position.y - bot.physics.height;
-                    if (bot.healthBar) bot.updateHealthBar(0.05);
-                }
-                continue;
-            }
-
-            if (distSq > midBotCullDistSq && !isInFrustum && !isCombat(bot)) {
-                if ((this.botFrameCounter + botIndex) % 3 !== 0) {
-                    if (bot.mesh) {
-                        bot.mesh.position.copy(bot.position);
-                        bot.mesh.position.y = bot.position.y - bot.physics.height;
-                    }
-                    continue;
-                }
-            }
-
-            if (this.gameState !== 'countdown') {
-                bot.update(delta, this.botBrains[botIndex], this.entityManager, this.lootManager, this.audioSynth, this.physics, this.zone);
-            } else {
-                bot.mesh.position.copy(bot.position);
-                bot.mesh.position.y = bot.position.y - bot.physics.height;
-                if (bot.healthBar) bot.updateHealthBar(0.05);
-            }
+            bot.update(scaledDelta, this.botBrains[botIndex], this.entityManager, this.lootManager, this.audioSynth, this.physics, this.zone);
         }
+        this.botUpdateIndex = (this.botUpdateIndex + batch) % botCount;
     }
 
     _updateBotHazards(delta) {
@@ -2178,6 +2087,100 @@ class Game {
         this.zombieUpdateIndex = (this.zombieUpdateIndex + zombiesPerFrame) % zombieCount;
     }
 
+    _cleanupCorpses(delta) {
+        this.corpseCleanupTimer -= delta;
+        if (this.corpseCleanupTimer > 0) return;
+        this.corpseCleanupTimer = 0.2;
+        const now = performance.now();
+        for (let i = this.zombies.length - 1; i >= 0; i--) {
+            const zombie = this.zombies[i];
+            if (!zombie || zombie.isAlive || now < (zombie._corpseExpiresAt || 0)) continue;
+            this.zombiePool.release(zombie, true);
+            this.zombies.splice(i, 1);
+        }
+        for (const bot of this.bots) {
+            if (!bot || bot.isAlive || bot._corpseCleaned || now < (bot._corpseExpiresAt || 0)) continue;
+            bot._corpseCleaned = true;
+            if (bot.mesh) bot.mesh.visible = false;
+            this.physics.removeEntity?.(bot);
+            const index = this.entityManager.entities.indexOf(bot);
+            if (index >= 0) this.entityManager.entities.splice(index, 1);
+        }
+    }
+
+    updateKillRewards() {
+        const kills = this.player?.stats?.kills || 0;
+        const tiers = [5, 10, 15, 25, 40];
+        for (const tier of tiers) {
+            if (kills < tier || this.claimedKillRewards.has(tier) || this.queuedKillRewards.has(tier)) continue;
+            this.queuedKillRewards.add(tier);
+            this.killRewardQueue.push(tier);
+        }
+        if (this.killRewardActive || !this.killRewardQueue.length) return;
+        const tier = this.killRewardQueue.shift();
+        this.killRewardActive = true;
+        const options = tier === 5
+            ? [
+                { id: 'ammoAll35', label: 'Боезапас: +35 ко всему оружию' },
+                { id: 'ammoCurrent70', label: 'Боезапас: +70 к выбранному оружию' }
+            ]
+            : tier === 10
+                ? [
+                    { id: 'healFull', label: 'Полное восстановление здоровья' },
+                    { id: 'armor60', label: 'Броня: +60' },
+                    { id: 'ammoAll55', label: 'Боезапас: +55 ко всему оружию' }
+                ]
+                : tier === 15
+                    ? [
+                        { id: 'weaponPistol', label: 'Пистолет с боезапасом' },
+                        { id: 'weaponShotgun', label: 'Дробовик с боезапасом' },
+                        { id: 'weaponRifle', label: 'Винтовка с боезапасом' }
+                    ]
+                    : tier === 25
+                        ? [
+                            { id: 'weaponMachinegun', label: 'Пулемёт' },
+                            { id: 'weaponLaser', label: 'Лазерган' },
+                            { id: 'weaponFlamethrower', label: 'Огнемёт' }
+                        ]
+                        : [
+                            { id: 'eliteRestore', label: 'Полное здоровье, броня и боезапас' },
+                            { id: 'weaponMachinegun', label: 'Пулемёт' },
+                            { id: 'weaponLaser', label: 'Лазерган' }
+                        ];
+        this.hud.showKillReward(tier, options, reward => {
+            this.applyKillReward(reward);
+            this.claimedKillRewards.add(tier);
+            this.queuedKillRewards.delete(tier);
+            this.killRewardActive = false;
+            if (this.isPaused) this.setPaused(false);
+        });
+    }
+
+    applyKillReward(reward) {
+        const refillAll = amount => {
+            for (const item of this.player.inventory.getItems()) {
+                if (item?.ammo !== null && item?.ammo !== undefined) this.player.addAmmoToWeaponType(item.type, amount);
+            }
+        };
+        if (reward === 'ammoAll35') refillAll(35);
+        else if (reward === 'ammoAll55') refillAll(55);
+        else if (reward === 'ammoCurrent70') {
+            const weapon = this.player.currentWeapon;
+            if (weapon?.type) this.player.addAmmoToWeaponType(weapon.type, 70);
+        } else if (reward === 'healFull') this.player.health = this.player.maxHealth;
+        else if (reward === 'armor60') this.player.armor = Math.min(this.player.maxArmor, this.player.armor + 60);
+        else if (reward === 'eliteRestore') {
+            this.player.health = this.player.maxHealth;
+            this.player.armor = this.player.maxArmor;
+            refillAll(120);
+        } else if (reward?.startsWith('weapon')) {
+            const type = reward.slice(6).toLowerCase();
+            this.player.pickupLoot({ type: 'weapon', weaponType: type });
+            this.player.addAmmoToWeaponType(type, 80);
+        }
+        this.hud.showGameMessage('Груз с парашютом получен');
+    }
+
     _updateEnvironmentEntities(delta) {
         if (!this.environmentEntities?.length) return;
 
@@ -2225,25 +2228,6 @@ class Game {
             this.zombieMaintainTimer = 3.2 + Math.random() * 1.4;
         }
 
-        if (elapsed >= gracePeriod) {
-            if (!this.waveActive) {
-                this.waveTimer -= delta;
-                if (this.waveTimer <= 0) {
-                    this.waveActive = true;
-                    this.waveRemaining = GAME_CONFIG.events.waveDurationSeconds;
-                    const waveTier = 1 + Math.min(5, Math.floor(elapsed / 120));
-                    this.queueZombieBurst(false, 2.35 + waveTier * 0.3, 180, GAME_CONFIG.events.zombieRush.zombieCount + waveTier * 4, this.isMobile() ? 3 : 5);
-                    this.queuePoiBurst(1.2 + waveTier * 0.12, this.isMobile() ? 8 : 12, this.isMobile() ? 2 : 4);
-                    this.hud.showGameMessage("Волна зомби! Готовьтесь к бою!");
-                }
-            } else {
-                this.waveRemaining -= delta;
-                if (this.waveRemaining <= 0) {
-                    this.waveActive = false;
-                    this.waveTimer = GAME_CONFIG.events.waveIntervalSeconds;
-                }
-            }
-        }
     }
 
     _updateHUDStats(delta, aliveCount) {
@@ -2356,11 +2340,9 @@ class Game {
             }
             const displayedWeather = this.activeEvent?.type === 'radiationRain'
                 ? 'radiationRain'
-                : this.activeEvent?.type === 'storm'
-                    ? 'storm'
-                    : this.activeEvent?.type === 'night'
-                        ? 'night'
-                        : weatherType;
+                : this.activeEvent?.type === 'night'
+                    ? 'night'
+                    : weatherType;
             if (displayedWeather !== this.lastWeatherType) {
                 this.lastWeatherType = displayedWeather;
                 if (this.gameState === 'playing') {
@@ -2368,7 +2350,6 @@ class Game {
                         clear: 'Ясно',
                         rain: 'Дождь',
                         snow: 'Снег',
-                        storm: 'Шторм',
                         night: 'Ночь',
                         radiationRain: 'Радиационный дождь'
                     };

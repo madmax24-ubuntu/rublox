@@ -197,8 +197,8 @@ export class BotBrain {
         const zoneDistance = zone?.getDistanceFromZone ? zone.getDistanceFromZone(bot.position) : 0;
 
         // OPTIMIZED: Smaller radius for better performance
-        const queryRadius = earlyGamePhase ? 38 : Math.min(68, this.baseVisionRange * this.visionMultiplier * 0.86);
-        const closeCombatRadius = 30;
+        const queryRadius = earlyGamePhase ? 48 : Math.min(78, this.baseVisionRange * this.visionMultiplier);
+        const closeCombatRadius = 36;
 
         // OPTIMIZED: Cache nearby query — reuse if bot hasn't moved much (extended cache to 200ms)
         const cacheAge = (bot._nearbyCacheTime || 0) + 0.2 - (now / 1000);
@@ -471,7 +471,7 @@ export class BotBrain {
             && performance.now() < (bot._retaliateUntil || 0);
 
         // Personality-driven thresholds
-        const agg = Math.min(1, (bot.personality?.aggression ?? 0.5) + ctx.gear * 0.32);
+        const agg = Math.min(1, Math.max(0.55, bot.personality?.aggression ?? 0.5) + ctx.gear * 0.32);
         const cau = bot.personality?.caution ?? 0.5;
         const lootF = bot.personality?.lootFocus ?? 0.5;
 
@@ -484,7 +484,7 @@ export class BotBrain {
         // Caution adjusts retreat threshold: cautious bots retreat at higher HP
         const retreatHpThreshold = 0.2 + cau * 0.15;
 
-        if (ctx.nearestZombie && ctx.nearestZombieDist < 10) {
+        if (ctx.nearestZombie && ctx.nearestZombieDist < 16) {
             if (veryLowHp || (lowHp && !wellArmed)) return ctx.shelterTarget ? STATES.RETREAT : STATES.EXPLORE;
             return STATES.ENGAGE;
         }
@@ -537,7 +537,7 @@ export class BotBrain {
                     return STATES.ENGAGE;
                 }
                 // Very aggressive bots engage even without being shot
-                if (agg > 0.58 && armed && ctx.gear >= undergearedThreshold * 0.82 && ctx.crowdNear < crowdTolerance + 1) {
+                if (agg > 0.52 && armed && ctx.gear >= undergearedThreshold * 0.72 && ctx.crowdNear < crowdTolerance + 1) {
                     return STATES.ENGAGE;
                 }
                 // Otherwise loot or scatter
@@ -585,7 +585,7 @@ export class BotBrain {
                 return STATES.ENGAGE;
             }
             // Very aggressive bots engage even without being attacked
-            if (agg > 0.62 && armed && ctx.crowdNear < crowdTolerance + 1) {
+            if (agg > 0.54 && armed && ctx.crowdNear < crowdTolerance + 1) {
                 return STATES.ENGAGE;
             }
             // If just armed but not attacked, keep looting/exploring
@@ -820,7 +820,7 @@ export class BotBrain {
     }
 
     actEngage(bot, ctx, entityManager) {
-        const agg = Math.min(1, (bot.personality?.aggression ?? 0.5) + ctx.gear * 0.24);
+        const agg = Math.min(1, Math.max(0.55, bot.personality?.aggression ?? 0.5) + ctx.gear * 0.24);
         const cau = bot.personality?.caution ?? 0.5;
 
         // Early-game check: retreat if not being actively shot at
@@ -832,7 +832,7 @@ export class BotBrain {
             const dist = ctx.nearestEnemy ? bot.position.distanceTo(ctx.nearestEnemy.position) : Infinity;
             // Aggressive bots stay in combat longer; cautious bots retreat easier
             const retreatDist = 10 - agg * 4 + cau * 3;
-            if (!isBeingShot && dist > retreatDist) {
+            if (!isBeingShot && !ctx.combatReady && !ctx.nearestZombie && dist > retreatDist) {
                 bot.state = STATES.EXPLORE;
                 this.releaseCombatReservation(bot);
                 return;
@@ -863,8 +863,8 @@ export class BotBrain {
         }
         // HP threshold adjusted by personality: aggressive bots fight to lower HP, cautious retreat earlier
         const hpThreshold = ctx.earlyGamePhase
-            ? (0.45 - agg * 0.1 + cau * 0.1)
-            : (0.3 - agg * 0.1 + cau * 0.1);
+            ? (0.34 - agg * 0.08 + cau * 0.08)
+            : (0.24 - agg * 0.08 + cau * 0.08);
         if (ctx.hp < hpThreshold) {
             // Hesitation — bot doesn't flee immediately
             if (!bot._retreatHesitateUntil || performance.now() >= bot._retreatHesitateUntil) {
@@ -1102,12 +1102,12 @@ export class BotBrain {
     }
 
     pickCombatTarget(bot, ctx, entityManager) {
-        const agg = bot.personality?.aggression ?? 0.5;
+        const agg = Math.max(0.55, bot.personality?.aggression ?? 0.5);
         const retaliationTarget = bot._retaliationTarget;
         if (retaliationTarget?.isAlive && performance.now() < (bot._retaliateUntil || 0)) {
             return retaliationTarget;
         }
-        const preferZombie = ctx.nearestZombie && ctx.nearestZombieDist < 11;
+        const preferZombie = ctx.nearestZombie && ctx.nearestZombieDist < 18;
         if (preferZombie) return ctx.nearestZombie;
         const t = ctx.nearestEnemy;
         if (!t?.isAlive) return null;
@@ -1128,7 +1128,7 @@ export class BotBrain {
 
         // During early game, only fight if well-armed (aggressive bots less strict)
         if (ctx.earlyGamePhase && !retaliating) {
-            const wellArmed = !!bot.currentWeapon && WEAPON_PRIORITY[bot.currentWeapon?.type] >= (agg > 0.7 ? 4 : 5);
+            const wellArmed = !!bot.currentWeapon && WEAPON_PRIORITY[bot.currentWeapon?.type] >= 4;
             if (!wellArmed) return null;
         }
 
@@ -1269,8 +1269,8 @@ export class BotBrain {
 
     isCombatReady(bot) {
         const items = bot.inventory?.getItems?.() || [];
-        const ranged = items.some(item => item && (WEAPON_PRIORITY[item.type] || 0) >= 5 && (item.ammo === null || item.ammo > 0));
-        return ranged && ((bot.stats?.loot || 0) > 1 || (bot.lootedAreas?.length || 0) > 0) && this.getGearScore(bot) >= 0.55;
+        const ranged = items.some(item => item && (WEAPON_PRIORITY[item.type] || 0) >= 4 && (item.ammo === null || item.ammo > 0));
+        return ranged && ((bot.stats?.loot || 0) > 0 || (bot.lootedAreas?.length || 0) > 0) && this.getGearScore(bot) >= 0.42;
     }
 
     findNearestShelterTarget(bot) {

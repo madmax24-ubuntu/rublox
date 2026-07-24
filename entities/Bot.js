@@ -907,6 +907,8 @@ export class Bot {
             this.mesh.position.copy(this.position);
             this.mesh.position.y = this.position.y - (this.physics.height - 0.15) - 0.8;
             this.mesh.rotation.set(-Math.PI / 2, this.rotation.y, 0);
+            this._corpseExpiresAt = performance.now() + 3500;
+            this._corpseCleaned = false;
             this.syncWeaponVisibility();
             if (attacker?.stats) {
                 attacker.stats.kills += 1;

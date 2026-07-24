@@ -17,7 +17,7 @@ export class Physics {
         // Wall sliding
         this.slideDamping = 0.85;
         this.maxCompression = 1.5;
-        this.boundaryMargin = Math.max(180, (mapGenerator?.halfSize || 256) - 0.75);
+        this.boundaryMargin = Math.max(16, (mapGenerator?.halfSize || 128) - 1.5);
         this.boundaryForce = 12;
 
         // Reusable vectors
@@ -303,16 +303,16 @@ export class Physics {
                 if (pos.y < min.y - 0.3) continue;
                 if (bottom > max.y + 0.3) continue;
 
-                // Walkable floor: skip when entity stands on top
-                if (box.walkable && bottom >= max.y - 0.5) continue;
-                // Only step onto walkable surfaces (stairs, platforms), not invisible colliders
-                if (!box.walkable) continue;
-                const stepHeight = max.y - bottom;
-                if (stepHeight > 0.02 && stepHeight <= 0.78 && bottom >= min.y - 0.2) {
-                    pos.y = max.y + (entity.physics?.height || 1.7);
-                    entity.physics.onGround = true;
-                    if (entity.physics.velocity) entity.physics.velocity.y = 0;
-                    continue;
+                if (box.walkable) {
+                    if (!this._containsWalkableSurface(box, pos.x, pos.z, baseRadius * 0.35)) continue;
+                    if (bottom >= max.y - 0.5) continue;
+                    const stepHeight = max.y - bottom;
+                    if (stepHeight > 0.02 && stepHeight <= 0.78 && bottom >= min.y - 0.2) {
+                        pos.y = max.y + (entity.physics?.height || 1.7);
+                        entity.physics.onGround = true;
+                        if (entity.physics.velocity) entity.physics.velocity.y = 0;
+                        continue;
+                    }
                 }
 
                 // AABB vs point (XZ plane)

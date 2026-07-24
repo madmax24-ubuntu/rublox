@@ -31,11 +31,12 @@ export class Zone {
     }
 
     createZone() {
-        const material = new THREE.MeshBasicMaterial({
-            color: 0x4fc3ff,
-            transparent: true,
-            opacity: 0.22,
-            depthWrite: false,
+        const material = new THREE.MeshStandardMaterial({
+            color: 0xb32612,
+            emissive: 0xff2400,
+            emissiveIntensity: 1.7,
+            roughness: 0.58,
+            metalness: 0.04,
             side: THREE.DoubleSide
         });
         this.zoneMesh = new THREE.Group();
@@ -47,14 +48,13 @@ export class Zone {
             new THREE.Mesh(vertical, material),
             new THREE.Mesh(vertical, material)
         );
+        this.zoneMesh.userData.gameplayBoundary = true;
         this.scene.add(this.zoneMesh);
         this.syncVisuals();
 
         const ringMat = new THREE.MeshBasicMaterial({
-            color: 0x4fc3ff,
-            transparent: true,
-            opacity: 0.7,
-            depthWrite: false
+            color: 0xff5a16,
+            transparent: false
         });
         this.ringMesh = new THREE.Group();
         const ringHorizontal = new THREE.BoxGeometry(this.mapSize, 0.12, 0.3);
@@ -79,12 +79,12 @@ export class Zone {
             this.syncVisuals();
         }
         if (this.ringMesh) {
-            const pulse = 0.9 + Math.sin(performance.now() * 0.004) * 0.08;
-            for (const wall of this.ringMesh.children) wall.material.opacity = Math.max(0.55, pulse * 0.72);
+            const pulse = 0.42 + Math.sin(performance.now() * 0.004) * 0.12;
+            for (const wall of this.ringMesh.children) wall.material.color.setRGB(1, pulse, 0.035);
         }
         if (this.zoneMesh) {
-            const pulse = 0.2 + Math.sin(performance.now() * 0.003) * 0.04;
-            for (const wall of this.zoneMesh.children) wall.material.opacity = Math.max(0.14, pulse);
+            const pulse = 1.45 + Math.sin(performance.now() * 0.006) * 0.45;
+            for (const wall of this.zoneMesh.children) wall.material.emissiveIntensity = pulse;
         }
     }
 
