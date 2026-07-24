@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 
 let zombieLodGeometry = null;
+const ACID_GEOMETRY = new THREE.SphereGeometry(0.22, 8, 6);
+const ACID_MATERIAL = new THREE.MeshBasicMaterial({ color: 0xb8ff24 });
 const getZombieLodGeometry = () => {
     if (zombieLodGeometry) return zombieLodGeometry;
     const parts = [
@@ -205,6 +207,12 @@ export class Zombie {
         this._moanPhase = Math.random() * Math.PI * 2;
         this._roamAngle = Math.random() * Math.PI * 2;
         this._roamTimer = 3 + Math.random() * 5;
+        this.abilityCooldown = 1.2 + Math.random() * 2.4;
+        this.abilityAnimationTimer = 0;
+        this.acidProjectile = null;
+        this._abilityDirection = new THREE.Vector3();
+        this._projectileStart = new THREE.Vector3();
+        this._projectileToTarget = new THREE.Vector3();
 
         this.mesh = this.createMesh();
         this._lodDetailed = true;
@@ -623,6 +631,7 @@ export class Zombie {
     }
 
     update(delta, entityManager, audioSynth) {
+        this.updateAcidProjectile(delta, audioSynth);
         if (!this.isAlive) {
             this.mesh.position.copy(this.position);
             this._corpseTimer -= delta;
@@ -640,6 +649,8 @@ export class Zombie {
         }
 
         this.attackCooldown = Math.max(0, this.attackCooldown - delta);
+        this.abilityCooldown = Math.max(0, this.abilityCooldown - delta);
+        this.abilityAnimationTimer = Math.max(0, this.abilityAnimationTimer - delta);
         this.soundTimer -= delta;
         this.alertTimer = Math.max(0, this.alertTimer - delta);
         this.updateBurning(delta);
@@ -672,15 +683,33 @@ export class Zombie {
             this.alertPosition = target.position.clone();
             this.alertTimer = 2.8;
 
-            if (dist < 2.6 && this.attackCooldown <= 0) {
+            let usedAbility = false;
+            if (this.variant === 'toxic' && dist >= 5 && dist <= 18 && this.abilityCooldown <= 0) {
+                this.spitAcid(target, audioSynth);
+                usedAbility = true;
+            } else if (this.variant === 'crawler' && dist >= 4 && dist <= 12 && this.physics.onGround && this.abilityCooldown <= 0) {
+                this.leapAt(target, audioSynth);
+                usedAbility = true;
+            } else if (this.variant === 'runner' && dist >= 4 && dist <= 14 && this.abilityCooldown <= 0) {
+                this.dashAt(target, audioSynth);
+                usedAbility = true;
+            }
+
+            if (!usedAbility && dist < 2.6 && this.attackCooldown <= 0) {
                 const targetType = target?.constructor?.name;
                 const damage = targetType === 'Bot' ? this.damage * 0.42 : this.damage;
-                target.takeDamage(damage, false, this, 3.2);
+                const knockback = this.variant === 'heavy' ? 11 : 3.2;
+                target.takeDamage(damage, false, this, knockback, this.variant === 'heavy' ? 'heavySmash' : 'zombie');
+                if (this.variant === 'normal') target.applySlow?.(0.68, 1.5);
                 this.attackCooldown = cfg.attackCooldown;
+                this.abilityAnimationTimer = this.variant === 'heavy' ? 0.55 : 0.28;
                 if (audioSynth) {
                     audioSynth.playZombieAttack?.(this.position, { variant: this.variant, emitterKey: this.id });
+                    if (this.variant === 'heavy') {
+                        audioSynth.playZombieAbility?.(this.position, { variant: 'heavy', emitterKey: this.id });
+                    }
                 }
-            } else {
+            } else if (!usedAbility) {
                 const rush = (dist < 8 ? 1.32 : dist < 18 ? 1.18 : 1.04) * Math.min(1.55, 0.88 + aggression * 0.17);
                 if (this.variant === 'runner') {
                     const zigzag = Math.sin(this._animTime * 3) * 0.3;
@@ -744,6 +773,93 @@ export class Zombie {
         this.mesh.position.y = this.position.y - this.physics.height;
         this.mesh.rotation.y = this.rotation.y;
         if (this.updateRenderLod(delta)) this.animateLimbs(delta);
+    }
+
+    dashAt(target, audioSynth) {
+        this._abilityDirection.subVectors(target.position, this.position).setY(0).normalize();
+        this.physics.velocity.x = this._abilityDirection.x * this.physics.speed * 2.15;
+        this.physics.velocity.z = this._abilityDirection.z * this.physics.speed * 2.15;
+        this.rotation.y = Math.atan2(this._abilityDirection.x, this._abilityDirection.z);
+        this.abilityCooldown = 3.2 + Math.random();
+        this.abilityAnimationTimer = 0.42;
+        audioSynth?.playZombieAbility?.(this.position, { variant: 'runner', emitterKey: this.id });
+    }
+
+    leapAt(target, audioSynth) {
+        this._abilityDirection.subVectors(target.position, this.position).setY(0).normalize();
+        this.physics.velocity.x = this._abilityDirection.x * this.physics.speed * 1.45;
+        this.physics.velocity.z = this._abilityDirection.z * this.physics.speed * 1.45;
+        this.physics.velocity.y = 7.4;
+        this.physics.onGround = false;
+        this.rotation.y = Math.atan2(this._abilityDirection.x, this._abilityDirection.z);
+        this.abilityCooldown = 4.2 + Math.random() * 1.4;
+        this.abilityAnimationTimer = 0.75;
+        audioSynth?.playZombieAbility?.(this.position, { variant: 'crawler', emitterKey: this.id });
+    }
+
+    spitAcid(target, audioSynth) {
+        this.clearAcidProjectile();
+        const origin = this.position.clone();
+        origin.y -= 0.25;
+        const aim = target.position.clone();
+        aim.y -= 0.45;
+        const direction = aim.sub(origin).normalize();
+        const mesh = new THREE.Mesh(ACID_GEOMETRY, ACID_MATERIAL);
+        mesh.position.copy(origin);
+        mesh.frustumCulled = false;
+        mesh.renderOrder = 3;
+        this.scene.add(mesh);
+        const velocity = direction.multiplyScalar(14);
+        velocity.y += 1.5;
+        this.acidProjectile = {
+            mesh,
+            target,
+            velocity,
+            life: 1.8
+        };
+        this.physics.velocity.x *= 0.25;
+        this.physics.velocity.z *= 0.25;
+        this.abilityCooldown = 5.2 + Math.random() * 1.8;
+        this.attackCooldown = 0.9;
+        this.abilityAnimationTimer = 0.65;
+        audioSynth?.playZombieAbility?.(this.position, { variant: 'toxic', emitterKey: this.id });
+    }
+
+    updateAcidProjectile(delta, audioSynth) {
+        const projectile = this.acidProjectile;
+        if (!projectile) return;
+        projectile.life -= delta;
+        projectile.velocity.y -= 4.2 * delta;
+        this._projectileStart.copy(projectile.mesh.position);
+        projectile.mesh.position.addScaledVector(projectile.velocity, delta);
+        const pulse = 1 + Math.sin(this._animTime * 20) * 0.18;
+        projectile.mesh.scale.setScalar(pulse);
+        const target = projectile.target;
+        let hitTarget = false;
+        if (target?.isAlive) {
+            this._abilityDirection.subVectors(projectile.mesh.position, this._projectileStart);
+            this._projectileToTarget.subVectors(target.position, this._projectileStart);
+            const lengthSq = this._abilityDirection.lengthSq();
+            const t = lengthSq > 0
+                ? clamp(this._projectileToTarget.dot(this._abilityDirection) / lengthSq, 0, 1)
+                : 0;
+            this._projectileToTarget.copy(this._projectileStart).addScaledVector(this._abilityDirection, t);
+            hitTarget = this._projectileToTarget.distanceToSquared(target.position) < 1.5;
+        }
+        if (hitTarget) {
+            target.takeDamage(this.damage * 0.78, false, this, 1.4, 'acid');
+            target.applySlow?.(0.55, 2.2);
+            audioSynth?.playZombieAbility?.(projectile.mesh.position, { variant: 'acidImpact', emitterKey: this.id });
+            this.clearAcidProjectile();
+            return;
+        }
+        if (projectile.life <= 0) this.clearAcidProjectile();
+    }
+
+    clearAcidProjectile() {
+        if (!this.acidProjectile) return;
+        this.scene.remove(this.acidProjectile.mesh);
+        this.acidProjectile = null;
     }
 
     updateRenderLod(delta) {
@@ -844,6 +960,12 @@ export class Zombie {
             limbs.leftLeg.rotation.z = -0.35 - swing;
             limbs.rightLeg.rotation.z = 0.35 + swing;
             this.mesh.rotation.x = 0.04 + Math.sin(t * 8) * 0.025 * speedNorm;
+            if (this.abilityAnimationTimer > 0) {
+                const leap = Math.sin((1 - this.abilityAnimationTimer / 0.75) * Math.PI);
+                limbs.leftArm.rotation.z -= leap * 0.85;
+                limbs.rightArm.rotation.z += leap * 0.85;
+                this.mesh.rotation.x = -leap * 0.2;
+            }
         } else if (this.variant === 'toxic') {
             const swing = Math.sin(t * 5.5) * 0.5 * speedNorm;
             limbs.leftLeg.rotation.x = -swing;
@@ -851,6 +973,12 @@ export class Zombie {
             limbs.leftArm.rotation.x = -0.55 + Math.sin(t * 4.2) * 0.28;
             limbs.rightArm.rotation.x = -0.75 + Math.sin(t * 4.2 + 1.1) * 0.28;
             this.mesh.rotation.z = Math.sin(t * 2.1) * 0.045;
+            if (this.abilityAnimationTimer > 0) {
+                const spit = Math.sin((1 - this.abilityAnimationTimer / 0.65) * Math.PI);
+                limbs.leftArm.rotation.x = -1.25 * spit;
+                limbs.rightArm.rotation.x = -1.25 * spit;
+                this.mesh.rotation.x = -0.12 * spit;
+            }
         } else if (this.variant === 'runner') {
             const swing = Math.sin(t * 10) * 0.7 * speedNorm;
             limbs.leftLeg.rotation.x = -swing;
@@ -859,6 +987,11 @@ export class Zombie {
             limbs.rightArm.rotation.x = Math.sin(t * 8) * 0.5 * speedNorm;
             limbs.leftArm.rotation.z = -0.2;
             limbs.rightArm.rotation.z = 0.2;
+            if (this.abilityAnimationTimer > 0) {
+                limbs.leftArm.rotation.x = -1.05;
+                limbs.rightArm.rotation.x = -1.05;
+                this.mesh.rotation.x = -0.18;
+            }
         } else if (this.variant === 'heavy') {
             const swing = Math.sin(t * 5) * 0.4 * speedNorm;
             limbs.leftLeg.rotation.x = -swing;
@@ -867,6 +1000,12 @@ export class Zombie {
             limbs.rightArm.rotation.x = Math.sin(t * 4) * 0.3 * speedNorm;
             limbs.leftArm.rotation.z = -0.1;
             limbs.rightArm.rotation.z = 0.1;
+            if (this.abilityAnimationTimer > 0) {
+                const smash = Math.sin((1 - this.abilityAnimationTimer / 0.55) * Math.PI);
+                limbs.leftArm.rotation.x = -2.1 * smash;
+                limbs.rightArm.rotation.x = -2.1 * smash;
+                this.mesh.rotation.x = 0.12 * smash;
+            }
         } else {
             const swing = Math.sin(t * 7) * 0.55 * speedNorm;
             limbs.leftLeg.rotation.x = -swing;
@@ -989,6 +1128,7 @@ export class Zombie {
     }
 
     dispose() {
+        this.clearAcidProjectile();
         if (this.mesh?.parent) this.mesh.parent.remove(this.mesh);
         this.mesh.visible = false;
     }

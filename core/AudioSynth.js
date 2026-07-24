@@ -838,6 +838,31 @@ export class AudioSynth {
         this.playSample(this.sampleCatalog.zombieAttack.slice(offset, offset + 2), { volume: this.isMobileDevice ? 0.16 : 0.24, rateMin: rates[0], rateMax: rates[1], position, reverbSend: 0.08, category: 'zombie', priority: 0, maxDuration: variant === 'heavy' ? 0.65 : 0.42, voiceKey: `zombie:attack:${emitterKey}` });
     }
 
+    playZombieAbility(position = null, opts = null) {
+        const variant = opts?.variant || 'normal';
+        const emitterKey = `id:${opts?.emitterKey ?? 'zombie'}`;
+        if (!this.canPlayZombieSfx('ability', emitterKey, 0.7)) return;
+        const profiles = {
+            runner: [0, 1.45, 1.75, 0.32],
+            crawler: [6, 1.55, 1.9, 0.46],
+            toxic: [8, 0.72, 0.88, 0.58],
+            acidImpact: [8, 1.15, 1.4, 0.3],
+            heavy: [4, 0.55, 0.72, 0.72]
+        };
+        const [offset, rateMin, rateMax, duration] = profiles[variant] || profiles.heavy;
+        this.playSample(this.sampleCatalog.zombieAttack.slice(offset, offset + 2), {
+            volume: this.isMobileDevice ? 0.2 : 0.3,
+            rateMin,
+            rateMax,
+            position,
+            reverbSend: variant === 'toxic' || variant === 'acidImpact' ? 0.18 : 0.08,
+            category: 'zombie',
+            priority: 1,
+            maxDuration: duration,
+            voiceKey: `zombie:ability:${emitterKey}`
+        });
+    }
+
     playZoneDamage() {
         this.playSample(this.sampleCatalog.zoneDamage, { volume: this.isMobileDevice ? 0.08 : 0.11, rateMin: 0.6, rateMax: 1.4, category: 'weather', maxDuration: 0.3 });
     }

@@ -44,6 +44,9 @@ export class ZombiePool {
             zombie.burnDamagePerSecond = 0;
             zombie.hitStaggerTimer = 0;
             zombie.attackCooldown = 0;
+            zombie.abilityCooldown = 1.2 + Math.random() * 2.4;
+            zombie.abilityAnimationTimer = 0;
+            zombie.clearAcidProjectile?.();
             zombie.soundTimer = 2 + Math.random() * 3;
             zombie._corpseTimer = 0;
             zombie._corpseExpiresAt = 0;
@@ -66,6 +69,7 @@ export class ZombiePool {
 
         zombie.isAlive = false;
         zombie._pooled = true;
+        zombie.clearAcidProjectile?.();
         zombie.mesh.visible = false;
 
         // Remove from scene graph
