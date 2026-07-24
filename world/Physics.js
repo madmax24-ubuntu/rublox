@@ -244,8 +244,7 @@ export class Physics {
             if (position.y + height < min.y - 0.5) continue;
             if (position.y > max.y + height + 0.5) continue;
             if (bottom > max.y + 0.5 || max.y > bottom + 0.65) continue;
-            const dist = Math.abs(max.y - bottom);
-            if (maxY === -Infinity || dist < Math.abs(maxY - bottom)) maxY = max.y;
+            if (maxY === -Infinity || max.y > maxY) maxY = max.y;
         }
 
         if (maxY === -Infinity && !this.colliderGrid.size) {
@@ -260,8 +259,7 @@ export class Physics {
                 if (position.y + height < min.y - 0.5) continue;
                 if (position.y > max.y + height + 0.5) continue;
                 if (bottom > max.y + 0.5 || max.y > bottom + 0.65) continue;
-                const dist = Math.abs(max.y - bottom);
-                if (maxY === -Infinity || dist < Math.abs(maxY - bottom)) maxY = max.y;
+                if (maxY === -Infinity || max.y > maxY) maxY = max.y;
             }
         }
 
@@ -269,8 +267,17 @@ export class Physics {
     }
 
     _containsWalkableSurface(box, x, z, radius = 0) {
-        const source = box.source;
-        if (source && (!source.parent || source.visible === false)) return false;
+        const obb = box.surfaceOBB;
+        if (obb) {
+            const dx = x - obb.x;
+            const dz = z - obb.z;
+            const cos = Math.cos(obb.rotation);
+            const sin = Math.sin(obb.rotation);
+            const localX = dx * cos - dz * sin;
+            const localZ = dx * sin + dz * cos;
+            return Math.abs(localX) <= Math.max(0, obb.halfWidth - radius)
+                && Math.abs(localZ) <= Math.max(0, obb.halfDepth - radius);
+        }
         const circle = box.surfaceCircle;
         if (!circle) return true;
         const dx = x - circle.x;

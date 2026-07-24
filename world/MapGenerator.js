@@ -726,6 +726,13 @@ export class MapGenerator {
                 const s = Math.abs(Math.sin(tread.rotation.y));
                 const collider = this.addColliderBox(tread.position.clone(), 12 * c + 2.35 * s, top, 12 * s + 2.35 * c, true, false);
                 collider.isBiomeEntrance = true;
+                collider.surfaceOBB = {
+                    x: tread.position.x,
+                    z: tread.position.z,
+                    halfWidth: 6,
+                    halfDepth: 1.175,
+                    rotation: tread.rotation.y
+                };
             }
         }
         this.setBiomeGatesOpen(false);
@@ -2117,7 +2124,7 @@ export class MapGenerator {
         // Castle gate at entrance from center (south-west side)
         this._addCastleGate(entranceX, entranceZ, wallHeight);
         this._addMazeToCenterPath(entranceX, entranceZ);
-        this._addMazeMoss(segments);
+        this._addMazeMoss(segments, wallHeight);
 
     }
 
@@ -2338,7 +2345,7 @@ export class MapGenerator {
         right.isBiomeEntrance = true;
     }
 
-    _addMazeMoss(segments) {
+    _addMazeMoss(segments, wallHeight) {
         const mossMat = this.pool.getMatStd(0x4caf50, 1.0, 0, true, false, 1, 0, 0);
         const vineMat = this.pool.getMatStd(0x2e7d32, 0.9, 0, true, false, 1, 0, 0);
 
@@ -2350,9 +2357,10 @@ export class MapGenerator {
             const patchH = 1.5 + this._rand() * 4.5;
             const side = i % 2 ? 1 : -1;
             const moss = new THREE.Mesh(this.pool.getGeoBox(horizontal ? patchW : 0.08, patchH, horizontal ? 0.08 : patchW), mossMat);
+            const y = patchH * 0.5 + this._rand() * Math.max(0, wallHeight - patchH - 0.2);
             moss.position.set(
                 segment.x + (horizontal ? (this._rand() - 0.5) * Math.max(0, segment.width - patchW) : side * (segment.width * 0.5 + 0.055)),
-                1.5 + this._rand() * 10,
+                y,
                 segment.z + (horizontal ? side * (segment.depth * 0.5 + 0.055) : (this._rand() - 0.5) * Math.max(0, segment.depth - patchW))
             );
             moss.userData.mapGenerated = true;
@@ -2361,9 +2369,16 @@ export class MapGenerator {
 
         for (let i = 0; i < Math.min(12, segments.length); i++) {
             const segment = segments[(i * 29 + 5) % segments.length];
-            const vineGeo = this.pool.getGeoCylinder(0.05, 0.08, 2 + this._rand() * 3, 4);
+            const horizontal = segment.width > segment.depth;
+            const side = i % 2 ? 1 : -1;
+            const vineH = 2 + this._rand() * 3;
+            const vineGeo = this.pool.getGeoCylinder(0.05, 0.08, vineH, 4);
             const vine = new THREE.Mesh(vineGeo, vineMat);
-            vine.position.set(segment.x, 13 + this._rand() * 3, segment.z);
+            vine.position.set(
+                segment.x + (horizontal ? (this._rand() - 0.5) * Math.max(0, segment.width - 0.3) : side * (segment.width * 0.5 + 0.06)),
+                wallHeight - vineH * 0.5,
+                segment.z + (horizontal ? side * (segment.depth * 0.5 + 0.06) : (this._rand() - 0.5) * Math.max(0, segment.depth - 0.3))
+            );
             vine.userData.mapGenerated = true;
             this.scene.add(vine);
         }
@@ -2462,6 +2477,13 @@ export class MapGenerator {
         this.scene.add(floor);
         const floorCollider = this.addColliderBox(new THREE.Vector3(midpoint.x, 0.09, midpoint.z), 12 * Math.abs(Math.cos(angle)) + length * Math.abs(Math.sin(angle)), 0.18, 12 * Math.abs(Math.sin(angle)) + length * Math.abs(Math.cos(angle)), true);
         floorCollider.isBiomeEntrance = true;
+        floorCollider.surfaceOBB = {
+            x: midpoint.x,
+            z: midpoint.z,
+            halfWidth: 6,
+            halfDepth: (length + 1.5) * 0.5,
+            rotation: angle
+        };
     }
 
     // =========================================================================
@@ -5006,6 +5028,15 @@ export class MapGenerator {
                 const dx = x - col.surfaceCircle.x;
                 const dz = z - col.surfaceCircle.z;
                 if (dx * dx + dz * dz > col.surfaceCircle.radius * col.surfaceCircle.radius) continue;
+            }
+            if (col.surfaceOBB) {
+                const dx = x - col.surfaceOBB.x;
+                const dz = z - col.surfaceOBB.z;
+                const cos = Math.cos(col.surfaceOBB.rotation);
+                const sin = Math.sin(col.surfaceOBB.rotation);
+                const localX = dx * cos - dz * sin;
+                const localZ = dx * sin + dz * cos;
+                if (Math.abs(localX) > col.surfaceOBB.halfWidth || Math.abs(localZ) > col.surfaceOBB.halfDepth) continue;
             }
             if (x >= col.min.x && x <= col.max.x && z >= col.min.z && z <= col.max.z) {
                 if (!found || col.max.y > closestY) {
