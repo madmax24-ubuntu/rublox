@@ -2011,7 +2011,7 @@ class Game {
     _updateBots(delta) {
         const botCount = this.bots.length;
         if (botCount === 0) return;
-        if (this.gameState === 'countdown') return;
+        // Bots update during countdown to enable pre-fight looting
         const batch = Math.min(botCount, this.isMobile() ? 18 : 28);
         const scaledDelta = Math.min(0.1, delta * botCount / Math.max(1, batch));
         for (let i = 0; i < batch; i++) {
