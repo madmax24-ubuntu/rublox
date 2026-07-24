@@ -151,7 +151,8 @@ export class Physics {
                 const totalMove = Math.abs(moveX) + Math.abs(moveZ);
                 pos.y += vel.y * physicsDelta;
                 if (totalMove > 0.005) {
-                    const steps = Math.max(1, Math.ceil(totalMove / 0.28));
+                    // Увеличен шаг (0.28→0.38) для плавного движения через проходы
+                    const steps = Math.max(1, Math.ceil(totalMove / 0.38));
                     for (let step = 0; step < steps; step++) {
                         pos.x += moveX / steps;
                         pos.z += moveZ / steps;
@@ -289,14 +290,15 @@ export class Physics {
     resolveCollisions(entity) {
         if (!this.colliders.length) return;
         const type = entity.constructor?.name;
-        const bonusRadius = type === 'Zombie' ? 0.1 : type === 'Bot' ? 0.35 : 0;
+        // Уменьшен бонус для ботов (0.35→0.15) для плавного прохождения через двери
+        const bonusRadius = type === 'Zombie' ? 0.1 : type === 'Bot' ? 0.15 : 0;
         const baseRadius = (entity.physics?.radius || 0.5) + bonusRadius;
         const pos = entity.position;
         const bottom = pos.y - (entity.physics?.height || 1.7);
         const pushDistSq = (baseRadius + 0.5) * (baseRadius + 0.5);
 
-        // Limit per-step push to prevent teleportation when deeply embedded
-        const maxPushPerStep = 0.24;
+        // Увеличено ограничение push (0.24→0.40) для плавного движения через проходы
+        const maxPushPerStep = 0.40;
 
         const nearby = this.getNearbyColliders(pos, baseRadius + 1.2);
         if (!nearby.length) return;
