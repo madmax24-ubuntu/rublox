@@ -652,29 +652,27 @@ export class LootManager {
             return { type: 'heal', amount: 55 };
         }
 
-        // Предыдущая логика генерации добычи была запутанной и содержала недостижимый код.
-        // Эта версия использует понятную цепочку "else if", что упрощает понимание и настройку вероятностей.
-        // Вероятности сохранены близкими к первоначальному замыслу.
+        // Улучшенные шансы: больше хорошего оружия, меньше хлама
         const rand = Math.random();
-        if (rand < 0.02) { // 2% для лазера
+        if (rand < 0.06) { // 6% для лазера (было 2%)
             return { type: 'weapon', weaponType: 'laser' };
-        } else if (rand < 0.12) { // 10% для огнемета
+        } else if (rand < 0.16) { // 10% для огнемета
             return { type: 'weapon', weaponType: 'flamethrower' };
-        } else if (rand < 0.25) { // 13% для дробовика
+        } else if (rand < 0.30) { // 14% для дробовика (было 13%)
             return { type: 'weapon', weaponType: 'shotgun' };
-        } else if (rand < 0.36) { // 11% для лука
+        } else if (rand < 0.42) { // 12% для лука (было 11%)
             return { type: 'weapon', weaponType: 'bow' };
-        } else if (rand < 0.6) { // 24% для пистолета
+        } else if (rand < 0.56) { // 14% для пистолета (было 24%)
             return { type: 'weapon', weaponType: 'pistol' };
-        } else if (rand < 0.74) { // 14% для винтовки
+        } else if (rand < 0.74) { // 18% для винтовки (было 14%)
             return { type: 'weapon', weaponType: 'rifle' };
-        } else if (rand < 0.84) { // 10% для пулемета
+        } else if (rand < 0.88) { // 14% для пулемета (было 8%)
             return { type: 'weapon', weaponType: 'machinegun' };
-        } else if (rand < 0.9) { // 6% для аптечки
+        } else if (rand < 0.93) { // 5% для аптечки
             return { type: 'heal', amount: 40 + Math.random() * 25 };
-        } else if (rand < 0.95) { // 5% для патронов
+        } else if (rand < 0.97) { // 4% для патронов
             return { type: 'ammo', amount: 10 + Math.floor(Math.random() * 9) };
-        } else { // 5% для брони
+        } else { // 3% для брони
             return { type: 'armor', amount: 25 + Math.random() * 25 };
         }
     }

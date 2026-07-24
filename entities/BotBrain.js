@@ -1267,7 +1267,7 @@ export class BotBrain {
         }
         if (bestSlot >= 0 && bot.inventory.selectedSlot !== bestSlot) {
             bot.selectSlot(bestSlot);
-            bot._weaponSwitchCooldown = performance.now() + 2000;
+            bot._weaponSwitchCooldown = performance.now() + 800;
         }
     }
 
