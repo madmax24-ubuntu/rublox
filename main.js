@@ -2379,8 +2379,8 @@ class Game {
         const hangarSpots = points.filter(p => p.type === 'hangar');
 
         const aliveNow = this.zombies.filter(z => z?.isAlive).length;
-        const maxAlive = this.isMobile() ? 64 : 96;
-        let budget = Math.max(0, Math.min(maxAlive - aliveNow, Math.floor((houseSpots.length * 2.4 + hangarSpots.length * 13.0) * intensity)));
+        const maxAlive = this.isMobile() ? 72 : 104;
+        let budget = Math.max(0, Math.min(maxAlive - aliveNow, Math.floor((houseSpots.length * 3.2 + hangarSpots.length * 16) * intensity)));
         budget = Math.min(budget, Math.max(0, Number.isFinite(maxSpawn) ? maxSpawn : budget));
         if (budget <= 0) return 0;
 
@@ -2432,7 +2432,7 @@ class Game {
         for (let i = 0; i < houseSpots.length; i++) {
             if (budget <= 0 || spawned >= maxSpawn) break;
             spawnOneAtPoi(houseSpots[i], true);
-            if (budget > 0 && spawned < maxSpawn && Math.random() < 0.55) {
+            if (budget > 0 && spawned < maxSpawn) {
                 spawnOneAtPoi(houseSpots[i], false);
             }
         }
@@ -2468,13 +2468,13 @@ class Game {
         const checks = Math.min(points.length, Math.max(1, limitPerTick | 0));
         let injected = 0;
         const aliveNow = this.zombies.filter(z => z?.isAlive).length;
-        const maxAlive = this.isMobile() ? 64 : 96;
+        const maxAlive = this.isMobile() ? 72 : 104;
         let remainingBudget = Math.max(0, maxAlive - aliveNow);
         if (remainingBudget <= 0) return 0;
 
         const spawnNearPoint = (point) => {
             if (!point || remainingBudget <= 0) return 0;
-            const localNeed = point.type === 'hangar' ? 3 : 1;
+            const localNeed = point.type === 'hangar' ? 4 : 2;
             let made = 0;
             for (let n = 0; n < localNeed && remainingBudget > 0; n++) {
                 const interiorSpot = this.map.findStructureInteriorPoint?.(
@@ -2537,12 +2537,12 @@ class Game {
         const floorTiles = this.zombieSpawnCandidates || [];
         if (!floorTiles.length) return 0;
 
-        const baseCount = Math.min(32, Math.max(10, Math.floor(floorTiles.length / 180)));
-        const maxAlive = Math.min(capOverride ?? (reset ? 90 : 180), this.isMobile() ? 64 : 96);
+        const baseCount = Math.min(48, Math.max(16, Math.floor(floorTiles.length / 140)));
+        const maxAlive = Math.min(capOverride ?? (reset ? 104 : 180), this.isMobile() ? 72 : 104);
         const aliveNow = this.zombies.filter(z => z?.isAlive).length;
         let count = Math.min(
             Math.max(0, maxAlive - aliveNow),
-            forceCount ?? Math.max(reset ? 8 : 4, Math.floor(baseCount * (this.modeConfig?.zombieMultiplier || 1) * multiplier))
+            forceCount ?? Math.max(reset ? 16 : 8, Math.floor(baseCount * (this.modeConfig?.zombieMultiplier || 1) * multiplier))
         );
         if (count <= 0) return 0;
 

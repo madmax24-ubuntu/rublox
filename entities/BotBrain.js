@@ -55,11 +55,11 @@ export class BotBrain {
         this._tmpSideTarget = new THREE.Vector3();
         this._tmpCoverVec = new THREE.Vector3();
         this._tmpSpreadVec = new THREE.Vector3();
-        this.baseVisionRange = 78;
-        this.fov = 88 * (Math.PI / 180);
-        this.hearingRange = 40;
-        this.shotHearingRange = 76;
-        this.losMemorySeconds = 1.4;
+        this.baseVisionRange = 96;
+        this.fov = 128 * (Math.PI / 180);
+        this.hearingRange = 46;
+        this.shotHearingRange = 92;
+        this.losMemorySeconds = 3;
         this.reactionMin = 0.2;
         this.reactionMax = 0.5;
     }
@@ -97,7 +97,7 @@ export class BotBrain {
             bot.state = nextState;
             if (nextState !== STATES.LOOT && nextState !== STATES.EXPLORE) this.releaseLootReservation(bot);
             if (nextState !== STATES.ENGAGE) this.releaseCombatReservation(bot);
-            this.decisionCooldown = 0.44 + ((bot.id * 0.007) % 0.24);
+            this.decisionCooldown = 0.3 + ((bot.id * 0.007) % 0.18);
         } else {
             // Refresh earlyGamePhase on cached context so actEngage / actExplore see current phase
             ctx.earlyGamePhase = earlyGamePhase;
@@ -197,8 +197,8 @@ export class BotBrain {
         const zoneDistance = zone?.getDistanceFromZone ? zone.getDistanceFromZone(bot.position) : 0;
 
         // OPTIMIZED: Smaller radius for better performance
-        const queryRadius = earlyGamePhase ? 48 : Math.min(78, this.baseVisionRange * this.visionMultiplier);
-        const closeCombatRadius = 36;
+        const queryRadius = earlyGamePhase ? 68 : Math.min(104, this.baseVisionRange * this.visionMultiplier);
+        const closeCombatRadius = 42;
 
         // OPTIMIZED: Cache nearby query — reuse if bot hasn't moved much (extended cache to 200ms)
         const cacheAge = (bot._nearbyCacheTime || 0) + 0.2 - (now / 1000);
@@ -261,7 +261,8 @@ export class BotBrain {
                 const heard = dSq <= hearingRangeSq || (heardShot && dSq <= shotHearingSq);
                 if (hasLos || heard) {
                     this._tmpToTarget.set(dx, 0, dz).normalize();
-                    if (forward.dot(this._tmpToTarget) >= fovCos) {
+                    const inVisionCone = forward.dot(this._tmpToTarget) >= fovCos || d < 14;
+                    if ((hasLos && inVisionCone) || heard) {
                         nearestEnemyDist = d;
                         nearestEnemy = ent;
                         if (hasLos && !skipLosEarlyGame) {
@@ -471,16 +472,16 @@ export class BotBrain {
             && performance.now() < (bot._retaliateUntil || 0);
 
         // Personality-driven thresholds
-        const agg = Math.min(1, Math.max(0.55, bot.personality?.aggression ?? 0.5) + ctx.gear * 0.32);
+        const agg = Math.min(1, Math.max(0.62, bot.personality?.aggression ?? 0.5) + ctx.gear * 0.36);
         const cau = bot.personality?.caution ?? 0.5;
         const lootF = bot.personality?.lootFocus ?? 0.5;
 
         // Aggression adjusts engagement distance: aggressive bots engage from further away
         const engageDist = ctx.closeCombatRadius * (0.82 + agg * 0.9);
         // Caution adjusts undergeared threshold: cautious bots hide with less gear
-        const undergearedThreshold = 0.3 + cau * 0.2;
+        const undergearedThreshold = 0.24 + cau * 0.14;
         // Aggression adjusts crowd tolerance: aggressive bots tolerate more crowd in combat
-        const crowdTolerance = ctx.earlyGamePhase ? 1 : Math.max(1, Math.round(1 + agg));
+        const crowdTolerance = ctx.earlyGamePhase ? 2 : Math.max(2, Math.round(1 + agg * 2));
         // Caution adjusts retreat threshold: cautious bots retreat at higher HP
         const retreatHpThreshold = 0.2 + cau * 0.15;
 
@@ -537,7 +538,7 @@ export class BotBrain {
                     return STATES.ENGAGE;
                 }
                 // Very aggressive bots engage even without being shot
-                if (agg > 0.52 && armed && ctx.gear >= undergearedThreshold * 0.72 && ctx.crowdNear < crowdTolerance + 1) {
+                if (agg > 0.48 && armed && ctx.gear >= undergearedThreshold * 0.65 && ctx.crowdNear < crowdTolerance + 1) {
                     return STATES.ENGAGE;
                 }
                 // Otherwise loot or scatter
@@ -585,7 +586,7 @@ export class BotBrain {
                 return STATES.ENGAGE;
             }
             // Very aggressive bots engage even without being attacked
-            if (agg > 0.54 && armed && ctx.crowdNear < crowdTolerance + 1) {
+            if (agg > 0.48 && armed && ctx.crowdNear < crowdTolerance + 1) {
                 return STATES.ENGAGE;
             }
             // If just armed but not attacked, keep looting/exploring
@@ -757,7 +758,7 @@ export class BotBrain {
                     bot.patrolTarget.set(Math.cos(angle) * (27 + 5 * pushDir), bot.patrolTarget.y, Math.sin(angle) * (27 + 5 * pushDir));
                 }
                 // Slow down when gunfire is heard
-                const exploreSpeed = ctx.heardShot ? 0.5 : 0.9;
+                const exploreSpeed = ctx.heardShot ? 1.05 : 1;
                 this.steerMove(bot, bot.patrolTarget, bot.physics.speed * exploreSpeed);
             }
         }
@@ -1064,7 +1065,7 @@ export class BotBrain {
         // Cautious movement: if in HIDE or low gear, move slower and more carefully
         const cau = bot.personality?.caution ?? 0.5;
         const isCautious = bot.state === STATES.HIDE || (bot.state === STATES.EXPLORE && bot.inventory?.getItems?.().length < 2) || cau > 0.7;
-        const finalSpeed = isCautious ? effectiveSpeed * (0.6 + (1 - cau) * 0.2) : effectiveSpeed;
+        const finalSpeed = isCautious ? effectiveSpeed * (0.88 + (1 - cau) * 0.08) : effectiveSpeed;
 
         const step = Math.max(4.5, finalSpeed * 0.9);
         const tx = bot.position.x + move.x * step;

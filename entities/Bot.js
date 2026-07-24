@@ -1196,13 +1196,13 @@ export class Bot {
                 this.escapeTimer = 1.1;
             }
             this.cachedMoveDir.copy(this._tmpProbe2).normalize();
-            this.steeringCooldown = 0.28 + Math.random() * 0.18;
+            this.steeringCooldown = 0.14 + Math.random() * 0.1;
         }
         direction.copy(this.cachedMoveDir);
 
         const finalSpeed = speed * this.slowFactor;
         // Movement inertia — blend toward new direction instead of snapping
-        const inertia = 0.65;
+        const inertia = 0.32;
         this.physics.velocity.x = this.physics.velocity.x * inertia + direction.x * finalSpeed * (1 - inertia);
         this.physics.velocity.z = this.physics.velocity.z * inertia + direction.z * finalSpeed * (1 - inertia);
 

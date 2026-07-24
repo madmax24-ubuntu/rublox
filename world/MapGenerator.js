@@ -2016,6 +2016,7 @@ export class MapGenerator {
             towerRadius * 2, 0.5, towerRadius * 2, true
         );
         towerFloorCollider.isTowerStructure = true;
+        towerFloorCollider.surfaceCircle = { x: towerCX, z: towerCZ, radius: towerRadius };
 
         // Spiral staircase
         const totalSteps = 120;
@@ -2043,10 +2044,17 @@ export class MapGenerator {
             towerSteps.setMatrixAt(i, stepMatrix);
             const stairCollider = this.addColliderBox(
                 new THREE.Vector3(sx, stepY, sz),
-                2.15, stepH, 2.15, true
+                stepWidth, stepH, stepDepth, true
             );
             stairCollider.isTowerStair = true;
             stairCollider.isTowerStructure = true;
+            stairCollider.surfaceOBB = {
+                x: sx,
+                z: sz,
+                halfWidth: stepWidth * 0.5,
+                halfDepth: stepDepth * 0.5,
+                rotation
+            };
         }
         towerSteps.instanceMatrix.needsUpdate = true;
         towerSteps.computeBoundingSphere();
@@ -2072,6 +2080,7 @@ export class MapGenerator {
             (towerRadius + 0.5) * 2, 0.5, (towerRadius + 0.5) * 2, true
         );
         towerTopCollider.isTowerStructure = true;
+        towerTopCollider.surfaceCircle = { x: towerCX, z: towerCZ, radius: towerRadius + 0.5 };
 
         // Tower roof
         const roofGeo = this.pool.getGeoCone(towerRadius + 1, 4);
@@ -4538,7 +4547,7 @@ export class MapGenerator {
         );
         for (const [type, sx, sz] of definitions) {
             let placed = 0;
-            for (let attempt = 0; attempt < 500 && placed < 12; attempt++) {
+            for (let attempt = 0; attempt < 700 && placed < 18; attempt++) {
                 const x = sx * (38 + Math.random() * (HALF - 44));
                 const z = sz * (38 + Math.random() * (HALF - 44));
                 if (Math.hypot(x, z) < 84 || blocked(x, z)) continue;
