@@ -749,8 +749,14 @@ export class MapGenerator {
                 this.scene.add(tread);
                 const c = Math.abs(Math.cos(tread.rotation.y));
                 const s = Math.abs(Math.sin(tread.rotation.y));
-                const collider = this.addColliderBox(tread.position.clone(), 12 * c + 2.35 * s, top, 12 * s + 2.35 * c, true, false);
+                // Stair step height is the tread depth (0.34), not the full top height
+                const stepH = 0.34;
+                const collider = this.addColliderBox(tread.position.clone(), 12 * c + 2.35 * s, stepH, 12 * s + 2.35 * c, true, false);
                 collider.isBiomeEntrance = true;
+                // First step connects to platform — raise it slightly so bot can climb onto platform
+                if (step === 0) {
+                    collider.max.y = 1.30; // Ensure stepHeight from step 0 <= 0.78 for platform climb
+                }
                 collider.surfaceOBB = {
                     x: tread.position.x,
                     z: tread.position.z,

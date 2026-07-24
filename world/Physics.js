@@ -325,7 +325,7 @@ export class Physics {
                     // Skip if bot is already standing ON this surface (not stepping up)
                     if (bottom >= max.y - 0.05) continue;
                     const stepHeight = max.y - bottom;
-                    if (stepHeight > 0.02 && stepHeight <= 0.78 && bottom >= min.y - 0.2) {
+                    if (stepHeight > 0.02 && stepHeight <= 0.95 && bottom >= min.y - 0.2) {
                         pos.y = max.y + (entity.physics?.height || 1.7);
                         entity.physics.onGround = true;
                         if (entity.physics.velocity) entity.physics.velocity.y = 0;
