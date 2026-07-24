@@ -185,7 +185,7 @@ export class MapGenerator {
     }
 
     _clearCentralBiomeIntrusions(radius = 82) {
-        const preserved = obj => obj.userData?.isCornucopia || obj.userData?.isTerrain || obj.userData?.biomeBoundary || obj.userData?.isBiomeEntrance || obj.userData?.isSnowParticles || obj.userData?.gameplayBoundary || obj.userData?.isBarbedWire;
+        const preserved = obj => obj.userData?.isCornucopia || obj.userData?.isTerrain || obj.userData?.biomeBoundary || obj.userData?.isBiomeEntrance || obj.userData?.isSnowParticles || obj.userData?.gameplayBoundary || obj.userData?.isBarbedWire || obj.userData?.isTowerStructure;
         const intrudes = box => {
             const x = box.min.x > 0 ? box.min.x : box.max.x < 0 ? box.max.x : 0;
             const z = box.min.z > 0 ? box.min.z : box.max.z < 0 ? box.max.z : 0;
@@ -228,7 +228,7 @@ export class MapGenerator {
         }
         this._meshes = this._meshes.filter(mesh => !removed.has(mesh) && mesh.parent);
         this.colliders = this.colliders.filter(collider => {
-            if (collider.isCornucopia || collider.isBiomeEntrance || collider.biomeBoundary || collider.gameplayBoundary) return true;
+            if (collider.isCornucopia || collider.isBiomeEntrance || collider.biomeBoundary || collider.gameplayBoundary || collider.isTowerStructure) return true;
             if (intrudes(collider)) return false;
             const x = (collider.min.x + collider.max.x) * 0.5;
             const y = (collider.min.y + collider.max.y) * 0.5;
@@ -295,13 +295,25 @@ export class MapGenerator {
     _removeUnsupportedWalkableColliders() {
         const bounds = [];
         const box = new THREE.Box3();
+        const localMatrix = new THREE.Matrix4();
+        const worldMatrix = new THREE.Matrix4();
         this.scene.traverse((object) => {
-            if ((!object.isMesh && !object.isGroup) || object.isInstancedMesh || !object.userData?.mapGenerated || object.visible === false) return;
+            if (!object.isMesh || !object.userData?.mapGenerated || object.visible === false) return;
+            if (object.isInstancedMesh) {
+                object.geometry.computeBoundingBox();
+                object.updateMatrixWorld(true);
+                for (let i = 0; i < object.count; i++) {
+                    object.getMatrixAt(i, localMatrix);
+                    worldMatrix.multiplyMatrices(object.matrixWorld, localMatrix);
+                    bounds.push(object.geometry.boundingBox.clone().applyMatrix4(worldMatrix));
+                }
+                return;
+            }
             box.setFromObject(object);
             if (!box.isEmpty()) bounds.push(box.clone());
         });
         this.colliders = this.colliders.filter((collider) => {
-            if (!collider.walkable || collider.max.y <= 0.3 || collider.isCornucopia || collider.isBiomeEntrance) return true;
+            if (!collider.walkable || collider.max.y <= 0.3 || collider.isCornucopia || collider.isBiomeEntrance || collider.isTowerStair) return true;
             if (collider.source && this._isAttachedToScene(collider.source) && collider.source.visible !== false) return true;
             const x = (collider.min.x + collider.max.x) * 0.5;
             const z = (collider.min.z + collider.max.z) * 0.5;
@@ -310,7 +322,7 @@ export class MapGenerator {
                 x <= candidate.max.x + 0.2 &&
                 z >= candidate.min.z - 0.2 &&
                 z <= candidate.max.z + 0.2 &&
-                Math.abs(candidate.max.y - collider.max.y) <= 0.45
+                Math.abs(candidate.max.y - collider.max.y) <= 0.3
             );
         });
     }
@@ -1946,11 +1958,15 @@ export class MapGenerator {
             segment.rotation.y = -angle;
             segment.userData.mapGenerated = true;
             segment.userData.isWall = true;
+            segment.userData.isPOI = true;
+            segment.userData.isTowerStructure = true;
+            segment.frustumCulled = false;
             this.scene.add(segment);
             // Account for rotation in collider — tower walls are rotated
             const cosA = Math.abs(Math.cos(angle));
             const sinA = Math.abs(Math.sin(angle));
-            this.addColliderBox(new THREE.Vector3(sx, towerHeight / 2, sz), 0.8 * cosA + segmentLength * sinA, towerHeight, 0.8 * sinA + segmentLength * cosA, false);
+            const wallCollider = this.addColliderBox(new THREE.Vector3(sx, towerHeight / 2, sz), 0.8 * cosA + segmentLength * sinA, towerHeight, 0.8 * sinA + segmentLength * cosA, false);
+            wallCollider.isTowerStructure = true;
         }
 
         // Tower floor
@@ -1959,20 +1975,22 @@ export class MapGenerator {
         floorMesh.position.set(towerCX, 0.25, towerCZ);
         floorMesh.userData.mapGenerated = true;
         floorMesh.userData.walkable = true;
+        floorMesh.userData.isTowerStructure = true;
         this.scene.add(floorMesh);
 
-        this.addColliderBox(
+        const towerFloorCollider = this.addColliderBox(
             new THREE.Vector3(towerCX, 0.25, towerCZ),
             towerRadius * 2, 0.5, towerRadius * 2, true
         );
+        towerFloorCollider.isTowerStructure = true;
 
         // Spiral staircase
-        const totalSteps = 180;
+        const totalSteps = 120;
         const stepH = towerHeight / totalSteps;
         const spiralR = towerRadius - 2;
-        const angleStep = 0.14;
-        const stepWidth = 2.8;
-        const stepDepth = 1.45;
+        const angleStep = 0.17;
+        const stepWidth = 3.2;
+        const stepDepth = 1.65;
         const stepGeo = this.pool.getGeoBox(stepWidth, stepH, stepDepth);
         const towerSteps = new THREE.InstancedMesh(stepGeo, darkMat, totalSteps);
         const stepMatrix = new THREE.Matrix4();
@@ -1990,10 +2008,12 @@ export class MapGenerator {
             stepQuaternion.setFromAxisAngle(upAxis, rotation);
             stepMatrix.compose(new THREE.Vector3(sx, stepY, sz), stepQuaternion, stepScale);
             towerSteps.setMatrixAt(i, stepMatrix);
-            this.addColliderBox(
+            const stairCollider = this.addColliderBox(
                 new THREE.Vector3(sx, stepY, sz),
-                1.65, stepH, 1.65, true
+                2.15, stepH, 2.15, true
             );
+            stairCollider.isTowerStair = true;
+            stairCollider.isTowerStructure = true;
         }
         towerSteps.instanceMatrix.needsUpdate = true;
         towerSteps.computeBoundingSphere();
@@ -2001,6 +2021,7 @@ export class MapGenerator {
         towerSteps.userData.mapGenerated = true;
         towerSteps.userData.walkable = true;
         towerSteps.userData.isTowerStairs = true;
+        towerSteps.userData.isTowerStructure = true;
         this.scene.add(towerSteps);
 
         // Tower top platform
@@ -2010,18 +2031,21 @@ export class MapGenerator {
         topPlat.position.set(towerCX, topY + 0.25, towerCZ);
         topPlat.userData.mapGenerated = true;
         topPlat.userData.walkable = true;
+        topPlat.userData.isTowerStructure = true;
         this.scene.add(topPlat);
 
-        this.addColliderBox(
+        const towerTopCollider = this.addColliderBox(
             new THREE.Vector3(towerCX, topY + 0.25, towerCZ),
             (towerRadius + 0.5) * 2, 0.5, (towerRadius + 0.5) * 2, true
         );
+        towerTopCollider.isTowerStructure = true;
 
         // Tower roof
         const roofGeo = this.pool.getGeoCone(towerRadius + 1, 4);
         const roof = new THREE.Mesh(roofGeo, wallMat);
         roof.position.set(towerCX, topY + 2.25, towerCZ);
         roof.userData.mapGenerated = true;
+        roof.userData.isTowerStructure = true;
         this.scene.add(roof);
 
         // Tower interior — torches and chests
@@ -4647,6 +4671,7 @@ export class MapGenerator {
         const wallH = 30;
         const wallT = 1.5;
         const half = this.halfSize;
+        const wallMat = this.pool.getMatStd(0x8f3f2e, 0.72, 0.04, true, false, 1, 0x4b1008, 0.55, true);
         const walls = [
             { x: 0, y: wallH / 2, z: -half, w: half * 2 + wallT * 2, h: wallH, d: wallT },
             { x: 0, y: wallH / 2, z: half,  w: half * 2 + wallT * 2, h: wallH, d: wallT },
@@ -4654,7 +4679,14 @@ export class MapGenerator {
             { x: half,  y: wallH / 2, z: 0, w: wallT, h: wallH, d: half * 2 },
         ];
         for (const w of walls) {
-            this.addColliderBox(new THREE.Vector3(w.x, w.y, w.z), w.w, w.h, w.d, false);
+            const mesh = new THREE.Mesh(this.pool.getGeoBox(w.w, w.h, w.d), wallMat);
+            mesh.position.set(w.x, w.y, w.z);
+            mesh.userData.mapGenerated = true;
+            mesh.userData.gameplayBoundary = true;
+            mesh.frustumCulled = false;
+            this.scene.add(mesh);
+            const collider = this.addColliderBox(new THREE.Vector3(w.x, w.y, w.z), w.w, w.h, w.d, false);
+            collider.gameplayBoundary = true;
         }
     }
 

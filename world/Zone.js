@@ -32,9 +32,9 @@ export class Zone {
 
     createZone() {
         const material = new THREE.MeshStandardMaterial({
-            color: 0xb32612,
-            emissive: 0xff2400,
-            emissiveIntensity: 1.7,
+            color: 0x8f3f2e,
+            emissive: 0x4b1008,
+            emissiveIntensity: 0.55,
             roughness: 0.58,
             metalness: 0.04,
             side: THREE.DoubleSide
@@ -53,7 +53,7 @@ export class Zone {
         this.syncVisuals();
 
         const ringMat = new THREE.MeshBasicMaterial({
-            color: 0xff5a16,
+            color: 0x8f3f2e,
             transparent: false
         });
         this.ringMesh = new THREE.Group();
@@ -79,11 +79,10 @@ export class Zone {
             this.syncVisuals();
         }
         if (this.ringMesh) {
-            const pulse = 0.42 + Math.sin(performance.now() * 0.004) * 0.12;
-            for (const wall of this.ringMesh.children) wall.material.color.setRGB(1, pulse, 0.035);
+            for (const wall of this.ringMesh.children) wall.material.color.setHex(0x8f3f2e);
         }
         if (this.zoneMesh) {
-            const pulse = 1.45 + Math.sin(performance.now() * 0.006) * 0.45;
+            const pulse = 0.48 + Math.sin(performance.now() * 0.006) * 0.08;
             for (const wall of this.zoneMesh.children) wall.material.emissiveIntensity = pulse;
         }
     }
