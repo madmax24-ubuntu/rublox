@@ -359,6 +359,10 @@ export class MapGeneratorNode {
             pad.userData.isSpawnPlatform = true;
             pad.userData.isCornucopia = true;
             pad.userData.mapGenerated = true;
+            pad.traverse(child => {
+                child.userData.isSpawnPlatform = true;
+                child.userData.mapGenerated = true;
+            });
             this.scene.add(pad);
 
             this.spawnPads.push({ x, y: PLATFORM_TOP_Y, z });

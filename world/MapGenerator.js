@@ -181,7 +181,23 @@ export class MapGenerator {
         this._logProgress(1.0);
         // Cache animated object references for per-frame updates
         this._cacheAnimatedObjects();
+        this._freezeStaticTransforms();
         this._resolveReady?.();
+    }
+
+    _freezeStaticTransforms() {
+        this.scene.traverse((object) => {
+            if (!object.userData?.mapGenerated || object.matrixAutoUpdate === false) return;
+            const data = object.userData;
+            if (
+                data.dynamic || data.isPOI || data.isFountain || data.isTorch ||
+                data.isGlow || data.isSnowParticles || data.isWindTurbine ||
+                data.isCrystal || data.isFirefly || data.isChest || data.biomeGate ||
+                (data.isCornucopia && !data.isSpawnPlatform)
+            ) return;
+            object.updateMatrix();
+            object.matrixAutoUpdate = false;
+        });
     }
 
     _clearCentralBiomeIntrusions(radius = 82) {
@@ -313,17 +329,17 @@ export class MapGenerator {
             if (!box.isEmpty()) bounds.push(box.clone());
         });
         this.colliders = this.colliders.filter((collider) => {
-            if (!collider.walkable || collider.max.y <= 0.3 || collider.isCornucopia || collider.isBiomeEntrance || collider.isTowerStair) return true;
-            if (collider.source && this._isAttachedToScene(collider.source) && collider.source.visible !== false) return true;
-            const x = (collider.min.x + collider.max.x) * 0.5;
-            const z = (collider.min.z + collider.max.z) * 0.5;
-            return bounds.some(candidate =>
-                x >= candidate.min.x - 0.2 &&
-                x <= candidate.max.x + 0.2 &&
-                z >= candidate.min.z - 0.2 &&
-                z <= candidate.max.z + 0.2 &&
-                Math.abs(candidate.max.y - collider.max.y) <= 0.3
-            );
+            if (!collider.walkable || collider.max.y <= 0.12 || collider.isCornucopia || collider.isBiomeEntrance || collider.isTowerStair) return true;
+            if (collider.source?.isMesh && this._isAttachedToScene(collider.source) && collider.source.visible !== false) return true;
+            const width = Math.max(0.01, collider.max.x - collider.min.x);
+            const depth = Math.max(0.01, collider.max.z - collider.min.z);
+            const requiredOverlap = width * depth * 0.45;
+            return bounds.some(candidate => {
+                if (Math.abs(candidate.max.y - collider.max.y) > 0.22) return false;
+                const overlapX = Math.max(0, Math.min(candidate.max.x, collider.max.x) - Math.max(candidate.min.x, collider.min.x));
+                const overlapZ = Math.max(0, Math.min(candidate.max.z, collider.max.z) - Math.max(candidate.min.z, collider.min.z));
+                return overlapX * overlapZ >= requiredOverlap;
+            });
         });
     }
 
@@ -4671,12 +4687,13 @@ export class MapGenerator {
         const wallH = 30;
         const wallT = 1.5;
         const half = this.halfSize;
-        const wallMat = this.pool.getMatStd(0x8f3f2e, 0.72, 0.04, true, false, 1, 0x4b1008, 0.55, true);
+        const wallMat = this.pool.getMatStd(0x62584c, 0.94, 0.02, true, false, 1, 0, 0, true);
+        const patternMat = this.pool.getMatStd(0x8f3f2e, 0.72, 0.04, true, false, 1, 0x4b1008, 0.45, true);
         const walls = [
-            { x: 0, y: wallH / 2, z: -half, w: half * 2 + wallT * 2, h: wallH, d: wallT },
-            { x: 0, y: wallH / 2, z: half,  w: half * 2 + wallT * 2, h: wallH, d: wallT },
-            { x: -half, y: wallH / 2, z: 0, w: wallT, h: wallH, d: half * 2 },
-            { x: half,  y: wallH / 2, z: 0, w: wallT, h: wallH, d: half * 2 },
+            { x: 0, y: wallH / 2, z: -half, w: half * 2 + wallT * 2, h: wallH, d: wallT, horizontal: true, face: 1 },
+            { x: 0, y: wallH / 2, z: half,  w: half * 2 + wallT * 2, h: wallH, d: wallT, horizontal: true, face: -1 },
+            { x: -half, y: wallH / 2, z: 0, w: wallT, h: wallH, d: half * 2, horizontal: false, face: 1 },
+            { x: half,  y: wallH / 2, z: 0, w: wallT, h: wallH, d: half * 2, horizontal: false, face: -1 },
         ];
         for (const w of walls) {
             const mesh = new THREE.Mesh(this.pool.getGeoBox(w.w, w.h, w.d), wallMat);
@@ -4687,6 +4704,31 @@ export class MapGenerator {
             this.scene.add(mesh);
             const collider = this.addColliderBox(new THREE.Vector3(w.x, w.y, w.z), w.w, w.h, w.d, false);
             collider.gameplayBoundary = true;
+            const positions = [];
+            for (let offset = -half + 7; offset <= half - 7; offset += 12) {
+                positions.push({ offset, y: 8 });
+                if ((Math.round((offset + half) / 12) & 1) === 0) positions.push({ offset, y: 20 });
+            }
+            const patternGeo = w.horizontal
+                ? this.pool.getGeoBox(4.2, 4.2, 0.08)
+                : this.pool.getGeoBox(0.08, 4.2, 4.2);
+            const patterns = new THREE.InstancedMesh(patternGeo, patternMat, positions.length);
+            const matrix = new THREE.Matrix4();
+            const rotation = new THREE.Quaternion();
+            const scale = new THREE.Vector3(1, 1, 1);
+            rotation.setFromAxisAngle(w.horizontal ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(1, 0, 0), Math.PI / 4);
+            positions.forEach((entry, index) => {
+                const position = w.horizontal
+                    ? new THREE.Vector3(entry.offset, entry.y, w.z + w.face * (wallT * 0.5 + 0.05))
+                    : new THREE.Vector3(w.x + w.face * (wallT * 0.5 + 0.05), entry.y, entry.offset);
+                matrix.compose(position, rotation, scale);
+                patterns.setMatrixAt(index, matrix);
+            });
+            patterns.instanceMatrix.needsUpdate = true;
+            patterns.userData.mapGenerated = true;
+            patterns.userData.gameplayBoundary = true;
+            patterns.frustumCulled = false;
+            this.scene.add(patterns);
         }
     }
 
@@ -5131,11 +5173,6 @@ export class MapGenerator {
     }
 
     updatePropVisibility(pos) {
-        for (let i = 0, n = this._meshes.length; i < n; i++) {
-            const mesh = this._meshes[i];
-            if (!mesh || !mesh.userData || !mesh.userData._mapCulled) continue;
-            mesh.visible = true;
-        }
     }
 
     enableOptimizedCulling() {
@@ -5406,6 +5443,7 @@ export class MapGenerator {
     _optimizeInstancing(minCount = 50) {
         this.instancedMeshSystem = new InstancedMeshSystem(this.pool);
         const result = this.instancedMeshSystem.optimize(this.scene, minCount);
+        this._meshes = this._meshes.filter(mesh => mesh?.parent);
         for (const im of result.instancedMeshes) {
             this._meshes.push(im);
         }

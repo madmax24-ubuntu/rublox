@@ -32,6 +32,7 @@ export class Physics {
         // Per-frame damping cache
         this._groundDamping = 1;
         this._airDamping = 1;
+        this._physicsFrame = 0;
 
         if (this.colliders.length) {
             this.rebuildColliderGrid();
@@ -59,15 +60,21 @@ export class Physics {
             this.rebuildColliderGrid();
         }
 
-        // Pre-compute damping factors (shared across entities)
-        const expBase = Math.min(delta, 0.05); // clamp to avoid explosion
-        this._groundDamping = Math.exp(-14 * expBase);
-        this._airDamping = Math.exp(-2.5 * expBase);
         const isCountdown = gameState === 'countdown';
+        const npcStride = this.mapGenerator?.isMobile ? 3 : 2;
+        const physicsFrame = this._physicsFrame++;
+        const playerEntity = this.entities.find(entity => entity?.type === 'Player' || entity?.constructor?.name === 'Player');
 
-        for (const entity of this.entities) {
+        for (let entityIndex = 0; entityIndex < this.entities.length; entityIndex++) {
+            const entity = this.entities[entityIndex];
             if (!entity.physics) continue;
             const type = entity.constructor?.name;
+            const isPlayer = entity.type === 'Player' || type === 'Player';
+            const isNpc = type === 'Bot' || type === 'Zombie';
+            const nearPlayer = isNpc && playerEntity?.position && entity.position?.distanceToSquared(playerEntity.position) < 1225;
+            const entityStride = nearPlayer ? 1 : npcStride;
+            if (isNpc && (entityIndex + physicsFrame) % entityStride !== 0) continue;
+            const physicsDelta = isPlayer || nearPlayer ? delta : Math.min(0.075, delta * entityStride);
             // Skip bots and zombies during countdown — frozen on spawn pads
             if (isCountdown && (type === 'Bot' || type === 'Zombie')) continue;
             const pos = entity.position;
@@ -91,11 +98,10 @@ export class Physics {
             }
 
             // --- Stuck detection (throttled, shares nearby query) ---
-            const isPlayer = entity.type === 'Player' || type === 'Player';
             let insideNonWalkable = false;
             if (!isPlayer) {
                 if (!entity.physics._stuckCount) entity.physics._stuckCount = 0;
-                entity.physics._stuckCheckTimer = (entity.physics._stuckCheckTimer ?? 0) - delta;
+                entity.physics._stuckCheckTimer = (entity.physics._stuckCheckTimer ?? 0) - physicsDelta;
                 if (entity.physics._stuckCheckTimer <= 0) {
                     entity.physics._stuckCheckTimer = 0.3;
                     const bottom = pos.y - height;
@@ -135,15 +141,15 @@ export class Physics {
             if (isFrozen) {
                 vel.set(0, 0, 0);
             } else {
-                vel.y = entity.physics.onGround ? 0 : vel.y + this.gravity * delta;
+                vel.y = entity.physics.onGround ? 0 : vel.y + this.gravity * physicsDelta;
             }
 
             // --- Move ---
             if (!isFrozen) {
-                const moveX = vel.x * delta;
-                const moveZ = vel.z * delta;
+                const moveX = vel.x * physicsDelta;
+                const moveZ = vel.z * physicsDelta;
                 const totalMove = Math.abs(moveX) + Math.abs(moveZ);
-                pos.y += vel.y * delta;
+                pos.y += vel.y * physicsDelta;
                 if (totalMove > 0.005) {
                     const steps = Math.max(1, Math.ceil(totalMove / 0.28));
                     for (let step = 0; step < steps; step++) {
@@ -183,7 +189,7 @@ export class Physics {
 
             // --- Environment effects (lava, water, zone) ---
             if (this.mapGenerator.isLavaAt?.(pos.x, pos.z, pos.y)) {
-                if (typeof entity.takeDamage === 'function') entity.takeDamage(this.lavaDamagePerSecond * delta);
+                if (typeof entity.takeDamage === 'function') entity.takeDamage(this.lavaDamagePerSecond * physicsDelta);
                 if (typeof entity.applyBurn === 'function') entity.applyBurn(1.8, 3.2, null);
             }
             if (this.mapGenerator.isWaterAt?.(pos.x, pos.z)) {
@@ -196,7 +202,8 @@ export class Physics {
             }
 
             // --- Velocity damping ---
-            const dmg = entity.physics.onGround ? this._groundDamping : this._airDamping;
+            const dampingDelta = Math.min(physicsDelta, 0.075);
+            const dmg = entity.physics.onGround ? Math.exp(-14 * dampingDelta) : Math.exp(-2.5 * dampingDelta);
             vel.x *= dmg;
             vel.z *= dmg;
             if (Math.abs(vel.x) < 0.01) vel.x = 0;

@@ -263,14 +263,6 @@ class Game {
             this.map.updatePropVisibility(this.player.position);
             this.lastPropVisibilityPos.copy(this.player.position);
         }
-        if (this.map?.instancedMeshSystem?.updateCulling && this.player?.position) {
-            const distSq = this._lastCullPos.distanceToSquared(this.player.position);
-            if (distSq > 25) {
-                const cullDist = this.isMobile() ? 180 : 250;
-                this.map.instancedMeshSystem.updateCulling(this.player.position, cullDist);
-                this._lastCullPos.copy(this.player.position);
-            }
-        }
     }
 
     hideStartScreen() {
@@ -698,9 +690,12 @@ class Game {
         this._botLodCounts = new Uint16Array(this.botLodBatchesByVariant.length);
     }
 
-    updateBotLodBatch() {
+    updateBotLodBatch(delta = 0.016) {
         const batches = this.botLodBatches;
         if (!batches?.length) return;
+        this.botLodUpdateTimer = (this.botLodUpdateTimer || 0) - delta;
+        if (this.botLodUpdateTimer > 0) return;
+        this.botLodUpdateTimer = this.isMobile() ? 0.066 : 0.045;
         const counts = this._botLodCounts;
         counts.fill(0);
         for (const bot of this.bots) {
@@ -1891,10 +1886,6 @@ class Game {
             const movedSq = this.lastPropVisibilityPos.distanceToSquared(this.player.position);
             if (movedSq > 9 || this.propVisibilityTimer <= -0.7 || this.resumeGraceTimer > 0) {
                 this.map.updatePropVisibility?.(this.player.position);
-                this.map.instancedMeshSystem?.updateCulling?.(
-                    this.player.position,
-                    this.isMobile() ? 230 : 300
-                );
                 this.lastPropVisibilityPos.copy(this.player.position);
             }
             this.propVisibilityTimer = this.isMobile() ? 0.6 : 0.45;
@@ -1976,11 +1967,14 @@ class Game {
         this._updateZombieWaves(delta);
 
         const aliveCountBeforeHazards = this.entityManager.update(delta, this.physics, this.audioSynth);
-        for (const bot of this.bots) {
+        const visualStride = this.isMobile() ? 3 : 2;
+        for (let i = 0; i < this.bots.length; i++) {
+            const bot = this.bots[i];
             if (!bot?.isAlive) continue;
+            if (bot._lodDetailed === false && (i + this.renderFrameCount) % visualStride !== 0) continue;
             bot.syncVisualAfterPhysics?.(delta);
         }
-        this.updateBotLodBatch();
+        this.updateBotLodBatch(delta);
         if (this.gameState === 'playing') {
             this.updateRandomEvents(delta);
             this.updateAchievements(aliveCountBeforeHazards);

@@ -296,6 +296,15 @@ export class MeshPool {
         if (mat.type === 'MeshBasicMaterial') {
             return `Bas_${colorHex}_${mat.transparent}_${mat.opacity}_${mat.side}`;
         }
+        if (mat.type === 'MeshLambertMaterial') {
+            const eHex = this._quantizeColor(mat.emissive?.getHex?.() || 0);
+            return `Lam_${colorHex}_${mat.transparent}_${mat.opacity}_${mat.side}_${mat.flatShading}_${eHex}_${mat.emissiveIntensity || 0}`;
+        }
+        if (mat.type === 'MeshPhongMaterial') {
+            const eHex = this._quantizeColor(mat.emissive?.getHex?.() || 0);
+            const sHex = this._quantizeColor(mat.specular?.getHex?.() || 0);
+            return `Pho_${colorHex}_${mat.transparent}_${mat.opacity}_${mat.side}_${mat.flatShading}_${eHex}_${sHex}_${mat.shininess || 0}`;
+        }
         return null;
     }
 

@@ -49,6 +49,7 @@ export class Zone {
             new THREE.Mesh(vertical, material)
         );
         this.zoneMesh.userData.gameplayBoundary = true;
+        this.zoneMesh.visible = false;
         this.scene.add(this.zoneMesh);
         this.syncVisuals();
 
@@ -66,6 +67,7 @@ export class Zone {
             new THREE.Mesh(ringVertical, ringMat)
         );
         this.ringMesh.userData.gameplayBoundary = true;
+        this.ringMesh.visible = false;
         this.scene.add(this.ringMesh);
         this.syncVisuals();
     }

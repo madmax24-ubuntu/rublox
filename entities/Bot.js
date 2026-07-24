@@ -5,6 +5,17 @@ import { Weapon } from '../items/Weapon.js';
 import { spawnDamagePopup } from './DamagePopup.js';
 
 let botLodGeometry = null;
+const botGeometryCache = new Map();
+const getBotBox = (width, height, depth) => {
+    const key = `b:${width}:${height}:${depth}`;
+    if (!botGeometryCache.has(key)) botGeometryCache.set(key, new THREE.BoxGeometry(width, height, depth));
+    return botGeometryCache.get(key);
+};
+const getBotCylinder = (top, bottom, height, segments = 8) => {
+    const key = `c:${top}:${bottom}:${height}:${segments}`;
+    if (!botGeometryCache.has(key)) botGeometryCache.set(key, new THREE.CylinderGeometry(top, bottom, height, segments));
+    return botGeometryCache.get(key);
+};
 const getBotLodGeometry = () => {
     if (botLodGeometry) return botLodGeometry;
     const parts = [
@@ -346,23 +357,23 @@ export class Bot {
             polygonOffsetUnits: 1
         });
 
-        const upperTorso = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.55, 0.5), shirtMat);
+        const upperTorso = new THREE.Mesh(getBotBox(0.9, 0.55, 0.5), shirtMat);
         upperTorso.position.y = 1.45;
         upperTorso.userData.tintable = true;
         group.add(upperTorso);
 
-        const lowerTorso = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.45, 0.5), shirtMat);
+        const lowerTorso = new THREE.Mesh(getBotBox(0.85, 0.45, 0.5), shirtMat);
         lowerTorso.position.y = 1.0;
         lowerTorso.userData.tintable = true;
         group.add(lowerTorso);
 
-        const head = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.65, 0.65), skinMat);
+        const head = new THREE.Mesh(getBotBox(0.65, 0.65, 0.65), skinMat);
         head.position.y = 2.05;
         group.add(head);
 
         if (this.outfit.hat !== 'helmet') {
             const hair = new THREE.Mesh(
-                new THREE.BoxGeometry(0.7, 0.35, 0.7),
+                getBotBox(0.7, 0.35, 0.7),
                 new THREE.MeshStandardMaterial({ color: this.outfit.hair, roughness: 0.6, flatShading: true })
             );
             hair.position.set(0, 2.35, 0);
@@ -370,15 +381,15 @@ export class Bot {
         }
 
         const eyeMat = new THREE.MeshStandardMaterial({ color: 0x111111, flatShading: true });
-        const leftEye = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.05), eyeMat);
-        const rightEye = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.05), eyeMat);
+        const leftEye = new THREE.Mesh(getBotBox(0.1, 0.1, 0.05), eyeMat);
+        const rightEye = new THREE.Mesh(getBotBox(0.1, 0.1, 0.05), eyeMat);
         leftEye.position.set(-0.16, 2.08, 0.33);
         rightEye.position.set(0.16, 2.08, 0.33);
         group.add(leftEye);
         group.add(rightEye);
 
         const mouthMat = new THREE.MeshStandardMaterial({ color: 0x444444, flatShading: true });
-        const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.05, 0.05), mouthMat);
+        const mouth = new THREE.Mesh(getBotBox(0.24, 0.05, 0.05), mouthMat);
         mouth.position.set(0, 1.92, 0.33);
         group.add(mouth);
         if (this.outfit.face === 'serious') {
@@ -387,12 +398,12 @@ export class Bot {
             mouth.scale.set(0.8, 1.2, 1);
         }
 
-        const brow = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.05, 0.05), detailMat);
+        const brow = new THREE.Mesh(getBotBox(0.34, 0.05, 0.05), detailMat);
         brow.position.set(0, 2.2, 0.33);
         group.add(brow);
 
-        const upperArmGeo = new THREE.BoxGeometry(0.26, 0.45, 0.26);
-        const lowerArmGeo = new THREE.BoxGeometry(0.24, 0.4, 0.24);
+        const upperArmGeo = getBotBox(0.26, 0.45, 0.26);
+        const lowerArmGeo = getBotBox(0.24, 0.4, 0.24);
         const leftArm = new THREE.Mesh(upperArmGeo, shirtMat);
         leftArm.position.set(-0.62, 1.35, 0);
         leftArm.userData.tintable = true;
@@ -409,15 +420,15 @@ export class Bot {
         rightForearm.position.set(0.62, 0.95, 0);
         group.add(rightForearm);
 
-        const upperLegGeo = new THREE.BoxGeometry(0.3, 0.45, 0.3);
-        const lowerLegGeo = new THREE.BoxGeometry(0.28, 0.45, 0.28);
+        const upperLegGeo = getBotBox(0.3, 0.45, 0.3);
+        const lowerLegGeo = getBotBox(0.28, 0.45, 0.28);
         const leftLeg = new THREE.Mesh(upperLegGeo, pantsMat);
         leftLeg.position.set(-0.22, 0.75, 0);
         group.add(leftLeg);
         const leftShin = new THREE.Mesh(lowerLegGeo, pantsMat);
         leftShin.position.set(-0.22, 0.3, 0);
         group.add(leftShin);
-        const leftShoe = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.16, 0.42), shoeMat);
+        const leftShoe = new THREE.Mesh(getBotBox(0.32, 0.16, 0.42), shoeMat);
         leftShoe.position.set(-0.22, 0.05, 0.08);
         group.add(leftShoe);
 
@@ -427,13 +438,13 @@ export class Bot {
         const rightShin = new THREE.Mesh(lowerLegGeo, pantsMat);
         rightShin.position.set(0.22, 0.3, 0);
         group.add(rightShin);
-        const rightShoe = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.16, 0.42), shoeMat);
+        const rightShoe = new THREE.Mesh(getBotBox(0.32, 0.16, 0.42), shoeMat);
         rightShoe.position.set(0.22, 0.05, 0.08);
         group.add(rightShoe);
 
         if (this.outfit.vest) {
             const vest = new THREE.Mesh(
-                new THREE.BoxGeometry(0.95, 0.5, 0.12),
+                getBotBox(0.95, 0.5, 0.12),
                 new THREE.MeshStandardMaterial({
                     color: this.outfit.vest,
                     roughness: 0.5,
@@ -448,56 +459,56 @@ export class Bot {
         }
 
         if (this.outfit.gear) {
-            const strap1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.9, 0.12), harnessMat);
+            const strap1 = new THREE.Mesh(getBotBox(0.1, 0.9, 0.12), harnessMat);
             strap1.position.set(-0.25, 1.25, 0.26);
             strap1.rotation.z = 0.25;
             group.add(strap1);
-            const strap2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.9, 0.12), harnessMat);
+            const strap2 = new THREE.Mesh(getBotBox(0.1, 0.9, 0.12), harnessMat);
             strap2.position.set(0.25, 1.25, 0.26);
             strap2.rotation.z = -0.25;
             group.add(strap2);
 
-            const belt = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.1, 0.6), harnessMat);
+            const belt = new THREE.Mesh(getBotBox(0.9, 0.1, 0.6), harnessMat);
             belt.position.set(0, 0.95, 0);
             group.add(belt);
 
             const canteen = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.12, 0.12, 0.3, 8),
+                getBotCylinder(0.12, 0.12, 0.3, 8),
                 new THREE.MeshStandardMaterial({ color: 0x455a64, roughness: 0.6, flatShading: true })
             );
             canteen.position.set(-0.35, 0.9, -0.3);
             canteen.rotation.z = Math.PI / 2;
             group.add(canteen);
 
-            const sheath = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.35, 0.08), harnessMat);
+            const sheath = new THREE.Mesh(getBotBox(0.08, 0.35, 0.08), harnessMat);
             sheath.position.set(0.35, 0.85, -0.3);
             group.add(sheath);
         }
 
         if (this.outfit.hat === 'cap') {
             const cap = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.36, 0.36, 0.22, 8),
+                getBotCylinder(0.36, 0.36, 0.22, 8),
                 detailMat
             );
             cap.position.set(0, 2.45, 0);
             group.add(cap);
 
             const bill = new THREE.Mesh(
-                new THREE.BoxGeometry(0.48, 0.06, 0.22),
+                getBotBox(0.48, 0.06, 0.22),
                 detailMat
             );
             bill.position.set(0, 2.38, 0.34);
             group.add(bill);
         } else if (this.outfit.hat === 'beanie') {
             const beanie = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.36, 0.32, 0.26, 8),
+                getBotCylinder(0.36, 0.32, 0.26, 8),
                 detailMat
             );
             beanie.position.set(0, 2.42, 0);
             group.add(beanie);
         } else if (this.outfit.hat === 'helmet') {
             const helmet = new THREE.Mesh(
-                new THREE.BoxGeometry(0.74, 0.4, 0.74),
+                getBotBox(0.74, 0.4, 0.74),
                 detailMat
             );
             helmet.position.set(0, 2.35, 0);
@@ -1088,8 +1099,8 @@ export class Bot {
         const horizontalFov = 2 * Math.atan(Math.tan(verticalFov * 0.5) * (camera.aspect || 1));
         const visibleAngle = Math.max(verticalFov, horizontalFov) * 0.5 + 0.22;
         const inView = distance > 0.001 && this._lodToEntity.dot(this._lodCameraForward) / distance >= Math.cos(visibleAngle);
-        const detailDistance = this.scene?.userData?.mobileMode ? 32 : 46;
-        const detailed = distanceSq <= 100 || (inView && distanceSq <= detailDistance * detailDistance);
+        const detailDistance = this.scene?.userData?.mobileMode ? 20 : 28;
+        const detailed = distanceSq <= 64 || (inView && distanceSq <= detailDistance * detailDistance);
         if (this._lodDetailed === detailed) return detailed;
         this._lodDetailed = detailed;
         for (const child of this.mesh.userData.detailChildren || []) child.visible = detailed;

@@ -103,6 +103,7 @@ export class InstancedMeshSystem {
         }
 
         console.log(`[InstancedMesh] Groups: ${this._grouped.size}, Replaced: ${replaced}, Skipped(<${minCount}): ${skippedTooFew}`);
+        this._grouped.clear();
         return { replaced, instancedMeshes };
     }
 
@@ -190,11 +191,12 @@ export class InstancedMeshSystem {
         if (!parentMapGen && !obj.userData?.mapGenerated && !obj.userData?.instancable) { skipReasons.noMapGen++; return; }
         if (obj.userData.isFirefly || obj.userData.isCrystal || obj.userData.isTorch ||
             obj.userData.isGlow || obj.userData.isFountain || obj.userData.isWindTurbine ||
-            obj.userData.isSnowParticles || obj.userData.isPOI || obj.userData.isSpawnPlatform ||
+            obj.userData.isSnowParticles || obj.userData.isPOI ||
             obj.userData.isFirstPersonArm || obj.userData.isViewWeapon ||
             obj.userData.isTerrain || obj.userData.biomeGate || obj.userData.biomeBoundary ||
             obj.userData.gameplayBoundary || obj.userData.isTowerStructure ||
-            obj.userData.dynamic || obj.userData.isChest || obj.userData.isCornucopia) { skipReasons.aniInt++; return; }
+            obj.userData.dynamic || obj.userData.isChest ||
+            (obj.userData.isCornucopia && !obj.userData.isSpawnPlatform)) { skipReasons.aniInt++; return; }
         const geoKey = this.pool.geoKey(obj.geometry) || `uuid:${obj.geometry.uuid}`;
         if (!geoKey) { skipReasons.noGeoKey++; return; }
         const matKey = this.pool.matKey(obj.material) || (Array.isArray(obj.material) ? null : `uuid:${obj.material.uuid}`);
