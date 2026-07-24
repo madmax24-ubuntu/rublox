@@ -75,8 +75,9 @@ export class Physics {
             const entityStride = nearPlayer ? 1 : npcStride;
             if (isNpc && (entityIndex + physicsFrame) % entityStride !== 0) continue;
             const physicsDelta = isPlayer || nearPlayer ? delta : Math.min(0.075, delta * entityStride);
-            // Skip bots and zombies during countdown — frozen on spawn pads
-            if (isCountdown && (type === 'Bot' || type === 'Zombie')) continue;
+            // Bots and zombies are allowed to move during countdown (for pre-fight looting)
+            // Only freeze them if they haven't been assigned a biome yet
+            if (isCountdown && (type === 'Bot' || type === 'Zombie') && !entity.mapRef) continue;
             const pos = entity.position;
 
             // Validate position
@@ -321,9 +322,17 @@ export class Physics {
 
                 if (box.walkable) {
                     if (!this._containsWalkableSurface(box, pos.x, pos.z, baseRadius * 0.35)) continue;
-                    if (bottom >= max.y - 0.5) continue;
+                    // Skip if bot is already standing ON this surface (not stepping up)
+                    if (bottom >= max.y - 0.05) continue;
                     const stepHeight = max.y - bottom;
                     if (stepHeight > 0.02 && stepHeight <= 0.78 && bottom >= min.y - 0.2) {
+                        pos.y = max.y + (entity.physics?.height || 1.7);
+                        entity.physics.onGround = true;
+                        if (entity.physics.velocity) entity.physics.velocity.y = 0;
+                        continue;
+                    }
+                    // Downward step: bot is above this surface and needs to drop down
+                    if (stepHeight < -0.02 && stepHeight >= -0.78 && pos.y > max.y + 0.1) {
                         pos.y = max.y + (entity.physics?.height || 1.7);
                         entity.physics.onGround = true;
                         if (entity.physics.velocity) entity.physics.velocity.y = 0;

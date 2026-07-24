@@ -644,6 +644,8 @@ class Game {
             bot.state = 'spawn';
             bot.target = null;
             bot.patrolTarget = null;
+            // Start pre-loot phase early — bots can loot during countdown
+            bot.noCombatUntil = performance.now() + this.botLootPhaseDuration * 1000;
             bot.pickupLoot?.({ type: 'weapon', weaponType: 'knife' });
             this.physics.addEntity(bot);
             this.entityManager.addEntity(bot);
