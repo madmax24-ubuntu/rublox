@@ -158,6 +158,7 @@ export class MapGenerator {
         this._removeStripeArtifacts();
         this._removeDetachedColliderSources();
         this._removeUnsupportedWalkableColliders();
+        this._removeGroundCollisionArtifacts();
 
         // Phase 9.8: Map perimeter walls (glass/blue like reference)
         this._generatePerimeterWalls();
@@ -244,7 +245,7 @@ export class MapGenerator {
         }
         this._meshes = this._meshes.filter(mesh => !removed.has(mesh) && mesh.parent);
         this.colliders = this.colliders.filter(collider => {
-            if (collider.isCornucopia || collider.isBiomeEntrance || collider.biomeBoundary || collider.gameplayBoundary || collider.isTowerStructure) return true;
+            if (collider.isTerrain || collider.isCornucopia || collider.isBiomeEntrance || collider.biomeBoundary || collider.gameplayBoundary || collider.isTowerStructure) return true;
             if (intrudes(collider)) return false;
             const x = (collider.min.x + collider.max.x) * 0.5;
             const y = (collider.min.y + collider.max.y) * 0.5;
@@ -329,8 +330,7 @@ export class MapGenerator {
             if (!box.isEmpty()) bounds.push(box.clone());
         });
         this.colliders = this.colliders.filter((collider) => {
-            if (!collider.walkable || collider.max.y <= 0.12 || collider.isCornucopia || collider.isBiomeEntrance || collider.isTowerStair) return true;
-            if (collider.source?.isMesh && this._isAttachedToScene(collider.source) && collider.source.visible !== false) return true;
+            if (!collider.walkable || collider.isTerrain || collider.isCornucopia || collider.isBiomeEntrance || collider.isTowerStair) return true;
             const width = Math.max(0.01, collider.max.x - collider.min.x);
             const depth = Math.max(0.01, collider.max.z - collider.min.z);
             const requiredOverlap = width * depth * 0.45;
@@ -340,6 +340,17 @@ export class MapGenerator {
                 const overlapZ = Math.max(0, Math.min(candidate.max.z, collider.max.z) - Math.max(candidate.min.z, collider.min.z));
                 return overlapX * overlapZ >= requiredOverlap;
             });
+        });
+    }
+
+    _removeGroundCollisionArtifacts() {
+        this.colliders = this.colliders.filter((collider) => {
+            if (collider.enabled === false || collider.walkable || collider.isTerrain) return true;
+            if (collider.gameplayBoundary || collider.biomeBoundary || collider.isBiomeEntrance || collider.isCornucopia || collider.isTowerStructure || collider.isTrap) return true;
+            const width = collider.max.x - collider.min.x;
+            const height = collider.max.y - collider.min.y;
+            const depth = collider.max.z - collider.min.z;
+            return !(collider.min.y >= -0.2 && collider.max.y <= 0.4 && height <= 0.4 && width > 0 && depth > 0);
         });
     }
 
@@ -503,7 +514,8 @@ export class MapGenerator {
             this.scene.add(plane);
         }
 
-        this.addColliderBox(new THREE.Vector3(0, -0.03, 0), HALF * 2, 0.1, HALF * 2, false);
+        const terrainCollider = this.addColliderBox(new THREE.Vector3(0, -0.05, 0), HALF * 2, 0.1, HALF * 2, true);
+        terrainCollider.isTerrain = true;
 
         // Height map (flat = 0)
         this.heightMap = [];
@@ -729,7 +741,7 @@ export class MapGenerator {
         deck.userData.mapGenerated = true;
         deck.userData.walkable = true;
         this.scene.add(deck);
-        this.addColliderBox(new THREE.Vector3(x, 1, z), 12, 0.5, 8, false);
+        this.addColliderBox(new THREE.Vector3(x, 1, z), 12, 0.5, 8, true);
 
         // Bridge rails
         const railGeo = this.pool.getGeoBox(0.3, 1.5, 8);
@@ -1424,13 +1436,11 @@ export class MapGenerator {
                 const angle = Math.atan2(dx, dz);
                 for (let i = 0; i <= count; i++) {
                     const t = i / count;
-                    const seg = new THREE.Mesh(this.pool.getGeoBox(8.5, 0.5, 8.5), pathMat);
-                    seg.position.set(x1 + dx * t, 0.3, z1 + dz * t);
+                    const seg = new THREE.Mesh(this.pool.getGeoBox(8.5, 0.04, 8.5), pathMat);
+                    seg.position.set(x1 + dx * t, 0.025, z1 + dz * t);
                     seg.rotation.y = angle;
                     seg.userData.mapGenerated = true;
-                    seg.userData.walkable = true;
                     this.scene.add(seg);
-                    this.addColliderBox(new THREE.Vector3(seg.position.x, 0.3, seg.position.z), 8.5, 0.5, 8.5, false);
                 }
             }
         }
