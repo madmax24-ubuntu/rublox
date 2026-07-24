@@ -2608,6 +2608,8 @@ export class MapGenerator {
                 plate.userData.mapGenerated = true;
                 plate.userData.isTrap = true;
                 this.scene.add(plate);
+                // Add collision box for trap — prevents entities from walking/jumping over
+                this.addColliderBox(new THREE.Vector3(x, 0.06, z), 2.6, 0.08, 2.6, false);
                 this._traps.push({
                     type: 'pressure',
                     position: new THREE.Vector3(x, 0, z),
@@ -4820,6 +4822,10 @@ export class MapGenerator {
         group.traverse((child) => {
             if (child.isMesh) child.userData.mapGenerated = true;
         });
+        // Add collision box for survival traps — prevents entities from walking over
+        const trapColliderH = type === 'spikes' ? 0.5 : 0.15;
+        const trapColliderSize = radius * 1.2;
+        this.addColliderBox(new THREE.Vector3(x, trapColliderH * 0.5, z), trapColliderSize, trapColliderH, trapColliderSize, false);
         this.scene.add(group);
         const timing = type === 'snare'
             ? [6.2, 3.1]
