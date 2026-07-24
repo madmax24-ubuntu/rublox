@@ -241,6 +241,51 @@ test('LootManager: generateChestsAsync calls rebuildChestIndex before early retu
     }
 });
 
+// TEST 9: Bot countdown movement (fix #4) — bots move during countdown for pre-fight looting
+test('Physics: bots allowed to move during countdown (mapRef check)', () => {
+    const code = read('world/Physics.js');
+    // Should NOT have unconditional bot freeze during countdown
+    if (code.match(/isCountdown && \(type === 'Bot' \|\| type === 'Zombie'\)\s*;\s*$/)) {
+        throw new Error('Bots completely frozen during countdown — cannot loot pre-fight');
+    }
+    // Should have mapRef-based check (bots with mapRef can move)
+    if (!code.includes('!entity.mapRef')) {
+        throw new Error('Missing mapRef condition — bots should move if mapRef is set');
+    }
+});
+
+test('Physics: stair collision uses tight ON-surface threshold (0.05, not 0.5)', () => {
+    const code = read('world/Physics.js');
+    const walkableSection = code.substring(code.indexOf('if (box.walkable) {'));
+    const onSurfaceCheck = walkableSection.match(/if \(bottom >= max\.y - ([\d.]+)\)/);
+    if (!onSurfaceCheck) throw new Error('Cannot find on-surface check in walkable handling');
+    const threshold = parseFloat(onSurfaceCheck[1]);
+    if (threshold > 0.1) throw new Error(`On-surface threshold=${threshold} too large (causes bot trapping on stairs)`);
+});
+
+test('Physics: downward step handling present', () => {
+    const code = read('world/Physics.js');
+    const walkableSection = code.substring(code.indexOf('if (box.walkable) {'));
+    if (!walkableSection.includes('Downward step')) {
+        throw new Error('Missing downward step handling — bots fall under stairs');
+    }
+    if (!walkableSection.includes('stepHeight < -0.02')) {
+        throw new Error('Missing downward step condition');
+    }
+});
+
+// TEST 10: Bot pre-loot phase starts during spawn (fix #5)
+test('BotBrain: noCombatUntil set during spawnBots() for pre-fight looting', () => {
+    const code = read('main.js');
+    const spawnBotsSection = code.substring(code.indexOf('spawnBots() {'));
+    if (!spawnBotsSection.includes('noCombatUntil')) {
+        throw new Error('spawnBots() does not set noCombatUntil — bots cannot enter pre-loot phase during countdown');
+    }
+    if (!spawnBotsSection.includes('botLootPhaseDuration')) {
+        throw new Error('spawnBots() missing botLootPhaseDuration reference');
+    }
+});
+
 // SUMMARY
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);
