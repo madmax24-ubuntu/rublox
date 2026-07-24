@@ -47,7 +47,7 @@ export class Bot {
             onGround: false,
             height: 1.7,
             radius: 0.4,
-            speed: 6.6 + Math.random() * 2.2
+            speed: 8.4 + Math.random() * 1.8
         };
 
         this.maxHealth = 200;

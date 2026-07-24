@@ -1065,7 +1065,7 @@ export class BotBrain {
         // Cautious movement: if in HIDE or low gear, move slower and more carefully
         const cau = bot.personality?.caution ?? 0.5;
         const isCautious = bot.state === STATES.HIDE || (bot.state === STATES.EXPLORE && bot.inventory?.getItems?.().length < 2) || cau > 0.7;
-        const finalSpeed = isCautious ? effectiveSpeed * (0.88 + (1 - cau) * 0.08) : effectiveSpeed;
+        const finalSpeed = isCautious ? effectiveSpeed * (0.96 + (1 - cau) * 0.04) : effectiveSpeed;
 
         const step = Math.max(4.5, finalSpeed * 0.9);
         const tx = bot.position.x + move.x * step;

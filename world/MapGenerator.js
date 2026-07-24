@@ -143,6 +143,7 @@ export class MapGenerator {
         this._placeBiomeDecor();
         this._pruneOutsidePlayableBounds();
         this._ensureBiomeLootDensity(24);
+        this._reduceBiomeLootDensity(0.4);
         this._clearCentralBiomeIntrusions();
 
         this._placeBiomeBoundaries();
@@ -421,6 +422,24 @@ export class MapGenerator {
                 }
             }
         }
+    }
+
+    _reduceBiomeLootDensity(ratio) {
+        const biomeOf = (x, z) => x < 0 ? (z < 0 ? 'forest' : 'military') : (z < 0 ? 'maze' : 'ice');
+        const groups = new Map();
+        for (const spot of this._chestSpots) {
+            const key = biomeOf(spot.x, spot.z);
+            if (!groups.has(key)) groups.set(key, []);
+            groups.get(key).push(spot);
+        }
+        const retained = [];
+        for (const spots of groups.values()) {
+            const keep = Math.max(1, Math.round(spots.length * ratio));
+            for (let i = 0; i < keep; i++) {
+                retained.push(spots[Math.min(spots.length - 1, Math.floor((i + 0.5) * spots.length / keep))]);
+            }
+        }
+        this._chestSpots = retained;
     }
 
     _reset() {
@@ -1444,9 +1463,12 @@ export class MapGenerator {
                 for (let i = 0; i <= count; i++) {
                     const t = i / count;
                     const seg = new THREE.Mesh(this.pool.getGeoBox(8.5, 0.04, 8.5), pathMat);
-                    seg.position.set(x1 + dx * t, 0.025, z1 + dz * t);
+                    seg.position.set(x1 + dx * t, 0.055, z1 + dz * t);
                     seg.rotation.y = angle;
                     seg.userData.mapGenerated = true;
+                    seg.userData.persistentGround = true;
+                    seg.frustumCulled = false;
+                    seg.renderOrder = 1;
                     this.scene.add(seg);
                 }
             }

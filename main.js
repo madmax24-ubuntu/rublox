@@ -628,12 +628,12 @@ class Game {
                 if (!pad) break;
 
                 // Bots spawn ON the pad surface (pad.y = platform surface y=2)
-                spawnPos = new THREE.Vector3(pad.x, pad.y + 1.7, pad.z);
+                spawnPos = new THREE.Vector3(pad.x, pad.y + 1.9, pad.z);
             } else {
                 const angle = (i / botCount) * Math.PI * 2;
                 spawnPos = new THREE.Vector3(
                     Math.cos(angle) * spawnRadius,
-                    2 + 1.7,
+                    2 + 1.9,
                     Math.sin(angle) * spawnRadius
                 );
             }
@@ -852,8 +852,8 @@ class Game {
                 bot.assignedBiomeUntil = performance.now() + 180000;
                 const signs = [[-1, -1], [1, -1], [-1, 1], [1, 1]][biomeIndex];
                 const laneIndex = assignedCounts[biomeIndex] - 1;
-                const laneOffset = ((laneIndex % 9) - 4) * 1.05;
-                const entryDistance = 54 + Math.floor(laneIndex / 9) * 4;
+                const laneOffset = ((laneIndex % 9) - 4) * 0.7;
+                const entryDistance = 76 + Math.floor(laneIndex / 9) * 0.5;
                 const entryX = signs[0] * entryDistance + signs[1] * laneOffset;
                 const entryZ = signs[1] * entryDistance - signs[0] * laneOffset;
                 bot.assignedBiomeEntry = new THREE.Vector3(entryX, 0, entryZ);

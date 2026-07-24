@@ -179,6 +179,7 @@ export class InstancedMeshSystem {
     }
 
     _collectMeshes(obj, out, skipReasons, parentMapGen) {
+        if (obj.userData?.persistentGround) return;
         if (!obj.isMesh) {
             const hasMapGen = obj.userData?.mapGenerated || obj.userData?.instancable || parentMapGen;
             if (obj.children?.length) {
