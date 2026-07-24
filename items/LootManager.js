@@ -304,6 +304,7 @@ export class LootManager {
             if (this.chests.length === 0) {
                 console.log(`[LootManager] floorTiles created 0 chests, falling through to random fallback`);
             } else if (this.chests.length >= chestCount) {
+                this.rebuildChestIndex();
                 return;
             }
         }
