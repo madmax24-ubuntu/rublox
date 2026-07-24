@@ -228,6 +228,19 @@ test('Physics: step size increased to 0.38 (was 0.28)', () => {
     if (step < 0.35) throw new Error(`Step size=${step}, expected >= 0.35`);
 });
 
+// TEST 8: Bot looting fix - rebuildChestIndex called on early return
+test('LootManager: generateChestsAsync calls rebuildChestIndex before early return', () => {
+    const code = read('items/LootManager.js');
+    // Find the async version's early return
+    const asyncSection = code.substring(code.indexOf('async generateChestsAsync'));
+    const earlyReturnMatch = asyncSection.match(/if \(this\.chests\.length >= chestCount\) \{[\s\S]{0,100}return;/);
+    if (!earlyReturnMatch) throw new Error('Cannot find early return in generateChestsAsync');
+    const returnBlock = earlyReturnMatch[0];
+    if (!returnBlock.includes('rebuildChestIndex')) {
+        throw new Error('Early return in generateChestsAsync does not call rebuildChestIndex - bots cannot find chests!');
+    }
+});
+
 // SUMMARY
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);
