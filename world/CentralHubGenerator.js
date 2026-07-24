@@ -147,15 +147,18 @@ export default class CentralHubGenerator {
         
         for (let i = 0; i <= segments; i++) {
             const radius = innerRadius + i * 3;
-            
+
             const grassRing = new THREE.Mesh(
                 new THREE.RingGeometry(radius - 3, radius, 32),
                 this.matSys.grassGreen
             );
-            
+
             grassRing.rotation.x = -Math.PI / 2;
             grassRing.position.y = 0.01;
-            
+            grassRing.userData.mapGenerated = true;
+            grassRing.userData.isTerrain = true;
+            grassRing.userData.isGrassRing = true;
+
             this.mapGen._addToScene(grassRing);
         }
     }

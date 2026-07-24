@@ -193,7 +193,7 @@ export class InstancedMeshSystem {
             obj.userData.isSnowParticles || obj.userData.isPOI || obj.userData.isSpawnPlatform ||
             obj.userData.isFirstPersonArm || obj.userData.isViewWeapon ||
             obj.userData.isTerrain || obj.userData.biomeGate || obj.userData.biomeBoundary ||
-            obj.userData.dynamic) { skipReasons.aniInt++; return; }
+            obj.userData.dynamic || obj.userData.isChest || obj.userData.isCornucopia) { skipReasons.aniInt++; return; }
         const geoKey = this.pool.geoKey(obj.geometry) || `uuid:${obj.geometry.uuid}`;
         if (!geoKey) { skipReasons.noGeoKey++; return; }
         const matKey = this.pool.matKey(obj.material) || (Array.isArray(obj.material) ? null : `uuid:${obj.material.uuid}`);
