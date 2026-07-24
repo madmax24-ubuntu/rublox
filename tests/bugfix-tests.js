@@ -161,6 +161,73 @@ test('Zombie: emissiveIntensity sufficient for visibility', () => {
     if (intensity < 0.15) throw new Error(`Zombie body emissiveIntensity=${intensity} too low`);
 });
 
+// TEST 5: Chest count halved (fix #1)
+test('Chests: desktop min count 110 (was 220, halved)', () => {
+    const code = read('items/LootManager.js');
+    const matches = code.match(/Math\.max\(this\.isMobile \? (\d+) : (\d+)/g);
+    if (!matches) throw new Error('Cannot find chest count params');
+    // Should have two occurrences (generateChests and generateChestsAsync)
+    if (matches.length < 2) throw new Error('Expected 2 chest count occurrences');
+    // Check that desktop value is 110 (halved from 220)
+    const desktopMatch = code.match(/Math\.max\(this\.isMobile \? \d+ : (\d+)/);
+    if (!desktopMatch) throw new Error('Cannot find desktop chest count');
+    const desktopCount = parseInt(desktopMatch[1]);
+    if (desktopCount !== 110) throw new Error(`Desktop chest count=${desktopCount}, expected 110`);
+    const mobileMatch = code.match(/Math\.max\(this\.isMobile \? (\d+)/);
+    if (!mobileMatch) throw new Error('Cannot find mobile chest count');
+    const mobileCount = parseInt(mobileMatch[1]);
+    if (mobileCount !== 80) throw new Error(`Mobile chest count=${mobileCount}, expected 80`);
+});
+
+// TEST 6: Bot weapon drops improved (fix #2)
+test('Weapon drops: rifle+machinegun combined chance >= 30% (was 22%)', () => {
+    const code = read('items/LootManager.js');
+    // rifle starts at 0.74, MG starts at 0.88
+    const rifleStartMatch = code.match(/\} else if \(rand < ([\d.]+)\).*?винтовки/);
+    const mgStartMatch = code.match(/\} else if \(rand < ([\d.]+)\).*?пулемета/);
+    if (!rifleStartMatch || !mgStartMatch) throw new Error('Cannot find rifle/MG drop chances');
+    const rifleStart = parseFloat(rifleStartMatch[1]);
+    const mgStart = parseFloat(mgStartMatch[1]);
+    // pistol starts at 0.56, so rifle chance = rifleStart - 0.56
+    const rifleChance = rifleStart - 0.56;
+    const mgChance = mgStart - rifleStart;
+    const combined = rifleChance + mgChance;
+    if (combined < 0.30) throw new Error(`Combined rifle+MG chance=${combined.toFixed(2)}, need >= 0.30`);
+});
+
+test('Bot weapon switch cooldown reduced to 800ms (was 2000ms)', () => {
+    const code = read('entities/BotBrain.js');
+    const cooldownMatch = code.match(/bot\._weaponSwitchCooldown\s*=\s*performance\.now\(\)\s*\+\s*(\d+)/);
+    if (!cooldownMatch) throw new Error('Cannot find weapon switch cooldown');
+    const cooldown = parseInt(cooldownMatch[1]);
+    if (cooldown !== 800) throw new Error(`Weapon switch cooldown=${cooldown}ms, expected 800ms`);
+});
+
+// TEST 7: Physics movement smoothed (fix #3)
+test('Physics: bot bonusRadius reduced to 0.15 (was 0.35)', () => {
+    const code = read('world/Physics.js');
+    const bonusMatch = code.match(/type === 'Bot' \? ([\d.]+)/);
+    if (!bonusMatch) throw new Error('Cannot find bot bonusRadius');
+    const bonus = parseFloat(bonusMatch[1]);
+    if (bonus !== 0.15) throw new Error(`Bot bonusRadius=${bonus}, expected 0.15`);
+});
+
+test('Physics: maxPushPerStep increased to 0.40 (was 0.24)', () => {
+    const code = read('world/Physics.js');
+    const pushMatch = code.match(/const maxPushPerStep\s*=\s*([\d.]+)/);
+    if (!pushMatch) throw new Error('Cannot find maxPushPerStep');
+    const push = parseFloat(pushMatch[1]);
+    if (push < 0.35) throw new Error(`maxPushPerStep=${push}, expected >= 0.35`);
+});
+
+test('Physics: step size increased to 0.38 (was 0.28)', () => {
+    const code = read('world/Physics.js');
+    const stepMatch = code.match(/Math\.ceil\(totalMove\s*\/\s*([\d.]+)/);
+    if (!stepMatch) throw new Error('Cannot find step size');
+    const step = parseFloat(stepMatch[1]);
+    if (step < 0.35) throw new Error(`Step size=${step}, expected >= 0.35`);
+});
+
 // SUMMARY
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

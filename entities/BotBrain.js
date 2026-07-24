@@ -924,7 +924,7 @@ export class BotBrain {
                 const meleeSlot = bot.inventory.getItems().indexOf(meleeItems[0]);
                 if (meleeSlot >= 0 && bot.inventory.selectedSlot !== meleeSlot) {
                     bot.selectSlot(meleeSlot);
-                    bot._weaponSwitchCooldown = performance.now() + 2000;
+                    bot._weaponSwitchCooldown = performance.now() + 800;
                 }
                 weapon = bot.currentWeapon || bot.fists;
             }
