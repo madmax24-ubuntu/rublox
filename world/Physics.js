@@ -75,9 +75,6 @@ export class Physics {
             const entityStride = nearPlayer ? 1 : npcStride;
             if (isNpc && (entityIndex + physicsFrame) % entityStride !== 0) continue;
             const physicsDelta = isPlayer || nearPlayer ? delta : Math.min(0.075, delta * entityStride);
-            // Bots and zombies are allowed to move during countdown (for pre-fight looting)
-            // Only freeze them if they haven't been assigned a biome yet
-            if (isCountdown && (type === 'Bot' || type === 'Zombie') && !entity.mapRef) continue;
             const pos = entity.position;
 
             // Validate position
@@ -245,7 +242,9 @@ export class Physics {
             if (position.z + radius < min.z || position.z - radius > max.z) continue;
             if (position.y + height < min.y - 0.5) continue;
             if (position.y > max.y + height + 0.5) continue;
-            if (bottom > max.y + 0.5 || max.y > bottom + 0.65) continue;
+            // Tower structures: don't filter out based on height delta (they connect ground to elevated surfaces)
+            const isTower = box.isTowerStructure || box.isTowerStair;
+            if (!isTower && (bottom > max.y + 0.5 || max.y > bottom + 0.65)) continue;
             if (maxY === -Infinity || max.y > maxY) maxY = max.y;
         }
 
@@ -325,7 +324,8 @@ export class Physics {
                     // Skip if bot is already standing ON this surface (not stepping up)
                     if (bottom >= max.y - 0.05) continue;
                     const stepHeight = max.y - bottom;
-                    if (stepHeight > 0.02 && stepHeight <= 0.95 && bottom >= min.y - 0.2) {
+                    // Removed ground-level constraint so entities can climb stairs from ground
+                    if (stepHeight > 0.02 && stepHeight <= 0.95) {
                         pos.y = max.y + (entity.physics?.height || 1.7);
                         entity.physics.onGround = true;
                         if (entity.physics.velocity) entity.physics.velocity.y = 0;

@@ -241,16 +241,26 @@ test('LootManager: generateChestsAsync calls rebuildChestIndex before early retu
     }
 });
 
-// TEST 9: Bot countdown movement (fix #4) — bots move during countdown for pre-fight looting
-test('Physics: bots allowed to move during countdown (mapRef check)', () => {
+// TEST 9: Bot countdown movement (fix #4) — bots frozen during countdown like player
+test('Physics: no special countdown exception for bots — all frozen uniformly', () => {
     const code = read('world/Physics.js');
-    // Should NOT have unconditional bot freeze during countdown
-    if (code.match(/isCountdown && \(type === 'Bot' \|\| type === 'Zombie'\)\s*;\s*$/)) {
-        throw new Error('Bots completely frozen during countdown — cannot loot pre-fight');
+    // Should NOT have mapRef-based exception that lets bots move during countdown
+    if (code.match(/isCountdown && \(type === 'Bot' \|\| type === 'Zombie'\).*!entity\.mapRef/)) {
+        throw new Error('Found mapRef exception — bots should NOT move during countdown');
     }
-    // Should have mapRef-based check (bots with mapRef can move)
-    if (!code.includes('!entity.mapRef')) {
-        throw new Error('Missing mapRef condition — bots should move if mapRef is set');
+});
+
+test('main.js: bots frozen during countdown (isFrozen = true)', () => {
+    const code = read('main.js');
+    const countdownSection = code.substring(code.indexOf('_updateCountdown'));
+    const frozenSection = countdownSection.substring(0, countdownSection.indexOf('_updateSpawnState'));
+    // Should freeze bots during countdown
+    if (!frozenSection.includes('this.bots.forEach(bot => { bot.isFrozen = true; })')) {
+        throw new Error('Bots not frozen during countdown');
+    }
+    // Should unfreeze bots after countdown
+    if (!frozenSection.includes('this.bots.forEach(bot => { bot.isFrozen = false; })')) {
+        throw new Error('Bots not unfrozen after countdown');
     }
 });
 
@@ -271,6 +281,30 @@ test('Physics: downward step handling present', () => {
     }
     if (!walkableSection.includes('stepHeight < -0.02')) {
         throw new Error('Missing downward step condition');
+    }
+});
+
+// TEST 11: Biome entrance stairs walkable from ground (fix #1)
+test('Physics: removed `bottom >= min.y - 0.2` constraint for stair climbing', () => {
+    const code = read('world/Physics.js');
+    const walkableSection = code.substring(code.indexOf('if (box.walkable) {'));
+    if (walkableSection.includes('bottom >= min.y - 0.2')) {
+        throw new Error('Still has `bottom >= min.y - 0.2` constraint — entities cannot climb stairs from ground');
+    }
+});
+
+// TEST 12: Tower floor collider not filtered in surface height (fix #2)
+test('Physics: tower structures not filtered by height delta in _getSurfaceHeight', () => {
+    const code = read('world/Physics.js');
+    const surfaceSection = code.substring(code.indexOf('_getSurfaceHeight'));
+    // Should have isTower check before height delta filter
+    if (surfaceSection.includes('isTowerStructure') || surfaceSection.includes('isTowerStair')) {
+        // Good — tower structures are handled specially
+        if (!surfaceSection.includes('!isTower')) {
+            throw new Error('Tower check exists but height delta filter may still apply to towers');
+        }
+    } else {
+        throw new Error('No tower structure check — tower floor may be filtered out by height delta');
     }
 });
 

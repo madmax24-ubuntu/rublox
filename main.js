@@ -731,7 +731,8 @@ class Game {
         this.player.setInvulnerable(true);
         this.bots.forEach(bot => bot.setInvulnerable(true));
         this.player.isFrozen = true;
-        // Bots are NOT frozen during countdown — they can move and loot
+        // Freeze bots during countdown — they should be static like the player
+        this.bots.forEach(bot => { bot.isFrozen = true; });
         this.player.isCameraFrozen = true;
 
         this.hud.showCountdown(sec);
