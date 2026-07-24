@@ -507,19 +507,20 @@ export class BotBrain {
         }
 
         // === PHASE 1: Pre-loot (noCombatUntil not expired) ===
-        // Bots scatter and loot, almost never fight
+        // Bots prioritize looting aggressively — only engage if directly threatened
         if (ctx.inPreLootPhase) {
-            if (retaliating && ctx.nearestEnemy && ctx.nearestEnemyDist < 35 && !veryLowHp) return STATES.ENGAGE;
+            if (retaliating && ctx.nearestEnemy && ctx.nearestEnemyDist < 25 && !veryLowHp) return STATES.ENGAGE;
+            // Always loot if target available, even during early game
             if (ctx.lootTarget) return STATES.LOOT;
-            // Only engage if very close AND being shot AND well-armed (aggression can override)
-            if (ctx.nearestEnemy && ctx.nearestEnemyDist < 12 && ctx.heardShot && wellArmed && agg > 0.7) {
+            // Only engage if very close AND being shot AND well-armed (higher threshold)
+            if (ctx.nearestEnemy && ctx.nearestEnemyDist < 8 && ctx.heardShot && wellArmed && agg > 0.85) {
                 return STATES.ENGAGE;
             }
             return STATES.EXPLORE; // scatter
         }
 
         // === PHASE 2: Early game (45s after pre-loot) ===
-        // Still mostly loot, cautious engagement
+        // Bots prioritize looting — only engage when directly threatened
         if (ctx.earlyGamePhase) {
             // 1. Survival always wins
             if ((veryLowHp && hasMedkit) || (lowHp && hasMedkit && underPressure)) {
@@ -528,17 +529,18 @@ export class BotBrain {
             if (veryLowHp && ctx.shelterTarget && (!ctx.nearestEnemy || ctx.nearestEnemyDist > 10)) {
                 return STATES.ZONE_RETREAT;
             }
-            if (retaliating && ctx.nearestEnemy && ctx.nearestEnemyDist < 45 && !veryLowHp) return STATES.ENGAGE;
+            // Reduced retaliation distance — bots prefer looting over fighting
+            if (retaliating && ctx.nearestEnemy && ctx.nearestEnemyDist < 30 && !veryLowHp) return STATES.ENGAGE;
 
             // 2. Scatter if crowd nearby (aggressive bots tolerate more)
             if (ctx.crowdNear >= crowdTolerance) {
                 return STATES.EXPLORE;
             }
 
-            // 3. Undergeared? Hide or loot
+            // 3. Undergeared? Loot aggressively (lower lootF threshold)
             const undergeared = ctx.gear < undergearedThreshold;
             if (undergeared) {
-                if (ctx.lootTarget && lootF > 0.4) return STATES.LOOT;
+                if (ctx.lootTarget && lootF > 0.25) return STATES.LOOT;
                 if (ctx.nearestEnemy && ctx.nearestEnemyDist < 60) return STATES.HIDE;
                 return STATES.EXPLORE;
             }
@@ -557,8 +559,8 @@ export class BotBrain {
                 if (agg > 0.48 && armed && ctx.gear >= undergearedThreshold * 0.65 && ctx.crowdNear < crowdTolerance + 1) {
                     return STATES.ENGAGE;
                 }
-                // Otherwise loot or scatter
-                if (ctx.lootTarget && ctx.nearestEnemyDist > 8 && lootF > 0.3) return STATES.LOOT;
+                // Loot if enemy is not too close (lower lootF threshold)
+                if (ctx.lootTarget && ctx.nearestEnemyDist > 12 && lootF > 0.2) return STATES.LOOT;
                 return STATES.EXPLORE;
             }
 
@@ -573,7 +575,8 @@ export class BotBrain {
         if ((veryLowHp && hasMedkit) || (lowHp && hasMedkit && underPressure)) {
             return STATES.SURVIVAL;
         }
-        if (retaliating && ctx.nearestEnemy && ctx.nearestEnemyDist < 55 && !veryLowHp) return STATES.ENGAGE;
+        // Reduced retaliation distance — prefer looting
+        if (retaliating && ctx.nearestEnemy && ctx.nearestEnemyDist < 40 && !veryLowHp) return STATES.ENGAGE;
 
         // 2. Retreat/Hide if in trouble (caution-adjusted)
         if (ctx.hp < retreatHpThreshold && ctx.shelterTarget && (!ctx.nearestEnemy || ctx.nearestEnemyDist > 10)) return STATES.ZONE_RETREAT;
@@ -590,7 +593,7 @@ export class BotBrain {
             if (ctx.nearestEnemy && ctx.nearestEnemyDist < 55) {
                 return STATES.HIDE;
             }
-            if (ctx.lootTarget && lootF > 0.3) return STATES.LOOT;
+            if (ctx.lootTarget && lootF > 0.2) return STATES.LOOT;
             return STATES.EXPLORE;
         }
 
@@ -605,8 +608,8 @@ export class BotBrain {
             if (agg > 0.48 && armed && ctx.crowdNear < crowdTolerance + 1) {
                 return STATES.ENGAGE;
             }
-            // If just armed but not attacked, keep looting/exploring
-            if (ctx.lootTarget && ctx.nearestEnemyDist > 12 && lootF > 0.3) return STATES.LOOT;
+            // If just armed but not attacked, keep looting/exploring (lower lootF threshold)
+            if (ctx.lootTarget && ctx.nearestEnemyDist > 15 && lootF > 0.15) return STATES.LOOT;
             return STATES.EXPLORE;
         }
 
@@ -788,26 +791,26 @@ export class BotBrain {
             if (bot.patrolTarget) this.steerMove(bot, bot.patrolTarget, bot.physics.speed);
             return;
         }
-        if (!this.tryReserveLoot(bot, chest, 2)) {
+        if (!this.tryReserveLoot(bot, chest, 3)) {
             bot.patrolTarget = this.pickSpreadTarget(bot, 18, 58);
             if (bot.patrolTarget) this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 1.05);
             return;
         }
-        lootManager?.claimChest?.(chest, bot.id, 2.6);
+        lootManager?.claimChest?.(chest, bot.id, 1.2);
 
         const dist = bot.position.distanceTo(chest.position);
         bot.lookAt(chest.position);
         if (dist > 2.9) {
             bot.patrolTarget = chest.position;
-            this.steerMove(bot, chest.position, bot.physics.speed * 1.08);
+            this.steerMove(bot, chest.position, bot.physics.speed * 1.25);
             return;
         }
 
         const loot = lootManager?.tryOpenChest?.(chest, bot, bot.audioSynthRef);
         if (loot) bot.pickupLoot(loot, chest.position);
         this.releaseLootReservation(bot);
-        // Pause after looting — bot stands still for a bit instead of immediately rushing
-        bot._lootPauseUntil = performance.now() + 450 + Math.random() * 450;
+        // Reduced pause — bots rush to next chest immediately
+        bot._lootPauseUntil = performance.now() + 150 + Math.random() * 250;
         bot.patrolTarget = this.pickSpreadTarget(bot, 10, 36);
     }
 
