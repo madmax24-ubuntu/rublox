@@ -320,6 +320,28 @@ test('BotBrain: noCombatUntil set during spawnBots() for pre-fight looting', () 
     }
 });
 
+// TEST 13: Bot spawn uses raycastGroundY (fix #1)
+test('spawnBots: uses raycastGroundY for ground height (not raw pad.y)', () => {
+    const code = read('main.js');
+    const spawnBotsSection = code.substring(code.indexOf('spawnBots() {'));
+    const spawnBotsEnd = spawnBotsSection.indexOf('setupBotLodBatch');
+    const section = spawnBotsSection.substring(0, spawnBotsEnd);
+    if (!section.includes('raycastGroundY')) {
+        throw new Error('spawnBots() does not use raycastGroundY — bots may spawn at wrong height');
+    }
+});
+
+// TEST 14: Tower floor collider removed (fix #2)
+test('Tower: no ground-level tower floor collider creating invisible collision', () => {
+    const code = read('world/MapGenerator.js');
+    const towerSection = code.substring(code.indexOf('// Tower floor'));
+    const towerSectionEnd = towerSection.indexOf('// Spiral');
+    const floorSection = towerSection.substring(0, towerSectionEnd);
+    if (floorSection.includes('addColliderBox') && floorSection.includes('towerFloorCollider')) {
+        throw new Error('Tower floor collider still exists — creates invisible ground collision near tower');
+    }
+});
+
 // SUMMARY
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

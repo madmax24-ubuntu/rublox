@@ -2203,7 +2203,7 @@ export class MapGenerator {
             wallCollider.isTowerStructure = true;
         }
 
-        // Tower floor
+        // Tower floor (visual only — collider removed to prevent invisible ground collision near tower)
         const floorGeo = this.pool.getGeoCylinder(towerRadius, towerRadius, 0.5);
         const floorMesh = new THREE.Mesh(floorGeo, darkMat);
         floorMesh.position.set(towerCX, 0.25, towerCZ);
@@ -2211,13 +2211,6 @@ export class MapGenerator {
         floorMesh.userData.walkable = true;
         floorMesh.userData.isTowerStructure = true;
         this.scene.add(floorMesh);
-
-        const towerFloorCollider = this.addColliderBox(
-            new THREE.Vector3(towerCX, 0.25, towerCZ),
-            towerRadius * 2, 0.5, towerRadius * 2, true
-        );
-        towerFloorCollider.isTowerStructure = true;
-        towerFloorCollider.surfaceCircle = { x: towerCX, z: towerCZ, radius: towerRadius };
 
         // Spiral staircase
         const totalSteps = 120;
