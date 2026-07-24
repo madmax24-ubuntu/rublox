@@ -178,7 +178,7 @@ export class LootManager {
     generateChests() {
         const floorTiles = this.mapGenerator.getFloorTiles?.() || [];
         const targetByMapSize = Math.floor(Math.max(120, floorTiles.length * (this.isMobile ? 0.08 : 0.1)));
-        const chestCount = Math.max(this.isMobile ? 160 : 220, Math.floor(targetByMapSize * this.lootDensity));
+        const chestCount = Math.max(this.isMobile ? 80 : 110, Math.floor(targetByMapSize * this.lootDensity));
         const spots = this.mapGenerator.getChestSpots?.() || [];
         const occupied = new Set();
         const keyFor = (x, z) => `${Math.round(x / 3)}:${Math.round(z / 3)}`;
@@ -254,7 +254,7 @@ export class LootManager {
     async generateChestsAsync() {
         const floorTiles = this.mapGenerator.getFloorTiles?.() || [];
         const targetByMapSize = Math.floor(Math.max(120, floorTiles.length * (this.isMobile ? 0.08 : 0.1)));
-        const chestCount = Math.max(this.isMobile ? 160 : 220, Math.floor(targetByMapSize * this.lootDensity));
+        const chestCount = Math.max(this.isMobile ? 80 : 110, Math.floor(targetByMapSize * this.lootDensity));
         const spots = this.mapGenerator.getChestSpots?.() || [];
         const occupied = new Set();
         const keyFor = (x, z) => `${Math.round(x / 3)}:${Math.round(z / 3)}`;
