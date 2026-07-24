@@ -211,7 +211,7 @@ export class Bot {
 
         // Personality traits — each bot is unique
         this.personality = {
-            aggression: 0.5 + Math.random() * 0.48,
+            aggression: 0.65 + Math.random() * 0.35,
             caution: 0.12 + Math.random() * 0.68,
             lootFocus: 0.15 + Math.random() * 0.85
         };

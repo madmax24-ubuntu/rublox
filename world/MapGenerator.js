@@ -135,6 +135,8 @@ export class MapGenerator {
 
         // Phase 7: Ice quadrant (SE)
         this._generateIceQuadrant();
+        this._generateBiomeResidences();
+        this._clearBiomeEntranceCorridors();
 
         this._clearCentralBiomeIntrusions();
 
@@ -435,8 +437,12 @@ export class MapGenerator {
         const retained = [];
         for (const spots of groups.values()) {
             const keep = Math.max(1, Math.round(spots.length * ratio));
-            for (let i = 0; i < keep; i++) {
-                retained.push(spots[Math.min(spots.length - 1, Math.floor((i + 0.5) * spots.length / keep))]);
+            const protectedSpots = spots.filter(spot => String(spot.grade).startsWith('residence_'));
+            retained.push(...protectedSpots);
+            const available = spots.filter(spot => !String(spot.grade).startsWith('residence_'));
+            const remaining = Math.max(0, keep - protectedSpots.length);
+            for (let i = 0; i < remaining; i++) {
+                retained.push(available[Math.min(available.length - 1, Math.floor((i + 0.5) * available.length / remaining))]);
             }
         }
         this._chestSpots = retained;
@@ -860,9 +866,6 @@ export class MapGenerator {
         this._addForestRiver(startX + 8, clearingCZ + 38, startX + size - 8, clearingCZ + 38);
         this._addForestRiver(clearingCX + 52, startZ + 8, clearingCX + 52, startZ + size - 8);
 
-        this._addTwoStoryCabin(clearingCX - 34, clearingCZ - 18);
-        this._addTwoStoryCabin(clearingCX + 34, clearingCZ - 18);
-
         // Dense undergrowth — bushes and flowers (after buildings to avoid spawning inside)
         for (let i = 0; i < 30; i++) {
             const bx = startX + 5 + this._rand() * (size - 10);
@@ -901,6 +904,176 @@ export class MapGenerator {
         river.userData.mapGenerated = true;
         river.userData.isRiver = true;
         this.scene.add(river);
+    }
+
+    _generateBiomeResidences() {
+        const residences = [
+            [-98, -82, 'forest'], [-82, -108, 'forest'],
+            [98, -82, 'maze'], [82, -108, 'maze'],
+            [-98, 82, 'military'], [-82, 108, 'military'],
+            [98, 82, 'ice'], [82, 108, 'ice']
+        ];
+        for (const [x, z, biome] of residences) {
+            this._clearResidenceFootprint(x, z, 20, 17);
+            this._addBiomeResidence(x, z, biome);
+        }
+    }
+
+    _clearBiomeEntranceCorridors() {
+        const axes = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
+        const corridorHit = (x, z, padding = 0) => axes.some(([sx, sz]) => {
+            const radial = (x * sx + z * sz) / Math.SQRT2;
+            const lateral = Math.abs((x * sz - z * sx) / Math.SQRT2);
+            return radial >= 48 - padding && radial <= 82 + padding && lateral <= 7 + padding;
+        });
+        for (const child of [...this.scene.children]) {
+            if (!child.userData?.mapGenerated || child.userData?.isTerrain || child.userData?.persistentGround) continue;
+            if (child.userData?.isBiomeEntrance || child.userData?.biomeBoundary || child.userData?.isCornucopia) continue;
+            const bounds = new THREE.Box3().setFromObject(child);
+            if (bounds.isEmpty()) continue;
+            const center = bounds.getCenter(new THREE.Vector3());
+            const size = bounds.getSize(new THREE.Vector3());
+            const padding = Math.min(8, Math.hypot(size.x, size.z) * 0.5);
+            if (corridorHit(center.x, center.z, padding)) this.scene.remove(child);
+        }
+        this.colliders = this.colliders.filter(collider => {
+            if (!collider?.min || !collider?.max || collider.isBiomeEntrance || collider.biomeBoundary || collider.isCornucopia) return true;
+            const x = (collider.min.x + collider.max.x) * 0.5;
+            const z = (collider.min.z + collider.max.z) * 0.5;
+            const padding = Math.min(8, Math.hypot(collider.max.x - collider.min.x, collider.max.z - collider.min.z) * 0.5);
+            return !corridorHit(x, z, padding);
+        });
+        this._chestSpots = this._chestSpots.filter(spot => !corridorHit(spot.x, spot.z, 1.5));
+        this._traps = this._traps.filter(trap => !corridorHit(trap.position.x, trap.position.z, trap.radius || 1));
+    }
+
+    _clearResidenceFootprint(x, z, width, depth) {
+        const padding = 1.5;
+        const minX = x - width * 0.5 - padding;
+        const maxX = x + width * 0.5 + padding;
+        const minZ = z - depth * 0.5 - padding;
+        const maxZ = z + depth * 0.5 + padding;
+        const area = new THREE.Box3(
+            new THREE.Vector3(minX, -1, minZ),
+            new THREE.Vector3(maxX, 24, maxZ)
+        );
+        for (const child of [...this.scene.children]) {
+            if (!child.userData?.mapGenerated) continue;
+            if (child.userData?.isTerrain || child.userData?.persistentGround || child.userData?.biomeBoundary || child.userData?.isCornucopia) continue;
+            const bounds = new THREE.Box3().setFromObject(child);
+            if (bounds.isEmpty()) continue;
+            const size = bounds.getSize(new THREE.Vector3());
+            if (size.x > 36 || size.z > 36 || !bounds.intersectsBox(area)) continue;
+            this.scene.remove(child);
+        }
+        this.colliders = this.colliders.filter(collider => {
+            if (!collider?.min || !collider?.max || collider.biomeBoundary || collider.isCornucopia) return true;
+            if (collider.walkable && collider.max.y <= 0.6) return true;
+            return collider.max.x < minX || collider.min.x > maxX || collider.max.z < minZ || collider.min.z > maxZ;
+        });
+        this._buildings = this._buildings.filter(building =>
+            Math.abs(building.x - x) > width || Math.abs(building.z - z) > depth
+        );
+        this._chestSpots = this._chestSpots.filter(spot =>
+            spot.x < minX || spot.x > maxX || spot.z < minZ || spot.z > maxZ
+        );
+        this._traps = this._traps.filter(trap =>
+            trap.position.x < minX || trap.position.x > maxX || trap.position.z < minZ || trap.position.z > maxZ
+        );
+    }
+
+    _addBiomeResidence(x, z, biome) {
+        const styles = {
+            forest: { wall: 0x5a3826, trim: 0x2d1a12, roof: 0x29472c, floor: 0x745038, window: 0xffca72 },
+            maze: { wall: 0x686762, trim: 0x393b3d, roof: 0x4c4b48, floor: 0x77736b, window: 0xffb65c },
+            military: { wall: 0x58614a, trim: 0x30372a, roof: 0x41493a, floor: 0x66695d, window: 0xf0b85a },
+            ice: { wall: 0xb9d9e9, trim: 0x638ca8, roof: 0x8bc5df, floor: 0xdcecf4, window: 0x78d7ff }
+        };
+        const style = styles[biome];
+        const group = new THREE.Group();
+        group.position.set(x, 0, z);
+        group.userData.mapGenerated = true;
+        group.userData.isBiomeResidence = true;
+        const wallMat = this.pool.getMatStd(style.wall, 0.78, 0, true, false, 1, 0, 0, true);
+        const trimMat = this.pool.getMatStd(style.trim, 0.82, 0, true, false, 1, 0, 0, true);
+        const roofMat = this.pool.getMatStd(style.roof, 0.74, 0.04, true, false, 1, 0, 0, true);
+        const floorMat = this.pool.getMatStd(style.floor, 0.86, 0, true, false, 1, 0, 0, true);
+        const windowMat = this.pool.getMatStd(style.window, 0.25, 0.08, false, true, 0.85, style.window, 0.7, true);
+        const w = 18;
+        const d = 14;
+        const wallH = 8.4;
+        const wallT = 0.5;
+        const descriptors = [];
+        const addBox = (bw, bh, bd, bx, by, bz, material, wall = false, walkable = false, collidable = true, navigationPassage = false) => {
+            const mesh = new THREE.Mesh(this.pool.getGeoBox(bw, bh, bd), material);
+            mesh.position.set(bx, by, bz);
+            mesh.userData.mapGenerated = true;
+            mesh.userData.isWall = wall;
+            mesh.userData.walkable = walkable;
+            mesh.frustumCulled = false;
+            group.add(mesh);
+            if (collidable) descriptors.push({ bw, bh, bd, bx, by, bz, wall, walkable, navigationPassage });
+            return mesh;
+        };
+
+        addBox(w, 0.3, d, 0, 0.15, 0, floorMat, false, true);
+        addBox(12, 0.3, d, 2.5, 4.15, 0, floorMat, false, true);
+        addBox(4, 0.3, 4, -7, 4.15, -5, floorMat, false, true);
+        addBox(14, 0.3, d, -2, 8.35, 0, roofMat, false, true);
+        addBox(4, 0.3, 4, 7, 8.35, 5, roofMat, false, true);
+
+        addBox(w, wallH, wallT, 0, wallH * 0.5, -d * 0.5, wallMat, true);
+        addBox(wallT, wallH, d, -w * 0.5, wallH * 0.5, 0, wallMat, true);
+        addBox(wallT, wallH, d, w * 0.5, wallH * 0.5, 0, wallMat, true);
+        addBox(7.5, wallH, wallT, -5.25, wallH * 0.5, d * 0.5, wallMat, true);
+        addBox(7.5, wallH, wallT, 5.25, wallH * 0.5, d * 0.5, wallMat, true);
+        addBox(3, 5.2, wallT, 0, 5.8, d * 0.5, wallMat, true, false, true, true);
+
+        const stairCount = 11;
+        for (let i = 0; i < stairCount; i++) {
+            const top = 0.45 + i * 0.36;
+            addBox(3.2, 0.36, 0.72, -6.4, top - 0.18, 5.2 - i * 0.66, trimMat, false, true);
+            const upperTop = 4.45 + i * 0.36;
+            addBox(3.2, 0.36, 0.72, 6.4, upperTop - 0.18, -5.2 + i * 0.66, trimMat, false, true);
+        }
+
+        for (const side of [-1, 1]) {
+            addBox(w, 0.8, 0.35, 0, 8.8, side * (d * 0.5 - 0.18), trimMat, true, false, true, true);
+            addBox(0.35, 0.8, d, side * (w * 0.5 - 0.18), 8.8, 0, trimMat, true, false, true, true);
+        }
+
+        for (const wx of [-5.5, 0, 5.5]) {
+            addBox(2.1, 1.45, 0.08, wx, 5.8, -d * 0.5 - 0.27, windowMat, false, false, false);
+        }
+        for (const wz of [-4, 1.5]) {
+            addBox(0.08, 1.45, 2.1, -w * 0.5 - 0.27, 2.4, wz, windowMat, false, false, false);
+            addBox(0.08, 1.45, 2.1, w * 0.5 + 0.27, 6.0, wz, windowMat, false, false, false);
+        }
+
+        if (biome === 'forest') {
+            addBox(1.4, 2.4, 1.4, 5.8, 9.55, -3.8, trimMat, true, false, true, true);
+        } else if (biome === 'maze') {
+            for (const cx of [-7.5, -2.5, 2.5, 7.5]) addBox(1.2, 1.2, 1.2, cx, 9.4, -6.3, trimMat, true, false, true, true);
+        } else if (biome === 'military') {
+            addBox(5.5, 1.2, 3.2, 3.5, 9.05, -3.5, trimMat, true, false, true, true);
+        } else {
+            for (const sx of [-5, 0, 5]) addBox(1.1, 2.4, 1.1, sx, 9.55, -4.8, roofMat, true, false, true, true);
+        }
+
+        this.scene.add(group);
+        for (const part of descriptors) {
+            const collider = this.addColliderBox(
+                new THREE.Vector3(x + part.bx, part.by, z + part.bz),
+                part.bw,
+                part.bh,
+                part.bd,
+                part.walkable
+            );
+            collider.isBiomeResidence = true;
+            collider.navigationPassage = part.navigationPassage;
+        }
+        this._buildings.push({ x, z, w, d, template: { type: 'biome_residence', biome } });
+        this._registerChestSpot(x + 3.8, z - 3.8, `residence_${biome}`);
     }
 
     _addTwoStoryCabin(x, z) {
@@ -3697,9 +3870,6 @@ export class MapGenerator {
         this._addIceCampfire(88, 52);
 
         this._addSnowShelters(min, min, span);
-        this._addSnowBarrack(34, 34);
-        this._addSnowBarrack(102, 88);
-
         // Крупные ледяные кристаллы по краям
         const crystalPositions = [
             { x: 112, z: 24 }, { x: 112, z: 112 },
@@ -5098,7 +5268,7 @@ export class MapGenerator {
     getHouseSpots() {
         const spots = [];
         for (const b of this._buildings) {
-            if (b.template?.type === 'log_cabin' || b.template?.type === 'military_ruin') {
+            if (b.template?.type === 'log_cabin' || b.template?.type === 'military_ruin' || b.template?.type === 'biome_residence') {
                 spots.push({
                     x: b.x,
                     z: b.z + b.d / 2 + 2,
@@ -5158,7 +5328,7 @@ export class MapGenerator {
                 const bucket = this.colliderGrid.get(`${cx},${cz}`);
                 if (!bucket) continue;
                 for (const box of bucket) {
-                    if (!box.walkable && box.enabled !== false) {
+                    if (!box.walkable && !box.navigationPassage && box.enabled !== false) {
                         if (x >= box.min.x - 0.5 && x <= box.max.x + 0.5 &&
                             z >= box.min.z - 0.5 && z <= box.max.z + 0.5) {
                             return false;

@@ -93,6 +93,11 @@ const _createZombieTexture = (variant, baseColorHex) => {
     const texture = new THREE.CanvasTexture(canvas);
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.generateMipmaps = true;
+    texture.anisotropy = 4;
     ZOMBIE_TEXTURES[key] = texture;
     return texture;
 };
@@ -202,7 +207,7 @@ export class Zombie {
         this._roamTimer = 3 + Math.random() * 5;
 
         this.mesh = this.createMesh();
-        this._lodDetailed = false;
+        this._lodDetailed = true;
         this.mesh.traverse(child => {
             if (!child.material?.emissive) return;
             child.material.userData.baseEmissive = child.material.emissive.getHex();
@@ -581,6 +586,7 @@ export class Zombie {
             if (!child.isMesh) return;
             child.castShadow = true;
             child.receiveShadow = true;
+            child.frustumCulled = false;
             child.userData.zombieVariant = this.variant;
         });
         group.userData.isEntity = true;
@@ -759,7 +765,8 @@ export class Zombie {
         const visibleAngle = Math.max(verticalFov, horizontalFov) * 0.5 + 0.22;
         const inView = distance > 0.001 && this._lodToEntity.dot(this._lodCameraForward) / distance >= Math.cos(visibleAngle);
         const detailDistance = this.scene?.userData?.mobileMode ? 50 : 70;
-        const detailed = distanceSq <= 225 || (inView && distanceSq <= detailDistance * detailDistance);
+        const lodDistance = this._lodDetailed ? detailDistance + 12 : detailDistance;
+        const detailed = distanceSq <= 225 || (inView && distanceSq <= lodDistance * lodDistance);
         if (this._lodDetailed === detailed) return detailed;
         this._lodDetailed = detailed;
         for (const child of this.mesh.userData.detailChildren || []) child.visible = detailed;

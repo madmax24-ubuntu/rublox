@@ -584,7 +584,7 @@ class Game {
         if (!this.isPaused) {
             this.autoPausedByVisibility = false;
         }
-        this.hud.showPause(this.isPaused);
+        this.hud.showPause(this.isPaused && !this.killRewardActive);
         this.input?.clearInputState?.();
         if (this.isPaused) this.yandex?.gameplayStop?.();
         else this.yandex?.gameplayStart?.();
@@ -852,10 +852,22 @@ class Game {
                 bot.assignedBiomeUntil = performance.now() + 180000;
                 const signs = [[-1, -1], [1, -1], [-1, 1], [1, 1]][biomeIndex];
                 const laneIndex = assignedCounts[biomeIndex] - 1;
-                const laneOffset = ((laneIndex % 9) - 4) * 0.7;
-                const entryDistance = 76 + Math.floor(laneIndex / 9) * 0.5;
-                const entryX = signs[0] * entryDistance + signs[1] * laneOffset;
-                const entryZ = signs[1] * entryDistance - signs[0] * laneOffset;
+                const laneOffset = ((laneIndex % 9) - 4) * 0.1;
+                const routeOffset = [-16, -16, 16, 20][biomeIndex] + laneOffset;
+                const entryDistance = 82 + Math.floor(laneIndex / 9) * 0.35;
+                const gateDistance = 51.5;
+                const entryX = signs[0] * entryDistance + signs[1] * routeOffset;
+                const entryZ = signs[1] * entryDistance - signs[0] * routeOffset;
+                bot.assignedBiomeGate = new THREE.Vector3(
+                    signs[0] * gateDistance + signs[1] * laneOffset,
+                    0,
+                    signs[1] * gateDistance - signs[0] * laneOffset
+                );
+                bot.assignedBiomeThreshold = new THREE.Vector3(
+                    signs[0] * 62 + signs[1] * laneOffset,
+                    0,
+                    signs[1] * 62 - signs[0] * laneOffset
+                );
                 bot.assignedBiomeEntry = new THREE.Vector3(entryX, 0, entryZ);
                 bot.assignedBiomeTarget = bot.patrolTarget.clone();
             }
@@ -2141,6 +2153,8 @@ class Game {
                             { id: 'weaponMachinegun', label: 'Пулемёт' },
                             { id: 'weaponLaser', label: 'Лазерган' }
                         ];
+        this.setPaused(true);
+        this.hud.showPause(false);
         this.hud.showKillReward(tier, options, reward => {
             this.applyKillReward(reward);
             this.claimedKillRewards.add(tier);
@@ -2148,6 +2162,20 @@ class Game {
             this.killRewardActive = false;
             if (this.isPaused) this.setPaused(false);
         });
+    }
+
+    canSpawnZombieAt(x, z, radius = 7.5, maximum = 2) {
+        let nearby = 0;
+        const radiusSq = radius * radius;
+        for (const zombie of this.zombies) {
+            if (!zombie?.isAlive) continue;
+            const dx = zombie.position.x - x;
+            const dz = zombie.position.z - z;
+            if (dx * dx + dz * dz > radiusSq) continue;
+            nearby++;
+            if (nearby >= maximum) return false;
+        }
+        return true;
     }
 
     applyKillReward(reward) {
@@ -2404,6 +2432,7 @@ class Game {
             const z = fallbackSpot.z + (Math.random() - 0.5) * jitter;
             if (!this.isBiomeZombieSpawnPoint(x, z)) return false;
             if (!interiorSpot && !this.map.isWalkableAt?.(x, z)) return false;
+            if (!this.canSpawnZombieAt(x, z)) return false;
             const baseY = this.map.raycastGroundY?.(
                 x,
                 z,
@@ -2492,6 +2521,7 @@ class Game {
                 const z = guardSpot.z + (Math.random() - 0.5) * jitter;
                 if (!this.isBiomeZombieSpawnPoint(x, z)) continue;
                 if (!interiorSpot && !this.map.isWalkableAt?.(x, z)) continue;
+                if (!this.canSpawnZombieAt(x, z)) continue;
                 const y = this.map.getHeightAt?.(x, z) ?? 0;
                 const pos = new THREE.Vector3(x, y + 1.8, z);
                 if (this.player?.position && pos.distanceTo(this.player.position) < 10) continue;
@@ -2575,6 +2605,7 @@ class Game {
             const pos = new THREE.Vector3(tile.x, baseY + 1.8, tile.z);
             if (pos.distanceTo(this.player.position) < (reset ? 20 : 24)) continue;
             if (!this.map.isWalkableAt?.(tile.x, tile.z)) continue;
+            if (!this.canSpawnZombieAt(tile.x, tile.z)) continue;
             const zombie = this.zombiePool.acquire(pos, forcedVariant);
             this.zombies.push(zombie);
             spawned++;

@@ -55,13 +55,13 @@ export class BotBrain {
         this._tmpSideTarget = new THREE.Vector3();
         this._tmpCoverVec = new THREE.Vector3();
         this._tmpSpreadVec = new THREE.Vector3();
-        this.baseVisionRange = 96;
-        this.fov = 128 * (Math.PI / 180);
-        this.hearingRange = 46;
-        this.shotHearingRange = 92;
+        this.baseVisionRange = 112;
+        this.fov = 140 * (Math.PI / 180);
+        this.hearingRange = 56;
+        this.shotHearingRange = 108;
         this.losMemorySeconds = 3;
-        this.reactionMin = 0.2;
-        this.reactionMax = 0.5;
+        this.reactionMin = 0.12;
+        this.reactionMax = 0.3;
     }
 
     update(bot, delta, entityManager, lootManager, audioSynth) {
@@ -129,6 +129,22 @@ export class BotBrain {
             bot.state = STATES.ENGAGE;
             this.actEngage(bot, ctx, entityManager);
             return;
+        }
+        if (bot.assignedBiomeGate && now < (bot.assignedBiomeUntil || 0) && !bot.forceShelterActive && !ctx.outsideZone) {
+            if (bot.position.distanceTo(bot.assignedBiomeGate) > 3) {
+                bot.state = STATES.EXPLORE;
+                this.steerMove(bot, bot.assignedBiomeGate, bot.physics.speed * 1.35);
+                return;
+            }
+            bot.assignedBiomeGate = null;
+        }
+        if (bot.assignedBiomeThreshold && now < (bot.assignedBiomeUntil || 0) && !bot.forceShelterActive && !ctx.outsideZone) {
+            if (bot.position.distanceTo(bot.assignedBiomeThreshold) > 2.5) {
+                bot.state = STATES.EXPLORE;
+                this.steerMove(bot, bot.assignedBiomeThreshold, bot.physics.speed * 1.35);
+                return;
+            }
+            bot.assignedBiomeThreshold = null;
         }
         if (!retaliating && bot.assignedBiomeEntry && now < (bot.assignedBiomeUntil || 0) && !bot.forceShelterActive && !ctx.outsideZone) {
             const distToEntry = bot.position.distanceTo(bot.assignedBiomeEntry);
