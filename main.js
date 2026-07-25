@@ -628,7 +628,8 @@ class Game {
                 if (!pad) break;
 
                 // Bots spawn ON the pad surface (pad.y = platform surface y=2)
-                spawnPos = new THREE.Vector3(pad.x, pad.y + 1.9, pad.z);
+                const botHeight = 1.7;
+                spawnPos = new THREE.Vector3(pad.x, pad.y + botHeight, pad.z);
             } else {
                 const angle = (i / botCount) * Math.PI * 2;
                 spawnPos = new THREE.Vector3(
