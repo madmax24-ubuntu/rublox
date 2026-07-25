@@ -627,9 +627,8 @@ class Game {
                 const pad = botPads[i];
                 if (!pad) break;
 
-                // Bots spawn ON the pad surface using raycastGroundY (same as player)
-                const groundY = this.map.raycastGroundY?.(pad.x, pad.z, pad.y) ?? pad.y;
-                spawnPos = new THREE.Vector3(pad.x, groundY + 1.9, pad.z);
+                // Bots spawn ON the pad surface (pad.y = platform surface y=2)
+                spawnPos = new THREE.Vector3(pad.x, pad.y + 1.9, pad.z);
             } else {
                 const angle = (i / botCount) * Math.PI * 2;
                 spawnPos = new THREE.Vector3(

@@ -320,14 +320,15 @@ test('BotBrain: noCombatUntil set during spawnBots() for pre-fight looting', () 
     }
 });
 
-// TEST 13: Bot spawn uses raycastGroundY (fix #1)
-test('spawnBots: uses raycastGroundY for ground height (not raw pad.y)', () => {
+// TEST 13: Bot spawn uses pad.y directly (correct height)
+test('spawnBots: uses pad.y directly for spawn height', () => {
     const code = read('main.js');
     const spawnBotsSection = code.substring(code.indexOf('spawnBots() {'));
     const spawnBotsEnd = spawnBotsSection.indexOf('setupBotLodBatch');
     const section = spawnBotsSection.substring(0, spawnBotsEnd);
-    if (!section.includes('raycastGroundY')) {
-        throw new Error('spawnBots() does not use raycastGroundY — bots may spawn at wrong height');
+    // Should use pad.y directly (not raycastGroundY) for correct spawn height
+    if (!section.includes('pad.y + 1.9')) {
+        throw new Error('spawnBots() does not use pad.y + 1.9 — bots may spawn at wrong height');
     }
 });
 
