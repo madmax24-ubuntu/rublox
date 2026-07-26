@@ -335,11 +335,6 @@ export class MeshPool {
                 opts.side = wall ? THREE.DoubleSide : THREE.FrontSide;
             }
             const mat = new THREE.MeshStandardMaterial(opts);
-            if (!transparent) {
-                mat.polygonOffset = true;
-                mat.polygonOffsetFactor = wall ? 4 : 2;
-                mat.polygonOffsetUnits = wall ? 2 : 1;
-            }
             this.mats.set(key, mat);
         }
         return this.mats.get(key);
@@ -353,10 +348,7 @@ export class MeshPool {
         if (!this.mats.has(key)) {
             this.mats.set(key, new THREE.MeshStandardMaterial({
                 color: cHex, roughness: r, metalness: 0,
-                flatShading: flatShading,
-                polygonOffset: true,
-                polygonOffsetFactor: 1,
-                polygonOffsetUnits: 1
+                flatShading: flatShading
             }));
         }
         return this.mats.get(key);

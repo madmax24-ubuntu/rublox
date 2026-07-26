@@ -5,7 +5,8 @@ const PLATFORM_RADIUS = 55;
 const PLATFORM_HEIGHT = 2;
 const PLATFORM_TOP_Y = PLATFORM_HEIGHT; // y=2 is the walkable surface
 const SPAWN_PAD_COUNT = 100;
-const SPAWN_PAD_RADIUS = 38;
+const SPAWN_PAD_RADIUS = 46;
+const SPAWN_PAD_TOP_Y = PLATFORM_TOP_Y + 0.405;
 
 export class MapGeneratorNode {
     constructor(scene) {
@@ -365,7 +366,7 @@ export class MapGeneratorNode {
             });
             this.scene.add(pad);
 
-            this.spawnPads.push({ x, y: PLATFORM_TOP_Y, z });
+            this.spawnPads.push({ x, y: SPAWN_PAD_TOP_Y, z });
             if (i < 2) console.log(`[NodePad] Pad ${i}: pos=(${x.toFixed(2)}, ${z.toFixed(2)}) data=(${this.spawnPads[i].x.toFixed(2)}, ${this.spawnPads[i].z.toFixed(2)})`);
         }
     }

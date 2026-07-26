@@ -242,9 +242,8 @@ export class Physics {
             if (position.z + radius < min.z || position.z - radius > max.z) continue;
             if (position.y + height < min.y - 0.5) continue;
             if (position.y > max.y + height + 0.5) continue;
-            // Tower structures: don't filter out based on height delta (they connect ground to elevated surfaces)
-            const isTower = box.isTowerStructure || box.isTowerStair;
-            if (!isTower && (bottom > max.y + 0.5 || max.y > bottom + 0.65)) continue;
+            const stepReach = box.isTowerStair ? 0.78 : 0.65;
+            if (bottom > max.y + 0.5 || max.y > bottom + stepReach) continue;
             if (maxY === -Infinity || max.y > maxY) maxY = max.y;
         }
 
@@ -276,14 +275,15 @@ export class Physics {
             const sin = Math.sin(obb.rotation);
             const localX = dx * cos - dz * sin;
             const localZ = dx * sin + dz * cos;
-            return Math.abs(localX) <= Math.max(0, obb.halfWidth - radius)
-                && Math.abs(localZ) <= Math.max(0, obb.halfDepth - radius);
+            const clearance = radius * 0.35;
+            return Math.abs(localX) <= Math.max(0.02, obb.halfWidth - clearance)
+                && Math.abs(localZ) <= Math.max(0.02, obb.halfDepth - clearance);
         }
         const circle = box.surfaceCircle;
         if (!circle) return true;
         const dx = x - circle.x;
         const dz = z - circle.z;
-        const limit = Math.max(0, circle.radius - radius);
+        const limit = Math.max(0, circle.radius - radius * 0.35);
         return dx * dx + dz * dz <= limit * limit;
     }
 

@@ -644,6 +644,7 @@ class Game {
             const bot = new Bot(this.scene, i, spawnPos);
             bot.mapRef = this.map;
             bot.physics.onGround = true;
+            bot.isFrozen = true;
             bot.state = 'spawn';
             bot.target = null;
             bot.patrolTarget = null;
