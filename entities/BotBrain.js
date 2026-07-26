@@ -926,21 +926,6 @@ export class BotBrain {
             if (bot.patrolTarget) this.steerMove(bot, bot.patrolTarget, bot.physics.speed);
             return;
         }
-        // HP threshold adjusted by personality: aggressive bots fight to lower HP, cautious retreat earlier
-        const hpThreshold = ctx.earlyGamePhase
-            ? (0.34 - agg * 0.08 + cau * 0.08)
-            : (0.24 - agg * 0.08 + cau * 0.08);
-        if (ctx.hp < hpThreshold) {
-            // Hesitation — bot doesn't flee immediately
-            if (!bot._retreatHesitateUntil || performance.now() >= bot._retreatHesitateUntil) {
-                bot.state = STATES.RETREAT;
-                this.actRetreat(bot, ctx);
-                return;
-            }
-            if (!bot._retreatHesitateUntil) {
-                bot._retreatHesitateUntil = performance.now() + (500 + cau * 1000) * (1 + (1 - ctx.hp) * 2);
-            }
-        }
         const nowSec = performance.now() / 1000;
         if (!bot._engageWindowUntil || nowSec >= bot._engageWindowUntil) {
             // Shorter engage windows during early game
@@ -976,6 +961,16 @@ export class BotBrain {
                 }
                 weapon = bot.currentWeapon || bot.fists;
             }
+        }
+
+        // Retreat earlier — don't fight to the death
+        const hpThreshold = ctx.earlyGamePhase
+            ? (0.42 - agg * 0.1 + cau * 0.1)
+            : (0.35 - agg * 0.1 + cau * 0.1);
+        if (ctx.hp < hpThreshold) {
+            bot.state = STATES.RETREAT;
+            this.actRetreat(bot, ctx);
+            return;
         }
 
         bot.lookAt(target.position);
