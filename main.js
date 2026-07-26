@@ -619,6 +619,7 @@ class Game {
         const spawnRadius = GAME_CONFIG.bots.spawnRadius;
         // Player uses pad[0], bots use pads[1..] — each entity gets strictly its own pad
         const botPads = spawnPads.length > 1 ? spawnPads.slice(1) : spawnPads;
+        console.log(`[SpawnPads] Total=${spawnPads.length} BotPads=${botPads.length} FirstPad=(${spawnPads[0]?.x.toFixed(2)}, ${spawnPads[0]?.z.toFixed(2)}) SecondPad=(${spawnPads[1]?.x.toFixed(2)}, ${spawnPads[1]?.z.toFixed(2)})`);
 
         for (let i = 0; i < botCount; i++) {
             let spawnPos;
@@ -641,6 +642,7 @@ class Game {
 
             const bot = new Bot(this.scene, i, spawnPos);
             bot.mapRef = this.map;
+            console.log(`[BotSpawn] Bot ${i}: pad=(${pad?.x.toFixed(2)}, ${pad?.z.toFixed(2)}) spawn=(${spawnPos.x.toFixed(2)}, ${spawnPos.z.toFixed(2)}) diff=(${((spawnPos.x - (pad?.x ?? 0)).toFixed(2)}, ${(spawnPos.z - (pad?.z ?? 0)).toFixed(2)})`);
             bot.physics.onGround = true;
             bot.state = 'spawn';
             bot.target = null;
