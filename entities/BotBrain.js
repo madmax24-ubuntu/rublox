@@ -561,12 +561,20 @@ export class BotBrain {
 
             // 5. Engagement: personality-adjusted thresholds
             if (ctx.nearestEnemy && ctx.nearestEnemyDist < engageDist) {
-                // BLOCK engage: knife-only bots must not fight at range — they need to loot first
-                if (!hasRealWeapon && ctx.nearestEnemyDist > 2) {
+                // Self-defense: engage if being shot at close range regardless of gear
+                const isBeingShot = ctx.heardShot;
+                const closeThreat = ctx.nearestEnemyDist < 15;
+                if (isBeingShot && closeThreat && !veryLowHp) {
+                    return STATES.ENGAGE;
+                }
+                // Knife-only bots: engage only if very close (melee range) and being threatened
+                if (!hasRealWeapon && ctx.nearestEnemyDist > 8) {
                     return STATES.LOOT;
                 }
-                const isBeingShot = ctx.heardShot;
-                // Aggressive bots engage more easily; cautious bots need wellArmed + beingShot
+                if (!hasRealWeapon && isBeingShot && closeThreat && !veryLowHp) {
+                    return STATES.ENGAGE;
+                }
+                // Well-armed bots engage when being shot
                 if (isBeingShot && wellArmed && ctx.gear >= undergearedThreshold && ctx.crowdNear < crowdTolerance) {
                     return STATES.ENGAGE;
                 }
@@ -602,9 +610,13 @@ export class BotBrain {
             return STATES.EXPLORE;
         }
 
-        // 4. Undergeared — prioritize loot and hide from range
+        // 4. Undergeared — prioritize loot, hide from range, but self-defense always allowed
         const undergeared = !wellArmed || ctx.gear < undergearedThreshold;
         if (undergeared) {
+            // Self-defense: engage if being shot at close range regardless of gear
+            const isBeingShot = ctx.heardShot;
+            const closeThreat = ctx.nearestEnemyDist < 15;
+            if (isBeingShot && closeThreat && !veryLowHp) return STATES.ENGAGE;
             if (ctx.lootTarget) return STATES.LOOT;
             if (ctx.nearestEnemy && ctx.nearestEnemyDist < 55) return STATES.HIDE;
             return STATES.EXPLORE;
