@@ -773,7 +773,7 @@
 
 
 
-        /* Mobile Landscape - Compact Single Row Layout */
+        /* Mobile Landscape — wide two-column layout with large, thumb-friendly controls */
         .start-layout.mobile-landscape {
             display: none;
             position: relative;
@@ -785,18 +785,21 @@
             z-index: 1;
             display: flex;
             flex-direction: row;
-            align-items: center;
+            align-items: stretch;
             justify-content: center;
             height: 100%;
-            padding: 12px 16px;
+            padding: max(14px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+                     max(14px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+            gap: 18px;
         }
 
         .mobile-landscape-left {
             display: flex;
             flex-direction: column;
-            align-items: flex-start;
+            align-items: center;
             justify-content: center;
-            flex: 0 0 auto;
+            flex: 0 0 38%;
+            min-width: 0;
         }
 
         .mobile-landscape-right {
@@ -804,62 +807,73 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            flex: 1;
+            flex: 1 1 60%;
+            min-width: 0;
         }
 
         .mobile-landscape-title {
-            font-size: 9px;
-            color: rgba(255, 179, 0, 0.8);
+            font-size: clamp(13px, 2.8vh, 16px);
+            color: rgba(255, 179, 0, 0.85);
             font-weight: 700;
-            letter-spacing: 1.5px;
+            letter-spacing: 2px;
             text-transform: uppercase;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
 
         .mobile-landscape-controls {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 6px;
+            gap: 10px;
             width: 100%;
-            max-width: 300px;
+            max-width: 420px;
         }
 
         .mobile-landscape-controls .mobile-control {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 2px;
+            gap: 4px;
         }
 
         .mobile-landscape-controls .mobile-control .icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid rgba(255, 255, 255, 0.18);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
+            font-size: 22px;
+            backdrop-filter: blur(6px);
         }
 
         .mobile-landscape-controls .mobile-control .label {
-            font-size: 8px;
-            color: rgba(255, 255, 255, 0.6);
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 600;
+            letter-spacing: 0.5px;
         }
 
         .mobile-start-btn-landscape {
-            margin-top: 10px;
-            padding: 6px 16px;
-            font-size: 12px;
-            font-weight: 700;
+            margin-top: 14px;
+            padding: 12px 28px;
+            font-size: 18px;
+            font-weight: 900;
             background: linear-gradient(135deg, #ffb300, #ff7043);
             border: none;
-            border-radius: 12px;
+            border-radius: 16px;
             color: #1a1a1a;
             cursor: pointer;
-            letter-spacing: 1px;
-            box-shadow: 0 0 20px rgba(255, 179, 0, 0.4);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            box-shadow: 0 0 30px rgba(255, 179, 0, 0.45), 0 8px 24px rgba(255, 179, 0, 0.25);
+            transition: transform 0.12s ease, box-shadow 0.12s ease;
+        }
+
+        .mobile-start-btn-landscape:active {
+            transform: scale(0.95);
+            box-shadow: 0 0 18px rgba(255, 179, 0, 0.3), 0 4px 12px rgba(255, 179, 0, 0.15);
         }
 
         @media (pointer: coarse) and (max-height: 500px) {
@@ -876,49 +890,50 @@
             }
 
             .mobile-landscape-left .mobile-logo {
-                font-size: 36px !important;
-                margin-bottom: 6px !important;
-                filter: none !important;
+                font-size: 48px !important;
+                margin-bottom: 8px !important;
+                filter: drop-shadow(0 0 16px rgba(255, 179, 0, 0.4)) !important;
                 animation: none !important;
             }
 
             .mobile-landscape-left .mobile-title {
-                font-size: 24px !important;
+                font-size: clamp(28px, 7vh, 38px) !important;
                 letter-spacing: 2px !important;
-                margin-bottom: 4px !important;
-                text-shadow: none !important;
+                margin-bottom: 6px !important;
+                text-shadow: 0 0 20px rgba(255, 179, 0, 0.5), 0 3px 10px rgba(0, 0, 0, 0.5) !important;
             }
 
             .mobile-landscape-left .mobile-subtitle {
-                font-size: 12px !important;
+                font-size: clamp(14px, 3.2vh, 18px) !important;
                 margin-bottom: 0 !important;
                 letter-spacing: 2px !important;
             }
 
             .mobile-landscape-right .mobile-landscape-title {
-                font-size: 12px !important;
-                margin-bottom: 10px !important;
+                font-size: 15px !important;
+                margin-bottom: 12px !important;
             }
 
             .mobile-landscape-right .mobile-landscape-controls {
-                gap: 10px !important;
-                max-width: 320px !important;
+                gap: 14px !important;
+                max-width: 520px !important;
             }
 
             .mobile-landscape-right .mobile-control .icon {
-                width: 48px !important;
-                height: 48px !important;
-                font-size: 22px !important;
+                width: 58px !important;
+                height: 58px !important;
+                font-size: 24px !important;
+                border-width: 2px !important;
             }
 
             .mobile-landscape-right .mobile-control .label {
-                font-size: 11px !important;
+                font-size: 12px !important;
             }
 
             .mobile-landscape-right .mobile-start-btn-landscape {
-                font-size: 16px !important;
-                padding: 10px 20px !important;
-                margin-top: 10px !important;
+                font-size: 20px !important;
+                padding: 14px 32px !important;
+                margin-top: 16px !important;
             }
         }
 
