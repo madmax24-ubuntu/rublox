@@ -813,7 +813,7 @@ export class BotBrain {
 
             if (!scatterTarget) return;
             if (!this.isInAssignedBiome(bot, scatterTarget)) {
-                scatterTarget = this.pickSpreadTarget(bot, 18, 68);
+                scatterTarget = this.pickSpreadTarget(bot, 40, 120);
                 if (!scatterTarget) return;
             }
             // Avoid laser ring at radius 27

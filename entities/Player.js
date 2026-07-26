@@ -27,6 +27,7 @@ export class Player {
         this.maxArmor = 100;
         this.isInvulnerable = false;
         this.isAlive = true;
+        this.infiniteHealth = true; // test flag — never die
         this.isCameraFrozen = false;
 
         // Кэш видимости рук по типу оружия — не мерцает каждый кадр
@@ -894,7 +895,7 @@ export class Player {
     }
 
     takeDamage(damage, isHeadshot = false, attacker = null, knockbackStrength = 0, source = null) {
-        if (this.isInvulnerable) return false;
+        if (this.isInvulnerable || this.infiniteHealth) return false;
         const hpBefore = this.health;
         const armorBefore = this.armor;
 
