@@ -508,6 +508,9 @@ export class BotBrain {
         // Caution adjusts retreat threshold: cautious bots retreat at higher HP
         const retreatHpThreshold = 0.2 + cau * 0.15;
 
+        // Helper: check if bot has a real weapon (not knife/fists)
+        const hasRealWeapon = bot.currentWeapon && bot.currentWeapon.type !== 'knife' && bot.currentWeapon.type !== 'fists';
+
         if (ctx.nearestZombie && ctx.nearestZombieDist < 16) {
             // Zombies are a threat — engage unless critically low HP
             if (veryLowHp) return ctx.shelterTarget ? STATES.RETREAT : STATES.EXPLORE;
@@ -536,7 +539,6 @@ export class BotBrain {
         }
 
         // === MANDATORY LOOT PRIORITY: if bot has no weapon or only knife, force loot ===
-        const hasRealWeapon = bot.currentWeapon && bot.currentWeapon.type !== 'knife' && bot.currentWeapon.type !== 'fists';
         if (!hasRealWeapon && ctx.lootTarget) {
             return STATES.LOOT;
         }
