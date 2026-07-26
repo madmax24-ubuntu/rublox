@@ -554,6 +554,7 @@ export class Bot {
 
     update(delta, brain, entityManager, lootManager, audioSynth, physics, zone, gameState) {
         this._deferredDelta = (this._deferredDelta || 0) + delta;
+        this._gameState = gameState;
         this.updateDamageFlash();
         if (![this.position.x, this.position.y, this.position.z].every(Number.isFinite)) {
             this.position.copy(this._safePosition);

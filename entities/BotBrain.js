@@ -526,6 +526,12 @@ export class BotBrain {
             return STATES.EXPLORE; // scatter
         }
 
+        // === MANDATORY LOOT PRIORITY: if bot has no weapon or only knife, force loot ===
+        const hasRealWeapon = bot.currentWeapon && bot.currentWeapon.type !== 'knife' && bot.currentWeapon.type !== 'fists';
+        if (!hasRealWeapon && ctx.lootTarget) {
+            return STATES.LOOT;
+        }
+
         // === PHASE 2: Early game (45s after pre-loot) ===
         // Bots prioritize looting — only engage when directly threatened
         if (ctx.earlyGamePhase) {
@@ -555,6 +561,10 @@ export class BotBrain {
 
             // 5. Engagement: personality-adjusted thresholds
             if (ctx.nearestEnemy && ctx.nearestEnemyDist < engageDist) {
+                // BLOCK engage: knife-only bots must not fight at range — they need to loot first
+                if (!hasRealWeapon && ctx.nearestEnemyDist > 2) {
+                    return STATES.LOOT;
+                }
                 const isBeingShot = ctx.heardShot;
                 // Aggressive bots engage more easily; cautious bots need wellArmed + beingShot
                 if (isBeingShot && wellArmed && ctx.gear >= undergearedThreshold && ctx.crowdNear < crowdTolerance) {
@@ -602,6 +612,10 @@ export class BotBrain {
 
         // 5. Engage only if well-positioned, armed, AND actively being attacked
         if (ctx.nearestEnemy && ctx.nearestEnemyDist < engageDist) {
+            // BLOCK engage: knife-only bots must not fight at range — they need to loot first
+            if (!hasRealWeapon && ctx.nearestEnemyDist > 2) {
+                return STATES.LOOT;
+            }
             const isBeingAttacked = ctx.heardShot || (bot._lastAttackedBy && performance.now() - bot._lastAttackedBy < 3000);
             const favorableFight = wellArmed && armed && ctx.hp > 0.48 && ctx.crowdNear < 4;
             if ((isBeingAttacked || favorableFight) && ctx.crowdNear < Math.max(3, crowdTolerance + 1)) {
@@ -654,6 +668,20 @@ export class BotBrain {
 
     actExplore(bot, ctx) {
         const now = performance.now();
+        // Move away from center during first 60 seconds — prevents cluster deaths
+        const matchTime = bot._matchStartTime || 0;
+        const elapsed = now - (matchTime || now);
+        if (elapsed < 60000 && Math.hypot(bot.position.x, bot.position.z) < 30) {
+            const angle = Math.atan2(bot.position.z, bot.position.x);
+            const scatterDist = 40 + (bot.id % 5) * 8;
+            const scatterTarget = this._tmpSpreadVec.set(
+                Math.cos(angle) * scatterDist,
+                bot.position.y,
+                Math.sin(angle) * scatterDist
+            );
+            this.steerMove(bot, scatterTarget, bot.physics.speed * 1.3);
+            return;
+        }
         if (bot.assignedBiomeEntry && now < (bot.assignedBiomeUntil || 0)) {
             if (Math.hypot(bot.position.x, bot.position.z) < 72) {
                 this.steerMove(bot, bot.assignedBiomeEntry, bot.physics.speed * 1.25);
@@ -812,6 +840,8 @@ export class BotBrain {
         const loot = lootManager?.tryOpenChest?.(chest, bot, bot.audioSynthRef);
         if (loot) bot.pickupLoot(loot, chest.position);
         this.releaseLootReservation(bot);
+        // EQUIP BEST WEAPON immediately after looting — prevents knife-only bots
+        this.ensureBestWeaponEquipped(bot);
         // Reduced pause — bots rush to next chest immediately
         bot._lootPauseUntil = performance.now() + 150 + Math.random() * 250;
         bot.patrolTarget = this.pickSpreadTarget(bot, 10, 36);
@@ -1253,8 +1283,8 @@ export class BotBrain {
     }
 
     ensureBestWeaponEquipped(bot) {
-        // Don't switch weapons too frequently
-        if (!bot._weaponSwitchCooldown || performance.now() < bot._weaponSwitchCooldown) return;
+        // Don't switch weapons too frequently — only throttle when cooldown is set
+        if (bot._weaponSwitchCooldown && performance.now() < bot._weaponSwitchCooldown) return;
 
         const items = bot.inventory?.getItems?.() || [];
         let bestSlot = -1;
@@ -1271,9 +1301,12 @@ export class BotBrain {
                 bestSlot = i;
             }
         }
-        if (bestSlot >= 0 && bot.inventory.selectedSlot !== bestSlot) {
-            bot.selectSlot(bestSlot);
-            bot._weaponSwitchCooldown = performance.now() + 800;
+        if (bestSlot >= 0) {
+            const needsSwitch = bot.inventory.selectedSlot !== bestSlot || !bot.currentWeapon;
+            if (needsSwitch) {
+                bot.selectSlot(bestSlot);
+                bot._weaponSwitchCooldown = performance.now() + 800;
+            }
         }
     }
 
