@@ -539,7 +539,7 @@ export class MapGenerator {
             this.scene.add(plane);
         }
 
-        const terrainCollider = this.addColliderBox(new THREE.Vector3(0, -0.05, 0), HALF * 2, 0.1, HALF * 2, true);
+        const terrainCollider = this.addColliderBox(new THREE.Vector3(0, 0.06, 0), HALF * 2, 0.12, HALF * 2, true);
         terrainCollider.isTerrain = true;
 
         // Height map (flat = 0)
