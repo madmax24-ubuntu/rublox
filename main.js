@@ -642,7 +642,7 @@ class Game {
 
             const bot = new Bot(this.scene, i, spawnPos);
             bot.mapRef = this.map;
-            console.log(`[BotSpawn] Bot ${i}: pad=(${pad?.x.toFixed(2)}, ${pad?.z.toFixed(2)}) spawn=(${spawnPos.x.toFixed(2)}, ${spawnPos.z.toFixed(2)}) diff=(${((spawnPos.x - (pad?.x ?? 0)).toFixed(2)}, ${(spawnPos.z - (pad?.z ?? 0)).toFixed(2)})`);
+            console.log(`[BotSpawn] Bot ${i}: pad=(${pad?.x.toFixed(2)}, ${pad?.z.toFixed(2)}) spawn=(${spawnPos.x.toFixed(2)}, ${spawnPos.z.toFixed(2)}) diff=(${(spawnPos.x - (pad?.x ?? 0)).toFixed(2)}, ${(spawnPos.z - (pad?.z ?? 0)).toFixed(2)})`);
             bot.physics.onGround = true;
             bot.state = 'spawn';
             bot.target = null;
