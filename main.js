@@ -370,8 +370,8 @@ class Game {
         this.lastEventType = null;
         this.eventTimeline = [
             { at: 150, type: 'night', duration: 55 },
-            { at: 330, type: 'radiationRain', duration: GAME_CONFIG.events.radiation.durationSeconds },
-            { at: 510, type: 'night', duration: 65 }
+            { at: 220, type: 'radiationRain', duration: GAME_CONFIG.events.radiation.durationSeconds },
+            { at: 380, type: 'night', duration: 65 }
         ];
         this.eventTimelineIndex = 0;
         this.radiationRainGraceTimer = 0;

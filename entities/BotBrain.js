@@ -304,7 +304,7 @@ export class BotBrain {
         }
         const enemyRecentlySeen = !!nearestEnemy || ((now - (bot.lastSeenEnemyAt || 0)) <= this.losMemorySeconds * 1000);
 
-        const lootRadius = hp < 0.5 ? 130 : 90;
+        const lootRadius = hp < 0.5 ? 160 : 120;
         const chests = lootManager?.getNearbyChests
             ? lootManager.getNearbyChests(bot.position, lootRadius, true)
             : [];
@@ -696,7 +696,7 @@ export class BotBrain {
         }
 
         if (!bot.patrolTarget || bot.position.distanceTo(bot.patrolTarget) < 5 || bot.isStuck) {
-            bot.patrolTarget = this.pickSpreadTarget(bot, 24, 72);
+            bot.patrolTarget = this.pickSpreadTarget(bot, 40, 120);
         }
         if (bot.patrolTarget) {
             this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 0.95);
@@ -834,7 +834,7 @@ export class BotBrain {
             this.steerMove(bot, scatterTarget, bot.physics.speed * scatterSpeed);
         } else {
             if (!bot.patrolTarget || bot.position.distanceTo(bot.patrolTarget) < 5) {
-                bot.patrolTarget = this.pickSpreadTarget(bot, 16, 58);
+                bot.patrolTarget = this.pickSpreadTarget(bot, 40, 120);
             }
             if (bot.patrolTarget) {
                 // Avoid laser ring
@@ -855,12 +855,12 @@ export class BotBrain {
         const chest = ctx.lootTarget;
         if (!chest || chest.userData?.isOpen) {
             this.releaseLootReservation(bot);
-            bot.patrolTarget = this.pickSpreadTarget(bot, 14, 44);
+            bot.patrolTarget = this.pickSpreadTarget(bot, 40, 120);
             if (bot.patrolTarget) this.steerMove(bot, bot.patrolTarget, bot.physics.speed);
             return;
         }
         if (!this.tryReserveLoot(bot, chest, 3)) {
-            bot.patrolTarget = this.pickSpreadTarget(bot, 18, 58);
+            bot.patrolTarget = this.pickSpreadTarget(bot, 40, 120);
             if (bot.patrolTarget) this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 1.05);
             return;
         }
@@ -881,7 +881,7 @@ export class BotBrain {
         this.ensureBestWeaponEquipped(bot);
         // Reduced pause — bots rush to next chest immediately
         bot._lootPauseUntil = performance.now() + 150 + Math.random() * 250;
-        bot.patrolTarget = this.pickSpreadTarget(bot, 10, 36);
+        bot.patrolTarget = this.pickSpreadTarget(bot, 40, 120);
     }
 
     actHide(bot, ctx) {
@@ -949,7 +949,7 @@ export class BotBrain {
         const target = this.pickCombatTarget(bot, ctx, entityManager);
         if (!target) {
             this.releaseCombatReservation(bot);
-            bot.patrolTarget = this.pickSpreadTarget(bot, 16, 48);
+            bot.patrolTarget = this.pickSpreadTarget(bot, 40, 120);
             if (bot.patrolTarget) this.steerMove(bot, bot.patrolTarget, bot.physics.speed);
             return;
         }
@@ -968,7 +968,7 @@ export class BotBrain {
         }
         if (!this.tryReserveCombat(bot, target, target.constructor?.name === 'Player' ? 3 : 2)) {
             this.releaseCombatReservation(bot);
-            bot.patrolTarget = this.pickSpreadTarget(bot, 18, 54);
+            bot.patrolTarget = this.pickSpreadTarget(bot, 40, 120);
             if (bot.patrolTarget) this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 1.02);
             return;
         }
@@ -1046,7 +1046,7 @@ export class BotBrain {
     actRetreat(bot, ctx) {
         const target = this.findNearestCover(bot, ctx.nearestEnemy?.position || null)
             || ctx.shelterTarget
-            || this.pickSpreadTarget(bot, 20, 68);
+            || this.pickSpreadTarget(bot, 40, 120);
         if (!target) return;
         bot.patrolTarget = target;
         bot.target = null;
@@ -1063,7 +1063,7 @@ export class BotBrain {
             return;
         }
         const cover = this.findNearestCover(bot, ctx.nearestEnemy?.position || null)
-            || this.pickSpreadTarget(bot, 12, 40);
+            || this.pickSpreadTarget(bot, 40, 120);
         if (!cover) return;
         bot.patrolTarget = cover;
         this.steerMove(bot, cover, bot.physics.speed * 1.12);
@@ -1080,7 +1080,7 @@ export class BotBrain {
         } else if (ctx.shelterTarget && ctx.hp < 0.4) {
             target = ctx.shelterTarget;
         } else {
-            target = this.pickSpreadTarget(bot, 14, 40);
+            target = this.pickSpreadTarget(bot, 40, 120);
         }
         if (!target) return;
         bot.patrolTarget = target;
@@ -1258,7 +1258,7 @@ export class BotBrain {
         return best;
     }
 
-    pickSpreadTarget(bot, minDist = 20, maxDist = 64) {
+    pickSpreadTarget(bot, minDist = 40, maxDist = 120) {
         const map = bot.mapRef;
         const floors = map?.getNavigationTiles?.() || map?.getFloorTiles?.();
         if (!floors?.length) return null;
@@ -1299,11 +1299,9 @@ export class BotBrain {
     isInAssignedBiome(bot, point) {
         if (!bot.assignedBiome || performance.now() >= (bot.assignedBiomeUntil || 0)) return true;
         if (Math.hypot(point.x, point.z) < 75) return false;
-        if (bot.assignedBiome === 'forest') return point.x < -5 && point.z < -5;
-        if (bot.assignedBiome === 'maze') return point.x > 5 && point.z < -5;
-        if (bot.assignedBiome === 'military') return point.x < -5 && point.z > 5;
-        if (bot.assignedBiome === 'ice') return point.x > 5 && point.z > 5;
-        return true;
+        // Allow bots to explore the full map outside biome zones
+        const halfMap = 120;
+        return Math.abs(point.x) <= halfMap && Math.abs(point.z) <= halfMap;
     }
 
     countBotsNearPointForSpread(bot, px, pz, radius) {
@@ -1458,7 +1456,7 @@ export class BotBrain {
 
     handleStuck(bot) {
         if (!bot.isStuck) return;
-        const escape = this.pickSpreadTarget(bot, 14, 52);
+        const escape = this.pickSpreadTarget(bot, 40, 120);
         if (escape) bot.patrolTarget = escape;
         bot.target = null;
         this.releaseLootReservation(bot);
@@ -1493,7 +1491,7 @@ export class BotBrain {
         }
     }
 
-    tryReserveLoot(bot, chest, maxBots = 2) {
+    tryReserveLoot(bot, chest, maxBots = 4) {
         const key = this.getObjectKey(chest);
         if (!key) return true;
         const prev = bot._lootReservationKey;

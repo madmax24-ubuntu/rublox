@@ -35,7 +35,7 @@ export class LootManager {
         this.activeGlowChests = new Set();
         this.chestMaterials = this.createChestMaterials();
         this.chestReady = false;
-        this.claimTTL = 2.4;
+        this.claimTTL = 4.0;
         this.lootCount = 0; // counter for test validation
         this.buildChestObstacleIndex();
         this.generateChestsAsync().then(() => {
