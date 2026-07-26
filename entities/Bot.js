@@ -333,10 +333,7 @@ export class Bot {
         const harnessMat = new THREE.MeshStandardMaterial({
             color: this.outfit.harness,
             roughness: 0.7,
-            flatShading: true,
-            polygonOffset: true,
-            polygonOffsetFactor: 1,
-            polygonOffsetUnits: 1
+            flatShading: true
         });
         const shoeMat = new THREE.MeshStandardMaterial({
             color: 0x3e3e3e,
@@ -351,10 +348,7 @@ export class Bot {
         const detailMat = new THREE.MeshStandardMaterial({
             color: 0x263238,
             roughness: 0.6,
-            flatShading: true,
-            polygonOffset: true,
-            polygonOffsetFactor: 1,
-            polygonOffsetUnits: 1
+            flatShading: true
         });
 
         const upperTorso = new THREE.Mesh(getBotBox(0.9, 0.55, 0.5), shirtMat);
@@ -448,10 +442,7 @@ export class Bot {
                 new THREE.MeshStandardMaterial({
                     color: this.outfit.vest,
                     roughness: 0.5,
-                    flatShading: true,
-                    polygonOffset: true,
-                    polygonOffsetFactor: 1,
-                    polygonOffsetUnits: 1
+                    flatShading: true
                 })
             );
             vest.position.set(0, 1.35, 0.36);

@@ -437,9 +437,9 @@ export class MapGenerator {
         const retained = [];
         for (const spots of groups.values()) {
             const keep = Math.max(1, Math.round(spots.length * ratio));
-            const protectedSpots = spots.filter(spot => String(spot.grade).startsWith('residence_'));
+            const protectedSpots = spots.filter(spot => spot.grade === 'tower' || String(spot.grade).startsWith('residence_'));
             retained.push(...protectedSpots);
-            const available = spots.filter(spot => !String(spot.grade).startsWith('residence_'));
+            const available = spots.filter(spot => spot.grade !== 'tower' && !String(spot.grade).startsWith('residence_'));
             const remaining = Math.max(0, keep - protectedSpots.length);
             for (let i = 0; i < remaining; i++) {
                 retained.push(available[Math.min(available.length - 1, Math.floor((i + 0.5) * available.length / remaining))]);
@@ -2182,9 +2182,6 @@ export class MapGenerator {
         mazeWalls.userData.isMazeWalls = true;
         this.scene.add(mazeWalls);
 
-        this._registerChestSpot(clearingCX - 4, clearingCZ, 'tower');
-        this._registerChestSpot(clearingCX + 4, clearingCZ, 'tower');
-
         // Central tall tower with spiral staircase
         const towerCX = clearingCX;
         const towerCZ = clearingCZ;
@@ -2226,6 +2223,15 @@ export class MapGenerator {
         floorMesh.userData.walkable = true;
         floorMesh.userData.isTowerStructure = true;
         this.scene.add(floorMesh);
+        const towerFloorCollider = this.addColliderBox(
+            new THREE.Vector3(towerCX, 0.25, towerCZ),
+            towerRadius * 2 - 1,
+            0.5,
+            towerRadius * 2 - 1,
+            true
+        );
+        towerFloorCollider.isTowerStructure = true;
+        towerFloorCollider.surfaceCircle = { x: towerCX, z: towerCZ, radius: towerRadius - 0.5 };
 
         // Spiral staircase
         const totalSteps = 120;
@@ -2512,20 +2518,13 @@ export class MapGenerator {
             this.scene.add(torch);
         }
 
-        // Chests on tower floor
+        this._chestSpots = this._chestSpots.filter(spot => Math.hypot(spot.x - towerCX, spot.z - towerCZ) >= towerRadius - 0.5);
         for (let i = 0; i < 3; i++) {
             const angle = (i / 3) * Math.PI * 2;
-            const dist = 2;
+            const dist = 3.8;
             const chestX = towerCX + Math.cos(angle) * dist;
             const chestZ = towerCZ + Math.sin(angle) * dist;
-
-            const chestMat = this.pool.getMatStd(0x8B4513, 0.7, 0, true, false, 1, 0xffaa00, 2.0);
-            const chestGeo = this.pool.getGeoBox(0.8, 0.6, 0.6);
-            const chest = new THREE.Mesh(chestGeo, chestMat);
-            chest.position.set(chestX, 0.3, chestZ);
-            chest.userData.isTowerChest = true;
-            chest.userData.mapGenerated = true;
-            this.scene.add(chest);
+            this._chestSpots.push({ x: chestX, z: chestZ, grade: 'tower' });
         }
     }
 

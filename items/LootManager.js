@@ -111,13 +111,10 @@ export class LootManager {
     }
 
     getChestPlacementY(x, z) {
-        const structure = this.mapGenerator.getStructureAtPoint?.(x, z, 0.2);
-        let baseY = 0;
-        if (structure) {
-            baseY = this.mapGenerator.getHeightAt?.(x, z) ?? 0;
-        } else {
-            baseY = this.mapGenerator.getSurfaceHeightAt?.(x, z) ?? this.mapGenerator.getHeightAt?.(x, z) ?? 0;
-        }
+        const fallbackY = this.mapGenerator.getHeightAt?.(x, z) ?? 0;
+        const baseY = this.mapGenerator.raycastGroundY?.(x, z, fallbackY)
+            ?? this.mapGenerator.getSurfaceHeightAt?.(x, z)
+            ?? fallbackY;
         return baseY + 0.02;
     }
 
