@@ -192,6 +192,7 @@ export class Zombie {
         this.alertTimer = 0;
         this.alertTarget = null;
         this.alertPosition = null;
+        this._alertPositionVec = new THREE.Vector3();
         this.stats = { damage: 0, kills: 0, loot: 0 };
         this.burnTimer = 0;
         this.burnTickTimer = 0;
@@ -594,7 +595,7 @@ export class Zombie {
             if (!child.isMesh) return;
             child.castShadow = true;
             child.receiveShadow = true;
-            child.frustumCulled = false;
+            child.frustumCulled = true;
             child.userData.zombieVariant = this.variant;
         });
         group.userData.isEntity = true;
@@ -665,7 +666,7 @@ export class Zombie {
             const alertDist = this.position.distanceTo(sharedAlert.position);
             if (alertDist < 34 * aggression) {
                 this.alertTarget = sharedAlert.target || this.alertTarget;
-                this.alertPosition = sharedAlert.position.clone();
+                this.alertPosition = this._alertPositionVec.copy(sharedAlert.position);
                 this.alertTimer = Math.max(this.alertTimer, 2.6);
             }
         }
@@ -680,7 +681,7 @@ export class Zombie {
             const dist = this.position.distanceTo(target.position);
             this.broadcastAlert(target);
             this.alertTarget = target;
-            this.alertPosition = target.position.clone();
+            this.alertPosition = this._alertPositionVec.copy(target.position);
             this.alertTimer = 2.8;
 
             let usedAbility = false;
@@ -886,7 +887,9 @@ export class Zombie {
         if (this._lodDetailed === detailed) return detailed;
         this._lodDetailed = detailed;
         for (const child of this.mesh.userData.detailChildren || []) child.visible = detailed;
-        if (this.mesh.userData.lodProxy) this.mesh.userData.lodProxy.visible = !detailed;
+        if (this.mesh.userData.lodProxy) {
+            this.mesh.userData.lodProxy.visible = !detailed && (!this.mesh.userData.useBatchedLod || this.burnTimer > 0);
+        }
         return detailed;
     }
 
@@ -917,11 +920,15 @@ export class Zombie {
 
     broadcastAlert(target) {
         if (!target || !this.scene?.userData || !this.isFinitePosition(target.position)) return;
-        this.scene.userData.zombieAlert = {
-            position: target.position.clone(),
-            target,
-            time: performance.now() * 0.001
+        const alert = this.scene.userData.zombieAlert || {
+            position: new THREE.Vector3(),
+            target: null,
+            time: 0
         };
+        alert.position.copy(target.position);
+        alert.target = target;
+        alert.time = performance.now() * 0.001;
+        this.scene.userData.zombieAlert = alert;
     }
 
     moveTowards(target, speed) {
@@ -930,12 +937,14 @@ export class Zombie {
             this.physics.velocity.z = 0;
             return;
         }
-        const direction = new THREE.Vector3()
-            .subVectors(target, this.position)
-            .normalize();
-        this.physics.velocity.x = direction.x * speed;
-        this.physics.velocity.z = direction.z * speed;
-        this.rotation.y = Math.atan2(direction.x, direction.z);
+        const dx = target.x - this.position.x;
+        const dz = target.z - this.position.z;
+        const invLength = 1 / Math.max(0.0001, Math.hypot(dx, dz));
+        const dirX = dx * invLength;
+        const dirZ = dz * invLength;
+        this.physics.velocity.x = dirX * speed;
+        this.physics.velocity.z = dirZ * speed;
+        this.rotation.y = Math.atan2(dirX, dirZ);
     }
 
     isFinitePosition(position) {
@@ -1074,7 +1083,7 @@ export class Zombie {
             this.physics.velocity.z += dir.z * strength;
             this.physics.velocity.y += 1.5 * (this.knockbackMultiplier ?? 1);
             this.alertTarget = attacker;
-            this.alertPosition = attacker.position.clone();
+            this.alertPosition = this._alertPositionVec.copy(attacker.position);
             this.alertTimer = Math.max(this.alertTimer, 3.2);
             this.broadcastAlert(attacker);
         }

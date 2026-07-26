@@ -721,6 +721,60 @@ class Game {
         }
     }
 
+    ensureZombieLodBatch(zombie) {
+        if (!zombie?.mesh?.userData?.lodProxy) return null;
+        if (!this.zombieLodBatchGroup) {
+            this.zombieLodBatchGroup = new THREE.Group();
+            this.zombieLodBatchGroup.userData.entityLodBatch = true;
+            this.zombieLodBatches = new Map();
+            this._zombieLodMatrix = new THREE.Matrix4();
+            this.scene.add(this.zombieLodBatchGroup);
+        }
+        let batch = this.zombieLodBatches.get(zombie.variant);
+        if (!batch) {
+            const proxy = zombie.mesh.userData.lodProxy;
+            const material = proxy.material.clone();
+            batch = new THREE.InstancedMesh(proxy.geometry, material, 256);
+            batch.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+            batch.frustumCulled = false;
+            batch.count = 0;
+            batch.userData.entityLodBatch = true;
+            batch.userData.variant = zombie.variant;
+            batch.userData.capacity = 256;
+            this.zombieLodBatches.set(zombie.variant, batch);
+            this.zombieLodBatchGroup.add(batch);
+        }
+        zombie.mesh.userData.useBatchedLod = true;
+        zombie.mesh.userData.lodProxy.visible = false;
+        return batch;
+    }
+
+    updateZombieLodBatch(delta = 0.016) {
+        this.zombieLodUpdateTimer = (this.zombieLodUpdateTimer || 0) - delta;
+        if (this.zombieLodUpdateTimer > 0) return;
+        this.zombieLodUpdateTimer = this.isMobile() ? 0.066 : 0.045;
+        if (this.zombieLodBatches) {
+            for (const batch of this.zombieLodBatches.values()) batch.userData.nextCount = 0;
+        }
+        for (const zombie of this.zombies) {
+            if (!zombie?.isAlive || zombie._lodDetailed !== false || zombie.burnTimer > 0) continue;
+            const batch = this.ensureZombieLodBatch(zombie);
+            if (!batch) continue;
+            const index = batch.userData.nextCount || 0;
+            if (index >= batch.userData.capacity) continue;
+            zombie.mesh.updateMatrixWorld(true);
+            this._zombieLodMatrix.copy(zombie.mesh.matrixWorld);
+            batch.setMatrixAt(index, this._zombieLodMatrix);
+            batch.userData.nextCount = index + 1;
+        }
+        if (!this.zombieLodBatches) return;
+        for (const batch of this.zombieLodBatches.values()) {
+            batch.count = batch.userData.nextCount || 0;
+            batch.visible = batch.count > 0;
+            if (batch.visible) batch.instanceMatrix.needsUpdate = true;
+        }
+    }
+
     _updateCountdownState(delta) {
         const dt = Number.isFinite(delta) ? delta : 0.016;
         this.countdownTimer -= dt;
@@ -1979,6 +2033,7 @@ class Game {
         this._updateBotHazards(delta);
 
         this._updateZombies(delta);
+        this.updateZombieLodBatch(delta);
         this._cleanupCorpses(delta);
 
         this._updateEnvironmentEntities(delta);

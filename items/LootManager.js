@@ -446,9 +446,8 @@ export class LootManager {
         chestModel.userData.grade = grade;
         chestModel.userData.claimedBy = null;
         chestModel.userData.claimExpireAt = 0;
-        // Disable frustum culling to prevent flickering during camera movement
         chestModel.traverse(child => {
-            if (child.isMesh) child.frustumCulled = false;
+            if (child.isMesh) child.frustumCulled = true;
         });
         const rareChest = grade === 'hangar' || grade === 'train';
         let generatedLoot = this.generateLoot(rareChest);
