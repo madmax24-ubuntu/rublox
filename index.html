@@ -337,40 +337,179 @@
 
         .start-layout.mobile {
             display: none;
-            flex-direction: column;
-            min-height: 0;
-        }
-
-        .start-panel {
-            position: relative;
-            z-index: 2;
-            background: rgba(7, 18, 28, 0.66);
-            border-right: 1px solid rgba(255, 255, 255, 0.08);
-            padding: clamp(18px, 3.5vh, 40px) clamp(14px, 3.5vw, 48px);
-            overflow-y: auto;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
-        }
-
-        .start-layout.mobile .start-panel {
-            border-right: 0;
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
-            padding: 14px 14px calc(12px + env(safe-area-inset-bottom));
-            flex: 1 1 auto;
-            min-height: 0;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .start-visual {
             position: relative;
             overflow: hidden;
         }
 
-        .start-layout.mobile .start-visual {
-            flex: 0 0 32%;
-            min-height: 36vh;
-            max-height: 42vh;
+        .mobile-bg {
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 50% 40%, rgba(255, 179, 0, 0.12), transparent 60%),
+                radial-gradient(ellipse 60% 50% at 30% 70%, rgba(75, 179, 255, 0.08), transparent 50%),
+                linear-gradient(180deg, #0a1520 0%, #0f1f2e 50%, #081218 100%);
+            z-index: 0;
+        }
+
+        .mobile-bg::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                radial-gradient(circle at 20% 30%, rgba(255, 179, 0, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 60%, rgba(75, 179, 255, 0.1) 0%, transparent 35%);
+            animation: mobileBgPulse 8s ease-in-out infinite;
+        }
+
+        @keyframes mobileBgPulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        .mobile-content {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100%;
+            padding: max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+                     max(20px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+        }
+
+        .mobile-hero {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            justify-content: center;
+            padding-bottom: 10vh;
+        }
+
+        .mobile-logo {
+            font-size: 64px;
+            margin-bottom: 12px;
+            filter: drop-shadow(0 0 20px rgba(255, 179, 0, 0.5));
+            animation: logoFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .mobile-title {
+            font-size: clamp(42px, 14vw, 64px);
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            color: #ffffff;
+            text-shadow: 0 0 30px rgba(255, 179, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.6);
+            margin-bottom: 6px;
+            text-align: center;
+            line-height: 1;
+        }
+
+        .mobile-subtitle {
+            font-size: clamp(14px, 4.5vw, 20px);
+            color: rgba(255, 179, 0, 0.9);
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .mobile-desc {
+            font-size: clamp(14px, 4vw, 17px);
+            color: rgba(233, 240, 246, 0.8);
+            text-align: center;
+            max-width: 90vw;
+            line-height: 1.5;
+            margin-bottom: 28px;
+        }
+
+        .mobile-start-btn {
+            position: relative;
+            width: min(300px, 82vw);
+            padding: 18px 28px;
+            font-size: clamp(20px, 6.5vw, 26px);
+            font-weight: 900;
+            background: linear-gradient(135deg, #ffb300, #ff7043);
+            border: none;
+            border-radius: 18px;
+            color: #1a1a1a;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 0 40px rgba(255, 179, 0, 0.5), 0 10px 30px rgba(255, 179, 0, 0.3);
+            animation: btnPulse 2.5s ease-in-out infinite;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .mobile-start-btn:active {
+            transform: scale(0.95);
+            animation: none;
+            box-shadow: 0 0 20px rgba(255, 179, 0, 0.3), 0 5px 15px rgba(255, 179, 0, 0.2);
+        }
+
+        @keyframes btnPulse {
+            0%, 100% {
+                box-shadow: 0 0 30px rgba(255, 179, 0, 0.4), 0 10px 30px rgba(255, 179, 0, 0.2);
+                transform: scale(1);
+            }
+            50% {
+                box-shadow: 0 0 50px rgba(255, 179, 0, 0.7), 0 10px 40px rgba(255, 179, 0, 0.4);
+                transform: scale(1.03);
+            }
+        }
+
+        .mobile-footer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: env(safe-area-inset-bottom, 20px);
+        }
+
+        .mobile-footer-label {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        .mobile-controls {
+            display: flex;
+            gap: 20px;
+        }
+
+        .mobile-control {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .mobile-control .icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            backdrop-filter: blur(4px);
+        }
+
+        .mobile-control .label {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: 600;
+            letter-spacing: 0.5px;
         }
 
         .dyn-bg {
@@ -625,52 +764,73 @@
         }
 
         @media (pointer: coarse) and (orientation: landscape) {
-            .start-layout.mobile {
-                flex-direction: row;
+            .mobile-content {
+                flex-direction: row !important;
+                justify-content: center;
+                gap: 20px;
             }
 
-            .start-layout.mobile .start-visual {
-                flex: 0 0 38%;
-                min-height: 0;
-                max-height: none;
+            .mobile-hero {
+                padding-bottom: 0 !important;
             }
 
-            .start-layout.mobile .start-panel {
-                padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+            .mobile-title {
+                font-size: clamp(28px, 6vw, 42px) !important;
             }
 
-            .start-layout.mobile .start-title {
-                font-size: clamp(26px, 5vw, 42px);
-                margin-bottom: 6px;
+            .mobile-subtitle {
+                font-size: clamp(11px, 2.5vw, 15px) !important;
             }
 
-            .start-layout.mobile p {
-                font-size: clamp(12px, 2.2vw, 16px);
+            .mobile-desc {
+                font-size: clamp(12px, 2.5vw, 15px) !important;
             }
 
-            .start-layout.mobile .start-btn {
-                font-size: clamp(16px, 2.8vw, 22px);
-                padding: 10px 12px;
+            .mobile-start-btn {
+                font-size: clamp(16px, 3vw, 20px) !important;
+                padding: 14px 20px !important;
             }
 
-            .start-layout.mobile .start-badges {
-                gap: 6px;
-                margin-bottom: 6px;
+            .mobile-logo {
+                font-size: 48px !important;
             }
 
-            .start-layout.mobile .start-badge {
-                padding: 4px 10px;
-                font-size: 10px;
+            .mobile-controls {
+                gap: 12px !important;
             }
 
-            .start-layout.mobile .start-footer {
-                font-size: 12px;
+            .mobile-control .icon {
+                width: 38px !important;
+                height: 38px !important;
+                font-size: 18px !important;
             }
         }
 
         @media (pointer: coarse) and (orientation: landscape) and (max-height: 430px) {
-            .start-layout.mobile .start-footer {
-                display: none;
+            .mobile-hero {
+                padding-bottom: 0 !important;
+            }
+            .mobile-logo {
+                font-size: 36px !important;
+                margin-bottom: 6px !important;
+            }
+            .mobile-title {
+                font-size: 24px !important;
+            }
+            .mobile-subtitle {
+                font-size: 10px !important;
+                margin-bottom: 8px !important;
+            }
+            .mobile-desc {
+                font-size: 11px !important;
+                margin-bottom: 12px !important;
+            }
+            .mobile-start-btn {
+                font-size: 14px !important;
+                padding: 12px 16px !important;
+            }
+            .mobile-footer {
+                display: none !important;
             }
         }
 
@@ -808,22 +968,36 @@
         </div>
 
         <div class="start-layout mobile">
-            <div class="start-visual">
-                <div class="dyn-bg"></div>
-                <div class="dyn-lines"></div>
-                <div class="dyn-particles">
-                    <span></span><span></span><span></span><span></span><span></span><span></span>
+            <div class="mobile-bg"></div>
+            <div class="mobile-content">
+                <div class="mobile-hero">
+                    <div class="mobile-logo">⚔️</div>
+                    <h1 class="mobile-title">RUBO ARENA</h1>
+                    <div class="mobile-subtitle">Голодные игры</div>
+                    <p class="mobile-desc">Выживание до последнего. Рандомная карта, лут из сундуков, перки в бою.</p>
+                    <button id="startButtonMobile" class="mobile-start-btn">▶ Начать бой</button>
                 </div>
-            </div>
-            <div class="start-panel">
-                <div class="start-badges">
-                    <div class="start-badge">Официальный релиз</div>
-                    <div class="start-badge">Выживание</div>
+                <div class="mobile-footer">
+                    <div class="mobile-footer-label">Управление</div>
+                    <div class="mobile-controls">
+                        <div class="mobile-control">
+                            <div class="icon">👆</div>
+                            <div class="label">Движение</div>
+                        </div>
+                        <div class="mobile-control">
+                            <div class="icon">⬆️</div>
+                            <div class="label">Прыжок</div>
+                        </div>
+                        <div class="mobile-control">
+                            <div class="icon">⚔️</div>
+                            <div class="label">Атака</div>
+                        </div>
+                        <div class="mobile-control">
+                            <div class="icon">🤚</div>
+                            <div class="label">Действие</div>
+                        </div>
+                    </div>
                 </div>
-                <h1 class="start-title">Rubo Arena: Голодные игры</h1>
-                <p>Полноэкранный матч на телефоне. Нажми старт и сразу в бой.</p>
-                <button id="startButtonMobile" class="start-btn">Начать игру</button>
-                <div class="start-footer">Левый стик: движение · Правая часть: обзор · Кнопки: Прыжок / Удар / E</div>
             </div>
         </div>
     </div>
