@@ -905,6 +905,177 @@
             }
         }
 
+        /* Mobile Landscape - Two Column Layout */
+        .start-layout.mobile-landscape {
+            display: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mobile-content-landscape {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 20px;
+            gap: 24px;
+        }
+
+        .mobile-landscape-left {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            text-align: center;
+        }
+
+        .mobile-landscape-right {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            text-align: center;
+        }
+
+        .mobile-landscape-title {
+            font-size: 11px;
+            color: rgba(255, 179, 0, 0.8);
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        .mobile-landscape-controls {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            width: 100%;
+            max-width: 280px;
+        }
+
+        .mobile-landscape-controls .mobile-control {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .mobile-landscape-controls .mobile-control .icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            backdrop-filter: blur(4px);
+        }
+
+        .mobile-landscape-controls .mobile-control .label {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .mobile-landscape-controls .mobile-controls-text {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.4);
+            text-align: center;
+            max-width: 100%;
+            line-height: 1.4;
+            margin-top: 8px;
+        }
+
+        @media (pointer: coarse) and (orientation: landscape) {
+            .start-layout.mobile {
+                display: none !important;
+            }
+
+            .start-layout.mobile-landscape {
+                display: flex !important;
+            }
+
+            .mobile-content {
+                display: none !important;
+            }
+
+            .mobile-content-landscape {
+                padding: 12px 16px !important;
+                gap: 16px !important;
+            }
+
+            .mobile-landscape-left {
+                padding-right: 8px !important;
+            }
+
+            .mobile-landscape-right {
+                padding-left: 8px !important;
+            }
+
+            .mobile-landscape-left .mobile-logo {
+                font-size: 28px !important;
+                margin-bottom: 4px !important;
+                filter: none !important;
+                animation: none !important;
+            }
+
+            .mobile-landscape-left .mobile-title {
+                font-size: 18px !important;
+                letter-spacing: 1px !important;
+                margin-bottom: 2px !important;
+                text-shadow: none !important;
+            }
+
+            .mobile-landscape-left .mobile-subtitle {
+                font-size: 9px !important;
+                margin-bottom: 6px !important;
+                letter-spacing: 1.5px !important;
+            }
+
+            .mobile-landscape-left .mobile-desc {
+                font-size: 9px !important;
+                margin-bottom: 8px !important;
+                line-height: 1.3 !important;
+            }
+
+            .mobile-landscape-left .mobile-start-btn {
+                font-size: 13px !important;
+                padding: 8px 16px !important;
+            }
+
+            .mobile-landscape-right .mobile-landscape-title {
+                font-size: 8px !important;
+                margin-bottom: 8px !important;
+            }
+
+            .mobile-landscape-right .mobile-landscape-controls {
+                gap: 8px !important;
+                max-width: 200px !important;
+            }
+
+            .mobile-landscape-right .mobile-control .icon {
+                width: 36px !important;
+                height: 36px !important;
+                font-size: 16px !important;
+            }
+
+            .mobile-landscape-right .mobile-control .label {
+                font-size: 8px !important;
+            }
+
+            .mobile-landscape-right .mobile-controls-text {
+                font-size: 8px !important;
+                margin-top: 6px !important;
+            }
+        }
+
         @media (min-width: 981px) and (pointer: fine) {
             .start-layout.desktop {
                 display: grid;
@@ -1051,6 +1222,41 @@
                 <div class="mobile-footer">
                     <div class="mobile-footer-label">Управление</div>
                     <div class="mobile-controls">
+                        <div class="mobile-control">
+                            <div class="icon">👆</div>
+                            <div class="label">Движение</div>
+                        </div>
+                        <div class="mobile-control">
+                            <div class="icon">⬆️</div>
+                            <div class="label">Прыжок</div>
+                        </div>
+                        <div class="mobile-control">
+                            <div class="icon">⚔️</div>
+                            <div class="label">Атака</div>
+                        </div>
+                        <div class="mobile-control">
+                            <div class="icon">🤚</div>
+                            <div class="label">Действие</div>
+                        </div>
+                    </div>
+                    <div class="mobile-controls-text">Левый стик: движение · Правая сторона: обзор · Кнопки: Прыжок / Удар / E</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="start-layout mobile-landscape">
+            <div class="mobile-bg"></div>
+            <div class="mobile-content-landscape">
+                <div class="mobile-landscape-left">
+                    <div class="mobile-logo">⚔️</div>
+                    <h1 class="mobile-title">RUBO ARENA</h1>
+                    <div class="mobile-subtitle">Голодные игры</div>
+                    <p class="mobile-desc">Выживание до последнего. Рандомная карта, лут из сундуков, перки в бою.</p>
+                    <button id="startButtonMobile" class="mobile-start-btn">▶ Начать бой</button>
+                </div>
+                <div class="mobile-landscape-right">
+                    <div class="mobile-landscape-title">Управление</div>
+                    <div class="mobile-landscape-controls">
                         <div class="mobile-control">
                             <div class="icon">👆</div>
                             <div class="label">Движение</div>
