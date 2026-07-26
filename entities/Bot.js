@@ -569,6 +569,12 @@ export class Bot {
         }
         if (this.healthBar) this.healthBar.visible = true;
 
+        // Health regen — bots recover HP when not in combat and not burning
+        if (this.health < this.maxHealth && !this.burnTimer && !(this._lastAttackedBy && performance.now() - this._lastAttackedBy < 5000)) {
+            const regenPerSecond = 1.8 + (this.id % 3) * 0.4; // 1.8-2.8 HP/s
+            this.health = Math.min(this.maxHealth, this.health + regenPerSecond * delta);
+        }
+
         // OPTIMIZED: Skip expensive AI for near-idle bots every other frame
         if (this._aiSkipFrame) {
             this.mesh.position.copy(this.position);
