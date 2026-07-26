@@ -876,7 +876,8 @@
             box-shadow: 0 0 18px rgba(255, 179, 0, 0.3), 0 4px 12px rgba(255, 179, 0, 0.15);
         }
 
-        @media (pointer: coarse) and (max-height: 500px) {
+        @media (pointer: coarse) and (max-height: 500px),
+               (pointer: fine) and (max-height: 500px) {
             .start-layout.mobile {
                 display: none !important;
             }
