@@ -555,6 +555,10 @@ export class BotBrain {
             if (ctx.crowdNear >= crowdTolerance) {
                 return STATES.EXPLORE;
             }
+            // Extra crowd avoidance in early game
+            if (ctx.crowdNear >= 2) {
+                return STATES.EXPLORE;
+            }
 
             // 4. Low HP → hide/retreat
             if (lowHp && underPressure && !hasMedkit) return STATES.HIDE;
@@ -605,8 +609,13 @@ export class BotBrain {
         if (ctx.hp < retreatHpThreshold && ctx.shelterTarget && (!ctx.nearestEnemy || ctx.nearestEnemyDist > 10)) return STATES.ZONE_RETREAT;
         if (lowHp && underPressure && !hasMedkit) return STATES.HIDE;
 
-        // 3. Avoid crowds (aggressive bots tolerate more)
-        if (ctx.crowdNear >= Math.max(3, crowdTolerance + 1)) {
+        // 3. Avoid crowds — leave fights with multiple combatants
+        const crowdLeave = Math.max(2, Math.round(crowdTolerance));
+        if (ctx.crowdNear >= crowdLeave) {
+            return STATES.EXPLORE;
+        }
+        // Extra guard: don't engage if surrounded by multiple enemies
+        if (ctx.nearestEnemy && ctx.crowdNear >= 3 && !ctx.heardShot) {
             return STATES.EXPLORE;
         }
 
