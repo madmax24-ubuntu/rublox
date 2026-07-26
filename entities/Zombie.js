@@ -106,58 +106,58 @@ const _createZombieTexture = (variant, baseColorHex) => {
 
 const VARIANT_CONFIG = {
     runner: {
-        health: 42, speed: 9.0, damage: 6.4, knockbackMultiplier: 1.2,
+        health: 42, speed: 6.3, damage: 6.4, knockbackMultiplier: 1.2,
         scale: 1.2, radius: 0.48, bodyColor: 0xc34b2f, headColor: 0xc8c2a7, detailColor: 0xf0a13b,
         eyeColor: 0xff4411, glowColor: 0x44ff22, glowIntensity: 1.8,
         attackCooldown: 0.46, patrolSpeed: 0.82, alertRadius: 94,
         moanInterval: [1.2, 2.4], attackInterval: [0.3, 0.8],
         hasHorns: false, hasMask: true, hasSpikes: false, hasBackpack: false,
         hasArmorPlates: false, armAngle: -0.8, clawLength: 0.25,
-        walkSpeed: 8, idleBreathe: 0.02,
+        walkSpeed: 5.6, idleBreathe: 0.02,
         behavior: 'rush'
     },
     normal: {
-        health: 72, speed: 6.15, damage: 7.8, knockbackMultiplier: 0.8,
+        health: 72, speed: 4.3, damage: 7.8, knockbackMultiplier: 0.8,
         scale: 1.35, radius: 0.54, bodyColor: 0x6f3434, headColor: 0xb9b49b, detailColor: 0xd7c7a2,
         eyeColor: 0xff6600, glowColor: 0x8bff4f, glowIntensity: 1.35,
         attackCooldown: 0.64, patrolSpeed: 0.78, alertRadius: 82,
         moanInterval: [1.8, 3.6], attackInterval: [0.5, 1.2],
         hasHorns: true, hasMask: false, hasSpikes: false, hasBackpack: false,
         hasArmorPlates: true, armAngle: -0.85, clawLength: 0.3,
-        walkSpeed: 6, idleBreathe: 0.015,
+        walkSpeed: 4.2, idleBreathe: 0.015,
         behavior: 'patrol'
     },
     heavy: {
-        health: 180, speed: 3.85, damage: 10.2, knockbackMultiplier: 0,
+        health: 180, speed: 2.7, damage: 10.2, knockbackMultiplier: 0,
         scale: 1.56, radius: 0.6, bodyColor: 0x3f4a50, headColor: 0x9c7a70, detailColor: 0xb23b2f,
         eyeColor: 0xff2200, glowColor: 0x3dff1f, glowIntensity: 2.2,
         attackCooldown: 0.94, patrolSpeed: 0.76, alertRadius: 70,
         moanInterval: [2.5, 4.5], attackInterval: [0.8, 1.8],
         hasHorns: true, hasMask: false, hasSpikes: true, hasBackpack: true,
         hasArmorPlates: true, armAngle: -0.95, clawLength: 0.35,
-        walkSpeed: 4, idleBreathe: 0.01,
+        walkSpeed: 2.8, idleBreathe: 0.01,
         behavior: 'tank'
     },
     crawler: {
-        health: 58, speed: 7.7, damage: 7.0, knockbackMultiplier: 1.05,
+        health: 58, speed: 5.4, damage: 7.0, knockbackMultiplier: 1.05,
         scale: 1.15, radius: 0.5, bodyColor: 0x405e72, headColor: 0xa8bbc0, detailColor: 0x5dd9ef,
         eyeColor: 0xb7f4ff, glowColor: 0x38b9d6, glowIntensity: 1.15,
         attackCooldown: 0.5, patrolSpeed: 0.92, alertRadius: 90,
         moanInterval: [1.5, 3.0], attackInterval: [0.4, 0.9],
         hasHorns: false, hasMask: false, hasSpikes: true, hasBackpack: false,
         hasArmorPlates: false, armAngle: -1.25, clawLength: 0.38,
-        walkSpeed: 9, idleBreathe: 0.025,
+        walkSpeed: 6.3, idleBreathe: 0.025,
         behavior: 'crawl'
     },
     toxic: {
-        health: 105, speed: 5.25, damage: 8.8, knockbackMultiplier: 0.55,
+        health: 105, speed: 3.7, damage: 8.8, knockbackMultiplier: 0.55,
         scale: 1.42, radius: 0.57, bodyColor: 0xb5a52f, headColor: 0xc4bd82, detailColor: 0x24352e,
         eyeColor: 0xe8ff3d, glowColor: 0xa6ff19, glowIntensity: 2.7,
         attackCooldown: 0.72, patrolSpeed: 0.78, alertRadius: 102,
         moanInterval: [2.0, 4.0], attackInterval: [0.6, 1.3],
         hasHorns: false, hasMask: true, hasSpikes: false, hasBackpack: true,
         hasArmorPlates: false, armAngle: -0.72, clawLength: 0.28,
-        walkSpeed: 5.5, idleBreathe: 0.035,
+        walkSpeed: 3.9, idleBreathe: 0.035,
         behavior: 'toxic'
     }
 };

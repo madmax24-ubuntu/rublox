@@ -96,8 +96,8 @@ export class Bot {
         // Кэш grip-параметров для каждого типа оружия — не вызывать getThirdPersonGrip каждый кадр
         this._weaponGripCache = {};
         this.ignoreTrainAvoidance = false;
-        this.healthRegenDelay = 7;
-        this.healthRegenDuration = 7;
+        this.healthRegenDelay = 3;
+        this.healthRegenDuration = 5;
         this.lastDamageAt = -Infinity;
         this.noCombatUntil = 0;
         this.healthBarRefreshTimer = Math.random() * 0.12;

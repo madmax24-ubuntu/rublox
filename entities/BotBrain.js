@@ -486,6 +486,7 @@ export class BotBrain {
 
         const lowHp = ctx.hp < 0.35;
         const veryLowHp = ctx.hp < 0.2;
+        const fleeHp = ctx.hp < 0.3;
         const underPressure = ctx.nearestEnemy && ctx.nearestEnemyDist < ctx.closeCombatRadius;
         const armed = !!bot.currentWeapon && bot.currentWeapon.type !== 'fists';
         const wellArmed = ctx.combatReady;
@@ -571,7 +572,11 @@ export class BotBrain {
                 return STATES.EXPLORE;
             }
 
-            // 4. Low HP → hide/retreat
+            // 4. Critical HP → flee and hide immediately
+            if (fleeHp && ctx.shelterTarget) return STATES.HIDE;
+            if (fleeHp) return STATES.RETREAT;
+
+            // 4b. Low HP → hide/retreat
             if (lowHp && underPressure && !hasMedkit) return STATES.HIDE;
 
             // 5. Engagement: personality-adjusted thresholds
@@ -611,6 +616,10 @@ export class BotBrain {
         }
         // Reduced retaliation distance — prefer looting
         if (retaliating && ctx.nearestEnemy && ctx.nearestEnemyDist < 40 && !veryLowHp) return STATES.ENGAGE;
+
+        // 1b. Critical HP → flee and hide immediately
+        if (fleeHp && ctx.shelterTarget) return STATES.HIDE;
+        if (fleeHp) return STATES.RETREAT;
 
         // 2. Retreat/Hide if in trouble (caution-adjusted)
         if (ctx.hp < retreatHpThreshold && ctx.shelterTarget && (!ctx.nearestEnemy || ctx.nearestEnemyDist > 10)) return STATES.ZONE_RETREAT;
@@ -884,12 +893,14 @@ export class BotBrain {
                 this._tmpShelterDir.subVectors(shelter, bot.position).normalize();
                 this._tmpEnemyDir.subVectors(enemy.position, bot.position).normalize();
                 const dot = this._tmpShelterDir.dot(this._tmpEnemyDir);
-                if (dot > 0.8) isActuallyHidden = false; 
+                if (dot > 0.8) isActuallyHidden = false;
             }
 
             if (isActuallyHidden) {
                 bot.patrolTarget = shelter;
-                this.steerMove(bot, shelter, bot.physics.speed * 0.75);
+                // При критическом HP боты бегут к укрытию быстрее
+                const hideSpeed = ctx.hp < 0.3 ? 1.15 : 0.75;
+                this.steerMove(bot, shelter, bot.physics.speed * hideSpeed);
                 return;
             }
         }
@@ -1040,7 +1051,9 @@ export class BotBrain {
         bot.patrolTarget = target;
         bot.target = null;
         this.releaseCombatReservation(bot);
-        this.steerMove(bot, target, bot.physics.speed * 1.28);
+        // Бегите быстрее, когда здоровье критически низкое
+        const fleeSpeed = ctx.hp < 0.3 ? 1.5 : 1.28;
+        this.steerMove(bot, target, bot.physics.speed * fleeSpeed);
     }
 
     actReloadCover(bot, ctx) {
