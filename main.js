@@ -631,7 +631,7 @@ class Game {
                 // Bots spawn ON the pad surface (pad.y = platform surface y=2)
                 const botHeight = 1.7;
                 spawnPos = new THREE.Vector3(pad.x, pad.y + botHeight, pad.z);
-                if (i < 2) console.log(`[SpawnDebug] Bot ${i}: pad.x=${pad.x.toFixed(3)} pad.z=${pad.z.toFixed(3)} spawn.x=${spawnPos.x.toFixed(3)} spawn.z=${spawnPos.z.toFixed(3)} dx=${(spawnPos.x-pad.x).toFixed(3)} dz=${(spawnPos.z-pad.z).toFixed(3)}`);
+                if (i < 3) console.log(`[SpawnDebug] Bot ${i}: pad=(${pad.x.toFixed(2)}, ${pad.z.toFixed(2)}) spawn=(${spawnPos.x.toFixed(2)}, ${spawnPos.z.toFixed(2)}) distFromCenter=${Math.sqrt(pad.x*pad.x + pad.z*pad.z).toFixed(2)}`);
             } else {
                 const angle = (i / botCount) * Math.PI * 2;
                 spawnPos = new THREE.Vector3(
