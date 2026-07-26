@@ -788,9 +788,9 @@
             align-items: stretch;
             justify-content: center;
             height: 100%;
-            padding: max(14px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
-                     max(14px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
-            gap: 18px;
+            padding: max(16px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right))
+                     max(16px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+            gap: 24px;
         }
 
         .mobile-landscape-left {
@@ -798,7 +798,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            flex: 0 0 38%;
+            flex: 0 0 36%;
             min-width: 0;
         }
 
@@ -812,47 +812,56 @@
         }
 
         .mobile-landscape-title {
-            font-size: clamp(13px, 2.8vh, 16px);
+            font-size: clamp(14px, 3vh, 18px);
             color: rgba(255, 179, 0, 0.85);
             font-weight: 700;
             letter-spacing: 2px;
             text-transform: uppercase;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
         }
 
         .mobile-landscape-controls {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
+            gap: 14px;
             width: 100%;
-            max-width: 420px;
+            max-width: 500px;
         }
 
         .mobile-landscape-controls .mobile-control {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
         }
 
         .mobile-landscape-controls .mobile-control .icon {
-            width: 52px;
-            height: 52px;
-            border-radius: 14px;
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
             background: rgba(255, 255, 255, 0.08);
             border: 2px solid rgba(255, 255, 255, 0.18);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 22px;
+            font-size: 26px;
             backdrop-filter: blur(6px);
         }
 
         .mobile-landscape-controls .mobile-control .label {
-            font-size: 11px;
+            font-size: 12px;
             color: rgba(255, 255, 255, 0.7);
             font-weight: 600;
             letter-spacing: 0.5px;
+        }
+
+        .mobile-landscape-instructions {
+            font-size: clamp(11px, 2.2vh, 14px);
+            color: rgba(255, 255, 255, 0.55);
+            text-align: center;
+            max-width: 95vw;
+            line-height: 1.4;
+            margin-top: 10px;
         }
 
         .mobile-start-btn-landscape {
@@ -891,50 +900,55 @@
             }
 
             .mobile-landscape-left .mobile-logo {
-                font-size: 48px !important;
-                margin-bottom: 8px !important;
-                filter: drop-shadow(0 0 16px rgba(255, 179, 0, 0.4)) !important;
+                font-size: 56px !important;
+                margin-bottom: 10px !important;
+                filter: drop-shadow(0 0 20px rgba(255, 179, 0, 0.5)) !important;
                 animation: none !important;
             }
 
             .mobile-landscape-left .mobile-title {
-                font-size: clamp(28px, 7vh, 38px) !important;
+                font-size: clamp(32px, 8vh, 44px) !important;
                 letter-spacing: 2px !important;
-                margin-bottom: 6px !important;
-                text-shadow: 0 0 20px rgba(255, 179, 0, 0.5), 0 3px 10px rgba(0, 0, 0, 0.5) !important;
+                margin-bottom: 8px !important;
+                text-shadow: 0 0 24px rgba(255, 179, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.5) !important;
             }
 
             .mobile-landscape-left .mobile-subtitle {
-                font-size: clamp(14px, 3.2vh, 18px) !important;
+                font-size: clamp(16px, 3.5vh, 20px) !important;
                 margin-bottom: 0 !important;
                 letter-spacing: 2px !important;
             }
 
             .mobile-landscape-right .mobile-landscape-title {
-                font-size: 15px !important;
-                margin-bottom: 12px !important;
+                font-size: 16px !important;
+                margin-bottom: 14px !important;
             }
 
             .mobile-landscape-right .mobile-landscape-controls {
-                gap: 14px !important;
-                max-width: 520px !important;
+                gap: 16px !important;
+                max-width: 560px !important;
             }
 
             .mobile-landscape-right .mobile-control .icon {
-                width: 58px !important;
-                height: 58px !important;
-                font-size: 24px !important;
+                width: 68px !important;
+                height: 68px !important;
+                font-size: 28px !important;
                 border-width: 2px !important;
             }
 
             .mobile-landscape-right .mobile-control .label {
-                font-size: 12px !important;
+                font-size: 13px !important;
+            }
+
+            .mobile-landscape-right .mobile-landscape-instructions {
+                font-size: 14px !important;
+                margin-top: 12px !important;
             }
 
             .mobile-landscape-right .mobile-start-btn-landscape {
-                font-size: 20px !important;
-                padding: 14px 32px !important;
-                margin-top: 16px !important;
+                font-size: 22px !important;
+                padding: 16px 36px !important;
+                margin-top: 18px !important;
             }
         }
 
@@ -1134,6 +1148,7 @@
                             <div class="label">Дейст</div>
                         </div>
                     </div>
+                    <div class="mobile-landscape-instructions">Левый стик: движение · Правая сторона: обзор · Кнопки: Прыжок / Удар / E</div>
                     <button id="startButtonMobile" class="mobile-start-btn-landscape">▶ Начать бой</button>
                 </div>
             </div>
