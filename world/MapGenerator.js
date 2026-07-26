@@ -737,6 +737,9 @@ export class MapGenerator {
         for (let entrance = 0; entrance < stairAngles.length; entrance++) {
             const angle = stairAngles[entrance];
             const stairMat = this.pool.getMatStd(stairColors[entrance], 0.7, 0.08, true, false, 1, stairColors[entrance], 0.12);
+            stairMat.polygonOffset = true;
+            stairMat.polygonOffsetFactor = 4;
+            stairMat.polygonOffsetUnits = 2;
             for (let step = 0; step < 6; step++) {
                 const radius = 54.5 + step * 2.25;
                 const top = 2 - step * 0.34;
@@ -2211,6 +2214,9 @@ export class MapGenerator {
         floorMesh.userData.mapGenerated = true;
         floorMesh.userData.walkable = true;
         floorMesh.userData.isTowerStructure = true;
+        floorMesh.material.polygonOffset = true;
+        floorMesh.material.polygonOffsetFactor = 4;
+        floorMesh.material.polygonOffsetUnits = 2;
         this.scene.add(floorMesh);
 
         // Spiral staircase
