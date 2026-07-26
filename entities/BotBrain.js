@@ -131,7 +131,7 @@ export class BotBrain {
             return;
         }
         if (bot.assignedBiomeGate && now < (bot.assignedBiomeUntil || 0) && !bot.forceShelterActive && !ctx.outsideZone) {
-            if (bot.position.distanceTo(bot.assignedBiomeGate) > 3) {
+            if (Math.hypot(bot.position.x, bot.position.z) < 55 && bot.position.distanceTo(bot.assignedBiomeGate) > 3) {
                 bot.state = STATES.EXPLORE;
                 this.steerMove(bot, bot.assignedBiomeGate, bot.physics.speed * 1.35);
                 return;
@@ -139,7 +139,7 @@ export class BotBrain {
             bot.assignedBiomeGate = null;
         }
         if (bot.assignedBiomeThreshold && now < (bot.assignedBiomeUntil || 0) && !bot.forceShelterActive && !ctx.outsideZone) {
-            if (bot.position.distanceTo(bot.assignedBiomeThreshold) > 2.5) {
+            if (Math.hypot(bot.position.x, bot.position.z) < 64 && bot.position.distanceTo(bot.assignedBiomeThreshold) > 2.5) {
                 bot.state = STATES.EXPLORE;
                 this.steerMove(bot, bot.assignedBiomeThreshold, bot.physics.speed * 1.35);
                 return;
@@ -148,11 +148,12 @@ export class BotBrain {
         }
         if (!retaliating && bot.assignedBiomeEntry && now < (bot.assignedBiomeUntil || 0) && !bot.forceShelterActive && !ctx.outsideZone) {
             const distToEntry = bot.position.distanceTo(bot.assignedBiomeEntry);
-            if (distToEntry > 8) {
+            if (Math.hypot(bot.position.x, bot.position.z) < 72 && distToEntry > 8) {
                 bot.state = STATES.EXPLORE;
                 this.steerMove(bot, bot.assignedBiomeEntry, bot.physics.speed * 1.25);
                 return;
             }
+            bot.assignedBiomeEntry = null;
         }
 
         if (bot.state === STATES.SHELTER) {
@@ -538,16 +539,14 @@ export class BotBrain {
             // Reduced retaliation distance — bots prefer looting over fighting
             if (retaliating && ctx.nearestEnemy && ctx.nearestEnemyDist < 30 && !veryLowHp) return STATES.ENGAGE;
 
-            // 2. Scatter if crowd nearby (aggressive bots tolerate more)
-            if (ctx.crowdNear >= crowdTolerance) {
+            const undergeared = !wellArmed || ctx.gear < undergearedThreshold;
+            if (undergeared) {
+                if (ctx.lootTarget) return STATES.LOOT;
+                if (ctx.nearestEnemy && ctx.nearestEnemyDist < 60) return STATES.HIDE;
                 return STATES.EXPLORE;
             }
 
-            // 3. Undergeared? Loot aggressively (lower lootF threshold)
-            const undergeared = ctx.gear < undergearedThreshold;
-            if (undergeared) {
-                if (ctx.lootTarget && lootF > 0.25) return STATES.LOOT;
-                if (ctx.nearestEnemy && ctx.nearestEnemyDist < 60) return STATES.HIDE;
+            if (ctx.crowdNear >= crowdTolerance) {
                 return STATES.EXPLORE;
             }
 
@@ -594,12 +593,10 @@ export class BotBrain {
         }
 
         // 4. Undergeared — prioritize loot and hide from range
-        const undergeared = ctx.gear < undergearedThreshold;
+        const undergeared = !wellArmed || ctx.gear < undergearedThreshold;
         if (undergeared) {
-            if (ctx.nearestEnemy && ctx.nearestEnemyDist < 55) {
-                return STATES.HIDE;
-            }
-            if (ctx.lootTarget && lootF > 0.2) return STATES.LOOT;
+            if (ctx.lootTarget) return STATES.LOOT;
+            if (ctx.nearestEnemy && ctx.nearestEnemyDist < 55) return STATES.HIDE;
             return STATES.EXPLORE;
         }
 

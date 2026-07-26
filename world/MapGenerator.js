@@ -2238,8 +2238,8 @@ export class MapGenerator {
         const stepH = towerHeight / totalSteps;
         const spiralR = towerRadius - 2;
         const angleStep = 0.17;
-        const stepWidth = 3.2;
-        const stepDepth = 1.65;
+        const stepWidth = 3.5;
+        const stepDepth = 1.9;
         const stepGeo = this.pool.getGeoBox(stepWidth, stepH, stepDepth);
         const towerSteps = new THREE.InstancedMesh(stepGeo, darkMat, totalSteps);
         const stepMatrix = new THREE.Matrix4();
@@ -2259,17 +2259,22 @@ export class MapGenerator {
             towerSteps.setMatrixAt(i, stepMatrix);
             // Shrink collider to stay inside tower walls (radius 8) — axis-aligned boxes at spiralR=6
             // would protrude outside through wall gaps and cause invisible floating for players outside
+            const colliderCos = Math.abs(Math.cos(rotation));
+            const colliderSin = Math.abs(Math.sin(rotation));
             const stairCollider = this.addColliderBox(
                 new THREE.Vector3(sx, stepY, sz),
-                2.0, stepH, 1.2, true
+                stepWidth * colliderCos + stepDepth * colliderSin,
+                stepH,
+                stepWidth * colliderSin + stepDepth * colliderCos,
+                true
             );
             stairCollider.isTowerStair = true;
             stairCollider.isTowerStructure = true;
             stairCollider.surfaceOBB = {
                 x: sx,
                 z: sz,
-                halfWidth: 1.0,
-                halfDepth: 0.6,
+                halfWidth: stepWidth * 0.5 - 0.08,
+                halfDepth: stepDepth * 0.5 - 0.08,
                 rotation
             };
         }
@@ -2521,7 +2526,7 @@ export class MapGenerator {
         this._chestSpots = this._chestSpots.filter(spot => Math.hypot(spot.x - towerCX, spot.z - towerCZ) >= towerRadius - 0.5);
         for (let i = 0; i < 3; i++) {
             const angle = (i / 3) * Math.PI * 2;
-            const dist = 3.8;
+            const dist = 2.65;
             const chestX = towerCX + Math.cos(angle) * dist;
             const chestZ = towerCZ + Math.sin(angle) * dist;
             this._chestSpots.push({ x: chestX, z: chestZ, grade: 'tower' });
