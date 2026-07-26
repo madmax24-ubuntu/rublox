@@ -619,11 +619,12 @@ export class MapGenerator {
             for (const pad of nodePads) {
                 this.spawnPads.push(new THREE.Vector3(pad.x, pad.y ?? 2, pad.z));
                 // Snap to tile grid for consistency with the rest of the map generation logic
-                this._spawnTiles.push({ 
-                    x: Math.round(pad.x / TILE_SIZE) * TILE_SIZE, 
-                    z: Math.round(pad.z / TILE_SIZE) * TILE_SIZE 
+                this._spawnTiles.push({
+                    x: Math.round(pad.x / TILE_SIZE) * TILE_SIZE,
+                    z: Math.round(pad.z / TILE_SIZE) * TILE_SIZE
                 });
             }
+            console.log(`[MapGenSync] Synced ${this.spawnPads.length} pads from node, first=(${this.spawnPads[0].x.toFixed(1)}, ${this.spawnPads[0].z.toFixed(1)}) second=(${this.spawnPads[1].x.toFixed(1)}, ${this.spawnPads[1].z.toFixed(1)})`);
         }
 
         // First spawn pad is at the edge of the platform — main player spawns there
@@ -5109,7 +5110,7 @@ export class MapGenerator {
             }
         }
         this.spawnPads = valid;
-        console.log(`[MapGenerator] After filter: ${this.spawnPads.length} pads, first: (${this.spawnPads[0]?.x.toFixed(1)}, ${this.spawnPads[0]?.z.toFixed(1)})`);
+        console.log(`[MapGenerator] After filter: ${this.spawnPads.length} pads, first: (${this.spawnPads[0]?.x.toFixed(1)}, ${this.spawnPads[0]?.z.toFixed(1)}) second: (${this.spawnPads[1]?.x.toFixed(1)}, ${this.spawnPads[1]?.z.toFixed(1)})`);
     }
 
     // =========================================================================

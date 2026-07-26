@@ -366,6 +366,7 @@ export class MapGeneratorNode {
             this.scene.add(pad);
 
             this.spawnPads.push({ x, y: PLATFORM_TOP_Y, z });
+            if (i < 2) console.log(`[NodePad] Pad ${i}: pos=(${x.toFixed(2)}, ${z.toFixed(2)}) data=(${this.spawnPads[i].x.toFixed(2)}, ${this.spawnPads[i].z.toFixed(2)})`);
         }
     }
 

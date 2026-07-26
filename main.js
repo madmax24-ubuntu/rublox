@@ -619,7 +619,7 @@ class Game {
         const spawnRadius = GAME_CONFIG.bots.spawnRadius;
         // Player uses pad[0], bots use pads[1..] — each entity gets strictly its own pad
         const botPads = spawnPads.length > 1 ? spawnPads.slice(1) : spawnPads;
-        console.log(`[SpawnPads] Total=${spawnPads.length} BotPads=${botPads.length} FirstPad=(${spawnPads[0]?.x.toFixed(2)}, ${spawnPads[0]?.z.toFixed(2)}) SecondPad=(${spawnPads[1]?.x.toFixed(2)}, ${spawnPads[1]?.z.toFixed(2)})`);
+        console.log(`[SpawnDebug] Total pads=${spawnPads.length} BotPads=${botPads.length} First=(${spawnPads[0]?.x.toFixed(1)}, ${spawnPads[0]?.z.toFixed(1)}) Second=(${spawnPads[1]?.x.toFixed(1)}, ${spawnPads[1]?.z.toFixed(1)}) Last=(${spawnPads[spawnPads.length-1]?.x.toFixed(1)}, ${spawnPads[spawnPads.length-1]?.z.toFixed(1)})`);
 
         for (let i = 0; i < botCount; i++) {
             let spawnPos;
@@ -631,6 +631,7 @@ class Game {
                 // Bots spawn ON the pad surface (pad.y = platform surface y=2)
                 const botHeight = 1.7;
                 spawnPos = new THREE.Vector3(pad.x, pad.y + botHeight, pad.z);
+                if (i < 2) console.log(`[SpawnDebug] Bot ${i}: pad.x=${pad.x.toFixed(3)} pad.z=${pad.z.toFixed(3)} spawn.x=${spawnPos.x.toFixed(3)} spawn.z=${spawnPos.z.toFixed(3)} dx=${(spawnPos.x-pad.x).toFixed(3)} dz=${(spawnPos.z-pad.z).toFixed(3)}`);
             } else {
                 const angle = (i / botCount) * Math.PI * 2;
                 spawnPos = new THREE.Vector3(
@@ -642,7 +643,6 @@ class Game {
 
             const bot = new Bot(this.scene, i, spawnPos);
             bot.mapRef = this.map;
-            console.log(`[BotSpawn] Bot ${i}: pad=(${pad?.x.toFixed(2)}, ${pad?.z.toFixed(2)}) spawn=(${spawnPos.x.toFixed(2)}, ${spawnPos.z.toFixed(2)}) diff=(${(spawnPos.x - (pad?.x ?? 0)).toFixed(2)}, ${(spawnPos.z - (pad?.z ?? 0)).toFixed(2)})`);
             bot.physics.onGround = true;
             bot.state = 'spawn';
             bot.target = null;
