@@ -582,12 +582,8 @@ export class BotBrain {
                 if (isBeingShot && wellArmed && ctx.gear >= undergearedThreshold && ctx.crowdNear < crowdTolerance) {
                     return STATES.ENGAGE;
                 }
-                // Very aggressive bots engage even without being shot
-                if (agg > 0.48 && armed && ctx.gear >= undergearedThreshold * 0.65 && ctx.crowdNear < crowdTolerance + 1) {
-                    return STATES.ENGAGE;
-                }
-                // Loot if enemy is not too close (lower lootF threshold)
-                if (ctx.lootTarget && ctx.nearestEnemyDist > 12 && lootF > 0.2) return STATES.LOOT;
+                // Loot if enemy is not too close
+                if (ctx.lootTarget && ctx.nearestEnemyDist > 12) return STATES.LOOT;
                 return STATES.EXPLORE;
             }
 
@@ -631,23 +627,23 @@ export class BotBrain {
             return STATES.EXPLORE;
         }
 
-        // 5. Engage only if well-positioned, armed, AND actively being attacked
+        // 5. Engage ONLY if being attacked — no aggressive engagements
         if (ctx.nearestEnemy && ctx.nearestEnemyDist < engageDist) {
-            // BLOCK engage: knife-only bots must not fight at range — they need to loot first
+            // BLOCK engage: knife-only bots must not fight at range
             if (!hasRealWeapon && ctx.nearestEnemyDist > 2) {
                 return STATES.LOOT;
             }
             const isBeingAttacked = ctx.heardShot || (bot._lastAttackedBy && performance.now() - bot._lastAttackedBy < 3000);
-            const favorableFight = wellArmed && armed && ctx.hp > 0.48 && ctx.crowdNear < 4;
-            if ((isBeingAttacked || favorableFight) && ctx.crowdNear < Math.max(3, crowdTolerance + 1)) {
+            // Only engage if directly attacked — not just because we're well-armed
+            if (isBeingAttacked && ctx.crowdNear < crowdTolerance) {
                 return STATES.ENGAGE;
             }
-            // Very aggressive bots engage even without being attacked
-            if (agg > 0.48 && armed && ctx.crowdNear < crowdTolerance + 1) {
+            // Retaliate for recent attacks
+            if (bot._lastAttackedBy && performance.now() - bot._lastAttackedBy < 4000 && ctx.crowdNear < 2) {
                 return STATES.ENGAGE;
             }
-            // If just armed but not attacked, keep looting/exploring (lower lootF threshold)
-            if (ctx.lootTarget && ctx.nearestEnemyDist > 15 && lootF > 0.15) return STATES.LOOT;
+            // Always loot if target available and enemy not too close
+            if (ctx.lootTarget && ctx.nearestEnemyDist > 15) return STATES.LOOT;
             return STATES.EXPLORE;
         }
 
