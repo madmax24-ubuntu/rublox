@@ -2243,17 +2243,19 @@ export class MapGenerator {
             stepQuaternion.setFromAxisAngle(upAxis, rotation);
             stepMatrix.compose(new THREE.Vector3(sx, stepY, sz), stepQuaternion, stepScale);
             towerSteps.setMatrixAt(i, stepMatrix);
+            // Shrink collider to stay inside tower walls (radius 8) — axis-aligned boxes at spiralR=6
+            // would protrude outside through wall gaps and cause invisible floating for players outside
             const stairCollider = this.addColliderBox(
                 new THREE.Vector3(sx, stepY, sz),
-                stepWidth, stepH, stepDepth, true
+                2.0, stepH, 1.2, true
             );
             stairCollider.isTowerStair = true;
             stairCollider.isTowerStructure = true;
             stairCollider.surfaceOBB = {
                 x: sx,
                 z: sz,
-                halfWidth: stepWidth * 0.5,
-                halfDepth: stepDepth * 0.5,
+                halfWidth: 1.0,
+                halfDepth: 0.6,
                 rotation
             };
         }
