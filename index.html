@@ -774,36 +774,41 @@
         @media (pointer: coarse) and (orientation: landscape) {
             .start-layout.mobile {
                 overflow: visible !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
             }
 
             .mobile-content {
-                justify-content: flex-start !important;
-                padding: 8px 12px !important;
+                transform: scale(0.65) !important;
+                transform-origin: center center !important;
+                width: 153% !important; /* 1/0.65 to compensate for scale */
                 height: auto !important;
+                padding: 0 !important;
             }
 
             .mobile-hero {
-                padding-bottom: 4px !important;
+                padding-bottom: 0 !important;
             }
 
             .mobile-logo {
-                font-size: 20px !important;
-                margin-bottom: 2px !important;
+                font-size: 30px !important;
+                margin-bottom: 4px !important;
                 filter: none !important;
                 animation: none !important;
             }
 
             .mobile-title {
-                font-size: 14px !important;
+                font-size: 20px !important;
                 letter-spacing: 1px !important;
-                margin-bottom: 2px !important;
+                margin-bottom: 4px !important;
                 text-shadow: none !important;
             }
 
             .mobile-subtitle {
-                font-size: 7px !important;
-                margin-bottom: 2px !important;
-                letter-spacing: 1.5px !important;
+                font-size: 10px !important;
+                margin-bottom: 6px !important;
+                letter-spacing: 2px !important;
             }
 
             .mobile-desc {
@@ -811,33 +816,33 @@
             }
 
             .mobile-start-btn {
-                font-size: 11px !important;
-                padding: 5px 10px !important;
-                margin-bottom: 4px !important;
+                font-size: 16px !important;
+                padding: 8px 16px !important;
+                margin-bottom: 12px !important;
             }
 
             .mobile-footer {
-                margin-top: 2px !important;
+                margin-top: 0 !important;
             }
 
             .mobile-footer-label {
-                font-size: 6px !important;
-                margin-bottom: 2px !important;
+                font-size: 8px !important;
+                margin-bottom: 4px !important;
             }
 
             .mobile-controls {
-                gap: 4px !important;
+                gap: 8px !important;
             }
 
             .mobile-control .icon {
-                width: 20px !important;
-                height: 20px !important;
-                font-size: 10px !important;
-                border-radius: 5px !important;
+                width: 30px !important;
+                height: 30px !important;
+                font-size: 14px !important;
+                border-radius: 8px !important;
             }
 
             .mobile-control .label {
-                font-size: 6px !important;
+                font-size: 8px !important;
             }
 
             .mobile-controls-text {
