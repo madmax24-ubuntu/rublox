@@ -1,5 +1,91 @@
 import * as THREE from 'three';
 
+// ─── Procedural Texture Generators ─────────────────────────────────
+// Creates actual texture images (not just colors) for weapons
+
+function createCanvasTexture(width, height, drawFn) {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    drawFn(ctx, width, height);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    return texture;
+}
+
+// Brushed metal texture with scratches
+function createMetalTexture(baseColor = '#6a7580') {
+    return createCanvasTexture(256, 256, (ctx, w, h) => {
+        // Base color
+        ctx.fillStyle = baseColor;
+        ctx.fillRect(0, 0, w, h);
+        
+        // Brushed lines
+        for (let i = 0; i < 200; i++) {
+            const y = Math.random() * h;
+            const alpha = Math.random() * 0.15;
+            ctx.strokeStyle = `rgba(${Math.random() > 0.5 ? 255 : 0},${Math.random() > 0.5 ? 255 : 0},${Math.random() > 0.5 ? 255 : 0},${alpha})`;
+            ctx.lineWidth = Math.random() * 2;
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(w, y + (Math.random() - 0.5) * 4);
+            ctx.stroke();
+        }
+        
+        // Scratches
+        for (let i = 0; i < 30; i++) {
+            const x = Math.random() * w;
+            const y = Math.random() * h;
+            const len = 10 + Math.random() * 30;
+            ctx.strokeStyle = `rgba(0,0,0,${0.1 + Math.random() * 0.2})`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + len, y + (Math.random() - 0.5) * 2);
+            ctx.stroke();
+        }
+    });
+}
+
+// Wood grain texture
+function createWoodTexture(baseColor = '#5a3a20') {
+    return createCanvasTexture(256, 256, (ctx, w, h) => {
+        // Base color
+        ctx.fillStyle = baseColor;
+        ctx.fillRect(0, 0, w, h);
+        
+        // Wood grain
+        for (let i = 0; i < 80; i++) {
+            const y = (i / 80) * h;
+            const alpha = 0.05 + Math.random() * 0.1;
+            ctx.strokeStyle = `rgba(0,0,0,${alpha})`;
+            ctx.lineWidth = 1 + Math.random() * 2;
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            for (let x = 0; x < w; x += 10) {
+                ctx.lineTo(x, y + Math.sin(x * 0.05) * 3);
+            }
+            ctx.stroke();
+        }
+    });
+}
+
+// Neon glow texture
+function createNeonTexture(color = '#6ad3ff') {
+    return createCanvasTexture(64, 64, (ctx, w, h) => {
+        const gradient = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, w/2);
+        gradient.addColorStop(0, color);
+        gradient.addColorStop(0.5, color + '80');
+        gradient.addColorStop(1, 'transparent');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, w, h);
+    });
+}
+
 const WEAPON_BALANCE = {
     fists: { damage: 8, range: 2.4, cooldown: 0.38, ammo: null, durability: null, projectileSpeed: 0 },
     knife: { damage: 24, range: 3.4, cooldown: 0.42, ammo: null, durability: 80, projectileSpeed: 0 },
@@ -73,10 +159,28 @@ function configureMeshForGameplay(mesh) {
 
 function createKnifeModel() {
     const group = new THREE.Group();
-    // Premium knife — polished steel blade, rich wood handle, dark metal guard
-    const bladeMat = getMaterial('knife_blade', () => new THREE.MeshStandardMaterial({ color: 0xe8e8e8, metalness: 0.85, roughness: 0.18, flatShading: true }));
-    const handleMat = getMaterial('knife_handle', () => new THREE.MeshStandardMaterial({ color: 0x5a3a20, roughness: 0.7, metalness: 0.1, flatShading: true }));
-    const guardMat = getMaterial('knife_guard', () => new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.35, metalness: 0.55, flatShading: true }));
+    // Premium knife — polished steel blade with texture, wood handle, dark metal guard
+    const bladeMat = getMaterial('knife_blade', () => new THREE.MeshStandardMaterial({ 
+        color: 0xe8e8e8, 
+        metalness: 0.85, 
+        roughness: 0.18, 
+        flatShading: true,
+        map: createMetalTexture('#e8e8e8')
+    }));
+    const handleMat = getMaterial('knife_handle', () => new THREE.MeshStandardMaterial({ 
+        color: 0x5a3a20, 
+        roughness: 0.7, 
+        metalness: 0.1, 
+        flatShading: true,
+        map: createWoodTexture('#5a3a20')
+    }));
+    const guardMat = getMaterial('knife_guard', () => new THREE.MeshStandardMaterial({ 
+        color: 0x2a2a2a, 
+        roughness: 0.35, 
+        metalness: 0.55, 
+        flatShading: true,
+        map: createMetalTexture('#2a2a2a')
+    }));
 
     group.add(createPart(getGeom('knife_h', () => new THREE.BoxGeometry(0.36, 0.1, 0.1)), handleMat, -0.24, -0.01, 0));
     group.add(createPart(getGeom('knife_h2', () => new THREE.BoxGeometry(0.14, 0.12, 0.12)), handleMat, -0.39, -0.01, 0));
@@ -90,9 +194,21 @@ function createKnifeModel() {
 
 function createBowModel() {
     const group = new THREE.Group();
-    // Premium bow — rich hardwood limbs, dark grip, tight string
-    const limbMat = getMaterial('bow_limb', () => new THREE.MeshStandardMaterial({ color: 0x6a4a20, roughness: 0.55, metalness: 0.15, flatShading: true }));
-    const gripMat = getMaterial('bow_grip', () => new THREE.MeshStandardMaterial({ color: 0x1d1210, roughness: 0.7, metalness: 0.05, flatShading: true }));
+    // Premium bow — hardwood limbs with grain, dark grip, tight string
+    const limbMat = getMaterial('bow_limb', () => new THREE.MeshStandardMaterial({ 
+        color: 0x6a4a20, 
+        roughness: 0.55, 
+        metalness: 0.15, 
+        flatShading: true,
+        map: createWoodTexture('#6a4a20')
+    }));
+    const gripMat = getMaterial('bow_grip', () => new THREE.MeshStandardMaterial({ 
+        color: 0x1d1210, 
+        roughness: 0.7, 
+        metalness: 0.05, 
+        flatShading: true,
+        map: createWoodTexture('#1d1210')
+    }));
     const stringMat = getMaterial('bow_string', () => new THREE.LineBasicMaterial({ color: 0x2a2a2a }));
 
     const segGeom = getGeom('bow_seg', () => new THREE.BoxGeometry(0.12, 0.32, 0.08));
@@ -131,13 +247,49 @@ function createBowModel() {
 
 function createGunModel(style) {
     const group = new THREE.Group();
-    // Premium weapon materials — polished metal, dark steel, rich wood, glowing neon
+    // Premium weapon materials WITH TEXTURES — metal grain, wood grain, neon glow
     const metalColors = { pistol: 0x7a8590, rifle: 0x4a5560, machinegun: 0x3a4048, shotgun: 0x6a7580, flamethrower: 0x6a7078, laser: 0x4a6580 };
-    const metal = getMaterial(`${style}_metal`, () => new THREE.MeshStandardMaterial({ color: metalColors[style] || 0x5a6570, roughness: 0.28, metalness: 0.75, flatShading: true }));
-    const dark = getMaterial(`${style}_dark`, () => new THREE.MeshStandardMaterial({ color: 0x1a1f25, roughness: 0.45, metalness: 0.35, flatShading: true }));
-    const wood = getMaterial(`${style}_wood`, () => new THREE.MeshStandardMaterial({ color: 0x5a3a20, roughness: 0.68, metalness: 0.08, flatShading: true }));
-    const neon = getMaterial(`${style}_neon`, () => new THREE.MeshStandardMaterial({ color: 0x6ad3ff, emissive: 0x6ad3ff, emissiveIntensity: 0.8, roughness: 0.18, metalness: 0.4, flatShading: true }));
-    const accent = getMaterial(`${style}_accent`, () => new THREE.MeshStandardMaterial({ color: style === 'shotgun' ? 0xc95a45 : 0xc9d3dd, roughness: 0.25, metalness: 0.75, flatShading: true }));
+    const metalTex = createMetalTexture(style === 'laser' ? '#4a6580' : '#6a7580');
+    const metal = getMaterial(`${style}_metal`, () => new THREE.MeshStandardMaterial({ 
+        color: metalColors[style] || 0x5a6570, 
+        roughness: 0.28, 
+        metalness: 0.75, 
+        flatShading: true,
+        map: metalTex
+    }));
+    const dark = getMaterial(`${style}_dark`, () => new THREE.MeshStandardMaterial({ 
+        color: 0x1a1f25, 
+        roughness: 0.45, 
+        metalness: 0.35, 
+        flatShading: true,
+        map: createMetalTexture('#2a2f35')
+    }));
+    const woodTex = createWoodTexture('#5a3a20');
+    const wood = getMaterial(`${style}_wood`, () => new THREE.MeshStandardMaterial({ 
+        color: 0x5a3a20, 
+        roughness: 0.68, 
+        metalness: 0.08, 
+        flatShading: true,
+        map: woodTex
+    }));
+    const neonTex = createNeonTexture('#6ad3ff');
+    const neon = getMaterial(`${style}_neon`, () => new THREE.MeshStandardMaterial({ 
+        color: 0x6ad3ff, 
+        emissive: 0x6ad3ff, 
+        emissiveIntensity: 1.2, 
+        roughness: 0.18, 
+        metalness: 0.4, 
+        flatShading: true,
+        map: neonTex,
+        alphaMap: neonTex
+    }));
+    const accent = getMaterial(`${style}_accent`, () => new THREE.MeshStandardMaterial({ 
+        color: style === 'shotgun' ? 0xc95a45 : 0xc9d3dd, 
+        roughness: 0.25, 
+        metalness: 0.75, 
+        flatShading: true,
+        map: createMetalTexture(style === 'shotgun' ? '#c95a45' : '#c9d3dd')
+    }));
 
     if (style === 'pistol') {
         group.add(createPart(getGeom('pistol_body', () => new THREE.BoxGeometry(0.48, 0.16, 0.14)), metal, 0.06, 0.06, 0));
@@ -192,10 +344,27 @@ function createGunModel(style) {
 
 function createArrowProjectileMesh() {
     const group = new THREE.Group();
-    // Premium arrow — polished shaft, sharp metal tip, dark fletching
-    const shaftMat = getMaterial('proj_arrow_shaft', () => new THREE.MeshStandardMaterial({ color: 0x7f5b3d, roughness: 0.6, metalness: 0.2, flatShading: true }));
-    const tipMat = getMaterial('proj_arrow_tip', () => new THREE.MeshStandardMaterial({ color: 0xd0d8e1, metalness: 0.6, roughness: 0.3, flatShading: true }));
-    const fletchMat = getMaterial('proj_arrow_fletch', () => new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.55, flatShading: true }));
+    // Premium arrow — wood shaft with grain, metal tip, dark fletching
+    const shaftMat = getMaterial('proj_arrow_shaft', () => new THREE.MeshStandardMaterial({ 
+        color: 0x7f5b3d, 
+        roughness: 0.6, 
+        metalness: 0.2, 
+        flatShading: true,
+        map: createWoodTexture('#7f5b3d')
+    }));
+    const tipMat = getMaterial('proj_arrow_tip', () => new THREE.MeshStandardMaterial({ 
+        color: 0xd0d8e1, 
+        metalness: 0.6, 
+        roughness: 0.3, 
+        flatShading: true,
+        map: createMetalTexture('#d0d8e1')
+    }));
+    const fletchMat = getMaterial('proj_arrow_fletch', () => new THREE.MeshStandardMaterial({ 
+        color: 0x2a2a2a, 
+        roughness: 0.55, 
+        flatShading: true,
+        map: createMetalTexture('#2a2a2a')
+    }));
 
     group.add(createPart(getGeom('proj_arrow_shaft_g', () => new THREE.CylinderGeometry(0.04, 0.04, 1.85, 6)), shaftMat, 0, 0, 0, 0, 0, Math.PI / 2));
     group.add(createPart(getGeom('proj_arrow_tip_g', () => new THREE.ConeGeometry(0.08, 0.24, 6)), tipMat, 1.04, 0, 0, 0, 0, -Math.PI / 2));
