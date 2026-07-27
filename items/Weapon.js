@@ -73,9 +73,10 @@ function configureMeshForGameplay(mesh) {
 
 function createKnifeModel() {
     const group = new THREE.Group();
-    const bladeMat = getMaterial('knife_blade', () => new THREE.MeshStandardMaterial({ color: 0xd9d9d9, metalness: 0.78, roughness: 0.28, flatShading: true }));
-    const handleMat = getMaterial('knife_handle', () => new THREE.MeshStandardMaterial({ color: 0x4e342e, roughness: 0.8, metalness: 0.05, flatShading: true }));
-    const guardMat = getMaterial('knife_guard', () => new THREE.MeshStandardMaterial({ color: 0x262626, roughness: 0.45, metalness: 0.45, flatShading: true }));
+    // Premium knife — polished steel blade, rich wood handle, dark metal guard
+    const bladeMat = getMaterial('knife_blade', () => new THREE.MeshStandardMaterial({ color: 0xe8e8e8, metalness: 0.85, roughness: 0.18, flatShading: true }));
+    const handleMat = getMaterial('knife_handle', () => new THREE.MeshStandardMaterial({ color: 0x5a3a20, roughness: 0.7, metalness: 0.1, flatShading: true }));
+    const guardMat = getMaterial('knife_guard', () => new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.35, metalness: 0.55, flatShading: true }));
 
     group.add(createPart(getGeom('knife_h', () => new THREE.BoxGeometry(0.36, 0.1, 0.1)), handleMat, -0.24, -0.01, 0));
     group.add(createPart(getGeom('knife_h2', () => new THREE.BoxGeometry(0.14, 0.12, 0.12)), handleMat, -0.39, -0.01, 0));
@@ -89,9 +90,10 @@ function createKnifeModel() {
 
 function createBowModel() {
     const group = new THREE.Group();
-    const limbMat = getMaterial('bow_limb', () => new THREE.MeshStandardMaterial({ color: 0x7a4a20, roughness: 0.62, flatShading: true }));
-    const gripMat = getMaterial('bow_grip', () => new THREE.MeshStandardMaterial({ color: 0x2d1b12, roughness: 0.78, flatShading: true }));
-    const stringMat = getMaterial('bow_string', () => new THREE.LineBasicMaterial({ color: 0x161616 }));
+    // Premium bow — rich hardwood limbs, dark grip, tight string
+    const limbMat = getMaterial('bow_limb', () => new THREE.MeshStandardMaterial({ color: 0x6a4a20, roughness: 0.55, metalness: 0.15, flatShading: true }));
+    const gripMat = getMaterial('bow_grip', () => new THREE.MeshStandardMaterial({ color: 0x1d1210, roughness: 0.7, metalness: 0.05, flatShading: true }));
+    const stringMat = getMaterial('bow_string', () => new THREE.LineBasicMaterial({ color: 0x2a2a2a }));
 
     const segGeom = getGeom('bow_seg', () => new THREE.BoxGeometry(0.12, 0.32, 0.08));
     const segData = [
@@ -129,12 +131,13 @@ function createBowModel() {
 
 function createGunModel(style) {
     const group = new THREE.Group();
-    const metalColors = { pistol: 0x626b76, rifle: 0x3f4852, machinegun: 0x343b43, shotgun: 0x555d66, flamethrower: 0x5d6268, laser: 0x3d5268 };
-    const metal = getMaterial(`${style}_metal`, () => new THREE.MeshStandardMaterial({ color: metalColors[style] || 0x444b56, roughness: 0.34, metalness: 0.62, flatShading: true }));
-    const dark = getMaterial(`${style}_dark`, () => new THREE.MeshStandardMaterial({ color: 0x1d2128, roughness: 0.58, metalness: 0.22, flatShading: true }));
-    const wood = getMaterial(`${style}_wood`, () => new THREE.MeshStandardMaterial({ color: 0x6b4a2f, roughness: 0.76, metalness: 0.05, flatShading: true }));
-    const neon = getMaterial(`${style}_neon`, () => new THREE.MeshStandardMaterial({ color: 0x6ad3ff, emissive: 0x6ad3ff, emissiveIntensity: 0.35, roughness: 0.22, metalness: 0.36, flatShading: true }));
-    const accent = getMaterial(`${style}_accent`, () => new THREE.MeshStandardMaterial({ color: style === 'shotgun' ? 0xb94a35 : 0xb9c3cc, roughness: 0.3, metalness: 0.7, flatShading: true }));
+    // Premium weapon materials — polished metal, dark steel, rich wood, glowing neon
+    const metalColors = { pistol: 0x7a8590, rifle: 0x4a5560, machinegun: 0x3a4048, shotgun: 0x6a7580, flamethrower: 0x6a7078, laser: 0x4a6580 };
+    const metal = getMaterial(`${style}_metal`, () => new THREE.MeshStandardMaterial({ color: metalColors[style] || 0x5a6570, roughness: 0.28, metalness: 0.75, flatShading: true }));
+    const dark = getMaterial(`${style}_dark`, () => new THREE.MeshStandardMaterial({ color: 0x1a1f25, roughness: 0.45, metalness: 0.35, flatShading: true }));
+    const wood = getMaterial(`${style}_wood`, () => new THREE.MeshStandardMaterial({ color: 0x5a3a20, roughness: 0.68, metalness: 0.08, flatShading: true }));
+    const neon = getMaterial(`${style}_neon`, () => new THREE.MeshStandardMaterial({ color: 0x6ad3ff, emissive: 0x6ad3ff, emissiveIntensity: 0.8, roughness: 0.18, metalness: 0.4, flatShading: true }));
+    const accent = getMaterial(`${style}_accent`, () => new THREE.MeshStandardMaterial({ color: style === 'shotgun' ? 0xc95a45 : 0xc9d3dd, roughness: 0.25, metalness: 0.75, flatShading: true }));
 
     if (style === 'pistol') {
         group.add(createPart(getGeom('pistol_body', () => new THREE.BoxGeometry(0.48, 0.16, 0.14)), metal, 0.06, 0.06, 0));
@@ -189,9 +192,10 @@ function createGunModel(style) {
 
 function createArrowProjectileMesh() {
     const group = new THREE.Group();
-    const shaftMat = getMaterial('proj_arrow_shaft', () => new THREE.MeshStandardMaterial({ color: 0x6f4b2d, roughness: 0.74, flatShading: true }));
-    const tipMat = getMaterial('proj_arrow_tip', () => new THREE.MeshStandardMaterial({ color: 0xbfc8d1, metalness: 0.4, roughness: 0.4, flatShading: true }));
-    const fletchMat = getMaterial('proj_arrow_fletch', () => new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.62, flatShading: true }));
+    // Premium arrow — polished shaft, sharp metal tip, dark fletching
+    const shaftMat = getMaterial('proj_arrow_shaft', () => new THREE.MeshStandardMaterial({ color: 0x7f5b3d, roughness: 0.6, metalness: 0.2, flatShading: true }));
+    const tipMat = getMaterial('proj_arrow_tip', () => new THREE.MeshStandardMaterial({ color: 0xd0d8e1, metalness: 0.6, roughness: 0.3, flatShading: true }));
+    const fletchMat = getMaterial('proj_arrow_fletch', () => new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.55, flatShading: true }));
 
     group.add(createPart(getGeom('proj_arrow_shaft_g', () => new THREE.CylinderGeometry(0.04, 0.04, 1.85, 6)), shaftMat, 0, 0, 0, 0, 0, Math.PI / 2));
     group.add(createPart(getGeom('proj_arrow_tip_g', () => new THREE.ConeGeometry(0.08, 0.24, 6)), tipMat, 1.04, 0, 0, 0, 0, -Math.PI / 2));
