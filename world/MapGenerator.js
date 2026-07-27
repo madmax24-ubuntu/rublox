@@ -744,21 +744,21 @@ export class MapGenerator {
             addGate(0, sign * gateMid, wallT, gateGap);
             addGate(sign * gateMid, 0, gateGap, wallT);
         }
-        const stairColors = [0xd6b056, 0x658f63, 0xb8e5ff, 0x496f43];
         const stairAngles = [Math.PI * 0.25, Math.PI * 0.75, Math.PI * 1.25, Math.PI * 1.75];
+        // Fire-styled stairs matching platform aesthetic — dark stone with ember glow
+        const stairMat = this.pool.getMatStd(0x2a1f1a, 0.85, 0.15, true, false, 1, 0xff6600, 0.25);
+        stairMat.polygonOffset = true;
+        stairMat.polygonOffsetFactor = 4;
+        stairMat.polygonOffsetUnits = 2;
         for (let entrance = 0; entrance < stairAngles.length; entrance++) {
             const angle = stairAngles[entrance];
-            const stairMat = this.pool.getMatStd(stairColors[entrance], 0.7, 0.08, true, false, 1, stairColors[entrance], 0.12);
-            stairMat.polygonOffset = true;
-            stairMat.polygonOffsetFactor = 4;
-            stairMat.polygonOffsetUnits = 2;
             for (let step = 0; step < 6; step++) {
                 const radius = 54.5 + step * 2.25;
                 const stepTopY = 2 - step * 0.34; // Surface height of this step
-                // Beautiful stair: thin tread (0.15m) at proper height, not tall block
-                const treadHeight = 0.15;
+                // Wide, substantial tread matching platform style (0.25m thick, 12m wide)
+                const treadHeight = 0.25;
                 const treadY = stepTopY - treadHeight * 0.5; // Top surface at stepTopY
-                const tread = new THREE.Mesh(this.pool.getGeoBox(12, treadHeight, 2.35), stairMat);
+                const tread = new THREE.Mesh(this.pool.getGeoBox(12, treadHeight, 2.5), stairMat);
                 tread.position.set(Math.cos(angle) * radius, treadY, Math.sin(angle) * radius);
                 tread.rotation.y = Math.PI * 0.5 - angle;
                 tread.userData.mapGenerated = true;
@@ -768,7 +768,7 @@ export class MapGenerator {
                 this.scene.add(tread);
                 const c = Math.abs(Math.cos(tread.rotation.y));
                 const s = Math.abs(Math.sin(tread.rotation.y));
-                // Collider matches thin tread visual (0.15m height)
+                // Collider matches tread visual (0.25m height)
                 const colliderHeight = treadHeight;
                 const collider = this.addColliderBox(
                     tread.position.clone(),
