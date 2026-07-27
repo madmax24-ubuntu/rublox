@@ -1135,7 +1135,7 @@ export class MapGenerator {
         );
 
         // Стены первого этажа
-        const wallThick = 0.4;
+        const wallThick = 1.2;
         for (let side of [-1, 1]) {
             const sideGeo = this.pool.getGeoBox(wallThick, storyH, d);
             const sideWall = new THREE.Mesh(sideGeo, wallMat);
