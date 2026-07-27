@@ -3,6 +3,11 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { WebSocketServer } from 'ws';
 import { createServer } from 'http';
+import fs from 'fs';
+import { promisify } from 'util';
+
+const readFile = promisify(fs.readFile);
+const stat = promisify(fs.stat);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,7 +16,8 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const server = createServer(app);
 
-app.use(express.static(__dirname, {
+// Custom static file handler with no-cache
+const serveStatic = express.static(__dirname, {
   setHeaders: (res, filePath) => {
     res.setHeader('Cache-Control', 'no-store');
     if (filePath.endsWith('.js') || filePath.endsWith('.mjs')) {
@@ -22,10 +28,27 @@ app.use(express.static(__dirname, {
       res.setHeader('Content-Type', 'application/json; charset=UTF-8');
     }
   }
-}));
+});
 
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+// Serve HTML with explicit no-cache headers
+app.get('/', async (req, res) => {
+  const html = await readFile(path.join(__dirname, 'index.html'), 'utf-8');
+  const now = Date.now();
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  res.set('Last-Modified', new Date(now).toUTCString());
+  res.set('ETag', `"${now}"`);
+  res.send(html);
+});
+
+// Serve all other static files
+app.use((req, res, next) => {
+  if (req.path === '/') {
+    next();
+  } else {
+    serveStatic(req, res, next);
+  }
 });
 
 const wss = new WebSocketServer({ server, path: '/ws' });
