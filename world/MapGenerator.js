@@ -1097,7 +1097,7 @@ export class MapGenerator {
         const cabin = new THREE.Group();
         const wallMat = this.pool.getMatStd(0x5d4037, 0.75, 0, true, false, 1, 0, 0, true);
         const roofMat = this.pool.getMatStd(0x3e2723, 0.85, 0, true, false, 1, 0, 0, false);
-        const woodMat = this.pool.getMatStd(0x795548, 0.8, 0, true, false, 1, 0, 0, false);
+        const woodMat = this.pool.getMatStd(0x795548, 0.8, 0, true, false, 1, 0, 0, true);
 
         // Размеры хижины — более крупные и заметные
         const w = 14;
@@ -2079,7 +2079,7 @@ export class MapGenerator {
         const wallHeight = 18; // Высокие стены замка
 
         const wallMat = this.pool.getMatStd(0x666666, 0.85, 0, true, false, 1, 0, 0, true);
-        const darkMat = this.pool.getMatStd(COLORS.mazeTower, 0.9, 0, true, false, 1, 0, 0);
+        const darkMat = this.pool.getMatStd(COLORS.mazeTower, 0.9, 0, true, false, 1, 0, 0, true);
 
         const margin = 3;
         const mazeCols = 11;

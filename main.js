@@ -2906,6 +2906,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     bindStartButton(document.getElementById('startButtonDesktop'));
     bindStartButton(document.getElementById('startButtonMobile'));
+    bindStartButton(document.getElementById('startButtonMobileLandscape'));
     bindStartButton(document.getElementById('startButton'));
 });
 
