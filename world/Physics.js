@@ -165,16 +165,10 @@ export class Physics {
             // Ground clamp: entity bottom must be >= surface
             const entityBottom = pos.y - height;
             if (entityBottom <= surfaceY) {
-                // Smooth height transitions to prevent jerky movement
-                const targetY = surfaceY + height;
-                const prevY = entity.physics.targetGroundY ?? pos.y;
-                const smoothedY = prevY + (targetY - prevY) * 0.3;
-                pos.y = smoothedY;
-                entity.physics.targetGroundY = smoothedY;
+                pos.y = surfaceY + height;
                 entity.physics.onGround = true;
                 vel.y = 0;
             } else {
-                entity.physics.targetGroundY = pos.y;
                 entity.physics.onGround = false;
             }
 
@@ -281,7 +275,7 @@ export class Physics {
             const sin = Math.sin(obb.rotation);
             const localX = dx * cos - dz * sin;
             const localZ = dx * sin + dz * cos;
-            const clearance = radius * 0.35;
+            const clearance = radius * 0.15; // Reduced from 0.35 to prevent edge exclusion
             return Math.abs(localX) <= Math.max(0.02, obb.halfWidth - clearance)
                 && Math.abs(localZ) <= Math.max(0.02, obb.halfDepth - clearance);
         }
@@ -289,7 +283,7 @@ export class Physics {
         if (!circle) return true;
         const dx = x - circle.x;
         const dz = z - circle.z;
-        const limit = Math.max(0, circle.radius - radius * 0.35);
+        const limit = Math.max(0, circle.radius - radius * 0.15); // Reduced from 0.35
         return dx * dx + dz * dz <= limit * limit;
     }
 
