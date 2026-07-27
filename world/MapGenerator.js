@@ -539,7 +539,9 @@ export class MapGenerator {
             this.scene.add(plane);
         }
 
-        const terrainCollider = this.addColliderBox(new THREE.Vector3(0, 0.06, 0), HALF * 2, 0.12, HALF * 2, true);
+        // Terrain collider top at y=0.14 matches terrain mesh top (0.02 + 0.12 = 0.14)
+        // This prevents physics from detecting building floors (y=0.15) as the highest surface
+        const terrainCollider = this.addColliderBox(new THREE.Vector3(0, 0.07, 0), HALF * 2, 0.14, HALF * 2, true);
         terrainCollider.isTerrain = true;
 
         // Height map (flat = 0)
@@ -790,7 +792,7 @@ export class MapGenerator {
         deck.userData.mapGenerated = true;
         deck.userData.walkable = true;
         this.scene.add(deck);
-        this.addColliderBox(new THREE.Vector3(x, 1, z), 12, 0.5, 8, true);
+        this.addColliderBox(new THREE.Vector3(x, 0.15, z), 12, 0.3, 8, true);
 
         // Bridge rails
         const railGeo = this.pool.getGeoBox(0.3, 1.5, 8);
@@ -2215,7 +2217,7 @@ export class MapGenerator {
             wallCollider.isTowerStructure = true;
         }
 
-        // Tower floor (visual only — collider removed to prevent invisible ground collision near tower)
+        // Tower floor (visual + collider aligned with terrain surface to prevent floating collision)
         const floorGeo = this.pool.getGeoCylinder(towerRadius, towerRadius, 0.5);
         const floorMesh = new THREE.Mesh(floorGeo, darkMat);
         floorMesh.position.set(towerCX, 0.25, towerCZ);
@@ -2223,10 +2225,12 @@ export class MapGenerator {
         floorMesh.userData.walkable = true;
         floorMesh.userData.isTowerStructure = true;
         this.scene.add(floorMesh);
+        // Collider top surface at y=0.18 (same as terrain surface) — center at y=0.06, height=0.12
+        // This prevents the "invisible floating collider" that caused players to fall through when standing still near the tower
         const towerFloorCollider = this.addColliderBox(
-            new THREE.Vector3(towerCX, 0.25, towerCZ),
+            new THREE.Vector3(towerCX, 0.06, towerCZ),
             towerRadius * 2 - 1,
-            0.5,
+            0.12,
             towerRadius * 2 - 1,
             true
         );
