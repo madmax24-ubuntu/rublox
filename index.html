@@ -484,30 +484,35 @@
 
         .controls-info {
             margin-top: 4px;
-            opacity: 0.75;
-            font-size: clamp(11px, 1.1vw, 13px);
+            opacity: 0.8;
+            font-size: 13px;
             display: grid;
-            gap: 6px;
-            max-width: 440px;
+            gap: 0;
+            max-width: 420px;
             text-align: left;
-            grid-template-columns: repeat(2, 1fr);
-            background: rgba(255, 255, 255, 0.03);
-            padding: 16px 20px;
+            grid-template-columns: 1fr 1fr;
+            background: rgba(255, 255, 255, 0.04);
+            padding: 14px 18px;
             border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             backdrop-filter: blur(4px);
+            line-height: 1.7;
         }
 
-        .controls-info div {
-            display: flex;
-            align-items: center;
-            gap: 6px;
+        .control-row {
+            display: contents;
         }
 
-        .controls-info strong {
+        .control-key {
             color: var(--ui-accent);
             font-weight: 700;
-            min-width: 80px;
+            min-width: 70px;
+            padding-right: 8px;
+        }
+
+        .control-desc {
+            color: #b0c0d0;
+            font-weight: 400;
         }
 
         .start-layout.mobile {
@@ -965,15 +970,15 @@
                 <button id="startButtonDesktop" class="start-btn">Начать игру</button>
                 <div class="start-footer">Быстрый матч · Рандомная карта · Перки в бою</div>
                 <div class="controls-info">
-                    <div><strong>WASD</strong> движение</div>
-                    <div><strong>Мышь</strong> обзор</div>
-                    <div><strong>Пробел</strong> прыжок</div>
-                    <div><strong>ЛКМ</strong> атака</div>
-                    <div><strong>E</strong> взаимодействие</div>
-                    <div><strong>1-0</strong> инвентарь</div>
-                    <div><strong>P</strong> меню перков</div>
-                    <div><strong>W/S</strong> выбор перка</div>
-                    <div><strong>M</strong> пауза</div>
+                    <div class="control-row"><span class="control-key">WASD</span><span class="control-desc">движение</span></div>
+                    <div class="control-row"><span class="control-key">Мышь</span><span class="control-desc">обзор</span></div>
+                    <div class="control-row"><span class="control-key">Пробел</span><span class="control-desc">прыжок</span></div>
+                    <div class="control-row"><span class="control-key">ЛКМ</span><span class="control-desc">атака</span></div>
+                    <div class="control-row"><span class="control-key">E</span><span class="control-desc">взаимодействие</span></div>
+                    <div class="control-row"><span class="control-key">1-0</span><span class="control-desc">инвентарь</span></div>
+                    <div class="control-row"><span class="control-key">P</span><span class="control-desc">меню перков</span></div>
+                    <div class="control-row"><span class="control-key">W/S</span><span class="control-desc">выбор перка</span></div>
+                    <div class="control-row"><span class="control-key">M</span><span class="control-desc">пауза</span></div>
                 </div>
             </div>
         </div>
