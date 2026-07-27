@@ -745,8 +745,8 @@ export class MapGenerator {
             addGate(sign * gateMid, 0, gateGap, wallT);
         }
         const stairAngles = [Math.PI * 0.25, Math.PI * 0.75, Math.PI * 1.25, Math.PI * 1.75];
-        // Fire-styled stairs matching platform aesthetic — dark stone with ember glow
-        const stairMat = this.pool.getMatStd(0x2a1f1a, 0.85, 0.15, true, false, 1, 0xff6600, 0.25);
+        // Fire-styled stairs — dark volcanic stone with intense orange-red ember glow
+        const stairMat = this.pool.getMatStd(0x1a1210, 0.8, 0.2, true, false, 1, 0xff4500, 0.6);
         stairMat.polygonOffset = true;
         stairMat.polygonOffsetFactor = 4;
         stairMat.polygonOffsetUnits = 2;
