@@ -794,7 +794,8 @@ export class MapGenerator {
         deck.userData.mapGenerated = true;
         deck.userData.walkable = true;
         this.scene.add(deck);
-        this.addColliderBox(new THREE.Vector3(x, 0.15, z), 12, 0.3, 8, true);
+        // Collider aligned with visible deck (y=1) — top at y=1.25, center at y=1.125
+        this.addColliderBox(new THREE.Vector3(x, 1.125, z), 12, 0.5, 8, true);
 
         // Bridge rails
         const railGeo = this.pool.getGeoBox(0.3, 1.5, 8);
