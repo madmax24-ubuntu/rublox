@@ -165,10 +165,16 @@ export class Physics {
             // Ground clamp: entity bottom must be >= surface
             const entityBottom = pos.y - height;
             if (entityBottom <= surfaceY) {
-                pos.y = surfaceY + height;
+                // Smooth height transitions to prevent jerky movement
+                const targetY = surfaceY + height;
+                const prevY = entity.physics.targetGroundY ?? pos.y;
+                const smoothedY = prevY + (targetY - prevY) * 0.3;
+                pos.y = smoothedY;
+                entity.physics.targetGroundY = smoothedY;
                 entity.physics.onGround = true;
                 vel.y = 0;
             } else {
+                entity.physics.targetGroundY = pos.y;
                 entity.physics.onGround = false;
             }
 
