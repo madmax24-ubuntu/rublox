@@ -231,18 +231,10 @@ export class Physics {
         const radius = 0.6;
         const nearby = this.getNearbyColliders(position, radius + 4);
         
-        // DEBUG: log first few frames to diagnose floating
-        if (!this._debugCount) this._debugCount = 0;
-        if (this._debugCount++ < 500) {
-            console.log(`[PhysicsDebug] pos=(${position.x.toFixed(1)},${position.y.toFixed(2)},${position.z.toFixed(1)}) nearby=${nearby.length} gridSize=${this.colliderGrid.size}`);
-        }
-
         let maxY = -Infinity;
-        let skippedCount = 0, detectedCount = 0;
         for (const box of nearby) {
             if (box.enabled === false || !box.walkable) continue;
-            // Skip biome entrance stairs — they're elevated, not ground surface
-            if (box.isBiomeEntrance) { skippedCount++; continue; }
+            if (box.isBiomeEntrance) continue;
             if (!this._containsWalkableSurface(box, position.x, position.z, radius)) continue;
             const min = box.min;
             const max = box.max;
@@ -252,14 +244,8 @@ export class Physics {
             if (position.y + height < min.y - 0.5) continue;
             if (position.y > max.y + height + 0.5) continue;
             const stepReach = box.isTowerStair ? 0.78 : 0.65;
-            if (bottom > max.y + 0.5 || max.y > bottom + stepReach) { skippedCount++; continue; }
-            if (maxY === -Infinity || max.y > maxY) {
-                maxY = max.y;
-                detectedCount++;
-                if (this._debugCount < 100 && Math.abs(position.x) < 10 && Math.abs(position.z) < 10) {
-                    console.log(`  -> detected box max.y=${max.y.toFixed(2)} walkable=${box.walkable} biome=${box.isBiomeEntrance}`);
-                }
-            }
+            if (bottom > max.y + 0.5 || max.y > bottom + stepReach) continue;
+            if (maxY === -Infinity || max.y > maxY) maxY = max.y;
         }
 
         if (maxY === -Infinity && !this.colliderGrid.size) {
