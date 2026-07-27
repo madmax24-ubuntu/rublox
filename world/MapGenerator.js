@@ -621,9 +621,11 @@ export class MapGenerator {
             for (const pad of nodePads) {
                 const padTopY = pad.y ?? 2.405;
                 this.spawnPads.push(new THREE.Vector3(pad.x, padTopY, pad.z));
+                // Collider max.y must match visible pad top (2 + 0.34 = 2.34), not 2.405
+                const colliderY = padTopY - 0.065; // 2.405 - 0.065 = 2.34
                 const padCollider = this.addColliderBox(
-                    new THREE.Vector3(pad.x, padTopY - 0.2025, pad.z),
-                    2.02, 0.405, 2.02, true
+                    new THREE.Vector3(pad.x, colliderY - 0.17, pad.z),
+                    2.02, 0.34, 2.02, true
                 );
                 padCollider.isSpawnPlatform = true;
                 padCollider.isCornucopia = true;
