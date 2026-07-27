@@ -30,16 +30,21 @@ const serveStatic = express.static(__dirname, {
   }
 });
 
-// Serve HTML with explicit no-cache headers
+// Serve HTML with explicit no-cache headers and cache-busting timestamp
 app.get('/', async (req, res) => {
   const html = await readFile(path.join(__dirname, 'index.html'), 'utf-8');
   const now = Date.now();
+  // Inject unique timestamp into body to ensure HTML is always different
+  const htmlWithVersion = html.replace(
+    '<body>',
+    `<body data-version="${now}">`
+  );
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');
   res.set('Last-Modified', new Date(now).toUTCString());
   res.set('ETag', `"${now}"`);
-  res.send(html);
+  res.send(htmlWithVersion);
 });
 
 // Serve all other static files
