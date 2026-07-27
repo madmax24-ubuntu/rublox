@@ -439,7 +439,8 @@ export class LootManager {
         glow.position.y = 1.2;
         chestModel.add(glow);
 
-        chestModel.position.set(x, y, z);
+        // Chest body center is at y=0, bottom at y=-0.4. Position so bottom rests on ground.
+        chestModel.position.set(x, y + 0.4, z);
         chestModel.userData.isChest = true;
         chestModel.userData.mapGenerated = true;
         chestModel.userData.isOpen = false;
