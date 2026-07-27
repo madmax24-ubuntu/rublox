@@ -1117,9 +1117,10 @@ export class MapGenerator {
         floor1.userData.walkable = true;
         cabin.add(floor1);
 
+        // Floor collider aligned with terrain surface (y=0.14) to prevent floating when walking near house
         this.addColliderBox(
-            new THREE.Vector3(x, 0.15, z),
-            w, 0.3, d, true
+            new THREE.Vector3(x, 0.07, z),
+            w, 0.14, d, true
         );
 
         // Стены первого этажа
