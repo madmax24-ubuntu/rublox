@@ -234,6 +234,8 @@ export class Physics {
         let maxY = -Infinity;
         for (const box of nearby) {
             if (box.enabled === false || !box.walkable) continue;
+            // Skip biome entrance stairs — they're elevated, not ground surface
+            if (box.isBiomeEntrance) continue;
             if (!this._containsWalkableSurface(box, position.x, position.z, radius)) continue;
             const min = box.min;
             const max = box.max;
@@ -250,6 +252,8 @@ export class Physics {
         if (maxY === -Infinity && !this.colliderGrid.size) {
             for (const box of this.colliders) {
                 if (box.enabled === false || !box.walkable) continue;
+                // Skip biome entrance stairs — they're elevated, not ground surface
+                if (box.isBiomeEntrance) continue;
                 if (!this._containsWalkableSurface(box, position.x, position.z, radius)) continue;
                 const min = box.min;
                 const max = box.max;
