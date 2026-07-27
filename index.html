@@ -333,17 +333,20 @@
         .start-layout.desktop {
             display: grid;
             grid-template-columns: minmax(460px, 52vw) 1fr;
+            align-items: center;
         }
 
         /* Desktop panel — spacious, well-structured layout */
         .start-panel {
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
             padding: clamp(32px, 5vw, 72px) clamp(40px, 6vw, 100px);
             gap: 16px;
             overflow-y: auto;
+            max-width: min(520px, 100%);
+            margin: 0 auto;
         }
 
         .start-badges {
