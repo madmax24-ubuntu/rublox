@@ -754,9 +754,12 @@ export class MapGenerator {
             stairMat.polygonOffsetUnits = 2;
             for (let step = 0; step < 6; step++) {
                 const radius = 54.5 + step * 2.25;
-                const top = 2 - step * 0.34;
-                const tread = new THREE.Mesh(this.pool.getGeoBox(12, top, 2.35), stairMat);
-                tread.position.set(Math.cos(angle) * radius, top * 0.5, Math.sin(angle) * radius);
+                const stepTopY = 2 - step * 0.34; // Surface height of this step
+                // Beautiful stair: thin tread (0.15m) at proper height, not tall block
+                const treadHeight = 0.15;
+                const treadY = stepTopY - treadHeight * 0.5; // Top surface at stepTopY
+                const tread = new THREE.Mesh(this.pool.getGeoBox(12, treadHeight, 2.35), stairMat);
+                tread.position.set(Math.cos(angle) * radius, treadY, Math.sin(angle) * radius);
                 tread.rotation.y = Math.PI * 0.5 - angle;
                 tread.userData.mapGenerated = true;
                 tread.userData.walkable = true;
@@ -765,8 +768,8 @@ export class MapGenerator {
                 this.scene.add(tread);
                 const c = Math.abs(Math.cos(tread.rotation.y));
                 const s = Math.abs(Math.sin(tread.rotation.y));
-                // Collider height matches visual mesh height (top) to prevent bots falling through
-                const colliderHeight = top;
+                // Collider matches thin tread visual (0.15m height)
+                const colliderHeight = treadHeight;
                 const collider = this.addColliderBox(
                     tread.position.clone(),
                     12 * c + 2.35 * s,
