@@ -1056,10 +1056,12 @@ class Game {
             const groundY = this.map.raycastGroundY?.(pad.x, pad.z, pad.y) ?? pad.y;
             this.player.position.set(pad.x, groundY + this.player.physics.height, pad.z);
             this.player.physics.onGround = true;
+            console.log('[SpawnDebug] Player spawn: pad=(' + pad.x.toFixed(1) + ',' + pad.z.toFixed(1) + ') groundY=' + groundY.toFixed(2) + ' playerY=' + this.player.position.y.toFixed(2));
         } else {
             // Fallback to center if no pads
             this.player.position.set(0, 2 + this.player.physics.height, 0);
             this.player.physics.onGround = true;
+            console.log('[SpawnDebug] Player spawn: fallback center Y=3.7');
         }
 
         this.physics.addEntity(this.player);

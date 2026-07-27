@@ -233,7 +233,7 @@ export class Physics {
         
         // DEBUG: log first few frames to diagnose floating
         if (!this._debugCount) this._debugCount = 0;
-        if (this._debugCount++ < 100 && Math.abs(position.x) < 10 && Math.abs(position.z) < 10) {
+        if (this._debugCount++ < 500) {
             console.log(`[PhysicsDebug] pos=(${position.x.toFixed(1)},${position.y.toFixed(2)},${position.z.toFixed(1)}) nearby=${nearby.length} gridSize=${this.colliderGrid.size}`);
         }
 
