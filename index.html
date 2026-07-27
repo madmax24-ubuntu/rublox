@@ -332,12 +332,13 @@
 
         .start-layout.desktop {
             display: grid;
-            grid-template-columns: minmax(460px, 52vw) 1fr;
+            grid-template-columns: 1fr 1fr;
+            grid-template-areas: "panel visual";
             align-items: center;
         }
 
-        /* Центрирование и визуал левой панели */
         .start-panel {
+            grid-area: panel;
             display: flex;
             flex-direction: column;
             align-items: center;
