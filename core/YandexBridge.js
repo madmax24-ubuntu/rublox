@@ -1,9 +1,9 @@
 const STRINGS = {
     ru: {
-        title: 'Rubo Arena: Голодные игры',
+        title: 'Rubo Arena',
         badge1: 'Официальный релиз',
         badge2: 'Выживание',
-        desktopDesc: 'Выживание до последнего игрока. Рандомная карта, лут из сундуков и перки прямо во время боя.',
+        desktopDesc: 'Выживание до последнего. Рандомная карта, лут из сундуков и перки прямо в бою.',
         mobileDesc: 'Полноэкранный матч на телефоне. Нажми старт и сразу в бой.',
         start: 'Начать игру',
         footerDesktop: 'Быстрый матч · Рандомная карта · Перки в бою',
@@ -11,24 +11,21 @@ const STRINGS = {
         loading: 'Загрузка...',
         rotate: 'Поверните телефон в альбомную ориентацию',
         controls: [
-            '<strong>WASD</strong> - движение',
-            '<strong>Мышь</strong> - обзор',
-            '<strong>Пробел</strong> - прыжок',
-            '<strong>ЛКМ</strong> - атака',
-            '<strong>E</strong> - взаимодействие',
-            '<strong>1-0</strong> - инвентарь',
-            '<strong>P</strong> - меню перков',
-            '<strong>W/S</strong> - выбор перка',
-            '<strong>E</strong> - подтвердить перк',
-            '<strong>M</strong> - пауза',
-            '<strong>Смартфон</strong> - левый стик: движение, правая сторона: обзор',
-            '<strong>Смартфон</strong> - кнопки: Прыжок / Атака / Действие'
+            '<div class="control-row"><span class="control-key">WASD</span><span class="control-desc">движение</span></div>',
+            '<div class="control-row"><span class="control-key">Мышь</span><span class="control-desc">обзор</span></div>',
+            '<div class="control-row"><span class="control-key">Пробел</span><span class="control-desc">прыжок</span></div>',
+            '<div class="control-row"><span class="control-key">ЛКМ</span><span class="control-desc">атака</span></div>',
+            '<div class="control-row"><span class="control-key">E</span><span class="control-desc">взаимодействие</span></div>',
+            '<div class="control-row"><span class="control-key">1-0</span><span class="control-desc">инвентарь</span></div>',
+            '<div class="control-row"><span class="control-key">P</span><span class="control-desc">меню перков</span></div>',
+            '<div class="control-row"><span class="control-key">W/S</span><span class="control-desc">выбор перка</span></div>',
+            '<div class="control-row"><span class="control-key">M</span><span class="control-desc">пауза</span></div>'
         ],
         touchJump: 'Прыжок',
         touchAttack: 'Удар'
     },
     en: {
-        title: 'Rubo Arena: Голодные игры',
+        title: 'Rubo Arena',
         badge1: 'Official Release',
         badge2: 'Survival',
         desktopDesc: 'Fight to be the last survivor. Random map, chest loot and perks during combat.',
@@ -39,18 +36,15 @@ const STRINGS = {
         loading: 'Loading...',
         rotate: 'Rotate your phone to landscape',
         controls: [
-            '<strong>WASD</strong> - move',
-            '<strong>Mouse</strong> - look',
-            '<strong>Space</strong> - jump',
-            '<strong>LMB</strong> - attack',
-            '<strong>E</strong> - interact',
-            '<strong>1-0</strong> - inventory',
-            '<strong>P</strong> - perk menu',
-            '<strong>W/S</strong> - perk select',
-            '<strong>E</strong> - confirm perk',
-            '<strong>M</strong> - pause',
-            '<strong>Mobile</strong> - left stick: move, right side: look',
-            '<strong>Mobile</strong> - buttons: Jump / Hit / E'
+            '<div class="control-row"><span class="control-key">WASD</span><span class="control-desc">move</span></div>',
+            '<div class="control-row"><span class="control-key">Mouse</span><span class="control-desc">look</span></div>',
+            '<div class="control-row"><span class="control-key">Space</span><span class="control-desc">jump</span></div>',
+            '<div class="control-row"><span class="control-key">LMB</span><span class="control-desc">attack</span></div>',
+            '<div class="control-row"><span class="control-key">E</span><span class="control-desc">interact</span></div>',
+            '<div class="control-row"><span class="control-key">1-0</span><span class="control-desc">inventory</span></div>',
+            '<div class="control-row"><span class="control-key">P</span><span class="control-desc">perk menu</span></div>',
+            '<div class="control-row"><span class="control-key">W/S</span><span class="control-desc">perk select</span></div>',
+            '<div class="control-row"><span class="control-key">M</span><span class="control-desc">pause</span></div>'
         ],
         touchJump: 'Jump',
         touchAttack: 'Hit'
@@ -193,7 +187,7 @@ export class YandexBridge {
 
         const controlsInfo = document.querySelector('.controls-info');
         if (controlsInfo) {
-            controlsInfo.innerHTML = t.controls.map((line) => `<div>${line}</div>`).join('');
+            controlsInfo.innerHTML = t.controls.join('');
         }
 
         const rotate = document.querySelector('#rotateOverlay .rotate-card');
