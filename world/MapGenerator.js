@@ -5272,7 +5272,8 @@ export class MapGenerator {
             const maxZ = Math.floor(box.max.z / cellSize);
             for (let x = minX; x <= maxX; x++) {
                 for (let z = minZ; z <= maxZ; z++) {
-                    const key = `${x},${z}`;
+                    // CRITICAL: must use same bitwise key format as Physics.getNearbyColliders
+                    const key = (x << 16) | (z & 0xFFFF);
                     let bucket = this.colliderGrid.get(key);
                     if (!bucket) {
                         bucket = [];
