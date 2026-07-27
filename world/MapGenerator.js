@@ -647,7 +647,8 @@ export class MapGenerator {
         const baseRadius = 55;
         const platformCollider = this.addColliderBox(new THREE.Vector3(0, 1, 0), baseRadius * 2, 2, baseRadius * 2, true);
         platformCollider.isCornucopia = true;
-        platformCollider.surfaceCircle = { x: 0, z: 0, radius: baseRadius };
+        // Increased radius by 2m to prevent edge detection gaps causing jerky movement
+        platformCollider.surfaceCircle = { x: 0, z: 0, radius: baseRadius + 2 };
 
         // Fountain collision — solid basin ring + column (fountain positioned at y=2 in scene)
         const fountainScale = 3.2;
@@ -764,9 +765,16 @@ export class MapGenerator {
                 this.scene.add(tread);
                 const c = Math.abs(Math.cos(tread.rotation.y));
                 const s = Math.abs(Math.sin(tread.rotation.y));
-                // Stair step height is the tread depth (0.34), not the full top height
-                const stepH = 0.34;
-                const collider = this.addColliderBox(tread.position.clone(), 12 * c + 2.35 * s, stepH, 12 * s + 2.35 * c, true, false);
+                // Collider height matches visual mesh height (top) to prevent bots falling through
+                const colliderHeight = top;
+                const collider = this.addColliderBox(
+                    tread.position.clone(),
+                    12 * c + 2.35 * s,
+                    colliderHeight,
+                    12 * s + 2.35 * c,
+                    true,
+                    false
+                );
                 collider.isBiomeEntrance = true;
                 // First step connects to platform — raise it slightly so bot can climb onto platform
                 if (step === 0) {
