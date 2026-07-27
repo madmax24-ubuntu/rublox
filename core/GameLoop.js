@@ -51,6 +51,14 @@ export class GameLoop {
             return;
         }
 
+        // Skip simulation when paused (e.g., kill reward screen, pause menu)
+        if (this.game.isPaused) {
+            // Still render to show the paused state
+            if (this.game.render) this.game.render();
+            this._frameHandle = requestAnimationFrame(this._boundAnimate);
+            return;
+        }
+
         const delta = this.clock.getDelta();
         const safeDelta = Math.min(0.05, Math.max(0.001, Number.isFinite(delta) ? delta : this._fixedDt));
         if (this.game.update) this.game.update(safeDelta);
