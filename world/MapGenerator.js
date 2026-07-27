@@ -5311,6 +5311,8 @@ export class MapGenerator {
         for (const col of this.colliders) {
             if (!col.walkable) continue;
             if (col.max.y > maxSearchY) continue;
+            // Skip colliders that are below the fallback height (e.g., underground floors)
+            if (col.max.y < fallbackY - 0.5) continue;
             if (col.surfaceCircle) {
                 const dx = x - col.surfaceCircle.x;
                 const dz = z - col.surfaceCircle.z;
