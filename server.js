@@ -34,8 +34,11 @@ const serveStatic = express.static(__dirname, {
 app.get('/', async (req, res) => {
   const html = await readFile(path.join(__dirname, 'index.html'), 'utf-8');
   const now = Date.now();
-  // Inject unique timestamp into body to ensure HTML is always different
-  const htmlWithVersion = html.replace(
+  // Inject cache-busting into all script src attributes with .js
+  const cacheBustRe = /(src=['"])([^'"]*\.js)([?&]v=[^'"]*)?(['"])/g;
+  let htmlWithVersion = html.replace(cacheBustRe, '$1$2?v=' + now + '$4');
+  // Also inject version into body
+  htmlWithVersion = htmlWithVersion.replace(
     '<body>',
     `<body data-version="${now}">`
   );

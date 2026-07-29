@@ -50,24 +50,24 @@ THREE.DefaultLoadingManager.onLoad = function() {
     }
 };
 
-import { MapGenerator } from './world/MapGenerator.js?v=1783108938526';
-import { Environment } from './world/Environment.js?v=1783108938526';
-import { Physics } from './world/Physics.js?v=1783108938526';
-import { Zone } from './world/Zone.js?v=1783108938526';
-import { GameLoop } from './core/GameLoop.js?v=1783108938526';
+import { MapGenerator } from './world/MapGenerator.js';
+import { Environment } from './world/Environment.js';
+import { Physics } from './world/Physics.js';
+import { Zone } from './world/Zone.js';
+import { GameLoop } from './core/GameLoop.js';
 import { InputController } from './core/InputController.js';
-import { AudioSynth } from './core/AudioSynth.js?v=1783108938526';
-import { Player } from './entities/Player.js?v=1783108938526';
-import { Bot } from './entities/Bot.js?v=1783108938526';
-import { BotBrain } from './entities/BotBrain.js?v=1783108938526';
-import { Zombie } from './entities/Zombie.js?v=1783108938526';
+import { AudioSynth } from './core/AudioSynth.js';
+import { Player } from './entities/Player.js';
+import { Bot } from './entities/Bot.js';
+import { BotBrain } from './entities/BotBrain.js';
+import { Zombie } from './entities/Zombie.js';
 import { ZombiePool } from './entities/ZombiePool.js';
-import { ExplosiveBarrel } from './entities/ExplosiveBarrel.js?v=1783108938526';
-import { EntityManager } from './entities/EntityManager.js?v=1783108938526';
-import { LootManager } from './items/LootManager.js?v=1783108938526';
-import { HUD } from './ui/HUD.js?v=1783108938526';
-import { YandexBridge } from './core/YandexBridge.js?v=1783108938526';
-import { GAME_CONFIG, ROUND_MODES } from './core/GameBalance.js?v=1783108938526';
+import { ExplosiveBarrel } from './entities/ExplosiveBarrel.js';
+import { EntityManager } from './entities/EntityManager.js';
+import { LootManager } from './items/LootManager.js';
+import { HUD } from './ui/HUD.js';
+import { YandexBridge } from './core/YandexBridge.js';
+import { GAME_CONFIG, ROUND_MODES } from './core/GameBalance.js';
 
 class Game {
     constructor(yandexBridge = null) {

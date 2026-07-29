@@ -999,18 +999,26 @@
         }
     </script>
     <script>
-        // Cache-busting for importmap — forces browser to reload all modules
+        // Cache-busting for importmap and script tags — forces browser to reload all modules
         (function() {
             const timestamp = Date.now();
+            // Cache-bust importmap entries
             const importmap = document.getElementById('importmap');
             const original = JSON.parse(importmap.textContent);
-            // Add cache-busting to all module imports
             for (const key in original.imports) {
                 if (original.imports[key].includes('.')) {
-                    original.imports[key] = original.imports[key] + '?t=' + timestamp;
+                    original.imports[key] = original.imports[key] + '?v=' + timestamp;
                 }
             }
             importmap.textContent = JSON.stringify(original, null, 4);
+            // Cache-bust all script tags with .js src
+            const scripts = document.querySelectorAll('script[src][src*=".js"]');
+            for (const script of scripts) {
+                const src = script.src;
+                const qs = src.indexOf('?');
+                const base = qs >= 0 ? src.substring(0, qs) : src;
+                script.src = base + '?v=' + timestamp;
+            }
         })();
     </script>
 </head>
