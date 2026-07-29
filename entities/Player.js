@@ -719,7 +719,7 @@ export class Player {
 
     animateViewModel(isFirstPerson, delta) {
         if (!isFirstPerson) {
-            if (this.viewWeapon) this.viewWeapon.visible = false;
+            // Не прячем viewWeapon — он будет показан когда pointer lock сработает
             // Обновляем позицию рук даже если не first-person (для стабильности)
             const arms = this.fpArms?.userData?.limbs;
             if (!arms) return;
