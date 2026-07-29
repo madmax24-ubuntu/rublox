@@ -92,69 +92,64 @@ git commit -m "brief description"
 
 ## MCP Tools (Codebase-Memory)
 
-MCP инструменты НЕ работают через ToolSearch (Claude Code bug). Используй Bash напрямую:
+MCP инструменты НЕ работают через ToolSearch (Claude Code bug — deferred tools не загружают схемы). Используй Bash напрямую через stdio:
 
+**Базовый формат:**
 ```bash
-# Поиск по графу (search_graph)
-printf '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"search_graph","arguments":{"query":"update","project":"C-Users-maksk-Desktop-rublox","limit":5}},"id":1}\n' | \
+printf '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"<TOOL>","arguments":<ARGS>},"id":1}\n' | \
   timeout 30 ~/.local/bin/codebase-memory-mcp.exe 2>/dev/null | \
   python -c "
-import sys, json; text = sys.stdin.read(); obj = json.loads(text.split('\n')[0]); print(obj['result']['content'][0]['text'][:3000])
-"
-
-# Архитектура (get_architecture)
-printf '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"get_architecture","arguments":{"project":"C-Users-maksk-Desktop-rublox"}},"id":1}\n' | \
-  timeout 30 ~/.local/bin/codebase-memory-mcp.exe 2>/dev/null | \
-  python -c "
-import sys, json; text = sys.stdin.read(); obj = json.loads(text.split('\n')[0]); print(obj['result']['content'][0]['text'][:3000])
-"
-
-# Схема графа (get_graph_schema)
-printf '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"get_graph_schema","arguments":{"project":"C-Users-maksk-Desktop-rublox"}},"id":1}\n' | \
-  timeout 30 ~/.local/bin/codebase-memory-mcp.exe 2>/dev/null | \
-  python -c "
-import sys, json; text = sys.stdin.read(); obj = json.loads(text.split('\n')[0]); print(obj['result']['content'][0]['text'])
-"
-
-# Поиск кода (search_code)
-printf '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"search_code","arguments":{"pattern":"Player","project":"C-Users-maksk-Desktop-rublox"}},"id":1}\n' | \
-  timeout 30 ~/.local/bin/codebase-memory-mcp.exe 2>/dev/null | \
-  python -c "
-import sys, json; text = sys.stdin.read(); obj = json.loads(text.split('\n')[0]); print(obj['result']['content'][0]['text'][:3000])
-"
-
-# Запрос по графу (query_graph — Cypher)
-printf '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"query_graph","arguments":{"query":"MATCH (f:Function) RETURN f.qualified_name, f.complexity ORDER BY f.complexity DESC LIMIT 10","project":"C-Users-maksk-Desktop-rublox"}},"id":1}\n' | \
-  timeout 30 ~/.local/bin/codebase-memory-mcp.exe 2>/dev/null | \
-  python -c "
-import sys, json; text = sys.stdin.read(); obj = json.loads(text.split('\n')[0]); print(obj['result']['content'][0]['text'])
-"
-
-# Трассировка вызовов (trace_path)
-printf '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"trace_path","arguments":{"function_name":"update","project":"C-Users-maksk-Desktop-rublox","direction":"both","depth":3}},"id":1}\n' | \
-  timeout 30 ~/.local/bin/codebase-memory-mcp.exe 2>/dev/null | \
-  python -c "
-import sys, json; text = sys.stdin.read(); obj = json.loads(text.split('\n')[0]); print(obj['result']['content'][0]['text'])
-"
-
-# Код функции (get_code_snippet)
-printf '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"get_code_snippet","arguments":{"qualified_name":"Player.update","project":"C-Users-maksk-Desktop-rublox"}},"id":1}\n' | \
-  timeout 30 ~/.local/bin/codebase-memory-mcp.exe 2>/dev/null | \
-  python -c "
-import sys, json; text = sys.stdin.read(); obj = json.loads(text.split('\n')[0]); print(obj['result']['content'][0]['text'][:3000])
-"
-
-# Список проектов
-printf '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"list_projects","arguments":{}},"id":1}\n' | \
-  timeout 30 ~/.local/bin/codebase-memory-mcp.exe 2>/dev/null | \
-  python -c "
-import sys, json; text = sys.stdin.read(); obj = json.loads(text.split('\n')[0]); print(obj['result']['content'][0]['text'])
+import sys, json; t=sys.stdin.read(); o=json.loads(t.split('\n')[0]); print(o['result']['content'][0]['text'][:3000])
 "
 ```
 
-**Переменные окружения (опционально):**
-- `MCP_BIN` — путь к бинарному файлу MCP (по умолчанию: `~/.local/bin/codebase-memory-mcp.exe`)
-- `MCP_PROJECT` — имя проекта в графе (по умолчанию: `C-Users-maksk-Desktop-rublox`)
+**Готовые примеры (все проверены):**
+
+```bash
+# search_graph — поиск по графу знаний
+printf '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"search_graph","arguments":{"query":"update","project":"C-Users-maksk-Desktop-rublox","limit":5}},"id":1}\n' | \
+  timeout 30 ~/.local/bin/codebase-memory-mcp.exe 2>/dev/null | \
+  python -c "import sys,json;t=sys.stdin.read();o=json.loads(t.split('\n')[0]);print(o['result']['content'][0]['text'][:3000])"
+
+# get_architecture — обзор архитектуры
+printf '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"get_architecture","arguments":{"project":"C-Users-maksk-Desktop-rublox"}},"id":1}\n' | \
+  timeout 30 ~/.local/bin/codebase-memory-mcp.exe 2>/dev/null | \
+  python -c "import sys,json;t=sys.stdin.read();o=json.loads(t.split('\n')[0]);print(o['result']['content'][0]['text'][:3000])"
+
+# get_graph_schema — схема графа (labelы, edge types)
+printf '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"get_graph_schema","arguments":{"project":"C-Users-maksk-Desktop-rublox"}},"id":1}\n' | \
+  timeout 30 ~/.local/bin/codebase-memory-mcp.exe 2>/dev/null | \
+  python -c "import sys,json;t=sys.stdin.read();o=json.loads(t.split('\n')[0]);print(o['result']['content'][0]['text'])"
+
+# search_code — поиск кода с обогащением графа
+printf '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"search_code","arguments":{"pattern":"Player","project":"C-Users-maksk-Desktop-rublox"}},"id":1}\n' | \
+  timeout 30 ~/.local/bin/codebase-memory-mcp.exe 2>/dev/null | \
+  python -c "import sys,json;t=sys.stdin.read();o=json.loads(t.split('\n')[0]);print(o['result']['content'][0]['text'][:3000])"
+
+# query_graph — Cypher запрос к графу
+printf '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"query_graph","arguments":{"query":"MATCH (f:Function) RETURN count(f)","project":"C-Users-maksk-Desktop-rublox"}},"id":1}\n' | \
+  timeout 30 ~/.local/bin/codebase-memory-mcp.exe 2>/dev/null | \
+  python -c "import sys,json;t=sys.stdin.read();o=json.loads(t.split('\n')[0]);print(o['result']['content'][0]['text'])"
+
+# trace_path — трассировка вызовов
+printf '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"trace_path","arguments":{"function_name":"update","project":"C-Users-maksk-Desktop-rublox","direction":"outbound","depth":2}},"id":1}\n' | \
+  timeout 30 ~/.local/bin/codebase-memory-mcp.exe 2>/dev/null | \
+  python -c "import sys,json;t=sys.stdin.read();o=json.loads(t.split('\n')[0]);print(o['result']['content'][0]['text'])"
+
+# get_code_snippet — код функции по qualified_name
+printf '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"get_code_snippet","arguments":{"qualified_name":"C-Users-maksk-Desktop-rublox.entities.Player.Player.constructor","project":"C-Users-maksk-Desktop-rublox"}},"id":1}\n' | \
+  timeout 30 ~/.local/bin/codebase-memory-mcp.exe 2>/dev/null | \
+  python -c "import sys,json;t=sys.stdin.read();o=json.loads(t.split('\n')[0]);print(o['result']['content'][0]['text'][:3000])"
+
+# list_projects — список проектов в графе
+printf '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"list_projects","arguments":{}},"id":1}\n' | \
+  timeout 30 ~/.local/bin/codebase-memory-mcp.exe 2>/dev/null | \
+  python -c "import sys,json;t=sys.stdin.read();o=json.loads(t.split('\n')[0]);print(o['result']['content'][0]['text'])"
+```
+
+**Путь к бинарному файлу MCP:**
+- Windows: `~/.local/bin/codebase-memory-mcp.exe`
+- Если не найден: `./node_modules/codebase-memory-mcp/bin/codebase-memory-mcp.exe` (локальная установка)
 
 **Все 8 MCP инструментов работают:** index_repository, search_graph, query_graph, trace_path, get_code_snippet, get_graph_schema, get_architecture, search_code
 
