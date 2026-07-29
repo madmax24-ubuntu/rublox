@@ -138,6 +138,18 @@ function createBrassTexture() {
     });
 }
 
+// ── Neon glow texture (for laser weapons) ──
+function createNeonTexture(color = '#6ad3ff', size = 64) {
+    return createCanvasTexture(size, size, (ctx, w, h) => {
+        const gradient = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, w/2);
+        gradient.addColorStop(0, color);
+        gradient.addColorStop(0.5, color + '80');
+        gradient.addColorStop(1, 'transparent');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, w, h);
+    });
+}
+
 const WEAPON_BALANCE = {
     fists: { damage: 8, range: 2.4, cooldown: 0.38, ammo: null, durability: null, projectileSpeed: 0 },
     knife: { damage: 24, range: 3.4, cooldown: 0.42, ammo: null, durability: 80, projectileSpeed: 0 },
