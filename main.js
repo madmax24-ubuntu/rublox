@@ -2735,6 +2735,8 @@ class Game {
             if (this.renderer?.domElement) {
                 this.renderer.domElement.style.pointerEvents = 'auto';
                 this.renderer.domElement.style.zIndex = '0';
+                // Request pointer lock immediately so camera pitch is set
+                this.cameraController?.lock?.();
             }
             this.partyMode = false;
             this.applyRoundMode('hybrid');
