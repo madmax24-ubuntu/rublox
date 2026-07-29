@@ -735,14 +735,6 @@ export class Player {
 
         const arms = this.fpArms?.userData?.limbs;
         if (!arms) return;
-        if (this.viewWeapon) {
-            const rx = this.viewWeapon.rotation?.x;
-            const ry = this.viewWeapon.rotation?.y;
-            const rz = this.viewWeapon.rotation?.z;
-            if (Math.random() < 0.01 || isNaN(rx) || isNaN(ry) || isNaN(rz)) {
-                console.log('[Player] viewWeapon pos=' + this.viewWeapon.position?.x.toFixed(2) + ',' + this.viewWeapon.position?.y.toFixed(2) + ',' + this.viewWeapon.position?.z.toFixed(2) + ' rot=' + (isNaN(rx) ? 'NaN' : rx.toFixed(2)) + ',' + (isNaN(ry) ? 'NaN' : ry.toFixed(2)) + ',' + (isNaN(rz) ? 'NaN' : rz.toFixed(2)) + ' visible=' + this.viewWeapon.visible + ' fpArmsPos=' + this.fpArms.position?.x.toFixed(2) + ',' + this.fpArms.position?.y.toFixed(2) + ',' + this.fpArms.position?.z.toFixed(2));
-            }
-        }
 
         const swing = Math.sin(performance.now() * 0.01) * 0.02;
         arms.leftArm.position.copy(this.fpArms.userData.base.leftArm);
@@ -778,8 +770,6 @@ export class Player {
             if (this.input?.mouse) { this.input.mouse.deltaX = 0; this.input.mouse.deltaY = 0; }
             this.currentWeapon?.anim?.update(delta, isShooting, speed > 0.3, mDx, mDy);
             this.currentWeapon?.anim?.applyToMesh(this.viewWeapon, this.viewWeaponType);
-            if (Math.random() < 0.01 && this.currentWeapon?.anim) console.log('[Player] anim: recoilAngle=' + this.currentWeapon.anim.recoilAngle + ' swayX=' + this.currentWeapon.anim.swayX + ' swayY=' + this.currentWeapon.anim.swayY + ' time=' + this.currentWeapon.anim.time);
-            if (Math.random() < 0.05 && this.viewWeapon) console.log('[Player] after applyToMesh: rot=' + this.viewWeapon.rotation.x.toFixed(2) + ',' + this.viewWeapon.rotation.y.toFixed(2) + ',' + this.viewWeapon.rotation.z.toFixed(2) + ' baseRot=' + (this.viewWeapon.userData.baseRotation?.x?.toFixed(2) || 'undef'));
 
             if (this.viewWeaponType === 'knife' && this.weaponSwingTime > 0) {
                 const t = 1 - this.weaponSwingTime / this.weaponSwingDuration;
@@ -1173,7 +1163,6 @@ export class Player {
             // Deep clone materials to isolate from shared materials + add polygonOffset to prevent z-fighting
             const matMap = new Map();
             const viewClone = source.mesh.clone();
-            console.log('[Player] animateViewModelWeapon: viewClone created, hasRotation=' + (viewClone.rotation ? 'yes' : 'no') + ' rot=' + (viewClone.rotation ? viewClone.rotation.x.toFixed(2) + ',' + viewClone.rotation.y.toFixed(2) + ',' + viewClone.rotation.z.toFixed(2) : 'N/A'));
             viewClone.traverse(child => {
                 if (child.isMesh && child.material) {
                     if (!matMap.has(child.material)) {
@@ -1195,19 +1184,16 @@ export class Player {
             viewClone.scale.setScalar(offset.scale);
             viewClone.position.copy(offset.position);
             viewClone.rotation.copy(offset.rotation);
-            console.log('[Player] animateViewModelWeapon: set rot=' + viewClone.rotation.x.toFixed(2) + ',' + viewClone.rotation.y.toFixed(2) + ',' + viewClone.rotation.z.toFixed(2) + ' offsetRot=' + offset.rotation.x.toFixed(2) + ',' + offset.rotation.y.toFixed(2) + ',' + offset.rotation.z.toFixed(2));
             this.setupViewModel(viewClone, true);
             this.fpArms.add(viewClone);
             this.fpArms.visible = true;
             this.viewWeapon = viewClone;
             const baseRot = offset.rotation.clone();
-            console.log('[Player] animateViewModelWeapon: baseRot= ' + baseRot.x.toFixed(2) + ',' + baseRot.y.toFixed(2) + ',' + baseRot.z.toFixed(2) + ' type=' + (baseRot instanceof THREE.Euler ? 'Euler' : typeof baseRot));
             this.viewWeaponBase = {
                 position: offset.position.clone(),
                 rotation: baseRot
             };
-            this.viewWeapon.userData.baseRotation = new THREE.Euler(0,0,0);
-            this.viewWeapon.userData.baseRotation.set(this.viewWeapon.rotation.x, this.viewWeapon.rotation.y, this.viewWeapon.rotation.z);
+            this.viewWeapon.userData.baseRotation = new THREE.Euler(this.viewWeapon.rotation.x, this.viewWeapon.rotation.y, this.viewWeapon.rotation.z);
         } catch (e) {
             console.warn('[Player] animateViewModelWeapon error:', e);
         }

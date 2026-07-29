@@ -217,9 +217,6 @@ export class WeaponAnimation {
         const rx = baseRot.x + this.recoilAngle*Math.cos(this.time*15);
         const ry = baseRot.y + this.swayX;
         const rz = baseRot.z + this.swayY*0.3;
-        if (this.time > 0.5 && (isNaN(rx) || isNaN(ry) || isNaN(rz))) {
-            console.log('[Weapon] applyToMesh: recoilAngle=' + this.recoilAngle + ' swayX=' + this.swayX + ' swayY=' + this.swayY + ' time=' + this.time + ' baseRot=' + baseRot + ' type=' + (baseRot instanceof THREE.Euler ? 'Euler' : typeof baseRot) + ' keys=' + Object.keys(baseRot).join(',') + ' x=' + baseRot.x + ' y=' + baseRot.y + ' z=' + baseRot.z);
-        }
         mesh.rotation.set(rx, ry, rz);
 
         mesh.position.y = (mesh.userData.basePositionY ?? mesh.position.y) + bob;
