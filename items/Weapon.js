@@ -647,8 +647,8 @@ function createGunModel(style) {
     }
 
     if (style !== 'flamethrower') {
-        group.add(createPart(getGeom(`${style}_front_sight`, () => new THREE.BoxGeometry(0.035, 0.09, 0.035)), dark, 0.48, 0.2, 0));
-        group.add(createPart(getGeom(`${style}_rear_sight`, () => new THREE.BoxGeometry(0.05, 0.07, 0.05)), dark, -0.06, 0.2, 0));
+        group.add(createPart(getGeom(`${style}_front_sight`, () => new THREE.BoxGeometry(0.035, 0.09, 0.035)), darkMat, 0.48, 0.2, 0));
+        group.add(createPart(getGeom(`${style}_rear_sight`, () => new THREE.BoxGeometry(0.05, 0.07, 0.05)), darkMat, -0.06, 0.2, 0));
     }
 
     group.rotation.y = Math.PI;
