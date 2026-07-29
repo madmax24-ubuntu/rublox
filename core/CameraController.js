@@ -45,7 +45,7 @@ export class CameraController {
             this._onLockChange = () => {
                 const wasLocked = this.isLocked;
                 this.isLocked = document.pointerLockElement === this.domElement;
-                console.log('[Cam] pointerlockchange wasLocked=' + wasLocked + ' isLocked=' + this.isLocked + ' pointerLockElement=' + (document.pointerLockElement?.tagName || 'null'));
+                if (wasLocked !== this.isLocked) console.log('[Cam] pointerlockchange isLocked=' + this.isLocked);
             };
             document.addEventListener('pointerlockchange', this._onLockChange);
             this._onPointerDown = () => {
@@ -307,12 +307,13 @@ export class CameraController {
     }
 
     lock() {
-        console.log('[Cam] lock() called');
         try {
-            const request = this.domElement.requestPointerLock?.();
-            console.log('[Cam] lock() requestPointerLock returned:', request);
-            request?.catch?.(e => console.log('[Cam] lock() Promise rejected:', e));
-        } catch (_) {}
+            if (document.requestPointerLock) {
+                document.requestPointerLock({ element: this.domElement });
+            }
+        } catch (e) {
+            console.log('[Cam] lock() error:', e.message);
+        }
         // Начальный downward pitch — чтобы видеть нож/руку при старте
         this._pitch = -0.25; // ~-14° вниз
     }
