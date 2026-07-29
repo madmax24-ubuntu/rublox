@@ -771,6 +771,7 @@ export class Player {
             if (this.input?.mouse) { this.input.mouse.deltaX = 0; this.input.mouse.deltaY = 0; }
             this.currentWeapon?.anim?.update(delta, isShooting, speed > 0.3, mDx, mDy);
             this.currentWeapon?.anim?.applyToMesh(this.viewWeapon, this.viewWeaponType);
+            if (Math.random() < 0.01 && this.currentWeapon?.anim) console.log('[Player] anim: recoilAngle=' + this.currentWeapon.anim.recoilAngle + ' swayX=' + this.currentWeapon.anim.swayX + ' swayY=' + this.currentWeapon.anim.swayY + ' time=' + this.currentWeapon.anim.time);
 
             if (this.viewWeaponType === 'knife' && this.weaponSwingTime > 0) {
                 const t = 1 - this.weaponSwingTime / this.weaponSwingDuration;

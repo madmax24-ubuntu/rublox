@@ -214,7 +214,13 @@ export class WeaponAnimation {
         if (!mesh) return;
         const bob = Math.sin(this.bobPhase) * this.bobAmount;
         const baseRot = mesh.userData.baseRotation || new THREE.Euler(0,0,0);
-        mesh.rotation.set(baseRot.x + this.recoilAngle*Math.cos(this.time*15), baseRot.y + this.swayX, baseRot.z + this.swayY*0.3);
+        const rx = baseRot.x + this.recoilAngle*Math.cos(this.time*15);
+        const ry = baseRot.y + this.swayX;
+        const rz = baseRot.z + this.swayY*0.3;
+        if (this.time > 0.5 && (isNaN(rx) || isNaN(ry) || isNaN(rz))) {
+            console.log('[Weapon] applyToMesh: recoilAngle=' + this.recoilAngle + ' swayX=' + this.swayX + ' swayY=' + this.swayY + ' time=' + this.time + ' baseRot=' + baseRot.x + ',' + baseRot.y + ',' + baseRot.z);
+        }
+        mesh.rotation.set(rx, ry, rz);
         mesh.position.y = (mesh.userData.basePositionY ?? mesh.position.y) + bob;
         mesh.position.x = (mesh.userData.basePositionX ?? mesh.position.x) + this.swayX * 0.025;
         if (mesh.userData.basePositionY === undefined) mesh.userData.basePositionY = mesh.position.y;
