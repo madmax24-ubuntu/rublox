@@ -515,7 +515,6 @@ export class Player {
         }
         const isFirstPerson = this._stableFirstPerson;
         if (isFirstPerson) {
-        if (isFirstPerson) {
             this.mesh.visible = false;
             this.fpArms.visible = true;
             if (this.currentWeapon) this.currentWeapon.setVisible(false);
