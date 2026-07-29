@@ -399,19 +399,15 @@ function createKnifeModel() {
     // Premium knife — polished steel blade, wood handle, dark guard with rivets
     const bladeTex = createBrightSteelTexture();
     const bladeMat = createWeaponMaterial(bladeTex);
-    bladeMat.color.setHex(0xd8dce2);
     
     const handleTex = createWoodTexture2('#3a2818');
     const handleMat = createWeaponMaterial(handleTex);
-    handleMat.color.setHex(0x3a2818);
     
     const guardTex = createPBRMetalTexture('#2a2d35');
     const guardMat = createWeaponMaterial(guardTex);
-    guardMat.color.setHex(0x2a2d35);
     
     const pommelTex = createMatteBlackTexture();
     const pommelMat = createWeaponMaterial(pommelTex);
-    pommelMat.color.setHex(0x1a1c22);
 
     // Handle scales with rivets
     group.add(createPart(getGeom('knife_h1', () => new THREE.BoxGeometry(0.42, 0.11, 0.11)), handleMat, -0.27, 0, 0));
@@ -504,20 +500,16 @@ function createGunModel(style) {
         // Use high-quality PBR textures for pistol
         const steelTex = createPBRMetalTexture('#a0b0c0');
         steelMat = createWeaponMaterial(steelTex);
-        steelMat.color.setHex(0xa0b0c0);
         
         const darkTex = createMatteBlackTexture();
         darkMat = createWeaponMaterial(darkTex);
-        darkMat.color.setHex(0x151820);
         
         const gripTex = createPolymerTexture2('#1a1a1a');
         gripMat = createWeaponMaterial(gripTex);
-        gripMat.color.setHex(0x1a1a1a);
         
         // Additional pistol-specific materials
         const woodTex = createWoodTexture2('#5a3a20');
         woodMat = createWeaponMaterial(woodTex);
-        woodMat.color.setHex(0x5a3a20);
         
         brassMat = getMaterial('pistol_brass', () => new THREE.MeshStandardMaterial({
             color: 0xb5a040, metalness: 0.9, roughness: 0.2,
@@ -537,19 +529,15 @@ function createGunModel(style) {
         // Rifle/MG with high-quality PBR textures
         const steelTex = createPBRMetalTexture(style === 'machinegun' ? '#2a2e35' : '#6a7580');
         steelMat = createWeaponMaterial(steelTex);
-        steelMat.color.setHex(style === 'machinegun' ? 0x2a2e35 : 0x6a7580);
         
         const darkTex = createMatteBlackTexture();
         darkMat = createWeaponMaterial(darkTex);
-        darkMat.color.setHex(0x151820);
         
         const gripTex = createPolymerTexture2('#1a1a1a');
         gripMat = createWeaponMaterial(gripTex);
-        gripMat.color.setHex(0x1a1a1a);
         
         const woodTex = createWoodTexture2('#5a3a20');
         woodMat = createWeaponMaterial(woodTex);
-        woodMat.color.setHex(0x5a3a20);
         
         brassMat = getMaterial(`${style}_brass`, () => new THREE.MeshStandardMaterial({
             color: 0xb5a040, metalness: 0.9, roughness: 0.2,

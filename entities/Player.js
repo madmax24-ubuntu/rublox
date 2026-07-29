@@ -831,12 +831,9 @@ export class Player {
         const weapon = this.inventory.selectSlot(slot);
         const oldWeapon = this.currentWeapon;
         
-        console.log('[Player] selectSlot: slot=' + slot + ' weapon=' + (weapon?.type || 'null') + ' mesh=' + (weapon?.mesh ? 'exists' : 'NULL') + ' this.mesh=' + (this.mesh ? 'exists' : 'NULL') + ' socket=' + (this.mesh?.userData?.weaponSocket ? 'exists' : 'NULL'));
-        
         if (oldWeapon && oldWeapon.mesh && this.mesh?.userData?.weaponSocket) {
             // Detach old weapon from socket
             oldWeapon.detachFromSocket();
-            console.log('[Player] selectSlot: detached old weapon ' + oldWeapon.type);
         }
 
         if (weapon) {
@@ -844,15 +841,15 @@ export class Player {
             // Attach to player's weapon socket for third-person view
             if (weapon.mesh && this.mesh?.userData?.weaponSocket) {
                 weapon.attachToSocket(this.mesh.userData.weaponSocket);
-                console.log('[Player] selectSlot: attached weapon ' + weapon.type + ' to socket, mesh.visible=' + weapon.mesh.visible);
-            } else {
-                console.warn('[Player] selectSlot: cannot attach weapon, mesh=' + (weapon.mesh ? 'exists' : 'NULL') + ' socket=' + (this.mesh?.userData?.weaponSocket ? 'exists' : 'NULL'));
             }
         } else {
             this.currentWeapon = null;
             this.fists = new Weapon('fists', this.scene);
         }
         this.updateViewWeapon();
+        // Обновляем видимость рук при смене оружия (сразу, не ждём update())
+        const isFirstPerson = this._stableFirstPerson ?? (controls && controls.isLocked);
+        this.updateFirstPersonArmsVisibility(isFirstPerson);
         if (this.hudRef) {
             this.hudRef.updateAmmo(this.currentWeapon);
         }
@@ -1128,12 +1125,8 @@ export class Player {
         // Кэшируем viewWeapon по типу оружия — не пересоздаём каждый кадр
         if (weaponType === this.viewWeaponType && this.viewWeapon) return;
 
-        console.log('[Player] animateViewModelWeapon ENTER type=' + weaponType);
         this.viewWeaponType = weaponType || null;
-        if (!this.fpArms) {
-            console.warn('[Player] animateViewModelWeapon: fpArms is null');
-            return;
-        }
+        if (!this.fpArms) return;
         if (!weaponType || weaponType === 'fists') {
             if (this.viewWeapon) {
                 this.fpArms.remove(this.viewWeapon);
@@ -1154,11 +1147,7 @@ export class Player {
 
         try {
             const source = new Weapon(weaponType, this.scene);
-            console.log('[Player] Weapon created: type=' + source.type + ' mesh=' + (source.mesh ? 'exists' : 'NULL'));
-            if (!source.mesh) {
-                console.warn('[Player] animateViewModelWeapon: no mesh for type', weaponType);
-                return;
-            }
+            if (!source.mesh) return;
 
             // Deep clone materials to isolate from shared materials + add polygonOffset to prevent z-fighting
             const matMap = new Map();
@@ -1201,7 +1190,6 @@ export class Player {
 
     updateViewWeapon() {
         const weapon = this.currentWeapon || this.fists;
-        console.log('[Player] updateViewWeapon: currentWeapon=' + (this.currentWeapon?.type || 'null') + ' fists=' + (this.fists?.type || 'null') + ' fpArmsVisible=' + this.fpArms?.visible);
         this.animateViewModelWeapon(weapon?.type);
     }
 
