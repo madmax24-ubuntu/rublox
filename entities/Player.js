@@ -508,15 +508,13 @@ export class Player {
         }
 
         const isFirstPersonRaw = (controls && controls.isLocked) || this.input.isMobile;
-        // Stabilize: only flip on confirmed state change (prevents pointer-lock flicker)
-        if (isFirstPersonRaw !== this._stableFirstPerson) {
-            this._stableFirstPerson = isFirstPersonRaw;
+        // Stabilize: flip ONLY when pointer-lock activates (prevents flicker on exit)
+        // Once in first-person (pointer-lock active), stay in first-person even on brief lock loss
+        if (isFirstPersonRaw && !this._stableFirstPerson) {
+            this._stableFirstPerson = true;
         }
         const isFirstPerson = this._stableFirstPerson;
-        // Debug: log weapon state every 100 frames
-        if (Math.random() < 0.01) {
-            console.log('[Player] UPDATE: isFirstPerson=' + isFirstPerson + ' fpArmsVisible=' + this.fpArms?.visible + ' viewWeapon=' + (this.viewWeapon ? 'exists' : 'null') + ' viewWeaponVisible=' + (this.viewWeapon?.visible) + ' viewWeaponType=' + this.viewWeaponType + ' currentWeapon=' + (this.currentWeapon?.type || 'null') + ' controlsLocked=' + (controls ? controls.isLocked : 'N/A'));
-        }
+        if (isFirstPerson) {
         if (isFirstPerson) {
             this.mesh.visible = false;
             this.fpArms.visible = true;
