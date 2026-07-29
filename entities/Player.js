@@ -735,6 +735,7 @@ export class Player {
 
         const arms = this.fpArms?.userData?.limbs;
         if (!arms) return;
+        if (this.viewWeapon && Math.random() < 0.01) console.log('[Player] viewWeapon pos=' + this.viewWeapon.position?.x.toFixed(2) + ',' + this.viewWeapon.position?.y.toFixed(2) + ',' + this.viewWeapon.position?.z.toFixed(2) + ' rot=' + this.viewWeapon.rotation?.x.toFixed(2) + ',' + this.viewWeapon.rotation?.y.toFixed(2) + ',' + this.viewWeapon.rotation?.z.toFixed(2) + ' visible=' + this.viewWeapon.visible + ' fpArmsPos=' + this.fpArms.position?.x.toFixed(2) + ',' + this.fpArms.position?.y.toFixed(2) + ',' + this.fpArms.position?.z.toFixed(2));
 
         const swing = Math.sin(performance.now() * 0.01) * 0.02;
         arms.leftArm.position.copy(this.fpArms.userData.base.leftArm);
