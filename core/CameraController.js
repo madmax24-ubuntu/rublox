@@ -308,14 +308,18 @@ export class CameraController {
 
     lock() {
         try {
+            if (document.pointerLockElement) return; // already locked
+            // New API: document.requestPointerLock(options)
+            // Fallback: element.requestPointerLock()
             if (document.requestPointerLock) {
                 document.requestPointerLock({ element: this.domElement });
+            } else if (this.domElement.requestPointerLock) {
+                this.domElement.requestPointerLock();
             }
         } catch (e) {
             console.log('[Cam] lock() error:', e.message);
         }
-        // Начальный downward pitch — чтобы видеть нож/руку при старте
-        this._pitch = -0.25; // ~-14° вниз
+        this._pitch = -0.25;
     }
 
     unlock() {
