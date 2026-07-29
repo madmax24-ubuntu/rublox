@@ -1518,11 +1518,7 @@ export class HUD {
                 this.killRewardPanel.style.display = 'none';
                 this.killRewardButton.style.display = 'none';
                 onSelect?.(option.id);
-                const canvas = document.querySelector('#gameRoot canvas');
-                if (canvas?.requestPointerLock && !this._isMobile) {
-                    const lock = canvas.requestPointerLock();
-                    lock?.catch?.(() => {});
-                }
+                // Pointer lock handled by setPaused(false) in main.js — don't double-request
             });
             list.appendChild(button);
         }

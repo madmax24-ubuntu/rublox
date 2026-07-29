@@ -760,6 +760,16 @@ export class Player {
                 this.viewWeapon.rotation.copy(this.viewWeaponBase.rotation);
             }
 
+            // Update weapon animation system (recoil, sway, bob, heat)
+            const isShooting = this.weaponActionTime > 0 || this.viewKick > 0;
+            const speed = Math.sqrt(this.physics.velocity.x**2 + this.physics.velocity.z**2);
+            // Use mouse delta for weapon sway, then reset
+            const mDx = this.input?.mouse?.deltaX || 0;
+            const mDy = this.input?.mouse?.deltaY || 0;
+            if (this.input?.mouse) { this.input.mouse.deltaX = 0; this.input.mouse.deltaY = 0; }
+            this.currentWeapon?.anim?.update(delta, isShooting, speed > 0.3, mDx, mDy);
+            this.currentWeapon?.anim?.applyToMesh(this.viewWeapon, this.viewWeaponType);
+
             if (this.viewWeaponType === 'knife' && this.weaponSwingTime > 0) {
                 const t = 1 - this.weaponSwingTime / this.weaponSwingDuration;
                 const swing = Math.sin(t * Math.PI);

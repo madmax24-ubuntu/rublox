@@ -303,6 +303,12 @@ export class Bot {
             this._weaponRecoilTimer -= 0.016;
         }
 
+        // Apply weapon animation system (idle bob, sway)
+        const isShooting = this._weaponRecoilTimer > 0;
+        const isMoving = Math.abs(this.physics?.velocity?.x) > 0.2 || Math.abs(this.physics?.velocity?.z) > 0.2;
+        this.currentWeapon?.anim?.update(0.016, isShooting, isMoving, 0, 0);
+        this.currentWeapon?.anim?.applyToMesh(mesh, this.currentWeapon.type);
+
         mesh.rotation.set(this._tmpWeaponRot.x, this._tmpWeaponRot.y + Math.PI / 2, this._tmpWeaponRot.z);
     }
 
