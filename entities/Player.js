@@ -1115,6 +1115,7 @@ export class Player {
         // Кэшируем viewWeapon по типу оружия — не пересоздаём каждый кадр
         if (weaponType === this.viewWeaponType && this.viewWeapon) return;
 
+        console.log('[Player] animateViewModelWeapon ENTER type=' + weaponType);
         this.viewWeaponType = weaponType || null;
         if (!weaponType || weaponType === 'fists') {
             if (this.viewWeapon) {
@@ -1136,6 +1137,7 @@ export class Player {
 
         try {
             const source = new Weapon(weaponType, this.scene);
+            console.log('[Player] Weapon created: type=' + source.type + ' mesh=' + (source.mesh ? 'exists' : 'NULL'));
             if (!source.mesh) {
                 console.warn('[Player] animateViewModelWeapon: no mesh for type', weaponType);
                 return;
@@ -1179,6 +1181,7 @@ export class Player {
 
     updateViewWeapon() {
         const weapon = this.currentWeapon || this.fists;
+        console.log('[Player] updateViewWeapon: currentWeapon=' + (this.currentWeapon?.type || 'null') + ' fists=' + (this.fists?.type || 'null') + ' fpArmsVisible=' + this.fpArms?.visible);
         this.animateViewModelWeapon(weapon?.type);
     }
 
