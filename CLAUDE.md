@@ -1,38 +1,12 @@
 # Global Rules
 
-## MCP Tools — correct tool names
-
-**ALL MCP tools use prefix `mcp__<Server>__<tool>`. Call via ToolSearch + direct tool call.**
-
-### Работающие серверы (проверено):
-| Server | Prefix | Key tools |
-|--------|--------|-----------|
-| Codebase-Memory | `mcp__Codebase-Memory__` | get_architecture, search_code, get_code_snippet, query_graph, search_graph, trace_path, index_repository |
-| Git | `mcp__Git__` | status, log, diff, commit, branch, merge, rebase, stash, reset, checkout, pull, blame, file_history |
-| Playwright | `mcp__Playwright2__` | browser_navigate, browser_click, browser_type, browser_snapshot, browser_evaluate |
-| Computer-Use | `mcp__Computer-Use__` | click, type_text, press_key, scroll, drag, screenshot |
-| Three.js | `mcp__Three_js__` | scene_tree, object_details, material_details, take_screenshot |
-
-### Неработающие серверы (НЕ ИСПОЛЬЗОВАТЬ):
-| Server | Status | Причина |
-|--------|--------|---------|
-| MCP-Web-Search | ❌ | Server not configured |
-| Context7 | ❌ | Server not configured |
-| Memory | ❌ | Memory graph пустой, сущности не созданы |
-| Filesystem | ❌ | Конфликт с встроенными Read/Edit/Glob |
-
-### Правильный порядок вызова MCP:
-1. **ToolSearch** → `select:<tool_name>` для загрузки deferred tools
-2. **Direct call** → `mcp__Server__<tool>` после загрузки
-3. **Fallback** → встроенные Bash/Glob/Grep/Read/Edit
-
 ## Workflow (обязательно)
 
 ### 1. Plan first — before any work
 
 Каждая нетривиальная задача начинается с плана:
 1. Определи подход, шаги, зависимости
-2. Выбери правильные инструменты (MCP → встроенные → grep/glob)
+2. Выбери правильные инструменты
 3. Только потом — действия
 
 ### 2. Git before every file change
@@ -68,9 +42,9 @@ git commit -m "brief description"
 
 ## Tool Selection
 
-1. **MCP first:** поиск по коду → Codebase-Memory; браузер → Playwright; UI → Computer-Use; документация → Context7
-2. **Встроенные:** glob, grep, read, edit, bash — для локальных операций
-3. **Grep fallback:** строковые литералы, конфиги, не-код файлы
+1. **Встроенные:** glob, grep, read, edit, bash — для локальных операций
+2. **Bash:** shell-команды, git, npm, node
+3. **Agent:** сложные многошаговые задачи, большие файлы, параллельная работа
 
 ## Error Handling
 
@@ -115,6 +89,74 @@ git commit -m "brief description"
 - Поиск по репозиторию (> 10 результатов)
 - Многозадачность: найти файлы + проверить билд + запустить тесты
 - Любой запрос типа "найди и исправь" с несколькими подзадачами
+
+## MCP Tools (Codebase-Memory)
+
+MCP инструменты НЕ работают через ToolSearch (Claude Code bug). Используй Bash напрямую:
+
+```bash
+# Поиск по графу (search_graph)
+printf '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"search_graph","arguments":{"query":"update","project":"C-Users-maksk-Desktop-rublox","limit":5}},"id":1}\n' | \
+  timeout 30 ~/.local/bin/codebase-memory-mcp.exe 2>/dev/null | \
+  python -c "
+import sys, json; text = sys.stdin.read(); obj = json.loads(text.split('\n')[0]); print(obj['result']['content'][0]['text'][:3000])
+"
+
+# Архитектура (get_architecture)
+printf '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"get_architecture","arguments":{"project":"C-Users-maksk-Desktop-rublox"}},"id":1}\n' | \
+  timeout 30 ~/.local/bin/codebase-memory-mcp.exe 2>/dev/null | \
+  python -c "
+import sys, json; text = sys.stdin.read(); obj = json.loads(text.split('\n')[0]); print(obj['result']['content'][0]['text'][:3000])
+"
+
+# Схема графа (get_graph_schema)
+printf '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"get_graph_schema","arguments":{"project":"C-Users-maksk-Desktop-rublox"}},"id":1}\n' | \
+  timeout 30 ~/.local/bin/codebase-memory-mcp.exe 2>/dev/null | \
+  python -c "
+import sys, json; text = sys.stdin.read(); obj = json.loads(text.split('\n')[0]); print(obj['result']['content'][0]['text'])
+"
+
+# Поиск кода (search_code)
+printf '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"search_code","arguments":{"pattern":"Player","project":"C-Users-maksk-Desktop-rublox"}},"id":1}\n' | \
+  timeout 30 ~/.local/bin/codebase-memory-mcp.exe 2>/dev/null | \
+  python -c "
+import sys, json; text = sys.stdin.read(); obj = json.loads(text.split('\n')[0]); print(obj['result']['content'][0]['text'][:3000])
+"
+
+# Запрос по графу (query_graph — Cypher)
+printf '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"query_graph","arguments":{"query":"MATCH (f:Function) RETURN f.qualified_name, f.complexity ORDER BY f.complexity DESC LIMIT 10","project":"C-Users-maksk-Desktop-rublox"}},"id":1}\n' | \
+  timeout 30 ~/.local/bin/codebase-memory-mcp.exe 2>/dev/null | \
+  python -c "
+import sys, json; text = sys.stdin.read(); obj = json.loads(text.split('\n')[0]); print(obj['result']['content'][0]['text'])
+"
+
+# Трассировка вызовов (trace_path)
+printf '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"trace_path","arguments":{"function_name":"update","project":"C-Users-maksk-Desktop-rublox","direction":"both","depth":3}},"id":1}\n' | \
+  timeout 30 ~/.local/bin/codebase-memory-mcp.exe 2>/dev/null | \
+  python -c "
+import sys, json; text = sys.stdin.read(); obj = json.loads(text.split('\n')[0]); print(obj['result']['content'][0]['text'])
+"
+
+# Код функции (get_code_snippet)
+printf '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"get_code_snippet","arguments":{"qualified_name":"Player.update","project":"C-Users-maksk-Desktop-rublox"}},"id":1}\n' | \
+  timeout 30 ~/.local/bin/codebase-memory-mcp.exe 2>/dev/null | \
+  python -c "
+import sys, json; text = sys.stdin.read(); obj = json.loads(text.split('\n')[0]); print(obj['result']['content'][0]['text'][:3000])
+"
+
+# Список проектов
+printf '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"list_projects","arguments":{}},"id":1}\n' | \
+  timeout 30 ~/.local/bin/codebase-memory-mcp.exe 2>/dev/null | \
+  python -c "
+import sys, json; text = sys.stdin.read(); obj = json.loads(text.split('\n')[0]); print(obj['result']['content'][0]['text'])
+"
+```
+
+**Переменные окружения (опционально):**
+- `MCP_BIN` — путь к бинарному файлу MCP (по умолчанию: `~/.local/bin/codebase-memory-mcp.exe`)
+- `MCP_PROJECT` — имя проекта в графе (по умолчанию: `C-Users-maksk-Desktop-rublox`)
+
+**Все 8 MCP инструментов работают:** index_repository, search_graph, query_graph, trace_path, get_code_snippet, get_graph_schema, get_architecture, search_code
 
 ## Memory Management
 
