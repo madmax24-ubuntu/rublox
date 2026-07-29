@@ -50,10 +50,16 @@ app.get('/', async (req, res) => {
   res.send(htmlWithVersion);
 });
 
-// Serve all other static files
+// Serve all other static files with cache-busting for JS
 app.use((req, res, next) => {
   if (req.path === '/') {
     next();
+  } else if (req.path.endsWith('.js')) {
+    // Add cache-busting query param to JS files
+    const url = new URL(req.url, 'http://localhost');
+    url.searchParams.set('v', Date.now());
+    req.url = url.pathname + url.search;
+    serveStatic(req, res, next);
   } else {
     serveStatic(req, res, next);
   }
