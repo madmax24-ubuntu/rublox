@@ -397,30 +397,21 @@ function configureMeshForGameplay(mesh) {
 function createKnifeModel() {
     const group = new THREE.Group();
     // Premium knife — polished steel blade, wood handle, dark guard with rivets
-    const bladeMat = getMaterial('knife_blade', () => new THREE.MeshStandardMaterial({ 
-        color: 0xd8dce2, 
-        metalness: 0.92, 
-        roughness: 0.15, 
-        map: createMetalTexture('#d8dce2')
-    }));
-    const handleMat = getMaterial('knife_handle', () => new THREE.MeshStandardMaterial({ 
-        color: 0x3a2818, 
-        roughness: 0.75, 
-        metalness: 0.05, 
-        map: createWoodTexture('#3a2818')
-    }));
-    const guardMat = getMaterial('knife_guard', () => new THREE.MeshStandardMaterial({ 
-        color: 0x2a2d35, 
-        roughness: 0.25, 
-        metalness: 0.85, 
-        map: createMetalTexture('#2a2d35')
-    }));
-    const pommelMat = getMaterial('knife_pommel', () => new THREE.MeshStandardMaterial({ 
-        color: 0x1a1c22, 
-        roughness: 0.3, 
-        metalness: 0.8, 
-        map: createMetalTexture('#1a1c22')
-    }));
+    const bladeTex = createBrightSteelTexture();
+    const bladeMat = createWeaponMaterial(bladeTex);
+    bladeMat.color.setHex(0xd8dce2);
+    
+    const handleTex = createWoodTexture2('#3a2818');
+    const handleMat = createWeaponMaterial(handleTex);
+    handleMat.color.setHex(0x3a2818);
+    
+    const guardTex = createPBRMetalTexture('#2a2d35');
+    const guardMat = createWeaponMaterial(guardTex);
+    guardMat.color.setHex(0x2a2d35);
+    
+    const pommelTex = createMatteBlackTexture();
+    const pommelMat = createWeaponMaterial(pommelTex);
+    pommelMat.color.setHex(0x1a1c22);
 
     // Handle scales with rivets
     group.add(createPart(getGeom('knife_h1', () => new THREE.BoxGeometry(0.42, 0.11, 0.11)), handleMat, -0.27, 0, 0));
