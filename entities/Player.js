@@ -523,7 +523,7 @@ export class Player {
             if (this.currentWeapon) this.currentWeapon.setVisible(true);
         }
         this.updateFirstPersonArmsVisibility(isFirstPerson);
-        this.animateViewModel(isFirstPerson);
+        this.animateViewModel(isFirstPerson, delta);
 
         for (let displaySlot = 1; displaySlot <= 10; displaySlot++) {
             const key = displaySlot === 10 ? 0 : displaySlot;
@@ -717,7 +717,7 @@ export class Player {
         }
     }
 
-    animateViewModel(isFirstPerson) {
+    animateViewModel(isFirstPerson, delta) {
         if (!isFirstPerson) {
             if (this.viewWeapon) this.viewWeapon.visible = false;
             // Обновляем позицию рук даже если не first-person (для стабильности)
