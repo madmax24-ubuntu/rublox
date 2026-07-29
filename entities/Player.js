@@ -735,11 +735,6 @@ export class Player {
         const arms = this.fpArms?.userData?.limbs;
         if (!arms) return;
 
-        // Debug: log viewWeapon state periodically
-        if (Math.random() < 0.01) {
-            console.log('[Player] animateViewModel: viewWeapon=' + (this.viewWeapon ? 'exists' : 'null') + ' type=' + this.viewWeaponType + ' visible=' + (this.viewWeapon?.visible));
-        }
-
         const swing = Math.sin(performance.now() * 0.01) * 0.02;
         arms.leftArm.position.copy(this.fpArms.userData.base.leftArm);
         arms.rightArm.position.copy(this.fpArms.userData.base.rightArm);
