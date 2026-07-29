@@ -528,7 +528,7 @@ export class Player {
         for (let displaySlot = 1; displaySlot <= 10; displaySlot++) {
             const key = displaySlot === 10 ? 0 : displaySlot;
             const slotIndex = displaySlot === 10 ? 9 : displaySlot - 1;
-            if (this.input.isKeyPressed(`Digit${key}`) || this.input.isKeyPressed(`Numpad${key}`)) {
+            if ((this.input.isKeyPressed(`Digit${key}`) || this.input.isKeyPressed(`Numpad${key}`)) && this.inventory.hasItem(slotIndex)) {
                 this.selectSlot(slotIndex);
             }
         }
