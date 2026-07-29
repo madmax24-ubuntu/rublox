@@ -311,7 +311,7 @@ export class CameraController {
         try {
             const request = this.domElement.requestPointerLock?.();
             console.log('[Cam] lock() requestPointerLock returned:', request);
-            request?.catch?.(() => {});
+            request?.catch?.(e => console.log('[Cam] lock() Promise rejected:', e));
         } catch (_) {}
         // Начальный downward pitch — чтобы видеть нож/руку при старте
         this._pitch = -0.25; // ~-14° вниз
