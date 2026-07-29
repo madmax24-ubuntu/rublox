@@ -166,9 +166,9 @@ export function createPBRMetalTexture(baseColor = '#8a9aae') {
     roughCtx.putImageData(roughData, 0, 0);
     
     return {
-        albedo: createCanvasTexture(size, size, () => { albedoCtx.drawImage(albedoCanvas, 0, 0); return albedoCanvas; }),
-        normal: createCanvasTexture(size, size, () => { normalCtx.drawImage(normalCanvas, 0, 0); return normalCanvas; }),
-        roughness: createCanvasTexture(size, size, () => { roughCtx.drawImage(roughCanvas, 0, 0); return roughCanvas; }),
+        albedo: createCanvasTexture(size, size, (ctx) => { ctx.drawImage(albedoCanvas, 0, 0); }),
+        normal: createCanvasTexture(size, size, (ctx) => { ctx.drawImage(normalCanvas, 0, 0); }),
+        roughness: createCanvasTexture(size, size, (ctx) => { ctx.drawImage(roughCanvas, 0, 0); }),
         baseRoughness: 0.25,
         baseMetalness: 0.9
     };
@@ -247,8 +247,8 @@ export function createPolymerTexture2(baseColor = '#1a1c22') {
     normalCtx.putImageData(normalData, 0, 0);
     
     return {
-        albedo: createCanvasTexture(size, size, () => { ctx.drawImage(canvas, 0, 0); return canvas; }),
-        normal: createCanvasTexture(size, size, () => { normalCtx.drawImage(normalCanvas, 0, 0); return normalCanvas; }),
+        albedo: createCanvasTexture(size, size, (ctx) => { ctx.drawImage(canvas, 0, 0); }),
+        normal: createCanvasTexture(size, size, (ctx) => { ctx.drawImage(normalCanvas, 0, 0); }),
         roughness: null,
         baseRoughness: 0.75,
         baseMetalness: 0.05
@@ -302,7 +302,7 @@ export function createWoodTexture2(baseColor = '#5a3a20') {
     ctx.globalAlpha = 1;
     
     return {
-        albedo: createCanvasTexture(size, size, () => { ctx.drawImage(canvas, 0, 0); return canvas; }),
+        albedo: createCanvasTexture(size, size, (ctx) => { ctx.drawImage(canvas, 0, 0); }),
         normal: null,
         roughness: null,
         baseRoughness: 0.65,
@@ -336,7 +336,7 @@ export function createMatteBlackTexture() {
     ctx.putImageData(data, 0, 0);
     
     return {
-        albedo: createCanvasTexture(size, size, () => { ctx.drawImage(canvas, 0, 0); return canvas; }),
+        albedo: createCanvasTexture(size, size, (ctx) => { ctx.drawImage(canvas, 0, 0); }),
         normal: null,
         roughness: null,
         baseRoughness: 0.85,
@@ -380,7 +380,7 @@ export function createBrightSteelTexture() {
     ctx.globalAlpha = 1;
     
     return {
-        albedo: createCanvasTexture(size, size, () => { ctx.drawImage(canvas, 0, 0); return canvas; }),
+        albedo: createCanvasTexture(size, size, (ctx) => { ctx.drawImage(canvas, 0, 0); }),
         normal: null,
         roughness: null,
         baseRoughness: 0.15,
