@@ -1136,7 +1136,10 @@ export class Player {
 
         try {
             const source = new Weapon(weaponType, this.scene);
-            if (!source.mesh) return;
+            if (!source.mesh) {
+                console.warn('[Player] animateViewModelWeapon: no mesh for type', weaponType);
+                return;
+            }
 
             // Deep clone materials to isolate from shared materials + add polygonOffset to prevent z-fighting
             const matMap = new Map();
