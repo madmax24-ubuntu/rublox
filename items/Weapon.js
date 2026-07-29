@@ -196,7 +196,8 @@ export class WeaponAnimation {
         }
         this.recoilAngle = this.recoilKick * 0.15 + (1-this.recoilRecovery) * 0.1;
         if (this.muzzleFlash > 0) this.muzzleFlash = Math.max(0, this.muzzleFlash - delta*12);
-        if (!isShooting) { this.bobPhase += delta*0.8; this.bobAmount = isMoving ? 0.012 : 0.006; }
+        this.bobPhase += delta * 0.8;
+        this.bobAmount = isMoving ? 0.012 : 0.006;
         this.swayTargetX += (mouseDx*0.003 - this.swayTargetX)*delta*5;
         this.swayTargetY += (mouseDy*0.003 - this.swayTargetY)*delta*5;
         this.swayX += (this.swayTargetX - this.swayX)*delta*4;
@@ -214,13 +215,15 @@ export class WeaponAnimation {
         const bob = Math.sin(this.bobPhase) * this.bobAmount;
         const baseRot = mesh.userData.baseRotation || new THREE.Euler(0,0,0);
         mesh.rotation.set(baseRot.x + this.recoilAngle*Math.cos(this.time*15), baseRot.y + this.swayX, baseRot.z + this.swayY*0.3);
-        mesh.position.y += bob;
-        mesh.position.x += this.swayX * 0.025;
+        mesh.position.y = (mesh.userData.basePositionY ?? mesh.position.y) + bob;
+        mesh.position.x = (mesh.userData.basePositionX ?? mesh.position.x) + this.swayX * 0.025;
+        if (mesh.userData.basePositionY === undefined) mesh.userData.basePositionY = mesh.position.y;
+        if (mesh.userData.basePositionX === undefined) mesh.userData.basePositionX = mesh.position.x;
         // Heat glow on barrel
         if (this.heatGlow > 0.1 && weaponType && weaponType !== 'bow' && weaponType !== 'knife' && weaponType !== 'fists') {
             mesh.traverse(child => {
                 if (child.isMesh && child.material?.emissive) {
-                    if (!child.userData._origEmissive) {
+                    if (child.userData._origEmissive === undefined) {
                         child.userData._origEmissive = child.material.emissive.getHex();
                         child.userData._origEI = child.material.emissiveIntensity || 0;
                     }
