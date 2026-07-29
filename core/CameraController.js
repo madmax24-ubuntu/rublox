@@ -306,6 +306,8 @@ export class CameraController {
             const request = this.domElement.requestPointerLock?.();
             request?.catch?.(() => {});
         } catch (_) {}
+        // Начальный downward pitch — чтобы видеть нож/руку при старте
+        this._pitch = -0.25; // ~-14° вниз
     }
 
     unlock() {
