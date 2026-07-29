@@ -1164,6 +1164,7 @@ export class Player {
             // Deep clone materials to isolate from shared materials + add polygonOffset to prevent z-fighting
             const matMap = new Map();
             const viewClone = source.mesh.clone();
+            console.log('[Player] animateViewModelWeapon: viewClone created, hasRotation=' + (viewClone.rotation ? 'yes' : 'no') + ' rot=' + (viewClone.rotation ? viewClone.rotation.x.toFixed(2) + ',' + viewClone.rotation.y.toFixed(2) + ',' + viewClone.rotation.z.toFixed(2) : 'N/A'));
             viewClone.traverse(child => {
                 if (child.isMesh && child.material) {
                     if (!matMap.has(child.material)) {
@@ -1185,6 +1186,7 @@ export class Player {
             viewClone.scale.setScalar(offset.scale);
             viewClone.position.copy(offset.position);
             viewClone.rotation.copy(offset.rotation);
+            console.log('[Player] animateViewModelWeapon: set rot=' + viewClone.rotation.x.toFixed(2) + ',' + viewClone.rotation.y.toFixed(2) + ',' + viewClone.rotation.z.toFixed(2) + ' offsetRot=' + offset.rotation.x.toFixed(2) + ',' + offset.rotation.y.toFixed(2) + ',' + offset.rotation.z.toFixed(2));
             this.setupViewModel(viewClone, true);
             this.fpArms.add(viewClone);
             this.fpArms.visible = true;
