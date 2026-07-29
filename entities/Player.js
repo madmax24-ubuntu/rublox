@@ -514,6 +514,7 @@ export class Player {
             this._stableFirstPerson = true;
         }
         const isFirstPerson = this._stableFirstPerson;
+        if (Math.random() < 0.001) console.log('[Player] UPDATE isFirstPerson=' + isFirstPerson + ' fpArms=' + this.fpArms?.visible + ' viewWeapon=' + (this.viewWeapon ? 'exists' : 'null'));
         if (isFirstPerson) {
             this.mesh.visible = false;
             this.fpArms.visible = true;
