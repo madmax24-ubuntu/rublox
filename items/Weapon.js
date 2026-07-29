@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { createPBRMetalTexture, createPolymerTexture2, createWoodTexture2, createBrightSteelTexture, createMatteBlackTexture, createWeaponMaterial } from './WeaponTextures.js';
 
 // ─── Procedural Texture Generators ─────────────────────────────────
 // Creates actual texture images (not just colors) for weapons
@@ -505,20 +506,77 @@ function createBowModel() {
 
 function createGunModel(style) {
     const group = new THREE.Group();
-    // Premium weapon materials — enhanced textures for realism
-    const steelMat = getMaterial(`${style}_steel`, () => new THREE.MeshStandardMaterial({
-        color: style === 'laser' ? 0x5a7a9a : style === 'machinegun' ? 0x2a2e35 : 0x6a7580,
-        metalness: 0.85, roughness: 0.22,
-        map: createMetalTexture(style === 'laser' ? '#5a7a9a' : style === 'machinegun' ? '#2a2e35' : '#6a7580')
-    }));
-    const darkMat = getMaterial(`${style}_dark`, () => new THREE.MeshStandardMaterial({
-        color: 0x151820, roughness: 0.4, metalness: 0.3,
-        map: createDarkMetalTexture('#151820')
-    }));
-    const gripMat = getMaterial(`${style}_grip`, () => new THREE.MeshStandardMaterial({
-        color: 0x1a1a1a, roughness: 0.8, metalness: 0.05,
-        map: createPolymerTexture('#1a1a1a')
-    }));
+    // Premium weapon materials — enhanced PBR textures for realism
+    let steelMat, darkMat, gripMat;
+    
+    if (style === 'pistol') {
+        // Use high-quality PBR textures for pistol
+        const steelTex = createPBRMetalTexture('#a0b0c0');
+        steelMat = createWeaponMaterial(steelTex);
+        steelMat.color.setHex(0xa0b0c0);
+        
+        const darkTex = createMatteBlackTexture();
+        darkMat = createWeaponMaterial(darkTex);
+        darkMat.color.setHex(0x151820);
+        
+        const gripTex = createPolymerTexture2('#1a1a1a');
+        gripMat = createWeaponMaterial(gripTex);
+        gripMat.color.setHex(0x1a1a1a);
+        
+        // Additional pistol-specific materials
+        const woodTex = createWoodTexture2('#5a3a20');
+        const woodMat = getMaterial('pistol_wood', () => createWeaponMaterial(woodTex));
+        woodMat.color.setHex(0x5a3a20);
+        
+        const brassMat = getMaterial('pistol_brass', () => new THREE.MeshStandardMaterial({
+            color: 0xb5a040, metalness: 0.9, roughness: 0.2,
+            map: createBrassTexture()
+        }));
+        
+        const neonMat = getMaterial('pistol_neon', () => new THREE.MeshStandardMaterial({
+            color: 0x6ad3ff, emissive: 0x6ad3ff, emissiveIntensity: 1.5, roughness: 0.15, metalness: 0.5,
+            map: createNeonTexture('#6ad3ff', 64)
+        }));
+        
+        const accentMat = getMaterial('pistol_accent', () => new THREE.MeshStandardMaterial({
+            color: 0xc0c8d0, roughness: 0.2, metalness: 0.8,
+            map: createMetalTexture('#c0c8d0')
+        }));
+    } else {
+        // Original materials for other weapons
+        steelMat = getMaterial(`${style}_steel`, () => new THREE.MeshStandardMaterial({
+            color: style === 'laser' ? 0x5a7a9a : style === 'machinegun' ? 0x2a2e35 : 0x6a7580,
+            metalness: 0.85, roughness: 0.22,
+            map: createMetalTexture(style === 'laser' ? '#5a7a9a' : style === 'machinegun' ? '#2a2e35' : '#6a7580')
+        }));
+        darkMat = getMaterial(`${style}_dark`, () => new THREE.MeshStandardMaterial({
+            color: 0x151820, roughness: 0.4, metalness: 0.3,
+            map: createDarkMetalTexture('#151820')
+        }));
+        gripMat = getMaterial(`${style}_grip`, () => new THREE.MeshStandardMaterial({
+            color: 0x1a1a1a, roughness: 0.8, metalness: 0.05,
+            map: createPolymerTexture('#1a1a1a')
+        }));
+        const woodMat = getMaterial(`${style}_wood`, () => new THREE.MeshStandardMaterial({
+            color: 0x5a3a20, roughness: 0.6, metalness: 0.1,
+            map: createWoodTexture('#5a3a20')
+        }));
+        const brassMat = getMaterial(`${style}_brass`, () => new THREE.MeshStandardMaterial({
+            color: 0xb5a040, metalness: 0.9, roughness: 0.2,
+            map: createBrassTexture()
+        }));
+        const neonMat = getMaterial(`${style}_neon`, () => new THREE.MeshStandardMaterial({
+            color: style === 'laser' ? 0x44ff88 : 0x6ad3ff,
+            emissive: style === 'laser' ? 0x44ff88 : 0x6ad3ff,
+            emissiveIntensity: 1.5, roughness: 0.15, metalness: 0.5,
+            map: createNeonTexture(style === 'laser' ? '#44ff88' : '#6ad3ff', 64)
+        }));
+        const accentMat = getMaterial(`${style}_accent`, () => new THREE.MeshStandardMaterial({
+            color: style === 'shotgun' ? 0xc97a55 : 0xc0c8d0,
+            roughness: 0.2, metalness: 0.8,
+            map: createMetalTexture(style === 'shotgun' ? '#c97a55' : '#c0c8d0')
+        }));
+    }
     const woodMat = getMaterial(`${style}_wood`, () => new THREE.MeshStandardMaterial({
         color: 0x5a3a20, roughness: 0.6, metalness: 0.1,
         map: createWoodTexture('#5a3a20')
