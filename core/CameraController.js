@@ -247,6 +247,9 @@ export class CameraController {
             if (this._pitch < -this._maxPitch) this._pitch = -this._maxPitch;
             this.rotation.set(this._pitch, this._yaw, 0, 'YXZ');
             this.camera.quaternion.setFromEuler(this.rotation);
+            if (this._updateCount % 600 === 0) {
+                console.log('[Cam] pitch=' + (this._pitch * 180 / Math.PI).toFixed(1) + '° yaw=' + (this._yaw * 180 / Math.PI).toFixed(1) + '°');
+            }
         } else {
             const look = input.getLookDelta();
             if (look.x !== 0 || look.y !== 0) {
