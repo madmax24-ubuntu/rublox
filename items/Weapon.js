@@ -860,7 +860,32 @@ export class Weapon {
         group.scale.setScalar(getThirdPersonWorldScale(this.type));
         group.visible = false;
         this.mesh = group;
-        this.scene?.add(group);
+        // DON'T add to scene — weapon will be attached to player socket
+        // this.scene?.add(group);
+    }
+
+    // Attach weapon mesh to a THREE.Object3D socket (e.g., player's weaponSocket)
+    attachToSocket(socket) {
+        if (!this.mesh || !socket) return;
+        // Remove from old parent if exists
+        if (this.mesh.parent) {
+            this.mesh.parent.remove(this.mesh);
+        }
+        socket.add(this.mesh);
+        this.mesh.visible = true;
+        // Reset transform to socket-local space
+        this.mesh.position.set(0, 0, 0);
+        this.mesh.rotation.set(0, 0, 0);
+        this.mesh.scale.setScalar(getThirdPersonWorldScale(this.type));
+    }
+
+    detachFromSocket() {
+        if (!this.mesh) return;
+        this.mesh.visible = false;
+        // Remove from parent
+        if (this.mesh.parent) {
+            this.mesh.parent.remove(this.mesh);
+        }
     }
 
     // ── Animation update — call this every frame ──

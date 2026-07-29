@@ -828,13 +828,19 @@ export class Player {
 
     selectSlot(slot) {
         const weapon = this.inventory.selectSlot(slot);
-        if (this.currentWeapon) {
-            this.currentWeapon.setVisible(false);
+        const oldWeapon = this.currentWeapon;
+        
+        if (oldWeapon && oldWeapon.mesh && this.mesh?.userData?.weaponSocket) {
+            // Detach old weapon from socket
+            oldWeapon.detachFromSocket();
         }
 
         if (weapon) {
             this.currentWeapon = weapon;
-            this.currentWeapon.setVisible(true);
+            // Attach to player's weapon socket for third-person view
+            if (weapon.mesh && this.mesh?.userData?.weaponSocket) {
+                weapon.attachToSocket(this.mesh.userData.weaponSocket);
+            }
         } else {
             this.currentWeapon = null;
             this.fists = new Weapon('fists', this.scene);
@@ -1191,20 +1197,10 @@ export class Player {
     }
 
     updateThirdPersonWeapon() {
-        const socket = this.mesh?.userData?.weaponSocket;
-        if (!socket || !this.currentWeapon?.mesh) return;
-        const worldPos = this._tmpSocketPos;
-        const worldQuat = this._tmpSocketQuat;
-        socket.getWorldPosition(worldPos);
-        socket.getWorldQuaternion(worldQuat);
-
-        if (![worldPos.x, worldPos.y, worldPos.z, worldQuat.x, worldQuat.y, worldQuat.z, worldQuat.w].every(Number.isFinite)) {
-            this.currentWeapon.ensureFiniteTransform?.();
-            return;
-        }
-
-        this.currentWeapon.mesh.position.copy(worldPos);
-        this.currentWeapon.mesh.quaternion.copy(worldQuat);
+        // Weapon is now a child of the socket, so it automatically follows
+        // Just ensure the mesh is visible and transform is finite
+        if (!this.currentWeapon?.mesh) return;
+        this.currentWeapon.ensureFiniteTransform?.();
     }
 
     getAutoFireTarget(entityManager) {
