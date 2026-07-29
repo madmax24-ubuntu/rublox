@@ -944,10 +944,10 @@ class Game {
             this.eventTimelineIndex = 0;
             this.activeEvent = { type: null, timer: 0, prevFog: null };
             this.initialZombieWaveQueued = false;
-            const initialZombieCount = this.isMobile() ? 12 : 16;
+            const initialZombieCount = 4;
             this.spawnZombies(true, 1.1, 110, initialZombieCount);
-            this.queueZombieBurst(false, 1.1, 110, (this.isMobile() ? 32 : 44) - initialZombieCount, this.isMobile() ? 3 : 4);
-            this.queuePoiBurst(0.9, this.isMobile() ? 16 : 22, this.isMobile() ? 2 : 3);
+            this.queueZombieBurst(false, 1.1, 110, (this.isMobile() ? 32 : 44) - initialZombieCount, 2);
+            this.queuePoiBurst(0.9, this.isMobile() ? 16 : 22, 1);
             this.randomEventTimer = GAME_CONFIG.events.randomTimerMin + Math.random() * GAME_CONFIG.events.randomTimerVariance;
             this.startZoneCycle();
             this.player.setInvulnerable(false);
@@ -1909,7 +1909,7 @@ class Game {
                 continue;
             }
         }
-        this.spawnBurstCooldown = this.isMobile() ? 0.045 : 0.025;
+        this.spawnBurstCooldown = this.isMobile() ? 0.12 : 0.08;
     }
 
     update(delta) {
@@ -2138,10 +2138,15 @@ class Game {
         const zombieCount = this.zombies.length;
         if (zombieCount === 0) return;
 
-        const farZombieCullDistSq = this.isMobile() ? 10000 : 20736;
+        const mobile = this.isMobile();
+        const farZombieCullDistSq = mobile ? 10000 : 20736;
+        for (let i = 0; i < zombieCount; i++) {
+            const zombie = this.zombies[i];
+            if (zombie?.isAlive) zombie.updateRenderLod(delta);
+        }
         const zombiesPerFrame = Math.min(zombieCount, Math.max(
-            this.isMobile() ? 8 : 12,
-            Math.ceil(zombieCount * (this.isMobile() ? 0.18 : 0.28))
+            mobile ? 8 : 12,
+            Math.ceil(zombieCount * (mobile ? 0.18 : 0.28))
         ));
         for (let i = 0; i < zombiesPerFrame && i < zombieCount; i++) {
             const zIndex = (this.zombieUpdateIndex + i) % zombieCount;
@@ -2913,8 +2918,6 @@ window.addEventListener('DOMContentLoaded', () => {
     bindStartButton(document.getElementById('startButtonMobileLandscape'));
     bindStartButton(document.getElementById('startButton'));
 });
-
-
 
 
 

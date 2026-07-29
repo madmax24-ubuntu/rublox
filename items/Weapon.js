@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createPBRMetalTexture, createPolymerTexture2, createWoodTexture2, createBrightSteelTexture, createMatteBlackTexture, createWeaponMaterial } from './WeaponTextures.js';
+import { createPBRMetalTexture, createPolymerTexture2, createWoodTexture2, createBrightSteelTexture, createWeaponMaterial } from './WeaponTextures.js';
 
 // ─── Procedural Texture Generators ─────────────────────────────────
 // Creates actual texture images (not just colors) for weapons
@@ -184,25 +184,19 @@ export class WeaponAnimation {
     }
     update(delta, isShooting, isMoving, mouseDx, mouseDy) {
         this.time += delta;
-        if (isShooting && (this.time - this.lastShotTime) < 0.15) {
-            this.recoilKick = Math.min(1, this.recoilKick + delta*15);
-            this.recoilRecovery = 0;
-            this.lastShotTime = this.time;
+        if (isShooting && this.time - this.lastShotTime < 0.12) {
             this.muzzleFlash = 1;
-            this.heatGlow = Math.min(1, this.heatGlow + delta*3);
+            this.heatGlow = Math.min(1, this.heatGlow + delta * 2.4);
         }
-        if (this.recoilKick > 0) {
-            this.recoilRecovery += delta*6;
-            if (this.recoilRecovery >= 1) { this.recoilRecovery = 1; this.recoilKick = 0; }
-        }
-        this.recoilAngle = this.recoilKick * 0.15 + (1-this.recoilRecovery) * 0.1;
-        if (this.muzzleFlash > 0) this.muzzleFlash = Math.max(0, this.muzzleFlash - delta*12);
-        this.bobPhase += delta * 0.8;
-        this.bobAmount = isMoving ? 0.012 : 0.006;
-        this.swayTargetX += (mouseDx*0.003 - this.swayTargetX)*delta*5;
-        this.swayTargetY += (mouseDy*0.003 - this.swayTargetY)*delta*5;
-        this.swayX += (this.swayTargetX - this.swayX)*delta*4;
-        this.swayY += (this.swayTargetY - this.swayY)*delta*4;
+        this.recoilKick = Math.max(0, this.recoilKick - delta * 7.5);
+        this.recoilAngle += (this.recoilKick * 0.115 - this.recoilAngle) * Math.min(1, delta * 24);
+        if (this.muzzleFlash > 0) this.muzzleFlash = Math.max(0, this.muzzleFlash - delta * 14);
+        this.bobPhase += delta * (isMoving ? 8.2 : 1.7);
+        this.bobAmount = isMoving ? 0.014 : 0.003;
+        this.swayTargetX = THREE.MathUtils.clamp(mouseDx * 0.0018, -0.035, 0.035);
+        this.swayTargetY = THREE.MathUtils.clamp(mouseDy * 0.0018, -0.035, 0.035);
+        this.swayX += (this.swayTargetX - this.swayX) * Math.min(1, delta * 12);
+        this.swayY += (this.swayTargetY - this.swayY) * Math.min(1, delta * 12);
         if (this.reloadProgress >= 0) {
             this.reloadProgress += delta / this.reloadDuration;
             if (this.reloadProgress >= 1) this.reloadProgress = -1;
@@ -213,30 +207,21 @@ export class WeaponAnimation {
     triggerReload(dur) { this.reloadProgress = 0; this.reloadDuration = dur || 2.0; }
     applyToMesh(mesh, weaponType) {
         if (!mesh) return;
+        if (mesh.userData.basePositionX === undefined) {
+            mesh.userData.basePositionX = mesh.position.x;
+            mesh.userData.basePositionY = mesh.position.y;
+            mesh.userData.basePositionZ = mesh.position.z;
+        }
         const bob = Math.sin(this.bobPhase) * this.bobAmount;
         const baseRot = mesh.userData.baseRotation || new THREE.Euler(0,0,0);
-        const rx = baseRot.x + this.recoilAngle*Math.cos(this.time*15);
+        const rx = baseRot.x + this.recoilAngle;
         const ry = baseRot.y + this.swayX;
-        const rz = baseRot.z + this.swayY*0.3;
+        const rz = baseRot.z + this.swayY * 0.35;
         mesh.rotation.set(rx, ry, rz);
 
-        mesh.position.y = (mesh.userData.basePositionY ?? mesh.position.y) + bob;
-        mesh.position.x = (mesh.userData.basePositionX ?? mesh.position.x) + this.swayX * 0.025;
-        if (mesh.userData.basePositionY === undefined) mesh.userData.basePositionY = mesh.position.y;
-        if (mesh.userData.basePositionX === undefined) mesh.userData.basePositionX = mesh.position.x;
-        // Heat glow on barrel
-        if (this.heatGlow > 0.1 && weaponType && weaponType !== 'bow' && weaponType !== 'knife' && weaponType !== 'fists') {
-            mesh.traverse(child => {
-                if (child.isMesh && child.material?.emissive) {
-                    if (child.userData._origEmissive === undefined) {
-                        child.userData._origEmissive = child.material.emissive.getHex();
-                        child.userData._origEI = child.material.emissiveIntensity || 0;
-                    }
-                    child.material.emissive.setHex(this.heatGlow > 0.7 ? 0xff4400 : 0xff6600);
-                    child.material.emissiveIntensity = this.heatGlow * 0.3;
-                }
-            });
-        }
+        mesh.position.y = mesh.userData.basePositionY + bob - this.swayY * 0.018;
+        mesh.position.x = mesh.userData.basePositionX + Math.cos(this.bobPhase * 0.5) * this.bobAmount * 0.45 + this.swayX * 0.02;
+        mesh.position.z = mesh.userData.basePositionZ + this.recoilKick * 0.045;
     }
 }
 
@@ -396,18 +381,10 @@ function configureMeshForGameplay(mesh) {
 
 function createKnifeModel() {
     const group = new THREE.Group();
-    // Premium knife — polished steel blade, wood handle, dark guard with rivets
-    const bladeTex = createBrightSteelTexture();
-    const bladeMat = createWeaponMaterial(bladeTex);
-    
-    const handleTex = createWoodTexture2('#3a2818');
-    const handleMat = createWeaponMaterial(handleTex);
-    
-    const guardTex = createPBRMetalTexture('#2a2d35');
-    const guardMat = createWeaponMaterial(guardTex);
-    
-    const pommelTex = createMatteBlackTexture();
-    const pommelMat = createWeaponMaterial(pommelTex);
+    const bladeMat = getMaterial('knife_blade_pbr', () => createWeaponMaterial(createBrightSteelTexture()));
+    const handleMat = getMaterial('knife_handle_pbr', () => createWeaponMaterial(createWoodTexture2('#5a3a24')));
+    const guardMat = getMaterial('knife_guard_pbr', () => createWeaponMaterial(createPBRMetalTexture('#59616c')));
+    const pommelMat = getMaterial('knife_pommel_pbr', () => createWeaponMaterial(createPolymerTexture2('#363b42')));
 
     // Handle scales with rivets
     group.add(createPart(getGeom('knife_h1', () => new THREE.BoxGeometry(0.42, 0.11, 0.11)), handleMat, -0.27, 0, 0));
@@ -444,7 +421,7 @@ function createBowModel() {
         metalness: 0.05, 
         map: createPolymerTexture('#1d1210')
     }));
-    const stringMat = new THREE.LineBasicMaterial({ color: 0x3a3a3a });
+    const stringMat = getMaterial('bow_string', () => new THREE.LineBasicMaterial({ color: 0x707070 }));
     const nockMat = getMaterial('bow_nock', () => new THREE.MeshStandardMaterial({ 
         color: 0xe8e0d0, roughness: 0.4, metalness: 0.1, flatShading: true
     }));
@@ -497,48 +474,27 @@ function createGunModel(style) {
     let steelMat, darkMat, gripMat, woodMat, brassMat, neonMat, accentMat;
     
     if (style === 'pistol') {
-        // Use high-quality PBR textures for pistol
-        const steelTex = createPBRMetalTexture('#a0b0c0');
-        steelMat = createWeaponMaterial(steelTex);
-        
-        const darkTex = createMatteBlackTexture();
-        darkMat = createWeaponMaterial(darkTex);
-        
-        const gripTex = createPolymerTexture2('#1a1a1a');
-        gripMat = createWeaponMaterial(gripTex);
-        
-        // Additional pistol-specific materials
-        const woodTex = createWoodTexture2('#5a3a20');
-        woodMat = createWeaponMaterial(woodTex);
-        
+        steelMat = getMaterial('pistol_steel_pbr', () => createWeaponMaterial(createPBRMetalTexture('#b6c2cc')));
+        darkMat = getMaterial('pistol_dark_pbr', () => createWeaponMaterial(createPolymerTexture2('#343a42')));
+        gripMat = getMaterial('pistol_grip_pbr', () => createWeaponMaterial(createPolymerTexture2('#454b54')));
+        woodMat = getMaterial('pistol_wood_pbr', () => createWeaponMaterial(createWoodTexture2('#70482a')));
         brassMat = getMaterial('pistol_brass', () => new THREE.MeshStandardMaterial({
             color: 0xb5a040, metalness: 0.9, roughness: 0.2,
             map: createBrassTexture()
         }));
-        
         neonMat = getMaterial('pistol_neon', () => new THREE.MeshStandardMaterial({
             color: 0x6ad3ff, emissive: 0x6ad3ff, emissiveIntensity: 1.5, roughness: 0.15, metalness: 0.5,
             map: createNeonTexture('#6ad3ff', 64)
         }));
-        
         accentMat = getMaterial('pistol_accent', () => new THREE.MeshStandardMaterial({
             color: 0xc0c8d0, roughness: 0.2, metalness: 0.8,
             map: createMetalTexture('#c0c8d0')
         }));
     } else if (style === 'rifle' || style === 'machinegun') {
-        // Rifle/MG with high-quality PBR textures
-        const steelTex = createPBRMetalTexture(style === 'machinegun' ? '#2a2e35' : '#6a7580');
-        steelMat = createWeaponMaterial(steelTex);
-        
-        const darkTex = createMatteBlackTexture();
-        darkMat = createWeaponMaterial(darkTex);
-        
-        const gripTex = createPolymerTexture2('#1a1a1a');
-        gripMat = createWeaponMaterial(gripTex);
-        
-        const woodTex = createWoodTexture2('#5a3a20');
-        woodMat = createWeaponMaterial(woodTex);
-        
+        steelMat = getMaterial(`${style}_steel_pbr`, () => createWeaponMaterial(createPBRMetalTexture(style === 'machinegun' ? '#59636d' : '#7f8b96')));
+        darkMat = getMaterial(`${style}_dark_pbr`, () => createWeaponMaterial(createPolymerTexture2('#343a42')));
+        gripMat = getMaterial(`${style}_grip_pbr`, () => createWeaponMaterial(createPolymerTexture2('#454b54')));
+        woodMat = getMaterial(`${style}_wood_pbr`, () => createWeaponMaterial(createWoodTexture2('#70482a')));
         brassMat = getMaterial(`${style}_brass`, () => new THREE.MeshStandardMaterial({
             color: 0xb5a040, metalness: 0.9, roughness: 0.2,
             map: createBrassTexture()
@@ -549,24 +505,10 @@ function createGunModel(style) {
             map: createMetalTexture('#c0c8d0')
         }));
     } else {
-        // Original materials for other weapons (laser, shotgun)
-        steelMat = getMaterial(`${style}_steel`, () => new THREE.MeshStandardMaterial({
-            color: style === 'laser' ? 0x5a7a9a : 0x6a7580,
-            metalness: 0.85, roughness: 0.22,
-            map: createMetalTexture(style === 'laser' ? '#5a7a9a' : '#6a7580')
-        }));
-        darkMat = getMaterial(`${style}_dark`, () => new THREE.MeshStandardMaterial({
-            color: 0x151820, roughness: 0.4, metalness: 0.3,
-            map: createDarkMetalTexture('#151820')
-        }));
-        gripMat = getMaterial(`${style}_grip`, () => new THREE.MeshStandardMaterial({
-            color: 0x1a1a1a, roughness: 0.8, metalness: 0.05,
-            map: createPolymerTexture('#1a1a1a')
-        }));
-        woodMat = getMaterial(`${style}_wood`, () => new THREE.MeshStandardMaterial({
-            color: 0x5a3a20, roughness: 0.6, metalness: 0.1,
-            map: createWoodTexture('#5a3a20')
-        }));
+        steelMat = getMaterial(`${style}_steel_pbr`, () => createWeaponMaterial(createPBRMetalTexture(style === 'laser' ? '#5f91a6' : '#87939d')));
+        darkMat = getMaterial(`${style}_dark_pbr`, () => createWeaponMaterial(createPolymerTexture2('#343a42')));
+        gripMat = getMaterial(`${style}_grip_pbr`, () => createWeaponMaterial(createPolymerTexture2('#454b54')));
+        woodMat = getMaterial(`${style}_wood_pbr`, () => createWeaponMaterial(createWoodTexture2('#70482a')));
         brassMat = getMaterial(`${style}_brass`, () => new THREE.MeshStandardMaterial({
             color: 0xb5a040, metalness: 0.9, roughness: 0.2,
             map: createBrassTexture()

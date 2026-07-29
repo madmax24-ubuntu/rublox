@@ -773,7 +773,7 @@ export class Zombie {
         this.mesh.position.copy(this.position);
         this.mesh.position.y = this.position.y - this.physics.height;
         this.mesh.rotation.y = this.rotation.y;
-        if (this.updateRenderLod(delta)) this.animateLimbs(delta);
+        if (this._lodDetailed !== false) this.animateLimbs(delta);
     }
 
     dashAt(target, audioSynth) {
@@ -881,9 +881,9 @@ export class Zombie {
         const horizontalFov = 2 * Math.atan(Math.tan(verticalFov * 0.5) * (camera.aspect || 1));
         const visibleAngle = Math.max(verticalFov, horizontalFov) * 0.5 + 0.22;
         const inView = distance > 0.001 && this._lodToEntity.dot(this._lodCameraForward) / distance >= Math.cos(visibleAngle);
-        const detailDistance = this.scene?.userData?.mobileMode ? 50 : 70;
-        const lodDistance = this._lodDetailed ? detailDistance + 12 : detailDistance;
-        const detailed = distanceSq <= 225 || (inView && distanceSq <= lodDistance * lodDistance);
+        const detailDistance = this.scene?.userData?.mobileMode ? 24 : 34;
+        const lodDistance = this._lodDetailed ? detailDistance + 6 : detailDistance;
+        const detailed = distanceSq <= 144 || (inView && distanceSq <= lodDistance * lodDistance);
         if (this._lodDetailed === detailed) return detailed;
         this._lodDetailed = detailed;
         for (const child of this.mesh.userData.detailChildren || []) child.visible = detailed;

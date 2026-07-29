@@ -192,7 +192,7 @@ export class InstancedMeshSystem {
         if (!parentMapGen && !obj.userData?.mapGenerated && !obj.userData?.instancable) { skipReasons.noMapGen++; return; }
         if (obj.userData.isFirefly || obj.userData.isCrystal || obj.userData.isTorch ||
             obj.userData.isGlow || obj.userData.isFountain || obj.userData.isWindTurbine ||
-            obj.userData.isSnowParticles || obj.userData.isPOI ||
+            obj.userData.isSnowParticles ||
             obj.userData.isFirstPersonArm || obj.userData.isViewWeapon ||
             obj.userData.isTerrain || obj.userData.biomeGate || obj.userData.biomeBoundary ||
             obj.userData.gameplayBoundary || obj.userData.isTowerStructure ||

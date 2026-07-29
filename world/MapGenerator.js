@@ -745,21 +745,19 @@ export class MapGenerator {
             addGate(sign * gateMid, 0, gateGap, wallT);
         }
         const stairAngles = [Math.PI * 0.25, Math.PI * 0.75, Math.PI * 1.25, Math.PI * 1.75];
-        // Fire-styled stairs — dark volcanic stone with intense orange-red ember glow
-        const stairMat = this.pool.getMatStd(0x1a1210, 0.8, 0.2, true, false, 1, 0xff4500, 0.6);
-        stairMat.polygonOffset = true;
-        stairMat.polygonOffsetFactor = 4;
-        stairMat.polygonOffsetUnits = 2;
+        const stairMat = this.pool.getMatStd(0x4c5054, 0.92, 0.02, true, false, 1, 0, 0, true);
+        const stairFireMat = this.pool.getMatStd(0x7a2118, 0.52, 0.05, true, false, 1, 0xff3b12, 0.85);
+        const stepCount = 8;
+        const stepDepth = 2.25;
+        const stepWidth = 12;
+        const treadHeight = 0.28;
         for (let entrance = 0; entrance < stairAngles.length; entrance++) {
             const angle = stairAngles[entrance];
-            for (let step = 0; step < 6; step++) {
-                const radius = 54.5 + step * 2.25;
-                const stepTopY = 2 - step * 0.34; // Surface height of this step
-                // Wide, substantial tread matching platform style (0.25m thick, 12m wide)
-                const treadHeight = 0.25;
-                const treadY = stepTopY - treadHeight * 0.5; // Top surface at stepTopY
-                const tread = new THREE.Mesh(this.pool.getGeoBox(12, treadHeight, 2.5), stairMat);
-                tread.position.set(Math.cos(angle) * radius, treadY, Math.sin(angle) * radius);
+            for (let step = 0; step < stepCount; step++) {
+                const radius = 54.5 + step * 2.05;
+                const stepTopY = 2 * (1 - step / (stepCount - 1));
+                const tread = new THREE.Mesh(this.pool.getGeoBox(stepWidth, treadHeight, stepDepth), stairMat);
+                tread.position.set(Math.cos(angle) * radius, stepTopY - treadHeight * 0.5, Math.sin(angle) * radius);
                 tread.rotation.y = Math.PI * 0.5 - angle;
                 tread.userData.mapGenerated = true;
                 tread.userData.walkable = true;
@@ -768,28 +766,37 @@ export class MapGenerator {
                 this.scene.add(tread);
                 const c = Math.abs(Math.cos(tread.rotation.y));
                 const s = Math.abs(Math.sin(tread.rotation.y));
-                // Collider matches tread visual (0.25m height)
-                const colliderHeight = treadHeight;
                 const collider = this.addColliderBox(
                     tread.position.clone(),
-                    12 * c + 2.35 * s,
-                    colliderHeight,
-                    12 * s + 2.35 * c,
+                    stepWidth * c + stepDepth * s,
+                    treadHeight,
+                    stepWidth * s + stepDepth * c,
                     true,
                     false
                 );
                 collider.isBiomeEntrance = true;
-                // First step connects to platform — raise it slightly so bot can climb onto platform
-                if (step === 0) {
-                    collider.max.y = 1.30; // Ensure stepHeight from step 0 <= 0.78 for platform climb
-                }
                 collider.surfaceOBB = {
                     x: tread.position.x,
                     z: tread.position.z,
-                    halfWidth: 6,
-                    halfDepth: 1.175,
+                    halfWidth: stepWidth * 0.5,
+                    halfDepth: stepDepth * 0.5,
                     rotation: tread.rotation.y
                 };
+                for (const offset of [-3.8, 3.8]) {
+                    const ember = new THREE.Mesh(this.pool.getGeoBox(2.1, 0.035, stepDepth * 0.72), stairFireMat);
+                    const tangentX = Math.cos(tread.rotation.y);
+                    const tangentZ = -Math.sin(tread.rotation.y);
+                    ember.position.set(
+                        tread.position.x + tangentX * offset,
+                        stepTopY + 0.018,
+                        tread.position.z + tangentZ * offset
+                    );
+                    ember.rotation.y = tread.rotation.y;
+                    ember.userData.mapGenerated = true;
+                    ember.userData.decorativeOnly = true;
+                    ember.frustumCulled = false;
+                    this.scene.add(ember);
+                }
             }
         }
         this.setBiomeGatesOpen(false);
@@ -2235,9 +2242,9 @@ export class MapGenerator {
         }
 
         // Tower floor (visual + collider aligned with terrain surface to prevent floating collision)
-        const floorGeo = this.pool.getGeoCylinder(towerRadius, towerRadius, 0.5);
+        const floorGeo = this.pool.getGeoCylinder(towerRadius, towerRadius, 0.12);
         const floorMesh = new THREE.Mesh(floorGeo, darkMat);
-        floorMesh.position.set(towerCX, 0.25, towerCZ);
+        floorMesh.position.set(towerCX, 0.06, towerCZ);
         floorMesh.userData.mapGenerated = true;
         floorMesh.userData.walkable = true;
         floorMesh.userData.isTowerStructure = true;
@@ -5211,17 +5218,20 @@ export class MapGenerator {
     // =========================================================================
     getNearbyCollidersForSpawn(position, radius) {
         const results = [];
-        const cellSize = 16;
+        const seen = new Set();
+        const cellSize = this.colliderGridCellSize;
         const minCx = Math.floor((position.x - radius) / cellSize);
         const maxCx = Math.floor((position.x + radius) / cellSize);
         const minCz = Math.floor((position.z - radius) / cellSize);
         const maxCz = Math.floor((position.z + radius) / cellSize);
         for (let cx = minCx; cx <= maxCx; cx++) {
             for (let cz = minCz; cz <= maxCz; cz++) {
-                const key = `${cx},${cz}`;
+                const key = (cx << 16) | (cz & 0xFFFF);
                 const bucket = this.colliderGrid?.get(key);
                 if (!bucket) continue;
                 for (const box of bucket) {
+                    if (seen.has(box)) continue;
+                    seen.add(box);
                     results.push(box);
                 }
             }
@@ -5327,8 +5337,6 @@ export class MapGenerator {
             if (col.max.y > maxSearchY) continue;
             // Skip colliders that are below the fallback height (e.g., underground floors)
             if (col.max.y < fallbackY - 0.5) continue;
-            // Skip biome entrance stairs — they're elevated structures, not ground
-            if (col.isBiomeEntrance) continue;
             if (col.surfaceCircle) {
                 const dx = x - col.surfaceCircle.x;
                 const dz = z - col.surfaceCircle.z;

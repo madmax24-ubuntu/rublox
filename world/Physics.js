@@ -234,7 +234,6 @@ export class Physics {
         let maxY = -Infinity;
         for (const box of nearby) {
             if (box.enabled === false || !box.walkable) continue;
-            if (box.isBiomeEntrance) continue;
             if (!this._containsWalkableSurface(box, position.x, position.z, radius)) continue;
             const min = box.min;
             const max = box.max;
@@ -243,7 +242,7 @@ export class Physics {
             if (position.z + radius < min.z || position.z - radius > max.z) continue;
             if (position.y + height < min.y - 0.5) continue;
             if (position.y > max.y + height + 0.5) continue;
-            const stepReach = box.isTowerStair ? 0.78 : 0.65;
+            const stepReach = box.isTowerStair || box.isBiomeEntrance ? 0.78 : 0.65;
             if (bottom > max.y + 0.5 || max.y > bottom + stepReach) continue;
             if (maxY === -Infinity || max.y > maxY) maxY = max.y;
         }
@@ -251,8 +250,6 @@ export class Physics {
         if (maxY === -Infinity && !this.colliderGrid.size) {
             for (const box of this.colliders) {
                 if (box.enabled === false || !box.walkable) continue;
-                // Skip biome entrance stairs — they're elevated, not ground surface
-                if (box.isBiomeEntrance) continue;
                 if (!this._containsWalkableSurface(box, position.x, position.z, radius)) continue;
                 const min = box.min;
                 const max = box.max;
@@ -261,7 +258,8 @@ export class Physics {
                 if (position.z + radius < min.z || position.z - radius > max.z) continue;
                 if (position.y + height < min.y - 0.5) continue;
                 if (position.y > max.y + height + 0.5) continue;
-                if (bottom > max.y + 0.5 || max.y > bottom + 0.65) continue;
+                const stepReach = box.isTowerStair || box.isBiomeEntrance ? 0.78 : 0.65;
+                if (bottom > max.y + 0.5 || max.y > bottom + stepReach) continue;
                 if (maxY === -Infinity || max.y > maxY) maxY = max.y;
             }
         }

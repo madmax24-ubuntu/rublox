@@ -52,7 +52,7 @@ function createCanvasTexture(width, height, drawFn) {
 // ─── High-Quality Metal Texture ──────────────────────────────
 // Returns {albedo, normal, roughness} maps
 export function createPBRMetalTexture(baseColor = '#8a9aae') {
-    const size = 512;
+    const size = 256;
     
     // Parse base color
     const r = parseInt(baseColor.slice(1, 2), 16) * 16 + parseInt(baseColor.slice(2, 3), 16);
@@ -176,7 +176,7 @@ export function createPBRMetalTexture(baseColor = '#8a9aae') {
 
 // ─── Dark Polymer/Rubber Texture ─────────────────────────────
 export function createPolymerTexture2(baseColor = '#1a1c22') {
-    const size = 512;
+    const size = 256;
     const canvas = document.createElement('canvas');
     canvas.width = size;
     canvas.height = size;
@@ -257,7 +257,7 @@ export function createPolymerTexture2(baseColor = '#1a1c22') {
 
 // ─── Wood Texture ────────────────────────────────────────────
 export function createWoodTexture2(baseColor = '#5a3a20') {
-    const size = 512;
+    const size = 256;
     const canvas = document.createElement('canvas');
     canvas.width = size;
     canvas.height = size;
@@ -312,7 +312,7 @@ export function createWoodTexture2(baseColor = '#5a3a20') {
 
 // ─── Matte Black Finish ──────────────────────────────────────
 export function createMatteBlackTexture() {
-    const size = 512;
+    const size = 256;
     const canvas = document.createElement('canvas');
     canvas.width = size;
     canvas.height = size;
@@ -346,7 +346,7 @@ export function createMatteBlackTexture() {
 
 // ─── Bright Steel (shiny) ────────────────────────────────────
 export function createBrightSteelTexture() {
-    const size = 512;
+    const size = 256;
     const canvas = document.createElement('canvas');
     canvas.width = size;
     canvas.height = size;
