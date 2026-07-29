@@ -321,7 +321,7 @@ export class Player {
         group.add(rightHand);
 
         const weaponSocket = new THREE.Object3D();
-        weaponSocket.position.set(0.62, 1.1, 0.2);
+        weaponSocket.position.set(0.62, 1.1, -0.2);
         weaponSocket.rotation.set(0, Math.PI / 2, 0);
         group.add(weaponSocket);
 
