@@ -1,0 +1,263 @@
+[     152ms] [LOG] [initGame] START, isMobile: false @ http://localhost:3001/main.js?v=1785339004438:289
+[     152ms] [LOG] [initGame] creating scene... @ http://localhost:3001/main.js?v=1785339004438:292
+[     153ms] [LOG] [initGame] scene created: true @ http://localhost:3001/main.js?v=1785339004438:294
+[     335ms] [LOG] [NodePad] Pad 0: pos=(46.00, 0.00) data=(46.00, 0.00) @ http://localhost:3001/world/MapGeneratorNode.js?v=1783108959290:369
+[     335ms] [LOG] [NodePad] Pad 1: pos=(45.91, -2.89) data=(45.91, -2.89) @ http://localhost:3001/world/MapGeneratorNode.js?v=1783108959290:369
+[     341ms] [LOG] [MapGenSync] Synced 100 pads from node, first=(46.0, 0.0) second=(45.9, -2.9) @ http://localhost:3001/world/MapGenerator.js:637
+[     441ms] [LOG] [MapGenerator] Before filter: 100 pads, first: (46.0, 0.0) @ http://localhost:3001/world/MapGenerator.js:5169
+[     442ms] [LOG] [MapGenerator] After filter: 100 pads, first: (46.0, 0.0) second: (45.9, -2.9) @ http://localhost:3001/world/MapGenerator.js:5205
+[     448ms] [LOG] [InstancedMesh] Collected 1756 candidate meshes @ http://localhost:3001/world/InstancedMeshSystem.js:24
+[     448ms] [LOG] [InstancedMesh] Skipped: noMapGen=0, culled=0, aniInt=276, noGeoKey=0, matKey=0 @ http://localhost:3001/world/InstancedMeshSystem.js:25
+[     469ms] [LOG] [InstancedMesh] Groups: 505, Replaced: 1408, Skipped(<2): 348 @ http://localhost:3001/world/InstancedMeshSystem.js:104
+[     469ms] [LOG] [MapGenerator] InstancedMesh: 1408 meshes merged into 157 InstancedMesh (total before: 1004, after: 943) @ http://localhost:3001/world/MapGenerator.js:178
+[     491ms] [LOG] [LootManager] generateChestsAsync: floorTiles=100, spots=40, chestCount=120 @ http://localhost:3001/items/LootManager.js:257
+[     520ms] [LOG] [Player] selectSlot: slot=0 weapon=knife mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:836
+[     520ms] [LOG] [Player] selectSlot: attached weapon knife to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:849
+[     521ms] [LOG] [Player] updateViewWeapon: currentWeapon=knife fists=fists fpArmsVisible=false @ http://localhost:3001/entities/Player.js:1204
+[     521ms] [LOG] [Player] animateViewModelWeapon ENTER type=knife @ http://localhost:3001/entities/Player.js:1133
+[     521ms] [LOG] [Player] Weapon created: type=knife mesh=exists @ http://localhost:3001/entities/Player.js:1159
+[     521ms] [LOG] [Player] updateViewWeapon: currentWeapon=knife fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1204
+[     523ms] [LOG] [SpawnDebug] Total pads=100 BotPads=99 First=(46.0, 0.0) Second=(45.9, -2.9) Last=(45.9, 2.9) @ http://localhost:3001/main.js?v=1785339004438:621
+[     523ms] [LOG] [SpawnDebug] Bot 0: pad=(45.91, -2.89) spawn=(45.91, -2.89) distFromCenter=46.00 @ http://localhost:3001/main.js?v=1785339004438:633
+[     525ms] [LOG] [SpawnDebug] Bot 1: pad=(45.64, -5.77) spawn=(45.64, -5.77) distFromCenter=46.00 @ http://localhost:3001/main.js?v=1785339004438:633
+[     526ms] [LOG] [SpawnDebug] Bot 2: pad=(45.19, -8.62) spawn=(45.19, -8.62) distFromCenter=46.00 @ http://localhost:3001/main.js?v=1785339004438:633
+[     559ms] [LOG] [initGame] done: true true true @ http://localhost:3001/main.js?v=1785339004438:570
+[     566ms] [LOG] [LootManager] floorTiles path: created 40 chests @ http://localhost:3001/items/LootManager.js:299
+[     566ms] [LOG] [LootManager] random fallback path, chestCount=120 @ http://localhost:3001/items/LootManager.js:308
+[     880ms] [LOG] [LootManager] random fallback: created 120 chests @ http://localhost:3001/items/LootManager.js:336
+[     881ms] [LOG] [LootManager] Generated 120 chests @ http://localhost:3001/items/LootManager.js:44
+[     918ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/favicon.ico:0
+[    1324ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[    3313ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[    3427ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[    4179ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[    4274ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[    4376ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[    5322ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[    5676ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[    5808ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[    6100ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[    6537ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[    7776ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[    7990ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[    8572ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[    9093ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[    9405ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[    9704ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[    9919ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   10308ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   10732ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   10900ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   11825ms] [WARNING] Failed to execute 'requestFullscreen' on 'Element': API can only be initiated by a user gesture. @ http://localhost:3001/:0
+[   11844ms] The root document of this element is not valid for pointer lock.
+[   11845ms] Permissions check failed
+[   12415ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/favicon.ico:0
+[   12727ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   14975ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   17058ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   19141ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   21238ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   23356ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   25440ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   27593ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   27593ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   28351ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   28690ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   29697ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   29802ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   30508ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   30662ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   32051ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   33808ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   34302ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   34329ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   34497ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   36298ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   36454ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   36538ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   37017ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   38235ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   38454ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   38607ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   38767ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   38795ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   39173ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   40982ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   41003ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   41621ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   42621ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   42788ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   43086ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   43419ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   44116ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   44510ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   45100ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   45245ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   45266ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   46232ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   46614ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   47197ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   47232ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   47364ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   47447ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   48100ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   48572ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   48792ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   48934ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   49579ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   51721ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   52193ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   52692ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   53656ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   53823ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   54302ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   54350ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   54385ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   54637ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   54767ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   54934ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   55149ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   55948ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   55996ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   56843ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   57967ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   58511ms] [LOG] [Perf] frames=7800 draws=634 tris=67905 geos=571 mats=18 @ http://localhost:3001/main.js?v=1785339004438:2704
+[   58513ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   59757ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   60001ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   60731ms] [LOG] [Perf] frames=8100 draws=644 tris=67225 geos=572 mats=14 @ http://localhost:3001/main.js?v=1785339004438:2704
+[   60733ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   60798ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   61441ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   61918ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   62637ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   63179ms] [LOG] [Perf] frames=8400 draws=622 tris=66515 geos=573 mats=16 @ http://localhost:3001/main.js?v=1785339004438:2704
+[   63180ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   63530ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   64462ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   65173ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   65441ms] [LOG] [Perf] frames=8700 draws=596 tris=67041 geos=575 mats=17 @ http://localhost:3001/main.js?v=1785339004438:2704
+[   65443ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   65782ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   66341ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   66560ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   66620ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   67209ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   67318ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   68004ms] [LOG] [Perf] frames=9000 draws=593 tris=66287 geos=575 mats=18 @ http://localhost:3001/main.js?v=1785339004438:2704
+[   68006ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   68845ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   69097ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   69722ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   70553ms] [LOG] [Perf] frames=9300 draws=593 tris=66687 geos=575 mats=18 @ http://localhost:3001/main.js?v=1785339004438:2704
+[   70555ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   70675ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   71129ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   72806ms] [LOG] [Perf] frames=9600 draws=571 tris=65701 geos=577 mats=15 @ http://localhost:3001/main.js?v=1785339004438:2704
+[   72808ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   73159ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   73257ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   73328ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   74283ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   74451ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   74728ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   74967ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   75078ms] [LOG] [Perf] frames=9900 draws=592 tris=66893 geos=577 mats=17 @ http://localhost:3001/main.js?v=1785339004438:2704
+[   75080ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   75381ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   75569ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   76310ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   76934ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   77182ms] [LOG] [Perf] frames=10200 draws=603 tris=66769 geos=577 mats=13 @ http://localhost:3001/main.js?v=1785339004438:2704
+[   77184ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   77635ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   78147ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   78560ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   79528ms] [LOG] [Perf] frames=10500 draws=596 tris=66345 geos=577 mats=13 @ http://localhost:3001/main.js?v=1785339004438:2704
+[   79530ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   79611ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   79820ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   80112ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   80195ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   81922ms] [LOG] [Perf] frames=10800 draws=622 tris=67057 geos=577 mats=17 @ http://localhost:3001/main.js?v=1785339004438:2704
+[   81925ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   84257ms] [LOG] [Perf] frames=11100 draws=603 tris=66681 geos=577 mats=13 @ http://localhost:3001/main.js?v=1785339004438:2704
+[   84258ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   84265ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   84333ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   84865ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   85226ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   86455ms] [LOG] [Perf] frames=11400 draws=576 tris=65835 geos=577 mats=13 @ http://localhost:3001/main.js?v=1785339004438:2704
+[   86458ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   88025ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   88648ms] [LOG] [Perf] frames=11700 draws=587 tris=66723 geos=577 mats=14 @ http://localhost:3001/main.js?v=1785339004438:2704
+[   88650ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   89215ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   90360ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   90929ms] [LOG] [Perf] frames=12000 draws=602 tris=67373 geos=577 mats=13 @ http://localhost:3001/main.js?v=1785339004438:2704
+[   90930ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   91707ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   91922ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   93141ms] [LOG] [Perf] frames=12300 draws=593 tris=66217 geos=577 mats=13 @ http://localhost:3001/main.js?v=1785339004438:2704
+[   93143ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   94054ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   94680ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   95386ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   95488ms] [LOG] [Perf] frames=12600 draws=583 tris=65397 geos=577 mats=14 @ http://localhost:3001/main.js?v=1785339004438:2704
+[   95490ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   95601ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   95688ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   95791ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   95892ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   95972ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   96677ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   97017ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   97489ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   97628ms] [LOG] [Perf] frames=12900 draws=579 tris=65737 geos=577 mats=15 @ http://localhost:3001/main.js?v=1785339004438:2704
+[   97630ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   97813ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   97854ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   98614ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[   99907ms] [LOG] [Perf] frames=13200 draws=603 tris=65675 geos=577 mats=16 @ http://localhost:3001/main.js?v=1785339004438:2704
+[   99909ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[  101712ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[  101805ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[  102155ms] [LOG] [Perf] frames=13500 draws=690 tris=67477 geos=611 mats=15 @ http://localhost:3001/main.js?v=1785339004438:2704
+[  102156ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[  103302ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[  103500ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[  104360ms] [LOG] [Perf] frames=13800 draws=681 tris=68123 geos=611 mats=18 @ http://localhost:3001/main.js?v=1785339004438:2704
+[  104362ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[  104764ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[  104852ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[  105167ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[  105675ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[  106422ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[  106567ms] [LOG] [Perf] frames=14100 draws=620 tris=67065 geos=611 mats=15 @ http://localhost:3001/main.js?v=1785339004438:2704
+[  106568ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[  106695ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[  106812ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[  106922ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[  107476ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[  107567ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[  107663ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[  108268ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[  108738ms] [LOG] [Perf] frames=14400 draws=626 tris=66479 geos=618 mats=16 @ http://localhost:3001/main.js?v=1785339004438:2704
+[  108740ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[  108768ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[  109219ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[  109539ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[  109969ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[  110461ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[  110914ms] [LOG] [Perf] frames=14700 draws=621 tris=66319 geos=618 mats=18 @ http://localhost:3001/main.js?v=1785339004438:2704
+[  110916ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[  111619ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[  113267ms] [LOG] [Perf] frames=15000 draws=587 tris=65323 geos=618 mats=16 @ http://localhost:3001/main.js?v=1785339004438:2704
+[  113269ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[  113269ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[  113361ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[  113727ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[  114761ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
+[  115420ms] [LOG] [Perf] frames=15300 draws=611 tris=66604 geos=618 mats=13 @ http://localhost:3001/main.js?v=1785339004438:2704
+[  115421ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[  116761ms] [LOG] [Player] UPDATE: isFirstPerson=false fpArmsVisible=false viewWeapon=exists viewWeaponVisible=true viewWeaponType=knife currentWeapon=knife controlsLocked=false @ http://localhost:3001/entities/Player.js:517
