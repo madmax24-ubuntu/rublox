@@ -522,9 +522,7 @@ export class Player {
             this.fpArms.visible = false;
             if (this.currentWeapon) this.currentWeapon.setVisible(true);
         }
-        this.updateFirstPersonArmsVisibility(isFirstPerson);
-        this.animateViewModel(isFirstPerson, delta);
-
+        // Check slot switches BEFORE animateViewModel so viewWeapon is updated in time
         for (let displaySlot = 1; displaySlot <= 10; displaySlot++) {
             const key = displaySlot === 10 ? 0 : displaySlot;
             const slotIndex = displaySlot === 10 ? 9 : displaySlot - 1;
@@ -532,6 +530,8 @@ export class Player {
                 this.selectSlot(slotIndex);
             }
         }
+        this.updateFirstPersonArmsVisibility(isFirstPerson);
+        this.animateViewModel(isFirstPerson, delta);
 
         const activeWeapon = this.currentWeapon || this.fists;
         const autoTarget = this.autoFire && activeWeapon.type !== 'bow' ? this.getAutoFireTarget(entityManager) : null;
