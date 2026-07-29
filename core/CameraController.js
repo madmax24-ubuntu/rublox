@@ -233,6 +233,11 @@ export class CameraController {
     update(delta, input, playerPos, frozen = false) {
         const targetY = playerPos.y + (this.isMobile ? 0.55 : 0.15);
         const hasShake = this._shakeOffset.lengthSq() > 0;
+        // Debug log
+        if (this._updateCount === undefined) this._updateCount = 0;
+        if (++this._updateCount % 300 === 0) {
+            console.log('[CameraController] playerPos=' + playerPos.toArray().map(v=>v.toFixed(2)).join(',') + ' targetY=' + targetY.toFixed(2) + ' camPos=' + this.camera.position.toArray().map(v=>v.toFixed(2)).join(','));
+        }
 
         if (this.isLocked) {
             const sensitivity = 0.002;
