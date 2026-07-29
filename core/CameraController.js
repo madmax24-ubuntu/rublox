@@ -43,7 +43,9 @@ export class CameraController {
             document.addEventListener('mousemove', this._onMouseMove);
 
             this._onLockChange = () => {
+                const wasLocked = this.isLocked;
                 this.isLocked = document.pointerLockElement === this.domElement;
+                console.log('[Cam] pointerlockchange wasLocked=' + wasLocked + ' isLocked=' + this.isLocked + ' pointerLockElement=' + (document.pointerLockElement?.tagName || 'null'));
             };
             document.addEventListener('pointerlockchange', this._onLockChange);
             this._onPointerDown = () => {
@@ -305,8 +307,10 @@ export class CameraController {
     }
 
     lock() {
+        console.log('[Cam] lock() called');
         try {
             const request = this.domElement.requestPointerLock?.();
+            console.log('[Cam] lock() requestPointerLock returned:', request);
             request?.catch?.(() => {});
         } catch (_) {}
         // Начальный downward pitch — чтобы видеть нож/руку при старте
