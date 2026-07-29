@@ -1206,6 +1206,8 @@ export class Player {
                 position: offset.position.clone(),
                 rotation: baseRot
             };
+            this.viewWeapon.userData.baseRotation = new THREE.Euler(0,0,0);
+            this.viewWeapon.userData.baseRotation.set(this.viewWeapon.rotation.x, this.viewWeapon.rotation.y, this.viewWeapon.rotation.z);
         } catch (e) {
             console.warn('[Player] animateViewModelWeapon error:', e);
         }
