@@ -830,9 +830,12 @@ export class Player {
         const weapon = this.inventory.selectSlot(slot);
         const oldWeapon = this.currentWeapon;
         
+        console.log('[Player] selectSlot: slot=' + slot + ' weapon=' + (weapon?.type || 'null') + ' mesh=' + (weapon?.mesh ? 'exists' : 'NULL') + ' this.mesh=' + (this.mesh ? 'exists' : 'NULL') + ' socket=' + (this.mesh?.userData?.weaponSocket ? 'exists' : 'NULL'));
+        
         if (oldWeapon && oldWeapon.mesh && this.mesh?.userData?.weaponSocket) {
             // Detach old weapon from socket
             oldWeapon.detachFromSocket();
+            console.log('[Player] selectSlot: detached old weapon ' + oldWeapon.type);
         }
 
         if (weapon) {
@@ -840,6 +843,9 @@ export class Player {
             // Attach to player's weapon socket for third-person view
             if (weapon.mesh && this.mesh?.userData?.weaponSocket) {
                 weapon.attachToSocket(this.mesh.userData.weaponSocket);
+                console.log('[Player] selectSlot: attached weapon ' + weapon.type + ' to socket, mesh.visible=' + weapon.mesh.visible);
+            } else {
+                console.warn('[Player] selectSlot: cannot attach weapon, mesh=' + (weapon.mesh ? 'exists' : 'NULL') + ' socket=' + (this.mesh?.userData?.weaponSocket ? 'exists' : 'NULL'));
             }
         } else {
             this.currentWeapon = null;
