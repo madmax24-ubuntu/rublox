@@ -513,6 +513,10 @@ export class Player {
             this._stableFirstPerson = isFirstPersonRaw;
         }
         const isFirstPerson = this._stableFirstPerson;
+        // Debug: log weapon state every 100 frames
+        if (Math.random() < 0.01) {
+            console.log('[Player] UPDATE: isFirstPerson=' + isFirstPerson + ' fpArmsVisible=' + this.fpArms?.visible + ' viewWeapon=' + (this.viewWeapon ? 'exists' : 'null') + ' viewWeaponVisible=' + (this.viewWeapon?.visible) + ' viewWeaponType=' + this.viewWeaponType + ' currentWeapon=' + (this.currentWeapon?.type || 'null') + ' controlsLocked=' + (controls ? controls.isLocked : 'N/A'));
+        }
         if (isFirstPerson) {
             this.mesh.visible = false;
             this.fpArms.visible = true;
@@ -1129,6 +1133,10 @@ export class Player {
 
         console.log('[Player] animateViewModelWeapon ENTER type=' + weaponType);
         this.viewWeaponType = weaponType || null;
+        if (!this.fpArms) {
+            console.warn('[Player] animateViewModelWeapon: fpArms is null');
+            return;
+        }
         if (!weaponType || weaponType === 'fists') {
             if (this.viewWeapon) {
                 this.fpArms.remove(this.viewWeapon);
