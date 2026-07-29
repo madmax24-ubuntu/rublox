@@ -1169,6 +1169,7 @@ export class Player {
             viewClone.rotation.copy(offset.rotation);
             this.setupViewModel(viewClone, true);
             this.fpArms.add(viewClone);
+            this.fpArms.visible = true;
             this.viewWeapon = viewClone;
             this.viewWeaponBase = {
                 position: offset.position.clone(),
