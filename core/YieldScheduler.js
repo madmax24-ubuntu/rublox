@@ -15,6 +15,7 @@ export class YieldScheduler {
 		this._isRunning = false;
 		this._yieldQueue = [];
 		this._currentTask = null;
+		this._frameStartTime = performance.now(); // Initialize frame start time
 		this._frameTime = 0;
 		this._maxYieldsPerFrame = 3;
 		this._currentYieldsThisFrame = 0;
@@ -102,7 +103,6 @@ export class YieldScheduler {
 		this._frameStartTime = performance.now();
 		this._currentYieldsThisFrame = 0;
 		this._yieldAccumulator = 0;
-		this._currentYieldsThisFrame = 0;
 	}
 
 	/**
