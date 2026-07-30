@@ -519,9 +519,8 @@ export class BotBrain {
             return STATES.ENGAGE;
         }
         // Extended zombie threat radius — bots should engage zombies from further away
-        if (ctx.nearestZombie && ctx.nearestZombieDist < 28) {
-            // If zombie is close and bot has a ranged weapon, engage
-            if (hasRealWeapon && ctx.nearestZombieDist < 20) return STATES.ENGAGE;
+        if (ctx.nearestZombie && ctx.nearestZombieDist < 45) {
+            if (hasRealWeapon && !veryLowHp) return STATES.ENGAGE;
             // If zombie is very close and bot is low HP, retreat
             if (ctx.nearestZombieDist < 10 && lowHp) return ctx.shelterTarget ? STATES.RETREAT : STATES.EXPLORE;
         }
@@ -1205,7 +1204,7 @@ export class BotBrain {
             return retaliationTarget;
         }
         // Always prefer zombies over other bots — they're the real threat
-        if (ctx.nearestZombie && ctx.nearestZombieDist < 30) return ctx.nearestZombie;
+        if (ctx.nearestZombie && ctx.nearestZombieDist < 45) return ctx.nearestZombie;
         const preferZombie = ctx.nearestZombie && ctx.nearestZombieDist < 18;
         if (preferZombie) return ctx.nearestZombie;
         const t = ctx.nearestEnemy;

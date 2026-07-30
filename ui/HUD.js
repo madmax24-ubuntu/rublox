@@ -655,7 +655,7 @@ export class HUD {
         ammoInfo.id = 'ammoInfo';
         ammoInfo.style.cssText = `
             position: absolute;
-            bottom: ${px(isMobile ? 12 : 90)}px;
+            bottom: ${px(isMobile ? 12 : 54)}px;
             left: ${isMobile ? 'max(16px, 4vw)' : `${px(16)}px`};
             background: rgba(14, 26, 36, 0.88);
             padding: ${px(8)}px ${px(14)}px;

@@ -2403,6 +2403,15 @@ class Game {
                 }
             }
             this.audioSynth?.playExplosion?.(trap.position);
+            for (let i = 0; i < 7; i++) {
+                const angle = i * Math.PI * 2 / 7;
+                this._tmpSafeZone.set(
+                    trap.position.x + Math.cos(angle) * (0.3 + (i % 3) * 0.35),
+                    trap.position.y + 0.25 + (i % 2) * 0.35,
+                    trap.position.z + Math.sin(angle) * (0.3 + (i % 3) * 0.35)
+                );
+                this.entityManager?.spawnImpactEffect?.(this._tmpSafeZone, 'flame', true, false);
+            }
         }
         applyTrap(this.player);
         const trapBatch = Math.max(
@@ -2973,7 +2982,6 @@ window.addEventListener('DOMContentLoaded', () => {
     bindStartButton(document.getElementById('startButtonMobileLandscape'));
     bindStartButton(document.getElementById('startButton'));
 });
-
 
 
 

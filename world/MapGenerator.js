@@ -4857,7 +4857,8 @@ export class MapGenerator {
         );
         for (const [type, sx, sz] of definitions) {
             let placed = 0;
-            for (let attempt = 0; attempt < 700 && placed < 18; attempt++) {
+            const targetCount = type === 'mine' ? 24 : 18;
+            for (let attempt = 0; attempt < 800 && placed < targetCount; attempt++) {
                 const x = sx * (38 + Math.random() * (HALF - 44));
                 const z = sz * (38 + Math.random() * (HALF - 44));
                 if (Math.hypot(x, z) < 84 || blocked(x, z)) continue;

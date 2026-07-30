@@ -647,7 +647,7 @@ export class AudioSynth {
     }
 
     getEmitterSfxScale(emitterKey) {
-        return String(emitterKey || '').startsWith('id:') ? (this.isMobileDevice ? 0.032 : 0.045) : 1;
+        return String(emitterKey || '').startsWith('id:') ? (this.isMobileDevice ? 0.16 : 0.21) : 1;
     }
 
     getEmitterSfxPriority(emitterKey) {
@@ -900,9 +900,9 @@ export class AudioSynth {
     }
 
     playRemoteFootstep(position, emitterKey = 'npc', volume = 1) {
-        if (!this.canPlayWeaponSfx(`step:${emitterKey}`, 0.38)) return;
+        if (!this.canPlayWeaponSfx(`step:${emitterKey}`, 0.32)) return;
         this.playSample(this.sampleCatalog.footsteps, {
-            volume: (this.isMobileDevice ? 0.1 : 0.14) * clamp(volume, 0.2, 1),
+            volume: (this.isMobileDevice ? 0.16 : 0.22) * clamp(volume, 0.2, 1),
             rateMin: 0.9,
             rateMax: 1.1,
             position,

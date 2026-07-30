@@ -27,7 +27,7 @@ export class Player {
         this.maxArmor = 100;
         this.isInvulnerable = false;
         this.isAlive = true;
-        this.infiniteHealth = true; // test flag — never die
+        this.infiniteHealth = false;
         this.isCameraFrozen = false;
 
         // Кэш видимости рук по типу оружия — не мерцает каждый кадр

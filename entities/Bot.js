@@ -802,12 +802,6 @@ export class Bot {
         const speed = Math.max(velocitySpeed, this.visualSpeed || 0);
         const speedNorm = Math.min(1, speed / Math.max(0.001, this.physics.speed));
         const time = this._animTime;
-        const now = performance.now() * 0.001;
-        if (speedNorm > 0.18 && now >= (this._nextFootstepAt || 0)) {
-            this.audioSynthRef?.playRemoteFootstep?.(this.position, `bot-${this.id}`, 0.45 + speedNorm * 0.35);
-            this._nextFootstepAt = now + Math.max(0.34, 0.56 - speedNorm * 0.14);
-        }
-
         if (speedNorm > 0.05) {
             const swing = Math.sin(time * 10) * 0.8 * speedNorm;
             limbs.leftArm.rotation.x = swing;
@@ -1077,6 +1071,18 @@ export class Bot {
         const moved = this.position.distanceTo(this.visualLastPosition);
         this.visualSpeed = moved / dt;
         this.visualLastPosition.copy(this.position);
+        const stepSpeed = Math.min(1, this.visualSpeed / Math.max(0.001, this.physics.speed));
+        const stepNow = performance.now() * 0.001;
+        const listener = this.audioSynthRef?.listenerPosition;
+        if (listener && stepSpeed > 0.18 && stepNow >= (this._nextFootstepAt || 0)) {
+            const dx = this.position.x - listener.x;
+            const dy = this.position.y - listener.y;
+            const dz = this.position.z - listener.z;
+            if (dx * dx + dy * dy + dz * dz <= 2025) {
+                this.audioSynthRef.playRemoteFootstep?.(this.position, `bot-${this.id}`, 0.55 + stepSpeed * 0.4);
+            }
+            this._nextFootstepAt = stepNow + Math.max(0.32, 0.54 - stepSpeed * 0.14);
+        }
 
         // Handle crouch effect for HIDE state
         const crouchFactor = this.state === 'hide' ? 0.75 : 1.0;
