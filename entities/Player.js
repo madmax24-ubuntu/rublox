@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { Inventory } from '../items/Inventory.js';
 import { Weapon } from '../items/Weapon.js';
-import { spawnDamagePopup } from './DamagePopup.js';
 
 export class Player {
     constructor(scene, camera, input) {
@@ -958,7 +957,7 @@ export class Player {
         const isDotDamage = source === 'zone' || source === 'storm' || source === 'burn' || source === 'trap';
         if (!isDotDamage && tookRealDamage) {
             this.flashDamage();
-            spawnDamagePopup(this.scene, this.position, finalDamage, { color: '#ff5b5b', key: 'player' });
+            // Damage popup removed - spawnDamagePopup.js was cleaned up
         }
         if (source === 'flame' && this.isAlive) {
             this.applyBurn(2.2, 4.2, attacker);

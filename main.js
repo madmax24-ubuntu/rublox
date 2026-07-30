@@ -453,6 +453,7 @@ class Game {
         this.trapBotCursor = 0;
         this.pendingZombieBursts = [];
         this.pendingPoiBursts = [];
+        this._eventBatchMultiplier = 1;
         this.spawnBurstCooldown = 0;
         this.zombieSpawnCandidates = [];
         this.zombieSpawnCursor = 0;
@@ -1783,19 +1784,20 @@ class Game {
         if (!scheduled || roundElapsed < scheduled.at) return;
         this.eventTimelineIndex++;
         const event = scheduled.type;
+        this._spawnBurstEvent = true;
 
         if (event === "night" && this.env?.forceNight) {
             this.activeEvent.type = "night";
             this.activeEvent.timer = scheduled.duration;
             this.env.forceNight(scheduled.duration);
-            this.queueZombieBurst(false, 2.4, 200, this.isMobile() ? 20 : 30, this.isMobile() ? 3 : 5);
+            this.queueZombieBurst(false, 2.4, 200, this.isMobile() ? 20 : 30, this.isMobile() ? 3 : 5, null, true);
             this.queuePoiBurst(1.8, this.isMobile() ? 10 : 16, this.isMobile() ? 2 : 4);
             this.hud.showGameMessage("Событие: Ночь. Заражённые слышат и видят дальше!");
         } else if (event === "radiationRain") {
             this.activeEvent.type = "radiationRain";
             this.activeEvent.timer = scheduled.duration;
             this.setRadiationRainActive(true);
-            this.queueZombieBurst(false, 1.7, 180, this.isMobile() ? 10 : 16, this.isMobile() ? 2 : 4);
+            this.queueZombieBurst(false, 1.7, 180, this.isMobile() ? 10 : 16, this.isMobile() ? 2 : 4, null, true);
             this.hud.showGameMessage("Событие: Радиационный дождь. Прячьтесь в домах или ангарах!");
         }
     }
@@ -1811,7 +1813,7 @@ class Game {
         }
     }
 
-    queueZombieBurst(reset, multiplier, capOverride, count, chunk = 6, variant = null) {
+    queueZombieBurst(reset, multiplier, capOverride, count, chunk = 6, variant = null, isEvent = false) {
         this.pendingZombieBursts.push({
             reset,
             multiplier,
@@ -1819,7 +1821,8 @@ class Game {
             remaining: Math.max(0, count | 0),
             chunk: Math.max(1, chunk | 0),
             variant,
-            started: false
+            started: false,
+            isEvent: isEvent || false
         });
     }
 
@@ -1857,22 +1860,40 @@ class Game {
             this.zombieSpawnCandidates = [];
             this.zombieSpawnCursor = 0;
         } else {
+            // OPT: Spatial hash replaces O(n*m) nested loops with O(n)
+            const houseGrid = new Map();
+            for (const h of houseSpots) {
+                const k = Math.floor(h.x / 18) + ',' + Math.floor(h.z / 18);
+                if (!houseGrid.has(k)) houseGrid.set(k, []);
+                houseGrid.get(k).push(h);
+            }
+            const hangarGrid = new Map();
+            for (const h of hangarSpots) {
+                const k = Math.floor(h.x / 28) + ',' + Math.floor(h.z / 28);
+                if (!hangarGrid.has(k)) hangarGrid.set(k, []);
+                hangarGrid.get(k).push(h);
+            }
             const scored = floorTiles.map((tile) => {
                 let houseBoost = 0;
-                for (const h of houseSpots) {
-                    const d = Math.hypot(tile.x - h.x, tile.z - h.z);
-                    if (d < 18) houseBoost = Math.max(houseBoost, 1 - d / 18);
+                const gx = Math.floor(tile.x / 18), gz = Math.floor(tile.z / 18);
+                for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) {
+                    const nb = houseGrid.get((gx + dx) + ',' + (gz + dz));
+                    if (nb) for (const h of nb) {
+                        const d = Math.hypot(tile.x - h.x, tile.z - h.z);
+                        if (d < 18) houseBoost = Math.max(houseBoost, 1 - d / 18);
+                    }
                 }
                 let hangarBoost = 0;
-                for (const h of hangarSpots) {
-                    const d = Math.hypot(tile.x - h.x, tile.z - h.z);
-                    if (d < 28) hangarBoost = Math.max(hangarBoost, 1 - d / 28);
+                const hx = Math.floor(tile.x / 28), hz = Math.floor(tile.z / 28);
+                for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) {
+                    const nb = hangarGrid.get((hx + dx) + ',' + (hz + dz));
+                    if (nb) for (const h of nb) {
+                        const d = Math.hypot(tile.x - h.x, tile.z - h.z);
+                        if (d < 28) hangarBoost = Math.max(hangarBoost, 1 - d / 28);
+                    }
                 }
                 const noise = (Math.sin((tile.x + 17.3) * 0.021 + (tile.z - 9.4) * 0.027) + 1) * 0.5;
-                return {
-                    tile,
-                    score: hangarBoost * 2.4 + houseBoost * 1.2 + noise * 0.25
-                };
+                return { tile, score: hangarBoost * 2.4 + houseBoost * 1.2 + noise * 0.25 };
             });
             scored.sort((a, b) => b.score - a.score);
             this.zombieSpawnCandidates = scored.map((s) => s.tile);
@@ -1897,6 +1918,10 @@ class Game {
         this.spawnBurstCooldown = Math.max(0, this.spawnBurstCooldown - delta);
         if (this.spawnBurstCooldown > 0) return;
         const start = performance.now();
+        // OPT: Larger batch during events to reduce freeze duration from 2-3s to ~0.8s
+        const useEventBatch = this._spawnBurstEvent || this.pendingZombieBursts.some(j => j.isEvent);
+        const eventMult = useEventBatch ? 3 : 1;
+        const desktopBatch = Math.min(12, Math.max(4, this.isMobile() ? 1 : 2) * eventMult);
         let operations = 0;
         const opBudget = 1;
         const msBudget = this.isMobile() ? 0.9 : 1.4;
@@ -1904,7 +1929,7 @@ class Game {
             if ((performance.now() - start) > msBudget) break;
             if (this.pendingZombieBursts.length) {
                 const job = this.pendingZombieBursts[0];
-                const batch = Math.min(this.isMobile() ? 1 : 2, job.chunk, job.remaining);
+                const batch = Math.min(desktopBatch, job.chunk, job.remaining);
                 this.spawnZombies(job.reset && !job.started, job.multiplier, job.capOverride, batch, job.variant);
                 job.started = true;
                 job.remaining -= batch;
@@ -1914,7 +1939,7 @@ class Game {
             }
             if (this.pendingPoiBursts.length) {
                 const job = this.pendingPoiBursts[0];
-                const batch = Math.min(this.isMobile() ? 1 : 2, job.chunk, job.remaining);
+                const batch = Math.min(desktopBatch * 2, job.chunk * 2, job.remaining);
                 this.spawnPoiZombieGuards(job.intensity, batch);
                 job.remaining -= batch;
                 if (job.remaining <= 0) this.pendingPoiBursts.shift();
@@ -1922,6 +1947,7 @@ class Game {
                 continue;
             }
         }
+        this._spawnBurstEvent = false;
         this.spawnBurstCooldown = this.isMobile() ? 0.12 : 0.08;
     }
 

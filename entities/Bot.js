@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 import { Inventory } from '../items/Inventory.js';
 import { Weapon } from '../items/Weapon.js';
-import { spawnDamagePopup } from './DamagePopup.js';
 
 let botLodGeometry = null;
 const botGeometryCache = new Map();
@@ -939,7 +938,7 @@ export class Bot {
         const isDotDamage = source === 'zone' || source === 'storm' || source === 'burn' || source === 'trap';
         if (!isDotDamage) {
             this.flashDamage();
-            spawnDamagePopup(this.scene, this.position, finalDamage, { color: '#ff5b5b', key: `bot-${this.id}` });
+            // Damage popup removed - spawnDamagePopup.js was cleaned up
         }
         if (source === 'flame' && this.isAlive) {
             this.applyBurn(2.6, 4.5, attacker);
