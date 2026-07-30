@@ -41,6 +41,7 @@ export class Physics {
 
     addEntity(entity) {
         this.entities.push(entity);
+        if (entity?.type === 'Player' || entity?.constructor?.name === 'Player') this.playerEntity = entity;
     }
 
     removeEntity(entity) {
@@ -48,6 +49,7 @@ export class Physics {
         if (index > -1) {
             this.entities.splice(index, 1);
         }
+        if (this.playerEntity === entity) this.playerEntity = null;
     }
 
     update(delta, gameState) {
@@ -63,7 +65,7 @@ export class Physics {
         const isCountdown = gameState === 'countdown';
         const npcStride = this.mapGenerator?.isMobile ? 3 : 2;
         const physicsFrame = this._physicsFrame++;
-        const playerEntity = this.entities.find(entity => entity?.type === 'Player' || entity?.constructor?.name === 'Player');
+        const playerEntity = this.playerEntity;
 
         for (let entityIndex = 0; entityIndex < this.entities.length; entityIndex++) {
             const entity = this.entities[entityIndex];

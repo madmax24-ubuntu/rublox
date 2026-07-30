@@ -82,7 +82,7 @@ export class BotBrain {
 
         const now = performance.now();
         const phaseGear = this.getGearScore(bot);
-        const inPreLootPhase = !!(bot.noCombatUntil && now < bot.noCombatUntil && phaseGear < 0.75);
+        const inPreLootPhase = !!(bot.noCombatUntil && now < bot.noCombatUntil);
         const earlyGamePhase = inPreLootPhase || !!(bot.noCombatUntil && now < bot.noCombatUntil + 30000 && phaseGear < 1.15);
 
         // Force context refresh when phases change — prevents stale cached state from keeping bots in combat
@@ -97,7 +97,7 @@ export class BotBrain {
             bot.state = nextState;
             if (nextState !== STATES.LOOT && nextState !== STATES.EXPLORE) this.releaseLootReservation(bot);
             if (nextState !== STATES.ENGAGE) this.releaseCombatReservation(bot);
-            this.decisionCooldown = 0.2 + ((bot.id * 0.006) % 0.12);
+            this.decisionCooldown = 0.28 + ((bot.id * 0.007) % 0.16);
         } else {
             // Refresh earlyGamePhase on cached context so actEngage / actExplore see current phase
             ctx.earlyGamePhase = earlyGamePhase;
@@ -113,6 +113,23 @@ export class BotBrain {
             if (!ctx.shelterTarget) {
                 ctx.shelterTarget = this.findNearestShelterTarget(bot);
             }
+        }
+
+        if (inPreLootPhase) {
+            bot._retaliationTarget = null;
+            bot._retaliateUntil = 0;
+            this.releaseCombatReservation(bot);
+            if ((ctx.nearestEnemyDist < 18 || ctx.nearestZombieDist < 18) && ctx.shelterTarget) {
+                bot.state = STATES.HIDE;
+                this.actHide(bot, ctx);
+            } else if (ctx.lootTarget) {
+                bot.state = STATES.LOOT;
+                this.actLoot(bot, ctx, lootManager);
+            } else {
+                bot.state = STATES.EXPLORE;
+                this.actExplore(bot, ctx);
+            }
+            return;
         }
 
         const retaliating = bot._retaliationTarget?.isAlive && now < (bot._retaliateUntil || 0);
@@ -211,7 +228,7 @@ export class BotBrain {
     collectContext(bot, entityManager, lootManager) {
         const now = performance.now();
         const phaseGear = this.getGearScore(bot);
-        const inPreLootPhase = !!(bot.noCombatUntil && now < bot.noCombatUntil && phaseGear < 0.75);
+        const inPreLootPhase = !!(bot.noCombatUntil && now < bot.noCombatUntil);
         const earlyGamePhase = inPreLootPhase || !!(bot.noCombatUntil && now < bot.noCombatUntil + 30000 && phaseGear < 1.15);
 
         const hp = bot.health / Math.max(1, bot.maxHealth || 100);
@@ -512,6 +529,12 @@ export class BotBrain {
         // Helper: check if bot has a real weapon (not knife/fists)
         const hasRealWeapon = bot.currentWeapon && bot.currentWeapon.type !== 'knife' && bot.currentWeapon.type !== 'fists';
 
+        if (ctx.inPreLootPhase) {
+            if ((ctx.nearestEnemyDist < 18 || ctx.nearestZombieDist < 18) && ctx.shelterTarget) return STATES.HIDE;
+            if (ctx.lootTarget) return STATES.LOOT;
+            return STATES.EXPLORE;
+        }
+
         if (ctx.nearestZombie && ctx.nearestZombieDist < 16) {
             // Zombies are a threat — engage unless critically low HP
             if (veryLowHp) return ctx.shelterTarget ? STATES.RETREAT : STATES.EXPLORE;
@@ -523,19 +546,6 @@ export class BotBrain {
             if (hasRealWeapon && !veryLowHp) return STATES.ENGAGE;
             // If zombie is very close and bot is low HP, retreat
             if (ctx.nearestZombieDist < 10 && lowHp) return ctx.shelterTarget ? STATES.RETREAT : STATES.EXPLORE;
-        }
-
-        // === PHASE 1: Pre-loot (noCombatUntil not expired) ===
-        // Bots prioritize looting aggressively — only engage if directly threatened
-        if (ctx.inPreLootPhase) {
-            if (retaliating && ctx.nearestEnemy && ctx.nearestEnemyDist < 25 && !veryLowHp) return STATES.ENGAGE;
-            // Always loot if target available, even during early game
-            if (ctx.lootTarget) return STATES.LOOT;
-            // Only engage if very close AND being shot AND well-armed (higher threshold)
-            if (ctx.nearestEnemy && ctx.nearestEnemyDist < 8 && ctx.heardShot && wellArmed && agg > 0.85) {
-                return STATES.ENGAGE;
-            }
-            return STATES.EXPLORE; // scatter
         }
 
         // === MANDATORY LOOT PRIORITY: if bot has no weapon or only knife, force loot ===

@@ -51,7 +51,7 @@ export class EntityManager {
 
     update(delta, physics, audioSynth) {
         this.physicsRef = physics || this.physicsRef;
-        const rebuildInterval = this.scene.userData.mobileMode ? 8 : 6;
+        const rebuildInterval = this.scene.userData.mobileMode ? 12 : 10;
         this._spatialFrameCounter = ((this._spatialFrameCounter || 0) + 1) % rebuildInterval;
         const shouldRebuild = this.entities.length !== this._lastRebuildCount || this._spatialFrameCounter === 0;
         if (shouldRebuild) {

@@ -2089,7 +2089,8 @@ class Game {
         const botCount = this.bots.length;
         if (botCount === 0) return;
         // Bots update during countdown to enable pre-fight looting
-        const batch = Math.min(botCount, this.isMobile() ? 18 : 28);
+        const lootOnly = this.bots[0]?.noCombatUntil > performance.now();
+        const batch = Math.min(botCount, lootOnly ? (this.isMobile() ? 8 : 10) : (this.isMobile() ? 12 : 16));
         const scaledDelta = Math.min(0.1, delta * botCount / Math.max(1, batch));
         for (let i = 0; i < batch; i++) {
             const botIndex = (this.botUpdateIndex + i) % botCount;
@@ -2153,22 +2154,20 @@ class Game {
 
         const mobile = this.isMobile();
         const farZombieCullDistSq = mobile ? 10000 : 20736;
-        for (let i = 0; i < zombieCount; i++) {
-            const zombie = this.zombies[i];
-            if (zombie?.isAlive) zombie.updateRenderLod(delta);
-        }
         const zombiesPerFrame = Math.min(zombieCount, Math.max(
             mobile ? 8 : 12,
             Math.ceil(zombieCount * (mobile ? 0.18 : 0.28))
         ));
+        const scaledDelta = Math.min(0.1, delta * zombieCount / Math.max(1, zombiesPerFrame));
         for (let i = 0; i < zombiesPerFrame && i < zombieCount; i++) {
             const zIndex = (this.zombieUpdateIndex + i) % zombieCount;
             const zombie = this.zombies[zIndex];
             if (zombie && zombie.isAlive) {
+                zombie.updateRenderLod(scaledDelta);
                 const distSq = zombie.position.distanceToSquared(this.player.position);
                 const shouldUpdate = distSq < farZombieCullDistSq || zombie.alertTarget || zombie.alertTimer > 0;
                 if (shouldUpdate) {
-                    zombie.update(Math.min(0.1, delta * zombieCount / Math.max(1, zombiesPerFrame)), this.entityManager, this.audioSynth);
+                    zombie.update(scaledDelta, this.entityManager, this.audioSynth);
                 } else if (zombie.mesh) {
                     zombie.mesh.position.copy(zombie.position);
                 }
@@ -2352,6 +2351,11 @@ class Game {
 
     _applyTraps(delta) {
         if (!this.traps?.length) return;
+        this.trapUpdateAccumulator = (this.trapUpdateAccumulator || 0) + delta;
+        const interval = this.isMobile() ? 0.12 : 0.08;
+        if (this.trapUpdateAccumulator < interval) return;
+        delta = Math.min(0.2, this.trapUpdateAccumulator);
+        this.trapUpdateAccumulator = 0;
 
         const applyTrap = (entity) => {
             if (!entity.isAlive) return;
@@ -2371,7 +2375,11 @@ class Game {
             }
         };
         const now = performance.now() * 0.001;
-        const living = [this.player, ...this.bots, ...(this.zombies || [])].filter(entity => entity?.isAlive);
+        const living = this.trapLivingEntities || (this.trapLivingEntities = []);
+        living.length = 0;
+        if (this.player?.isAlive) living.push(this.player);
+        for (const bot of this.bots) if (bot?.isAlive) living.push(bot);
+        for (const zombie of this.zombies || []) if (zombie?.isAlive) living.push(zombie);
         for (const trap of this.traps) {
             if (trap.type !== 'mine' || (trap.rearmAt || 0) > now) continue;
             const triggerRadiusSq = trap.radius * trap.radius;
@@ -2982,7 +2990,4 @@ window.addEventListener('DOMContentLoaded', () => {
     bindStartButton(document.getElementById('startButtonMobileLandscape'));
     bindStartButton(document.getElementById('startButton'));
 });
-
-
-
 

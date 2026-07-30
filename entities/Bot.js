@@ -1250,6 +1250,7 @@ export class Bot {
     attack(target, entityManager) {
         let weapon = this.currentWeapon || this.fists;
         if (!weapon || !target || !target.isAlive) return null;
+        if (this.noCombatUntil && performance.now() < this.noCombatUntil) return null;
         const now = performance.now() / 1000;
         if (now < this.nextAttackTime) return null;
 
