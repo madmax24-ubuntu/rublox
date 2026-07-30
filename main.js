@@ -1725,22 +1725,11 @@ class Game {
 			}
 		}
 		if (this.bots?.length) {
-			// YieldScheduler: деферируем тяжелую итерацию ботов на 1 кадр
-			const pending = this.bots.length;
-			let done = 0;
-			const applyToBots = () => {
-				const chunkSize = 15;
-				for (let i = 0; i < chunkSize && done < pending; i++, done++) {
-					const bot = this.bots[done];
-					if (!bot) continue;
-					bot.forceShelterActive = !!active;
-					if (!active && bot.state === "hide") bot.state = "patrol";
-				}
-				if (done < pending) {
-					requestIdleCallback?.(applyToBots) || setTimeout(applyToBots, 0);
-				}
-			};
-			applyToBots();
+			for (const bot of this.bots) {
+				if (!bot) continue;
+				bot.forceShelterActive = !!active;
+				if (!active && bot.state === "hide") bot.state = "patrol";
+			}
 		}
 		this.hud?.setStormActive?.(!!active, active ? "radiation" : "storm");
 		if (active) {
