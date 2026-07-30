@@ -1,0 +1,49 @@
+- generic [ref=e1]:
+  - generic [ref=e70]: Поверните телефон в альбомную ориентацию
+  - generic [ref=e72]:
+    - generic [ref=e73]: Прыжок
+    - generic [ref=e74]: Удар
+    - generic [ref=e75]: E
+  - generic:
+    - generic: "Лут: Дробовик"
+    - generic:
+      - generic: "Игроков: 100"
+      - generic: "Зона: Безопасна: 28с (радиус 128м)"
+      - generic: "Перк: Быстрые руки"
+    - generic [ref=e86]:
+      - generic [ref=e87]:
+        - text: "1"
+        - generic [ref=e88]: "1"
+        - generic [ref=e89]: KNF
+      - generic [ref=e90]:
+        - text: "2"
+        - generic [ref=e91]: "2"
+        - generic [ref=e109]: MG
+      - generic [ref=e92]:
+        - text: "3"
+        - generic [ref=e93]: "3"
+        - generic [ref=e110]: SG
+      - generic [ref=e94]:
+        - text: "4"
+        - generic [ref=e95]: "4"
+      - generic [ref=e96]:
+        - text: "5"
+        - generic [ref=e97]: "5"
+      - generic [ref=e98]:
+        - text: "6"
+        - generic [ref=e99]: "6"
+      - generic [ref=e100]:
+        - text: "7"
+        - generic [ref=e101]: "7"
+      - generic [ref=e102]:
+        - text: "8"
+        - generic [ref=e103]: "8"
+      - generic [ref=e104]:
+        - text: "9"
+        - generic [ref=e105]: "9"
+      - generic [ref=e106]:
+        - text: "0"
+        - generic [ref=e107]: "0"
+    - generic: 74 FPS
+    - generic: M - ПАУЗА
+    - generic: "Нож: 80"
