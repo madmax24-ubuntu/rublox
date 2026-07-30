@@ -55,6 +55,8 @@ export class AudioSynth {
         this.lastZombieSfxTime = { attack: 0, moan: 0 };
         this.lastZombieEmitterSfx = new Map();
         this.activeSampleVoices = new Map();
+        this.flamethrowerPending = new Set();
+        this.flamethrowerStopTimers = new Map();
         this.activeCategoryVoices = new Map();
         this.categoryVoiceLimits = this.isMobileDevice
             ? { weapon: 5, ambient: 1, ui: 2, zombie: 3, weather: 1, sfx: 3 }
@@ -416,6 +418,10 @@ export class AudioSynth {
         const source = ctx.createBufferSource();
         source.buffer = buffer;
         source.loop = !!options.loop;
+        if (source.loop) {
+            source.loopStart = clamp(Number.isFinite(options.loopStart) ? options.loopStart : 0, 0, Math.max(0, buffer.duration - 0.02));
+            source.loopEnd = clamp(Number.isFinite(options.loopEnd) ? options.loopEnd : buffer.duration, source.loopStart + 0.01, buffer.duration);
+        }
         const rate = Number.isFinite(options.rate) ? options.rate : (Number.isFinite(options.rateMin) ? options.rateMin : 1) + Math.random() * ((Number.isFinite(options.rateMax) ? options.rateMax : 1) - (Number.isFinite(options.rateMin) ? options.rateMin : 1));
         source.playbackRate.value = clamp(rate, 0.5, 2.25);
 
@@ -625,6 +631,20 @@ export class AudioSynth {
             if (index >= 0) active.splice(index, 1);
         }, { once: true });
         return true;
+    }
+
+    stopSampleVoice(voiceKey, fadeDuration = 0.06) {
+        const voice = this.activeSampleVoices.get(voiceKey);
+        if (!voice || !this.audioContext) return;
+        this.activeSampleVoices.delete(voiceKey);
+        const now = this.audioContext.currentTime;
+        const fade = Math.max(0.01, fadeDuration);
+        try {
+            voice.gain.gain.cancelScheduledValues(now);
+            voice.gain.gain.setValueAtTime(Math.max(0.0001, voice.gain.gain.value), now);
+            voice.gain.gain.exponentialRampToValueAtTime(0.0001, now + fade);
+            voice.source.stop(now + fade + 0.005);
+        } catch (_) {}
     }
 
     getEmitterSfxScale(emitterKey) {
@@ -1080,19 +1100,38 @@ export class AudioSynth {
     }
 
     playFlamethrower(position = null, emitterKey = 'global') {
-        if (!this.canPlayWeaponSfx(`flamethrower:${emitterKey}`, this.weaponSfxCooldown.flamethrower)) return;
+        const voiceKey = `flamethrower:${emitterKey}`;
+        const refreshStop = () => {
+            clearTimeout(this.flamethrowerStopTimers.get(voiceKey));
+            this.flamethrowerStopTimers.set(voiceKey, setTimeout(() => {
+                this.flamethrowerStopTimers.delete(voiceKey);
+                this.stopSampleVoice(voiceKey, 0.075);
+            }, 165));
+        };
+        if (this.activeSampleVoices.has(voiceKey) || this.flamethrowerPending.has(voiceKey)) {
+            refreshStop();
+            return true;
+        }
+        if (!this.canPlayWeaponSfx(voiceKey, this.weaponSfxCooldown.flamethrower)) return false;
         const scale = this.getEmitterSfxScale(emitterKey);
-        this.playSample(this.sampleCatalog.flamethrower, {
-            volume: (this.isMobileDevice ? 0.64 : 0.78) * scale,
-            rateMin: 0.96,
-            rateMax: 1.04,
-            reverbSend: 0.025,
-            maxDuration: 0.16,
+        this.flamethrowerPending.add(voiceKey);
+        return this.playSample(this.sampleCatalog.flamethrower, {
+            volume: (this.isMobileDevice ? 0.72 : 0.86) * scale,
+            rate: 1,
+            loop: true,
+            loopStart: 0.035,
+            loopEnd: 0.42,
+            reverbSend: 0.015,
             position,
             category: 'weapon',
-            voiceKey: `flamethrower:${emitterKey}`,
+            voiceKey,
             priority: this.getEmitterSfxPriority(emitterKey)
-        }).then(played => { if (!played) this.playProceduralShot('flamethrower', 0.22 * scale, position); });
+        }).then(played => {
+            this.flamethrowerPending.delete(voiceKey);
+            if (played) refreshStop();
+            else this.playProceduralShot('flamethrower', 0.22 * scale, position);
+            return played;
+        });
     }
 
     playTimerTick(volume = 1) {
