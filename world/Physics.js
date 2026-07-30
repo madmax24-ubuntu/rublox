@@ -276,7 +276,7 @@ export class Physics {
             const sin = Math.sin(obb.rotation);
             const localX = dx * cos - dz * sin;
             const localZ = dx * sin + dz * cos;
-            const clearance = radius * 0.35;
+            const clearance = radius * ((box.isTowerStair || box.isBiomeEntrance) ? 0.08 : 0.35);
             return Math.abs(localX) <= Math.max(0.02, obb.halfWidth - clearance)
                 && Math.abs(localZ) <= Math.max(0.02, obb.halfDepth - clearance);
         }
@@ -330,29 +330,7 @@ export class Physics {
                         && bottom <= max.y + 0.12;
                     const canStep = (entity.physics.onGround || stairRecovery) && verticalSpeed <= 0.01;
                     const onSurface = this._containsWalkableSurface(box, pos.x, pos.z, baseRadius);
-                    let nearClimbable = false;
-                    if (box.isTowerStair || box.isBiomeEntrance) {
-                        if (box.surfaceOBB) {
-                            const dx = pos.x - box.surfaceOBB.x;
-                            const dz = pos.z - box.surfaceOBB.z;
-                            const cos = Math.cos(box.surfaceOBB.rotation);
-                            const sin = Math.sin(box.surfaceOBB.rotation);
-                            const localX = dx * cos - dz * sin;
-                            const localZ = dx * sin + dz * cos;
-                            const margin = box.isTowerStair ? 0 : baseRadius;
-                            nearClimbable = Math.abs(localX) <= box.surfaceOBB.halfWidth + margin
-                                && Math.abs(localZ) <= box.surfaceOBB.halfDepth + margin;
-                        } else {
-                            nearClimbable = pos.x >= min.x - baseRadius && pos.x <= max.x + baseRadius
-                                && pos.z >= min.z - baseRadius && pos.z <= max.z + baseRadius;
-                        }
-                        if (nearClimbable && box.towerInterior) {
-                            const dx = pos.x - box.towerInterior.x;
-                            const dz = pos.z - box.towerInterior.z;
-                            nearClimbable = dx * dx + dz * dz <= box.towerInterior.radius * box.towerInterior.radius;
-                        }
-                    }
-                    if (canStep && (onSurface || nearClimbable) && stepHeight > 0.02 && stepHeight <= stepReach) {
+                    if (canStep && onSurface && stepHeight > 0.02 && stepHeight <= stepReach) {
                         pos.y = max.y + (entity.physics?.height || 1.7);
                         entity.physics.onGround = true;
                         if (entity.physics.velocity) entity.physics.velocity.y = 0;

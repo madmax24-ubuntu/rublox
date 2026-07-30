@@ -908,8 +908,8 @@ export class Weapon {
         this.anim?.triggerRecoil();
 
         if (audioSynth) {
-            const srcPos = owner?.position || null;
             const ownerType = owner?.constructor?.name || 'entity';
+            const srcPos = ownerType === 'Player' ? null : (owner?.position || null);
             const srcKey = ownerType === 'Player' ? 'player' : (owner?.id !== undefined ? `id:${owner.id}` : ownerType);
             if (this.type === 'knife' || this.type === 'fists') audioSynth.playHit?.(srcPos, srcKey);
             else if (this.type === 'bow') audioSynth.playBowShot?.(srcPos, srcKey);

@@ -201,11 +201,11 @@ export class AudioSynth {
 
             this.reverb.buffer = this.createImpulse(1.6, 1.8);
             this.reverbGain.gain.value = 0.055;
-            this.sfxLimiter.threshold.value = -18;
-            this.sfxLimiter.knee.value = 8;
-            this.sfxLimiter.ratio.value = 12;
-            this.sfxLimiter.attack.value = 0.003;
-            this.sfxLimiter.release.value = 0.18;
+            this.sfxLimiter.threshold.value = -6;
+            this.sfxLimiter.knee.value = 3;
+            this.sfxLimiter.ratio.value = 4;
+            this.sfxLimiter.attack.value = 0.0015;
+            this.sfxLimiter.release.value = 0.08;
 
             this.musicGain.connect(this.audioContext.destination);
             Object.keys(this.categoryGains).forEach((key) => {
@@ -1017,7 +1017,7 @@ export class AudioSynth {
             rateMin: 0.98,
             rateMax: 1.02,
             reverbSend: 0.08,
-            maxDuration: 0.68,
+            maxDuration: 0.62,
             position,
             category: 'weapon',
             priority: this.getEmitterSfxPriority(emitterKey)
@@ -1032,7 +1032,7 @@ export class AudioSynth {
             rateMin: 0.98,
             rateMax: 1.03,
             reverbSend: 0.01,
-            maxDuration: 0.58,
+            maxDuration: 0.35,
             position,
             category: 'weapon',
             priority: this.getEmitterSfxPriority(emitterKey)
@@ -1047,7 +1047,7 @@ export class AudioSynth {
             rateMin: 0.98,
             rateMax: 1.02,
             reverbSend: 0.015,
-            maxDuration: 0.52,
+            maxDuration: 0.29,
             position,
             category: 'weapon',
             priority: this.getEmitterSfxPriority(emitterKey)
@@ -1062,7 +1062,7 @@ export class AudioSynth {
             rateMin: 0.99,
             rateMax: 1.04,
             reverbSend: 0.005,
-            maxDuration: 0.26,
+            maxDuration: 0.125,
             position,
             category: 'weapon',
             priority: this.getEmitterSfxPriority(emitterKey)
@@ -1071,7 +1071,7 @@ export class AudioSynth {
             rateMin: 1.08,
             rateMax: 1.18,
             reverbSend: 0.005,
-            maxDuration: 0.22,
+            maxDuration: 0.125,
             position,
             category: 'weapon',
             priority: this.getEmitterSfxPriority(emitterKey)
