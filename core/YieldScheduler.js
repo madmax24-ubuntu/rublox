@@ -159,15 +159,17 @@ export class YieldScheduler {
 			}
 		}
 
-		// Task completed
-		this._currentTask.index = endIndex;
-		this._currentTask.completed = true;
-
-		if (config.onComplete) {
-			config.onComplete(this._currentTask);
+		// Task completed — only if all items processed
+		if (this._currentTask.index >= this._currentTask.items.length) {
+			this._currentTask.completed = true;
+			if (config.onComplete) {
+				config.onComplete(this._currentTask);
+			}
+			this._currentTask = null;
+		} else {
+			// Continue processing
+			setTimeout(() => this._resumeYieldable(), 0);
 		}
-
-		this._currentTask = null;
 	}
 
 	/**
