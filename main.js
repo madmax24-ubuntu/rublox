@@ -482,6 +482,7 @@ class Game {
             cooldown: 0
         };
         this.centerBlastVfx = null;
+        this.laserGraceTimer = 0; // Grace period after gates close before laser damage
         this.minimapTimer = 0.18; // Start at max interval to avoid immediate update on first frame
         this.noBugCheckTimer = 0;
         this.poiZombieSeeded = false;
@@ -1035,19 +1036,23 @@ class Game {
             this.player.takeDamage(damage, false, null, 0, 'zone');
         }
 
+        // FIX: Laser damage — add grace period after gates close, reduce damage to be non-lethal
         if (this.laserActive && this.laserRing) {
-            const center = this.map?.getCornucopiaCenter?.() || this.laserRing.position;
-            const damageCenter = (entity) => {
-                if (!entity?.isAlive || !entity.position || typeof entity.takeDamage !== 'function') return;
-                const dx = entity.position.x - center.x;
-                const dz = entity.position.z - center.z;
-                if (dx * dx + dz * dz < 57 * 57) {
-                    entity.takeDamage(34 * delta, false, null, 0, 'laser');
-                }
-            };
-            damageCenter(this.player);
-            for (const bot of this.bots) damageCenter(bot);
-            for (const zombie of this.zombies) damageCenter(zombie);
+            this.laserGraceTimer = Math.max(0, (this.laserGraceTimer || 0) - delta);
+            if (this.laserGraceTimer <= 0) {
+                const center = this.map?.getCornucopiaCenter?.() || this.laserRing.position;
+                const damageCenter = (entity) => {
+                    if (!entity?.isAlive || !entity.position || typeof entity.takeDamage !== 'function') return;
+                    const dx = entity.position.x - center.x;
+                    const dz = entity.position.z - center.z;
+                    if (dx * dx + dz * dz < 57 * 57) {
+                        entity.takeDamage(12 * delta, false, null, 0, 'laser'); // Reduced from 34
+                    }
+                };
+                damageCenter(this.player);
+                for (const bot of this.bots) damageCenter(bot);
+                for (const zombie of this.zombies) damageCenter(zombie);
+            }
         }
         if (this.activeEvent?.type === 'radiationRain' && this.radiationRainDamageActive && !this.isShelteredFromRadiation(this.player.position)) {
             this.player.takeDamage(GAME_CONFIG.events.radiation.playerDps * delta, false, null, 0, 'storm');
@@ -1621,6 +1626,7 @@ class Game {
         const center = this.map?.getCornucopiaCenter?.() || new THREE.Vector3(0, 0.8, 0);
         this.centerPlatformOpen = false;
         this.map?.setBiomeGatesOpen?.(false);
+        this.laserGraceTimer = 5; // 5 сек grace period before laser damage starts
         if (notify) this.hud.showGameMessage('Центральная платформа закрыта. Покиньте опасную зону!');
         if (!this.laserRing) {
             const laserRadius = 57;
@@ -2841,6 +2847,7 @@ class Game {
         this.laserCurtain = null;
         this.laserDome = null;
         this.laserActive = false;
+        this.laserGraceTimer = 0; // Reset grace timer
     }
 
     async startGame() {

@@ -1,11 +1,11 @@
 {
     "schema_version": 2,
-    "commit": "914f5cc4cd513aa7f6d7f40c202d753b08c14819",
-    "indexed_at": "2026-07-30T20:43:23Z",
+    "commit": "e886314605c72a148b0412c81c5181dfe29d8ff4",
+    "indexed_at": "2026-07-30T20:44:03Z",
     "project": "C-Users-maksk-Desktop-rublox",
     "nodes": 2246,
-    "edges": 4883,
+    "edges": 4867,
     "original_size": 8650752,
-    "compressed_size": 1696828,
+    "compressed_size": 1699495,
     "compression_level": 3
 }
