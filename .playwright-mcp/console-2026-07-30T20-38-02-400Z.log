@@ -414,3 +414,8 @@
 [  640546ms] [LOG] [Perf] frames=90000 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
 [  642772ms] [LOG] [Perf] frames=90300 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
 [  644932ms] [LOG] [Perf] frames=90600 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  647051ms] [LOG] [Perf] frames=90900 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  649161ms] [LOG] [Perf] frames=91200 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  651278ms] [LOG] [Perf] frames=91500 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  653370ms] [LOG] [Perf] frames=91800 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  655494ms] [LOG] [Perf] frames=92100 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829

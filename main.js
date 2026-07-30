@@ -1625,10 +1625,7 @@ class Game {
     triggerPlatformUnavailable(notify = true) {
         const center = this.map?.getCornucopiaCenter?.() || new THREE.Vector3(0, 0.8, 0);
         this.centerPlatformOpen = false;
-        if (this.map?.setBiomeGatesOpen) {
-            this.map.setBiomeGatesOpen(false);
-            console.log(`[Gate] Biome gates closed: ${this.map._biomeGates?.length || 0} gates`);
-        }
+        this.map?.setBiomeGatesOpen?.(false);
         this.laserGraceTimer = 5; // 5 сек grace period before laser damage starts
         if (notify) this.hud.showGameMessage('Центральная платформа закрыта. Покиньте опасную зону!');
         if (!this.laserRing) {
@@ -1700,11 +1697,10 @@ class Game {
     updatePlatformGateCycle(delta) {
         this.platformGateCycleTimer = Math.max(0, this.platformGateCycleTimer - delta);
         if (this.platformGateCycleTimer > 0) return;
-        console.log(`[Gate] Cycle: open=${this.platformGateCycleOpen} timer=${this.platformGateCycleTimer}`);
         if (this.platformGateCycleOpen) {
             this.platformGateCycleOpen = false;
             this.platformGateCycleTimer = 45;
-            this.setCenterPlatformOpen(false);
+            this.triggerPlatformUnavailable(false);  // FIX: must create laser visuals + reset grace timer
             this.hud.showGameMessage('Ворота центральной платформы закрыты');
             return;
         }

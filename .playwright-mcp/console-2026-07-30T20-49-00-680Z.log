@@ -1,0 +1,130 @@
+[     200ms] [LOG] [initGame] START, isMobile: false @ http://localhost:8095/main.js?v=20240101:293
+[     200ms] [LOG] [initGame] creating scene... @ http://localhost:8095/main.js?v=20240101:296
+[     201ms] [LOG] [initGame] scene created: true @ http://localhost:8095/main.js?v=20240101:298
+[     353ms] [LOG] [NodePad] Pad 0: pos=(46.00, 0.00) data=(46.00, 0.00) @ http://localhost:8095/world/MapGeneratorNode.js?v=1783108959290:369
+[     353ms] [LOG] [NodePad] Pad 1: pos=(45.91, -2.89) data=(45.91, -2.89) @ http://localhost:8095/world/MapGeneratorNode.js?v=1783108959290:369
+[     359ms] [LOG] [MapGenSync] Synced 100 pads from node, first=(46.0, 0.0) second=(45.9, -2.9) @ http://localhost:8095/world/MapGenerator.js:648
+[     484ms] [LOG] [MapGenerator] Before filter: 100 pads, first: (46.0, 0.0) @ http://localhost:8095/world/MapGenerator.js:5200
+[     485ms] [LOG] [MapGenerator] After filter: 100 pads, first: (46.0, 0.0) second: (45.9, -2.9) @ http://localhost:8095/world/MapGenerator.js:5236
+[     492ms] [LOG] [InstancedMesh] Collected 1905 candidate meshes @ http://localhost:8095/world/InstancedMeshSystem.js:24
+[     492ms] [LOG] [InstancedMesh] Skipped: noMapGen=0, culled=0, aniInt=275, noGeoKey=0, matKey=0 @ http://localhost:8095/world/InstancedMeshSystem.js:25
+[     517ms] [LOG] [InstancedMesh] Groups: 514, Replaced: 1557, Skipped(<2): 348 @ http://localhost:8095/world/InstancedMeshSystem.js:104
+[     517ms] [LOG] [MapGenerator] InstancedMesh: 1557 meshes merged into 166 InstancedMesh (total before: 1130, after: 958) @ http://localhost:8095/world/MapGenerator.js:178
+[     539ms] [LOG] [LootManager] generateChestsAsync: floorTiles=100, spots=40, chestCount=120 @ http://localhost:8095/items/LootManager.js:259
+[     701ms] [LOG] [SpawnDebug] Total pads=100 BotPads=99 First=(46.0, 0.0) Second=(45.9, -2.9) Last=(45.9, 2.9) @ http://localhost:8095/main.js?v=20240101:655
+[     701ms] [LOG] [SpawnDebug] Bot 0: pad=(45.91, -2.89) spawn=(45.91, -2.89) distFromCenter=46.00 @ http://localhost:8095/main.js?v=20240101:667
+[     704ms] [LOG] [SpawnDebug] Bot 1: pad=(45.64, -5.77) spawn=(45.64, -5.77) distFromCenter=46.00 @ http://localhost:8095/main.js?v=20240101:667
+[     704ms] [LOG] [SpawnDebug] Bot 2: pad=(45.19, -8.62) spawn=(45.19, -8.62) distFromCenter=46.00 @ http://localhost:8095/main.js?v=20240101:667
+[     738ms] [LOG] [initGame] done: true true true @ http://localhost:8095/main.js?v=20240101:599
+[     747ms] [LOG] [LootManager] floorTiles path: created 39 chests @ http://localhost:8095/items/LootManager.js:301
+[     747ms] [LOG] [LootManager] random fallback path, chestCount=120 @ http://localhost:8095/items/LootManager.js:310
+[    1124ms] [LOG] [LootManager] random fallback: created 120 chests @ http://localhost:8095/items/LootManager.js:338
+[    1125ms] [LOG] [LootManager] Generated 120 chests @ http://localhost:8095/items/LootManager.js:46
+[    3511ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/favicon.ico:0
+[    3592ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:8095/core/CameraController.js:240
+[    5783ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:8095/core/CameraController.js:240
+[    8327ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   10473ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   12612ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   14827ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   15636ms] [WARNING] Failed to execute 'requestFullscreen' on 'Element': API can only be initiated by a user gesture. @ http://localhost:8095/:0
+[   17378ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   17983ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/doorClose_2.ogg:0
+[   17996ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/doorClose_3.ogg:0
+[   17996ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/doorClose_4.ogg:0
+[   17997ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/footstep00.ogg:0
+[   17997ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/footstep01.ogg:0
+[   17997ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/footstep02.ogg:0
+[   20349ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/footstep03.ogg:0
+[   20349ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/footstep04.ogg:0
+[   20349ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/footstep05.ogg:0
+[   20349ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/footstep06.ogg:0
+[   20349ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/footstep07.ogg:0
+[   20349ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/footstep08.ogg:0
+[   20874ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   22697ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/footstep09.ogg:0
+[   22697ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/knifeSlice.ogg:0
+[   22697ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/knifeSlice2.ogg:0
+[   22714ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/chop.ogg:0
+[   22714ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/cloth3.ogg:0
+[   22714ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/cloth4.ogg:0
+[   23475ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   25057ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/clothBelt.ogg:0
+[   25057ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/clothBelt2.ogg:0
+[   25057ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-1.wav:0
+[   25076ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-2.wav:0
+[   25077ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-3.wav:0
+[   25077ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-4.wav:0
+[   25716ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   27411ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-5.wav:0
+[   27411ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-6.wav:0
+[   27411ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-7.wav:0
+[   27411ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-8.wav:0
+[   27424ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-9.wav:0
+[   27424ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-10.wav:0
+[   27799ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   29759ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-11.wav:0
+[   29759ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-12.wav:0
+[   29759ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-13.wav:0
+[   29759ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-14.wav:0
+[   29759ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-15.wav:0
+[   29788ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-16.wav:0
+[   29918ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   32108ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-17.wav:0
+[   32108ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-18.wav:0
+[   32108ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-19.wav:0
+[   32108ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-20.wav:0
+[   32108ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-21.wav:0
+[   32139ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-22.wav:0
+[   32692ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.04,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   34448ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-23.wav:0
+[   34448ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-24.wav:0
+[   34448ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/weapons/bow_shot.wav:0
+[   34470ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/weapons/laser_shot.wav:0
+[   34470ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/weapons/machinegun_ppsh_a.wav:0
+[   34502ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/weapons/machinegun_ppsh_b.wav:0
+[   35891ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.04,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   36813ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/weapons/shotgun_model12_a.wav:0
+[   36813ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/weapons/pistol_1911_a.wav:0
+[   36814ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/weapons/rifle_ar15_a.wav:0
+[   36829ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/weapons/flamethrower_fire.ogg:0
+[   36829ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/metalLatch.ogg:0
+[   36841ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/drawKnife3.ogg:0
+[   38174ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.04,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   39175ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/handleCoins2.ogg:0
+[   39175ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/weapons/shotgun_shotty.wav:0
+[   39175ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/metalClick.ogg:0
+[   39195ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/bookClose.ogg:0
+[   39195ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/cloth2.ogg:0
+[   39211ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/cloth1.ogg:0
+[   40684ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.04,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   41541ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/bookOpen.ogg:0
+[   41541ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/handleCoins.ogg:0
+[   41541ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/metalPot1.ogg:0
+[   41554ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/metalPot2.ogg:0
+[   41554ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/metalPot3.ogg:0
+[   41575ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/weather_rain.ogg:0
+[   42855ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.04,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   43896ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/favicon.ico:0
+[   44972ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.04,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   47236ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.04,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   49365ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.04,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   51478ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.04,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   53576ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.04,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   56044ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.04,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   58691ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.04,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   60792ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.04,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   63197ms] [LOG] [Perf] frames=7800 draws=664 tris=73620 geos=536 mats=16 @ http://localhost:8095/main.js?v=20240101:2839
+[   63199ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.04,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   65315ms] [LOG] [Perf] frames=8100 draws=642 tris=73689 geos=537 mats=16 @ http://localhost:8095/main.js?v=20240101:2839
+[   65316ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.04,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   67415ms] [LOG] [Perf] frames=8400 draws=630 tris=73437 geos=537 mats=16 @ http://localhost:8095/main.js?v=20240101:2839
+[   67417ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.04,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   69655ms] [LOG] [Perf] frames=8700 draws=630 tris=73581 geos=537 mats=16 @ http://localhost:8095/main.js?v=20240101:2839
+[   69657ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.04,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   71748ms] [LOG] [Perf] frames=9000 draws=637 tris=73845 geos=537 mats=16 @ http://localhost:8095/main.js?v=20240101:2839
+[   71750ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.04,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   73891ms] [LOG] [Perf] frames=9300 draws=636 tris=73593 geos=537 mats=16 @ http://localhost:8095/main.js?v=20240101:2839
+[   73892ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.04,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   76033ms] [LOG] [Perf] frames=9600 draws=630 tris=73533 geos=537 mats=16 @ http://localhost:8095/main.js?v=20240101:2839
+[   76034ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.04,0.00 @ http://localhost:8095/core/CameraController.js:240

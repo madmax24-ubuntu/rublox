@@ -1,0 +1,42 @@
+- generic [ref=f2e1]:
+  - generic:
+    - generic:
+      - generic: "Игроков: 100"
+      - generic: "Зона: Безопасная"
+      - generic: "Перк: Быстрые руки"
+    - generic [ref=f2e38]:
+      - generic [ref=f2e39]:
+        - text: "1"
+        - generic [ref=f2e40]: "1"
+        - generic [ref=f2e41]: KNF
+      - generic [ref=f2e42]:
+        - text: "2"
+        - generic [ref=f2e43]: "2"
+      - generic [ref=f2e44]:
+        - text: "3"
+        - generic [ref=f2e45]: "3"
+      - generic [ref=f2e46]:
+        - text: "4"
+        - generic [ref=f2e47]: "4"
+      - generic [ref=f2e48]:
+        - text: "5"
+        - generic [ref=f2e49]: "5"
+      - generic [ref=f2e50]:
+        - text: "6"
+        - generic [ref=f2e51]: "6"
+      - generic [ref=f2e52]:
+        - text: "7"
+        - generic [ref=f2e53]: "7"
+      - generic [ref=f2e54]:
+        - text: "8"
+        - generic [ref=f2e55]: "8"
+      - generic [ref=f2e56]:
+        - text: "9"
+        - generic [ref=f2e57]: "9"
+      - generic [ref=f2e58]:
+        - text: "0"
+        - generic [ref=f2e59]: "0"
+    - generic: "14"
+    - generic: 120 FPS
+    - generic: M - ПАУЗА
+    - generic: "Нож: 80"
