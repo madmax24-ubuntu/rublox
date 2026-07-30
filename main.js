@@ -1725,11 +1725,14 @@ class Game {
 			}
 		}
 		if (this.bots?.length) {
-			for (const bot of this.bots) {
-				if (!bot) continue;
+			// YieldScheduler: разбиваем применение к ботам на чанки
+			this.yieldScheduler.registerTask('radiationRainBots', (bot) => {
 				bot.forceShelterActive = !!active;
 				if (!active && bot.state === "hide") bot.state = "patrol";
-			}
+				return this.yieldScheduler.yieldPoint();
+			}, { priority: 'HIGH', chunkSize: 10, onComplete: () => console.log('[Event] Radiation rain applied to bots with yield') });
+			this.yieldScheduler.startTask('radiationRainBots', this.bots);
+			// Пропускаем синхронную обработку — будет выполнена асинхронно
 		}
 		this.hud?.setStormActive?.(!!active, active ? "radiation" : "storm");
 		if (active) {
@@ -2525,6 +2528,10 @@ class Game {
 		}
 		this.updateBotLodBatch(delta);
 		if (this.gameState === "playing") {
+			// YieldScheduler: контроль фрейм-тайма перед тяжёлыми операциями
+			if (this.yieldScheduler.shouldYield()) {
+				return; // Пропускаем оставшиеся операции для следующего кадра
+			}
 			this.updateRandomEvents(delta);
 			this.updateAchievements(aliveCountBeforeHazards);
 			this.updateKillRewards();
@@ -2847,7 +2854,8 @@ class Game {
 
 		this.zombieMaintainTimer = Math.max(0, this.zombieMaintainTimer - delta);
 		if (this.zombieMaintainTimer <= 0) {
-			const aliveZombies = this.zombies.filter((z) => z?.isAlive).length;
+			const aliveZombies = this._zombieAliveCount || 0;
+			this._zombieAliveCount = this.zombies.filter((z) => z?.isAlive).length;
 			const growth = Math.floor(Math.min(5, elapsed / 120)) * 2;
 			const nightBonus = isNight ? (this.isMobile() ? 16 : 24) : 0;
 			const basePersistent =
@@ -2893,7 +2901,7 @@ class Game {
 		}
 	}
 
-    _applyTraps(delta) {
+	_applyTraps(delta) {
 		if (!this.traps?.length) return;
 		this.trapUpdateAccumulator = (this.trapUpdateAccumulator || 0) + delta;
 		const interval = this.isMobile() ? 0.12 : 0.08;
@@ -2926,8 +2934,8 @@ class Game {
 		for (const zombie of this.zombies || [])
 			if (zombie?.isAlive) living.push(zombie);
 		// YieldScheduler: разбиваем проверку ловушек на чанки
-		const traps = this.traps.filter(t =>
-			t.type === "mine" || (t.rearmAt || 0) <= now
+		const traps = this.traps.filter(
+			(t) => t.type === "mine" || (t.rearmAt || 0) <= now,
 		);
 		this._trapProcessedFrame = this._trapProcessedFrame || 0;
 		const chunkSize = Math.min(4, traps.length - this._trapProcessedFrame);
