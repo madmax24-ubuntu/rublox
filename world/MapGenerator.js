@@ -5315,6 +5315,12 @@ export class MapGenerator {
         return this.spawnPads;
     }
 
+    setSpawnPadCollidersEnabled(enabled) {
+        for (const collider of this.colliders) {
+            if (collider?.isSpawnPlatform) collider.enabled = enabled;
+        }
+    }
+
     getSpawnWorld() {
         return { x: 0, z: 0 };
     }

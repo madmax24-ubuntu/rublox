@@ -824,6 +824,7 @@ class Game {
             this.audioSynth.playBoxArrival?.(new THREE.Vector3(0, 1, 0));
             this.centerPlatformOpen = true;
             this.map?.setBiomeGatesOpen?.(true);
+            this.map?.setSpawnPadCollidersEnabled?.(false);
             this.player.isFrozen = false;
             this.player.isCameraFrozen = false;
             this.player._frozenCamPos = null;
@@ -2918,7 +2919,6 @@ window.addEventListener('DOMContentLoaded', () => {
     bindStartButton(document.getElementById('startButtonMobileLandscape'));
     bindStartButton(document.getElementById('startButton'));
 });
-
 
 
 
