@@ -1,6 +1,15 @@
 ﻿import * as THREE from "three";
 import { CameraController } from './core/CameraController.js';
 
+const positionsSetSegment = (positions, index, x, y, z, length) => {
+    positions[index] = x;
+    positions[index + 1] = y;
+    positions[index + 2] = z;
+    positions[index + 3] = x;
+    positions[index + 4] = y + length;
+    positions[index + 5] = z;
+};
+
 window.THREE = THREE;
 try { THREE.Cache.enabled = true; } catch (e) {}
 window.__moduleTopLevelExecuted__ = true;
@@ -1398,36 +1407,29 @@ class Game {
     }
 
     initRadiationRainEffect() {
-        const dropCount = this.isMobile() ? 72 : 120;
+        const dropCount = this.isMobile() ? 84 : 144;
         const geometry = new THREE.BufferGeometry();
-        const positions = new Float32Array(dropCount * 3);
+        const positions = new Float32Array(dropCount * 6);
         const speeds = new Float32Array(dropCount);
+        const lengths = new Float32Array(dropCount);
         const area = this.isMobile() ? 22 : 28;
         for (let i = 0; i < dropCount; i++) {
-            const x = (Math.random() - 0.5) * area;
-            const z = (Math.random() - 0.5) * area;
-            const y = 6 + Math.random() * 18;
-            const idx = i * 3;
-            positions[idx] = x;
-            positions[idx + 1] = y;
-            positions[idx + 2] = z;
             speeds[i] = 11 + Math.random() * 10;
+            lengths[i] = 0.75 + Math.random() * 0.9;
         }
         geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        const material = new THREE.PointsMaterial({
-            color: 0x7fff9a,
-            size: this.isMobile() ? 0.12 : 0.1,
+        const material = new THREE.LineBasicMaterial({
+            color: 0x61ff48,
             transparent: true,
-            opacity: this.isMobile() ? 0.5 : 0.62,
-            depthWrite: false,
-            sizeAttenuation: true
+            opacity: this.isMobile() ? 0.72 : 0.78,
+            depthWrite: false
         });
-        const lines = new THREE.Points(geometry, material);
+        const lines = new THREE.LineSegments(geometry, material);
         lines.visible = false;
         lines.renderOrder = 28;
         lines.frustumCulled = false;
         this.scene.add(lines);
-        this.radiationRainEffect = { lines, positions, speeds, area };
+        this.radiationRainEffect = { lines, positions, speeds, lengths, area };
     }
 
     setRadiationRainActive(active) {
@@ -1441,6 +1443,17 @@ class Game {
         }
         if (this.radiationRainEffect?.lines) {
             this.radiationRainEffect.lines.visible = !!active;
+            if (active && this.player) {
+                const effect = this.radiationRainEffect;
+                for (let i = 0; i < effect.speeds.length; i++) {
+                    const idx = i * 6;
+                    const x = this.player.position.x + (Math.random() - 0.5) * effect.area;
+                    const z = this.player.position.z + (Math.random() - 0.5) * effect.area;
+                    const y = this.map.getHeightAt(x, z) + 7 + Math.random() * 21;
+                    positionsSetSegment(effect.positions, idx, x, y, z, effect.lengths[i]);
+                }
+                effect.lines.geometry.attributes.position.needsUpdate = true;
+            }
         }
         if (this.bots?.length) {
             for (const bot of this.bots) {
@@ -1476,15 +1489,14 @@ class Game {
         const centerX = this.player.position.x;
         const centerZ = this.player.position.z;
         for (let i = 0; i < effect.speeds.length; i++) {
-            const idx = i * 3;
+            const idx = i * 6;
             positions[idx + 1] -= effect.speeds[i] * delta;
+            positions[idx + 4] -= effect.speeds[i] * delta;
             if (positions[idx + 1] <= this.map.getHeightAt(positions[idx], positions[idx + 2])) {
                 const x = centerX + (Math.random() - 0.5) * area;
                 const z = centerZ + (Math.random() - 0.5) * area;
                 const topY = this.map.getHeightAt(x, z) + 18 + Math.random() * 10;
-                positions[idx] = x;
-                positions[idx + 1] = topY;
-                positions[idx + 2] = z;
+                positionsSetSegment(positions, idx, x, topY, z, effect.lengths[i]);
                 effect.speeds[i] = 11 + Math.random() * 10;
             }
         }
@@ -2344,11 +2356,11 @@ class Game {
         const applyTrap = (entity) => {
             if (!entity.isAlive) return;
             for (const trap of this.traps) {
+                if (trap.type === 'mine') continue;
                 if (trap.active === false) continue;
                 const dx = entity.position.x - trap.position.x;
                 const dz = entity.position.z - trap.position.z;
-                const dist = Math.sqrt(dx * dx + dz * dz);
-                if (dist < trap.radius) {
+                if (dx * dx + dz * dz < trap.radius * trap.radius) {
                     if (typeof entity.applySlow === 'function') {
                         entity.applySlow(trap.slow, 0.6);
                     }
@@ -2358,6 +2370,40 @@ class Game {
                 }
             }
         };
+        const now = performance.now() * 0.001;
+        const living = [this.player, ...this.bots, ...(this.zombies || [])].filter(entity => entity?.isAlive);
+        for (const trap of this.traps) {
+            if (trap.type !== 'mine' || (trap.rearmAt || 0) > now) continue;
+            const triggerRadiusSq = trap.radius * trap.radius;
+            let triggered = false;
+            for (const entity of living) {
+                const dx = entity.position.x - trap.position.x;
+                const dz = entity.position.z - trap.position.z;
+                if (dx * dx + dz * dz <= triggerRadiusSq) {
+                    triggered = true;
+                    break;
+                }
+            }
+            if (!triggered) continue;
+            trap.rearmAt = now + 7;
+            trap.active = false;
+            if (trap.visual) trap.visual.visible = false;
+            const blastRadius = 4.4;
+            for (const entity of living) {
+                const dx = entity.position.x - trap.position.x;
+                const dz = entity.position.z - trap.position.z;
+                const distSq = dx * dx + dz * dz;
+                if (distSq > blastRadius * blastRadius) continue;
+                entity.takeDamage?.(62 * (1 - Math.sqrt(distSq) / (blastRadius * 1.4)), false, null, 8, 'mine');
+                if (entity.physics?.velocity) {
+                    const inv = 1 / Math.max(0.35, Math.sqrt(distSq));
+                    entity.physics.velocity.x += dx * inv * 7.5;
+                    entity.physics.velocity.z += dz * inv * 7.5;
+                    entity.physics.velocity.y = Math.max(entity.physics.velocity.y || 0, 3.2);
+                }
+            }
+            this.audioSynth?.playExplosion?.(trap.position);
+        }
         applyTrap(this.player);
         const trapBatch = Math.max(
             this.isMobile() ? 10 : 16,
@@ -2369,6 +2415,14 @@ class Game {
         }
         if (this.bots.length > 0) {
             this.trapBotCursor = (this.trapBotCursor + trapBatch) % this.bots.length;
+        }
+        const zombieBatch = Math.min(this.zombies?.length || 0, this.isMobile() ? 8 : 14);
+        this.trapZombieCursor ||= 0;
+        for (let i = 0; i < zombieBatch; i++) {
+            applyTrap(this.zombies[(this.trapZombieCursor + i) % this.zombies.length]);
+        }
+        if (this.zombies?.length) {
+            this.trapZombieCursor = ((this.trapZombieCursor || 0) + zombieBatch) % this.zombies.length;
         }
     }
 
@@ -2919,9 +2973,6 @@ window.addEventListener('DOMContentLoaded', () => {
     bindStartButton(document.getElementById('startButtonMobileLandscape'));
     bindStartButton(document.getElementById('startButton'));
 });
-
-
-
 
 
 

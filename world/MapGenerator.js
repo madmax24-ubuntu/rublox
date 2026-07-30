@@ -1069,9 +1069,9 @@ export class MapGenerator {
 
         addBox(w, 0.3, d, 0, -0.01, 0, floorMat, false, true);
         addBox(12, 0.3, d, 2.5, 4.15, 0, floorMat, false, true);
-        addBox(4, 0.3, 4, -7, 4.15, -5, floorMat, false, true);
+        addBox(3.2, 0.3, 3.4, -4.9, 4.15, -1.4, floorMat, false, true);
         addBox(14, 0.3, d, -2, 8.35, 0, roofMat, false, true);
-        addBox(4, 0.3, 4, 7, 8.35, 5, roofMat, false, true);
+        addBox(3.2, 0.3, 3.4, 5.8, 8.35, 1.4, roofMat, false, true);
 
         addBox(w, wallH, wallT, 0, wallH * 0.5, -d * 0.5, wallMat, true);
         addBox(wallT, wallH, d, -w * 0.5, wallH * 0.5, 0, wallMat, true);
@@ -1083,9 +1083,9 @@ export class MapGenerator {
         const stairCount = 11;
         for (let i = 0; i < stairCount; i++) {
             const top = 0.45 + i * 0.36;
-            addBox(3.2, 0.36, 0.72, -6.4, top - 0.18, 5.2 - i * 0.66, trimMat, false, true);
+            addBox(3.2, 0.36, 0.82, -6.4, top - 0.18, 5.2 - i * 0.66, trimMat, false, true);
             const upperTop = 4.45 + i * 0.36;
-            addBox(3.2, 0.36, 0.72, 6.4, upperTop - 0.18, -5.2 + i * 0.66, trimMat, false, true);
+            addBox(3.2, 0.36, 0.82, 6.4, upperTop - 0.18, -5.2 + i * 0.66, trimMat, false, true);
         }
 
         for (const side of [-1, 1]) {
@@ -4880,10 +4880,10 @@ export class MapGenerator {
         let slow = 0.5;
         let damage = 8;
         if (type === 'snare') {
-            const mat = this.pool.getMatStd(0x5b3a22, 0.92, 0.05, true, false, 1, 0, 0);
-            const ring = new THREE.Mesh(new THREE.TorusGeometry(0.82, 0.055, 5, 14), mat);
+            const mat = this.pool.getMatStd(0x704522, 0.84, 0.08, true, false, 1, 0x3a1605, 0.18);
+            const ring = new THREE.Mesh(new THREE.TorusGeometry(0.82, 0.075, 6, 16), mat);
             ring.rotation.x = Math.PI / 2;
-            ring.position.y = 0.025;
+            ring.position.y = 0.055;
             group.add(ring);
             radius = 1.35;
             slow = 0.24;
@@ -4904,38 +4904,34 @@ export class MapGenerator {
             damage = 18;
         } else if (type === 'mine') {
             const bodyMat = this.pool.getMatStd(0x263238, 0.62, 0.55, true, false, 1, 0, 0);
-            const glowMat = this.pool.getMatStd(0xa91414, 0.35, 0.2, true, false, 1, 0xff2200, 1.8);
-            const body = new THREE.Mesh(this.pool.getGeoCylinder(0.42, 0.52, 0.13), bodyMat);
-            body.position.y = 0.025;
+            const glowMat = this.pool.getMatStd(0xc52020, 0.3, 0.2, true, false, 1, 0xff2200, 2.4);
+            const body = new THREE.Mesh(this.pool.getGeoCylinder(0.5, 0.62, 0.16), bodyMat);
+            body.position.y = 0.08;
             group.add(body);
             const light = new THREE.Mesh(this.pool.getGeoSphere(0.12), glowMat);
-            light.position.y = 0.11;
+            light.position.y = 0.18;
             group.add(light);
             radius = 1.2;
             slow = 0.7;
             damage = 30;
         } else {
-            const iceMat = this.pool.getMatStd(0x8ac7df, 0.18, 0.2, true, true, 0.72, 0, 0);
+            const iceMat = this.pool.getMatStd(0x73c9e8, 0.18, 0.2, true, true, 0.78, 0x16495d, 0.16);
             const patch = new THREE.Mesh(this.pool.getGeoCylinder(1.7, 2.1, 0.05, 9), iceMat);
-            patch.position.y = -0.015;
+            patch.position.y = 0.035;
             patch.scale.z = 0.72;
             group.add(patch);
             radius = 2.2;
             slow = 0.3;
             damage = 1;
         }
-        group.position.set(x, -0.02, z);
+        group.position.set(x, 0.01, z);
         group.userData.mapGenerated = true;
         group.userData.isTrap = true;
         group.userData.trapType = type;
-        group.userData.baseY = -0.02;
+        group.userData.baseY = 0.01;
         group.traverse((child) => {
             if (child.isMesh) child.userData.mapGenerated = true;
         });
-        // Add collision box for survival traps — prevents entities from walking over
-        const trapColliderH = type === 'spikes' ? 0.5 : 0.15;
-        const trapColliderSize = radius * 1.2;
-        this.addColliderBox(new THREE.Vector3(x, trapColliderH * 0.5, z), trapColliderSize, trapColliderH, trapColliderSize, false);
         this.scene.add(group);
         const timing = type === 'snare'
             ? [6.2, 3.1]
@@ -4946,7 +4942,7 @@ export class MapGenerator {
                     : [5.6, 2.8];
         this._traps.push({
             type,
-            position: new THREE.Vector3(x, -0.02, z),
+            position: new THREE.Vector3(x, 0.01, z),
             radius,
             slow,
             damage,
@@ -5605,6 +5601,16 @@ export class MapGenerator {
         const now = performance.now() * 0.001;
         for (const trap of this._traps) {
             if (!trap.visual || !trap.period) continue;
+            if (trap.type === 'mine') {
+                const cooling = (trap.rearmAt || 0) > now;
+                trap.active = !cooling;
+                trap.visual.visible = !cooling;
+                if (!cooling) {
+                    const pulse = 1 + Math.sin(now * 15 + trap.phase) * 0.1;
+                    trap.visual.scale.set(pulse, 1, pulse);
+                }
+                continue;
+            }
             const phaseTime = (now + trap.phase) % trap.period;
             const active = phaseTime < trap.activeFor;
             const warning = !active && phaseTime > trap.period - 0.8;
@@ -5619,9 +5625,6 @@ export class MapGenerator {
                 trap.visual.rotation.y += active ? 0.2 : 0.035;
             } else if (trap.type === 'spikes') {
                 trap.visual.position.y = active ? 0 : warning ? -0.3 : -0.85;
-            } else if (trap.type === 'mine') {
-                const scale = active ? pulse : warning ? 0.92 : 0.68;
-                trap.visual.scale.set(scale, active ? 1 : 0.72, scale);
             } else if (trap.type === 'ice') {
                 const scale = active ? pulse : warning ? 0.9 : 0.72;
                 trap.visual.scale.set(scale, active ? 1 : 0.55, scale);

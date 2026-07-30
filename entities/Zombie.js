@@ -140,7 +140,7 @@ const VARIANT_CONFIG = {
     },
     crawler: {
         health: 58, speed: 5.4, damage: 7.0, knockbackMultiplier: 1.05,
-        scale: 1.15, radius: 0.5, bodyColor: 0x405e72, headColor: 0xa8bbc0, detailColor: 0x5dd9ef,
+        scale: 1.15, radius: 0.74, bodyColor: 0x405e72, headColor: 0xa8bbc0, detailColor: 0x5dd9ef,
         eyeColor: 0xb7f4ff, glowColor: 0x38b9d6, glowIntensity: 1.15,
         attackCooldown: 0.5, patrolSpeed: 0.92, alertRadius: 90,
         moanInterval: [1.5, 3.0], attackInterval: [0.4, 0.9],

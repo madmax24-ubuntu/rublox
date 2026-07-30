@@ -779,7 +779,7 @@ export class AudioSynth {
         lp.type = 'lowpass';
         lp.frequency.value = buffer ? 4300 : 2400;
         const gain = ctx.createGain();
-        gain.gain.value = this.isMobileDevice ? 0.026 : 0.034;
+        gain.gain.value = this.isMobileDevice ? 0.16 : 0.2;
         source.connect(hp);
         hp.connect(lp);
         lp.connect(gain);
@@ -787,20 +787,20 @@ export class AudioSynth {
         source.start();
 
         const radiationTimer = setInterval(() => {
-            const clicks = 1 + ((Math.random() * 3) | 0);
+            const clicks = 1 + ((Math.random() * 4) | 0);
             for (let i = 0; i < clicks; i++) {
                 setTimeout(() => {
                     if (!this.radiationRainNodes) return;
                     this.playNoiseBurst({
-                        duration: 0.018 + Math.random() * 0.014,
-                        volume: this.isMobileDevice ? 0.012 : 0.018,
-                        highpass: 1900,
-                        lowpass: 7200,
+                        duration: 0.014 + Math.random() * 0.012,
+                        volume: this.isMobileDevice ? 0.075 : 0.1,
+                        highpass: 2300,
+                        lowpass: 8800,
                         category: 'weather'
                     });
-                }, i * (70 + Math.random() * 90));
+                }, i * (45 + Math.random() * 70));
             }
-        }, 850);
+        }, 520);
 
         this.radiationRainNodes = { source, hp, lp, gain, radiationTimer };
     }

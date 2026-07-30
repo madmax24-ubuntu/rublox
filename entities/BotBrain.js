@@ -97,7 +97,7 @@ export class BotBrain {
             bot.state = nextState;
             if (nextState !== STATES.LOOT && nextState !== STATES.EXPLORE) this.releaseLootReservation(bot);
             if (nextState !== STATES.ENGAGE) this.releaseCombatReservation(bot);
-            this.decisionCooldown = 0.3 + ((bot.id * 0.007) % 0.18);
+            this.decisionCooldown = 0.2 + ((bot.id * 0.006) % 0.12);
         } else {
             // Refresh earlyGamePhase on cached context so actEngage / actExplore see current phase
             ctx.earlyGamePhase = earlyGamePhase;
@@ -647,15 +647,16 @@ export class BotBrain {
             return STATES.EXPLORE;
         }
 
-        // 5. Engage ONLY if being attacked — no aggressive engagements
         if (ctx.nearestEnemy && ctx.nearestEnemyDist < engageDist) {
             // BLOCK engage: knife-only bots must not fight at range
             if (!hasRealWeapon && ctx.nearestEnemyDist > 2) {
                 return STATES.LOOT;
             }
             const isBeingAttacked = ctx.heardShot || (bot._lastAttackedBy && performance.now() - bot._lastAttackedBy < 3000);
-            // Only engage if directly attacked — not just because we're well-armed
             if (isBeingAttacked && ctx.crowdNear < crowdTolerance) {
+                return STATES.ENGAGE;
+            }
+            if (wellArmed && agg >= 0.7 && ctx.nearestEnemyDist < engageDist * 0.82 && ctx.crowdNear < crowdTolerance) {
                 return STATES.ENGAGE;
             }
             // Retaliate for recent attacks
@@ -912,7 +913,7 @@ export class BotBrain {
     }
 
     actEngage(bot, ctx, entityManager) {
-        const agg = Math.min(1, Math.max(0.55, bot.personality?.aggression ?? 0.5) + ctx.gear * 0.24);
+        const agg = Math.min(1, Math.max(0.68, bot.personality?.aggression ?? 0.5) + ctx.gear * 0.28);
         const cau = bot.personality?.caution ?? 0.5;
 
         // Early-game check: retreat if not being actively shot at
@@ -966,7 +967,7 @@ export class BotBrain {
             this.actReloadCover(bot, ctx);
             return;
         }
-        if (!this.tryReserveCombat(bot, target, target.constructor?.name === 'Player' ? 3 : 2)) {
+        if (!this.tryReserveCombat(bot, target, target.constructor?.name === 'Player' ? 4 : 3)) {
             this.releaseCombatReservation(bot);
             bot.patrolTarget = this.pickSpreadTarget(bot, 40, 120);
             if (bot.patrolTarget) this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 1.02);
@@ -1028,7 +1029,7 @@ export class BotBrain {
                 bot.attack(target, entityManager);
                 bot.applyWeaponRecoil();
 
-                this.attackCooldown = Math.max(0.08, (weapon.cooldown || 0.2) * 1.02);
+                this.attackCooldown = Math.max(0.07, (weapon.cooldown || 0.2) * 0.9);
             }
             return;
         }
@@ -1162,11 +1163,18 @@ export class BotBrain {
         if (bot.mapRef?.isWalkableAt?.(tx, tz)) {
             bot.moveTowards(this._tmpMoveTarget, finalSpeed);
         } else {
-            bot.moveTowards(target, finalSpeed * 0.75);
+            const waypoint = this.pickLocalNavigationStep(bot, target);
+            if (waypoint) bot.moveTowards(waypoint, finalSpeed * 0.92);
+            else {
+                bot.physics.velocity.x *= 0.35;
+                bot.physics.velocity.z *= 0.35;
+                bot.isStuck = true;
+            }
         }
     }
 
     pickLocalNavigationStep(bot, target) {
+        if (!target) return null;
         const tiles = bot.mapRef?.getNavigationTiles?.();
         if (!tiles?.length) return null;
         const start = ((Number(bot.id) || 0) * 37 + Math.floor(performance.now() * 0.001) * 13) % tiles.length;
@@ -1456,7 +1464,8 @@ export class BotBrain {
 
     handleStuck(bot) {
         if (!bot.isStuck) return;
-        const escape = this.pickSpreadTarget(bot, 40, 120);
+        const escape = this.pickLocalNavigationStep(bot, bot.patrolTarget || bot.target?.position)
+            || this.pickSpreadTarget(bot, 24, 70);
         if (escape) bot.patrolTarget = escape;
         bot.target = null;
         this.releaseLootReservation(bot);
