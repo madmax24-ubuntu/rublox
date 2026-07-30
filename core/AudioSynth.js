@@ -1014,10 +1014,10 @@ export class AudioSynth {
         const scale = this.getEmitterSfxScale(emitterKey);
         this.playSample(this.sampleCatalog.shotgun, {
             volume: (this.isMobileDevice ? 0.88 : 1.2) * scaled * scale,
-            rateMin: 0.92,
-            rateMax: 1.04,
+            rateMin: 0.98,
+            rateMax: 1.02,
             reverbSend: 0.08,
-            maxDuration: 0.34,
+            maxDuration: 0.68,
             position,
             category: 'weapon',
             priority: this.getEmitterSfxPriority(emitterKey)
@@ -1032,7 +1032,7 @@ export class AudioSynth {
             rateMin: 0.98,
             rateMax: 1.03,
             reverbSend: 0.01,
-            maxDuration: 0.34,
+            maxDuration: 0.58,
             position,
             category: 'weapon',
             priority: this.getEmitterSfxPriority(emitterKey)
@@ -1044,10 +1044,10 @@ export class AudioSynth {
         const scale = this.getEmitterSfxScale(emitterKey);
         this.playSample(this.sampleCatalog.rifle, {
             volume: (this.isMobileDevice ? 1.05 : 1.2) * scale,
-            rateMin: 0.95,
+            rateMin: 0.98,
             rateMax: 1.02,
             reverbSend: 0.015,
-            maxDuration: 0.42,
+            maxDuration: 0.52,
             position,
             category: 'weapon',
             priority: this.getEmitterSfxPriority(emitterKey)
@@ -1059,10 +1059,10 @@ export class AudioSynth {
         const scale = this.getEmitterSfxScale(emitterKey);
         return this.playSample(this.sampleCatalog.machinegun, {
             volume: (this.isMobileDevice ? 0.95 : 1.08) * scale,
-            rateMin: 1.02,
-            rateMax: 1.15,
+            rateMin: 0.99,
+            rateMax: 1.04,
             reverbSend: 0.005,
-            maxDuration: 0.22,
+            maxDuration: 0.26,
             position,
             category: 'weapon',
             priority: this.getEmitterSfxPriority(emitterKey)

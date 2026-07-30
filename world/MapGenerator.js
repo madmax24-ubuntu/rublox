@@ -2341,7 +2341,7 @@ export class MapGenerator {
         for (let i = 0; i < roofSegmentCount; i++) {
             const angle = i / roofSegmentCount * Math.PI * 2;
             const angularDistance = Math.abs(Math.atan2(Math.sin(angle - exitAngle), Math.cos(angle - exitAngle)));
-            if (angularDistance < 0.34) continue;
+            if (angularDistance < 0.55) continue;
             const x = towerCX + Math.cos(angle) * roofRadius;
             const z = towerCZ + Math.sin(angle) * roofRadius;
             const rotation = -angle + Math.PI / 2;
@@ -2403,7 +2403,7 @@ export class MapGenerator {
 
         const canopyGeo = this.pool.getGeoCone(towerRadius + 1, 4);
         const roof = new THREE.Mesh(canopyGeo, wallMat);
-        roof.position.set(towerCX, topY + 2.25, towerCZ);
+        roof.position.set(towerCX, topY + 5, towerCZ);
         roof.userData.mapGenerated = true;
         roof.userData.isTowerStructure = true;
         this.scene.add(roof);
