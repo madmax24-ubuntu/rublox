@@ -299,7 +299,7 @@ export class HUD {
         inventory.id = 'inventory';
         inventory.style.cssText = `
             position: absolute;
-            bottom: ${px(isMobile ? 12 : 20)}px;
+            bottom: ${px(isMobile ? 12 : 8)}px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;

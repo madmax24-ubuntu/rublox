@@ -121,8 +121,7 @@ export class AudioSynth {
                 'assets/audio/weapons/pistol_1911_a.wav'
             ],
             rifle: [
-                'assets/audio/weapons/rifle_ar15_a.wav',
-                'assets/audio/weapons/rifle_ar15_b.wav'
+                'assets/audio/weapons/rifle_ar15_a.wav'
             ],
             flamethrower: [
                 'assets/audio/weapons/flamethrower_fire.ogg'
@@ -1058,16 +1057,17 @@ export class AudioSynth {
     }
 
     playRifle(position = null, emitterKey = 'global') {
-        if (!this.canPlayWeaponSfx(`rifle:${emitterKey}`, this.weaponSfxCooldown.rifle)) return;
+        const voiceKey = `rifle:${emitterKey}`;
+        if (!this.canPlayWeaponSfx(voiceKey, this.weaponSfxCooldown.rifle)) return;
         const scale = this.getEmitterSfxScale(emitterKey);
         this.playSample(this.sampleCatalog.rifle, {
-            volume: (this.isMobileDevice ? 1.05 : 1.2) * scale,
-            rateMin: 0.98,
-            rateMax: 1.02,
-            reverbSend: 0.015,
-            maxDuration: 0.29,
+            volume: (this.isMobileDevice ? 1.08 : 1.24) * scale,
+            rate: 1,
+            reverbSend: 0.01,
+            maxDuration: 0.46,
             position,
             category: 'weapon',
+            voiceKey,
             priority: this.getEmitterSfxPriority(emitterKey)
         }).then(played => { if (!played) this.playNoiseBurst({ duration: 0.13, volume: 0.28 * scale, highpass: 120, lowpass: 3200, position, category: 'weapon' }); });
     }
