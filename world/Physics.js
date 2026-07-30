@@ -339,11 +339,17 @@ export class Physics {
                             const sin = Math.sin(box.surfaceOBB.rotation);
                             const localX = dx * cos - dz * sin;
                             const localZ = dx * sin + dz * cos;
-                            nearClimbable = Math.abs(localX) <= box.surfaceOBB.halfWidth + baseRadius
-                                && Math.abs(localZ) <= box.surfaceOBB.halfDepth + baseRadius;
+                            const margin = box.isTowerStair ? 0 : baseRadius;
+                            nearClimbable = Math.abs(localX) <= box.surfaceOBB.halfWidth + margin
+                                && Math.abs(localZ) <= box.surfaceOBB.halfDepth + margin;
                         } else {
                             nearClimbable = pos.x >= min.x - baseRadius && pos.x <= max.x + baseRadius
                                 && pos.z >= min.z - baseRadius && pos.z <= max.z + baseRadius;
+                        }
+                        if (nearClimbable && box.towerInterior) {
+                            const dx = pos.x - box.towerInterior.x;
+                            const dz = pos.z - box.towerInterior.z;
+                            nearClimbable = dx * dx + dz * dz <= box.towerInterior.radius * box.towerInterior.radius;
                         }
                     }
                     if (canStep && (onSurface || nearClimbable) && stepHeight > 0.02 && stepHeight <= stepReach) {

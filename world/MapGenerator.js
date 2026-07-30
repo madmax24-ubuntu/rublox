@@ -2309,6 +2309,11 @@ export class MapGenerator {
             );
             stairCollider.isTowerStair = true;
             stairCollider.isTowerStructure = true;
+            stairCollider.towerInterior = {
+                x: towerCX,
+                z: towerCZ,
+                radius: towerRadius - 0.55
+            };
             stairCollider.surfaceOBB = {
                 x: sx,
                 z: sz,

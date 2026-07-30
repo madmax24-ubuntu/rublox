@@ -997,14 +997,14 @@ export class AudioSynth {
 
     playBowShot(position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`bow:${emitterKey}`, this.weaponSfxCooldown.bow)) return;
-        this.playSample(this.sampleCatalog.bow, { volume: (this.isMobileDevice ? 0.48 : 0.56) * this.getEmitterSfxScale(emitterKey), rateMin: 0.96, rateMax: 1.04, position, category: 'weapon', priority: this.getEmitterSfxPriority(emitterKey), maxDuration: 0.42, voiceKey: `weapon:bow:${emitterKey}` })
+        this.playSample(this.sampleCatalog.bow, { volume: (this.isMobileDevice ? 0.48 : 0.56) * this.getEmitterSfxScale(emitterKey), rateMin: 0.96, rateMax: 1.04, position, category: 'weapon', priority: this.getEmitterSfxPriority(emitterKey), maxDuration: 0.42 })
             .then(played => { if (!played) this.playProceduralShot('bow', 0.2 * this.getEmitterSfxScale(emitterKey), position); });
     }
 
     playLaser(position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`laser:${emitterKey}`, this.weaponSfxCooldown.laser)) return;
         const scale = this.getEmitterSfxScale(emitterKey);
-        this.playSample(this.sampleCatalog.laser, { volume: (this.isMobileDevice ? 0.48 : 0.56) * scale, rateMin: 0.96, rateMax: 1.04, position, category: 'weapon', priority: this.getEmitterSfxPriority(emitterKey), maxDuration: 0.16, voiceKey: `weapon:laser:${emitterKey}` })
+        this.playSample(this.sampleCatalog.laser, { volume: (this.isMobileDevice ? 0.48 : 0.56) * scale, rateMin: 0.96, rateMax: 1.04, position, category: 'weapon', priority: this.getEmitterSfxPriority(emitterKey), maxDuration: 0.16 })
             .then(played => { if (!played) this.playProceduralShot('laser', 0.2 * scale, position); });
     }
 
@@ -1020,8 +1020,7 @@ export class AudioSynth {
             maxDuration: 0.34,
             position,
             category: 'weapon',
-            priority: this.getEmitterSfxPriority(emitterKey),
-            voiceKey: `weapon:shotgun:${emitterKey}`
+            priority: this.getEmitterSfxPriority(emitterKey)
         }).then(played => { if (!played) this.playProceduralShot('shotgun', 0.32 * scaled * scale, position); });
     }
 
@@ -1036,8 +1035,7 @@ export class AudioSynth {
             maxDuration: 0.34,
             position,
             category: 'weapon',
-            priority: this.getEmitterSfxPriority(emitterKey),
-            voiceKey: `weapon:pistol:${emitterKey}`
+            priority: this.getEmitterSfxPriority(emitterKey)
         }).then(played => { if (!played) this.playNoiseBurst({ duration: 0.11, volume: 0.24 * scale, highpass: 180, lowpass: 3600, position, category: 'weapon' }); });
     }
 
@@ -1052,8 +1050,7 @@ export class AudioSynth {
             maxDuration: 0.42,
             position,
             category: 'weapon',
-            priority: this.getEmitterSfxPriority(emitterKey),
-            voiceKey: `weapon:rifle:${emitterKey}`
+            priority: this.getEmitterSfxPriority(emitterKey)
         }).then(played => { if (!played) this.playNoiseBurst({ duration: 0.13, volume: 0.28 * scale, highpass: 120, lowpass: 3200, position, category: 'weapon' }); });
     }
 
@@ -1065,20 +1062,19 @@ export class AudioSynth {
             rateMin: 1.02,
             rateMax: 1.15,
             reverbSend: 0.005,
-            maxDuration: 0.16,
+            maxDuration: 0.22,
             position,
             category: 'weapon',
-            voiceKey: `weapon:machinegun:${emitterKey}`
+            priority: this.getEmitterSfxPriority(emitterKey)
         }).then(played => played || this.playSample(this.sampleCatalog.rifle, {
             volume: (this.isMobileDevice ? 0.86 : 0.98) * scale,
             rateMin: 1.08,
             rateMax: 1.18,
             reverbSend: 0.005,
-            maxDuration: 0.16,
+            maxDuration: 0.22,
             position,
             category: 'weapon',
-            priority: this.getEmitterSfxPriority(emitterKey),
-            voiceKey: `weapon:machinegun:${emitterKey}`
+            priority: this.getEmitterSfxPriority(emitterKey)
         })).then(played => {
             if (!played) this.playNoiseBurst({ duration: 0.09, volume: 0.22 * scale, highpass: 150, lowpass: 3500, position, category: 'weapon' });
             return played;
@@ -1096,8 +1092,7 @@ export class AudioSynth {
             maxDuration: 0.2,
             position,
             category: 'weapon',
-            priority: this.getEmitterSfxPriority(emitterKey),
-            voiceKey: `weapon:flamethrower:${emitterKey}`
+            priority: this.getEmitterSfxPriority(emitterKey)
         }).then(played => { if (!played) this.playProceduralShot('flamethrower', 0.22 * scale, position); });
     }
 
