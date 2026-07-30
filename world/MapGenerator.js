@@ -348,11 +348,13 @@ export class MapGenerator {
 
     _removeGroundCollisionArtifacts() {
         this.colliders = this.colliders.filter((collider) => {
-            if (collider.enabled === false || collider.walkable || collider.isTerrain) return true;
-            if (collider.gameplayBoundary || collider.biomeBoundary || collider.isBiomeEntrance || collider.isCornucopia || collider.isTowerStructure || collider.isTrap) return true;
+            if (collider.enabled === false || collider.isTerrain) return true;
+            if (collider.gameplayBoundary || collider.biomeBoundary || collider.isBiomeEntrance || collider.isCornucopia || collider.isTowerStructure || collider.isTowerStair || collider.isBiomeResidence || collider.isTrap) return true;
             const width = collider.max.x - collider.min.x;
             const height = collider.max.y - collider.min.y;
             const depth = collider.max.z - collider.min.z;
+            if (collider.walkable && collider.min.y >= -0.2 && collider.max.y <= 0.4 && height <= 0.4) return false;
+            if (collider.walkable) return true;
             return !(collider.min.y >= -0.2 && collider.max.y <= 0.4 && height <= 0.4 && width > 0 && depth > 0);
         });
     }

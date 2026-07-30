@@ -551,41 +551,36 @@ function createGunModel(style) {
         group.add(createPart(getGeom('pistol_rs_p', () => new THREE.BoxGeometry(0.02, 0.04, 0.04)), neonMat, -0.18, 0.21, 0));
         // Front sight (glow dot)
         group.add(createPart(getGeom('pistol_fs', () => new THREE.CylinderGeometry(0.025, 0.025, 0.06, 6)), neonMat, 0.32, 0.17, 0));
-    } else if (style === 'rifle' || style === 'machinegun') {
-        const isMG = style === 'machinegun';
-        // Upper receiver
-        group.add(createPart(getGeom('rif_upper', () => new THREE.BoxGeometry(0.4, 0.13, 0.13)), darkMat, 0.2, 0.06, 0));
-        // Lower receiver
-        group.add(createPart(getGeom('rif_lower', () => new THREE.BoxGeometry(0.36, 0.14, 0.12)), darkMat, -0.06, 0.02, 0));
-        // Barrel
-        group.add(createPart(getGeom('rif_barrel', () => new THREE.CylinderGeometry(0.035, 0.035, 0.72, 8)), steelMat, 0.86, 0.06, 0, 0, 0, Math.PI / 2));
-        // Gas tube
-        group.add(createPart(getGeom('rif_gas', () => new THREE.CylinderGeometry(0.025, 0.025, 0.3, 8)), darkMat, 0.6, 0.09, 0, 0, 0, Math.PI / 2));
-        // Handguard with rails
-        group.add(createPart(getGeom('rif_hg', () => new THREE.BoxGeometry(0.36, 0.15, 0.15)), darkMat, 0.52, 0.04, 0));
-        for (let i=0;i<5;i++) group.add(createPart(getGeom(`rif_rail${i}`,()=>new THREE.BoxGeometry(0.03,0.01,0.16)),steelMat,0.4+i*0.06,0.14,0));
-        // Stock with buttpad
-        group.add(createPart(getGeom('rif_stock', () => new THREE.BoxGeometry(0.38, 0.2, 0.14)), woodMat, -0.42, 0.04, 0));
-        group.add(createPart(getGeom('rif_bp', () => new THREE.BoxGeometry(0.04, 0.18, 0.13)), gripMat, -0.62, 0.04, 0));
-        // Magazine
-        group.add(createPart(getGeom('rif_mag', () => new THREE.BoxGeometry(0.12, 0.28, 0.09)), darkMat, 0.08, -0.2, 0));
-        group.add(createPart(getGeom('rif_mag_base', () => new THREE.BoxGeometry(0.13, 0.03, 0.1)), brassMat, 0.08, -0.35, 0));
-        // Front sight
-        group.add(createPart(getGeom('rif_fs', () => new THREE.CylinderGeometry(0.02, 0.02, 0.08, 6)), accentMat, 1.16, 0.06, 0));
-        // Rear sight block
-        group.add(createPart(getGeom('rif_rs', () => new THREE.BoxGeometry(0.08, 0.08, 0.08)), darkMat, -0.06, 0.15, 0));
-        if (isMG) {
-            // Heavier barrel with cooling fins
-            for(let i=0;i<8;i++) {
-                const a=(i/8)*Math.PI*2;
-                group.add(createPart(getGeom(`mg_fin${i}`,()=>new THREE.BoxGeometry(0.04,0.03,0.03)),darkMat,0.65+i*0.05,0.06+Math.cos(a)*0.055,Math.sin(a)*0.055,0,0,a));
-            }
-            // Front grip
-            group.add(createPart(getGeom('mg_fg', () => new THREE.BoxGeometry(0.1, 0.18, 0.1)), gripMat, 0.45, -0.12, 0));
-            // Bipod
-            group.add(createPart(getGeom('mg_bpod1', () => new THREE.BoxGeometry(0.04, 0.32, 0.04)), steelMat, 0.5, -0.2, 0.08, 0, 0, -0.3));
-            group.add(createPart(getGeom('mg_bpod2', () => new THREE.BoxGeometry(0.04, 0.32, 0.04)), steelMat, 0.5, -0.2, -0.08, 0, 0, 0.3));
-        }
+    } else if (style === 'rifle') {
+        group.add(createPart(getGeom('rifle_receiver', () => new THREE.BoxGeometry(0.48, 0.18, 0.14)), darkMat, 0.02, 0.03, 0));
+        group.add(createPart(getGeom('rifle_dust_cover', () => new THREE.BoxGeometry(0.34, 0.08, 0.15)), steelMat, 0.06, 0.15, 0));
+        group.add(createPart(getGeom('rifle_wood_guard', () => new THREE.BoxGeometry(0.5, 0.17, 0.17)), woodMat, 0.5, 0.04, 0));
+        group.add(createPart(getGeom('rifle_long_barrel', () => new THREE.CylinderGeometry(0.035, 0.035, 0.86, 10)), steelMat, 1.02, 0.07, 0, 0, 0, Math.PI / 2));
+        group.add(createPart(getGeom('rifle_muzzle', () => new THREE.CylinderGeometry(0.055, 0.045, 0.15, 8)), darkMat, 1.48, 0.07, 0, 0, 0, Math.PI / 2));
+        group.add(createPart(getGeom('rifle_stock', () => new THREE.BoxGeometry(0.58, 0.22, 0.17)), woodMat, -0.48, 0.01, 0, 0, 0, -0.08));
+        group.add(createPart(getGeom('rifle_stock_comb', () => new THREE.BoxGeometry(0.38, 0.07, 0.18)), woodMat, -0.38, 0.16, 0));
+        group.add(createPart(getGeom('rifle_butt', () => new THREE.BoxGeometry(0.06, 0.24, 0.18)), gripMat, -0.79, -0.01, 0));
+        group.add(createPart(getGeom('rifle_curved_mag', () => new THREE.BoxGeometry(0.14, 0.34, 0.1)), darkMat, 0.08, -0.22, 0, 0, 0, 0.16));
+        group.add(createPart(getGeom('rifle_mag_lip', () => new THREE.BoxGeometry(0.16, 0.05, 0.11)), brassMat, 0.12, -0.39, 0, 0, 0, 0.16));
+        group.add(createPart(getGeom('rifle_grip', () => new THREE.BoxGeometry(0.12, 0.25, 0.12)), gripMat, -0.14, -0.18, 0, 0, 0, -0.18));
+        group.add(createPart(getGeom('rifle_front_post', () => new THREE.BoxGeometry(0.035, 0.14, 0.05)), steelMat, 1.28, 0.16, 0));
+        group.add(createPart(getGeom('rifle_rear_notch', () => new THREE.BoxGeometry(0.08, 0.1, 0.08)), darkMat, -0.05, 0.22, 0));
+    } else if (style === 'machinegun') {
+        const oliveMat = getMaterial('machinegun_olive', () => createWeaponMaterial(createPolymerTexture2('#596348')));
+        group.add(createPart(getGeom('mg_receiver', () => new THREE.BoxGeometry(0.68, 0.28, 0.24)), darkMat, 0.02, 0.03, 0));
+        group.add(createPart(getGeom('mg_top_cover', () => new THREE.BoxGeometry(0.58, 0.09, 0.26)), oliveMat, 0.01, 0.22, 0));
+        group.add(createPart(getGeom('mg_heavy_barrel', () => new THREE.CylinderGeometry(0.055, 0.055, 0.96, 10)), steelMat, 0.84, 0.08, 0, 0, 0, Math.PI / 2));
+        group.add(createPart(getGeom('mg_barrel_jacket', () => new THREE.CylinderGeometry(0.09, 0.09, 0.56, 10)), darkMat, 0.66, 0.08, 0, 0, 0, Math.PI / 2));
+        for (let i = 0; i < 6; i++) group.add(createPart(getGeom(`mg_cooling_${i}`, () => new THREE.TorusGeometry(0.095, 0.012, 5, 10)), steelMat, 0.44 + i * 0.09, 0.08, 0, 0, Math.PI / 2));
+        group.add(createPart(getGeom('mg_flash_hider', () => new THREE.CylinderGeometry(0.08, 0.055, 0.18, 8)), darkMat, 1.38, 0.08, 0, 0, 0, Math.PI / 2));
+        group.add(createPart(getGeom('mg_box_mag', () => new THREE.BoxGeometry(0.34, 0.38, 0.22)), oliveMat, -0.02, -0.28, 0));
+        group.add(createPart(getGeom('mg_feed', () => new THREE.BoxGeometry(0.2, 0.08, 0.25)), brassMat, 0.18, -0.02, 0));
+        group.add(createPart(getGeom('mg_stock', () => new THREE.BoxGeometry(0.48, 0.27, 0.2)), oliveMat, -0.55, 0.01, 0));
+        group.add(createPart(getGeom('mg_butt', () => new THREE.BoxGeometry(0.08, 0.3, 0.22)), gripMat, -0.82, 0, 0));
+        group.add(createPart(getGeom('mg_pistol_grip', () => new THREE.BoxGeometry(0.14, 0.27, 0.14)), gripMat, -0.27, -0.23, 0, 0, 0, -0.15));
+        group.add(createPart(getGeom('mg_carry_handle', () => new THREE.TorusGeometry(0.18, 0.025, 5, 10, Math.PI)), steelMat, 0.02, 0.31, 0, 0, 0, Math.PI));
+        group.add(createPart(getGeom('mg_bipod_l', () => new THREE.BoxGeometry(0.045, 0.42, 0.045)), steelMat, 0.6, -0.27, 0.15, 0, 0, -0.28));
+        group.add(createPart(getGeom('mg_bipod_r', () => new THREE.BoxGeometry(0.045, 0.42, 0.045)), steelMat, 0.6, -0.27, -0.15, 0, 0, 0.28));
     } else if (style === 'shotgun') {
         // Receiver
         group.add(createPart(getGeom('sg_recv', () => new THREE.BoxGeometry(0.42, 0.16, 0.14)), darkMat, -0.06, 0.04, 0));
@@ -604,43 +599,37 @@ function createGunModel(style) {
         // Front sight
         group.add(createPart(getGeom('sg_fs', () => new THREE.CylinderGeometry(0.015, 0.015, 0.08, 6)), steelMat, 0.84, 0.12, 0.06));
     } else if (style === 'flamethrower') {
-        // Main body
-        group.add(createPart(getGeom('ft_body', () => new THREE.BoxGeometry(0.72, 0.22, 0.22)), darkMat, 0.08, 0.04, 0));
-        // Barrel with shroud
-        group.add(createPart(getGeom('ft_barrel', () => new THREE.CylinderGeometry(0.06, 0.06, 0.55, 8)), steelMat, 0.62, 0.06, 0, 0, 0, Math.PI / 2));
-        group.add(createPart(getGeom('ft_shroud', () => new THREE.CylinderGeometry(0.085, 0.085, 0.45, 8)), darkMat, 0.6, 0.06, 0, 0, 0, Math.PI / 2));
-        // Nozzle
-        group.add(createPart(getGeom('ft_noz', () => new THREE.CylinderGeometry(0.08, 0.06, 0.12, 8)), accentMat, 0.92, 0.06, 0, 0, 0, Math.PI / 2));
-        group.add(createPart(getGeom('ft_tip', () => new THREE.CylinderGeometry(0.06, 0.08, 0.06, 8)), accentMat, 1.02, 0.06, 0, 0, 0, Math.PI / 2));
-        // Grip
-        group.add(createPart(getGeom('ft_grip', () => new THREE.BoxGeometry(0.14, 0.24, 0.13)), gripMat, -0.06, -0.18, 0));
-        // Tank body (horizontal cylinder)
-        group.add(createPart(getGeom('ft_tank', () => new THREE.CylinderGeometry(0.14, 0.14, 0.48, 8)), steelMat, -0.26, -0.14, 0, 0, 0, Math.PI / 2));
-        // Tank ends (domed)
-        group.add(createPart(getGeom('ft_te1', () => new THREE.SphereGeometry(0.14, 8, 4)), steelMat, -0.52, -0.14, 0));
-        group.add(createPart(getGeom('ft_te2', () => new THREE.SphereGeometry(0.14, 8, 4)), steelMat, -0.02, -0.14, 0));
-        // Valve on top
-        group.add(createPart(getGeom('ft_valve', () => new THREE.CylinderGeometry(0.03, 0.03, 0.08, 6)), accentMat, -0.26, 0.02, 0));
+        const tankMat = getMaterial('flamethrower_tank_red', () => createWeaponMaterial(createPBRMetalTexture('#8f2c24')));
+        group.add(createPart(getGeom('ft_frame', () => new THREE.BoxGeometry(0.56, 0.2, 0.24)), darkMat, 0.08, 0.04, 0));
+        group.add(createPart(getGeom('ft_nozzle_pipe', () => new THREE.CylinderGeometry(0.045, 0.045, 0.82, 10)), steelMat, 0.72, 0.08, 0, 0, 0, Math.PI / 2));
+        group.add(createPart(getGeom('ft_heat_shield', () => new THREE.CylinderGeometry(0.1, 0.1, 0.42, 10)), darkMat, 0.68, 0.08, 0, 0, 0, Math.PI / 2));
+        for (let i = 0; i < 4; i++) group.add(createPart(getGeom(`ft_vent_${i}`, () => new THREE.TorusGeometry(0.105, 0.012, 5, 10)), brassMat, 0.53 + i * 0.1, 0.08, 0, 0, Math.PI / 2));
+        group.add(createPart(getGeom('ft_igniter', () => new THREE.CylinderGeometry(0.085, 0.055, 0.18, 8)), accentMat, 1.16, 0.08, 0, 0, 0, Math.PI / 2));
+        group.add(createPart(getGeom('ft_pilot', () => new THREE.SphereGeometry(0.055, 8, 5)), neonMat, 1.27, 0.08, 0));
+        group.add(createPart(getGeom('ft_grip', () => new THREE.BoxGeometry(0.15, 0.3, 0.14)), gripMat, -0.04, -0.22, 0, 0, 0, -0.12));
+        group.add(createPart(getGeom('ft_tank_l', () => new THREE.CylinderGeometry(0.15, 0.15, 0.58, 10)), tankMat, -0.42, -0.08, 0.14, 0, 0, Math.PI / 2));
+        group.add(createPart(getGeom('ft_tank_r', () => new THREE.CylinderGeometry(0.15, 0.15, 0.58, 10)), tankMat, -0.42, -0.08, -0.14, 0, 0, Math.PI / 2));
+        group.add(createPart(getGeom('ft_tank_band_l', () => new THREE.TorusGeometry(0.155, 0.022, 6, 12)), brassMat, -0.48, -0.08, 0.14, 0, Math.PI / 2));
+        group.add(createPart(getGeom('ft_tank_band_r', () => new THREE.TorusGeometry(0.155, 0.022, 6, 12)), brassMat, -0.48, -0.08, -0.14, 0, Math.PI / 2));
+        group.add(createPart(getGeom('ft_valve', () => new THREE.CylinderGeometry(0.04, 0.04, 0.1, 8)), brassMat, -0.36, 0.12, 0));
     } else if (style === 'laser') {
-        // Body
-        group.add(createPart(getGeom('lz_body', () => new THREE.BoxGeometry(0.76, 0.22, 0.22)), darkMat, 0.1, 0.04, 0));
-        // Barrel (emitter housing)
-        group.add(createPart(getGeom('lz_barrel', () => new THREE.CylinderGeometry(0.07, 0.07, 0.48, 8)), steelMat, 0.54, 0.06, 0, 0, 0, Math.PI / 2));
-        // Emitter tip (glowing)
-        group.add(createPart(getGeom('lz_emit', () => new THREE.CylinderGeometry(0.05, 0.07, 0.06, 8)), neonMat, 0.82, 0.06, 0, 0, 0, Math.PI / 2));
-        // Core energy channel
-        group.add(createPart(getGeom('lz_core', () => new THREE.CylinderGeometry(0.04, 0.04, 0.44, 8)), neonMat, 0.18, 0.06, 0, 0, 0, Math.PI / 2));
-        // Glow ring
-        group.add(createPart(getGeom('lz_ring', () => new THREE.TorusGeometry(0.055, 0.012, 6, 12)), accentMat, 0.1, 0.06, 0, 0, Math.PI / 2, 0));
-        // Grip
-        group.add(createPart(getGeom('lz_grip', () => new THREE.BoxGeometry(0.14, 0.26, 0.13)), gripMat, -0.08, -0.18, 0));
-        // Visible power cell
-        group.add(createPart(getGeom('lz_cell', () => new THREE.BoxGeometry(0.14, 0.16, 0.14)), neonMat, -0.04, -0.04, 0));
-        // Sight lens
-        group.add(createPart(getGeom('lz_lens', () => new THREE.CylinderGeometry(0.03, 0.03, 0.02, 8)), neonMat, 0.22, 0.22, 0));
+        const shellMat = getMaterial('laser_shell', () => createWeaponMaterial(createPBRMetalTexture('#c8e3ed')));
+        group.add(createPart(getGeom('lz_spine', () => new THREE.BoxGeometry(0.8, 0.16, 0.18)), shellMat, 0.08, 0.08, 0));
+        group.add(createPart(getGeom('lz_core', () => new THREE.CylinderGeometry(0.055, 0.055, 0.62, 10)), neonMat, 0.28, 0.08, 0, 0, 0, Math.PI / 2));
+        group.add(createPart(getGeom('lz_emitter', () => new THREE.CylinderGeometry(0.13, 0.09, 0.22, 10)), steelMat, 0.84, 0.08, 0, 0, 0, Math.PI / 2));
+        group.add(createPart(getGeom('lz_emit_ring', () => new THREE.TorusGeometry(0.13, 0.025, 6, 14)), neonMat, 0.96, 0.08, 0, 0, Math.PI / 2));
+        group.add(createPart(getGeom('lz_muzzle_orb', () => new THREE.SphereGeometry(0.08, 10, 6)), neonMat, 1.08, 0.08, 0));
+        for (const side of [-1, 1]) {
+            group.add(createPart(getGeom(`lz_fin_${side}`, () => new THREE.BoxGeometry(0.42, 0.08, 0.12)), shellMat, 0.18, 0.18, side * 0.16, side * 0.2, 0, 0));
+            group.add(createPart(getGeom(`lz_coil_${side}`, () => new THREE.TorusGeometry(0.09, 0.018, 6, 12)), neonMat, 0.34, 0.08, side * 0.13, 0, Math.PI / 2));
+        }
+        group.add(createPart(getGeom('lz_rear_cell', () => new THREE.SphereGeometry(0.19, 10, 6)), neonMat, -0.38, 0.06, 0));
+        group.add(createPart(getGeom('lz_cell_cage', () => new THREE.TorusGeometry(0.21, 0.025, 6, 12)), darkMat, -0.38, 0.06, 0, 0, Math.PI / 2));
+        group.add(createPart(getGeom('lz_grip', () => new THREE.BoxGeometry(0.15, 0.3, 0.15)), gripMat, -0.12, -0.21, 0, 0, 0, -0.18));
+        group.add(createPart(getGeom('lz_trigger_guard', () => new THREE.TorusGeometry(0.08, 0.014, 5, 10, Math.PI)), darkMat, 0.02, -0.08, 0, 0, 0, Math.PI));
     }
 
-    if (style !== 'flamethrower') {
+    if (style === 'rifle' || style === 'machinegun' || style === 'shotgun') {
         group.add(createPart(getGeom(`${style}_front_sight`, () => new THREE.BoxGeometry(0.035, 0.09, 0.035)), darkMat, 0.48, 0.2, 0));
         group.add(createPart(getGeom(`${style}_rear_sight`, () => new THREE.BoxGeometry(0.05, 0.07, 0.05)), darkMat, -0.06, 0.2, 0));
     }
