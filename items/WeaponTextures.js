@@ -392,8 +392,8 @@ export function createBrightSteelTexture() {
 export function createWeaponMaterial(texSet) {
     const matProps = {
         color: 0xffffff,
-        roughness: texSet.baseRoughness ?? 0.5,
-        metalness: texSet.baseMetalness ?? 0.5,
+        roughness: Math.max(0.28, texSet.baseRoughness ?? 0.5),
+        metalness: Math.min(0.72, texSet.baseMetalness ?? 0.5),
         map: texSet.albedo
     };
     

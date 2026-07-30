@@ -370,6 +370,12 @@ function createPart(geometry, material, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz 
 function configureMeshForGameplay(mesh) {
     mesh.traverse((child) => {
         if (child.isMesh) {
+            if (child.material?.isMeshStandardMaterial) {
+                child.material.metalness = Math.min(0.72, child.material.metalness);
+                child.material.roughness = Math.max(0.28, child.material.roughness);
+                child.material.emissive.copy(child.material.color).multiplyScalar(0.16);
+                child.material.emissiveIntensity = 0.45;
+            }
             child.castShadow = false;
             child.receiveShadow = false;
             child.frustumCulled = false;
@@ -383,8 +389,8 @@ function createKnifeModel() {
     const group = new THREE.Group();
     const bladeMat = getMaterial('knife_blade_pbr', () => createWeaponMaterial(createBrightSteelTexture()));
     const handleMat = getMaterial('knife_handle_pbr', () => createWeaponMaterial(createWoodTexture2('#5a3a24')));
-    const guardMat = getMaterial('knife_guard_pbr', () => createWeaponMaterial(createPBRMetalTexture('#59616c')));
-    const pommelMat = getMaterial('knife_pommel_pbr', () => createWeaponMaterial(createPolymerTexture2('#363b42')));
+    const guardMat = getMaterial('knife_guard_pbr', () => createWeaponMaterial(createPBRMetalTexture('#909ca8')));
+    const pommelMat = getMaterial('knife_pommel_pbr', () => createWeaponMaterial(createPolymerTexture2('#59636e')));
 
     // Handle scales with rivets
     group.add(createPart(getGeom('knife_h1', () => new THREE.BoxGeometry(0.42, 0.11, 0.11)), handleMat, -0.27, 0, 0));
@@ -475,8 +481,8 @@ function createGunModel(style) {
     
     if (style === 'pistol') {
         steelMat = getMaterial('pistol_steel_pbr', () => createWeaponMaterial(createPBRMetalTexture('#b6c2cc')));
-        darkMat = getMaterial('pistol_dark_pbr', () => createWeaponMaterial(createPolymerTexture2('#343a42')));
-        gripMat = getMaterial('pistol_grip_pbr', () => createWeaponMaterial(createPolymerTexture2('#454b54')));
+        darkMat = getMaterial('pistol_dark_pbr', () => createWeaponMaterial(createPolymerTexture2('#515b66')));
+        gripMat = getMaterial('pistol_grip_pbr', () => createWeaponMaterial(createPolymerTexture2('#626d78')));
         woodMat = getMaterial('pistol_wood_pbr', () => createWeaponMaterial(createWoodTexture2('#70482a')));
         brassMat = getMaterial('pistol_brass', () => new THREE.MeshStandardMaterial({
             color: 0xb5a040, metalness: 0.9, roughness: 0.2,
@@ -491,9 +497,9 @@ function createGunModel(style) {
             map: createMetalTexture('#c0c8d0')
         }));
     } else if (style === 'rifle' || style === 'machinegun') {
-        steelMat = getMaterial(`${style}_steel_pbr`, () => createWeaponMaterial(createPBRMetalTexture(style === 'machinegun' ? '#59636d' : '#7f8b96')));
-        darkMat = getMaterial(`${style}_dark_pbr`, () => createWeaponMaterial(createPolymerTexture2('#343a42')));
-        gripMat = getMaterial(`${style}_grip_pbr`, () => createWeaponMaterial(createPolymerTexture2('#454b54')));
+        steelMat = getMaterial(`${style}_steel_pbr`, () => createWeaponMaterial(createPBRMetalTexture(style === 'machinegun' ? '#74818d' : '#929faa')));
+        darkMat = getMaterial(`${style}_dark_pbr`, () => createWeaponMaterial(createPolymerTexture2('#515b66')));
+        gripMat = getMaterial(`${style}_grip_pbr`, () => createWeaponMaterial(createPolymerTexture2('#626d78')));
         woodMat = getMaterial(`${style}_wood_pbr`, () => createWeaponMaterial(createWoodTexture2('#70482a')));
         brassMat = getMaterial(`${style}_brass`, () => new THREE.MeshStandardMaterial({
             color: 0xb5a040, metalness: 0.9, roughness: 0.2,
@@ -506,8 +512,8 @@ function createGunModel(style) {
         }));
     } else {
         steelMat = getMaterial(`${style}_steel_pbr`, () => createWeaponMaterial(createPBRMetalTexture(style === 'laser' ? '#5f91a6' : '#87939d')));
-        darkMat = getMaterial(`${style}_dark_pbr`, () => createWeaponMaterial(createPolymerTexture2('#343a42')));
-        gripMat = getMaterial(`${style}_grip_pbr`, () => createWeaponMaterial(createPolymerTexture2('#454b54')));
+        darkMat = getMaterial(`${style}_dark_pbr`, () => createWeaponMaterial(createPolymerTexture2('#515b66')));
+        gripMat = getMaterial(`${style}_grip_pbr`, () => createWeaponMaterial(createPolymerTexture2('#626d78')));
         woodMat = getMaterial(`${style}_wood_pbr`, () => createWeaponMaterial(createWoodTexture2('#70482a')));
         brassMat = getMaterial(`${style}_brass`, () => new THREE.MeshStandardMaterial({
             color: 0xb5a040, metalness: 0.9, roughness: 0.2,

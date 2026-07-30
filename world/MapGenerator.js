@@ -319,30 +319,39 @@ export class MapGenerator {
         const worldMatrix = new THREE.Matrix4();
         this.scene.traverse((object) => {
             if (!object.isMesh || !object.userData?.mapGenerated || object.visible === false) return;
+            if (object.userData.isTerrain || object.userData.isCornucopia) return;
             if (object.isInstancedMesh) {
                 object.geometry.computeBoundingBox();
                 object.updateMatrixWorld(true);
                 for (let i = 0; i < object.count; i++) {
                     object.getMatrixAt(i, localMatrix);
                     worldMatrix.multiplyMatrices(object.matrixWorld, localMatrix);
-                    bounds.push(object.geometry.boundingBox.clone().applyMatrix4(worldMatrix));
+                    bounds.push({
+                        box: object.geometry.boundingBox.clone().applyMatrix4(worldMatrix),
+                        walkable: object.userData.walkable === true
+                    });
                 }
                 return;
             }
             box.setFromObject(object);
-            if (!box.isEmpty()) bounds.push(box.clone());
+            if (!box.isEmpty()) bounds.push({ box: box.clone(), walkable: object.userData.walkable === true });
         });
         this.colliders = this.colliders.filter((collider) => {
-            if (!collider.walkable || collider.isTerrain || collider.isCornucopia || collider.isBiomeEntrance || collider.isTowerStair) return true;
+            if (collider.isTerrain || collider.isCornucopia || collider.isBiomeEntrance || collider.isTowerStair || collider.biomeBoundary || collider.gameplayBoundary || collider.isTowerStructure) return true;
             const width = Math.max(0.01, collider.max.x - collider.min.x);
             const depth = Math.max(0.01, collider.max.z - collider.min.z);
-            const requiredOverlap = width * depth * 0.45;
-            return bounds.some(candidate => {
-                if (Math.abs(candidate.max.y - collider.max.y) > 0.22) return false;
-                const overlapX = Math.max(0, Math.min(candidate.max.x, collider.max.x) - Math.max(candidate.min.x, collider.min.x));
-                const overlapZ = Math.max(0, Math.min(candidate.max.z, collider.max.z) - Math.max(candidate.min.z, collider.min.z));
+            const requiredOverlap = width * depth * (collider.walkable ? 0.45 : 0.28);
+            const supported = bounds.some(candidate => {
+                if (candidate.walkable !== collider.walkable) return false;
+                const candidateBox = candidate.box;
+                if (collider.walkable && Math.abs(candidateBox.max.y - collider.max.y) > 0.22) return false;
+                if (!collider.walkable && (candidateBox.max.y < collider.min.y - 0.12 || candidateBox.min.y > collider.max.y + 0.12)) return false;
+                const overlapX = Math.max(0, Math.min(candidateBox.max.x, collider.max.x) - Math.max(candidateBox.min.x, collider.min.x));
+                const overlapZ = Math.max(0, Math.min(candidateBox.max.z, collider.max.z) - Math.max(candidateBox.min.z, collider.min.z));
                 return overlapX * overlapZ >= requiredOverlap;
             });
+            if (collider.walkable || collider.max.y <= 2.5) return supported;
+            return true;
         });
     }
 
