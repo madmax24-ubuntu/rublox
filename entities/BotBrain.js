@@ -282,6 +282,8 @@ export class BotBrain {
             const isEnemySurvivor = type === 'Player' || type === 'Bot';
             const isZombie = type === 'Zombie';
             if (!isEnemySurvivor && !isZombie) continue;
+            // FIX: During early game / pre-loot phase, survivors are NOT enemies — only zombies
+            if (earlyGamePhase && isEnemySurvivor) continue;
 
             const dx = ent.position.x - bot.position.x;
             const dz = ent.position.z - bot.position.z;
