@@ -113,12 +113,10 @@ export class AudioSynth {
                 'assets/audio/weapons/machinegun_ppsh_b.wav'
             ],
             shotgun: [
-                'assets/audio/weapons/shotgun_model12_a.wav',
-                'assets/audio/weapons/shotgun_model12_b.wav'
+                'assets/audio/weapons/shotgun_model12_a.wav'
             ],
             pistol: [
-                'assets/audio/weapons/pistol_1911_a.wav',
-                'assets/audio/weapons/pistol_1911_b.wav'
+                'assets/audio/weapons/pistol_1911_a.wav'
             ],
             rifle: [
                 'assets/audio/weapons/rifle_ar15_a.wav',
@@ -997,14 +995,14 @@ export class AudioSynth {
 
     playBowShot(position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`bow:${emitterKey}`, this.weaponSfxCooldown.bow)) return;
-        this.playSample(this.sampleCatalog.bow, { volume: (this.isMobileDevice ? 0.48 : 0.56) * this.getEmitterSfxScale(emitterKey), rateMin: 0.96, rateMax: 1.04, position, category: 'weapon', priority: this.getEmitterSfxPriority(emitterKey), maxDuration: 0.42 })
+        this.playSample(this.sampleCatalog.bow, { volume: (this.isMobileDevice ? 0.72 : 0.82) * this.getEmitterSfxScale(emitterKey), rateMin: 0.99, rateMax: 1.01, position, category: 'weapon', priority: this.getEmitterSfxPriority(emitterKey), maxDuration: 0.38 })
             .then(played => { if (!played) this.playProceduralShot('bow', 0.2 * this.getEmitterSfxScale(emitterKey), position); });
     }
 
     playLaser(position = null, emitterKey = 'global') {
         if (!this.canPlayWeaponSfx(`laser:${emitterKey}`, this.weaponSfxCooldown.laser)) return;
         const scale = this.getEmitterSfxScale(emitterKey);
-        this.playSample(this.sampleCatalog.laser, { volume: (this.isMobileDevice ? 0.48 : 0.56) * scale, rateMin: 0.96, rateMax: 1.04, position, category: 'weapon', priority: this.getEmitterSfxPriority(emitterKey), maxDuration: 0.16 })
+        this.playSample(this.sampleCatalog.laser, { volume: (this.isMobileDevice ? 0.72 : 0.82) * scale, rateMin: 0.99, rateMax: 1.01, position, category: 'weapon', priority: this.getEmitterSfxPriority(emitterKey), maxDuration: 0.3 })
             .then(played => { if (!played) this.playProceduralShot('laser', 0.2 * scale, position); });
     }
 
@@ -1016,8 +1014,8 @@ export class AudioSynth {
             volume: (this.isMobileDevice ? 0.88 : 1.2) * scaled * scale,
             rateMin: 0.98,
             rateMax: 1.02,
-            reverbSend: 0.08,
-            maxDuration: 0.62,
+            reverbSend: 0.015,
+            maxDuration: 0.56,
             position,
             category: 'weapon',
             priority: this.getEmitterSfxPriority(emitterKey)
@@ -1085,13 +1083,14 @@ export class AudioSynth {
         if (!this.canPlayWeaponSfx(`flamethrower:${emitterKey}`, this.weaponSfxCooldown.flamethrower)) return;
         const scale = this.getEmitterSfxScale(emitterKey);
         this.playSample(this.sampleCatalog.flamethrower, {
-            volume: (this.isMobileDevice ? 0.52 : 0.7) * scale,
-            rateMin: 0.45,
-            rateMax: 0.62,
-            reverbSend: 0.08,
-            maxDuration: 0.2,
+            volume: (this.isMobileDevice ? 0.64 : 0.78) * scale,
+            rateMin: 0.96,
+            rateMax: 1.04,
+            reverbSend: 0.025,
+            maxDuration: 0.16,
             position,
             category: 'weapon',
+            voiceKey: `flamethrower:${emitterKey}`,
             priority: this.getEmitterSfxPriority(emitterKey)
         }).then(played => { if (!played) this.playProceduralShot('flamethrower', 0.22 * scale, position); });
     }

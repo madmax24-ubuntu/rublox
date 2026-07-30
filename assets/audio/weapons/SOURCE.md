@@ -3,3 +3,9 @@ Firearm samples are trimmed from The Free Firearm Sound Library by Ben Jaszczak,
 License: Creative Commons CC0 1.0.
 
 Source: https://opengameart.org/content/the-free-firearm-sound-library
+
+Laser shot uses alienshoot1.wav from Space Shoot Sounds by Robin Lamb.
+
+License: Creative Commons CC0 1.0.
+
+Source: https://opengameart.org/content/space-shoot-sounds

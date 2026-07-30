@@ -281,7 +281,15 @@ export class Physics {
                 && Math.abs(localZ) <= Math.max(0.02, obb.halfDepth - clearance);
         }
         const circle = box.surfaceCircle;
-        if (!circle) return true;
+        if (!circle) {
+            const min = box.min;
+            const max = box.max;
+            if (!min || !max) return false;
+            const preciseEdge = box.isTowerStair || box.isBiomeEntrance || box.isBiomeResidence || box.isSpawnPlatform;
+            const clearance = radius * (preciseEdge ? 0.08 : 0.35);
+            return x >= min.x + clearance && x <= max.x - clearance
+                && z >= min.z + clearance && z <= max.z - clearance;
+        }
         const dx = x - circle.x;
         const dz = z - circle.z;
         const limit = Math.max(0, circle.radius - radius * 0.35);
