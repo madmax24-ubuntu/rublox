@@ -647,10 +647,10 @@ export class MapGenerator {
         // Base platform: BoxGeometry(50,2,50) at y=1 → top surface at y=2
         // Collider: center.y=1, height=2 → min.y=0, max.y=2 ✅
         const baseRadius = 55;
-        const platformCollider = this.addColliderBox(new THREE.Vector3(0, 1, 0), baseRadius * 2, 2, baseRadius * 2, true);
+        const platformSurfaceY = 2.19;
+        const platformCollider = this.addColliderBox(new THREE.Vector3(0, platformSurfaceY * 0.5, 0), baseRadius * 2, platformSurfaceY, baseRadius * 2, true);
         platformCollider.isCornucopia = true;
-        // Increased radius by 2m to prevent edge detection gaps causing jerky movement
-        platformCollider.surfaceCircle = { x: 0, z: 0, radius: baseRadius + 2 };
+        platformCollider.surfaceCircle = { x: 0, z: 0, radius: baseRadius - 0.8 };
 
         // Fountain collision — solid basin ring + column (fountain positioned at y=2 in scene)
         const fountainScale = 3.2;
@@ -711,7 +711,7 @@ export class MapGenerator {
         const ringRadius = 64;
         const ringSegments = 40;
         const segmentLength = Math.PI * 2 * ringRadius / ringSegments + 0.8;
-        const gateIndices = new Set([5, 15, 25, 35]);
+        const gateIndices = new Set([4, 5, 6, 14, 15, 16, 24, 25, 26, 34, 35, 36]);
         for (let i = 0; i < ringSegments; i++) {
             const angle = i / ringSegments * Math.PI * 2;
             const x = Math.cos(angle) * ringRadius;
@@ -749,15 +749,15 @@ export class MapGenerator {
         const stairAngles = [Math.PI * 0.25, Math.PI * 0.75, Math.PI * 1.25, Math.PI * 1.75];
         const stairMat = this.pool.getMatStd(0x4c5054, 0.92, 0.02, true, false, 1, 0, 0, true);
         const stairFireMat = this.pool.getMatStd(0x7a2118, 0.52, 0.05, true, false, 1, 0xff3b12, 0.85);
-        const stepCount = 8;
-        const stepDepth = 2.25;
-        const stepWidth = 12;
-        const treadHeight = 0.28;
+        const stepCount = 12;
+        const stepDepth = 2.5;
+        const stepWidth = 11.5;
+        const treadHeight = 0.22;
         for (let entrance = 0; entrance < stairAngles.length; entrance++) {
             const angle = stairAngles[entrance];
             for (let step = 0; step < stepCount; step++) {
-                const radius = 54.5 + step * 2.05;
-                const stepTopY = 2 * (1 - step / (stepCount - 1));
+                const radius = 52.8 + step * 1.65;
+                const stepTopY = 2.19 + (0.14 - 2.19) * (step / (stepCount - 1));
                 const tread = new THREE.Mesh(this.pool.getGeoBox(stepWidth, treadHeight, stepDepth), stairMat);
                 tread.position.set(Math.cos(angle) * radius, stepTopY - treadHeight * 0.5, Math.sin(angle) * radius);
                 tread.rotation.y = Math.PI * 0.5 - angle;
@@ -1058,7 +1058,7 @@ export class MapGenerator {
             return mesh;
         };
 
-        addBox(w, 0.3, d, 0, 0.15, 0, floorMat, false, true);
+        addBox(w, 0.3, d, 0, -0.01, 0, floorMat, false, true);
         addBox(12, 0.3, d, 2.5, 4.15, 0, floorMat, false, true);
         addBox(4, 0.3, 4, -7, 4.15, -5, floorMat, false, true);
         addBox(14, 0.3, d, -2, 8.35, 0, roofMat, false, true);

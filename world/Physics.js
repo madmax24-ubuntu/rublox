@@ -321,17 +321,38 @@ export class Physics {
                 if (bottom > max.y + 0.3) continue;
 
                 if (box.walkable) {
-                    if (!this._containsWalkableSurface(box, pos.x, pos.z, baseRadius)) continue;
                     if (bottom >= max.y - 0.05) continue;
                     const stepHeight = max.y - bottom;
                     const stepReach = box.isTowerStair || box.isBiomeEntrance ? 0.78 : 0.65;
-                    const canStep = entity.physics.onGround && (entity.physics.velocity?.y || 0) <= 0.01;
-                    if (canStep && stepHeight > 0.02 && stepHeight <= stepReach) {
+                    const verticalSpeed = entity.physics.velocity?.y || 0;
+                    const stairRecovery = (box.isTowerStair || box.isBiomeEntrance)
+                        && bottom >= max.y - stepReach
+                        && bottom <= max.y + 0.12;
+                    const canStep = (entity.physics.onGround || stairRecovery) && verticalSpeed <= 0.01;
+                    const onSurface = this._containsWalkableSurface(box, pos.x, pos.z, baseRadius);
+                    let nearClimbable = false;
+                    if (box.isTowerStair || box.isBiomeEntrance) {
+                        if (box.surfaceOBB) {
+                            const dx = pos.x - box.surfaceOBB.x;
+                            const dz = pos.z - box.surfaceOBB.z;
+                            const cos = Math.cos(box.surfaceOBB.rotation);
+                            const sin = Math.sin(box.surfaceOBB.rotation);
+                            const localX = dx * cos - dz * sin;
+                            const localZ = dx * sin + dz * cos;
+                            nearClimbable = Math.abs(localX) <= box.surfaceOBB.halfWidth + baseRadius
+                                && Math.abs(localZ) <= box.surfaceOBB.halfDepth + baseRadius;
+                        } else {
+                            nearClimbable = pos.x >= min.x - baseRadius && pos.x <= max.x + baseRadius
+                                && pos.z >= min.z - baseRadius && pos.z <= max.z + baseRadius;
+                        }
+                    }
+                    if (canStep && (onSurface || nearClimbable) && stepHeight > 0.02 && stepHeight <= stepReach) {
                         pos.y = max.y + (entity.physics?.height || 1.7);
                         entity.physics.onGround = true;
                         if (entity.physics.velocity) entity.physics.velocity.y = 0;
                         continue;
                     }
+                    if (!onSurface) continue;
                 }
 
                 // AABB vs point (XZ plane)

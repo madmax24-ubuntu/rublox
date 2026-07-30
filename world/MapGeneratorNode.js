@@ -319,10 +319,10 @@ export class MapGeneratorNode {
         const padGeo = new THREE.CylinderGeometry(1.03, 1.12, 0.34, 12);
         const padMat = new THREE.MeshStandardMaterial({ color: 0x241d1a, roughness: 0.82, metalness: 0.18, flatShading: true , polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 1});
         const emberGeo = new THREE.CylinderGeometry(0.78, 0.84, 0.07, 12);
-        const emberMat = new THREE.MeshStandardMaterial({ color: 0xe83b0c, emissive: 0xff2600, emissiveIntensity: 4.5, roughness: 0.38 });
+        const emberMat = new THREE.MeshStandardMaterial({ color: 0xff4d00, emissive: 0xff2400, emissiveIntensity: 5.2, roughness: 0.38 });
         const ringGeo = new THREE.TorusGeometry(1.04, 0.12, 4, 12);
-        const ringMat = new THREE.MeshStandardMaterial({ color: 0xff8a00, emissive: 0xff3c00, emissiveIntensity: 5.5, roughness: 0.28 });
-        const flameMat = new THREE.MeshStandardMaterial({ color: 0xffc21a, emissive: 0xff5a00, emissiveIntensity: 6, roughness: 0.3, side: THREE.DoubleSide });
+        const ringMat = new THREE.MeshStandardMaterial({ color: 0xff6a00, emissive: 0xff3200, emissiveIntensity: 5.8, roughness: 0.28 });
+        const flameMat = new THREE.MeshStandardMaterial({ color: 0xff7900, emissive: 0xff3c00, emissiveIntensity: 6.2, roughness: 0.3, side: THREE.DoubleSide });
         const flameGeo = new THREE.BufferGeometry();
         flameGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
             -0.34, 0, 0.22, 0.05, 0, -0.55, 0.38, 0, 0.25,

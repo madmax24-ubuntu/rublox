@@ -109,16 +109,20 @@ export class AudioSynth {
                 'assets/audio/weapons/laser_shot.wav'
             ],
             machinegun: [
-                'assets/audio/weapons/smg_sks.wav'
+                'assets/audio/weapons/machinegun_ppsh_a.wav',
+                'assets/audio/weapons/machinegun_ppsh_b.wav'
             ],
             shotgun: [
-                'assets/audio/weapons/shotgun_shotty.wav'
+                'assets/audio/weapons/shotgun_model12_a.wav',
+                'assets/audio/weapons/shotgun_model12_b.wav'
             ],
             pistol: [
-                'assets/audio/weapons/pistol_cz.wav'
+                'assets/audio/weapons/pistol_1911_a.wav',
+                'assets/audio/weapons/pistol_1911_b.wav'
             ],
             rifle: [
-                'assets/audio/weapons/rifle_mosin.wav'
+                'assets/audio/weapons/rifle_ar15_a.wav',
+                'assets/audio/weapons/rifle_ar15_b.wav'
             ],
             flamethrower: [
                 'assets/audio/weapons/flamethrower_fire.ogg'
