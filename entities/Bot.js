@@ -889,17 +889,22 @@ export class Bot {
         // Record enemy encounter in memory
         if (attacker && attacker.position) {
             const isDotDamage = source === 'zone' || source === 'storm' || source === 'burn' || source === 'trap';
-            if (!isDotDamage) {
-                const now = performance.now();
+            const now = performance.now();
+            const inLootPhase = this.noCombatUntil && now < this.noCombatUntil;
+            if (!isDotDamage && !inLootPhase) {
                 this._lastAttackedBy = now;
                 this._retaliationTarget = attacker;
                 this._retaliateUntil = now + 8000;
-                this.noCombatUntil = 0;
                 this.target = attacker;
                 this.state = 'engage';
                 this._fsmCtx = null;
                 this.enemyEncounters.push({ pos: attacker.position.clone(), time: performance.now(), damage: finalDamage });
                 if (this.enemyEncounters.length > 15) this.enemyEncounters.shift();
+            } else if (inLootPhase) {
+                this.target = null;
+                this.assistTarget = null;
+                this._retaliationTarget = null;
+                this._retaliateUntil = 0;
             }
         }
 

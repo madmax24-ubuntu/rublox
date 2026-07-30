@@ -308,18 +308,12 @@ export class CameraController {
 
     lock() {
         try {
-            if (document.pointerLockElement) return; // already locked
-            // New API: document.requestPointerLock(options)
-            // Fallback: element.requestPointerLock()
-            if (document.requestPointerLock) {
-                document.requestPointerLock({ element: this.domElement });
-            } else if (this.domElement.requestPointerLock) {
-                this.domElement.requestPointerLock();
-            }
+            if (document.pointerLockElement === this.domElement) return;
+            const result = this.domElement?.requestPointerLock?.();
+            result?.catch?.(() => {});
         } catch (e) {
             console.log('[Cam] lock() error:', e.message);
         }
-        this._pitch = -0.25;
     }
 
     unlock() {

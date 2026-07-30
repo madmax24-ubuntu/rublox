@@ -115,7 +115,7 @@ export class LootManager {
         const baseY = this.mapGenerator.raycastGroundY?.(x, z, fallbackY)
             ?? this.mapGenerator.getSurfaceHeightAt?.(x, z)
             ?? fallbackY;
-        return baseY + 0.02;
+        return Number.isFinite(baseY) ? baseY : fallbackY;
     }
 
     isChestPlacementClear(x, y, z) {

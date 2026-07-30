@@ -1071,7 +1071,9 @@ export class MapGenerator {
         addBox(12, 0.3, d, 2.5, 4.15, 0, floorMat, false, true);
         addBox(3.2, 0.3, 3.4, -4.9, 4.15, -1.4, floorMat, false, true);
         addBox(14, 0.3, d, -2, 8.35, 0, roofMat, false, true);
-        addBox(3.2, 0.3, 3.4, 5.8, 8.35, 1.4, roofMat, false, true);
+        addBox(3.2, 0.3, 7, 6.4, 8.35, -3.5, roofMat, false, true);
+        addBox(3.2, 0.3, 4.2, 6.4, 8.35, 4.9, roofMat, false, true);
+        addBox(3.4, 0.3, 1.4, 6.4, 8.35, 2.3, roofMat, false, true);
 
         addBox(w, wallH, wallT, 0, wallH * 0.5, -d * 0.5, wallMat, true);
         addBox(wallT, wallH, d, -w * 0.5, wallH * 0.5, 0, wallMat, true);
@@ -2332,6 +2334,15 @@ export class MapGenerator {
         this.scene.add(towerSteps);
 
         const topY = towerHeight;
+        const roofCore = new THREE.Mesh(this.pool.getGeoBox(8, 0.5, 8), darkMat);
+        roofCore.position.set(towerCX, topY + 0.25, towerCZ);
+        roofCore.userData.mapGenerated = true;
+        roofCore.userData.walkable = true;
+        roofCore.userData.isTowerStructure = true;
+        roofCore.frustumCulled = false;
+        this.scene.add(roofCore);
+        const roofCoreCollider = this.addColliderBox(roofCore.position.clone(), 8, 0.5, 8, true);
+        roofCoreCollider.isTowerStructure = true;
         const roofSegmentCount = 20;
         const roofRadius = 6.2;
         const roofWidth = 4.5;

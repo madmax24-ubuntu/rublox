@@ -178,25 +178,20 @@ class Game {
 
     async enterFullscreen() {
         const root = document.getElementById('gameRoot') || document.documentElement;
-        
-        // Edge Legacy: msRequestFullscreen returns void, not a promise - just call it and return
+        if (document.fullscreenElement) return true;
         if (root.msRequestFullscreen) { 
             try { root.msRequestFullscreen(); } catch {} 
-            return;
+            return true;
         }
-
-        let fsPromise = null;
-        const reqFS = () => {
-            try { fsPromise = root.requestFullscreen?.(); } catch (e) { console.log('requestFullscreen:', e); }
-            if (!fsPromise && this.renderer?.domElement) {
-                try { fsPromise = this.renderer.domElement.requestFullscreen?.(); } catch {}
-            }
-        };
-        
-        reqFS(); // fire immediately
-        
-        const timeout = new Promise((resolve) => setTimeout(resolve, 50)); // max 50ms wait for fullscreen to resolve or fail
-        await Promise.race([timeout]); // always complete within 50ms regardless of promise state
+        const target = root.requestFullscreen ? root : this.renderer?.domElement;
+        if (!target?.requestFullscreen) return false;
+        try {
+            const result = target.requestFullscreen();
+            if (result?.then) await result;
+            return true;
+        } catch {
+            return false;
+        }
     }
 
     async lockOrientation() {
@@ -585,8 +580,10 @@ class Game {
     }
 
     setPaused(value) {
-        if (!value && this.isStarted && !document.fullscreenElement) {
-            this.enterFullscreen();
+        const needsFullscreen = !value && this.isStarted && !document.fullscreenElement;
+        let fullscreenRequest = null;
+        if (needsFullscreen) {
+            fullscreenRequest = this.enterFullscreen();
             if (this.isMobile()) this.lockOrientation();
         }
         this.isPaused = value;
@@ -605,7 +602,10 @@ class Game {
         }
         if (this.cameraController && !this.isMobile()) {
             if (this.isPaused && this.cameraController.isLocked) this.cameraController.unlock();
-            if (!this.isPaused && !this.cameraController.isLocked) this.cameraController.lock();
+            if (!this.isPaused && !this.cameraController.isLocked) {
+                if (fullscreenRequest) fullscreenRequest.finally(() => this.cameraController.lock());
+                else this.cameraController.lock();
+            }
         }
         if (!this.isPaused) {
             this.gameLoop?.resetDelta?.();
@@ -2130,9 +2130,8 @@ class Game {
                     bot.target = null;
                     bot.assistTarget = null;
                     bot.lootTarget = null;
-                    bot.patrolTarget.x = shelter.x;
-                    bot.patrolTarget.y = shelter.y;
-                    bot.patrolTarget.z = shelter.z;
+                    if (!bot.patrolTarget) bot.patrolTarget = new THREE.Vector3();
+                    bot.patrolTarget.copy(shelter);
                     bot.state = 'retreat';
                 }
                 if (this.radiationRainDamageActive) {
@@ -2990,4 +2989,3 @@ window.addEventListener('DOMContentLoaded', () => {
     bindStartButton(document.getElementById('startButtonMobileLandscape'));
     bindStartButton(document.getElementById('startButton'));
 });
-
