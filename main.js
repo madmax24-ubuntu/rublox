@@ -1,5 +1,6 @@
 ﻿import * as THREE from "three";
 import { CameraController } from './core/CameraController.js';
+import { yieldScheduler } from './core/YieldScheduler.js';
 
 const positionsSetSegment = (positions, index, x, y, z, length) => {
     positions[index] = x;
@@ -35,13 +36,13 @@ const smoothSetProgress = (increment, status) => {
     }
 };
 
-THREE.DefaultLoadingManager.onStart = function() {
+THREE.DefaultLoadingManager.onStart = () => {
     if (document.body?.classList?.contains('game-started')) return;
     if (loadingOverlay) loadingOverlay.style.display = 'flex';
     setLoadingProgress(0.05);
 };
 
-THREE.DefaultLoadingManager.onProgress = function(url, loaded, total) {
+THREE.DefaultLoadingManager.onProgress = (_, loaded, total) => {
     if (document.body?.classList?.contains('game-started')) return;
     if (total > 0) {
         setLoadingProgress(loaded / total);
@@ -50,7 +51,7 @@ THREE.DefaultLoadingManager.onProgress = function(url, loaded, total) {
     }
 };
 
-THREE.DefaultLoadingManager.onLoad = function() {
+THREE.DefaultLoadingManager.onLoad = () => {
     setLoadingProgress(1);
     if (loadingOverlay) {
         setTimeout(() => {
@@ -69,7 +70,7 @@ import { AudioSynth } from './core/AudioSynth.js';
 import { Player } from './entities/Player.js';
 import { Bot } from './entities/Bot.js';
 import { BotBrain } from './entities/BotBrain.js';
-import { Zombie } from './entities/Zombie.js';
+import { Zombie as _Zombie } from './entities/Zombie.js';
 import { ZombiePool } from './entities/ZombiePool.js';
 import { ExplosiveBarrel } from './entities/ExplosiveBarrel.js';
 import { EntityManager } from './entities/EntityManager.js';
@@ -94,6 +95,9 @@ class Game {
         this._frustumBox = new THREE.Box3();
         this._tmpSafeZone = new THREE.Vector3();
         this.initialized = false;
+        // YieldScheduler для предотвращения фризов >1ms
+        this.yieldScheduler = yieldScheduler;
+        this.yieldScheduler.setYieldBudget(4);
         this.ready = this.initializeGame().then(() => {
             this.initialized = true;
             document.dispatchEvent(new CustomEvent('gameReady'));
@@ -621,49 +625,38 @@ class Game {
     }
 
     spawnBots() {
-        const botCount = this.isMobile()
-            ? GAME_CONFIG.bots.mobileCount
-            : GAME_CONFIG.bots.desktopCount;
-        const spawnPads = this.map.getSpawnPads?.() || [];
-        const spawnRadius = GAME_CONFIG.bots.spawnRadius;
         // Player uses pad[0], bots use pads[1..] — each entity gets strictly its own pad
+        const spawnPads = this.map.getSpawnPads?.() || [];
         const botPads = spawnPads.length > 1 ? spawnPads.slice(1) : spawnPads;
-        console.log(`[SpawnDebug] Total pads=${spawnPads.length} BotPads=${botPads.length} First=(${spawnPads[0]?.x.toFixed(1)}, ${spawnPads[0]?.z.toFixed(1)}) Second=(${spawnPads[1]?.x.toFixed(1)}, ${spawnPads[1]?.z.toFixed(1)}) Last=(${spawnPads[spawnPads.length-1]?.x.toFixed(1)}, ${spawnPads[spawnPads.length-1]?.z.toFixed(1)})`);
 
-        for (let i = 0; i < botCount; i++) {
-            let spawnPos;
-            if (botPads.length) {
-                // Each bot gets its own pad, no cycling, no offsets
-                const pad = botPads[i];
-                if (!pad) break;
+        // YieldScheduler: разбиваем спавн ботов на чанки для предотвращения фризов
+        this.yieldScheduler.registerTask('spawnBots', (pad, index) => {
+            const botHeight = 1.7;
+            const spawnPos = new THREE.Vector3(pad.x, pad.y + botHeight, pad.z);
 
-                // Bots spawn ON the pad surface (pad.y = platform surface y=2)
-                const botHeight = 1.7;
-                spawnPos = new THREE.Vector3(pad.x, pad.y + botHeight, pad.z);
-                if (i < 3) console.log(`[SpawnDebug] Bot ${i}: pad=(${pad.x.toFixed(2)}, ${pad.z.toFixed(2)}) spawn=(${spawnPos.x.toFixed(2)}, ${spawnPos.z.toFixed(2)}) distFromCenter=${Math.sqrt(pad.x*pad.x + pad.z*pad.z).toFixed(2)}`);
-            } else {
-                const angle = (i / botCount) * Math.PI * 2;
-                spawnPos = new THREE.Vector3(
-                    Math.cos(angle) * spawnRadius,
-                    2 + 1.9,
-                    Math.sin(angle) * spawnRadius
-                );
-            }
-
-            const bot = new Bot(this.scene, i, spawnPos);
+            const bot = new Bot(this.scene, index, spawnPos);
             bot.mapRef = this.map;
             bot.physics.onGround = true;
             bot.isFrozen = true;
             bot.state = 'spawn';
             bot.target = null;
             bot.patrolTarget = null;
-            // Start pre-loot phase early — bots can loot during countdown
             bot.noCombatUntil = performance.now() + this.botLootPhaseDuration * 1000;
             bot.pickupLoot?.({ type: 'weapon', weaponType: 'knife' });
             this.physics.addEntity(bot);
             this.entityManager.addEntity(bot);
             this.bots.push(bot);
-        }
+
+            if (index < 3) {
+                console.log(`[SpawnDebug] Bot ${index}: spawn=(${spawnPos.x.toFixed(2)}, ${spawnPos.z.toFixed(2)}) distFromCenter=${Math.sqrt(pad.x*pad.x + pad.z*pad.z).toFixed(2)}`);
+            }
+        }, { priority: 'HIGH', chunkSize: 5, onComplete: () => this._onBotsSpawned() });
+
+        // Запускаем спавн с yield-контролем
+        this.yieldScheduler.startTask('spawnBots', botPads);
+    }
+
+    _onBotsSpawned() {
         this.setupBotLodBatch();
     }
 
@@ -1749,7 +1742,7 @@ class Game {
         this.zone.shrinkSpeed = 0;
     }
 
-    updateZoneCycle(delta) {
+    updateZoneCycle(_) {
         // Zone shrinking disabled - zone stays at full size
         return;
     }
@@ -1919,7 +1912,6 @@ class Game {
                 job.remaining -= batch;
                 if (job.remaining <= 0) this.pendingPoiBursts.shift();
                 operations++;
-                continue;
             }
         }
         this.spawnBurstCooldown = this.isMobile() ? 0.12 : 0.08;
@@ -2712,47 +2704,31 @@ class Game {
         const baseCount = Math.min(48, Math.max(16, Math.floor(floorTiles.length / 140)));
         const maxAlive = Math.min(capOverride ?? (reset ? 104 : 180), this.isMobile() ? 72 : 104);
         const aliveNow = this.zombies.filter(z => z?.isAlive).length;
-        let count = Math.min(
+        const count = Math.min(
             Math.max(0, maxAlive - aliveNow),
             forceCount ?? Math.max(reset ? 16 : 8, Math.floor(baseCount * (this.modeConfig?.zombieMultiplier || 1) * multiplier))
         );
         if (count <= 0) return 0;
 
-        let spawned = 0;
-        let attempts = 0;
-        const attemptLimit = Math.max(48, floorTiles.length * 2);
-        while (spawned < count && attempts < attemptLimit) {
-            const biomePools = this.zombieSpawnCandidatesByBiome;
-            const balanced = biomePools?.length === 4 && biomePools.every(pool => pool.length > 0);
-            let tile;
-            if (balanced) {
-                const biomeIndex = this.zombieSpawnBiomeCursor % 4;
-                const pool = biomePools[biomeIndex];
-                const cursor = this.zombieSpawnBiomeCursors[biomeIndex] % pool.length;
-                tile = pool[cursor];
-                this.zombieSpawnBiomeCursors[biomeIndex] = (cursor + 1) % pool.length;
-                this.zombieSpawnBiomeCursor = (biomeIndex + 1) % 4;
-            } else {
-                tile = floorTiles[this.zombieSpawnCursor % floorTiles.length];
-                this.zombieSpawnCursor = (this.zombieSpawnCursor + 1) % floorTiles.length;
-            }
-            attempts++;
-            if (spawned >= count) break;
-            if (!this.isBiomeZombieSpawnPoint(tile.x, tile.z)) continue;
+        // YieldScheduler: разбиваем спавн зомби на чанки
+        this.yieldScheduler.registerTask('spawnZombies', (tile) => {
+            if (!this.isBiomeZombieSpawnPoint(tile.x, tile.z)) return true;
             const baseY = this.map.raycastGroundY?.(
                 tile.x,
                 tile.z,
                 this.map.getSurfaceHeightAt?.(tile.x, tile.z) ?? this.map.getHeightAt?.(tile.x, tile.z) ?? 0
             ) ?? 0;
             const pos = new THREE.Vector3(tile.x, baseY + 1.8, tile.z);
-            if (pos.distanceTo(this.player.position) < (reset ? 20 : 24)) continue;
-            if (!this.map.isWalkableAt?.(tile.x, tile.z)) continue;
-            if (!this.canSpawnZombieAt(tile.x, tile.z)) continue;
+            if (pos.distanceTo(this.player.position) < (reset ? 20 : 24)) return true;
+            if (!this.map.isWalkableAt?.(tile.x, tile.z)) return true;
+            if (!this.canSpawnZombieAt(tile.x, tile.z)) return true;
             const zombie = this.zombiePool.acquire(pos, forcedVariant);
             this.zombies.push(zombie);
-            spawned++;
-        }
-        return spawned;
+            return this.yieldScheduler.yieldPoint();
+        }, { priority: 'HIGH', chunkSize: 3, onComplete: () => console.log('[Spawn] Zombies spawned with yield-optimization') });
+
+        this.yieldScheduler.startTask('spawnZombies', floorTiles.slice(0, count * 3));
+        return count;
     }
 
     render() {
