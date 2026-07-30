@@ -276,7 +276,7 @@ export class Physics {
             const sin = Math.sin(obb.rotation);
             const localX = dx * cos - dz * sin;
             const localZ = dx * sin + dz * cos;
-            const clearance = radius * 0.15; // Reduced from 0.35 to prevent edge exclusion
+            const clearance = radius * 0.35;
             return Math.abs(localX) <= Math.max(0.02, obb.halfWidth - clearance)
                 && Math.abs(localZ) <= Math.max(0.02, obb.halfDepth - clearance);
         }
@@ -284,7 +284,7 @@ export class Physics {
         if (!circle) return true;
         const dx = x - circle.x;
         const dz = z - circle.z;
-        const limit = Math.max(0, circle.radius - radius * 0.15); // Reduced from 0.35
+        const limit = Math.max(0, circle.radius - radius * 0.35);
         return dx * dx + dz * dz <= limit * limit;
     }
 
@@ -321,19 +321,12 @@ export class Physics {
                 if (bottom > max.y + 0.3) continue;
 
                 if (box.walkable) {
-                    if (!this._containsWalkableSurface(box, pos.x, pos.z, baseRadius * 0.35)) continue;
-                    // Skip if bot is already standing ON this surface (not stepping up)
+                    if (!this._containsWalkableSurface(box, pos.x, pos.z, baseRadius)) continue;
                     if (bottom >= max.y - 0.05) continue;
                     const stepHeight = max.y - bottom;
-                    // Removed ground-level constraint so entities can climb stairs from ground
-                    if (stepHeight > 0.02 && stepHeight <= 0.95) {
-                        pos.y = max.y + (entity.physics?.height || 1.7);
-                        entity.physics.onGround = true;
-                        if (entity.physics.velocity) entity.physics.velocity.y = 0;
-                        continue;
-                    }
-                    // Downward step: bot is above this surface and needs to drop down
-                    if (stepHeight < -0.02 && stepHeight >= -0.78 && pos.y > max.y + 0.1) {
+                    const stepReach = box.isTowerStair || box.isBiomeEntrance ? 0.78 : 0.65;
+                    const canStep = entity.physics.onGround && (entity.physics.velocity?.y || 0) <= 0.01;
+                    if (canStep && stepHeight > 0.02 && stepHeight <= stepReach) {
                         pos.y = max.y + (entity.physics?.height || 1.7);
                         entity.physics.onGround = true;
                         if (entity.physics.velocity) entity.physics.velocity.y = 0;
