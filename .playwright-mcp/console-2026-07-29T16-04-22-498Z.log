@@ -1,0 +1,41 @@
+[     141ms] [LOG] [initGame] START, isMobile: false @ http://localhost:3001/main.js?v=1785341062512:289
+[     141ms] [LOG] [initGame] creating scene... @ http://localhost:3001/main.js?v=1785341062512:292
+[     142ms] [LOG] [initGame] scene created: true @ http://localhost:3001/main.js?v=1785341062512:294
+[     192ms] [LOG] [NodePad] Pad 0: pos=(46.00, 0.00) data=(46.00, 0.00) @ http://localhost:3001/world/MapGeneratorNode.js?v=1783108959290:369
+[     192ms] [LOG] [NodePad] Pad 1: pos=(45.91, -2.89) data=(45.91, -2.89) @ http://localhost:3001/world/MapGeneratorNode.js?v=1783108959290:369
+[     197ms] [LOG] [MapGenSync] Synced 100 pads from node, first=(46.0, 0.0) second=(45.9, -2.9) @ http://localhost:3001/world/MapGenerator.js:637
+[     290ms] [LOG] [MapGenerator] Before filter: 100 pads, first: (46.0, 0.0) @ http://localhost:3001/world/MapGenerator.js:5169
+[     290ms] [LOG] [MapGenerator] After filter: 100 pads, first: (46.0, 0.0) second: (45.9, -2.9) @ http://localhost:3001/world/MapGenerator.js:5205
+[     295ms] [LOG] [InstancedMesh] Collected 1757 candidate meshes @ http://localhost:3001/world/InstancedMeshSystem.js:24
+[     295ms] [LOG] [InstancedMesh] Skipped: noMapGen=0, culled=0, aniInt=276, noGeoKey=0, matKey=0 @ http://localhost:3001/world/InstancedMeshSystem.js:25
+[     320ms] [LOG] [InstancedMesh] Groups: 505, Replaced: 1409, Skipped(<2): 348 @ http://localhost:3001/world/InstancedMeshSystem.js:104
+[     320ms] [LOG] [MapGenerator] InstancedMesh: 1409 meshes merged into 157 InstancedMesh (total before: 1005, after: 944) @ http://localhost:3001/world/MapGenerator.js:178
+[     342ms] [LOG] [LootManager] generateChestsAsync: floorTiles=100, spots=40, chestCount=120 @ http://localhost:3001/items/LootManager.js:257
+[     369ms] [LOG] [Player] selectSlot: slot=0 weapon=knife mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:833
+[     369ms] [LOG] [Player] selectSlot: attached weapon knife to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:846
+[     369ms] [LOG] [Player] updateViewWeapon: currentWeapon=knife fists=fists fpArmsVisible=false @ http://localhost:3001/entities/Player.js:1201
+[     369ms] [LOG] [Player] animateViewModelWeapon ENTER type=knife @ http://localhost:3001/entities/Player.js:1130
+[     370ms] [LOG] [Player] Weapon created: type=knife mesh=exists @ http://localhost:3001/entities/Player.js:1156
+[     370ms] [LOG] [Player] updateViewWeapon: currentWeapon=knife fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1201
+[     371ms] [LOG] [SpawnDebug] Total pads=100 BotPads=99 First=(46.0, 0.0) Second=(45.9, -2.9) Last=(45.9, 2.9) @ http://localhost:3001/main.js?v=1785341062512:621
+[     371ms] [LOG] [SpawnDebug] Bot 0: pad=(45.91, -2.89) spawn=(45.91, -2.89) distFromCenter=46.00 @ http://localhost:3001/main.js?v=1785341062512:633
+[     372ms] [LOG] [SpawnDebug] Bot 1: pad=(45.64, -5.77) spawn=(45.64, -5.77) distFromCenter=46.00 @ http://localhost:3001/main.js?v=1785341062512:633
+[     373ms] [LOG] [SpawnDebug] Bot 2: pad=(45.19, -8.62) spawn=(45.19, -8.62) distFromCenter=46.00 @ http://localhost:3001/main.js?v=1785341062512:633
+[     400ms] [LOG] [initGame] done: true true true @ http://localhost:3001/main.js?v=1785341062512:570
+[     411ms] [LOG] [LootManager] floorTiles path: created 40 chests @ http://localhost:3001/items/LootManager.js:299
+[     411ms] [LOG] [LootManager] random fallback path, chestCount=120 @ http://localhost:3001/items/LootManager.js:308
+[     660ms] [LOG] [LootManager] random fallback: created 120 chests @ http://localhost:3001/items/LootManager.js:336
+[     661ms] [LOG] [LootManager] Generated 120 chests @ http://localhost:3001/items/LootManager.js:44
+[     691ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/favicon.ico:0
+[    2556ms] [WARNING] Failed to execute 'requestFullscreen' on 'Element': API can only be initiated by a user gesture. @ http://localhost:3001/:0
+[    2573ms] The root document of this element is not valid for pointer lock.
+[    2574ms] Permissions check failed
+[    2860ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/favicon.ico:0
+[    3262ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[    5470ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[    7630ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[    9967ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   12074ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   14234ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   16354ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   18811ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240

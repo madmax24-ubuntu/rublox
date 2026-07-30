@@ -1,0 +1,109 @@
+[     290ms] [LOG] [initGame] START, isMobile: false @ http://localhost:3001/main.js?v=1785343569367:289
+[     291ms] [LOG] [initGame] creating scene... @ http://localhost:3001/main.js?v=1785343569367:292
+[     291ms] [LOG] [initGame] scene created: true @ http://localhost:3001/main.js?v=1785343569367:294
+[     497ms] [LOG] [NodePad] Pad 0: pos=(46.00, 0.00) data=(46.00, 0.00) @ http://localhost:3001/world/MapGeneratorNode.js?v=1783108959290:369
+[     497ms] [LOG] [NodePad] Pad 1: pos=(45.91, -2.89) data=(45.91, -2.89) @ http://localhost:3001/world/MapGeneratorNode.js?v=1783108959290:369
+[     512ms] [LOG] [MapGenSync] Synced 100 pads from node, first=(46.0, 0.0) second=(45.9, -2.9) @ http://localhost:3001/world/MapGenerator.js:637
+[     772ms] [LOG] [MapGenerator] Before filter: 100 pads, first: (46.0, 0.0) @ http://localhost:3001/world/MapGenerator.js:5169
+[     773ms] [LOG] [MapGenerator] After filter: 100 pads, first: (46.0, 0.0) second: (45.9, -2.9) @ http://localhost:3001/world/MapGenerator.js:5205
+[     787ms] [LOG] [InstancedMesh] Collected 1756 candidate meshes @ http://localhost:3001/world/InstancedMeshSystem.js:24
+[     787ms] [LOG] [InstancedMesh] Skipped: noMapGen=0, culled=0, aniInt=276, noGeoKey=0, matKey=0 @ http://localhost:3001/world/InstancedMeshSystem.js:25
+[     842ms] [LOG] [InstancedMesh] Groups: 505, Replaced: 1408, Skipped(<2): 348 @ http://localhost:3001/world/InstancedMeshSystem.js:104
+[     842ms] [LOG] [MapGenerator] InstancedMesh: 1408 meshes merged into 157 InstancedMesh (total before: 1004, after: 943) @ http://localhost:3001/world/MapGenerator.js:178
+[     891ms] [LOG] [LootManager] generateChestsAsync: floorTiles=100, spots=40, chestCount=120 @ http://localhost:3001/items/LootManager.js:257
+[    1750ms] [LOG] [Player] selectSlot: slot=0 weapon=knife mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:838
+[    1750ms] [LOG] [Player] selectSlot: attached weapon knife to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:851
+[    1750ms] [LOG] [Player] updateViewWeapon: currentWeapon=knife fists=fists fpArmsVisible=false @ http://localhost:3001/entities/Player.js:1211
+[    1750ms] [LOG] [Player] animateViewModelWeapon ENTER type=knife @ http://localhost:3001/entities/Player.js:1138
+[    2461ms] [LOG] [Player] Weapon created: type=knife mesh=exists @ http://localhost:3001/entities/Player.js:1164
+[    2463ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=null @ http://localhost:3001/entities/Player.js:811
+[    2463ms] [LOG] [Player] updateFirstPersonArmsVisibility: setting showArms=false weaponType=knife @ http://localhost:3001/entities/Player.js:824
+[    2463ms] [LOG] [Player] updateViewWeapon: currentWeapon=knife fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1211
+[    2465ms] [LOG] [SpawnDebug] Total pads=100 BotPads=99 First=(46.0, 0.0) Second=(45.9, -2.9) Last=(45.9, 2.9) @ http://localhost:3001/main.js?v=1785343569367:621
+[    2465ms] [LOG] [SpawnDebug] Bot 0: pad=(45.91, -2.89) spawn=(45.91, -2.89) distFromCenter=46.00 @ http://localhost:3001/main.js?v=1785343569367:633
+[    3206ms] [LOG] [SpawnDebug] Bot 1: pad=(45.64, -5.77) spawn=(45.64, -5.77) distFromCenter=46.00 @ http://localhost:3001/main.js?v=1785343569367:633
+[    3904ms] [LOG] [SpawnDebug] Bot 2: pad=(45.19, -8.62) spawn=(45.19, -8.62) distFromCenter=46.00 @ http://localhost:3001/main.js?v=1785343569367:633
+[   65679ms] [LOG] [initGame] done: true true true @ http://localhost:3001/main.js?v=1785343569367:570
+[   65703ms] [LOG] [LootManager] floorTiles path: created 40 chests @ http://localhost:3001/items/LootManager.js:299
+[   65703ms] [LOG] [LootManager] random fallback path, chestCount=120 @ http://localhost:3001/items/LootManager.js:308
+[   65775ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   67150ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   67396ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   67754ms] [LOG] [LootManager] random fallback: created 120 chests @ http://localhost:3001/items/LootManager.js:336
+[   67755ms] [LOG] [LootManager] Generated 120 chests @ http://localhost:3001/items/LootManager.js:44
+[   67756ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   68031ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   68363ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   68844ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   69208ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   69846ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   69955ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   70193ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   70408ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   70458ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   70530ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   70588ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   70674ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   70770ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   70863ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   70929ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   71037ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   71100ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   71164ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   71256ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   71476ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   71868ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   72238ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   72350ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   72476ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   74173ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   75116ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   75180ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   75318ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   75427ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   75552ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   75639ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   75741ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   75887ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   76013ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   76101ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   76234ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   76394ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   76533ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   76630ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   76686ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   76859ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   76945ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   77024ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   77083ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   77159ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   77290ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   77393ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   77643ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   77988ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   79069ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   79713ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   79858ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   80046ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   80151ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   80388ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   80657ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   81132ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   81444ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   81838ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   82170ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   82706ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   83068ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   83250ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   83853ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   84298ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   84428ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   84894ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   85109ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   86956ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[   98292ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[  111298ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[  112222ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[  113069ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[  113164ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811
+[  114096ms] [LOG] [Player] updateFirstPersonArmsVisibility: isFirstPerson=true currentWeapon=knife _lastArmWeaponType=knife @ http://localhost:3001/entities/Player.js:811

@@ -1,0 +1,48 @@
+- generic [ref=f8e1]:
+  - generic [ref=f8e4]:
+    - generic [ref=f8e5]:
+      - generic [ref=f8e6]: Официальный релиз
+      - generic [ref=f8e7]: Выживание
+    - heading "Rubo Arena" [level=1] [ref=f8e8]
+    - generic [ref=f8e9]: Голодные игры
+    - paragraph [ref=f8e10]: Выживание до последнего. Рандомная карта, лут из сундуков и перки прямо в бою.
+    - button "Начать игру" [ref=f8e11]
+    - generic [ref=f8e12]: Быстрый матч · Рандомная карта · Перки в бою
+    - generic [ref=f8e13]:
+      - generic [ref=f8e14]:
+        - generic [ref=f8e15]: WASD
+        - generic [ref=f8e16]: движение
+      - generic [ref=f8e17]:
+        - generic [ref=f8e18]: Мышь
+        - generic [ref=f8e19]: обзор
+      - generic [ref=f8e20]:
+        - generic [ref=f8e21]: Пробел
+        - generic [ref=f8e22]: прыжок
+      - generic [ref=f8e23]:
+        - generic [ref=f8e24]: ЛКМ
+        - generic [ref=f8e25]: атака
+      - generic [ref=f8e26]:
+        - generic [ref=f8e27]: E
+        - generic [ref=f8e28]: взаимодействие
+      - generic [ref=f8e29]:
+        - generic [ref=f8e30]: 1-0
+        - generic [ref=f8e31]: инвентарь
+      - generic [ref=f8e32]:
+        - generic [ref=f8e33]: P
+        - generic [ref=f8e34]: меню перков
+      - generic [ref=f8e35]:
+        - generic [ref=f8e36]: W/S
+        - generic [ref=f8e37]: выбор перка
+      - generic [ref=f8e38]:
+        - generic [ref=f8e39]: M
+        - generic [ref=f8e40]: пауза
+  - generic [ref=f8e41]:
+    - generic [ref=f8e42]: Выбор перка
+    - generic [ref=f8e43]: Перк выбирается один раз перед матчем и действует весь раунд.
+    - button "Быстрые руки" [ref=f8e44] [cursor=pointer]
+    - button "Тихий шаг" [ref=f8e45] [cursor=pointer]
+    - button "Больше патронов" [ref=f8e46] [cursor=pointer]
+    - button "Быстрый бег" [ref=f8e47] [cursor=pointer]
+    - button "Плотная кожа" [ref=f8e48] [cursor=pointer]
+    - button "Стабильный прицел" [ref=f8e49] [cursor=pointer]
+    - button "AUTO FIRE" [ref=f8e50] [cursor=pointer]

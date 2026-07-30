@@ -1,0 +1,53 @@
+- generic [ref=f9e1]:
+  - generic:
+    - generic:
+      - generic: "Игроков: 100"
+      - generic: "Зона: Безопасная"
+      - generic: "Перк: -"
+    - generic [ref=f9e51]:
+      - generic [ref=f9e52]:
+        - text: "1"
+        - generic [ref=f9e53]: "1"
+        - generic [ref=f9e54]: KNF
+      - generic [ref=f9e55]:
+        - text: "2"
+        - generic [ref=f9e56]: "2"
+      - generic [ref=f9e57]:
+        - text: "3"
+        - generic [ref=f9e58]: "3"
+      - generic [ref=f9e59]:
+        - text: "4"
+        - generic [ref=f9e60]: "4"
+      - generic [ref=f9e61]:
+        - text: "5"
+        - generic [ref=f9e62]: "5"
+      - generic [ref=f9e63]:
+        - text: "6"
+        - generic [ref=f9e64]: "6"
+      - generic [ref=f9e65]:
+        - text: "7"
+        - generic [ref=f9e66]: "7"
+      - generic [ref=f9e67]:
+        - text: "8"
+        - generic [ref=f9e68]: "8"
+      - generic [ref=f9e69]:
+        - text: "9"
+        - generic [ref=f9e70]: "9"
+      - generic [ref=f9e71]:
+        - text: "0"
+        - generic [ref=f9e72]: "0"
+    - generic: "10"
+    - generic: 104 FPS
+    - generic: M - ПАУЗА
+    - generic: "Нож: 80"
+    - generic [ref=f9e73] [cursor=pointer]: ПЕРК ДО СТАРТА
+  - generic [ref=f9e41]:
+    - generic [ref=f9e42]: Выбор перка
+    - generic [ref=f9e43]: Перк выбирается один раз перед матчем и действует весь раунд.
+    - button "Быстрые руки" [ref=f9e44] [cursor=pointer]
+    - button "Тихий шаг" [ref=f9e45] [cursor=pointer]
+    - button "Больше патронов" [ref=f9e46] [cursor=pointer]
+    - button "Быстрый бег" [ref=f9e47] [cursor=pointer]
+    - button "Плотная кожа" [ref=f9e48] [cursor=pointer]
+    - button "Стабильный прицел" [ref=f9e49] [cursor=pointer]
+    - button "AUTO FIRE" [ref=f9e50] [cursor=pointer]

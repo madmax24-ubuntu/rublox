@@ -1,0 +1,103 @@
+[     164ms] [LOG] [initGame] START, isMobile: false @ http://localhost:3001/main.js?v=1785341181317:289
+[     164ms] [LOG] [initGame] creating scene... @ http://localhost:3001/main.js?v=1785341181317:292
+[     164ms] [LOG] [initGame] scene created: true @ http://localhost:3001/main.js?v=1785341181317:294
+[     231ms] [LOG] [NodePad] Pad 0: pos=(46.00, 0.00) data=(46.00, 0.00) @ http://localhost:3001/world/MapGeneratorNode.js?v=1783108959290:369
+[     231ms] [LOG] [NodePad] Pad 1: pos=(45.91, -2.89) data=(45.91, -2.89) @ http://localhost:3001/world/MapGeneratorNode.js?v=1783108959290:369
+[     240ms] [LOG] [MapGenSync] Synced 100 pads from node, first=(46.0, 0.0) second=(45.9, -2.9) @ http://localhost:3001/world/MapGenerator.js:637
+[     410ms] [LOG] [MapGenerator] Before filter: 100 pads, first: (46.0, 0.0) @ http://localhost:3001/world/MapGenerator.js:5169
+[     411ms] [LOG] [MapGenerator] After filter: 100 pads, first: (46.0, 0.0) second: (45.9, -2.9) @ http://localhost:3001/world/MapGenerator.js:5205
+[     416ms] [LOG] [InstancedMesh] Collected 1757 candidate meshes @ http://localhost:3001/world/InstancedMeshSystem.js:24
+[     416ms] [LOG] [InstancedMesh] Skipped: noMapGen=0, culled=0, aniInt=276, noGeoKey=0, matKey=0 @ http://localhost:3001/world/InstancedMeshSystem.js:25
+[     450ms] [LOG] [InstancedMesh] Groups: 505, Replaced: 1409, Skipped(<2): 348 @ http://localhost:3001/world/InstancedMeshSystem.js:104
+[     450ms] [LOG] [MapGenerator] InstancedMesh: 1409 meshes merged into 157 InstancedMesh (total before: 1005, after: 944) @ http://localhost:3001/world/MapGenerator.js:178
+[     475ms] [LOG] [LootManager] generateChestsAsync: floorTiles=100, spots=40, chestCount=120 @ http://localhost:3001/items/LootManager.js:257
+[     515ms] [LOG] [Player] selectSlot: slot=0 weapon=knife mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:834
+[     515ms] [LOG] [Player] selectSlot: attached weapon knife to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:847
+[     515ms] [LOG] [Player] updateViewWeapon: currentWeapon=knife fists=fists fpArmsVisible=false @ http://localhost:3001/entities/Player.js:1202
+[     516ms] [LOG] [Player] animateViewModelWeapon ENTER type=knife @ http://localhost:3001/entities/Player.js:1131
+[     516ms] [LOG] [Player] Weapon created: type=knife mesh=exists @ http://localhost:3001/entities/Player.js:1157
+[     517ms] [LOG] [Player] updateViewWeapon: currentWeapon=knife fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1202
+[     517ms] [LOG] [SpawnDebug] Total pads=100 BotPads=99 First=(46.0, 0.0) Second=(45.9, -2.9) Last=(45.9, 2.9) @ http://localhost:3001/main.js?v=1785341181317:621
+[     518ms] [LOG] [SpawnDebug] Bot 0: pad=(45.91, -2.89) spawn=(45.91, -2.89) distFromCenter=46.00 @ http://localhost:3001/main.js?v=1785341181317:633
+[     519ms] [LOG] [SpawnDebug] Bot 1: pad=(45.64, -5.77) spawn=(45.64, -5.77) distFromCenter=46.00 @ http://localhost:3001/main.js?v=1785341181317:633
+[     520ms] [LOG] [SpawnDebug] Bot 2: pad=(45.19, -8.62) spawn=(45.19, -8.62) distFromCenter=46.00 @ http://localhost:3001/main.js?v=1785341181317:633
+[     574ms] [LOG] [initGame] done: true true true @ http://localhost:3001/main.js?v=1785341181317:570
+[     599ms] [LOG] [LootManager] floorTiles path: created 40 chests @ http://localhost:3001/items/LootManager.js:299
+[     599ms] [LOG] [LootManager] random fallback path, chestCount=120 @ http://localhost:3001/items/LootManager.js:308
+[     951ms] [LOG] [LootManager] random fallback: created 120 chests @ http://localhost:3001/items/LootManager.js:336
+[     952ms] [LOG] [LootManager] Generated 120 chests @ http://localhost:3001/items/LootManager.js:44
+[    1597ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[    2569ms] [LOG] [Player] viewWeapon pos=0.25,-0.33,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[    3081ms] [WARNING] Failed to execute 'requestFullscreen' on 'Element': API can only be initiated by a user gesture. @ http://localhost:3001/:0
+[    3081ms] [LOG] [Cam] pointerlockchange isLocked=true @ http://localhost:3001/core/CameraController.js:47
+[    3084ms] Permissions check failed
+[    3474ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/favicon.ico:0
+[    3758ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[    5890ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[    5890ms] [LOG] [Cam] pitch=-14.3° yaw=0.0° @ http://localhost:3001/core/CameraController.js:252
+[    7987ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   10188ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   10188ms] [LOG] [Cam] pitch=-14.3° yaw=0.0° @ http://localhost:3001/core/CameraController.js:252
+[   12745ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   14834ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   14834ms] [LOG] [Cam] pitch=-14.3° yaw=0.0° @ http://localhost:3001/core/CameraController.js:252
+[   16952ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   19008ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   19119ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   19120ms] [LOG] [Cam] pitch=-14.3° yaw=0.0° @ http://localhost:3001/core/CameraController.js:252
+[   19522ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   20717ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   21324ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   22029ms] [LOG] [Player] viewWeapon pos=0.25,-0.35,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   22564ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   23664ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   23664ms] [LOG] [Cam] pitch=10.0° yaw=18.0° @ http://localhost:3001/core/CameraController.js:252
+[   24008ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   24425ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   24864ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   26196ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   27515ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   27605ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   27800ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   28488ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   28488ms] [LOG] [Cam] pitch=10.0° yaw=18.0° @ http://localhost:3001/core/CameraController.js:252
+[   28786ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   28967ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   29779ms] [LOG] [Player] viewWeapon pos=0.25,-0.35,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   29849ms] [LOG] [Player] viewWeapon pos=0.25,-0.35,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   30057ms] [LOG] [Player] viewWeapon pos=0.25,-0.35,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   30460ms] [LOG] [Player] viewWeapon pos=0.25,-0.35,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   30529ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   30571ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   30828ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   32639ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   32694ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   32974ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   32974ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   32974ms] [LOG] [Cam] pitch=10.0° yaw=18.0° @ http://localhost:3001/core/CameraController.js:252
+[   33397ms] [LOG] [Player] viewWeapon pos=0.25,-0.33,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   34915ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   35390ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   36803ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   37102ms] [LOG] [Player] viewWeapon pos=0.25,-0.35,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   37612ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   37612ms] [LOG] [Cam] pitch=10.0° yaw=18.0° @ http://localhost:3001/core/CameraController.js:252
+[   38156ms] [LOG] [Player] viewWeapon pos=0.25,-0.35,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   38598ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   39032ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   39775ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   39925ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   40515ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   40925ms] [LOG] [Player] viewWeapon pos=0.25,-0.33,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   41391ms] [LOG] [Player] viewWeapon pos=0.25,-0.33,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   41857ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   41857ms] [LOG] [Cam] pitch=10.0° yaw=18.0° @ http://localhost:3001/core/CameraController.js:252
+[   42227ms] [LOG] [Player] viewWeapon pos=0.25,-0.33,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   43085ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   43873ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   44329ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   44417ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   44585ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   45237ms] [LOG] [Player] viewWeapon pos=0.25,-0.35,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:737
+[   46849ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   46849ms] [LOG] [Cam] pitch=10.0° yaw=18.0° @ http://localhost:3001/core/CameraController.js:252

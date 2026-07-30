@@ -1,0 +1,48 @@
+- generic [ref=f17e1]:
+  - generic [ref=f17e4]:
+    - generic [ref=f17e5]:
+      - generic [ref=f17e6]: Официальный релиз
+      - generic [ref=f17e7]: Выживание
+    - heading "Rubo Arena" [level=1] [ref=f17e8]
+    - generic [ref=f17e9]: Голодные игры
+    - paragraph [ref=f17e10]: Выживание до последнего. Рандомная карта, лут из сундуков и перки прямо в бою.
+    - button "Начать игру" [ref=f17e11]
+    - generic [ref=f17e12]: Быстрый матч · Рандомная карта · Перки в бою
+    - generic [ref=f17e13]:
+      - generic [ref=f17e41]:
+        - generic [ref=f17e42]: WASD
+        - generic [ref=f17e43]: движение
+      - generic [ref=f17e44]:
+        - generic [ref=f17e45]: Мышь
+        - generic [ref=f17e46]: обзор
+      - generic [ref=f17e47]:
+        - generic [ref=f17e48]: Пробел
+        - generic [ref=f17e49]: прыжок
+      - generic [ref=f17e50]:
+        - generic [ref=f17e51]: ЛКМ
+        - generic [ref=f17e52]: атака
+      - generic [ref=f17e53]:
+        - generic [ref=f17e54]: E
+        - generic [ref=f17e55]: взаимодействие
+      - generic [ref=f17e56]:
+        - generic [ref=f17e57]: 1-0
+        - generic [ref=f17e58]: инвентарь
+      - generic [ref=f17e59]:
+        - generic [ref=f17e60]: P
+        - generic [ref=f17e61]: меню перков
+      - generic [ref=f17e62]:
+        - generic [ref=f17e63]: W/S
+        - generic [ref=f17e64]: выбор перка
+      - generic [ref=f17e65]:
+        - generic [ref=f17e66]: M
+        - generic [ref=f17e67]: пауза
+  - generic [ref=f17e68]:
+    - generic [ref=f17e69]: Выбор перка
+    - generic [ref=f17e70]: Перк выбирается один раз перед матчем и действует весь раунд.
+    - button "Быстрые руки" [ref=f17e71] [cursor=pointer]
+    - button "Тихий шаг" [ref=f17e72] [cursor=pointer]
+    - button "Больше патронов" [ref=f17e73] [cursor=pointer]
+    - button "Быстрый бег" [ref=f17e74] [cursor=pointer]
+    - button "Плотная кожа" [ref=f17e75] [cursor=pointer]
+    - button "Стабильный прицел" [ref=f17e76] [cursor=pointer]
+    - button "AUTO FIRE" [ref=f17e77] [cursor=pointer]

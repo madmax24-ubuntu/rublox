@@ -1,0 +1,81 @@
+[     161ms] [LOG] [initGame] START, isMobile: false @ http://localhost:3001/main.js?v=1785341081874:289
+[     161ms] [LOG] [initGame] creating scene... @ http://localhost:3001/main.js?v=1785341081874:292
+[     161ms] [LOG] [initGame] scene created: true @ http://localhost:3001/main.js?v=1785341081874:294
+[     227ms] [LOG] [NodePad] Pad 0: pos=(46.00, 0.00) data=(46.00, 0.00) @ http://localhost:3001/world/MapGeneratorNode.js?v=1783108959290:369
+[     227ms] [LOG] [NodePad] Pad 1: pos=(45.91, -2.89) data=(45.91, -2.89) @ http://localhost:3001/world/MapGeneratorNode.js?v=1783108959290:369
+[     233ms] [LOG] [MapGenSync] Synced 100 pads from node, first=(46.0, 0.0) second=(45.9, -2.9) @ http://localhost:3001/world/MapGenerator.js:637
+[     356ms] [LOG] [MapGenerator] Before filter: 100 pads, first: (46.0, 0.0) @ http://localhost:3001/world/MapGenerator.js:5169
+[     356ms] [LOG] [MapGenerator] After filter: 100 pads, first: (46.0, 0.0) second: (45.9, -2.9) @ http://localhost:3001/world/MapGenerator.js:5205
+[     361ms] [LOG] [InstancedMesh] Collected 1756 candidate meshes @ http://localhost:3001/world/InstancedMeshSystem.js:24
+[     361ms] [LOG] [InstancedMesh] Skipped: noMapGen=0, culled=0, aniInt=276, noGeoKey=0, matKey=0 @ http://localhost:3001/world/InstancedMeshSystem.js:25
+[     387ms] [LOG] [InstancedMesh] Groups: 505, Replaced: 1408, Skipped(<2): 348 @ http://localhost:3001/world/InstancedMeshSystem.js:104
+[     387ms] [LOG] [MapGenerator] InstancedMesh: 1408 meshes merged into 157 InstancedMesh (total before: 1004, after: 943) @ http://localhost:3001/world/MapGenerator.js:178
+[     407ms] [LOG] [LootManager] generateChestsAsync: floorTiles=100, spots=40, chestCount=120 @ http://localhost:3001/items/LootManager.js:257
+[     438ms] [LOG] [Player] selectSlot: slot=0 weapon=knife mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:834
+[     438ms] [LOG] [Player] selectSlot: attached weapon knife to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:847
+[     438ms] [LOG] [Player] updateViewWeapon: currentWeapon=knife fists=fists fpArmsVisible=false @ http://localhost:3001/entities/Player.js:1202
+[     439ms] [LOG] [Player] animateViewModelWeapon ENTER type=knife @ http://localhost:3001/entities/Player.js:1131
+[     439ms] [LOG] [Player] Weapon created: type=knife mesh=exists @ http://localhost:3001/entities/Player.js:1157
+[     440ms] [LOG] [Player] updateViewWeapon: currentWeapon=knife fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1202
+[     440ms] [LOG] [SpawnDebug] Total pads=100 BotPads=99 First=(46.0, 0.0) Second=(45.9, -2.9) Last=(45.9, 2.9) @ http://localhost:3001/main.js?v=1785341081874:621
+[     440ms] [LOG] [SpawnDebug] Bot 0: pad=(45.91, -2.89) spawn=(45.91, -2.89) distFromCenter=46.00 @ http://localhost:3001/main.js?v=1785341081874:633
+[     442ms] [LOG] [SpawnDebug] Bot 1: pad=(45.64, -5.77) spawn=(45.64, -5.77) distFromCenter=46.00 @ http://localhost:3001/main.js?v=1785341081874:633
+[     443ms] [LOG] [SpawnDebug] Bot 2: pad=(45.19, -8.62) spawn=(45.19, -8.62) distFromCenter=46.00 @ http://localhost:3001/main.js?v=1785341081874:633
+[     481ms] [LOG] [initGame] done: true true true @ http://localhost:3001/main.js?v=1785341081874:570
+[     489ms] [LOG] [LootManager] floorTiles path: created 40 chests @ http://localhost:3001/items/LootManager.js:299
+[     489ms] [LOG] [LootManager] random fallback path, chestCount=120 @ http://localhost:3001/items/LootManager.js:308
+[     780ms] [LOG] [LootManager] random fallback: created 120 chests @ http://localhost:3001/items/LootManager.js:336
+[     780ms] [LOG] [LootManager] Generated 120 chests @ http://localhost:3001/items/LootManager.js:44
+[     843ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[    2213ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[    2685ms] [WARNING] Failed to execute 'requestFullscreen' on 'Element': API can only be initiated by a user gesture. @ http://localhost:3001/:0
+[    2703ms] The root document of this element is not valid for pointer lock.
+[    2706ms] Permissions check failed
+[    3033ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/favicon.ico:0
+[    3825ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[    5909ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[    7992ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   10101ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   12405ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   14589ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   16689ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   18098ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[   18712ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[   19023ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   19882ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[   20528ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[   20786ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[   21425ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   23301ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[   23473ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[   24038ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   24087ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[   24101ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[   25028ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[   25826ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[   26382ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   27319ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[   27368ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[   28604ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   30633ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[   30708ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   30848ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[   31736ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[   32139ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[   32828ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[   32909ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   33880ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[   34516ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[   34647ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[   35229ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   35391ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[   36215ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[   37007ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[   37430ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   38014ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[   38277ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[   38532ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[   38987ms] [LOG] [Cam] pointerlockchange isLocked=true @ http://localhost:3001/core/CameraController.js:47
+[   39201ms] [LOG] [Player] UPDATE isFirstPerson=true fpArms=true viewWeapon=exists @ http://localhost:3001/entities/Player.js:516
+[   39562ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   40186ms] [LOG] [Cam] pointerlockchange isLocked=false @ http://localhost:3001/core/CameraController.js:47

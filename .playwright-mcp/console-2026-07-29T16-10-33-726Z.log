@@ -1,0 +1,440 @@
+[       6ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=NaN,NaN,NaN visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[       6ms] [LOG] [Weapon] applyToMesh: recoilAngle=0.1 swayX=0 swayY=0 time=24.158299999999834 baseRot={x:undefined,y:undefined,z:undefined} type=object @ http://localhost:3001/items/Weapon.js:220
+[     162ms] [LOG] [initGame] START, isMobile: false @ http://localhost:3001/main.js?v=1785341433736:289
+[     163ms] [LOG] [initGame] creating scene... @ http://localhost:3001/main.js?v=1785341433736:292
+[     163ms] [LOG] [initGame] scene created: true @ http://localhost:3001/main.js?v=1785341433736:294
+[     218ms] [LOG] [NodePad] Pad 0: pos=(46.00, 0.00) data=(46.00, 0.00) @ http://localhost:3001/world/MapGeneratorNode.js?v=1783108959290:369
+[     218ms] [LOG] [NodePad] Pad 1: pos=(45.91, -2.89) data=(45.91, -2.89) @ http://localhost:3001/world/MapGeneratorNode.js?v=1783108959290:369
+[     226ms] [LOG] [MapGenSync] Synced 100 pads from node, first=(46.0, 0.0) second=(45.9, -2.9) @ http://localhost:3001/world/MapGenerator.js:637
+[     345ms] [LOG] [MapGenerator] Before filter: 100 pads, first: (46.0, 0.0) @ http://localhost:3001/world/MapGenerator.js:5169
+[     346ms] [LOG] [MapGenerator] After filter: 100 pads, first: (46.0, 0.0) second: (45.9, -2.9) @ http://localhost:3001/world/MapGenerator.js:5205
+[     352ms] [LOG] [InstancedMesh] Collected 1757 candidate meshes @ http://localhost:3001/world/InstancedMeshSystem.js:24
+[     352ms] [LOG] [InstancedMesh] Skipped: noMapGen=0, culled=0, aniInt=276, noGeoKey=0, matKey=0 @ http://localhost:3001/world/InstancedMeshSystem.js:25
+[     380ms] [LOG] [InstancedMesh] Groups: 505, Replaced: 1409, Skipped(<2): 348 @ http://localhost:3001/world/InstancedMeshSystem.js:104
+[     380ms] [LOG] [MapGenerator] InstancedMesh: 1409 meshes merged into 157 InstancedMesh (total before: 1005, after: 944) @ http://localhost:3001/world/MapGenerator.js:178
+[     418ms] [LOG] [LootManager] generateChestsAsync: floorTiles=100, spots=40, chestCount=120 @ http://localhost:3001/items/LootManager.js:257
+[     483ms] [LOG] [Player] selectSlot: slot=0 weapon=knife mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:843
+[     483ms] [LOG] [Player] selectSlot: attached weapon knife to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:856
+[     483ms] [LOG] [Player] updateViewWeapon: currentWeapon=knife fists=fists fpArmsVisible=false @ http://localhost:3001/entities/Player.js:1217
+[     483ms] [LOG] [Player] animateViewModelWeapon ENTER type=knife @ http://localhost:3001/entities/Player.js:1140
+[     484ms] [LOG] [Player] Weapon created: type=knife mesh=exists @ http://localhost:3001/entities/Player.js:1166
+[     484ms] [LOG] [Player] animateViewModelWeapon: viewClone created, hasRotation=yes rot=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:1175
+[     484ms] [LOG] [Player] animateViewModelWeapon: set rot=0.08,-1.57,0.08 offsetRot=0.08,-1.57,0.08 @ http://localhost:3001/entities/Player.js:1197
+[     485ms] [LOG] [Player] animateViewModelWeapon: baseRot= 0.08,-1.57,0.08 type=Euler @ http://localhost:3001/entities/Player.js:1203
+[     485ms] [LOG] [Player] updateViewWeapon: currentWeapon=knife fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[     485ms] [LOG] [SpawnDebug] Total pads=100 BotPads=99 First=(46.0, 0.0) Second=(45.9, -2.9) Last=(45.9, 2.9) @ http://localhost:3001/main.js?v=1785341433736:621
+[     486ms] [LOG] [SpawnDebug] Bot 0: pad=(45.91, -2.89) spawn=(45.91, -2.89) distFromCenter=46.00 @ http://localhost:3001/main.js?v=1785341433736:633
+[     487ms] [LOG] [SpawnDebug] Bot 1: pad=(45.64, -5.77) spawn=(45.64, -5.77) distFromCenter=46.00 @ http://localhost:3001/main.js?v=1785341433736:633
+[     488ms] [LOG] [SpawnDebug] Bot 2: pad=(45.19, -8.62) spawn=(45.19, -8.62) distFromCenter=46.00 @ http://localhost:3001/main.js?v=1785341433736:633
+[     527ms] [LOG] [initGame] done: true true true @ http://localhost:3001/main.js?v=1785341433736:570
+[     536ms] [LOG] [LootManager] floorTiles path: created 40 chests @ http://localhost:3001/items/LootManager.js:299
+[     536ms] [LOG] [LootManager] random fallback path, chestCount=120 @ http://localhost:3001/items/LootManager.js:308
+[     942ms] [LOG] [LootManager] random fallback: created 120 chests @ http://localhost:3001/items/LootManager.js:336
+[     943ms] [LOG] [LootManager] Generated 120 chests @ http://localhost:3001/items/LootManager.js:44
+[    1399ms] [LOG] [Player] anim: recoilAngle=0.1 swayX=0 swayY=0 time=0.591300000000745 @ http://localhost:3001/entities/Player.js:780
+[    1740ms] [LOG] [Player] after applyToMesh: rot=0.09,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[    1759ms] [LOG] [Player] after applyToMesh: rot=0.07,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[    2006ms] [LOG] [Player] after applyToMesh: rot=0.15,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[    2356ms] [LOG] [Player] anim: recoilAngle=0.1 swayX=0 swayY=0 time=1.5499000000003729 @ http://localhost:3001/entities/Player.js:780
+[    2387ms] [LOG] [Player] anim: recoilAngle=0.1 swayX=0 swayY=0 time=1.5804000000003728 @ http://localhost:3001/entities/Player.js:780
+[    2448ms] [LOG] [Player] anim: recoilAngle=0.1 swayX=0 swayY=0 time=1.6419000000003727 @ http://localhost:3001/entities/Player.js:780
+[    2599ms] [LOG] [Player] after applyToMesh: rot=0.06,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[    2662ms] [LOG] [Player] viewWeapon pos=0.25,-0.33,-0.80 rot=-0.00,-1.57,0.08 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[    2707ms] [LOG] [Player] after applyToMesh: rot=-0.02,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[    3001ms] [WARNING] Failed to execute 'requestFullscreen' on 'Element': API can only be initiated by a user gesture. @ http://localhost:3001/:0
+[    3004ms] [LOG] [Cam] pointerlockchange isLocked=true @ http://localhost:3001/core/CameraController.js:47
+[    3031ms] Permissions check failed
+[    3431ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/favicon.ico:0
+[    4551ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[    6992ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[    6992ms] [LOG] [Cam] pitch=-14.3° yaw=-0.1° @ http://localhost:3001/core/CameraController.js:252
+[    9108ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   11566ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   11566ms] [LOG] [Cam] pitch=-14.3° yaw=-0.1° @ http://localhost:3001/core/CameraController.js:252
+[   13663ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   15886ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   15886ms] [LOG] [Cam] pitch=-14.3° yaw=-0.1° @ http://localhost:3001/core/CameraController.js:252
+[   17166ms] [LOG] [selectPerk] DEBUG: event received CustomEvent @ http://localhost:3001/main.js?v=1785341433736:2838
+[   17167ms] [LOG] [selectPerk] Applied: quickHands @ http://localhost:3001/main.js?v=1785341433736:2859
+[   18102ms] [LOG] [Player] after applyToMesh: rot=0.17,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   18196ms] [LOG] [Player] after applyToMesh: rot=0.06,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   18523ms] [LOG] [CameraController] playerPos=47.48,4.04,-0.94 targetY=4.19 camPos=47.43,4.19,-0.92 @ http://localhost:3001/core/CameraController.js:240
+[   18546ms] [LOG] [Player] after applyToMesh: rot=0.15,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   18703ms] [LOG] [Player] after applyToMesh: rot=-0.02,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   18782ms] [LOG] [Player] anim: recoilAngle=0.23428000000044705 swayX=0 swayY=0 time=2.7992000000001886 @ http://localhost:3001/entities/Player.js:780
+[   18829ms] [LOG] [Player] after applyToMesh: rot=0.14,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   18909ms] [LOG] [Player] after applyToMesh: rot=0.24,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   18959ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   18981ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   19014ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   19114ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   19245ms] [LOG] [Player] viewWeapon pos=0.25,-0.33,-0.80 rot=0.08,-1.57,0.08 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   19301ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   19372ms] [LOG] [Player] anim: recoilAngle=0 swayX=0 swayY=0 time=3.3896000000005597 @ http://localhost:3001/entities/Player.js:780
+[   19868ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.88 rot=0.08,-1.57,-0.49 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   20054ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   20077ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   20341ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   20410ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.84 rot=0.08,-1.57,-0.23 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   20810ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   20929ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   20943ms] [LOG] [CameraController] playerPos=45.54,4.04,-19.22 targetY=4.19 camPos=45.55,4.19,-19.17 @ http://localhost:3001/core/CameraController.js:240
+[   20943ms] [LOG] [Cam] pitch=-3.1° yaw=8.0° @ http://localhost:3001/core/CameraController.js:252
+[   21087ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   21572ms] [LOG] [Player] viewWeapon pos=0.25,-0.35,-0.80 rot=0.08,-1.57,0.08 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   21572ms] [LOG] [Player] anim: recoilAngle=0 swayX=0 swayY=0 time=5.588800000000748 @ http://localhost:3001/entities/Player.js:780
+[   21582ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   21686ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   21888ms] [LOG] [Player] viewWeapon pos=0.25,-0.35,-0.80 rot=0.08,-1.57,0.08 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   21929ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   21944ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   22366ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   22380ms] [LOG] [Player] viewWeapon pos=0.25,-0.35,-0.80 rot=0.08,-1.57,0.08 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   22802ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   22850ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   22914ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   22956ms] [LOG] [Player] anim: recoilAngle=0 swayX=0 swayY=0 time=6.906100000000559 @ http://localhost:3001/entities/Player.js:780
+[   23148ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   23275ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   23322ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   23466ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   23545ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   23656ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   23690ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   24063ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   24101ms] [LOG] [CameraController] playerPos=45.22,4.04,-40.06 targetY=4.19 camPos=45.22,4.15,-39.98 @ http://localhost:3001/core/CameraController.js:240
+[   24109ms] [LOG] [Player] anim: recoilAngle=0 swayX=0 swayY=0 time=8.007200000000186 @ http://localhost:3001/entities/Player.js:780
+[   24153ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   24225ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   24336ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   24411ms] [LOG] [Player] anim: recoilAngle=0 swayX=0 swayY=0 time=8.308900000000373 @ http://localhost:3001/entities/Player.js:780
+[   24411ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   24522ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   24751ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   24961ms] [LOG] [Player] viewWeapon pos=0.25,-0.33,-0.80 rot=0.08,-1.57,0.08 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   24991ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   25094ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   25109ms] [LOG] [Player] anim: recoilAngle=0 swayX=0 swayY=0 time=9.006100000000563 @ http://localhost:3001/entities/Player.js:780
+[   25109ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   25179ms] [LOG] [Player] viewWeapon pos=0.25,-0.33,-0.80 rot=0.08,-1.57,0.08 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   25369ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   25463ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   25801ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   26122ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   26151ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   26276ms] [LOG] [Player] anim: recoilAngle=0 swayX=0 swayY=0 time=10.148600000000554 @ http://localhost:3001/entities/Player.js:780
+[   26400ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   26493ms] [LOG] [Player] anim: recoilAngle=0 swayX=0 swayY=0 time=10.36640000000037 @ http://localhost:3001/entities/Player.js:780
+[   26563ms] [LOG] [CameraController] playerPos=61.55,1.84,-41.35 targetY=1.99 camPos=61.47,1.99,-41.38 @ http://localhost:3001/core/CameraController.js:240
+[   26563ms] [LOG] [Cam] pitch=-12.6° yaw=-107.7° @ http://localhost:3001/core/CameraController.js:252
+[   26579ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   26586ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   26666ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   26850ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   27333ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   27546ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   27732ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   27750ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   27909ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   28063ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=0.08,-1.57,0.08 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   28214ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   28244ms] [LOG] [Player] updateViewWeapon: currentWeapon=knife fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   28267ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.80 rot=0.08,-1.57,0.08 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   28369ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   28439ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   28580ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   28685ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   28705ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   28714ms] [LOG] [Player] selectSlot: slot=1 weapon=shotgun mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:843
+[   28714ms] [LOG] [Player] selectSlot: detached old weapon knife @ http://localhost:3001/entities/Player.js:848
+[   28715ms] [LOG] [Player] selectSlot: attached weapon shotgun to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:856
+[   28715ms] [LOG] [Player] updateViewWeapon: currentWeapon=shotgun fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   28715ms] [LOG] [Player] animateViewModelWeapon ENTER type=shotgun @ http://localhost:3001/entities/Player.js:1140
+[   28715ms] [LOG] [Player] Weapon created: type=shotgun mesh=exists @ http://localhost:3001/entities/Player.js:1166
+[   28716ms] [LOG] [Player] animateViewModelWeapon: viewClone created, hasRotation=yes rot=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:1175
+[   28716ms] [LOG] [Player] animateViewModelWeapon: set rot=0.05,-1.57,-0.04 offsetRot=0.05,-1.57,-0.04 @ http://localhost:3001/entities/Player.js:1197
+[   28716ms] [LOG] [Player] animateViewModelWeapon: baseRot= 0.05,-1.57,-0.04 type=Euler @ http://localhost:3001/entities/Player.js:1203
+[   28730ms] [LOG] [Player] selectSlot: slot=1 weapon=shotgun mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:843
+[   28731ms] [LOG] [Player] selectSlot: detached old weapon shotgun @ http://localhost:3001/entities/Player.js:848
+[   28731ms] [LOG] [Player] selectSlot: attached weapon shotgun to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:856
+[   28731ms] [LOG] [Player] updateViewWeapon: currentWeapon=shotgun fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   28744ms] [LOG] [Player] selectSlot: slot=1 weapon=shotgun mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:843
+[   28744ms] [LOG] [Player] selectSlot: detached old weapon shotgun @ http://localhost:3001/entities/Player.js:848
+[   28744ms] [LOG] [Player] selectSlot: attached weapon shotgun to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:856
+[   28744ms] [LOG] [Player] updateViewWeapon: currentWeapon=shotgun fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   28755ms] [LOG] [Player] selectSlot: slot=1 weapon=shotgun mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:843
+[   28756ms] [LOG] [Player] selectSlot: detached old weapon shotgun @ http://localhost:3001/entities/Player.js:848
+[   28756ms] [LOG] [Player] selectSlot: attached weapon shotgun to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:856
+[   28756ms] [LOG] [Player] updateViewWeapon: currentWeapon=shotgun fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   28770ms] [LOG] [Player] selectSlot: slot=1 weapon=shotgun mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:843
+[   28770ms] [LOG] [Player] selectSlot: detached old weapon shotgun @ http://localhost:3001/entities/Player.js:848
+[   28770ms] [LOG] [Player] selectSlot: attached weapon shotgun to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:856
+[   28770ms] [LOG] [Player] updateViewWeapon: currentWeapon=shotgun fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   28784ms] [LOG] [Player] selectSlot: slot=1 weapon=shotgun mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:843
+[   28784ms] [LOG] [Player] selectSlot: detached old weapon shotgun @ http://localhost:3001/entities/Player.js:848
+[   28785ms] [LOG] [Player] selectSlot: attached weapon shotgun to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:856
+[   28785ms] [LOG] [Player] updateViewWeapon: currentWeapon=shotgun fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   28798ms] [LOG] [Player] selectSlot: slot=1 weapon=shotgun mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:843
+[   28798ms] [LOG] [Player] selectSlot: detached old weapon shotgun @ http://localhost:3001/entities/Player.js:848
+[   28798ms] [LOG] [Player] selectSlot: attached weapon shotgun to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:856
+[   28798ms] [LOG] [Player] updateViewWeapon: currentWeapon=shotgun fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   28811ms] [LOG] [Player] selectSlot: slot=1 weapon=shotgun mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:843
+[   28812ms] [LOG] [Player] selectSlot: detached old weapon shotgun @ http://localhost:3001/entities/Player.js:848
+[   28812ms] [LOG] [Player] selectSlot: attached weapon shotgun to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:856
+[   28812ms] [LOG] [Player] updateViewWeapon: currentWeapon=shotgun fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   28825ms] [LOG] [Player] selectSlot: slot=1 weapon=shotgun mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:843
+[   28825ms] [LOG] [Player] selectSlot: detached old weapon shotgun @ http://localhost:3001/entities/Player.js:848
+[   28826ms] [LOG] [Player] selectSlot: attached weapon shotgun to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:856
+[   28826ms] [LOG] [Player] updateViewWeapon: currentWeapon=shotgun fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   28841ms] [LOG] [Player] selectSlot: slot=1 weapon=shotgun mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:843
+[   28841ms] [LOG] [Player] selectSlot: detached old weapon shotgun @ http://localhost:3001/entities/Player.js:848
+[   28841ms] [LOG] [Player] selectSlot: attached weapon shotgun to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:856
+[   28841ms] [LOG] [Player] updateViewWeapon: currentWeapon=shotgun fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   28853ms] [LOG] [Player] selectSlot: slot=1 weapon=shotgun mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:843
+[   28853ms] [LOG] [Player] selectSlot: detached old weapon shotgun @ http://localhost:3001/entities/Player.js:848
+[   28853ms] [LOG] [Player] selectSlot: attached weapon shotgun to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:856
+[   28854ms] [LOG] [Player] updateViewWeapon: currentWeapon=shotgun fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   28866ms] [LOG] [Player] selectSlot: slot=1 weapon=shotgun mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:843
+[   28866ms] [LOG] [Player] selectSlot: detached old weapon shotgun @ http://localhost:3001/entities/Player.js:848
+[   28867ms] [LOG] [Player] selectSlot: attached weapon shotgun to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:856
+[   28867ms] [LOG] [Player] updateViewWeapon: currentWeapon=shotgun fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   28881ms] [LOG] [Player] selectSlot: slot=1 weapon=shotgun mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:843
+[   28881ms] [LOG] [Player] selectSlot: detached old weapon shotgun @ http://localhost:3001/entities/Player.js:848
+[   28882ms] [LOG] [Player] selectSlot: attached weapon shotgun to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:856
+[   28882ms] [LOG] [Player] updateViewWeapon: currentWeapon=shotgun fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   29071ms] [LOG] [Player] after applyToMesh: rot=0.12,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   29191ms] [LOG] [Player] after applyToMesh: rot=0.10,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   29453ms] [LOG] [Player] anim: recoilAngle=0.1 swayX=0 swayY=0 time=0.748 @ http://localhost:3001/entities/Player.js:780
+[   29555ms] [LOG] [Player] anim: recoilAngle=0.1 swayX=0 swayY=0 time=0.8495000000000001 @ http://localhost:3001/entities/Player.js:780
+[   29651ms] [LOG] [CameraController] playerPos=74.12,1.84,-28.27 targetY=1.99 camPos=74.13,1.99,-28.33 @ http://localhost:3001/core/CameraController.js:240
+[   29660ms] [LOG] [Player] viewWeapon pos=0.22,-0.41,-0.90 rot=0.04,-1.57,-0.04 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   29677ms] [LOG] [Player] after applyToMesh: rot=0.01,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   29701ms] [LOG] [Player] after applyToMesh: rot=-0.02,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   29938ms] [LOG] [Player] after applyToMesh: rot=0.14,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   30044ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   30126ms] [LOG] [Player] after applyToMesh: rot=-0.03,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   30305ms] [LOG] [Player] anim: recoilAngle=0.1 swayX=0 swayY=0 time=1.599599999999627 @ http://localhost:3001/entities/Player.js:780
+[   30355ms] [LOG] [Player] after applyToMesh: rot=0.14,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   30411ms] [LOG] [Player] after applyToMesh: rot=0.14,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   30461ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   30513ms] [LOG] [Player] after applyToMesh: rot=0.01,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   30634ms] [LOG] [Player] after applyToMesh: rot=-0.03,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   30670ms] [LOG] [Player] anim: recoilAngle=0.1 swayX=0 swayY=0 time=1.9645999999996275 @ http://localhost:3001/entities/Player.js:780
+[   30890ms] [LOG] [Player] after applyToMesh: rot=0.07,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   30905ms] [LOG] [Player] anim: recoilAngle=0.1 swayX=0 swayY=0 time=2.1998999999994413 @ http://localhost:3001/entities/Player.js:780
+[   31363ms] [LOG] [Player] after applyToMesh: rot=-0.08,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   31397ms] [LOG] [Player] after applyToMesh: rot=-0.15,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   31692ms] [LOG] [Player] after applyToMesh: rot=0.05,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   31734ms] [LOG] [Player] viewWeapon pos=0.22,-0.41,-0.90 rot=0.05,-1.57,-0.04 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   31799ms] [LOG] [Player] after applyToMesh: rot=0.05,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   31878ms] [LOG] [Player] after applyToMesh: rot=0.05,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   31885ms] [LOG] [Player] anim: recoilAngle=0 swayX=0 swayY=0 time=3.180199999999255 @ http://localhost:3001/entities/Player.js:780
+[   32002ms] [LOG] [Player] after applyToMesh: rot=0.05,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   32016ms] [LOG] [Player] viewWeapon pos=0.22,-0.41,-0.90 rot=0.05,-1.57,-0.04 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   32121ms] [LOG] [CameraController] playerPos=81.69,1.84,-17.84 targetY=1.99 camPos=81.67,1.99,-17.89 @ http://localhost:3001/core/CameraController.js:240
+[   32121ms] [LOG] [Cam] pitch=-0.2° yaw=-153.4° @ http://localhost:3001/core/CameraController.js:252
+[   32274ms] [LOG] [Player] after applyToMesh: rot=0.05,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   32328ms] [LOG] [Player] after applyToMesh: rot=0.05,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   32488ms] [LOG] [Player] after applyToMesh: rot=0.29,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   32622ms] [LOG] [Player] after applyToMesh: rot=-0.07,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   32643ms] [LOG] [Player] viewWeapon pos=0.22,-0.42,-0.90 rot=-0.10,-1.57,-0.04 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   32643ms] [LOG] [Player] after applyToMesh: rot=-0.11,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   32650ms] [LOG] [Player] after applyToMesh: rot=-0.11,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   32732ms] [LOG] [Player] anim: recoilAngle=0 swayX=0 swayY=0 time=4.027199999999254 @ http://localhost:3001/entities/Player.js:780
+[   32812ms] [LOG] [Player] after applyToMesh: rot=0.05,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   32932ms] [LOG] [Player] after applyToMesh: rot=0.05,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   33657ms] [LOG] [Player] after applyToMesh: rot=0.05,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   33681ms] [LOG] [Player] after applyToMesh: rot=0.05,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   33707ms] [LOG] [Player] after applyToMesh: rot=0.05,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   33867ms] [LOG] [Player] after applyToMesh: rot=-0.01,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   34065ms] [LOG] [Player] after applyToMesh: rot=0.07,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   34315ms] [LOG] [Player] viewWeapon pos=0.22,-0.43,-0.90 rot=0.05,-1.57,-0.04 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   34385ms] [LOG] [Player] after applyToMesh: rot=0.05,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   34401ms] [LOG] [Player] anim: recoilAngle=0 swayX=0 swayY=0 time=5.682999999999997 @ http://localhost:3001/entities/Player.js:780
+[   34437ms] [LOG] [Player] after applyToMesh: rot=0.05,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   34614ms] [LOG] [Player] after applyToMesh: rot=0.27,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   34781ms] [LOG] [Player] after applyToMesh: rot=-0.10,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   34802ms] [LOG] [Player] viewWeapon pos=0.22,-0.43,-0.90 rot=0.05,-1.57,-0.04 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   34879ms] [LOG] [Player] after applyToMesh: rot=0.05,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   34914ms] [LOG] [CameraController] playerPos=89.87,1.84,2.42 targetY=1.99 camPos=89.85,1.99,2.37 @ http://localhost:3001/core/CameraController.js:240
+[   35328ms] [LOG] [Player] viewWeapon pos=0.22,-0.43,-0.90 rot=0.07,-1.57,-0.04 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   35408ms] [LOG] [Player] after applyToMesh: rot=0.05,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   35496ms] [LOG] [Player] after applyToMesh: rot=0.05,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   35609ms] [LOG] [Player] after applyToMesh: rot=-0.18,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   35833ms] [LOG] [Player] after applyToMesh: rot=0.26,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   36099ms] [LOG] [Player] after applyToMesh: rot=0.05,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   36333ms] [LOG] [Player] after applyToMesh: rot=0.15,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   36374ms] [LOG] [Player] anim: recoilAngle=0.2439400000002235 swayX=0 swayY=0 time=7.655700000000183 @ http://localhost:3001/entities/Player.js:780
+[   36400ms] [LOG] [Player] after applyToMesh: rot=-0.08,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   36598ms] [LOG] [Player] after applyToMesh: rot=0.05,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   36619ms] [LOG] [Player] viewWeapon pos=0.22,-0.42,-0.90 rot=0.05,-1.57,-0.04 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   36619ms] [LOG] [Player] after applyToMesh: rot=0.05,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   36795ms] [LOG] [Player] after applyToMesh: rot=0.05,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   36934ms] [LOG] [Player] anim: recoilAngle=0.24555999999977648 swayX=0 swayY=0 time=8.216300000000741 @ http://localhost:3001/entities/Player.js:780
+[   37627ms] [LOG] [CameraController] playerPos=94.51,1.84,12.22 targetY=1.99 camPos=94.49,1.99,12.16 @ http://localhost:3001/core/CameraController.js:240
+[   37627ms] [LOG] [Cam] pitch=-4.6° yaw=-164.1° @ http://localhost:3001/core/CameraController.js:252
+[   37813ms] [LOG] [Player] after applyToMesh: rot=0.05,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   37831ms] [LOG] [Player] anim: recoilAngle=0 swayX=0 swayY=0 time=9.113100000000555 @ http://localhost:3001/entities/Player.js:780
+[   37938ms] [LOG] [Player] after applyToMesh: rot=0.05,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   37968ms] [LOG] [Player] after applyToMesh: rot=0.05,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   37991ms] [LOG] [Player] after applyToMesh: rot=0.05,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   38000ms] [LOG] [Player] viewWeapon pos=0.22,-0.41,-0.90 rot=0.05,-1.57,-0.04 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   38000ms] [LOG] [Player] after applyToMesh: rot=0.05,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   38123ms] [LOG] [Player] after applyToMesh: rot=0.05,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   38659ms] [LOG] [Player] viewWeapon pos=0.22,-0.41,-0.90 rot=0.05,-1.57,-0.04 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   38768ms] [LOG] [Player] after applyToMesh: rot=0.05,-1.57,-0.04 baseRot=0.05 @ http://localhost:3001/entities/Player.js:781
+[   38898ms] [LOG] [Player] anim: recoilAngle=0 swayX=0 swayY=0 time=10.180500000000004 @ http://localhost:3001/entities/Player.js:780
+[   38923ms] [LOG] [Player] selectSlot: slot=0 weapon=knife mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:843
+[   38923ms] [LOG] [Player] selectSlot: detached old weapon shotgun @ http://localhost:3001/entities/Player.js:848
+[   38923ms] [LOG] [Player] selectSlot: attached weapon knife to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:856
+[   38923ms] [LOG] [Player] updateViewWeapon: currentWeapon=knife fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   38923ms] [LOG] [Player] animateViewModelWeapon ENTER type=knife @ http://localhost:3001/entities/Player.js:1140
+[   38924ms] [LOG] [Player] Weapon created: type=knife mesh=exists @ http://localhost:3001/entities/Player.js:1166
+[   38924ms] [LOG] [Player] animateViewModelWeapon: viewClone created, hasRotation=yes rot=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:1175
+[   38924ms] [LOG] [Player] animateViewModelWeapon: set rot=0.08,-1.57,0.08 offsetRot=0.08,-1.57,0.08 @ http://localhost:3001/entities/Player.js:1197
+[   38924ms] [LOG] [Player] animateViewModelWeapon: baseRot= 0.08,-1.57,0.08 type=Euler @ http://localhost:3001/entities/Player.js:1203
+[   38938ms] [LOG] [Player] selectSlot: slot=0 weapon=knife mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:843
+[   38938ms] [LOG] [Player] selectSlot: detached old weapon knife @ http://localhost:3001/entities/Player.js:848
+[   38938ms] [LOG] [Player] selectSlot: attached weapon knife to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:856
+[   38938ms] [LOG] [Player] updateViewWeapon: currentWeapon=knife fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   38949ms] [LOG] [Player] selectSlot: slot=0 weapon=knife mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:843
+[   38949ms] [LOG] [Player] selectSlot: detached old weapon knife @ http://localhost:3001/entities/Player.js:848
+[   38949ms] [LOG] [Player] selectSlot: attached weapon knife to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:856
+[   38949ms] [LOG] [Player] updateViewWeapon: currentWeapon=knife fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   38960ms] [LOG] [Player] selectSlot: slot=0 weapon=knife mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:843
+[   38960ms] [LOG] [Player] selectSlot: detached old weapon knife @ http://localhost:3001/entities/Player.js:848
+[   38960ms] [LOG] [Player] selectSlot: attached weapon knife to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:856
+[   38960ms] [LOG] [Player] updateViewWeapon: currentWeapon=knife fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   38973ms] [LOG] [Player] selectSlot: slot=0 weapon=knife mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:843
+[   38973ms] [LOG] [Player] selectSlot: detached old weapon knife @ http://localhost:3001/entities/Player.js:848
+[   38973ms] [LOG] [Player] selectSlot: attached weapon knife to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:856
+[   38973ms] [LOG] [Player] updateViewWeapon: currentWeapon=knife fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   38985ms] [LOG] [Player] selectSlot: slot=0 weapon=knife mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:843
+[   38985ms] [LOG] [Player] selectSlot: detached old weapon knife @ http://localhost:3001/entities/Player.js:848
+[   38985ms] [LOG] [Player] selectSlot: attached weapon knife to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:856
+[   38985ms] [LOG] [Player] updateViewWeapon: currentWeapon=knife fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   38996ms] [LOG] [Player] selectSlot: slot=0 weapon=knife mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:843
+[   38996ms] [LOG] [Player] selectSlot: detached old weapon knife @ http://localhost:3001/entities/Player.js:848
+[   38996ms] [LOG] [Player] selectSlot: attached weapon knife to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:856
+[   38996ms] [LOG] [Player] updateViewWeapon: currentWeapon=knife fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   39011ms] [LOG] [Player] selectSlot: slot=0 weapon=knife mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:843
+[   39011ms] [LOG] [Player] selectSlot: detached old weapon knife @ http://localhost:3001/entities/Player.js:848
+[   39011ms] [LOG] [Player] selectSlot: attached weapon knife to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:856
+[   39011ms] [LOG] [Player] updateViewWeapon: currentWeapon=knife fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   39023ms] [LOG] [Player] selectSlot: slot=0 weapon=knife mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:843
+[   39023ms] [LOG] [Player] selectSlot: detached old weapon knife @ http://localhost:3001/entities/Player.js:848
+[   39023ms] [LOG] [Player] selectSlot: attached weapon knife to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:856
+[   39024ms] [LOG] [Player] updateViewWeapon: currentWeapon=knife fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   39034ms] [LOG] [Player] selectSlot: slot=0 weapon=knife mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:843
+[   39034ms] [LOG] [Player] selectSlot: detached old weapon knife @ http://localhost:3001/entities/Player.js:848
+[   39034ms] [LOG] [Player] selectSlot: attached weapon knife to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:856
+[   39034ms] [LOG] [Player] updateViewWeapon: currentWeapon=knife fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   39045ms] [LOG] [Player] selectSlot: slot=0 weapon=knife mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:843
+[   39045ms] [LOG] [Player] selectSlot: detached old weapon knife @ http://localhost:3001/entities/Player.js:848
+[   39046ms] [LOG] [Player] selectSlot: attached weapon knife to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:856
+[   39046ms] [LOG] [Player] updateViewWeapon: currentWeapon=knife fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   39061ms] [LOG] [Player] selectSlot: slot=0 weapon=knife mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:843
+[   39062ms] [LOG] [Player] selectSlot: detached old weapon knife @ http://localhost:3001/entities/Player.js:848
+[   39062ms] [LOG] [Player] selectSlot: attached weapon knife to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:856
+[   39062ms] [LOG] [Player] updateViewWeapon: currentWeapon=knife fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   39075ms] [LOG] [Player] selectSlot: slot=0 weapon=knife mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:843
+[   39075ms] [LOG] [Player] selectSlot: detached old weapon knife @ http://localhost:3001/entities/Player.js:848
+[   39076ms] [LOG] [Player] selectSlot: attached weapon knife to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:856
+[   39076ms] [LOG] [Player] updateViewWeapon: currentWeapon=knife fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   39089ms] [LOG] [Player] selectSlot: slot=0 weapon=knife mesh=exists this.mesh=exists socket=exists @ http://localhost:3001/entities/Player.js:843
+[   39089ms] [LOG] [Player] selectSlot: detached old weapon knife @ http://localhost:3001/entities/Player.js:848
+[   39089ms] [LOG] [Player] selectSlot: attached weapon knife to socket, mesh.visible=true @ http://localhost:3001/entities/Player.js:856
+[   39089ms] [LOG] [Player] updateViewWeapon: currentWeapon=knife fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   39255ms] [LOG] [Player] viewWeapon pos=0.25,-0.35,-0.80 rot=0.08,-1.57,0.08 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   39278ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   39399ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   39582ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   39591ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   39649ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   39973ms] [LOG] [Player] anim: recoilAngle=0 swayX=0 swayY=0 time=13.569400000000345 @ http://localhost:3001/entities/Player.js:780
+[   40066ms] [LOG] [Player] anim: recoilAngle=0 swayX=0 swayY=0 time=13.66220000000109 @ http://localhost:3001/entities/Player.js:780
+[   40092ms] [LOG] [Player] viewWeapon pos=0.25,-0.35,-0.80 rot=0.08,-1.57,0.08 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   40142ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   40163ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   40388ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   40496ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   40544ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   40744ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   40908ms] [LOG] [CameraController] playerPos=87.53,1.84,21.74 targetY=1.99 camPos=87.58,1.99,21.70 @ http://localhost:3001/core/CameraController.js:240
+[   40969ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   41058ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   41108ms] [LOG] [Player] anim: recoilAngle=0 swayX=0 swayY=0 time=14.704100000000533 @ http://localhost:3001/entities/Player.js:780
+[   41147ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   41424ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   41440ms] [LOG] [Player] anim: recoilAngle=0 swayX=0 swayY=0 time=15.036000000000902 @ http://localhost:3001/entities/Player.js:780
+[   41554ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   41668ms] [LOG] [Player] anim: recoilAngle=0 swayX=0 swayY=0 time=15.264300000000711 @ http://localhost:3001/entities/Player.js:780
+[   41875ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   41992ms] [LOG] [Player] viewWeapon pos=0.25,-0.35,-0.80 rot=0.08,-1.57,0.08 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   42234ms] [LOG] [Player] anim: recoilAngle=0 swayX=0 swayY=0 time=15.830300000000706 @ http://localhost:3001/entities/Player.js:780
+[   42875ms] [LOG] [Player] anim: recoilAngle=0 swayX=0 swayY=0 time=16.471200000001073 @ http://localhost:3001/entities/Player.js:780
+[   42981ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   43031ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   43585ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   43617ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   43655ms] [LOG] [CameraController] playerPos=75.11,3.58,37.28 targetY=3.73 camPos=75.12,3.72,37.23 @ http://localhost:3001/core/CameraController.js:240
+[   43656ms] [LOG] [Cam] pitch=-8.1° yaw=-188.7° @ http://localhost:3001/core/CameraController.js:252
+[   43794ms] [LOG] [Player] anim: recoilAngle=0 swayX=0 swayY=0 time=17.389900000000328 @ http://localhost:3001/entities/Player.js:780
+[   43826ms] [LOG] [Player] anim: recoilAngle=0 swayX=0 swayY=0 time=17.42240000000033 @ http://localhost:3001/entities/Player.js:780
+[   43826ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   43835ms] [LOG] [Player] anim: recoilAngle=0 swayX=0 swayY=0 time=17.431100000000516 @ http://localhost:3001/entities/Player.js:780
+[   43868ms] [LOG] [Player] anim: recoilAngle=0 swayX=0 swayY=0 time=17.464600000000512 @ http://localhost:3001/entities/Player.js:780
+[   44053ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   44193ms] [LOG] [Player] viewWeapon pos=0.25,-0.33,-0.80 rot=0.08,-1.57,0.08 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   44225ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   44258ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   44389ms] [LOG] [Player] viewWeapon pos=0.25,-0.34,-0.88 rot=0.08,-1.57,-0.50 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   44489ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   44502ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   44608ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   44962ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   44982ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   45188ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   45684ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   46130ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   46177ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   46299ms] [LOG] [Player] viewWeapon pos=0.25,-0.35,-0.80 rot=0.08,-1.57,0.08 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   46381ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   46638ms] [LOG] [CameraController] playerPos=73.97,1.84,60.21 targetY=1.99 camPos=73.96,1.99,60.14 @ http://localhost:3001/core/CameraController.js:240
+[   46664ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   46764ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   46939ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   46988ms] [LOG] [Player] viewWeapon pos=0.25,-0.35,-0.80 rot=0.08,-1.57,0.08 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   47082ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   47512ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   47565ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   47639ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   47696ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   47732ms] [LOG] [Player] viewWeapon pos=0.25,-0.36,-0.80 rot=0.08,-1.57,0.08 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   47785ms] [LOG] [Player] viewWeapon pos=0.25,-0.36,-0.80 rot=0.08,-1.57,0.08 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   47800ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   48017ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   48084ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   48243ms] [LOG] [Player] anim: recoilAngle=0 swayX=0 swayY=0 time=21.839100000000517 @ http://localhost:3001/entities/Player.js:780
+[   48304ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   48314ms] [LOG] [Player] anim: recoilAngle=0 swayX=0 swayY=0 time=21.91020000000108 @ http://localhost:3001/entities/Player.js:780
+[   48599ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   48656ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   48668ms] [LOG] [Player] viewWeapon pos=0.25,-0.36,-0.87 rot=0.08,-1.57,-0.45 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   48743ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   48826ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   49176ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   49221ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   49318ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   49474ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   49523ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   49560ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   49696ms] [LOG] [Perf] frames=5400 draws=585 tris=58642 geos=893 mats=40 @ http://localhost:3001/main.js?v=1785341433736:2704
+[   49698ms] [LOG] [CameraController] playerPos=77.13,1.84,82.77 targetY=1.99 camPos=77.13,1.99,82.70 @ http://localhost:3001/core/CameraController.js:240
+[   49698ms] [LOG] [Cam] pitch=-17.1° yaw=-184.7° @ http://localhost:3001/core/CameraController.js:252
+[   49786ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   50159ms] [LOG] [Player] viewWeapon pos=0.25,-0.35,-0.80 rot=0.08,-1.57,0.08 visible=true fpArmsPos=0.00,0.00,0.00 @ http://localhost:3001/entities/Player.js:742
+[   50862ms] [LOG] [Player] anim: recoilAngle=0 swayX=0 swayY=0 time=24.439300000001655 @ http://localhost:3001/entities/Player.js:780
+[   51089ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
+[   51354ms] [LOG] [Player] updateViewWeapon: currentWeapon=knife fists=fists fpArmsVisible=true @ http://localhost:3001/entities/Player.js:1217
+[   51688ms] [LOG] [Player] after applyToMesh: rot=0.08,-1.57,0.08 baseRot=0.08 @ http://localhost:3001/entities/Player.js:781
