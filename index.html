@@ -80,17 +80,49 @@
             transition: opacity 0.3s ease;
         }
 
-        #touchKnob {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            width: 52px;
-            height: 52px;
-            background: rgba(255, 255, 255, 0.55);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            transition: transform 0.15s ease-out;
+        /* Game Over overlay — shows when player dies */
+        #gameOverlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: #fff;
+            font-family: 'Trebuchet MS', Verdana, sans-serif;
         }
+        #gameOverlay h2 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #ff4444;
+            text-shadow: 0 0 20px rgba(255,68,68,0.5);
+        }
+        #gameOverlay p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            color: #ccc;
+        }
+        #restartBtn {
+            padding: 14px 40px;
+            font-size: 1.2rem;
+            background: linear-gradient(135deg, #ff6600, #ff4400);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        #restartBtn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(255,102,0,0.5);
+        }
+
+        #touchKnob {
 
         #touchArea {
             position: fixed;
@@ -1024,6 +1056,12 @@
 </head>
 <body>
     <div id="gameRoot">
+    <!-- Game Over overlay -->
+    <div id="gameOverlay">
+        <h2 id="gameOverTitle">Игра окончена</h2>
+        <p id="gameOverMessage"></p>
+        <button id="restartBtn" onclick="location.reload()">🔄 Заново</button>
+    </div>
     <div id="startScreen">
         <!-- Animated floating particles -->
         <div class="start-particles">

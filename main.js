@@ -573,6 +573,29 @@ class Game {
             if (!e?.detail) return;
             this.input.setKeyRemap(e.detail.action, e.detail.code);
         });
+
+        // --- EASTER EGG: "787898" → invincibility ---
+        this._konamiBuffer = [];
+        this._konamiTimeout = null;
+        document.addEventListener('keydown', this._onKonamiKey = (e) => {
+            const key = e.key;
+            if (typeof key !== 'string' || !/^\d$/.test(key)) return;
+            this._konamiBuffer.push(key);
+            if (this._konamiBuffer.length > 20) this._konamiBuffer.shift();
+            clearTimeout(this._konamiTimeout);
+            this._konamiTimeout = setTimeout(() => { this._konamiBuffer = []; }, 3000);
+            const last6 = this._konamiBuffer.slice(-6).join('');
+            if (last6 === '787898' && !this._invincible) {
+                this._invincible = true;
+                this.player.isInvulnerable = true;
+                this.player.health = Infinity;
+                this.player.maxHealth = Infinity;
+                if (this.hud?.showGameMessage) this.hud.showGameMessage('🛡️ Пасхалка: БЕССМЕРТИЕ!');
+                console.log('[EasterEgg] 787898 → invincibility!');
+                this._konamiBuffer = [];
+            }
+        });
+
         console.log('[initGame] done:', !!this.scene, !!this.camera, !!this.renderer);
         } catch (err) {
             console.error('[Game] initializeGame failed:', err);

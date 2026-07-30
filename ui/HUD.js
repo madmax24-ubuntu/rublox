@@ -1404,8 +1404,13 @@ export class HUD {
 
     showGameOver(message) {
         const overlay = document.getElementById('gameOverlay');
-        overlay.textContent = message;
-        overlay.style.display = 'block';
+        const title = document.getElementById('gameOverTitle');
+        const msg = document.getElementById('gameOverMessage');
+        if (title) title.textContent = 'Игра окончена';
+        if (msg) msg.textContent = message || '';
+        overlay.style.display = 'flex';
+        // Prevent mouse from passing through
+        overlay.style.pointerEvents = 'auto';
     }
 
     hideGameOver() {

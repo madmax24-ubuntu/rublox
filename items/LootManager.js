@@ -33,6 +33,8 @@ export class LootManager {
         this.chestObstacleIndex = new Map();
         this.visibilityUpdateAt = 0;
         this.activeGlowChests = new Set();
+        this._glowDebounceMs = 150; // prevent glow flickering
+        this._lastGlowUpdate = 0;
         this.chestMaterials = this.createChestMaterials();
         this.chestReady = false;
         this.claimTTL = 4.0;
@@ -439,8 +441,10 @@ export class LootManager {
         glow.position.y = 1.2;
         chestModel.add(glow);
 
-        // Chest body bottom is at y=0 (geometry translated to 0.35), so position at groundY directly
-        chestModel.position.set(x, y, z);
+        // FIX: Clamp chest Y to ground level — prevent floating chests
+        const maxChestHeight = 1.5;
+        const clampedY = Math.max(0.1, Math.min(y, maxChestHeight));
+        chestModel.position.set(x, clampedY, z);
         chestModel.userData.isChest = true;
         chestModel.userData.mapGenerated = true;
         chestModel.userData.isOpen = false;
@@ -712,6 +716,11 @@ export class LootManager {
     }
 
     checkNearbyChests(position, audioSynth) {
+        // FIX: Debounce glow toggle to prevent flickering
+        const now = performance.now();
+        if (now - (this._lastGlowUpdate || 0) < this._glowDebounceMs) return;
+        this._lastGlowUpdate = now;
+
         const checkDistance = 15;
         const nearby = this.getNearbyChests(position, checkDistance, true);
         const nextActive = new Set();
