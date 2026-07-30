@@ -1,0 +1,262 @@
+[     180ms] [LOG] [initGame] START, isMobile: false @ http://localhost:8095/main.js?v=20240101:293
+[     180ms] [LOG] [initGame] creating scene... @ http://localhost:8095/main.js?v=20240101:296
+[     180ms] [LOG] [initGame] scene created: true @ http://localhost:8095/main.js?v=20240101:298
+[     240ms] [LOG] [NodePad] Pad 0: pos=(46.00, 0.00) data=(46.00, 0.00) @ http://localhost:8095/world/MapGeneratorNode.js?v=1783108959290:369
+[     240ms] [LOG] [NodePad] Pad 1: pos=(45.91, -2.89) data=(45.91, -2.89) @ http://localhost:8095/world/MapGeneratorNode.js?v=1783108959290:369
+[     247ms] [LOG] [MapGenSync] Synced 100 pads from node, first=(46.0, 0.0) second=(45.9, -2.9) @ http://localhost:8095/world/MapGenerator.js:648
+[     368ms] [LOG] [MapGenerator] Before filter: 100 pads, first: (46.0, 0.0) @ http://localhost:8095/world/MapGenerator.js:5200
+[     369ms] [LOG] [MapGenerator] After filter: 100 pads, first: (46.0, 0.0) second: (45.9, -2.9) @ http://localhost:8095/world/MapGenerator.js:5236
+[     375ms] [LOG] [InstancedMesh] Collected 1905 candidate meshes @ http://localhost:8095/world/InstancedMeshSystem.js:24
+[     375ms] [LOG] [InstancedMesh] Skipped: noMapGen=0, culled=0, aniInt=275, noGeoKey=0, matKey=0 @ http://localhost:8095/world/InstancedMeshSystem.js:25
+[     403ms] [LOG] [InstancedMesh] Groups: 514, Replaced: 1557, Skipped(<2): 348 @ http://localhost:8095/world/InstancedMeshSystem.js:104
+[     404ms] [LOG] [MapGenerator] InstancedMesh: 1557 meshes merged into 166 InstancedMesh (total before: 1130, after: 958) @ http://localhost:8095/world/MapGenerator.js:178
+[     428ms] [LOG] [LootManager] generateChestsAsync: floorTiles=100, spots=40, chestCount=120 @ http://localhost:8095/items/LootManager.js:259
+[     565ms] [LOG] [SpawnDebug] Total pads=100 BotPads=99 First=(46.0, 0.0) Second=(45.9, -2.9) Last=(45.9, 2.9) @ http://localhost:8095/main.js?v=20240101:654
+[     565ms] [LOG] [SpawnDebug] Bot 0: pad=(45.91, -2.89) spawn=(45.91, -2.89) distFromCenter=46.00 @ http://localhost:8095/main.js?v=20240101:666
+[     567ms] [LOG] [SpawnDebug] Bot 1: pad=(45.64, -5.77) spawn=(45.64, -5.77) distFromCenter=46.00 @ http://localhost:8095/main.js?v=20240101:666
+[     568ms] [LOG] [SpawnDebug] Bot 2: pad=(45.19, -8.62) spawn=(45.19, -8.62) distFromCenter=46.00 @ http://localhost:8095/main.js?v=20240101:666
+[     598ms] [LOG] [initGame] done: true true true @ http://localhost:8095/main.js?v=20240101:598
+[     611ms] [LOG] [LootManager] floorTiles path: created 39 chests @ http://localhost:8095/items/LootManager.js:301
+[     611ms] [LOG] [LootManager] random fallback path, chestCount=120 @ http://localhost:8095/items/LootManager.js:310
+[     888ms] [LOG] [LootManager] random fallback: created 120 chests @ http://localhost:8095/items/LootManager.js:338
+[     889ms] [LOG] [LootManager] Generated 120 chests @ http://localhost:8095/items/LootManager.js:46
+[    3266ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/favicon.ico:0
+[    3495ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:8095/core/CameraController.js:240
+[    5709ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:8095/core/CameraController.js:240
+[    8019ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   10335ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   13037ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   14040ms] [WARNING] Failed to execute 'requestFullscreen' on 'Element': API can only be initiated by a user gesture. @ http://localhost:8095/:0
+[   15598ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   16354ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/doorClose_2.ogg:0
+[   16354ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/doorClose_3.ogg:0
+[   16354ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/doorClose_4.ogg:0
+[   16374ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/footstep00.ogg:0
+[   16375ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/footstep01.ogg:0
+[   16375ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/footstep02.ogg:0
+[   17682ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   18714ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/footstep03.ogg:0
+[   18714ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/footstep04.ogg:0
+[   18714ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/footstep05.ogg:0
+[   18727ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/footstep06.ogg:0
+[   18728ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/footstep07.ogg:0
+[   18728ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/footstep08.ogg:0
+[   19882ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   21082ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/footstep09.ogg:0
+[   21082ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/knifeSlice.ogg:0
+[   21082ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/knifeSlice2.ogg:0
+[   21096ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/chop.ogg:0
+[   21096ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/cloth3.ogg:0
+[   21097ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/cloth4.ogg:0
+[   22310ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   23424ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/clothBelt.ogg:0
+[   23424ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/clothBelt2.ogg:0
+[   23437ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-1.wav:0
+[   23460ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-2.wav:0
+[   23460ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-3.wav:0
+[   23460ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-4.wav:0
+[   24516ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   25792ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-5.wav:0
+[   25792ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-6.wav:0
+[   25806ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-7.wav:0
+[   25822ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-8.wav:0
+[   25822ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-9.wav:0
+[   25822ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-10.wav:0
+[   26660ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   28138ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-11.wav:0
+[   28139ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-12.wav:0
+[   28139ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-13.wav:0
+[   28161ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-14.wav:0
+[   28161ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-15.wav:0
+[   28176ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-16.wav:0
+[   28743ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   30479ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-17.wav:0
+[   30479ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-18.wav:0
+[   30496ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-19.wav:0
+[   30496ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-20.wav:0
+[   30496ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-21.wav:0
+[   30513ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-22.wav:0
+[   31139ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.05,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   32849ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-23.wav:0
+[   32855ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/zombies/zombie-24.wav:0
+[   32856ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/weapons/bow_shot.wav:0
+[   32856ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/weapons/laser_shot.wav:0
+[   32865ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/weapons/machinegun_ppsh_a.wav:0
+[   32887ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/weapons/machinegun_ppsh_b.wav:0
+[   33391ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.05,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   35200ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/weapons/shotgun_model12_a.wav:0
+[   35200ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/weapons/pistol_1911_a.wav:0
+[   35200ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/weapons/rifle_ar15_a.wav:0
+[   35200ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/weapons/flamethrower_fire.ogg:0
+[   35214ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/metalLatch.ogg:0
+[   35229ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/drawKnife3.ogg:0
+[   35942ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.05,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   37563ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/handleCoins2.ogg:0
+[   37563ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/weapons/shotgun_shotty.wav:0
+[   37563ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/metalClick.ogg:0
+[   37563ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/bookClose.ogg:0
+[   37575ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/cloth2.ogg:0
+[   37589ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/cloth1.ogg:0
+[   38465ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.05,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   39922ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/bookOpen.ogg:0
+[   39922ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/handleCoins.ogg:0
+[   39922ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/metalPot1.ogg:0
+[   39923ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/metalPot2.ogg:0
+[   39936ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/rpg/metalPot3.ogg:0
+[   39950ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/assets/audio/weather_rain.ogg:0
+[   40565ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.05,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   42283ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8095/favicon.ico:0
+[   42724ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.05,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   44956ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.05,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   47199ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.05,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   49393ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.05,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   51596ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.05,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   53824ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.05,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   56336ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.05,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   57907ms] [LOG] [Cam] pointerlockchange isLocked=true @ http://localhost:8095/core/CameraController.js:47
+[   59080ms] [LOG] [CameraController] playerPos=46.53,3.89,-7.35 targetY=4.04 camPos=46.53,4.04,-7.29 @ http://localhost:8095/core/CameraController.js:240
+[   61359ms] [LOG] [Perf] frames=7800 draws=546 tris=68236 geos=463 mats=16 @ http://localhost:8095/main.js?v=20240101:2829
+[   61361ms] [LOG] [CameraController] playerPos=46.17,3.89,-21.65 targetY=4.04 camPos=46.17,4.04,-21.65 @ http://localhost:8095/core/CameraController.js:240
+[   61361ms] [LOG] [Cam] pitch=-7.9° yaw=-4.8° @ http://localhost:8095/core/CameraController.js:252
+[   63507ms] [LOG] [Perf] frames=8100 draws=602 tris=84364 geos=858 mats=16 @ http://localhost:8095/main.js?v=20240101:2829
+[   63508ms] [LOG] [CameraController] playerPos=41.97,3.89,-16.28 targetY=4.04 camPos=41.92,4.04,-16.33 @ http://localhost:8095/core/CameraController.js:240
+[   65658ms] [LOG] [Perf] frames=8400 draws=633 tris=85571 geos=874 mats=16 @ http://localhost:8095/main.js?v=20240101:2829
+[   65659ms] [LOG] [CameraController] playerPos=46.77,3.89,-4.29 targetY=4.04 camPos=46.78,4.04,-4.30 @ http://localhost:8095/core/CameraController.js:240
+[   65659ms] [LOG] [Cam] pitch=-2.4° yaw=132.8° @ http://localhost:8095/core/CameraController.js:252
+[   67927ms] [LOG] [Perf] frames=8700 draws=597 tris=83051 geos=900 mats=16 @ http://localhost:8095/main.js?v=20240101:2829
+[   67929ms] [LOG] [CameraController] playerPos=46.77,3.89,-4.29 targetY=4.04 camPos=46.78,4.04,-4.30 @ http://localhost:8095/core/CameraController.js:240
+[   70138ms] [LOG] [Perf] frames=9000 draws=610 tris=83253 geos=902 mats=16 @ http://localhost:8095/main.js?v=20240101:2829
+[   70141ms] [LOG] [CameraController] playerPos=46.25,3.89,-0.94 targetY=4.04 camPos=46.25,4.04,-0.94 @ http://localhost:8095/core/CameraController.js:240
+[   70141ms] [LOG] [Cam] pitch=-10.2° yaw=171.2° @ http://localhost:8095/core/CameraController.js:252
+[   70500ms] [LOG] [EasterEgg] 787898 → invincibility! @ http://localhost:8095/main.js?v=20240101:593
+[   72275ms] [LOG] [Perf] frames=9300 draws=578 tris=81785 geos=904 mats=16 @ http://localhost:8095/main.js?v=20240101:2829
+[   72278ms] [LOG] [CameraController] playerPos=44.67,5.69,9.69 targetY=5.84 camPos=44.67,5.83,9.64 @ http://localhost:8095/core/CameraController.js:240
+[   74374ms] [LOG] [Perf] frames=9600 draws=549 tris=78964 geos=904 mats=16 @ http://localhost:8095/main.js?v=20240101:2829
+[   74375ms] [LOG] [CameraController] playerPos=45.99,5.49,26.47 targetY=5.64 camPos=45.99,5.67,26.41 @ http://localhost:8095/core/CameraController.js:240
+[   74376ms] [LOG] [Cam] pitch=-13.2° yaw=176.8° @ http://localhost:8095/core/CameraController.js:252
+[   76497ms] [LOG] [Perf] frames=9900 draws=501 tris=75530 geos=904 mats=16 @ http://localhost:8095/main.js?v=20240101:2829
+[   76500ms] [LOG] [CameraController] playerPos=46.29,2.96,41.38 targetY=3.11 camPos=46.25,3.11,41.34 @ http://localhost:8095/core/CameraController.js:240
+[   78722ms] [LOG] [Perf] frames=10200 draws=541 tris=78710 geos=912 mats=16 @ http://localhost:8095/main.js?v=20240101:2829
+[   78724ms] [LOG] [CameraController] playerPos=45.62,2.40,48.45 targetY=2.55 camPos=45.60,2.55,48.35 @ http://localhost:8095/core/CameraController.js:240
+[   78724ms] [LOG] [Cam] pitch=-8.1° yaw=143.9° @ http://localhost:8095/core/CameraController.js:252
+[   80873ms] [LOG] [Perf] frames=10500 draws=549 tris=81128 geos=918 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[   80875ms] [LOG] [CameraController] playerPos=40.30,1.84,63.47 targetY=1.99 camPos=40.34,1.99,63.41 @ http://localhost:8095/core/CameraController.js:240
+[   83012ms] [LOG] [Perf] frames=10800 draws=625 tris=84370 geos=947 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[   83014ms] [LOG] [CameraController] playerPos=35.78,1.84,53.09 targetY=1.99 camPos=35.80,1.99,53.13 @ http://localhost:8095/core/CameraController.js:240
+[   83014ms] [LOG] [Cam] pitch=-10.3° yaw=24.1° @ http://localhost:8095/core/CameraController.js:252
+[   85096ms] [LOG] [Perf] frames=11100 draws=619 tris=84178 geos=965 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[   85098ms] [LOG] [CameraController] playerPos=36.61,4.05,40.10 targetY=4.20 camPos=36.65,4.13,40.15 @ http://localhost:8095/core/CameraController.js:240
+[   87261ms] [LOG] [Perf] frames=11400 draws=476 tris=75994 geos=971 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[   87263ms] [LOG] [CameraController] playerPos=27.88,3.89,41.07 targetY=4.04 camPos=27.83,4.04,41.06 @ http://localhost:8095/core/CameraController.js:240
+[   87263ms] [LOG] [Cam] pitch=-36.4° yaw=213.7° @ http://localhost:8095/core/CameraController.js:252
+[   88431ms] [LOG] [Cam] pointerlockchange isLocked=false @ http://localhost:8095/core/CameraController.js:47
+[   89413ms] [LOG] [Perf] frames=11700 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[   91503ms] [LOG] [Perf] frames=12000 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[   93586ms] [LOG] [Perf] frames=12300 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[   95676ms] [LOG] [Perf] frames=12600 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[   97774ms] [LOG] [Perf] frames=12900 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[   99857ms] [LOG] [Perf] frames=13200 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  101940ms] [LOG] [Perf] frames=13500 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  104023ms] [LOG] [Perf] frames=13800 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  106113ms] [LOG] [Perf] frames=14100 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  108217ms] [LOG] [Perf] frames=14400 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  110301ms] [LOG] [Perf] frames=14700 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  112384ms] [LOG] [Perf] frames=15000 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  114468ms] [LOG] [Perf] frames=15300 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  116558ms] [LOG] [Perf] frames=15600 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  118641ms] [LOG] [Perf] frames=15900 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  120753ms] [LOG] [Perf] frames=16200 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  122864ms] [LOG] [Perf] frames=16500 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  124995ms] [LOG] [Perf] frames=16800 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  127078ms] [LOG] [Perf] frames=17100 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  129162ms] [LOG] [Perf] frames=17400 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  131253ms] [LOG] [Perf] frames=17700 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  133378ms] [LOG] [Perf] frames=18000 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  135462ms] [LOG] [Perf] frames=18300 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  137544ms] [LOG] [Perf] frames=18600 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  139662ms] [LOG] [Perf] frames=18900 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  141760ms] [LOG] [Perf] frames=19200 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  143917ms] [LOG] [Perf] frames=19500 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  146010ms] [LOG] [Perf] frames=19800 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  148127ms] [LOG] [Perf] frames=20100 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  150231ms] [LOG] [Perf] frames=20400 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  152315ms] [LOG] [Perf] frames=20700 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  154418ms] [LOG] [Perf] frames=21000 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  156516ms] [LOG] [Perf] frames=21300 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  158620ms] [LOG] [Perf] frames=21600 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  160710ms] [LOG] [Perf] frames=21900 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  162800ms] [LOG] [Perf] frames=22200 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  164897ms] [LOG] [Perf] frames=22500 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  166981ms] [LOG] [Perf] frames=22800 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  169064ms] [LOG] [Perf] frames=23100 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  171169ms] [LOG] [Perf] frames=23400 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  173252ms] [LOG] [Perf] frames=23700 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  175364ms] [LOG] [Perf] frames=24000 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  177446ms] [LOG] [Perf] frames=24300 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  179571ms] [LOG] [Perf] frames=24600 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  181655ms] [LOG] [Perf] frames=24900 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  183752ms] [LOG] [Perf] frames=25200 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  185870ms] [LOG] [Perf] frames=25500 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  187953ms] [LOG] [Perf] frames=25800 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  190071ms] [LOG] [Perf] frames=26100 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  192155ms] [LOG] [Perf] frames=26400 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  194286ms] [LOG] [Perf] frames=26700 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  196384ms] [LOG] [Perf] frames=27000 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  198515ms] [LOG] [Perf] frames=27300 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  200600ms] [LOG] [Perf] frames=27600 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  202710ms] [LOG] [Perf] frames=27900 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  204794ms] [LOG] [Perf] frames=28200 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  206924ms] [LOG] [Perf] frames=28500 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  209008ms] [LOG] [Perf] frames=28800 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  211134ms] [LOG] [Perf] frames=29100 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  213305ms] [LOG] [Perf] frames=29400 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  216051ms] [LOG] [Perf] frames=29700 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  218204ms] [LOG] [Perf] frames=30000 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  220299ms] [LOG] [Perf] frames=30300 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  222405ms] [LOG] [Perf] frames=30600 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  224537ms] [LOG] [Perf] frames=30900 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  226619ms] [LOG] [Perf] frames=31200 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  228751ms] [LOG] [Perf] frames=31500 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  230919ms] [LOG] [Perf] frames=31800 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  233084ms] [LOG] [Perf] frames=32100 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  235217ms] [LOG] [Perf] frames=32400 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  237299ms] [LOG] [Perf] frames=32700 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  239382ms] [LOG] [Perf] frames=33000 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  241500ms] [LOG] [Perf] frames=33300 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  243639ms] [LOG] [Perf] frames=33600 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  245778ms] [LOG] [Perf] frames=33900 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  247891ms] [LOG] [Perf] frames=34200 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  249979ms] [LOG] [Perf] frames=34500 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  252167ms] [LOG] [Perf] frames=34800 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  254273ms] [LOG] [Perf] frames=35100 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  256383ms] [LOG] [Perf] frames=35400 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  258564ms] [LOG] [Perf] frames=35700 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  260723ms] [LOG] [Perf] frames=36000 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  262835ms] [LOG] [Perf] frames=36300 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  264958ms] [LOG] [Perf] frames=36600 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  267078ms] [LOG] [Perf] frames=36900 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  269209ms] [LOG] [Perf] frames=37200 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  271375ms] [LOG] [Perf] frames=37500 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  273558ms] [LOG] [Perf] frames=37800 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  275771ms] [LOG] [Perf] frames=38100 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  277876ms] [LOG] [Perf] frames=38400 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  279986ms] [LOG] [Perf] frames=38700 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  282070ms] [LOG] [Perf] frames=39000 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  284224ms] [LOG] [Perf] frames=39300 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  286354ms] [LOG] [Perf] frames=39600 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  288444ms] [LOG] [Perf] frames=39900 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  290625ms] [LOG] [Perf] frames=40200 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  292765ms] [LOG] [Perf] frames=40500 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  294855ms] [LOG] [Perf] frames=40800 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  297110ms] [LOG] [Perf] frames=41100 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  299264ms] [LOG] [Perf] frames=41400 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  301374ms] [LOG] [Perf] frames=41700 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  303465ms] [LOG] [Perf] frames=42000 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  305576ms] [LOG] [Perf] frames=42300 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  307681ms] [LOG] [Perf] frames=42600 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  309798ms] [LOG] [Perf] frames=42900 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  311903ms] [LOG] [Perf] frames=43200 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  314056ms] [LOG] [Perf] frames=43500 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  316229ms] [LOG] [Perf] frames=43800 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  318333ms] [LOG] [Perf] frames=44100 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829
+[  320490ms] [LOG] [Perf] frames=44400 draws=503 tris=76706 geos=977 mats=18 @ http://localhost:8095/main.js?v=20240101:2829

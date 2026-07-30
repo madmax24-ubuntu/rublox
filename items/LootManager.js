@@ -168,7 +168,7 @@ export class LootManager {
             const px = x + ox;
             const pz = z + oz;
             const py = this.getChestPlacementY(px, pz);
-            if (py < this.mapGenerator.waterLevel + 1) continue;
+            if (py < this.mapGenerator.waterLevel + 1 || py > 3.0) continue; // FIX: reject elevated chests
             if (this.isChestPlacementClear(px, py, pz)) return { x: px, y: py, z: pz };
         }
         return null;
@@ -206,7 +206,7 @@ export class LootManager {
                 const key = keyFor(tile.x, tile.z);
                 if (occupied.has(key)) continue;
                 const y = this.getChestPlacementY(tile.x, tile.z);
-                if (y < this.mapGenerator.waterLevel + 1) continue;
+                if (y < this.mapGenerator.waterLevel + 1 || y > 3.0) continue; // FIX: reject elevated chests
                 if (this.mapGenerator.getStructureAtPoint?.(tile.x, tile.z, 3)) continue;
                 if (!this.isHiddenSpawn(tile.x, y, tile.z)) continue;
                 if (!this.isChestPlacementClear(tile.x, y, tile.z)) continue;
@@ -288,7 +288,7 @@ export class LootManager {
                 const key = keyFor(tile.x, tile.z);
                 if (occupied.has(key)) continue;
                 const y = this.getChestPlacementY(tile.x, tile.z);
-                if (y < this.mapGenerator.waterLevel + 1) continue;
+                if (y < this.mapGenerator.waterLevel + 1 || y > 3.0) continue; // FIX: reject elevated chests
                 if (this.mapGenerator.getStructureAtPoint?.(tile.x, tile.z, 3)) continue;
                 if (!this.isHiddenSpawn(tile.x, y, tile.z)) continue;
                 if (!this.isChestPlacementClear(tile.x, y, tile.z)) continue;
@@ -317,8 +317,8 @@ export class LootManager {
             const z = Math.sin(angle) * distance;
             const y = this.getChestPlacementY(x, z);
 
-            if (y < this.mapGenerator.waterLevel + 1) {
-                continue;
+            if (y < this.mapGenerator.waterLevel + 1 || y > 3.0) {
+                continue; // FIX: reject elevated chests
             }
             if (this.mapGenerator.getStructureAtPoint?.(x, z, 1)) continue;
             if (!this.isHiddenSpawn(x, y, z)) {
@@ -441,9 +441,9 @@ export class LootManager {
         glow.position.y = 1.2;
         chestModel.add(glow);
 
-        // FIX: Clamp chest Y to ground level — prevent floating chests
-        const maxChestHeight = 1.5;
-        const clampedY = Math.max(0.1, Math.min(y, maxChestHeight));
+        // FIX: Use ground height, clamp only if unnaturally high (>3 units)
+        const MAX_GROUND_HEIGHT = 3.0;
+        const clampedY = Math.min(y, MAX_GROUND_HEIGHT);
         chestModel.position.set(x, clampedY, z);
         chestModel.userData.isChest = true;
         chestModel.userData.mapGenerated = true;

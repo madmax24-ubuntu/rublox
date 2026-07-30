@@ -115,3 +115,27 @@
 [   55643ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.05,0.00 @ http://localhost:8095/core/CameraController.js:240
 [   57949ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.05,0.00 @ http://localhost:8095/core/CameraController.js:240
 [   60385ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.05,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   70063ms] [LOG] [Perf] frames=9000 draws=642 tris=74742 geos=554 mats=16 @ http://localhost:8095/main.js?v=20240101:2829
+[   70066ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.05,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   73288ms] [LOG] [Perf] frames=9300 draws=656 tris=74894 geos=554 mats=16 @ http://localhost:8095/main.js?v=20240101:2829
+[   73290ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.05,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   76916ms] [LOG] [Perf] frames=9600 draws=647 tris=74734 geos=554 mats=16 @ http://localhost:8095/main.js?v=20240101:2829
+[   76919ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.05,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   80703ms] [LOG] [Perf] frames=9900 draws=646 tris=74922 geos=554 mats=16 @ http://localhost:8095/main.js?v=20240101:2829
+[   80705ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.05,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   84118ms] [LOG] [Perf] frames=10200 draws=651 tris=75202 geos=554 mats=16 @ http://localhost:8095/main.js?v=20240101:2829
+[   84120ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.05,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   86765ms] [LOG] [Perf] frames=10500 draws=659 tris=75246 geos=554 mats=16 @ http://localhost:8095/main.js?v=20240101:2829
+[   86767ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.05,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   88941ms] [LOG] [Perf] frames=10800 draws=652 tris=75598 geos=554 mats=16 @ http://localhost:8095/main.js?v=20240101:2829
+[   88943ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.05,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   91142ms] [LOG] [Perf] frames=11100 draws=652 tris=75598 geos=554 mats=16 @ http://localhost:8095/main.js?v=20240101:2829
+[   91144ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.05,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   93535ms] [LOG] [Perf] frames=11400 draws=665 tris=75766 geos=554 mats=16 @ http://localhost:8095/main.js?v=20240101:2829
+[   93538ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.05,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   95703ms] [LOG] [Perf] frames=11700 draws=654 tris=75618 geos=554 mats=16 @ http://localhost:8095/main.js?v=20240101:2829
+[   95705ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.05,0.00 @ http://localhost:8095/core/CameraController.js:240
+[   98093ms] [LOG] [Perf] frames=12000 draws=693 tris=75014 geos=554 mats=16 @ http://localhost:8095/main.js?v=20240101:2829
+[   98095ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.05,0.00 @ http://localhost:8095/core/CameraController.js:240
+[  100473ms] [LOG] [Perf] frames=12300 draws=691 tris=73886 geos=554 mats=16 @ http://localhost:8095/main.js?v=20240101:2829
+[  100476ms] [LOG] [CameraController] playerPos=46.00,3.89,0.00 targetY=4.04 camPos=46.00,4.05,0.00 @ http://localhost:8095/core/CameraController.js:240
