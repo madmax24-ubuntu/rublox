@@ -914,12 +914,14 @@ export class BotBrain {
 
     actLoot(bot, ctx, lootManager) {
         const chest = ctx.lootTarget;
+        // FIX: If chest is null/open, pick new target immediately
         if (!chest || chest.userData?.isOpen) {
             this.releaseLootReservation(bot);
             bot.patrolTarget = this.pickSpreadTarget(bot, 40, 120);
             if (bot.patrolTarget) this.steerMove(bot, bot.patrolTarget, bot.physics.speed);
             return;
         }
+        // FIX: If bot reached chest but can't loot (reserved by another), pick new target
         if (!this.tryReserveLoot(bot, chest, 3)) {
             bot.patrolTarget = this.pickSpreadTarget(bot, 40, 120);
             if (bot.patrolTarget) this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 1.05);
@@ -929,20 +931,19 @@ export class BotBrain {
 
         const dist = bot.position.distanceTo(chest.position);
         bot.lookAt(chest.position);
-        if (dist > 2.9) {
-            bot.patrolTarget = chest.position;
-            this.steerMove(bot, chest.position, bot.physics.speed * 1.25);
+        // FIX: If bot is at chest, loot it immediately and pick new target
+        if (dist <= 2.9) {
+            const loot = lootManager?.tryOpenChest?.(chest, bot, bot.audioSynthRef);
+            if (loot) bot.pickupLoot(loot, chest.position);
+            this.releaseLootReservation(bot);
+            this.ensureBestWeaponEquipped(bot);
+            bot._lootPauseUntil = performance.now() + 150 + Math.random() * 250;
+            bot.patrolTarget = this.pickSpreadTarget(bot, 40, 120);
             return;
         }
-
-        const loot = lootManager?.tryOpenChest?.(chest, bot, bot.audioSynthRef);
-        if (loot) bot.pickupLoot(loot, chest.position);
-        this.releaseLootReservation(bot);
-        // EQUIP BEST WEAPON immediately after looting — prevents knife-only bots
-        this.ensureBestWeaponEquipped(bot);
-        // Reduced pause — bots rush to next chest immediately
-        bot._lootPauseUntil = performance.now() + 150 + Math.random() * 250;
-        bot.patrolTarget = this.pickSpreadTarget(bot, 40, 120);
+        // Bot is walking to chest
+        bot.patrolTarget = chest.position;
+        this.steerMove(bot, chest.position, bot.physics.speed * 1.25);
     }
 
     actHide(bot, ctx) {
@@ -950,23 +951,8 @@ export class BotBrain {
         if (shelter) {
             const enemy = ctx.nearestEnemy;
             const zombie = ctx.nearestZombie;
-            let isActuallyHidden = true;
-            if (enemy) {
-                this._tmpShelterDir.subVectors(shelter, bot.position).normalize();
-                this._tmpEnemyDir.subVectors(enemy.position, bot.position).normalize();
-                const dot = this._tmpShelterDir.dot(this._tmpEnemyDir);
-                if (dot > 0.8) isActuallyHidden = false;
-            }
-
-            if (isActuallyHidden) {
-                bot.patrolTarget = shelter;
-                // При критическом HP боты бегнут к укрытию быстрее
-                const hideSpeed = ctx.hp < 0.3 ? 1.15 : 0.75;
-                this.steerMove(bot, shelter, bot.physics.speed * hideSpeed);
-                return;
-            }
             
-            // FIX: If bot is at shelter but enemy is far away, leave the shelter
+            // FIX: If at shelter and threat is far, leave immediately
             const distToShelter = bot.position.distanceTo(shelter);
             const distToEnemy = enemy ? bot.position.distanceTo(enemy.position) : Infinity;
             const distToZombie = zombie ? bot.position.distanceTo(zombie.position) : Infinity;
@@ -976,6 +962,23 @@ export class BotBrain {
                 // At shelter and threat is far — leave and explore
                 bot.patrolTarget = this.pickSpreadTarget(bot, 40, 120);
                 if (bot.patrolTarget) this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 0.95);
+                return;
+            }
+            
+            let isActuallyHidden = true;
+            if (enemy) {
+                this._tmpShelterDir.subVectors(shelter, bot.position).normalize();
+                this._tmpEnemyDir.subVectors(enemy.position, bot.position).normalize();
+                const dot = this._tmpShelterDir.dot(this._tmpEnemyDir);
+                if (dot > 0.8) isActuallyHidden = false;
+            }
+
+            if (isActuallyHidden && distToShelter >= 3) {
+                // Not at shelter yet — move towards it
+                bot.patrolTarget = shelter;
+                // При критическом HP боты бегут к укрытию быстрее
+                const hideSpeed = ctx.hp < 0.3 ? 1.15 : 0.75;
+                this.steerMove(bot, shelter, bot.physics.speed * hideSpeed);
                 return;
             }
         }
