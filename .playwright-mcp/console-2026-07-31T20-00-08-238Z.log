@@ -116,3 +116,5 @@
 [  197334ms] [LOG] [CameraController] playerPos=67.10,1.84,-86.34 targetY=1.99 camPos=67.03,1.99,-86.44 @ http://localhost:3001/core/CameraController.js:240
 [  197334ms] [LOG] [Cam] pitch=2.3° yaw=-504.7° @ http://localhost:3001/core/CameraController.js:252
 [  198516ms] [LOG] [Perf] frames=12900 draws=645 tris=87561 geos=1522 mats=79 @ http://localhost:3001/main.js?v=1785528008253:2835
+[  201927ms] [LOG] [CameraController] playerPos=78.38,1.84,-72.07 targetY=1.99 camPos=78.27,1.99,-72.07 @ http://localhost:3001/core/CameraController.js:240
+[  202887ms] [LOG] [Perf] frames=13200 draws=485 tris=59476 geos=1522 mats=79 @ http://localhost:3001/main.js?v=1785528008253:2835

@@ -1,0 +1,44 @@
+[     575ms] [LOG] [initGame] START, isMobile: false @ http://localhost:3001/main.js?v=1785528212033:293
+[     575ms] [LOG] [initGame] creating scene... @ http://localhost:3001/main.js?v=1785528212033:296
+[     575ms] [LOG] [initGame] scene created: true @ http://localhost:3001/main.js?v=1785528212033:298
+[     754ms] [LOG] [NodePad] Pad 0: pos=(46.00, 0.00) data=(46.00, 0.00) @ http://localhost:3001/world/MapGeneratorNode.js?v=1783108959290:369
+[     754ms] [LOG] [NodePad] Pad 1: pos=(45.91, -2.89) data=(45.91, -2.89) @ http://localhost:3001/world/MapGeneratorNode.js?v=1783108959290:369
+[     770ms] [LOG] [MapGenSync] Synced 100 pads from node, first=(46.0, 0.0) second=(45.9, -2.9) @ http://localhost:3001/world/MapGenerator.js:648
+[    1007ms] [LOG] [MapGenerator] Before filter: 100 pads, first: (46.0, 0.0) @ http://localhost:3001/world/MapGenerator.js:5200
+[    1008ms] [LOG] [MapGenerator] After filter: 100 pads, first: (46.0, 0.0) second: (45.9, -2.9) @ http://localhost:3001/world/MapGenerator.js:5236
+[    1016ms] [LOG] [InstancedMesh] Collected 1904 candidate meshes @ http://localhost:3001/world/InstancedMeshSystem.js:24
+[    1016ms] [LOG] [InstancedMesh] Skipped: noMapGen=0, culled=0, aniInt=275, noGeoKey=0, matKey=0 @ http://localhost:3001/world/InstancedMeshSystem.js:25
+[    1056ms] [LOG] [InstancedMesh] Groups: 514, Replaced: 1556, Skipped(<2): 348 @ http://localhost:3001/world/InstancedMeshSystem.js:104
+[    1056ms] [LOG] [MapGenerator] InstancedMesh: 1556 meshes merged into 166 InstancedMesh (total before: 1129, after: 957) @ http://localhost:3001/world/MapGenerator.js:178
+[    1091ms] [LOG] [LootManager] generateChestsAsync: floorTiles=100, spots=40, chestCount=120 @ http://localhost:3001/items/LootManager.js:262
+[    1375ms] [LOG] [SpawnDebug] Total pads=100 BotPads=99 First=(46.0, 0.0) Second=(45.9, -2.9) Last=(45.9, 2.9) @ http://localhost:3001/main.js?v=1785528212033:655
+[    1375ms] [LOG] [SpawnDebug] Bot 0: pad=(45.91, -2.89) spawn=(45.91, -2.89) distFromCenter=46.00 @ http://localhost:3001/main.js?v=1785528212033:667
+[    1377ms] [LOG] [SpawnDebug] Bot 1: pad=(45.64, -5.77) spawn=(45.64, -5.77) distFromCenter=46.00 @ http://localhost:3001/main.js?v=1785528212033:667
+[    1381ms] [LOG] [SpawnDebug] Bot 2: pad=(45.19, -8.62) spawn=(45.19, -8.62) distFromCenter=46.00 @ http://localhost:3001/main.js?v=1785528212033:667
+[    1458ms] [LOG] [initGame] done: true true true @ http://localhost:3001/main.js?v=1785528212033:599
+[    1481ms] [LOG] [LootManager] floorTiles path: created 39 chests @ http://localhost:3001/items/LootManager.js:304
+[    1482ms] [LOG] [LootManager] random fallback path, chestCount=120 @ http://localhost:3001/items/LootManager.js:313
+[    1990ms] [LOG] [LootManager] random fallback: created 120 chests @ http://localhost:3001/items/LootManager.js:338
+[    1992ms] [LOG] [LootManager] Generated 120 chests @ http://localhost:3001/items/LootManager.js:46
+[    4634ms] [WARNING] Failed to execute 'requestFullscreen' on 'Element': API can only be initiated by a user gesture. @ http://localhost:3001/:0
+[    4680ms] [LOG] [Cam] pointerlockchange isLocked=true @ http://localhost:3001/core/CameraController.js:47
+[    5393ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3001/favicon.ico:0
+[    8080ms] [LOG] [selectPerk] DEBUG: event received CustomEvent @ http://localhost:3001/main.js?v=1785528212033:2970
+[    8082ms] [LOG] [selectPerk] Applied: quickHands @ http://localhost:3001/main.js?v=1785528212033:2991
+[    9394ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   10445ms] [LOG] [EasterEgg] 787898 → invincibility! @ http://localhost:3001/main.js?v=1785528212033:594
+[   11066ms] [LOG] [Cam] pointerlockchange isLocked=false @ http://localhost:3001/core/CameraController.js:47
+[   12306ms] [LOG] [Cam] pointerlockchange isLocked=true @ http://localhost:3001/core/CameraController.js:47
+[   13892ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   13893ms] [LOG] [Cam] pitch=-5.4° yaw=-13.9° @ http://localhost:3001/core/CameraController.js:252
+[   18863ms] [LOG] [CameraController] playerPos=46.00,4.04,0.00 targetY=4.19 camPos=46.00,4.19,0.00 @ http://localhost:3001/core/CameraController.js:240
+[   24593ms] [LOG] [CameraController] playerPos=50.89,3.30,-36.26 targetY=3.45 camPos=50.85,3.36,-36.09 @ http://localhost:3001/core/CameraController.js:240
+[   24593ms] [LOG] [Cam] pitch=-9.7° yaw=-18.1° @ http://localhost:3001/core/CameraController.js:252
+[   30716ms] [LOG] [CameraController] playerPos=67.67,1.84,-52.83 targetY=1.99 camPos=67.58,1.99,-52.78 @ http://localhost:3001/core/CameraController.js:240
+[   36367ms] [LOG] [CameraController] playerPos=78.26,1.84,-51.60 targetY=1.99 camPos=78.38,1.99,-51.50 @ http://localhost:3001/core/CameraController.js:240
+[   36367ms] [LOG] [Cam] pitch=-5.7° yaw=-308.7° @ http://localhost:3001/core/CameraController.js:252
+[   41486ms] [LOG] [CameraController] playerPos=69.11,1.84,-84.40 targetY=1.99 camPos=69.15,1.99,-84.27 @ http://localhost:3001/core/CameraController.js:240
+[   46996ms] [LOG] [CameraController] playerPos=62.80,1.84,-93.50 targetY=1.99 camPos=62.80,1.99,-93.50 @ http://localhost:3001/core/CameraController.js:240
+[   46997ms] [LOG] [Cam] pitch=-9.0° yaw=-138.2° @ http://localhost:3001/core/CameraController.js:252
+[   52711ms] [LOG] [Perf] frames=2700 draws=818 tris=83563 geos=1082 mats=37 @ http://localhost:3001/main.js?v=1785528212033:2835
+[   52716ms] [LOG] [CameraController] playerPos=71.21,1.84,-73.63 targetY=1.99 camPos=71.23,1.99,-73.63 @ http://localhost:3001/core/CameraController.js:240
