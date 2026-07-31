@@ -949,6 +949,7 @@ export class BotBrain {
         const shelter = ctx.shelterTarget || this.findNearestShelterTarget(bot);
         if (shelter) {
             const enemy = ctx.nearestEnemy;
+            const zombie = ctx.nearestZombie;
             let isActuallyHidden = true;
             if (enemy) {
                 this._tmpShelterDir.subVectors(shelter, bot.position).normalize();
@@ -959,9 +960,22 @@ export class BotBrain {
 
             if (isActuallyHidden) {
                 bot.patrolTarget = shelter;
-                // При критическом HP боты бегут к укрытию быстрее
+                // При критическом HP боты бегнут к укрытию быстрее
                 const hideSpeed = ctx.hp < 0.3 ? 1.15 : 0.75;
                 this.steerMove(bot, shelter, bot.physics.speed * hideSpeed);
+                return;
+            }
+            
+            // FIX: If bot is at shelter but enemy is far away, leave the shelter
+            const distToShelter = bot.position.distanceTo(shelter);
+            const distToEnemy = enemy ? bot.position.distanceTo(enemy.position) : Infinity;
+            const distToZombie = zombie ? bot.position.distanceTo(zombie.position) : Infinity;
+            const minThreatDist = Math.min(distToEnemy, distToZombie);
+            
+            if (distToShelter < 3 && minThreatDist > 30) {
+                // At shelter and threat is far — leave and explore
+                bot.patrolTarget = this.pickSpreadTarget(bot, 40, 120);
+                if (bot.patrolTarget) this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 0.95);
                 return;
             }
         }
