@@ -105,10 +105,14 @@ export class BotBrain {
             ctx.outsideZone = ctx.zone?.isInsideZone ? !ctx.zone.isInsideZone(bot.position) : false;
             ctx.zoneDistance = ctx.zone?.getDistanceFromZone ? ctx.zone.getDistanceFromZone(bot.position) : 0;
             ctx.sheltered = bot.mapRef?.isShelteredFromRain?.(bot.position) || false;
-            // Refresh enemy detection for early-game scatter
+            // FIX: Always refresh enemy detection in cached context — never let stale nearestEnemy persist
             if (earlyGamePhase) {
                 ctx.nearestEnemy = this.detectNearestEnemyForEarlyGame(bot, entityManager);
                 ctx.nearestEnemyDist = ctx.nearestEnemy ? bot.position.distanceTo(ctx.nearestEnemy.position) : Infinity;
+            } else {
+                // During non-early-game, clear any survivor enemy refs — only zombies matter
+                ctx.nearestEnemy = null;
+                ctx.nearestEnemyDist = Infinity;
             }
             if (!ctx.shelterTarget) {
                 ctx.shelterTarget = this.findNearestShelterTarget(bot);

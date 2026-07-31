@@ -1095,8 +1095,8 @@ export class Bot {
         // Handle crouch effect for HIDE state with smooth transitions
         const targetScale = (this.state === 'hide' ? 0.75 : 1.0) * this.outfit.scale;
         if (Math.abs(this.mesh.scale.x - targetScale) > 0.01) {
-            // Smooth lerp: move 25% toward target each frame (~4 frame transition)
-            const lerp = 0.25;
+            // FIX: Fast lerp (0.5 per frame = 2 frame transition) to keep up with rapid state changes
+            const lerp = 0.5;
             this.mesh.scale.setScalar(this.mesh.scale.x + (targetScale - this.mesh.scale.x) * lerp);
         }
 
