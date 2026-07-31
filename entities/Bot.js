@@ -1056,7 +1056,7 @@ export class Bot {
                 return;
             }
 
-            const losInterval = (isMobile ? 0.5 : 0.35) + ((this.id % 7) * 0.04);
+            const losInterval = (isMobile ? 0.7 : 0.5) + ((this.id % 7) * 0.04);
             if (this.healthBarLosTimer <= 0) {
                 const entityManager = this.scene.userData?.entityManager;
                 if (entityManager?.hasLineOfSight) {
@@ -1097,10 +1097,18 @@ export class Bot {
         // Handle crouch effect for HIDE state with smooth transitions
         // FIX: All variants now share scale 1.0 — no more size oscillation
         const targetScale = this.state === 'hide' ? 0.78 : 1.0;
-        if (Math.abs(this.mesh.scale.x - targetScale) > 0.005) {
-            // Smooth lerp (0.12 per frame = ~7 frame transition) to avoid size flicker
+        const currentScale = this.mesh.scale.x;
+        const scaleDiff = targetScale - currentScale;
+        // FIX: Add convergence check — stop lerping when within threshold to prevent oscillation
+        if (Math.abs(scaleDiff) > 0.001) {
             const lerp = 0.12;
-            this.mesh.scale.setScalar(this.mesh.scale.x + (targetScale - this.mesh.scale.x) * lerp);
+            const step = scaleDiff * lerp;
+            // Clamp step to prevent overshooting when close to target
+            if (Math.abs(step) > Math.abs(scaleDiff) * 0.3) {
+                this.mesh.scale.setScalar(currentScale + scaleDiff * 0.3);
+            } else {
+                this.mesh.scale.setScalar(currentScale + step);
+            }
         }
 
         this.mesh.position.copy(this.position);

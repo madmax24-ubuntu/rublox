@@ -164,14 +164,17 @@ export class LootManager {
             [2.8, 0], [-2.8, 0], [0, 2.8], [0, -2.8],
             [1.8, 1.8], [-1.8, 1.8], [1.8, -1.8], [-1.8, -1.8]
         ];
+        const waterLevel = this.mapGenerator.waterLevel ?? 0;
         for (const [ox, oz] of offsets) {
             const px = x + ox;
             const pz = z + oz;
             const py = this.getChestPlacementY(px, pz);
             // FIX: Reject NaN/Infinity heights — prevents chests spawning in the air
             if (!Number.isFinite(py)) continue;
-            const groundY = Math.max(0, Math.min(py, 3.0));
-            if (groundY < this.mapGenerator.waterLevel + 1 || groundY > 3.0) continue; // FIX: reject elevated/below-ground chests
+            // FIX: Check raw height BEFORE clamp — if it's elevated above valid range, skip entirely
+            // This prevents chests appearing on elevated terrain or floating structures
+            if (py < waterLevel + 0.5 || py > 1.5) continue;
+            const groundY = Math.max(0, Math.min(py, 1.2));
             if (this.isChestPlacementClear(px, groundY, pz)) return { x: px, y: groundY, z: pz };
         }
         return null;
@@ -209,7 +212,7 @@ export class LootManager {
                 const key = keyFor(tile.x, tile.z);
                 if (occupied.has(key)) continue;
                 const y = Math.max(0, Math.min(this.getChestPlacementY(tile.x, tile.z), 3.0));
-                if (y < this.mapGenerator.waterLevel + 1 || y > 3.0) continue;
+                if (y < this.mapGenerator.waterLevel + 0.5 || y > 1.2) continue;
                 if (this.mapGenerator.getStructureAtPoint?.(tile.x, tile.z, 3)) continue;
                 if (!this.isHiddenSpawn(tile.x, y, tile.z)) continue;
                 if (!this.isChestPlacementClear(tile.x, y, tile.z)) continue;
@@ -232,7 +235,7 @@ export class LootManager {
             const z = Math.sin(angle) * distance;
             const y = Math.max(0, Math.min(this.getChestPlacementY(x, z), 3.0));
 
-            if (y < this.mapGenerator.waterLevel + 1) {
+            if (y < this.mapGenerator.waterLevel + 0.5 || y > 1.2) {
                 continue;
             }
             if (this.mapGenerator.getStructureAtPoint?.(x, z, 1)) continue;
@@ -275,8 +278,8 @@ export class LootManager {
                 this.chests.push(chest);
                 occupied.add(keyFor(placement.x, placement.z));
 
-                // Даем браузеру "прододхнуть" каждые 25 сундуков
-                if (i > 0 && i % 25 === 0) {
+                // Даем браузеру "прододхнуть" каждые 15 сундуков (реже = меньше фризов)
+                if (i > 0 && i % 15 === 0) {
                     await new Promise(resolve => requestAnimationFrame(resolve));
                 }
             }
@@ -291,14 +294,14 @@ export class LootManager {
                 const key = keyFor(tile.x, tile.z);
                 if (occupied.has(key)) continue;
                 const y = Math.max(0, Math.min(this.getChestPlacementY(tile.x, tile.z), 3.0));
-                if (y < this.mapGenerator.waterLevel + 1 || y > 3.0) continue;
+                if (y < this.mapGenerator.waterLevel + 0.5 || y > 1.2) continue;
                 if (this.mapGenerator.getStructureAtPoint?.(tile.x, tile.z, 3)) continue;
                 if (!this.isHiddenSpawn(tile.x, y, tile.z)) continue;
                 if (!this.isChestPlacementClear(tile.x, y, tile.z)) continue;
                 const chest = this.createChest(tile.x, y, tile.z);
                 this.chests.push(chest);
                 occupied.add(key);
-                if (i > 0 && i % 25 === 0) {
+                if (i > 0 && i % 15 === 0) {
                     await new Promise(resolve => requestAnimationFrame(resolve));
                 }
             }
@@ -319,7 +322,7 @@ export class LootManager {
             const x = Math.cos(angle) * distance;
             const z = Math.sin(angle) * distance;
             const y = Math.max(0, Math.min(this.getChestPlacementY(x, z), 3.0));
-            if (y < this.mapGenerator.waterLevel + 1 || y > 3.0) continue;
+            if (y < this.mapGenerator.waterLevel + 0.5 || y > 1.2) continue;
             if (this.mapGenerator.getStructureAtPoint?.(x, z, 1)) continue;
             if (!this.isHiddenSpawn(x, y, z)) {
                 continue;
@@ -332,7 +335,7 @@ export class LootManager {
             this.chests.push(chest);
             occupied.add(key);
             i++;
-            if (i > 0 && i % 25 === 0) {
+            if (i > 0 && i % 15 === 0) {
                 await new Promise(resolve => requestAnimationFrame(resolve));
             }
         }

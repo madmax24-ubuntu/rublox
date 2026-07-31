@@ -97,7 +97,7 @@ export class BotBrain {
             bot.state = nextState;
             if (nextState !== STATES.LOOT && nextState !== STATES.EXPLORE) this.releaseLootReservation(bot);
             if (nextState !== STATES.ENGAGE) this.releaseCombatReservation(bot);
-            this.decisionCooldown = 0.28 + ((bot.id * 0.007) % 0.16);
+            this.decisionCooldown = 0.35 + ((bot.id * 0.007) % 0.15);
         } else {
             // Refresh earlyGamePhase on cached context so actEngage / actExplore see current phase
             ctx.earlyGamePhase = earlyGamePhase;
@@ -105,8 +105,8 @@ export class BotBrain {
             ctx.outsideZone = ctx.zone?.isInsideZone ? !ctx.zone.isInsideZone(bot.position) : false;
             ctx.zoneDistance = ctx.zone?.getDistanceFromZone ? ctx.zone.getDistanceFromZone(bot.position) : 0;
             ctx.sheltered = bot.mapRef?.isShelteredFromRain?.(bot.position) || false;
-            // FIX: Cache nearby query with 150ms TTL to avoid per-frame getNearbyEntities (causes micro-stutters)
-            const nearCacheAge = (bot._nearbyCacheTime || 0) + 0.15 - (now / 1000);
+            // FIX: Cache nearby query with 250ms TTL to reduce getNearbyEntities calls (reduces micro-stutters)
+            const nearCacheAge = (bot._nearbyCacheTime || 0) + 0.25 - (now / 1000);
             let cachedNearby = null;
             if (nearCacheAge > 0) {
                 cachedNearby = bot._cachedNearby;
@@ -342,8 +342,8 @@ export class BotBrain {
         const forward = this._tmpForward;
         const fovCos = Math.cos(this.fov / 2);
 
-        // OPTIMIZED: Skip LOS checks every other collectContext call
-        const skipLos = ((Math.floor(now / 180) + bot.id) & 1) === 0;
+        // OPTIMIZED: Skip LOS checks 2 out of 3 collectContext calls (reduces freezes)
+        const skipLos = ((Math.floor(now / 270) + bot.id) % 3) < 2;
         const skipLosEarlyGame = earlyGamePhase;
 
         const hearingRangeSq = this.hearingRange * this.hearingRange;
@@ -939,6 +939,9 @@ export class BotBrain {
             this.ensureBestWeaponEquipped(bot);
             bot._lootPauseUntil = performance.now() + 150 + Math.random() * 250;
             bot.patrolTarget = this.pickSpreadTarget(bot, 40, 120);
+            // FIX: Immediate FSM transition to EXPLORE after loot — don't wait for next context refresh
+            bot.state = STATES.EXPLORE;
+            this.actExplore(bot, ctx);
             return;
         }
         // Bot is walking to chest
