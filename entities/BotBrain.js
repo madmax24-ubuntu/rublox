@@ -536,6 +536,12 @@ export class BotBrain {
             if (ctx.lootTarget) return STATES.LOOT;
             return STATES.EXPLORE;
         }
+        // FIX: During extended early game (undergeared), bots also avoid survivor combat
+        if (ctx.earlyGamePhase) {
+            if ((ctx.nearestZombieDist < 18) && ctx.shelterTarget) return STATES.HIDE;
+            if (ctx.lootTarget) return STATES.LOOT;
+            return STATES.EXPLORE;
+        }
 
         if (ctx.nearestZombie && ctx.nearestZombieDist < 16) {
             // Zombies are a threat — engage unless critically low HP

@@ -65,6 +65,8 @@ export class Bot {
         this.target = null;
         this.allies = [];
         this.lastStateChange = 0;
+        this._targetScale = this.outfit.scale; // FIX: smooth scale transitions
+        this._currentScale = this.outfit.scale;
         this.patrolTarget = new THREE.Vector3();
         this.slowTimer = 0;
         this.slowFactor = 1;
@@ -1088,9 +1090,15 @@ export class Bot {
             this._nextFootstepAt = stepNow + Math.max(0.32, 0.54 - stepSpeed * 0.14);
         }
 
-        // Handle crouch effect for HIDE state
-        const crouchFactor = this.state === 'hide' ? 0.75 : 1.0;
-        this.mesh.scale.setScalar(this.outfit.scale * crouchFactor);
+        // Handle crouch effect for HIDE state with smooth transitions
+        const targetScale = (this.state === 'hide' ? 0.75 : 1.0) * this.outfit.scale;
+        if (this.mesh.scale.x === targetScale) {
+            // Already at target
+        } else {
+            // Smooth lerp: move 25% toward target each frame (~4 frame transition)
+            const lerp = 0.25;
+            this.mesh.scale.setScalar(this.mesh.scale.x + (targetScale - this.mesh.scale.x) * lerp);
+        }
 
         this.mesh.position.copy(this.position);
         this.mesh.position.y = this.position.y - this.physics.height;
