@@ -105,14 +105,54 @@ export class BotBrain {
             ctx.outsideZone = ctx.zone?.isInsideZone ? !ctx.zone.isInsideZone(bot.position) : false;
             ctx.zoneDistance = ctx.zone?.getDistanceFromZone ? ctx.zone.getDistanceFromZone(bot.position) : 0;
             ctx.sheltered = bot.mapRef?.isShelteredFromRain?.(bot.position) || false;
-            // FIX: Always refresh enemy detection in cached context — never let stale nearestEnemy persist
+            // FIX: Always refresh enemy detection in cached context — never let stale values persist
             if (earlyGamePhase) {
-                ctx.nearestEnemy = this.detectNearestEnemyForEarlyGame(bot, entityManager);
-                ctx.nearestEnemyDist = ctx.nearestEnemy ? bot.position.distanceTo(ctx.nearestEnemy.position) : Infinity;
-            } else {
-                // During non-early-game, clear any survivor enemy refs — only zombies matter
+                // Only detect zombies — survivors are NOT enemies during early game
+                const nearby = entityManager?.getNearbyEntities
+                    ? entityManager.getNearbyEntities(bot.position, 50)
+                    : (entityManager?.getEntities?.() || []);
                 ctx.nearestEnemy = null;
                 ctx.nearestEnemyDist = Infinity;
+                for (const ent of nearby) {
+                    if (!ent?.isAlive || ent === bot) continue;
+                    if (ent.constructor?.name !== 'Zombie') continue;
+                    const d = bot.position.distanceTo(ent.position);
+                    if (d < ctx.nearestEnemyDist) {
+                        ctx.nearestEnemy = ent;
+                        ctx.nearestEnemyDist = d;
+                    }
+                }
+            } else {
+                // During non-early-game, refresh BOTH enemies AND zombies — bots should see ALL threats
+                const nearby = entityManager?.getNearbyEntities
+                    ? entityManager.getNearbyEntities(bot.position, 50)
+                    : (entityManager?.getEntities?.() || []);
+                ctx.nearestEnemy = null;
+                ctx.nearestEnemyDist = Infinity;
+                ctx.nearestZombie = null;
+                ctx.nearestZombieDist = Infinity;
+                for (const ent of nearby) {
+                    if (!ent?.isAlive || ent === bot) continue;
+                    const type = ent.constructor?.name;
+                    if (type === 'Player' || type === 'Bot') {
+                        const d = bot.position.distanceTo(ent.position);
+                        if (d < ctx.nearestEnemyDist) {
+                            ctx.nearestEnemy = ent;
+                            ctx.nearestEnemyDist = d;
+                        }
+                    }
+                    if (type === 'Zombie') {
+                        const d = bot.position.distanceTo(ent.position);
+                        if (d < ctx.nearestZombieDist) {
+                            ctx.nearestZombie = ent;
+                            ctx.nearestZombieDist = d;
+                        }
+                    }
+                }
+            }
+            // FIX: Never let stale heardShot persist — reset during early game
+            if (earlyGamePhase) {
+                ctx.heardShot = false;
             }
             if (!ctx.shelterTarget) {
                 ctx.shelterTarget = this.findNearestShelterTarget(bot);
@@ -549,9 +589,6 @@ export class BotBrain {
             if (veryLowHp && ctx.shelterTarget && (!ctx.nearestEnemy || ctx.nearestEnemyDist > 10)) {
                 return STATES.ZONE_RETREAT;
             }
-            // Reduced retaliation distance — bots prefer looting over fighting
-            if (retaliating && ctx.nearestEnemy && ctx.nearestEnemyDist < 30 && !veryLowHp) return STATES.ENGAGE;
-
             const undergeared = !wellArmed || ctx.gear < undergearedThreshold;
             if (undergeared) {
                 if (ctx.lootTarget) return STATES.LOOT;
@@ -609,8 +646,8 @@ export class BotBrain {
         if ((veryLowHp && hasMedkit) || (lowHp && hasMedkit && underPressure)) {
             return STATES.SURVIVAL;
         }
-        // Reduced retaliation distance — prefer looting
-        if (retaliating && ctx.nearestEnemy && ctx.nearestEnemyDist < 40 && !veryLowHp) return STATES.ENGAGE;
+        // FIX: NO retaliation engagement during extended earlyGamePhase — bots must NOT fight each other
+        // (This check is only valid when earlyGamePhase is FALSE — i.e., well-geared normal combat)
 
         // 1b. Critical HP → flee and hide immediately
         if (fleeHp && ctx.shelterTarget) return STATES.HIDE;
@@ -1195,8 +1232,12 @@ export class BotBrain {
 
     pickCombatTarget(bot, ctx, entityManager) {
         const agg = Math.max(0.55, bot.personality?.aggression ?? 0.5);
+        // FIX: Don't retaliate against survivors during early game — only zombies are enemies
         const retaliationTarget = bot._retaliationTarget;
-        if (retaliationTarget?.isAlive && performance.now() < (bot._retaliateUntil || 0)) {
+        const isRetaliationTargetEnemy = retaliationTarget?.isAlive
+            && performance.now() < (bot._retaliateUntil || 0)
+            && (retaliationTarget.constructor?.name === 'Zombie' || !ctx.earlyGamePhase);
+        if (isRetaliationTargetEnemy) {
             return retaliationTarget;
         }
         // Always prefer zombies over other bots — they're the real threat
