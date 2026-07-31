@@ -1,0 +1,23 @@
+- generic [ref=f1e5]:
+  - generic [ref=f1e6]:
+    - generic [ref=f1e7]: ⚔️
+    - heading "RUBO ARENA" [level=1] [ref=f1e8]
+    - generic [ref=f1e9]: Голодные игры
+    - paragraph [ref=f1e10]: Выживание до последнего. Рандомная карта, лут из сундуков, перки в бою.
+    - button "Начать игру" [ref=f1e28]
+  - generic [ref=f1e12]:
+    - generic [ref=f1e13]: Управление
+    - generic [ref=f1e14]:
+      - generic [ref=f1e15]:
+        - generic [ref=f1e16]: 👆
+        - generic [ref=f1e17]: Движение
+      - generic [ref=f1e18]:
+        - generic [ref=f1e19]: ⬆️
+        - generic [ref=f1e20]: Прыжок
+      - generic [ref=f1e21]:
+        - generic [ref=f1e22]: ⚔️
+        - generic [ref=f1e23]: Атака
+      - generic [ref=f1e24]:
+        - generic [ref=f1e25]: 🤚
+        - generic [ref=f1e26]: Действие
+    - generic [ref=f1e27]: "Левый стик: движение · Правая сторона: обзор · Кнопки: Прыжок / Удар / E"

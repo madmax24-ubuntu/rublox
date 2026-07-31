@@ -65,8 +65,8 @@ export class Bot {
         this.target = null;
         this.allies = [];
         this.lastStateChange = 0;
-        this._targetScale = this.outfit.scale; // FIX: smooth scale transitions
-        this._currentScale = this.outfit.scale;
+        this._targetScale = 1; // Will be set after outfit assignment
+        this._currentScale = 1;
         this.patrolTarget = new THREE.Vector3();
         this.slowTimer = 0;
         this.slowFactor = 1;
@@ -209,6 +209,8 @@ export class Bot {
         this.variant = Math.floor(Math.random() * this.variants.length);
         this.outfit = this.variants[this.variant];
         this.color = this.outfit.shirt;
+        this._targetScale = this.outfit.scale; // FIX: smooth scale transitions
+        this._currentScale = this.outfit.scale;
 
         // Personality traits — each bot is unique
         this.personality = {
