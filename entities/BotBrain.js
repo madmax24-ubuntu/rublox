@@ -444,21 +444,6 @@ export class BotBrain {
     detectNearestEnemyForEarlyGame(bot, entityManager) {
         // FIX: During early game, survivors are NOT enemies — return null so bots don't target each other
         return null;
-            // OPTIMIZED: use squared distance to avoid sqrt
-            const dx = ent.position.x - bot.position.x;
-            const dz = ent.position.z - bot.position.z;
-            const dSq = dx * dx + dz * dz;
-            if (!Number.isFinite(dSq) || dSq < 1e-6) continue;
-            if (dSq >= nearestDist * nearestDist) continue;
-            // Normalize direction for FOV check
-            const invD = 1 / Math.sqrt(dSq);
-            this._tmpToTarget.set(dx * invD, 0, dz * invD);
-            if (this._tmpForward.dot(this._tmpToTarget) >= fovCos) {
-                nearestDist = Math.sqrt(dSq);
-                nearest = ent;
-            }
-        }
-        return nearest;
     }
 
     detectNearbyGunfire(bot, entityManager, range) {
