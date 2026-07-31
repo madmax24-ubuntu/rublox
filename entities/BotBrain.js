@@ -442,20 +442,8 @@ export class BotBrain {
     }
 
     detectNearestEnemyForEarlyGame(bot, entityManager) {
-        // Lightweight enemy detection for early-game context refresh
-        const nearby = entityManager?.getNearbyEntities
-            ? entityManager.getNearbyEntities(bot.position, 50)
-            : (entityManager?.getEntities?.() || []);
-        let nearest = null;
-        let nearestDist = Infinity;
-        const fovCos = Math.cos(this.fov / 2);
-        const sin = Math.sin(bot.rotation.y);
-        const cos = Math.cos(bot.rotation.y);
-        this._tmpForward.set(sin, 0, -cos);
-        for (const ent of nearby) {
-            if (!ent?.isAlive || ent === bot) continue;
-            const type = ent.constructor?.name;
-            if (type !== 'Player' && type !== 'Bot') continue;
+        // FIX: During early game, survivors are NOT enemies — return null so bots don't target each other
+        return null;
             // OPTIMIZED: use squared distance to avoid sqrt
             const dx = ent.position.x - bot.position.x;
             const dz = ent.position.z - bot.position.z;

@@ -168,8 +168,9 @@ export class LootManager {
             const px = x + ox;
             const pz = z + oz;
             const py = this.getChestPlacementY(px, pz);
-            if (py < this.mapGenerator.waterLevel + 1 || py > 3.0) continue; // FIX: reject elevated chests
-            if (this.isChestPlacementClear(px, py, pz)) return { x: px, y: py, z: pz };
+            const groundY = Math.max(0, Math.min(py, 3.0));
+            if (groundY < this.mapGenerator.waterLevel + 1 || groundY > 3.0) continue; // FIX: reject elevated/below-ground chests
+            if (this.isChestPlacementClear(px, groundY, pz)) return { x: px, y: groundY, z: pz };
         }
         return null;
     }
@@ -205,8 +206,8 @@ export class LootManager {
                 const tile = shuffled[i];
                 const key = keyFor(tile.x, tile.z);
                 if (occupied.has(key)) continue;
-                const y = this.getChestPlacementY(tile.x, tile.z);
-                if (y < this.mapGenerator.waterLevel + 1 || y > 3.0) continue; // FIX: reject elevated chests
+                const y = Math.max(0, Math.min(this.getChestPlacementY(tile.x, tile.z), 3.0));
+                if (y < this.mapGenerator.waterLevel + 1 || y > 3.0) continue;
                 if (this.mapGenerator.getStructureAtPoint?.(tile.x, tile.z, 3)) continue;
                 if (!this.isHiddenSpawn(tile.x, y, tile.z)) continue;
                 if (!this.isChestPlacementClear(tile.x, y, tile.z)) continue;
@@ -227,7 +228,7 @@ export class LootManager {
             const distance = 80 + Math.random() * Math.max(2, maxRadius - 80);
             const x = Math.cos(angle) * distance;
             const z = Math.sin(angle) * distance;
-            const y = this.getChestPlacementY(x, z);
+            const y = Math.max(0, Math.min(this.getChestPlacementY(x, z), 3.0));
 
             if (y < this.mapGenerator.waterLevel + 1) {
                 continue;
@@ -287,8 +288,8 @@ export class LootManager {
                 const tile = shuffled[i];
                 const key = keyFor(tile.x, tile.z);
                 if (occupied.has(key)) continue;
-                const y = this.getChestPlacementY(tile.x, tile.z);
-                if (y < this.mapGenerator.waterLevel + 1 || y > 3.0) continue; // FIX: reject elevated chests
+                const y = Math.max(0, Math.min(this.getChestPlacementY(tile.x, tile.z), 3.0));
+                if (y < this.mapGenerator.waterLevel + 1 || y > 3.0) continue;
                 if (this.mapGenerator.getStructureAtPoint?.(tile.x, tile.z, 3)) continue;
                 if (!this.isHiddenSpawn(tile.x, y, tile.z)) continue;
                 if (!this.isChestPlacementClear(tile.x, y, tile.z)) continue;
@@ -315,11 +316,8 @@ export class LootManager {
             const distance = 80 + Math.random() * Math.max(2, maxRadius - 80);
             const x = Math.cos(angle) * distance;
             const z = Math.sin(angle) * distance;
-            const y = this.getChestPlacementY(x, z);
-
-            if (y < this.mapGenerator.waterLevel + 1 || y > 3.0) {
-                continue; // FIX: reject elevated chests
-            }
+            const y = Math.max(0, Math.min(this.getChestPlacementY(x, z), 3.0));
+            if (y < this.mapGenerator.waterLevel + 1 || y > 3.0) continue;
             if (this.mapGenerator.getStructureAtPoint?.(x, z, 1)) continue;
             if (!this.isHiddenSpawn(x, y, z)) {
                 continue;
@@ -441,9 +439,10 @@ export class LootManager {
         glow.position.y = 1.2;
         chestModel.add(glow);
 
-        // FIX: Use ground height, clamp only if unnaturally high (>3 units)
+        // FIX: Ensure chest is placed on actual ground — clamp to valid range [0, 3]
+        const MIN_GROUND_HEIGHT = 0.0;
         const MAX_GROUND_HEIGHT = 3.0;
-        const clampedY = Math.min(y, MAX_GROUND_HEIGHT);
+        const clampedY = Math.max(MIN_GROUND_HEIGHT, Math.min(y, MAX_GROUND_HEIGHT));
         chestModel.position.set(x, clampedY, z);
         chestModel.userData.isChest = true;
         chestModel.userData.mapGenerated = true;
