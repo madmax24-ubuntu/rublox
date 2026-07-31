@@ -172,6 +172,19 @@ export class BotBrain {
                     this.releaseLootReservation(bot);
                 }
             }
+            // FIX: Validate current state against cached context — prevents bots stuck in wrong state
+            const currentState = bot.state;
+            if (currentState === STATES.HIDE && !ctx.nearestEnemy && !ctx.nearestZombie) {
+                // No enemies nearby — no need to hide
+                bot.state = STATES.EXPLORE;
+            } else if (currentState === STATES.ENGAGE && !ctx.nearestEnemy && !ctx.nearestZombie) {
+                // No enemies to fight — switch to explore
+                bot.state = STATES.EXPLORE;
+                this.releaseCombatReservation(bot);
+            } else if (currentState === STATES.LOOT && !ctx.lootTarget) {
+                // No loot to gather — switch to explore
+                bot.state = STATES.EXPLORE;
+            }
         }
 
         if (inPreLootPhase) {
@@ -1352,7 +1365,28 @@ export class BotBrain {
                 best = this._tmpSpreadVec.set(tile.x, 0, tile.z);
             }
         }
-        return best ? best.clone() : null;
+        // FIX: If no tile found in 20 attempts, try a broader range or fallback
+        if (!best) {
+            // Try with smaller distance range
+            for (let i = 0; i < 100; i++) {
+                const tile = floors[(Math.floor((Math.random() + this._rngShift) * floors.length) + i * 23) % floors.length];
+                if (!tile) continue;
+                const dist = Math.hypot(tile.x - bot.position.x, tile.z - bot.position.z);
+                if (dist < 15 || dist > 180) continue; // Wider range
+                if (!map.isWalkableAt?.(tile.x, tile.z)) continue;
+                if (Math.abs(tile.x) > 150 || Math.abs(tile.z) > 150) continue;
+                return this._tmpSpreadVec.set(tile.x, 0, tile.z).clone();
+            }
+            // Absolute fallback: random direction
+            const angle = Math.random() * Math.PI * 2;
+            const radius = 20 + Math.random() * 30;
+            return this._tmpSpreadVec.set(
+                bot.position.x + Math.cos(angle) * radius,
+                0,
+                bot.position.z + Math.sin(angle) * radius
+            );
+        }
+        return best.clone();
     }
 
     isInAssignedBiome(bot, point) {
