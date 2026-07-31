@@ -134,7 +134,8 @@ export class BotBrain {
 
         const retaliating = bot._retaliationTarget?.isAlive && now < (bot._retaliateUntil || 0);
         if (
-            retaliating
+            !earlyGamePhase
+            && retaliating
             && bot.position.distanceTo(bot._retaliationTarget.position) <= 65
             && !bot.forceShelterActive
             && !ctx.outsideZone
