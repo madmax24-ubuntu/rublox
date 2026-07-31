@@ -162,6 +162,16 @@ export class BotBrain {
             if (!ctx.shelterTarget) {
                 ctx.shelterTarget = this.findNearestShelterTarget(bot);
             }
+            // FIX: Clear stale lootTarget — chest may be opened or bot may have moved far away
+            if (ctx.lootTarget) {
+                const chest = ctx.lootTarget;
+                const dist = bot.position.distanceTo(chest.position);
+                const isOpen = chest.userData?.isOpen || chest._isOpen;
+                if (isOpen || dist > 80) {
+                    ctx.lootTarget = null;
+                    this.releaseLootReservation(bot);
+                }
+            }
         }
 
         if (inPreLootPhase) {

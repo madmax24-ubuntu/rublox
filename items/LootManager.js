@@ -168,6 +168,8 @@ export class LootManager {
             const px = x + ox;
             const pz = z + oz;
             const py = this.getChestPlacementY(px, pz);
+            // FIX: Reject NaN/Infinity heights — prevents chests spawning in the air
+            if (!Number.isFinite(py)) continue;
             const groundY = Math.max(0, Math.min(py, 3.0));
             if (groundY < this.mapGenerator.waterLevel + 1 || groundY > 3.0) continue; // FIX: reject elevated/below-ground chests
             if (this.isChestPlacementClear(px, groundY, pz)) return { x: px, y: groundY, z: pz };

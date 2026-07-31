@@ -5382,9 +5382,13 @@ export class MapGenerator {
                 if (Math.abs(localX) > col.surfaceOBB.halfWidth || Math.abs(localZ) > col.surfaceOBB.halfDepth) continue;
             }
             if (x >= col.min.x && x <= col.max.x && z >= col.min.z && z <= col.max.z) {
-                if (!found || col.max.y > closestY) {
-                    closestY = col.max.y;
-                    found = true;
+                if (col.max.y > closestY && col.max.y <= maxSearchY) {
+                    // Prefer surfaces close to fallbackY (ground level), not highest surface
+                    const diff = Math.abs(col.max.y - fallbackY);
+                    if (!found || diff < Math.abs(closestY - fallbackY)) {
+                        closestY = col.max.y;
+                        found = true;
+                    }
                 }
             }
         }
