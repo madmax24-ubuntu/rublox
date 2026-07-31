@@ -167,7 +167,7 @@ export class Bot {
                 gear: false,
                 hat: null,
                 skin: 0xf5d7b2,
-                scale: 0.88
+                scale: 1
             },
             {
                 shirt: 0x43a047,
@@ -179,7 +179,7 @@ export class Bot {
                 gear: true,
                 hat: 'helmet',
                 skin: 0xffd1a6,
-                scale: 0.85
+                scale: 1
             },
             {
                 shirt: 0xfdd835,
@@ -191,7 +191,7 @@ export class Bot {
                 gear: false,
                 hat: 'hair',
                 skin: 0xf7c59f,
-                scale: 0.9
+                scale: 1
             },
             {
                 shirt: 0x26a69a,
@@ -203,7 +203,7 @@ export class Bot {
                 gear: true,
                 hat: 'cap',
                 skin: 0xeec4a0,
-                scale: 0.87
+                scale: 1
             }
         ];
         this.variant = Math.floor(Math.random() * this.variants.length);
@@ -1095,10 +1095,11 @@ export class Bot {
         }
 
         // Handle crouch effect for HIDE state with smooth transitions
-        const targetScale = (this.state === 'hide' ? 0.75 : 1.0) * this.outfit.scale;
-        if (Math.abs(this.mesh.scale.x - targetScale) > 0.01) {
-            // FIX: Fast lerp (0.5 per frame = 2 frame transition) to keep up with rapid state changes
-            const lerp = 0.5;
+        // FIX: All variants now share scale 1.0 — no more size oscillation
+        const targetScale = this.state === 'hide' ? 0.78 : 1.0;
+        if (Math.abs(this.mesh.scale.x - targetScale) > 0.005) {
+            // Smooth lerp (0.12 per frame = ~7 frame transition) to avoid size flicker
+            const lerp = 0.12;
             this.mesh.scale.setScalar(this.mesh.scale.x + (targetScale - this.mesh.scale.x) * lerp);
         }
 

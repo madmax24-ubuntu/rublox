@@ -105,15 +105,23 @@ export class BotBrain {
             ctx.outsideZone = ctx.zone?.isInsideZone ? !ctx.zone.isInsideZone(bot.position) : false;
             ctx.zoneDistance = ctx.zone?.getDistanceFromZone ? ctx.zone.getDistanceFromZone(bot.position) : 0;
             ctx.sheltered = bot.mapRef?.isShelteredFromRain?.(bot.position) || false;
-            // FIX: Always refresh enemy detection in cached context — never let stale values persist
-            if (earlyGamePhase) {
-                // Only detect zombies — survivors are NOT enemies during early game
-                const nearby = entityManager?.getNearbyEntities
+            // FIX: Cache nearby query with 150ms TTL to avoid per-frame getNearbyEntities (causes micro-stutters)
+            const nearCacheAge = (bot._nearbyCacheTime || 0) + 0.15 - (now / 1000);
+            let cachedNearby = null;
+            if (nearCacheAge > 0) {
+                cachedNearby = bot._cachedNearby;
+            } else {
+                cachedNearby = entityManager?.getNearbyEntities
                     ? entityManager.getNearbyEntities(bot.position, 50)
                     : (entityManager?.getEntities?.() || []);
+                bot._cachedNearby = cachedNearby;
+                bot._nearbyCacheTime = now / 1000;
+            }
+            if (earlyGamePhase) {
+                // Only detect zombies — survivors are NOT enemies during early game
                 ctx.nearestEnemy = null;
                 ctx.nearestEnemyDist = Infinity;
-                for (const ent of nearby) {
+                for (const ent of cachedNearby) {
                     if (!ent?.isAlive || ent === bot) continue;
                     if (ent.constructor?.name !== 'Zombie') continue;
                     const d = bot.position.distanceTo(ent.position);
@@ -124,14 +132,11 @@ export class BotBrain {
                 }
             } else {
                 // During non-early-game, refresh BOTH enemies AND zombies — bots should see ALL threats
-                const nearby = entityManager?.getNearbyEntities
-                    ? entityManager.getNearbyEntities(bot.position, 50)
-                    : (entityManager?.getEntities?.() || []);
                 ctx.nearestEnemy = null;
                 ctx.nearestEnemyDist = Infinity;
                 ctx.nearestZombie = null;
                 ctx.nearestZombieDist = Infinity;
-                for (const ent of nearby) {
+                for (const ent of cachedNearby) {
                     if (!ent?.isAlive || ent === bot) continue;
                     const type = ent.constructor?.name;
                     if (type === 'Player' || type === 'Bot') {
@@ -285,10 +290,10 @@ export class BotBrain {
         const queryRadius = earlyGamePhase ? 68 : Math.min(104, this.baseVisionRange * this.visionMultiplier);
         const closeCombatRadius = 42;
 
-        // OPTIMIZED: Cache nearby query — reuse if bot hasn't moved much (extended cache to 200ms)
-        const cacheAge = (bot._nearbyCacheTime || 0) + 0.2 - (now / 1000);
+        // OPTIMIZED: Cache nearby query with 150ms TTL to avoid per-frame getNearbyEntities (causes micro-stutters)
+        const cacheAge = (bot._nearbyCacheTime || 0) + 0.15 - (now / 1000);
         let nearby = null;
-        if (cacheAge > 0 && bot._cachedNearby && !earlyGamePhase) {
+        if (cacheAge > 0) {
             nearby = bot._cachedNearby;
         } else {
             nearby = entityManager?.getNearbyEntities
