@@ -5335,6 +5335,48 @@ export class MapGenerator {
         return this.colliders;
     }
 
+    // Get ground-level surface Y (walkable colliders with max.y <= 0.6)
+    // NOT platform heights — used for chest/item placement on actual ground
+    getGroundY(x, z) {
+        const cellSize = this.colliderGridCellSize;
+        const minX = Math.floor((x - 0.5) / cellSize);
+        const maxX = Math.floor((x + 0.5) / cellSize);
+        const minZ = Math.floor((z - 0.5) / cellSize);
+        const maxZ = Math.floor((z + 0.5) / cellSize);
+        let bestY = null;
+        for (let cx = minX; cx <= maxX; cx++) {
+            for (let cz = minZ; cz <= maxZ; cz++) {
+                const key = (cx << 16) | (cz & 0xFFFF);
+                const bucket = this.colliderGrid?.get(key);
+                if (!bucket) continue;
+                for (const col of bucket) {
+                    if (!col.walkable) continue;
+                    if (col.max.y > 0.6) continue; // Ground only, not platforms
+                    if (col.surfaceCircle) {
+                        const dx = x - col.surfaceCircle.x;
+                        const dz = z - col.surfaceCircle.z;
+                        if (dx * dx + dz * dz > col.surfaceCircle.radius * col.surfaceCircle.radius) continue;
+                    }
+                    if (col.surfaceOBB) {
+                        const dx = x - col.surfaceOBB.x;
+                        const dz = z - col.surfaceOBB.z;
+                        const cos = Math.cos(col.surfaceOBB.rotation);
+                        const sin = Math.sin(col.surfaceOBB.rotation);
+                        const localX = dx * cos - dz * sin;
+                        const localZ = dx * sin + dz * cos;
+                        if (Math.abs(localX) > col.surfaceOBB.halfWidth || Math.abs(localZ) > col.surfaceOBB.halfDepth) continue;
+                    }
+                    if (x >= col.min.x && x <= col.max.x && z >= col.min.z && z <= col.max.z) {
+                        if (bestY === null || col.max.y < bestY) {
+                            bestY = col.max.y;
+                        }
+                    }
+                }
+            }
+        }
+        return bestY;
+    }
+
     getSpawnPads() {
         return this.spawnPads;
     }

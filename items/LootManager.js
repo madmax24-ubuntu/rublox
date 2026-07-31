@@ -113,6 +113,11 @@ export class LootManager {
     }
 
     getChestPlacementY(x, z) {
+        // FIX: Use ground-level height ONLY — NOT platform heights (2m+).
+        // Platforms like spawn pads, hangars, treehouses should NOT host chests.
+        const groundY = this.mapGenerator.getGroundY?.(x, z);
+        if (Number.isFinite(groundY)) return groundY;
+        // Fallback: if no ground, use whatever surface is at this position
         const fallbackY = this.mapGenerator.getHeightAt?.(x, z) ?? 0;
         const baseY = this.mapGenerator.raycastGroundY?.(x, z, fallbackY)
             ?? this.mapGenerator.getSurfaceHeightAt?.(x, z)
