@@ -533,10 +533,6 @@ class Game {
 			this.isPaused = false;
 			this.autoPausedByVisibility = false;
 
-			for (let i = 0; i < this.bots.length; i++) {
-				this.botBrains.push(new BotBrain());
-			}
-
 			this.gameState = "countdown";
 			this.countdownTime = GAME_CONFIG.round.countdownSeconds;
 			this.countdownTimer = this.countdownTime;
@@ -707,6 +703,9 @@ class Game {
 				this.physics.addEntity(bot);
 				this.entityManager.addEntity(bot);
 				this.bots.push(bot);
+				const brain = new BotBrain();
+				brain.visionMultiplier = this.modeConfig.botVision;
+				this.botBrains.push(brain);
 
 				if (index < 3) {
 					console.log(
