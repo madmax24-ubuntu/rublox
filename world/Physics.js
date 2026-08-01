@@ -74,9 +74,7 @@ export class Physics {
             const isPlayer = entity.type === 'Player' || type === 'Player';
             const isNpc = type === 'Bot' || type === 'Zombie';
             const nearPlayer = isNpc && playerEntity?.position && entity.position?.distanceToSquared(playerEntity.position) < 1225;
-            const entityStride = nearPlayer || type === 'Bot' ? 1 : npcStride;
-            if (isNpc && (entityIndex + physicsFrame) % entityStride !== 0) continue;
-            const physicsDelta = isPlayer || nearPlayer ? delta : Math.min(0.075, delta * entityStride);
+            const entityStride = nearPlayer ? 1 : npcStride;
             const pos = entity.position;
 
             // Validate position
@@ -90,6 +88,21 @@ export class Physics {
             const isFrozen = entity.isFrozen === true;
             const height = entity.physics.height || 1.7;
             const vel = entity.physics.velocity;
+            if (isNpc && entityStride > 1 && (entityIndex + physicsFrame) % entityStride !== 0) {
+                if (!isFrozen) {
+                    if (!entity.physics.onGround) {
+                        vel.y += this.gravity * delta;
+                        pos.y += vel.y * delta;
+                    }
+                    pos.x += vel.x * delta;
+                    pos.z += vel.z * delta;
+                    const damping = Math.exp(-(entity.physics.onGround ? (type === 'Bot' ? 2.4 : 3.5) : 2.5) * delta);
+                    vel.x *= damping;
+                    vel.z *= damping;
+                }
+                continue;
+            }
+            const physicsDelta = delta;
 
             // Init tracking state
             if (entity.physics.wasOnGround === undefined) {
@@ -341,6 +354,13 @@ export class Physics {
                         && bottom <= max.y + 0.12;
                     const canStep = (entity.physics.onGround || stairRecovery) && verticalSpeed <= 0.01;
                     const onSurface = this._containsWalkableSurface(box, pos.x, pos.z, baseRadius);
+                    const landingReach = Math.max(0.45, Math.min(1.2, Math.abs(verticalSpeed) * 0.06));
+                    if (!entity.physics.onGround && verticalSpeed <= 0 && onSurface && bottom >= max.y - landingReach) {
+                        pos.y = max.y + (entity.physics?.height || 1.7);
+                        entity.physics.onGround = true;
+                        if (entity.physics.velocity) entity.physics.velocity.y = 0;
+                        continue;
+                    }
                     if (canStep && onSurface && stepHeight > 0.02 && stepHeight <= stepReach) {
                         pos.y = max.y + (entity.physics?.height || 1.7);
                         entity.physics.onGround = true;

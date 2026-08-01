@@ -788,7 +788,7 @@ class Game {
 		if (!batches?.length) return;
 		this.botLodUpdateTimer = (this.botLodUpdateTimer || 0) - delta;
 		if (this.botLodUpdateTimer > 0) return;
-		this.botLodUpdateTimer = this.isMobile() ? 0.033 : 0.016;
+		this.botLodUpdateTimer = this.isMobile() ? 0.05 : 0.033;
 		const counts = this._botLodCounts;
 		counts.fill(0);
 		for (const bot of this.bots) {
@@ -2335,7 +2335,7 @@ class Game {
 					job.chunk,
 					job.remaining,
 				);
-				this.spawnZombies(
+				const spawned = this.spawnZombies(
 					job.reset && !job.started,
 					job.multiplier,
 					job.capOverride,
@@ -2343,7 +2343,9 @@ class Game {
 					job.variant,
 				);
 				job.started = true;
-				job.remaining -= batch;
+				job.remaining -= spawned;
+				job.failedAttempts = spawned > 0 ? 0 : (job.failedAttempts || 0) + 1;
+				if (job.failedAttempts >= 8) job.remaining = 0;
 				if (job.remaining <= 0) this.pendingZombieBursts.shift();
 				operations++;
 				continue;
@@ -2548,10 +2550,13 @@ class Game {
 			this.physics,
 			this.audioSynth,
 		);
+		const refreshFarBots = (this.botLodUpdateTimer || 0) <= delta;
 		for (let i = 0; i < this.bots.length; i++) {
 			const bot = this.bots[i];
 			if (!bot?.isAlive) continue;
-			bot.syncVisualAfterPhysics?.(delta);
+			const far = bot._lodDetailed === false;
+			if (far && !refreshFarBots) continue;
+			bot.syncVisualAfterPhysics?.(far ? (this.isMobile() ? 0.05 : 0.033) : delta, far);
 		}
 		this.updateBotLodBatch(delta);
 		if (this.gameState === "playing") {
@@ -2580,7 +2585,7 @@ class Game {
 		const lootOnly = this.bots[0]?.noCombatUntil > performance.now();
 		const batch = Math.min(
 			botCount,
-			lootOnly ? (this.isMobile() ? 12 : 18) : this.isMobile() ? 10 : 16,
+			lootOnly ? (this.isMobile() ? 8 : 12) : this.isMobile() ? 7 : 10,
 		);
 		const scaledDelta = Math.min(0.25, (delta * botCount) / Math.max(1, batch));
 		for (let i = 0; i < batch; i++) {
@@ -3420,41 +3425,30 @@ class Game {
 		);
 		if (count <= 0) return 0;
 
-		// YieldScheduler: разбиваем спавн зомби на чанки
-		this.yieldScheduler.registerTask(
-			"spawnZombies",
-			(tile) => {
-				if (!this.isBiomeZombieSpawnPoint(tile.x, tile.z)) return true;
-				const baseY =
-					this.map.raycastGroundY?.(
-						tile.x,
-						tile.z,
-						this.map.getSurfaceHeightAt?.(tile.x, tile.z) ??
-							this.map.getHeightAt?.(tile.x, tile.z) ??
-							0,
-					) ?? 0;
-				const pos = new THREE.Vector3(tile.x, baseY + 1.8, tile.z);
-				if (pos.distanceTo(this.player.position) < (reset ? 20 : 24))
-					return true;
-				if (!this.map.isWalkableAt?.(tile.x, tile.z)) return true;
-				if (!this.canSpawnZombieAt(tile.x, tile.z)) return true;
-				const zombie = this.zombiePool.acquire(pos, forcedVariant);
-				this.zombies.push(zombie);
-				return true;
-			},
-			{
-				priority: "HIGH",
-				chunkSize: 3,
-				onComplete: () =>
-					console.log("[Spawn] Zombies spawned with yield-optimization"),
-			},
-		);
-
-		this.yieldScheduler.startTask(
-			"spawnZombies",
-			floorTiles.slice(0, count * 3),
-		);
-		return count;
+		let spawned = 0;
+		const attempts = Math.min(floorTiles.length, Math.max(16, count * 8));
+		const start = this.zombieSpawnCursor % floorTiles.length;
+		for (let i = 0; i < attempts && spawned < count; i++) {
+			const tile = floorTiles[(start + i) % floorTiles.length];
+			if (!this.isBiomeZombieSpawnPoint(tile.x, tile.z)) continue;
+			if (!this.map.isWalkableAt?.(tile.x, tile.z)) continue;
+			if (!this.canSpawnZombieAt(tile.x, tile.z)) continue;
+			const baseY =
+				this.map.raycastGroundY?.(
+					tile.x,
+					tile.z,
+					this.map.getSurfaceHeightAt?.(tile.x, tile.z) ??
+						this.map.getHeightAt?.(tile.x, tile.z) ??
+						0,
+				) ?? 0;
+			const pos = new THREE.Vector3(tile.x, baseY + 1.8, tile.z);
+			if (pos.distanceTo(this.player.position) < (reset ? 20 : 24)) continue;
+			const zombie = this.zombiePool.acquire(pos, forcedVariant);
+			this.zombies.push(zombie);
+			spawned++;
+		}
+		this.zombieSpawnCursor = (start + attempts) % floorTiles.length;
+		return spawned;
 	}
 
 	render() {

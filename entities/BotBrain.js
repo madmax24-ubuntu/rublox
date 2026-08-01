@@ -196,6 +196,30 @@ export class BotBrain {
             bot.target = null;
             bot.assistTarget = null;
             this.releaseCombatReservation(bot);
+            if (bot.assignedBiomeGate && now < (bot.assignedBiomeUntil || 0)) {
+                if (Math.hypot(bot.position.x, bot.position.z) < 55 && bot.position.distanceTo(bot.assignedBiomeGate) > 3) {
+                    bot.state = STATES.EXPLORE;
+                    this.steerMove(bot, bot.assignedBiomeGate, bot.physics.speed * 1.35);
+                    return;
+                }
+                bot.assignedBiomeGate = null;
+            }
+            if (bot.assignedBiomeThreshold && now < (bot.assignedBiomeUntil || 0)) {
+                if (Math.hypot(bot.position.x, bot.position.z) < 64 && bot.position.distanceTo(bot.assignedBiomeThreshold) > 2.5) {
+                    bot.state = STATES.EXPLORE;
+                    this.steerMove(bot, bot.assignedBiomeThreshold, bot.physics.speed * 1.35);
+                    return;
+                }
+                bot.assignedBiomeThreshold = null;
+            }
+            if (bot.assignedBiomeEntry && now < (bot.assignedBiomeUntil || 0)) {
+                if (Math.hypot(bot.position.x, bot.position.z) < 72 && bot.position.distanceTo(bot.assignedBiomeEntry) > 8) {
+                    bot.state = STATES.EXPLORE;
+                    this.steerMove(bot, bot.assignedBiomeEntry, bot.physics.speed * 1.25);
+                    return;
+                }
+                bot.assignedBiomeEntry = null;
+            }
             if (ctx.nearestZombieDist < 18 && ctx.shelterTarget) {
                 bot.state = STATES.HIDE;
                 this.actHide(bot, ctx);
@@ -723,7 +747,7 @@ export class BotBrain {
             if (isBeingAttacked && ctx.crowdNear < crowdTolerance) {
                 return STATES.ENGAGE;
             }
-            if (wellArmed && agg >= 0.7 && ctx.nearestEnemyDist < engageDist * 0.82 && ctx.crowdNear < crowdTolerance) {
+            if (wellArmed && agg >= 0.62 && ctx.nearestEnemyDist < engageDist * 0.95 && ctx.crowdNear < crowdTolerance) {
                 return STATES.ENGAGE;
             }
             // Retaliate for recent attacks

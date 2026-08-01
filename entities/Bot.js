@@ -1076,7 +1076,7 @@ export class Bot {
         }
     }
 
-    syncVisualAfterPhysics(delta = 0.016) {
+    syncVisualAfterPhysics(delta = 0.016, lightweight = false) {
         if (!this.mesh) return;
         const dt = Math.max(0.001, delta || 0.016);
         const moved = this.position.distanceTo(this.visualLastPosition);
@@ -1102,6 +1102,7 @@ export class Bot {
         this.mesh.position.y = this.position.y - this.physics.height;
         this.mesh.rotation.y = this.rotation.y;
         const detailed = this.updateRenderLod(delta);
+        if (lightweight && !detailed) return;
         if (detailed) this.animateLimbs();
         if (this.healthBar) this.updateHealthBar(delta);
 
