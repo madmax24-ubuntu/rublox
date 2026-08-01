@@ -681,6 +681,8 @@ class Game {
 	}
 
 	spawnBots() {
+		if (this.botSpawnStarted || this.bots.length) return;
+		this.botSpawnStarted = true;
 		// Player uses pad[0], bots use pads[1..] — each entity gets strictly its own pad
 		const spawnPads = this.map.getSpawnPads?.() || [];
 		const botPads = spawnPads.length > 1 ? spawnPads.slice(1) : spawnPads;
@@ -724,6 +726,7 @@ class Game {
 	}
 
 	_onBotsSpawned() {
+		this.botSpawnCompleted = true;
 		this.setupBotLodBatch();
 	}
 
@@ -3444,7 +3447,7 @@ class Game {
 				if (!this.canSpawnZombieAt(tile.x, tile.z)) return true;
 				const zombie = this.zombiePool.acquire(pos, forcedVariant);
 				this.zombies.push(zombie);
-				return this.yieldScheduler.yieldPoint();
+				return true;
 			},
 			{
 				priority: "HIGH",

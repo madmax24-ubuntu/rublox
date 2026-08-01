@@ -142,7 +142,7 @@ export class YieldScheduler {
 			if (result === false) {
 				// Task returned false → yield
 				this._currentTask.paused = true;
-				this._currentTask.index = i;
+				this._currentTask.index = i + 1;
 				this._currentTask.yieldCount++;
 				this._currentYieldsThisFrame++;
 				this._yieldAccumulator += performance.now() - this._frameStartTime;
@@ -157,6 +157,8 @@ export class YieldScheduler {
 				setTimeout(() => this._resumeYieldable(), 0);
 				return;
 			}
+
+			this._currentTask.index = i + 1;
 		}
 
 		// Task completed — only if all items processed
