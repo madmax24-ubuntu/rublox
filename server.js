@@ -34,6 +34,7 @@ const serveStatic = express.static(__dirname, {
 app.get('/', async (req, res) => {
   const html = await readFile(path.join(__dirname, 'index.html'), 'utf-8');
   const now = Date.now();
+  const commit = process.env.RENDER_GIT_COMMIT || 'local';
   // Inject cache-busting into all script src attributes with .js
   const cacheBustRe = /(src=['"])([^'"]*\.js)([?&]v=[^'"]*)?(['"])/g;
   let htmlWithVersion = html.replace(cacheBustRe, '$1$2?v=' + now + '$4');
@@ -47,6 +48,7 @@ app.get('/', async (req, res) => {
   res.set('Expires', '0');
   res.set('Last-Modified', new Date(now).toUTCString());
   res.set('ETag', `"${now}"`);
+  res.set('X-Rubo-Commit', commit);
   res.send(htmlWithVersion);
 });
 
