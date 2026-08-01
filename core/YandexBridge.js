@@ -1,6 +1,6 @@
 const STRINGS = {
     ru: {
-        title: 'Rubo Arena',
+        title: 'Rubo Arena: Голодные игры',
         badge1: 'Официальный релиз',
         badge2: 'Выживание',
         desktopDesc: 'Выживание до последнего. Рандомная карта, лут из сундуков и перки прямо в бою.',
@@ -25,7 +25,7 @@ const STRINGS = {
         touchAttack: 'Удар'
     },
     en: {
-        title: 'Rubo Arena',
+        title: 'Rubo Arena: Hunger Games',
         badge1: 'Official Release',
         badge2: 'Survival',
         desktopDesc: 'Fight to be the last survivor. Random map, chest loot and perks during combat.',
@@ -93,19 +93,35 @@ export class YandexBridge {
         if (window.YaGames?.init) return Promise.resolve(true);
         return new Promise((resolve) => {
             try {
+                let settled = false;
+                const done = (value) => {
+                    if (settled) return;
+                    settled = true;
+                    clearTimeout(timeout);
+                    resolve(value);
+                };
+                const timeout = setTimeout(() => done(Boolean(window.YaGames?.init)), 5000);
                 const existing = document.querySelector('script[data-yg-sdk="1"]');
                 if (existing) {
-                    existing.addEventListener('load', () => resolve(true), { once: true });
-                    existing.addEventListener('error', () => resolve(false), { once: true });
+                    if (existing.dataset.loaded === '1') return done(Boolean(window.YaGames?.init));
+                    if (existing.dataset.failed === '1') return done(false);
+                    existing.addEventListener('load', () => done(Boolean(window.YaGames?.init)), { once: true });
+                    existing.addEventListener('error', () => done(false), { once: true });
                     return;
                 }
                 const script = document.createElement('script');
-                script.src = 'https://yandex.ru/games/sdk/v2';
+                script.src = '/sdk.js';
                 script.async = true;
                 script.defer = true;
                 script.dataset.ygSdk = '1';
-                script.onload = () => resolve(true);
-                script.onerror = () => resolve(false);
+                script.onload = () => {
+                    script.dataset.loaded = '1';
+                    done(Boolean(window.YaGames?.init));
+                };
+                script.onerror = () => {
+                    script.dataset.failed = '1';
+                    done(false);
+                };
                 document.head.appendChild(script);
             } catch (_) {
                 resolve(false);
@@ -226,7 +242,6 @@ export class YandexBridge {
         }
 
         this.applyLocalization();
-        this.signalReady();
         this.initialized = true;
         return this;
     }

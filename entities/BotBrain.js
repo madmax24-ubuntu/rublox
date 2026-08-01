@@ -81,15 +81,14 @@ export class BotBrain {
         this.handleStuck(bot);
 
         const now = performance.now();
-        const phaseGear = this.getGearScore(bot);
         const inPreLootPhase = !!(bot.noCombatUntil && now < bot.noCombatUntil);
-        const earlyGamePhase = inPreLootPhase || !!(bot.noCombatUntil && now < bot.noCombatUntil + 30000 && phaseGear < 1.15);
+        const earlyGamePhase = inPreLootPhase;
 
         // Force context refresh when phases change — prevents stale cached state from keeping bots in combat
         const phaseChanged = !!(bot._lastPhase && bot._lastPhase !== earlyGamePhase);
         let ctx = bot._fsmCtx;
         if (!ctx || this.decisionCooldown <= 0 || phaseChanged) {
-            ctx = this.collectContext(bot, entityManager, lootManager);
+            ctx = this.collectContext(bot, entityManager, lootManager, gameState);
             ctx.earlyGamePhase = earlyGamePhase;
             bot._fsmCtx = ctx;
             bot._lastPhase = earlyGamePhase;
@@ -117,7 +116,7 @@ export class BotBrain {
                 bot._cachedNearby = cachedNearby;
                 bot._nearbyCacheTime = now / 1000;
             }
-            if (earlyGamePhase) {
+            if (inPreLootPhase) {
                 // Only detect zombies — survivors are NOT enemies during early game
                 ctx.nearestEnemy = null;
                 ctx.nearestEnemyDist = Infinity;
@@ -156,7 +155,7 @@ export class BotBrain {
                 }
             }
             // FIX: Never let stale heardShot persist — reset during early game
-            if (earlyGamePhase) {
+            if (inPreLootPhase) {
                 ctx.heardShot = false;
             }
             if (!ctx.shelterTarget) {
@@ -187,11 +186,17 @@ export class BotBrain {
             }
         }
 
-        if (inPreLootPhase) {
+        if (inPreLootPhase || gameState === 'spawn') {
+            ctx.inPreLootPhase = true;
+            ctx.earlyGamePhase = true;
+            ctx.nearestEnemy = null;
+            ctx.nearestEnemyDist = Infinity;
             bot._retaliationTarget = null;
             bot._retaliateUntil = 0;
+            bot.target = null;
+            bot.assistTarget = null;
             this.releaseCombatReservation(bot);
-            if ((ctx.nearestEnemyDist < 18 || ctx.nearestZombieDist < 18) && ctx.shelterTarget) {
+            if (ctx.nearestZombieDist < 18 && ctx.shelterTarget) {
                 bot.state = STATES.HIDE;
                 this.actHide(bot, ctx);
             } else if (ctx.lootTarget) {
@@ -298,11 +303,11 @@ export class BotBrain {
         this.actIdle(bot, ctx);
     }
 
-    collectContext(bot, entityManager, lootManager) {
+    collectContext(bot, entityManager, lootManager, gameState) {
         const now = performance.now();
         const phaseGear = this.getGearScore(bot);
         const inPreLootPhase = !!(bot.noCombatUntil && now < bot.noCombatUntil);
-        const earlyGamePhase = inPreLootPhase || !!(bot.noCombatUntil && now < bot.noCombatUntil + 30000 && phaseGear < 1.15);
+        const earlyGamePhase = inPreLootPhase;
 
         const hp = bot.health / Math.max(1, bot.maxHealth || 100);
         const zone = bot.zoneRef;
@@ -500,7 +505,8 @@ export class BotBrain {
             crowdNear,
             gear,
             combatReady,
-            closeCombatRadius
+            closeCombatRadius,
+            gameState
         };
     }
 
@@ -582,13 +588,81 @@ export class BotBrain {
             if (ctx.lootTarget) return STATES.LOOT;
             return STATES.EXPLORE;
         }
-        // FIX: During extended early game (undergeared), bots also avoid survivor combat
-        if (ctx.earlyGamePhase) {
-            if ((ctx.nearestZombieDist < 18) && ctx.shelterTarget) return STATES.HIDE;
+        // === MANDATORY LOOT PRIORITY: if bot has no weapon or only knife, force loot ===
+        if (!hasRealWeapon && ctx.lootTarget) {
+            return STATES.LOOT;
+        }
+
+        // === PHASE 1: Pre-loot (0-35s) ===
+        // Bots NEVER engage — only loot, explore, or hide from very close threats
+        if (ctx.inPreLootPhase) {
+            if (ctx.nearestZombie && ctx.nearestZombieDist < 12 && ctx.shelterTarget) {
+                return STATES.HIDE;
+            }
             if (ctx.lootTarget) return STATES.LOOT;
             return STATES.EXPLORE;
         }
 
+        // FIX: Also block engagement during SPAWN game phase (pre-combat invulnerable window)
+        // During spawn phase, bots should ONLY loot and explore
+        if (ctx.gameState === 'spawn') {
+            if (ctx.nearestZombie && ctx.nearestZombieDist < 12 && ctx.shelterTarget) {
+                return STATES.HIDE;
+            }
+            if (ctx.lootTarget) return STATES.LOOT;
+            return STATES.EXPLORE;
+        }
+
+        // === PHASE 2: Early game (35-80s) — still prioritize looting ===
+        // Undergeared bots never engage — well-armed bots engage cautiously
+        if (ctx.earlyGamePhase) {
+            // Survival always wins
+            if ((veryLowHp && hasMedkit) || (lowHp && hasMedkit && underPressure)) {
+                return STATES.SURVIVAL;
+            }
+            if (veryLowHp && ctx.shelterTarget && (!ctx.nearestEnemy || ctx.nearestEnemyDist > 10)) {
+                return STATES.ZONE_RETREAT;
+            }
+            const undergeared = !wellArmed || ctx.gear < undergearedThreshold;
+            if (undergeared) {
+                if (ctx.nearestZombie && ctx.nearestZombieDist < 12 && ctx.shelterTarget) {
+                    return STATES.HIDE;
+                }
+                if (ctx.lootTarget) return STATES.LOOT;
+                if (ctx.nearestEnemy && ctx.nearestEnemyDist < 60) return STATES.HIDE;
+                return STATES.EXPLORE;
+            }
+
+            // Well-armed bots: still avoid combat unless threatened
+            if (ctx.crowdNear >= crowdTolerance) return STATES.EXPLORE;
+            if (ctx.crowdNear >= 2) return STATES.EXPLORE;
+
+            if (fleeHp && ctx.shelterTarget) return STATES.HIDE;
+            if (fleeHp) return STATES.RETREAT;
+            if (lowHp && underPressure && !hasMedkit) return STATES.HIDE;
+
+            if (ctx.nearestEnemy && ctx.nearestEnemyDist < engageDist) {
+                const isBeingShot = ctx.heardShot;
+                const closeThreat = ctx.nearestEnemyDist < 15;
+                if (isBeingShot && closeThreat && !veryLowHp) {
+                    return STATES.ENGAGE;
+                }
+                if (!hasRealWeapon && ctx.nearestEnemyDist > 8) {
+                    return STATES.LOOT;
+                }
+                if (isBeingShot && wellArmed && ctx.gear >= undergearedThreshold && ctx.crowdNear < crowdTolerance) {
+                    return STATES.ENGAGE;
+                }
+                if (ctx.lootTarget && ctx.nearestEnemyDist > 12) return STATES.LOOT;
+                return STATES.EXPLORE;
+            }
+
+            if (ctx.lootTarget) return STATES.LOOT;
+            return STATES.EXPLORE;
+        }
+
+        // === PHASE 3: Mid/Late game — normal combat ===
+        // Only engage zombies after both phases are over
         if (ctx.nearestZombie && ctx.nearestZombieDist < 16) {
             // Zombies are a threat — engage unless critically low HP
             if (veryLowHp) return ctx.shelterTarget ? STATES.RETREAT : STATES.EXPLORE;
@@ -602,74 +676,7 @@ export class BotBrain {
             if (ctx.nearestZombieDist < 10 && lowHp) return ctx.shelterTarget ? STATES.RETREAT : STATES.EXPLORE;
         }
 
-        // === MANDATORY LOOT PRIORITY: if bot has no weapon or only knife, force loot ===
-        if (!hasRealWeapon && ctx.lootTarget) {
-            return STATES.LOOT;
-        }
-
-        // === PHASE 2: Early game (45s after pre-loot) ===
-        // Bots prioritize looting — only engage when directly threatened
-        if (ctx.earlyGamePhase) {
-            // 1. Survival always wins
-            if ((veryLowHp && hasMedkit) || (lowHp && hasMedkit && underPressure)) {
-                return STATES.SURVIVAL;
-            }
-            if (veryLowHp && ctx.shelterTarget && (!ctx.nearestEnemy || ctx.nearestEnemyDist > 10)) {
-                return STATES.ZONE_RETREAT;
-            }
-            const undergeared = !wellArmed || ctx.gear < undergearedThreshold;
-            if (undergeared) {
-                if (ctx.lootTarget) return STATES.LOOT;
-                if (ctx.nearestEnemy && ctx.nearestEnemyDist < 60) return STATES.HIDE;
-                return STATES.EXPLORE;
-            }
-
-            if (ctx.crowdNear >= crowdTolerance) {
-                return STATES.EXPLORE;
-            }
-            // Extra crowd avoidance in early game
-            if (ctx.crowdNear >= 2) {
-                return STATES.EXPLORE;
-            }
-
-            // 4. Critical HP → flee and hide immediately
-            if (fleeHp && ctx.shelterTarget) return STATES.HIDE;
-            if (fleeHp) return STATES.RETREAT;
-
-            // 4b. Low HP → hide/retreat
-            if (lowHp && underPressure && !hasMedkit) return STATES.HIDE;
-
-            // 5. Engagement: personality-adjusted thresholds
-            if (ctx.nearestEnemy && ctx.nearestEnemyDist < engageDist) {
-                // Self-defense: engage if being shot at close range regardless of gear
-                const isBeingShot = ctx.heardShot;
-                const closeThreat = ctx.nearestEnemyDist < 15;
-                if (isBeingShot && closeThreat && !veryLowHp) {
-                    return STATES.ENGAGE;
-                }
-                // Knife-only bots: engage only if very close (melee range) and being threatened
-                if (!hasRealWeapon && ctx.nearestEnemyDist > 8) {
-                    return STATES.LOOT;
-                }
-                if (!hasRealWeapon && isBeingShot && closeThreat && !veryLowHp) {
-                    return STATES.ENGAGE;
-                }
-                // Well-armed bots engage when being shot
-                if (isBeingShot && wellArmed && ctx.gear >= undergearedThreshold && ctx.crowdNear < crowdTolerance) {
-                    return STATES.ENGAGE;
-                }
-                // Loot if enemy is not too close
-                if (ctx.lootTarget && ctx.nearestEnemyDist > 12) return STATES.LOOT;
-                return STATES.EXPLORE;
-            }
-
-            // 6. Default: loot then explore
-            if (ctx.lootTarget) return STATES.LOOT;
-            return STATES.EXPLORE;
-        }
-
         // === PHASE 3: Mid/Late game — normal combat ===
-
         // 1. Critical Survival
         if ((veryLowHp && hasMedkit) || (lowHp && hasMedkit && underPressure)) {
             return STATES.SURVIVAL;
@@ -963,11 +970,20 @@ export class BotBrain {
             
             if (distToShelter < 3 && minThreatDist > 30) {
                 // At shelter and threat is far — leave and explore
+                bot.state = STATES.EXPLORE;  // FIX: Explicit transition to EXPLORE
                 bot.patrolTarget = this.pickSpreadTarget(bot, 40, 120);
                 if (bot.patrolTarget) this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 0.95);
                 return;
             }
             
+            // FIX: If no threat within 20 units, leave hiding after reaching shelter
+            if (distToShelter < 5 && (minThreatDist > 20 || (!enemy && !zombie))) {
+                bot.state = STATES.EXPLORE;  // Explicit transition
+                bot.patrolTarget = this.pickSpreadTarget(bot, 30, 80);
+                if (bot.patrolTarget) this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 0.85);
+                return;
+            }
+
             let isActuallyHidden = true;
             if (enemy) {
                 this._tmpShelterDir.subVectors(shelter, bot.position).normalize();
@@ -1635,7 +1651,7 @@ export class BotBrain {
         if (!key) return true;
         // Cap maxBots — max 2 during early game, 3 otherwise
         const now = performance.now();
-        const isEarlyGame = bot.noCombatUntil && now < bot.noCombatUntil + 45000;
+        const isEarlyGame = bot.noCombatUntil && now < bot.noCombatUntil;
         const cappedMax = isEarlyGame ? Math.min(maxBots, 2) : Math.min(maxBots, 3);
         const prev = bot._combatReservationKey;
         if (prev && prev !== key) this.releaseFromMap(BotBrain._combatReservations, bot.id, prev);

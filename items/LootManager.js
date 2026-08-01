@@ -113,16 +113,9 @@ export class LootManager {
     }
 
     getChestPlacementY(x, z) {
-        // FIX: Use ground-level height ONLY — NOT platform heights (2m+).
-        // Platforms like spawn pads, hangars, treehouses should NOT host chests.
-        const groundY = this.mapGenerator.getGroundY?.(x, z);
-        if (Number.isFinite(groundY)) return groundY;
-        // Fallback: if no ground, use whatever surface is at this position
-        const fallbackY = this.mapGenerator.getHeightAt?.(x, z) ?? 0;
-        const baseY = this.mapGenerator.raycastGroundY?.(x, z, fallbackY)
-            ?? this.mapGenerator.getSurfaceHeightAt?.(x, z)
-            ?? fallbackY;
-        return Number.isFinite(baseY) ? baseY : fallbackY;
+        const terrainY = this.mapGenerator.getHeightAt?.(x, z);
+        if (!Number.isFinite(terrainY)) return null;
+        return terrainY + 0.02;
     }
 
     isChestPlacementClear(x, y, z) {
@@ -174,12 +167,9 @@ export class LootManager {
             const px = x + ox;
             const pz = z + oz;
             const py = this.getChestPlacementY(px, pz);
-            // FIX: Reject NaN/Infinity heights — prevents chests spawning in the air
             if (!Number.isFinite(py)) continue;
-            // FIX: Check raw height BEFORE clamp — if it's elevated above valid range, skip entirely
-            // This prevents chests appearing on elevated terrain or floating structures
-            if (py < waterLevel + 0.5 || py > 1.5) continue;
-            const groundY = Math.max(0, Math.min(py, 1.2));
+            if (py < -0.1 || py > 0.8) continue;
+            const groundY = py;
             if (this.isChestPlacementClear(px, groundY, pz)) return { x: px, y: groundY, z: pz };
         }
         return null;
@@ -216,8 +206,8 @@ export class LootManager {
                 const tile = shuffled[i];
                 const key = keyFor(tile.x, tile.z);
                 if (occupied.has(key)) continue;
-                const y = Math.max(0, Math.min(this.getChestPlacementY(tile.x, tile.z), 3.0));
-                if (y < this.mapGenerator.waterLevel + 0.5 || y > 1.2) continue;
+                const y = this.getChestPlacementY(tile.x, tile.z);
+                if (!Number.isFinite(y) || y < -0.1 || y > 0.8) continue;
                 if (this.mapGenerator.getStructureAtPoint?.(tile.x, tile.z, 3)) continue;
                 if (!this.isHiddenSpawn(tile.x, y, tile.z)) continue;
                 if (!this.isChestPlacementClear(tile.x, y, tile.z)) continue;
@@ -238,11 +228,8 @@ export class LootManager {
             const distance = 80 + Math.random() * Math.max(2, maxRadius - 80);
             const x = Math.cos(angle) * distance;
             const z = Math.sin(angle) * distance;
-            const y = Math.max(0, Math.min(this.getChestPlacementY(x, z), 3.0));
-
-            if (y < this.mapGenerator.waterLevel + 0.5 || y > 1.2) {
-                continue;
-            }
+            const y = this.getChestPlacementY(x, z);
+            if (!Number.isFinite(y) || y < -0.1 || y > 0.8) continue;
             if (this.mapGenerator.getStructureAtPoint?.(x, z, 1)) continue;
             if (!this.isHiddenSpawn(x, y, z)) {
                 continue;
@@ -298,8 +285,8 @@ export class LootManager {
                 const tile = shuffled[i];
                 const key = keyFor(tile.x, tile.z);
                 if (occupied.has(key)) continue;
-                const y = Math.max(0, Math.min(this.getChestPlacementY(tile.x, tile.z), 3.0));
-                if (y < this.mapGenerator.waterLevel + 0.5 || y > 1.2) continue;
+                const y = this.getChestPlacementY(tile.x, tile.z);
+                if (!Number.isFinite(y) || y < -0.1 || y > 0.8) continue;
                 if (this.mapGenerator.getStructureAtPoint?.(tile.x, tile.z, 3)) continue;
                 if (!this.isHiddenSpawn(tile.x, y, tile.z)) continue;
                 if (!this.isChestPlacementClear(tile.x, y, tile.z)) continue;
@@ -326,8 +313,8 @@ export class LootManager {
             const distance = 80 + Math.random() * Math.max(2, maxRadius - 80);
             const x = Math.cos(angle) * distance;
             const z = Math.sin(angle) * distance;
-            const y = Math.max(0, Math.min(this.getChestPlacementY(x, z), 3.0));
-            if (y < this.mapGenerator.waterLevel + 0.5 || y > 1.2) continue;
+            const y = this.getChestPlacementY(x, z);
+            if (!Number.isFinite(y) || y < -0.1 || y > 0.8) continue;
             if (this.mapGenerator.getStructureAtPoint?.(x, z, 1)) continue;
             if (!this.isHiddenSpawn(x, y, z)) {
                 continue;

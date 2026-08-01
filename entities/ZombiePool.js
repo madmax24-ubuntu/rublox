@@ -12,6 +12,18 @@ export class ZombiePool {
         this.variantSequence = ['normal', 'runner', 'crawler', 'toxic', 'normal', 'runner', 'heavy', 'crawler', 'toxic', 'normal'];
     }
 
+    async prewarm(count = 20) {
+        const origin = new THREE.Vector3(0, -100, 0);
+        const warmed = [];
+        for (let i = 0; i < count; i++) {
+            const variant = this.variantSequence[i % this.variantSequence.length];
+            const zombie = this.acquire(origin, variant);
+            warmed.push(zombie);
+            await new Promise(resolve => requestAnimationFrame(resolve));
+        }
+        for (const zombie of warmed) this.release(zombie, true);
+    }
+
     acquire(spawnPosition, forcedVariant = null) {
         forcedVariant ||= this.variantSequence[this.variantCursor++ % this.variantSequence.length];
         let zombie;

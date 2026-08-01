@@ -225,7 +225,8 @@ export class Bot {
 
         this.mesh = this.createMesh();
         this._lodDetailed = false;
-        this.mesh.scale.setScalar(this.outfit.scale);
+        this.baseModelScale = Number.isFinite(this.outfit?.scale) ? this.outfit.scale : 1;
+        this.mesh.scale.setScalar(this.baseModelScale);
         // Pre-allocate bounding sphere for frustum culling
         this.mesh._frustumSphere = new THREE.Sphere(new THREE.Vector3(), 1.0);
         this.healthBar = this.createHealthBar();
@@ -747,7 +748,7 @@ export class Bot {
         }
 
         // OPTIMIZED: Separation to avoid bot clumping — throttled per-bot
-        const isEarlyGame = this.noCombatUntil && performance.now() < this.noCombatUntil + 45000;
+        const isEarlyGame = this.noCombatUntil && performance.now() < this.noCombatUntil;
         const sepRadius = isEarlyGame ? 8.0 : 4.5;
         const sepRadiusSq = sepRadius * sepRadius;
         this.separationTimer = Math.max(0, this.separationTimer - delta);
@@ -876,6 +877,10 @@ export class Bot {
     takeDamage(damage, isHeadshot = false, attacker = null, knockbackStrength = 0, source = null) {
         if (this.isInvulnerable) return false;
 
+        const now = performance.now();
+        const inLootPhase = !!(this.noCombatUntil && now < this.noCombatUntil);
+        if (inLootPhase && attacker?.constructor?.name === 'Bot') return false;
+
         const finalDamage = isHeadshot ? damage * 2 : damage;
         if (finalDamage > 0) {
             this.lastDamageAt = performance.now() / 1000;
@@ -892,11 +897,7 @@ export class Bot {
         // Record enemy encounter in memory
         if (attacker && attacker.position) {
             const isDotDamage = source === 'zone' || source === 'storm' || source === 'burn' || source === 'trap';
-            const now = performance.now();
-            const inLootPhase = this.noCombatUntil && now < this.noCombatUntil;
-            // FIX: Also block retaliation during extended earlyGamePhase (undergeared period)
-            const extendedEarlyGame = this.noCombatUntil && now < this.noCombatUntil + 30000;
-            if (!isDotDamage && !inLootPhase && !extendedEarlyGame) {
+            if (!isDotDamage && !inLootPhase) {
                 this._lastAttackedBy = now;
                 this._retaliationTarget = attacker;
                 this._retaliateUntil = now + 8000;
@@ -905,7 +906,7 @@ export class Bot {
                 this._fsmCtx = null;
                 this.enemyEncounters.push({ pos: attacker.position.clone(), time: performance.now(), damage: finalDamage });
                 if (this.enemyEncounters.length > 15) this.enemyEncounters.shift();
-            } else if (inLootPhase || extendedEarlyGame) {
+            } else if (inLootPhase) {
                 this.target = null;
                 this.assistTarget = null;
                 this._retaliationTarget = null;
@@ -1094,22 +1095,8 @@ export class Bot {
             this._nextFootstepAt = stepNow + Math.max(0.32, 0.54 - stepSpeed * 0.14);
         }
 
-        // Handle crouch effect for HIDE state with smooth transitions
-        // FIX: All variants now share scale 1.0 — no more size oscillation
-        const targetScale = this.state === 'hide' ? 0.78 : 1.0;
-        const currentScale = this.mesh.scale.x;
-        const scaleDiff = targetScale - currentScale;
-        // FIX: Add convergence check — stop lerping when within threshold to prevent oscillation
-        if (Math.abs(scaleDiff) > 0.001) {
-            const lerp = 0.12;
-            const step = scaleDiff * lerp;
-            // Clamp step to prevent overshooting when close to target
-            if (Math.abs(step) > Math.abs(scaleDiff) * 0.3) {
-                this.mesh.scale.setScalar(currentScale + scaleDiff * 0.3);
-            } else {
-                this.mesh.scale.setScalar(currentScale + step);
-            }
-        }
+        const modelScale = Number.isFinite(this.baseModelScale) ? this.baseModelScale : 1;
+        if (Math.abs(this.mesh.scale.x - modelScale) > 0.0001) this.mesh.scale.setScalar(modelScale);
 
         this.mesh.position.copy(this.position);
         this.mesh.position.y = this.position.y - this.physics.height;

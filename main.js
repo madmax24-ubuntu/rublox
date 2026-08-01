@@ -433,6 +433,7 @@ class Game {
         this.entityManager.physicsRef = this.physics;
         this.scene.userData.entityManager = this.entityManager;
         this.zombiePool = new ZombiePool(this.scene, this.physics, this.entityManager);
+        await this.zombiePool.prewarm(isMobile ? 16 : 24);
         this.lootManager = new LootManager(this.scene, this.map);
         this.lootEvents = 0; // counter for test validation
 
@@ -1947,13 +1948,10 @@ class Game {
         this.spawnBurstCooldown = Math.max(0, this.spawnBurstCooldown - delta);
         if (this.spawnBurstCooldown > 0) return;
         const start = performance.now();
-        // OPT: Larger batch during events to reduce freeze duration from 2-3s to ~0.8s
-        const useEventBatch = this._spawnBurstEvent || this.pendingZombieBursts.some(j => j.isEvent);
-        const eventMult = useEventBatch ? 3 : 1;
-        const desktopBatch = Math.min(12, Math.max(4, this.isMobile() ? 1 : 2) * eventMult);
+        const desktopBatch = this.isMobile() ? 1 : 2;
         let operations = 0;
         const opBudget = 1;
-        const msBudget = this.isMobile() ? 0.9 : 1.4;
+        const msBudget = this.isMobile() ? 0.75 : 1.25;
         while ((this.pendingZombieBursts.length || this.pendingPoiBursts.length) && operations < opBudget) {
             if ((performance.now() - start) > msBudget) break;
             if (this.pendingZombieBursts.length) {
@@ -1968,7 +1966,7 @@ class Game {
             }
             if (this.pendingPoiBursts.length) {
                 const job = this.pendingPoiBursts[0];
-                const batch = Math.min(desktopBatch * 2, job.chunk * 2, job.remaining);
+                const batch = Math.min(desktopBatch, job.chunk, job.remaining);
                 this.spawnPoiZombieGuards(job.intensity, batch);
                 job.remaining -= batch;
                 if (job.remaining <= 0) this.pendingPoiBursts.shift();
@@ -1977,7 +1975,7 @@ class Game {
             }
         }
         this._spawnBurstEvent = false;
-        this.spawnBurstCooldown = this.isMobile() ? 0.12 : 0.08;
+        this.spawnBurstCooldown = 0.016;
     }
 
     update(delta) {
@@ -2145,8 +2143,8 @@ class Game {
         if (botCount === 0) return;
         // Bots update during countdown to enable pre-fight looting
         const lootOnly = this.bots[0]?.noCombatUntil > performance.now();
-        const batch = Math.min(botCount, lootOnly ? (this.isMobile() ? 8 : 10) : (this.isMobile() ? 12 : 16));
-        const scaledDelta = Math.min(0.1, delta * botCount / Math.max(1, batch));
+        const batch = Math.min(botCount, lootOnly ? (this.isMobile() ? 4 : 6) : (this.isMobile() ? 5 : 8));
+        const scaledDelta = Math.min(0.25, delta * botCount / Math.max(1, batch));
         for (let i = 0; i < batch; i++) {
             const botIndex = (this.botUpdateIndex + i) % botCount;
             const bot = this.bots[botIndex];
@@ -2950,9 +2948,11 @@ window.addEventListener('DOMContentLoaded', () => {
     const yandex = new YandexBridge();
     const game = new Game(yandex);
     window.game = game;
-    yandex.init().catch((err) => {
+    const yandexReady = yandex.init().catch((err) => {
         console.warn('Yandex init fallback:', err);
+        return yandex;
     });
+    Promise.all([game.ready, yandexReady]).then(() => yandex.signalReady());
     if (game.isMobile()) {
         document.body.classList.add('mobile');
         game.updateOrientationUI();
