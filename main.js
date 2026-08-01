@@ -788,7 +788,7 @@ class Game {
 		if (!batches?.length) return;
 		this.botLodUpdateTimer = (this.botLodUpdateTimer || 0) - delta;
 		if (this.botLodUpdateTimer > 0) return;
-		this.botLodUpdateTimer = this.isMobile() ? 0.066 : 0.045;
+		this.botLodUpdateTimer = this.isMobile() ? 0.033 : 0.016;
 		const counts = this._botLodCounts;
 		counts.fill(0);
 		for (const bot of this.bots) {
@@ -2548,15 +2548,9 @@ class Game {
 			this.physics,
 			this.audioSynth,
 		);
-		const visualStride = this.isMobile() ? 3 : 2;
 		for (let i = 0; i < this.bots.length; i++) {
 			const bot = this.bots[i];
 			if (!bot?.isAlive) continue;
-			if (
-				bot._lodDetailed === false &&
-				(i + this.renderFrameCount) % visualStride !== 0
-			)
-				continue;
 			bot.syncVisualAfterPhysics?.(delta);
 		}
 		this.updateBotLodBatch(delta);
@@ -2586,7 +2580,7 @@ class Game {
 		const lootOnly = this.bots[0]?.noCombatUntil > performance.now();
 		const batch = Math.min(
 			botCount,
-			lootOnly ? (this.isMobile() ? 4 : 6) : this.isMobile() ? 5 : 8,
+			lootOnly ? (this.isMobile() ? 12 : 18) : this.isMobile() ? 10 : 16,
 		);
 		const scaledDelta = Math.min(0.25, (delta * botCount) / Math.max(1, batch));
 		for (let i = 0; i < batch; i++) {

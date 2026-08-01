@@ -74,7 +74,7 @@ export class Physics {
             const isPlayer = entity.type === 'Player' || type === 'Player';
             const isNpc = type === 'Bot' || type === 'Zombie';
             const nearPlayer = isNpc && playerEntity?.position && entity.position?.distanceToSquared(playerEntity.position) < 1225;
-            const entityStride = nearPlayer ? 1 : npcStride;
+            const entityStride = nearPlayer || type === 'Bot' ? 1 : npcStride;
             if (isNpc && (entityIndex + physicsFrame) % entityStride !== 0) continue;
             const physicsDelta = isPlayer || nearPlayer ? delta : Math.min(0.075, delta * entityStride);
             const pos = entity.position;
@@ -204,7 +204,8 @@ export class Physics {
 
             // --- Velocity damping ---
             const dampingDelta = Math.min(physicsDelta, 0.075);
-            const dmg = entity.physics.onGround ? Math.exp(-14 * dampingDelta) : Math.exp(-2.5 * dampingDelta);
+            const groundDampingRate = type === 'Bot' ? 2.4 : type === 'Zombie' ? 3.5 : 14;
+            const dmg = entity.physics.onGround ? Math.exp(-groundDampingRate * dampingDelta) : Math.exp(-2.5 * dampingDelta);
             vel.x *= dmg;
             vel.z *= dmg;
             if (Math.abs(vel.x) < 0.01) vel.x = 0;
