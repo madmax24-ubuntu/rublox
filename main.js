@@ -1134,12 +1134,10 @@ class Game {
 			this.startZoneCycle();
 			this.player.setInvulnerable(!!this._invincible);
 			this.bots.forEach((bot) => bot.setInvulnerable(false));
-			const noCombatUntil =
-				performance.now() + this.botLootPhaseDuration * 1000;
 			const matchStartTime = performance.now();
 			for (let i = 0; i < this.bots.length; i++) {
 				const bot = this.bots[i];
-				bot.noCombatUntil = noCombatUntil;
+				bot.noCombatUntil = matchStartTime;
 				bot._matchStartTime = matchStartTime;
 				bot.target = null;
 				bot.assistTarget = null;
