@@ -30,6 +30,7 @@ export class InputController {
         this._lookDx = 0;
         this._lookDy = 0;
         this._lookDeltaObj = { x: 0, y: 0 };
+        this._wheelSteps = 0;
     }
 
     attachListeners() {
@@ -48,6 +49,7 @@ export class InputController {
         document.removeEventListener('mousedown', this._onMouseDown);
         document.removeEventListener('mouseup', this._onMouseUp);
         document.removeEventListener('pointerlockchange', this._onLockChange);
+        document.removeEventListener('wheel', this._onWheel);
         if (this.isMobile) {
             this._detachTouchListeners();
         }
@@ -111,10 +113,17 @@ export class InputController {
         this._lookDy = 0;
     }
 
+    consumeWheelSteps() {
+        const steps = this._wheelSteps;
+        this._wheelSteps = 0;
+        return steps;
+    }
+
     clearInputState() {
         this.keys = {};
         this._lookDx = 0;
         this._lookDy = 0;
+        this._wheelSteps = 0;
         this.joystick.dx = 0;
         this.joystick.dy = 0;
         this.joystick.active = false;
@@ -172,6 +181,13 @@ export class InputController {
             this.pointerLocked = document.pointerLockElement === this._domElement;
         };
         document.addEventListener('pointerlockchange', this._onLockChange);
+
+        this._onWheel = (e) => {
+            if (!this.pointerLocked || !Number.isFinite(e.deltaY) || e.deltaY === 0) return;
+            this._wheelSteps += e.deltaY > 0 ? 1 : -1;
+            e.preventDefault();
+        };
+        document.addEventListener('wheel', this._onWheel, { passive: false });
     }
 
     _handleKey(e, pressed) {

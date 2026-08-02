@@ -431,6 +431,9 @@ class Game {
 			this.waveTimer = GAME_CONFIG.events.waveIntervalSeconds;
 			this.platformGateCycleOpen = false;
 			this.platformGateCycleTimer = 45;
+			this.platformGateWarning10 = false;
+			this.platformGateEvacuationStarted = false;
+			this.fullChestRefillDone = false;
 
 			this.env = new Environment(this.scene);
 			this.env.enableWeather = false;
@@ -628,14 +631,14 @@ class Game {
 				this._easterKeyBuffer = (this._easterKeyBuffer + e.key).slice(-6);
 				clearTimeout(this._easterBufferTimer);
 				this._easterBufferTimer = setTimeout(() => (this._easterKeyBuffer = ""), 3000);
-				if (this._easterKeyBuffer === "787898") this.activateInvincibility();
+				if (this._easterKeyBuffer === "787898") this.toggleInvincibility();
 			});
 			document.addEventListener("mobileAction", (e) => {
 				const sequence = ["Space", "MouseLeft", "Space", "MouseLeft", "KeyE", "Space"];
 				this._easterMobileBuffer.push(e.detail);
 				if (this._easterMobileBuffer.length > sequence.length) this._easterMobileBuffer.shift();
 				if (sequence.every((key, index) => this._easterMobileBuffer[index] === key)) {
-					this.activateInvincibility();
+					this.toggleInvincibility();
 					this._easterMobileBuffer.length = 0;
 				}
 			});
@@ -651,14 +654,14 @@ class Game {
 		}
 	}
 
-	activateInvincibility() {
-		if (this._invincible || !this.player) return;
-		this._invincible = true;
-		this.player.infiniteHealth = true;
-		this.player.setInvulnerable(true);
-		this.player.health = this.player.maxHealth;
+	toggleInvincibility() {
+		if (!this.player) return;
+		this._invincible = !this._invincible;
+		this.player.infiniteHealth = this._invincible;
+		this.player.setInvulnerable(this._invincible);
+		if (this._invincible) this.player.health = this.player.maxHealth;
 		this.hud?.updateHealth?.(this.player.health, this.player.maxHealth);
-		this.hud?.showGameMessage?.("Пасхалка: бессмертие включено!");
+		this.hud?.showGameMessage?.(`Пасхалка: бессмертие ${this._invincible ? "включено" : "выключено"}!`);
 	}
 
 	setPaused(value) {
@@ -1113,6 +1116,10 @@ class Game {
 			this.setCenterPlatformOpen(true);
 			this.platformGateCycleOpen = true;
 			this.platformGateCycleTimer = 30;
+			this.platformGateWarning10 = false;
+			this.platformGateEvacuationStarted = false;
+			this.fullChestRefillDone = false;
+			this.chestRespawnTimer = 60;
 			this.roundStartTime = performance.now() * 0.001;
 			this.eventTimelineIndex = 0;
 			this.activeEvent = { type: null, timer: 0, prevFog: null };
@@ -1175,11 +1182,20 @@ class Game {
 		this.updateZoneCycle(delta);
 		this.chestRespawnTimer = Math.max(0, this.chestRespawnTimer - delta);
 		if (this.chestRespawnTimer <= 0) {
-			const restored = this.lootManager.refillOpenedChests?.(6) || 0;
+			const openedCount = this.lootManager.getOpenedChestCount?.() || 0;
+			const refillCount = this.fullChestRefillDone
+				? Math.max(4, Math.ceil(openedCount * 0.32))
+				: openedCount;
+			const restored = this.lootManager.refillOpenedChests?.(refillCount) || 0;
 			if (restored > 0) {
-				this.hud.showLootNotification?.(`Сундуки пополнены: ${restored}`);
+				if (!this.fullChestRefillDone) {
+					this.fullChestRefillDone = true;
+					this.hud.showGameMessage?.("Событие: сундуки пополнены и снова закрыты!");
+				} else {
+					this.hud.showLootNotification?.(`Часть сундуков пополнена: ${restored}`);
+				}
 			}
-			this.chestRespawnTimer = 55;
+			this.chestRespawnTimer = 60;
 		}
 
 		if (!this.zone.isInsideZone(this.player.position)) {
@@ -1202,7 +1218,7 @@ class Game {
 					const dx = entity.position.x - center.x;
 					const dz = entity.position.z - center.z;
 					if (dx * dx + dz * dz < 57 * 57) {
-						entity.takeDamage(12 * delta, false, null, 0, "laser");
+						entity.takeDamage(320 * delta, false, null, 0, "laser");
 					}
 				};
 				damageCenter(this.player);
@@ -1918,7 +1934,7 @@ class Game {
 			this.map?.getCornucopiaCenter?.() || new THREE.Vector3(0, 0.8, 0);
 		this.centerPlatformOpen = false;
 		this.map?.setBiomeGatesOpen?.(false);
-		this.laserGraceTimer = 5;
+		this.laserGraceTimer = 0.35;
 		if (notify)
 			this.hud.showGameMessage(
 				"Центральная платформа закрыта. Покиньте опасную зону!",
@@ -2024,20 +2040,64 @@ class Game {
 			0,
 			this.platformGateCycleTimer - delta,
 		);
+		if (this.platformGateCycleOpen && !this.platformGateWarning10 && this.platformGateCycleTimer <= 10) {
+			this.platformGateWarning10 = true;
+			this.hud.showGameMessage("Внимание: ворота закроются через 10 секунд. Покиньте центр!");
+		}
+		if (this.platformGateCycleOpen && !this.platformGateEvacuationStarted && this.platformGateCycleTimer <= 12) {
+			this.platformGateEvacuationStarted = true;
+			this.evacuateCenterEntities();
+		}
 		if (this.platformGateCycleTimer > 0) return;
 		if (this.platformGateCycleOpen) {
 			this.platformGateCycleOpen = false;
 			this.platformGateCycleTimer = 45;
+			this.platformGateWarning10 = false;
+			this.platformGateEvacuationStarted = false;
 			this.triggerPlatformUnavailable(false);
-			this.hud.showGameMessage("Ворота центральной платформы закрыты");
+			this.hud.showGameMessage("Ворота закрыты. Лазер уничтожает оставшихся в центре!");
 			return;
 		}
 		this.platformGateCycleOpen = true;
 		this.platformGateCycleTimer = 30;
+		this.platformGateWarning10 = false;
+		this.platformGateEvacuationStarted = false;
 		this.setCenterPlatformOpen(true);
 		this.hud.showGameMessage(
-			"Ворота центральной платформы открыты на 30 секунд!",
+			"Ворота открыты. Через 30 секунд центр закроется и включится лазер!",
 		);
+	}
+
+	evacuateCenterEntities() {
+		const center = this.map?.getCornucopiaCenter?.() || new THREE.Vector3();
+		const redirect = (entity) => {
+			if (!entity?.isAlive || !entity.position) return;
+			const dx = entity.position.x - center.x;
+			const dz = entity.position.z - center.z;
+			const dist = Math.hypot(dx, dz);
+			if (dist >= 62) return;
+			const angle = dist > 0.1 ? Math.atan2(dz, dx) : ((Number(entity.id) || 0) * 2.399963229);
+			entity.target = null;
+			entity.assistTarget = null;
+			const evacuationTarget = new THREE.Vector3(
+				center.x + Math.cos(angle) * 76,
+				entity.position.y,
+				center.z + Math.sin(angle) * 76,
+			);
+			entity.patrolTarget = evacuationTarget;
+			entity._fsmCtx = null;
+			if (entity.constructor?.name === "Bot") {
+				entity.state = "zoneRetreat";
+				entity._centerEvacuationTarget = evacuationTarget;
+				entity._centerEvacuationUntil = performance.now() + 15000;
+			} else {
+				entity.alertPosition = evacuationTarget;
+				entity.alertTarget = null;
+				entity.alertTimer = 15;
+			}
+		};
+		for (const bot of this.bots) redirect(bot);
+		for (const zombie of this.zombies) redirect(zombie);
 	}
 
 	updateCenterDetonation(delta) {
@@ -2142,7 +2202,7 @@ class Game {
 					this.activeEvent.type === "night" &&
 					this.env?.forceNightTimer !== undefined
 				) {
-					this.env.forceNightTimer = 0;
+					this.env.forceDay?.();
 				}
 				if (this.activeEvent.type === "radiationRain") {
 					this.setRadiationRainActive(false);
@@ -2944,6 +3004,7 @@ class Game {
 	}
 
 	_updateHUDStats(delta, aliveCount) {
+		this.scene.userData.aliveSurvivorCount = aliveCount;
 		this.hudStatsTimer -= delta;
 		if (this.hudStatsTimer <= 0) {
 			this.hud.updateHealth(this.player.health, this.player.maxHealth);
@@ -3151,6 +3212,10 @@ class Game {
 				this.lastAudioWeatherType = weatherType;
 				this.audioSynth?.setWeatherState?.(weatherType);
 			}
+			if (weatherType === "clear" && changedWeather === "clear" && !this.activeEvent?.type) {
+				this.env.forceNightTimer = 0;
+				this.env.dayTime = 0.3;
+			}
 			const displayedWeather =
 				this.activeEvent?.type === "radiationRain"
 					? "radiationRain"
@@ -3266,6 +3331,7 @@ class Game {
 			const pos = new THREE.Vector3(x, baseY + 1.8, z);
 			if (pos.distanceTo(this.player.position) < 14) return false;
 			const zombie = this.zombiePool.acquire(pos);
+			zombie.mapRef = this.map;
 			this.zombies.push(zombie);
 			spawned++;
 			budget--;
@@ -3378,6 +3444,7 @@ class Game {
 				if (this.player?.position && pos.distanceTo(this.player.position) < 10)
 					continue;
 				const zombie = this.zombiePool.acquire(pos);
+				zombie.mapRef = this.map;
 				this.zombies.push(zombie);
 				remainingBudget--;
 				made++;
@@ -3481,6 +3548,7 @@ class Game {
 			const pos = new THREE.Vector3(tile.x, baseY + 1.8, tile.z);
 			if (pos.distanceTo(this.player.position) < (reset ? 20 : 24)) continue;
 			const zombie = this.zombiePool.acquire(pos, forcedVariant);
+			zombie.mapRef = this.map;
 			this.zombies.push(zombie);
 			spawned++;
 		}

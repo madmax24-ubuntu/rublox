@@ -88,6 +88,7 @@ export class MapGenerator {
         this._traps = [];
         this._floorTiles = [];
         this._navigationTiles = [];
+        this._elevatedRoutes = [];
         this._spawnTiles = [];
         this._meshes = [];
         this._cullDistance = Infinity;
@@ -466,6 +467,7 @@ export class MapGenerator {
         this._terrainMaterial = null;
         this._floorTiles = [];
         this._navigationTiles = [];
+        this._elevatedRoutes = [];
         this._spawnTiles = [];
         this._buildings = [];
         this._chestSpots = [];
@@ -1073,8 +1075,7 @@ export class MapGenerator {
         addBox(14, 0.3, d, -2, 8.35, 0, roofMat, false, true);
         addBox(3.2, 0.3, 7, 6.4, 8.35, -3.5, roofMat, false, true);
         addBox(3.2, 0.3, 4.2, 6.4, 8.35, 4.9, roofMat, false, true);
-        addBox(3.4, 0.3, 1.4, 6.4, 8.35, 2.3, roofMat, false, true);
-        addBox(3.4, 0.3, 2.2, 6.4, 8.35, 0.8, roofMat, false, true);
+        addBox(3.6, 0.3, 2.4, 4.7, 8.35, 1.4, roofMat, false, true);
 
         addBox(w, wallH, wallT, 0, wallH * 0.5, -d * 0.5, wallMat, true);
         addBox(wallT, wallH, d, -w * 0.5, wallH * 0.5, 0, wallMat, true);
@@ -1126,7 +1127,17 @@ export class MapGenerator {
             collider.isBiomeResidence = true;
             collider.navigationPassage = part.navigationPassage;
         }
-        this._buildings.push({ x, z, w, d, template: { type: 'biome_residence', biome } });
+        const route = [
+            new THREE.Vector3(x, 0.2, z + d * 0.5 + 2),
+            new THREE.Vector3(x, 0.2, z + 3.8),
+            new THREE.Vector3(x - 6.4, 0.4, z + 5.2),
+            new THREE.Vector3(x - 6.4, 4.35, z - 1.4),
+            new THREE.Vector3(x + 6.4, 4.45, z - 5.2),
+            new THREE.Vector3(x + 6.4, 8.35, z + 1.4),
+            new THREE.Vector3(x + 2.8, 8.55, z + 1.4),
+        ];
+        this._elevatedRoutes.push(route);
+        this._buildings.push({ x, z, w, d, route, template: { type: 'biome_residence', biome } });
         this._registerChestSpot(x + 3.8, z - 3.8, `residence_${biome}`);
     }
 
@@ -2220,6 +2231,7 @@ export class MapGenerator {
         mazeWalls.frustumCulled = false;
         mazeWalls.userData.mapGenerated = true;
         mazeWalls.userData.isMazeWalls = true;
+        mazeWalls.userData.isWall = true;
         this.scene.add(mazeWalls);
 
         // Central tall tower with spiral staircase
@@ -2442,9 +2454,22 @@ export class MapGenerator {
             rotation: landingRotation
         };
 
+        const towerRoute = [];
+        for (let i = 0; i < totalSteps; i += 10) {
+            const angle = i * angleStep;
+            towerRoute.push(new THREE.Vector3(
+                towerCX + Math.cos(angle) * spiralR,
+                i * stepH + 0.5,
+                towerCZ + Math.sin(angle) * spiralR,
+            ));
+        }
+        towerRoute.push(new THREE.Vector3(landingX, topY + 0.6, landingZ));
+        towerRoute.push(new THREE.Vector3(towerCX, topY + 0.6, towerCZ));
+        this._elevatedRoutes.push(towerRoute);
+
         const canopyGeo = this.pool.getGeoCone(towerRadius + 1, 4);
         const roof = new THREE.Mesh(canopyGeo, wallMat);
-        roof.position.set(towerCX, topY + 5, towerCZ);
+        roof.position.set(towerCX, topY + 7, towerCZ);
         roof.userData.mapGenerated = true;
         roof.userData.isTowerStructure = true;
         this.scene.add(roof);
@@ -5608,6 +5633,10 @@ export class MapGenerator {
 
     getNavigationTiles() {
         return this._navigationTiles;
+    }
+
+    getElevatedRoutes() {
+        return this._elevatedRoutes;
     }
 
     isShelteredFromRain(pos) {

@@ -808,6 +808,14 @@ export class LootManager {
         return limit;
     }
 
+    getOpenedChestCount() {
+        let count = 0;
+        for (const chest of this.chests) {
+            if (chest?.userData?.isOpen && !chest.userData.isSupplyDrop) count++;
+        }
+        return count;
+    }
+
     getChests() {
         return this.chests;
     }

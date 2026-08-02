@@ -62,6 +62,7 @@ export class BotBrain {
         this.losMemorySeconds = 3;
         this.reactionMin = 0.12;
         this.reactionMax = 0.3;
+        this._nextElevatedRouteAt = 0;
     }
 
     update(bot, delta, entityManager, lootManager, audioSynth, gameState) {
@@ -274,6 +275,17 @@ export class BotBrain {
             }
             bot.assignedBiomeEntry = null;
         }
+
+        if (bot._centerEvacuationTarget && now < (bot._centerEvacuationUntil || 0)) {
+            if (Math.hypot(bot.position.x, bot.position.z) < 66) {
+                bot.state = STATES.ZONE_RETREAT;
+                this.steerMove(bot, bot._centerEvacuationTarget, bot.physics.speed * 1.45);
+                return;
+            }
+            bot._centerEvacuationTarget = null;
+        }
+
+        if (this.followElevatedRoute(bot, ctx, now)) return;
 
         if (bot.state === STATES.SHELTER) {
             this.actShelter(bot, ctx, lootManager);
@@ -530,6 +542,7 @@ export class BotBrain {
             gear,
             combatReady,
             closeCombatRadius,
+            survivorCount: Number(bot.scene?.userData?.aliveSurvivorCount) || 100,
             gameState
         };
     }
@@ -591,16 +604,17 @@ export class BotBrain {
             && performance.now() < (bot._retaliateUntil || 0);
 
         // Personality-driven thresholds
-        const agg = Math.min(1, Math.max(0.62, bot.personality?.aggression ?? 0.5) + ctx.gear * 0.36);
+        const agg = Math.min(1, Math.max(0.7, bot.personality?.aggression ?? 0.5) + ctx.gear * 0.4);
         const cau = bot.personality?.caution ?? 0.5;
         const lootF = bot.personality?.lootFocus ?? 0.5;
 
         // Aggression adjusts engagement distance: aggressive bots engage from further away
-        const engageDist = ctx.closeCombatRadius * (0.82 + agg * 0.9);
+        const endgame = ctx.survivorCount <= 20;
+        const engageDist = ctx.closeCombatRadius * (0.9 + agg * 0.95) * (endgame ? 1.25 : 1);
         // Caution adjusts undergeared threshold: cautious bots hide with less gear
         const undergearedThreshold = 0.24 + cau * 0.14;
         // Aggression adjusts crowd tolerance: aggressive bots tolerate more crowd in combat
-        const crowdTolerance = ctx.earlyGamePhase ? 2 : Math.max(4, Math.round(3 + agg * 2));
+        const crowdTolerance = ctx.earlyGamePhase ? 2 : Math.min(5, Math.max(4, Math.round(3 + agg * 2)));
         // Caution adjusts retreat threshold: cautious bots retreat at higher HP
         const retreatHpThreshold = 0.2 + cau * 0.15;
 
@@ -737,6 +751,10 @@ export class BotBrain {
             if (ctx.lootTarget) return STATES.LOOT;
             if (ctx.nearestEnemy && ctx.nearestEnemyDist < 55) return STATES.HIDE;
             return STATES.EXPLORE;
+        }
+
+        if (endgame && armed && ctx.hp >= 0.38 && ctx.nearestEnemy && ctx.nearestEnemyDist < engageDist && ctx.crowdNear < 5) {
+            return STATES.ENGAGE;
         }
 
         if (ctx.nearestEnemy && ctx.nearestEnemyDist < engageDist) {
@@ -965,11 +983,18 @@ export class BotBrain {
         bot.lookAt(chest.position);
         // FIX: If bot is at chest, loot it immediately and pick new target
         if (dist <= 2.9) {
+            const now = performance.now();
+            if (now < (BotBrain._nextLootOpenAt || 0)) {
+                bot.physics.velocity.x *= 0.6;
+                bot.physics.velocity.z *= 0.6;
+                return;
+            }
+            BotBrain._nextLootOpenAt = now + 34;
             const loot = lootManager?.tryOpenChest?.(chest, bot, bot.audioSynthRef);
             if (loot) bot.pickupLoot(loot, chest.position);
             this.releaseLootReservation(bot);
             this.ensureBestWeaponEquipped(bot);
-            bot._lootPauseUntil = performance.now() + 150 + Math.random() * 250;
+            bot._lootPauseUntil = now + 150 + Math.random() * 250;
             bot.patrolTarget = this.pickSpreadTarget(bot, 40, 120);
             // FIX: Immediate FSM transition to EXPLORE after loot — don't wait for next context refresh
             bot.state = STATES.EXPLORE;
@@ -1034,7 +1059,7 @@ export class BotBrain {
     }
 
     actEngage(bot, ctx, entityManager) {
-        const agg = Math.min(1, Math.max(0.68, bot.personality?.aggression ?? 0.5) + ctx.gear * 0.28);
+        const agg = Math.min(1, Math.max(0.74, bot.personality?.aggression ?? 0.5) + ctx.gear * 0.3);
         const cau = bot.personality?.caution ?? 0.5;
 
         // Early-game check: retreat if not being actively shot at
@@ -1088,7 +1113,7 @@ export class BotBrain {
             this.actReloadCover(bot, ctx);
             return;
         }
-        if (!this.tryReserveCombat(bot, target, target.constructor?.name === 'Player' ? 4 : 3)) {
+        if (!this.tryReserveCombat(bot, target, target.constructor?.name === 'Zombie' ? 4 : 5)) {
             this.releaseCombatReservation(bot);
             bot.patrolTarget = this.pickSpreadTarget(bot, 40, 120);
             if (bot.patrolTarget) this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 1.02);
@@ -1245,6 +1270,54 @@ export class BotBrain {
             return;
         }
         this.actZoneRetreat(bot, ctx);
+    }
+
+    followElevatedRoute(bot, ctx, now) {
+        if (ctx.inPreLootPhase || ctx.outsideZone || bot.forceShelterActive || ctx.nearestEnemyDist < 26 || ctx.nearestZombieDist < 18) {
+            bot._elevatedRoute = null;
+            return false;
+        }
+        let routeState = bot._elevatedRoute;
+        if (!routeState) {
+            if ((Number(bot.id) || 0) % 11 !== 0 || now < this._nextElevatedRouteAt) return false;
+            const routes = bot.mapRef?.getElevatedRoutes?.() || [];
+            if (!routes.length) return false;
+            let route = null;
+            let bestDistance = 72;
+            for (const candidate of routes) {
+                const start = candidate?.[0];
+                if (!start) continue;
+                const distance = Math.hypot(start.x - bot.position.x, start.z - bot.position.z);
+                if (distance >= bestDistance) continue;
+                bestDistance = distance;
+                route = candidate;
+            }
+            this._nextElevatedRouteAt = now + 9000 + ((Number(bot.id) || 0) % 7) * 700;
+            if (!route) return false;
+            routeState = bot._elevatedRoute = { points: route, index: 0, startedAt: now };
+        }
+        if (now - routeState.startedAt > 24000) {
+            bot._elevatedRoute = null;
+            return false;
+        }
+        const target = routeState.points[routeState.index];
+        if (!target) {
+            bot._elevatedRoute = null;
+            return false;
+        }
+        const horizontalDistance = Math.hypot(target.x - bot.position.x, target.z - bot.position.z);
+        if (horizontalDistance < 1.8 && Math.abs(target.y - bot.position.y) < 3.2) {
+            routeState.index++;
+            if (routeState.index >= routeState.points.length) {
+                bot._elevatedRoute = null;
+                bot._lootPauseUntil = now + 1800 + ((Number(bot.id) || 0) % 5) * 300;
+                return true;
+            }
+        }
+        const nextTarget = routeState.points[routeState.index];
+        bot.patrolTarget = nextTarget;
+        this.steerMove(bot, nextTarget, bot.physics.speed * 1.02);
+        return true;
     }
 
     steerMove(bot, target, speed) {

@@ -48,6 +48,8 @@ export class ZombiePool {
             zombie.alertTarget = null;
             zombie.alertPosition = null;
             zombie.patrolTarget = null;
+            zombie._elevatedRoute = null;
+            zombie._nextElevatedRouteAt = 0;
             zombie.burnAttacker = null;
             // Timers
             zombie.alertTimer = 0;

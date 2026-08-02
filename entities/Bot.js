@@ -214,7 +214,7 @@ export class Bot {
 
         // Personality traits — each bot is unique
         this.personality = {
-            aggression: 0.65 + Math.random() * 0.35,
+            aggression: 0.72 + Math.random() * 0.28,
             caution: 0.12 + Math.random() * 0.68,
             lootFocus: 0.15 + Math.random() * 0.85
         };
@@ -914,7 +914,9 @@ export class Bot {
             }
         }
 
-        if (this.armor > 0) {
+        if (source === 'storm') {
+            this.health -= finalDamage;
+        } else if (this.armor > 0) {
             const armorDamage = Math.min(this.armor, finalDamage);
             this.armor -= armorDamage;
             const remainingDamage = finalDamage - armorDamage;

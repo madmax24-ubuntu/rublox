@@ -212,6 +212,14 @@ export class Environment {
         this.forceNightTimer = Math.max(this.forceNightTimer, duration);
     }
 
+    forceDay() {
+        this.forceNightTimer = 0;
+        this.dayTime = 0.3;
+        this.weatherType = 'clear';
+        this.currentWeather = 'clear';
+        this.weatherChanged = true;
+    }
+
     setFogOverride(density, color = null) {
         this.overrideFog = density;
         this.overrideFogColor = color ? new THREE.Color(color) : null;

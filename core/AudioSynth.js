@@ -763,7 +763,12 @@ export class AudioSynth {
     }
 
     startRadiationRain(position = null) {
-        if (!this.audioContext || this.radiationRainNodes) return;
+        if (!this.audioContext) {
+            this._ensureLazyInit()?.then(() => this.startRadiationRain(position));
+            return;
+        }
+        if (this.audioContext.state === 'suspended') this.audioContext.resume().catch(() => {});
+        if (this.radiationRainNodes) return;
         const ctx = this.audioContext;
         const rainPath = this.pickSample(this.sampleCatalog.rain);
         const buffer = rainPath ? this.sampleBuffers.get(rainPath) : null;
@@ -793,7 +798,7 @@ export class AudioSynth {
                     if (!this.radiationRainNodes) return;
                     this.playNoiseBurst({
                         duration: 0.014 + Math.random() * 0.012,
-                        volume: this.isMobileDevice ? 0.075 : 0.1,
+                        volume: this.isMobileDevice ? 0.045 : 0.06,
                         highpass: 2300,
                         lowpass: 8800,
                         category: 'weather'

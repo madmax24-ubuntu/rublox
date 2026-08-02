@@ -530,6 +530,16 @@ export class Player {
                 this.selectSlot(slotIndex);
             }
         }
+        const wheelSteps = this.input.consumeWheelSteps?.() || 0;
+        if (wheelSteps) {
+            const direction = wheelSteps > 0 ? 1 : -1;
+            for (let offset = 1; offset <= this.inventory.items.length; offset++) {
+                const slot = (this.inventory.selectedSlot + direction * offset + this.inventory.items.length) % this.inventory.items.length;
+                if (!this.inventory.hasItem(slot)) continue;
+                this.selectSlot(slot);
+                break;
+            }
+        }
         this.updateFirstPersonArmsVisibility(isFirstPerson);
         this.animateViewModel(isFirstPerson, delta);
 
@@ -918,7 +928,9 @@ export class Player {
         const hpBefore = this.health;
         const armorBefore = this.armor;
 
-        const finalDamage = (isHeadshot ? damage * 2 : damage) * (1 - this.damageReduction) * this.damageTakenMultiplier;
+        const finalDamage = source === 'storm'
+            ? damage
+            : (isHeadshot ? damage * 2 : damage) * (1 - this.damageReduction) * this.damageTakenMultiplier;
         if (finalDamage > 0) {
             this.lastDamageAt = performance.now() / 1000;
         }
@@ -926,7 +938,9 @@ export class Player {
             attacker.stats.damage += finalDamage;
         }
 
-        if (this.armor > 0) {
+        if (source === 'storm') {
+            this.health -= finalDamage;
+        } else if (this.armor > 0) {
             const armorDamage = Math.min(this.armor, finalDamage);
             this.armor -= armorDamage;
             const remainingDamage = finalDamage - armorDamage;

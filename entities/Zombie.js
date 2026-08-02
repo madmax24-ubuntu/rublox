@@ -106,7 +106,7 @@ const _createZombieTexture = (variant, baseColorHex) => {
 
 const VARIANT_CONFIG = {
     runner: {
-        health: 42, speed: 6.3, damage: 6.4, knockbackMultiplier: 1.2,
+        health: 42, speed: 5.7, damage: 6.4, knockbackMultiplier: 1.2,
         scale: 1.2, radius: 0.48, bodyColor: 0xc34b2f, headColor: 0xc8c2a7, detailColor: 0xf0a13b,
         eyeColor: 0xff4411, glowColor: 0x44ff22, glowIntensity: 1.8,
         attackCooldown: 0.46, patrolSpeed: 0.82, alertRadius: 94,
@@ -117,7 +117,7 @@ const VARIANT_CONFIG = {
         behavior: 'rush'
     },
     normal: {
-        health: 72, speed: 4.3, damage: 7.8, knockbackMultiplier: 0.8,
+        health: 72, speed: 4.0, damage: 7.8, knockbackMultiplier: 0.8,
         scale: 1.35, radius: 0.54, bodyColor: 0x6f3434, headColor: 0xb9b49b, detailColor: 0xd7c7a2,
         eyeColor: 0xff6600, glowColor: 0x8bff4f, glowIntensity: 1.35,
         attackCooldown: 0.64, patrolSpeed: 0.78, alertRadius: 82,
@@ -128,7 +128,7 @@ const VARIANT_CONFIG = {
         behavior: 'patrol'
     },
     heavy: {
-        health: 180, speed: 2.7, damage: 10.2, knockbackMultiplier: 0,
+        health: 180, speed: 2.55, damage: 10.2, knockbackMultiplier: 0,
         scale: 1.56, radius: 0.6, bodyColor: 0x3f4a50, headColor: 0x9c7a70, detailColor: 0xb23b2f,
         eyeColor: 0xff2200, glowColor: 0x3dff1f, glowIntensity: 2.2,
         attackCooldown: 0.94, patrolSpeed: 0.76, alertRadius: 70,
@@ -139,7 +139,7 @@ const VARIANT_CONFIG = {
         behavior: 'tank'
     },
     crawler: {
-        health: 58, speed: 5.4, damage: 7.0, knockbackMultiplier: 1.05,
+        health: 58, speed: 4.9, damage: 7.0, knockbackMultiplier: 1.05,
         scale: 1.15, radius: 0.74, bodyColor: 0x405e72, headColor: 0xa8bbc0, detailColor: 0x5dd9ef,
         eyeColor: 0xb7f4ff, glowColor: 0x38b9d6, glowIntensity: 1.15,
         attackCooldown: 0.5, patrolSpeed: 0.92, alertRadius: 90,
@@ -150,7 +150,7 @@ const VARIANT_CONFIG = {
         behavior: 'crawl'
     },
     toxic: {
-        health: 105, speed: 3.7, damage: 8.8, knockbackMultiplier: 0.55,
+        health: 105, speed: 3.45, damage: 8.8, knockbackMultiplier: 0.55,
         scale: 1.42, radius: 0.57, bodyColor: 0xb5a52f, headColor: 0xc4bd82, detailColor: 0x24352e,
         eyeColor: 0xe8ff3d, glowColor: 0xa6ff19, glowIntensity: 2.7,
         attackCooldown: 0.72, patrolSpeed: 0.78, alertRadius: 102,
@@ -746,7 +746,9 @@ export class Zombie {
                 this.soundTimer = moanInterval[0] + Math.random() * (moanInterval[1] - moanInterval[0]);
             }
         } else {
-            if (this.alertPosition && this.alertTimer > 0) {
+            if (this.followElevatedRoute()) {
+                this.soundTimer = Math.max(this.soundTimer, 0.4);
+            } else if (this.alertPosition && this.alertTimer > 0) {
                 this.moveTowards(this.alertPosition, this.physics.speed * 1.08);
                 if (this.position.distanceTo(this.alertPosition) < 3.5) {
                     this.alertPosition = null;
@@ -945,6 +947,49 @@ export class Zombie {
         this.physics.velocity.x = dirX * speed;
         this.physics.velocity.z = dirZ * speed;
         this.rotation.y = Math.atan2(dirX, dirZ);
+    }
+
+    followElevatedRoute() {
+        const now = performance.now();
+        let routeState = this._elevatedRoute;
+        if (!routeState) {
+            if ((Number(this.id) || 0) % 13 !== 0 || now < (this._nextElevatedRouteAt || 0)) return false;
+            const routes = this.mapRef?.getElevatedRoutes?.() || [];
+            let route = null;
+            let bestDistance = 52;
+            for (const candidate of routes) {
+                const start = candidate?.[0];
+                if (!start) continue;
+                const distance = Math.hypot(start.x - this.position.x, start.z - this.position.z);
+                if (distance >= bestDistance) continue;
+                bestDistance = distance;
+                route = candidate;
+            }
+            this._nextElevatedRouteAt = now + 12000 + ((Number(this.id) || 0) % 9) * 600;
+            if (!route) return false;
+            routeState = this._elevatedRoute = { points: route, index: 0, startedAt: now };
+        }
+        if (now - routeState.startedAt > 26000) {
+            this._elevatedRoute = null;
+            return false;
+        }
+        const target = routeState.points[routeState.index];
+        if (!target) {
+            this._elevatedRoute = null;
+            return false;
+        }
+        const horizontalDistance = Math.hypot(target.x - this.position.x, target.z - this.position.z);
+        if (horizontalDistance < 1.8 && Math.abs(target.y - this.position.y) < 3.2) {
+            routeState.index++;
+            if (routeState.index >= routeState.points.length) {
+                this._elevatedRoute = null;
+                this._roamTimer = 2.5;
+                return true;
+            }
+        }
+        this.patrolTarget = routeState.points[routeState.index];
+        this.moveTowards(this.patrolTarget, this.physics.speed * 0.92);
+        return true;
     }
 
     isFinitePosition(position) {

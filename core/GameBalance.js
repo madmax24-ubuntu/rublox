@@ -29,7 +29,7 @@ export const GAME_CONFIG = {
         radiation: {
             durationSeconds: 35,
             graceSeconds: 4.0,
-            playerDps: 3.2,
+            playerDps: 5,
             botDpsNearShelter: 0.16,
             botDpsFarShelter: 0.24
         },
