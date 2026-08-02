@@ -437,11 +437,20 @@ export class BotBrain {
         }
         const enemyRecentlySeen = !!nearestEnemy || ((now - (bot.lastSeenEnemyAt || 0)) <= this.losMemorySeconds * 1000);
 
-        const lootRadius = hp < 0.5 ? 160 : 120;
-        const chests = lootManager?.getNearbyChests
-            ? lootManager.getNearbyChests(bot.position, lootRadius, true)
-            : [];
-        const lootTarget = this.pickBestChest(bot, chests, entityManager);
+        const lootRadius = hp < 0.5 ? 150 : 112;
+        let lootTarget = bot._lootSearchTarget;
+        if (lootTarget?.userData?.isOpen || !lootTarget?.position) lootTarget = null;
+        if (bot._nextLootSearchAt === undefined) {
+            bot._nextLootSearchAt = now + (Number(bot.id) % 12) * 37;
+        }
+        if (now >= bot._nextLootSearchAt) {
+            const chests = lootManager?.getNearbyChests
+                ? lootManager.getNearbyChests(bot.position, lootRadius, true)
+                : [];
+            lootTarget = this.pickBestChest(bot, chests, entityManager);
+            bot._lootSearchTarget = lootTarget;
+            bot._nextLootSearchAt = now + 700 + (Number(bot.id) % 11) * 43;
+        }
 
         const map = bot.mapRef;
         const sheltered = map?.isShelteredFromRain?.(bot.position) || false;
@@ -479,9 +488,11 @@ export class BotBrain {
 
         // Memory-based avoidance: steer away from recently looted areas and enemy encounters
         const memoryAgeLimit = 120000; // 2 minutes — forget after that
-        // Clean old entries
-        bot.lootedAreas = bot.lootedAreas.filter(e => now - e.time < memoryAgeLimit);
-        bot.enemyEncounters = bot.enemyEncounters.filter(e => now - e.time < memoryAgeLimit);
+        if (now >= (bot._nextMemoryCleanupAt || 0)) {
+            while (bot.lootedAreas.length && now - bot.lootedAreas[0].time >= memoryAgeLimit) bot.lootedAreas.shift();
+            while (bot.enemyEncounters.length && now - bot.enemyEncounters[0].time >= memoryAgeLimit) bot.enemyEncounters.shift();
+            bot._nextMemoryCleanupAt = now + 4000 + (Number(bot.id) % 13) * 97;
+        }
 
         // Avoid looted areas (don't waste time going back)
         for (const area of bot.lootedAreas) {
@@ -748,6 +759,7 @@ export class BotBrain {
             const closeThreat = ctx.nearestEnemyDist < 15;
             if (isBeingShot && closeThreat && !veryLowHp) return STATES.ENGAGE;
             if (ctx.nearestEnemy && ctx.nearestEnemyDist < 8 && !veryLowHp) return STATES.ENGAGE;
+            if (hasRealWeapon && ctx.nearestEnemy && ctx.nearestEnemyDist < 42 && ctx.crowdNear < 5 && !veryLowHp) return STATES.ENGAGE;
             if (ctx.lootTarget) return STATES.LOOT;
             if (ctx.nearestEnemy && ctx.nearestEnemyDist < 55) return STATES.HIDE;
             return STATES.EXPLORE;
@@ -849,7 +861,7 @@ export class BotBrain {
         const agg = Math.min(1, (bot.personality?.aggression ?? 0.5) + ctx.gear * 0.32);
         // During loot phase or high crowd, scatter to opposite directions
         // Cautious bots scatter more easily; aggressive bots tolerate more crowd
-        const scatterThreshold = ctx.earlyGamePhase ? 1 : Math.max(1, Math.round(2 - agg));
+        const scatterThreshold = ctx.earlyGamePhase ? 2 : 4;
         const isScatterPhase = ctx.earlyGamePhase || ctx.inPreLootPhase;
         const needsScatter = isScatterPhase || ctx.crowdNear >= scatterThreshold;
 
@@ -939,7 +951,7 @@ export class BotBrain {
                 );
             }
             bot.patrolTarget = scatterTarget.clone();
-            bot._scatterTargetUntil = now + 2400 + (bot.id % 7) * 170;
+            bot._scatterTargetUntil = now + 5600 + (bot.id % 7) * 310;
             // Move at natural speed during scatter — no frantic sprinting
             const scatterSpeed = ctx.inPreLootPhase ? 1.1 : (ctx.earlyGamePhase ? 1.05 : 0.95);
             this.steerMove(bot, scatterTarget, bot.physics.speed * scatterSpeed);
@@ -1407,10 +1419,8 @@ export class BotBrain {
         if (isRetaliationTargetEnemy) {
             return retaliationTarget;
         }
-        // Always prefer zombies over other bots — they're the real threat
-        if (ctx.nearestZombie && ctx.nearestZombieDist < 60) return ctx.nearestZombie;
-        const preferZombie = ctx.nearestZombie && ctx.nearestZombieDist < 18;
-        if (preferZombie) return ctx.nearestZombie;
+        if (ctx.nearestZombie && ctx.nearestZombieDist < 18) return ctx.nearestZombie;
+        if (ctx.nearestZombie && ctx.nearestZombieDist < 60 && (!ctx.nearestEnemy || ctx.nearestZombieDist <= ctx.nearestEnemyDist * 0.82)) return ctx.nearestZombie;
         const t = ctx.nearestEnemy;
         if (!t?.isAlive) return null;
         const retaliating = bot._retaliationTarget === t && performance.now() < (bot._retaliateUntil || 0);
@@ -1441,7 +1451,10 @@ export class BotBrain {
         if (!chests?.length) return null;
         let best = null;
         let bestScore = -Infinity;
-        for (const chest of chests) {
+        const stride = Math.max(1, Math.floor(chests.length / 12));
+        const offset = (Number(bot.id) || 0) % stride;
+        for (let i = offset, checked = 0; i < chests.length && checked < 12; i += stride, checked++) {
+            const chest = chests[i];
             if (!chest || chest.userData?.isOpen) continue;
             if (!this.isInAssignedBiome(bot, chest.position)) continue;
             if (bot.lootManagerRef?.isChestClaimedByOther?.(chest, bot.id)) continue;
@@ -1456,11 +1469,10 @@ export class BotBrain {
             }
 
             const d = bot.position.distanceTo(chest.position);
-            const crowd = this.countBotsNearPoint(entityManager, chest.position, 6.5);
             const reserved = this.getLootReservationCount(chest, bot);
             const claimPenalty = chest.userData?.claimedBy && chest.userData.claimedBy !== bot.id ? 0.8 : 0;
             const lootFocusBonus = (bot.personality?.lootFocus ?? 0.5) * 0.3;
-            const score = (1 / Math.max(2, d)) - crowd * 0.28 - reserved * 0.75 - claimPenalty - lootedPenalty + (chest.userData?.isSupplyDrop ? 0.8 : 0) + lootFocusBonus;
+            const score = (1 / Math.max(2, d)) - reserved * 0.75 - claimPenalty - lootedPenalty + (chest.userData?.isSupplyDrop ? 0.8 : 0) + lootFocusBonus;
             if (score > bestScore) {
                 bestScore = score;
                 best = chest;
@@ -1497,8 +1509,10 @@ export class BotBrain {
             }
 
             // Score: prefer distant, isolated targets (far from other bots)
-            const isolationBonus = this.countBotsNearPointForSpread(bot, tile.x, tile.z, 8) * -12;
-            const score = dist + Math.random() * 5 + isolationBonus - memoryPenalty;
+            const angle = Math.atan2(tile.z - bot.position.z, tile.x - bot.position.x);
+            const preferred = bot.id * 2.399963229728653;
+            const angularSpread = Math.cos(angle - preferred) * 8;
+            const score = dist + angularSpread + Math.random() * 5 - memoryPenalty;
             if (score > bestScore) {
                 bestScore = score;
                 best = this._tmpSpreadVec.set(tile.x, 0, tile.z);
@@ -1689,9 +1703,18 @@ export class BotBrain {
     handleStuck(bot) {
         if (!bot.isStuck) return;
         const combatTarget = bot.state === STATES.ENGAGE && bot.target?.isAlive ? bot.target : null;
-        const escape = this.pickLocalNavigationStep(bot, combatTarget?.position || bot.patrolTarget || bot.target?.position)
-            || this.pickSpreadTarget(bot, 24, 70);
+        const now = performance.now();
+        if (now - (bot._lastStuckRecoveryAt || 0) > 10000) bot._stuckRecoveries = 0;
+        bot._lastStuckRecoveryAt = now;
+        bot._stuckRecoveries = (bot._stuckRecoveries || 0) + 1;
+        const escape = bot._stuckRecoveries >= 2
+            ? this.pickSpreadTarget(bot, 55, 120)
+            : this.pickLocalNavigationStep(bot, combatTarget?.position || bot.patrolTarget || bot.target?.position)
+                || this.pickSpreadTarget(bot, 32, 90);
         if (escape) bot.patrolTarget = escape;
+        bot._scatterTargetUntil = now + 6500;
+        bot._elevatedRoute = null;
+        bot._fsmCtx = null;
         if (!combatTarget) bot.target = null;
         this.releaseLootReservation(bot);
         if (!combatTarget) this.releaseCombatReservation(bot);

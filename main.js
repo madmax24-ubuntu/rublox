@@ -2673,7 +2673,7 @@ class Game {
 		const lootOnly = this.bots[0]?.noCombatUntil > performance.now();
 		const batch = Math.min(
 			botCount,
-			lootOnly ? (this.isMobile() ? 8 : 12) : this.isMobile() ? 7 : 10,
+			lootOnly ? (this.isMobile() ? 6 : 8) : this.isMobile() ? 6 : 8,
 		);
 		const scaledDelta = Math.min(0.25, (delta * botCount) / Math.max(1, batch));
 		for (let i = 0; i < batch; i++) {

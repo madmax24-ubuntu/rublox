@@ -753,7 +753,7 @@ export class Bot {
         const sepRadiusSq = sepRadius * sepRadius;
         this.separationTimer = Math.max(0, this.separationTimer - delta);
         // OPTIMIZED: Increase separation interval to reduce spatial queries
-        const sepInterval = isEarlyGame ? (0.15 + Math.random() * 0.1) : (0.25 + Math.random() * 0.15);
+        const sepInterval = isEarlyGame ? (0.32 + (this.id % 5) * 0.025) : (0.52 + (this.id % 7) * 0.025);
         if (entityManager && this.isAlive && !this.isFrozen && this.separationTimer <= 0) {
             const nearby = entityManager.getNearbyEntities
                 ? entityManager.getNearbyEntities(this.position, sepRadius, 'Bot')

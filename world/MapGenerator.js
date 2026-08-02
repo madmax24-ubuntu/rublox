@@ -1075,7 +1075,6 @@ export class MapGenerator {
         addBox(14, 0.3, d, -2, 8.35, 0, roofMat, false, true);
         addBox(3.2, 0.3, 7, 6.4, 8.35, -3.5, roofMat, false, true);
         addBox(3.2, 0.3, 4.2, 6.4, 8.35, 4.9, roofMat, false, true);
-        addBox(3.6, 0.3, 2.4, 4.7, 8.35, 1.4, roofMat, false, true);
 
         addBox(w, wallH, wallT, 0, wallH * 0.5, -d * 0.5, wallMat, true);
         addBox(wallT, wallH, d, -w * 0.5, wallH * 0.5, 0, wallMat, true);
@@ -1084,7 +1083,7 @@ export class MapGenerator {
         addBox(7.5, wallH, wallT, 5.25, wallH * 0.5, d * 0.5, wallMat, true);
         addBox(3, 5.2, wallT, 0, 5.8, d * 0.5, wallMat, true, false, true, true);
 
-        const stairCount = 11;
+        const stairCount = 12;
         for (let i = 0; i < stairCount; i++) {
             const top = 0.45 + i * 0.36;
             addBox(3.2, 0.36, 0.82, -6.4, top - 0.18, 5.2 - i * 0.66, trimMat, false, true);
@@ -1133,8 +1132,9 @@ export class MapGenerator {
             new THREE.Vector3(x - 6.4, 0.4, z + 5.2),
             new THREE.Vector3(x - 6.4, 4.35, z - 1.4),
             new THREE.Vector3(x + 6.4, 4.45, z - 5.2),
-            new THREE.Vector3(x + 6.4, 8.35, z + 1.4),
-            new THREE.Vector3(x + 2.8, 8.55, z + 1.4),
+            new THREE.Vector3(x + 6.4, 8.45, z + 2.06),
+            new THREE.Vector3(x + 6.4, 8.55, z + 3.35),
+            new THREE.Vector3(x + 2.8, 8.55, z + 3.35),
         ];
         this._elevatedRoutes.push(route);
         this._buildings.push({ x, z, w, d, route, template: { type: 'biome_residence', biome } });
@@ -2396,10 +2396,10 @@ export class MapGenerator {
             };
         }
         const landingAngle = exitAngle;
-        const landingX = towerCX + Math.cos(landingAngle) * 7.1;
-        const landingZ = towerCZ + Math.sin(landingAngle) * 7.1;
+        const landingX = towerCX + Math.cos(landingAngle) * 6.15;
+        const landingZ = towerCZ + Math.sin(landingAngle) * 6.15;
         const landingRotation = -landingAngle + Math.PI / 2;
-        const landing = new THREE.Mesh(this.pool.getGeoBox(3.4, 0.5, 3.2), darkMat);
+        const landing = new THREE.Mesh(this.pool.getGeoBox(4.2, 0.5, 4.2), darkMat);
         landing.position.set(landingX, topY + 0.25, landingZ);
         landing.rotation.y = landingRotation;
         landing.userData.mapGenerated = true;
@@ -2411,24 +2411,24 @@ export class MapGenerator {
         const landingS = Math.abs(Math.sin(landingRotation));
         const landingCollider = this.addColliderBox(
             landing.position.clone(),
-            3.4 * landingC + 3.2 * landingS,
+            4.2 * landingC + 4.2 * landingS,
             0.5,
-            3.4 * landingS + 3.2 * landingC,
+            4.2 * landingS + 4.2 * landingC,
             true
         );
         landingCollider.isTowerStructure = true;
         landingCollider.surfaceOBB = {
             x: landingX,
             z: landingZ,
-            halfWidth: 1.7,
-            halfDepth: 1.6,
+            halfWidth: 2.1,
+            halfDepth: 2.1,
             rotation: landingRotation
         };
 
-        const exitBridgeRadius = 4.7;
+        const exitBridgeRadius = 3.65;
         const exitBridgeX = towerCX + Math.cos(exitAngle) * exitBridgeRadius;
         const exitBridgeZ = towerCZ + Math.sin(exitAngle) * exitBridgeRadius;
-        const exitBridge = new THREE.Mesh(this.pool.getGeoBox(3.6, 0.5, 4.6), darkMat);
+        const exitBridge = new THREE.Mesh(this.pool.getGeoBox(4.2, 0.5, 5.2), darkMat);
         exitBridge.position.set(exitBridgeX, topY + 0.25, exitBridgeZ);
         exitBridge.rotation.y = landingRotation;
         exitBridge.userData.mapGenerated = true;
@@ -2440,17 +2440,17 @@ export class MapGenerator {
         const exitBridgeS = Math.abs(Math.sin(landingRotation));
         const exitBridgeCollider = this.addColliderBox(
             exitBridge.position.clone(),
-            3.6 * exitBridgeC + 4.6 * exitBridgeS,
+            4.2 * exitBridgeC + 5.2 * exitBridgeS,
             0.5,
-            3.6 * exitBridgeS + 4.6 * exitBridgeC,
+            4.2 * exitBridgeS + 5.2 * exitBridgeC,
             true
         );
         exitBridgeCollider.isTowerStructure = true;
         exitBridgeCollider.surfaceOBB = {
             x: exitBridgeX,
             z: exitBridgeZ,
-            halfWidth: 1.8,
-            halfDepth: 2.3,
+            halfWidth: 2.1,
+            halfDepth: 2.6,
             rotation: landingRotation
         };
 
