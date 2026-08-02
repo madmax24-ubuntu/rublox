@@ -600,7 +600,7 @@ export class BotBrain {
         // Caution adjusts undergeared threshold: cautious bots hide with less gear
         const undergearedThreshold = 0.24 + cau * 0.14;
         // Aggression adjusts crowd tolerance: aggressive bots tolerate more crowd in combat
-        const crowdTolerance = ctx.earlyGamePhase ? 2 : Math.max(2, Math.round(1 + agg * 2));
+        const crowdTolerance = ctx.earlyGamePhase ? 2 : Math.max(4, Math.round(3 + agg * 2));
         // Caution adjusts retreat threshold: cautious bots retreat at higher HP
         const retreatHpThreshold = 0.2 + cau * 0.15;
 
@@ -717,12 +717,12 @@ export class BotBrain {
         if (lowHp && underPressure && !hasMedkit) return STATES.HIDE;
 
         // 3. Avoid crowds — leave fights with multiple combatants
-        const crowdLeave = Math.max(6, Math.round(crowdTolerance + 3));
+        const crowdLeave = Math.max(7, Math.round(crowdTolerance + 2));
         if (ctx.crowdNear >= crowdLeave) {
             return STATES.EXPLORE;
         }
         // Extra guard: don't engage if surrounded by multiple enemies
-        if (ctx.nearestEnemy && ctx.crowdNear >= 3 && !ctx.heardShot) {
+        if (ctx.nearestEnemy && ctx.crowdNear >= crowdLeave && !ctx.heardShot) {
             return STATES.EXPLORE;
         }
 
@@ -748,7 +748,7 @@ export class BotBrain {
             if (isBeingAttacked && ctx.crowdNear < crowdTolerance) {
                 return STATES.ENGAGE;
             }
-            if (wellArmed && agg >= 0.62 && ctx.nearestEnemyDist < engageDist * 0.95 && ctx.crowdNear < crowdTolerance) {
+            if (wellArmed && ctx.nearestEnemyDist < engageDist && ctx.crowdNear < crowdLeave) {
                 return STATES.ENGAGE;
             }
             // Retaliate for recent attacks

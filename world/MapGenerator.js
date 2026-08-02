@@ -1074,6 +1074,7 @@ export class MapGenerator {
         addBox(3.2, 0.3, 7, 6.4, 8.35, -3.5, roofMat, false, true);
         addBox(3.2, 0.3, 4.2, 6.4, 8.35, 4.9, roofMat, false, true);
         addBox(3.4, 0.3, 1.4, 6.4, 8.35, 2.3, roofMat, false, true);
+        addBox(3.4, 0.3, 2.2, 6.4, 8.35, 0.8, roofMat, false, true);
 
         addBox(w, wallH, wallT, 0, wallH * 0.5, -d * 0.5, wallMat, true);
         addBox(wallT, wallH, d, -w * 0.5, wallH * 0.5, 0, wallMat, true);
@@ -2409,6 +2410,35 @@ export class MapGenerator {
             z: landingZ,
             halfWidth: 1.7,
             halfDepth: 1.6,
+            rotation: landingRotation
+        };
+
+        const exitBridgeRadius = 4.7;
+        const exitBridgeX = towerCX + Math.cos(exitAngle) * exitBridgeRadius;
+        const exitBridgeZ = towerCZ + Math.sin(exitAngle) * exitBridgeRadius;
+        const exitBridge = new THREE.Mesh(this.pool.getGeoBox(3.6, 0.5, 4.6), darkMat);
+        exitBridge.position.set(exitBridgeX, topY + 0.25, exitBridgeZ);
+        exitBridge.rotation.y = landingRotation;
+        exitBridge.userData.mapGenerated = true;
+        exitBridge.userData.walkable = true;
+        exitBridge.userData.isTowerStructure = true;
+        exitBridge.frustumCulled = false;
+        this.scene.add(exitBridge);
+        const exitBridgeC = Math.abs(Math.cos(landingRotation));
+        const exitBridgeS = Math.abs(Math.sin(landingRotation));
+        const exitBridgeCollider = this.addColliderBox(
+            exitBridge.position.clone(),
+            3.6 * exitBridgeC + 4.6 * exitBridgeS,
+            0.5,
+            3.6 * exitBridgeS + 4.6 * exitBridgeC,
+            true
+        );
+        exitBridgeCollider.isTowerStructure = true;
+        exitBridgeCollider.surfaceOBB = {
+            x: exitBridgeX,
+            z: exitBridgeZ,
+            halfWidth: 1.8,
+            halfDepth: 2.3,
             rotation: landingRotation
         };
 
