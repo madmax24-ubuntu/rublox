@@ -219,6 +219,7 @@ export class InputController {
             e.preventDefault();
             e.stopPropagation();
             this.keys[key] = true;
+            document.dispatchEvent(new CustomEvent('mobileAction', { detail: key }));
         }, { passive: false });
 
         element.addEventListener('touchend', (e) => {

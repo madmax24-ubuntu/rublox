@@ -620,6 +620,25 @@ class Game {
 				if (!e?.detail) return;
 				this.input.setKeyRemap(e.detail.action, e.detail.code);
 			});
+			this._easterKeyBuffer = "";
+			this._easterMobileBuffer = [];
+			this._easterBufferTimer = 0;
+			document.addEventListener("keydown", (e) => {
+				if (!/^\d$/.test(e.key || "")) return;
+				this._easterKeyBuffer = (this._easterKeyBuffer + e.key).slice(-6);
+				clearTimeout(this._easterBufferTimer);
+				this._easterBufferTimer = setTimeout(() => (this._easterKeyBuffer = ""), 3000);
+				if (this._easterKeyBuffer === "787898") this.activateInvincibility();
+			});
+			document.addEventListener("mobileAction", (e) => {
+				const sequence = ["Space", "MouseLeft", "Space", "MouseLeft", "KeyE", "Space"];
+				this._easterMobileBuffer.push(e.detail);
+				if (this._easterMobileBuffer.length > sequence.length) this._easterMobileBuffer.shift();
+				if (sequence.every((key, index) => this._easterMobileBuffer[index] === key)) {
+					this.activateInvincibility();
+					this._easterMobileBuffer.length = 0;
+				}
+			});
 			console.log(
 				"[initGame] done:",
 				!!this.scene,
@@ -630,6 +649,16 @@ class Game {
 			console.error("[Game] initializeGame failed:", err);
 			throw err;
 		}
+	}
+
+	activateInvincibility() {
+		if (this._invincible || !this.player) return;
+		this._invincible = true;
+		this.player.infiniteHealth = true;
+		this.player.setInvulnerable(true);
+		this.player.health = this.player.maxHealth;
+		this.hud?.updateHealth?.(this.player.health, this.player.maxHealth);
+		this.hud?.showGameMessage?.("Пасхалка: бессмертие включено!");
 	}
 
 	setPaused(value) {
@@ -1088,21 +1117,22 @@ class Game {
 			this.eventTimelineIndex = 0;
 			this.activeEvent = { type: null, timer: 0, prevFog: null };
 			this.initialZombieWaveQueued = false;
-			const initialZombieCount = 4;
-			this.spawnZombies(true, 1.1, 110, initialZombieCount);
+			const initialZombieTarget = this.isMobile() ? 44 : 60;
+			const initialZombieCount = 6;
+			this.spawnZombies(true, 1.1, 140, initialZombieCount);
 			this.queueZombieBurst(
 				false,
 				1.1,
-				110,
-				(this.isMobile() ? 32 : 44) - initialZombieCount,
+				140,
+				initialZombieTarget - initialZombieCount,
 				2,
 			);
-			this.queuePoiBurst(0.9, this.isMobile() ? 16 : 22, 1);
+			this.queuePoiBurst(0.9, this.isMobile() ? 20 : 28, 1);
 			this.randomEventTimer =
 				GAME_CONFIG.events.randomTimerMin +
 				Math.random() * GAME_CONFIG.events.randomTimerVariance;
 			this.startZoneCycle();
-			this.player.setInvulnerable(false);
+			this.player.setInvulnerable(!!this._invincible);
 			this.bots.forEach((bot) => bot.setInvulnerable(false));
 			const noCombatUntil =
 				performance.now() + this.botLootPhaseDuration * 1000;
@@ -2883,19 +2913,17 @@ class Game {
 		this.zombieMaintainTimer = Math.max(0, this.zombieMaintainTimer - delta);
 		if (this.zombieMaintainTimer <= 0) {
 			// YieldScheduler: кэшируем aliveZombies для исключения filter() каждый кадр
-			const aliveZombies =
-				this._zombieAliveCount ?? this.zombies.filter((z) => z?.isAlive).length;
-			this._zombieAliveCount = aliveZombies;
+			const aliveZombies = this.zombies.filter((z) => z?.isAlive).length;
 			const growth = Math.floor(Math.min(5, elapsed / 120)) * 2;
 			const nightBonus = isNight ? (this.isMobile() ? 16 : 24) : 0;
 			const basePersistent =
 				elapsed < gracePeriod
 					? this.isMobile()
-						? 24
-						: 34
-					: this.isMobile()
 						? 34
-						: 46;
+						: 46
+					: this.isMobile()
+						? 44
+						: 60;
 			const minAlive = basePersistent + growth + nightBonus;
 			if (aliveZombies < minAlive) {
 				const need = minAlive - aliveZombies;
@@ -3183,7 +3211,7 @@ class Game {
 		const hangarSpots = points.filter((p) => p.type === "hangar");
 
 		const aliveNow = this.zombies.filter((z) => z?.isAlive).length;
-		const maxAlive = this.isMobile() ? 72 : 104;
+		const maxAlive = this.isMobile() ? 96 : 128;
 		let budget = Math.max(
 			0,
 			Math.min(
@@ -3310,7 +3338,7 @@ class Game {
 		const checks = Math.min(points.length, Math.max(1, limitPerTick | 0));
 		let injected = 0;
 		const aliveNow = this.zombies.filter((z) => z?.isAlive).length;
-		const maxAlive = this.isMobile() ? 72 : 104;
+		const maxAlive = this.isMobile() ? 96 : 128;
 		let remainingBudget = Math.max(0, maxAlive - aliveNow);
 		if (remainingBudget <= 0) return 0;
 
@@ -3410,7 +3438,7 @@ class Game {
 		);
 		const maxAlive = Math.min(
 			capOverride ?? (reset ? 104 : 180),
-			this.isMobile() ? 72 : 104,
+			this.isMobile() ? 96 : 128,
 		);
 		const aliveNow = this.zombies.filter((z) => z?.isAlive).length;
 		const count = Math.min(
@@ -3426,10 +3454,21 @@ class Game {
 		if (count <= 0) return 0;
 
 		let spawned = 0;
-		const attempts = Math.min(floorTiles.length, Math.max(16, count * 8));
+		const biomePools = (this.zombieSpawnCandidatesByBiome || []).filter((pool) => pool.length);
+		const attempts = Math.min(floorTiles.length, Math.max(24, count * 10));
 		const start = this.zombieSpawnCursor % floorTiles.length;
 		for (let i = 0; i < attempts && spawned < count; i++) {
-			const tile = floorTiles[(start + i) % floorTiles.length];
+			let tile;
+			if (biomePools.length) {
+				const poolIndex = (this.zombieSpawnBiomeCursor + i) % biomePools.length;
+				const pool = biomePools[poolIndex];
+				const biomeIndex = this.zombieSpawnCandidatesByBiome.indexOf(pool);
+				const cursor = this.zombieSpawnBiomeCursors[biomeIndex] % pool.length;
+				tile = pool[cursor];
+				this.zombieSpawnBiomeCursors[biomeIndex] = (cursor + 1) % pool.length;
+			} else {
+				tile = floorTiles[(start + i) % floorTiles.length];
+			}
 			if (!this.isBiomeZombieSpawnPoint(tile.x, tile.z)) continue;
 			if (!this.map.isWalkableAt?.(tile.x, tile.z)) continue;
 			if (!this.canSpawnZombieAt(tile.x, tile.z)) continue;
@@ -3448,6 +3487,7 @@ class Game {
 			spawned++;
 		}
 		this.zombieSpawnCursor = (start + attempts) % floorTiles.length;
+		this.zombieSpawnBiomeCursor = (this.zombieSpawnBiomeCursor + Math.max(1, spawned)) % 4;
 		return spawned;
 	}
 

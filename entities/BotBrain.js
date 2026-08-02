@@ -694,7 +694,7 @@ export class BotBrain {
             return STATES.ENGAGE;
         }
         // Extended zombie threat radius — bots should engage zombies from further away
-        if (ctx.nearestZombie && ctx.nearestZombieDist < 45) {
+        if (ctx.nearestZombie && ctx.nearestZombieDist < 60) {
             if (hasRealWeapon && !veryLowHp) return STATES.ENGAGE;
             // If zombie is very close and bot is low HP, retreat
             if (ctx.nearestZombieDist < 10 && lowHp) return ctx.shelterTarget ? STATES.RETREAT : STATES.EXPLORE;
@@ -717,7 +717,7 @@ export class BotBrain {
         if (lowHp && underPressure && !hasMedkit) return STATES.HIDE;
 
         // 3. Avoid crowds — leave fights with multiple combatants
-        const crowdLeave = Math.max(2, Math.round(crowdTolerance));
+        const crowdLeave = Math.max(6, Math.round(crowdTolerance + 3));
         if (ctx.crowdNear >= crowdLeave) {
             return STATES.EXPLORE;
         }
@@ -733,6 +733,7 @@ export class BotBrain {
             const isBeingShot = ctx.heardShot;
             const closeThreat = ctx.nearestEnemyDist < 15;
             if (isBeingShot && closeThreat && !veryLowHp) return STATES.ENGAGE;
+            if (ctx.nearestEnemy && ctx.nearestEnemyDist < 8 && !veryLowHp) return STATES.ENGAGE;
             if (ctx.lootTarget) return STATES.LOOT;
             if (ctx.nearestEnemy && ctx.nearestEnemyDist < 55) return STATES.HIDE;
             return STATES.EXPLORE;
@@ -1131,12 +1132,17 @@ export class BotBrain {
                 bot._reactionReadyAt = nowSec + reactionDelay;
             }
             // Strafe direction changes less frequently — more natural
-            const strafeDir = ((bot.id + Math.floor(nowSec * 2)) % 2 === 0) ? 1 : -1;
+            if (!bot._strafeUntil || nowSec >= bot._strafeUntil) {
+                bot._strafeDir = bot._strafeDir ? -bot._strafeDir : ((bot.id % 2) ? 1 : -1);
+                bot._strafeUntil = nowSec + 2.2 + (bot.id % 5) * 0.18;
+            }
+            const strafeDir = bot._strafeDir;
             const to = this._tmpVec.subVectors(target.position, bot.position).normalize();
             this._tmpSide.set(-to.z, 0, to.x).multiplyScalar(strafeDir * (3.4 + (bot.id % 3)));
             this._tmpSideTarget.set(bot.position.x + this._tmpSide.x, 0, bot.position.z + this._tmpSide.z);
             if (bot.mapRef?.isWalkableAt?.(this._tmpSideTarget.x, this._tmpSideTarget.z)) {
                 this.steerMove(bot, this._tmpSideTarget, bot.physics.speed * 0.92);
+                bot.lookAt(target.position);
             }
             if (this.attackCooldown <= 0) {
                 if (bot._reactionReadyAt && nowSec < bot._reactionReadyAt) return;
@@ -1149,7 +1155,7 @@ export class BotBrain {
                 bot.attack(target, entityManager);
                 bot.applyWeaponRecoil();
 
-                this.attackCooldown = Math.max(0.07, (weapon.cooldown || 0.2) * 0.9);
+                this.attackCooldown = Math.max(0.06, (weapon.cooldown || 0.2) * 0.82);
             }
             return;
         }
@@ -1329,7 +1335,7 @@ export class BotBrain {
             return retaliationTarget;
         }
         // Always prefer zombies over other bots — they're the real threat
-        if (ctx.nearestZombie && ctx.nearestZombieDist < 45) return ctx.nearestZombie;
+        if (ctx.nearestZombie && ctx.nearestZombieDist < 60) return ctx.nearestZombie;
         const preferZombie = ctx.nearestZombie && ctx.nearestZombieDist < 18;
         if (preferZombie) return ctx.nearestZombie;
         const t = ctx.nearestEnemy;
@@ -1346,7 +1352,7 @@ export class BotBrain {
         // Don't engage if surrounded (aggressive bots tolerate more)
         const maxCrowd = ctx.earlyGamePhase
             ? Math.min(5, Math.max(3, Math.round(3 + agg * 2)))
-            : 5;
+            : 7;
         if (!retaliating && ctx.crowdNear >= maxCrowd) return null;
 
         // During early game, only fight if well-armed (aggressive bots less strict)
@@ -1515,7 +1521,7 @@ export class BotBrain {
     isCombatReady(bot) {
         const items = bot.inventory?.getItems?.() || [];
         const ranged = items.some(item => item && (WEAPON_PRIORITY[item.type] || 0) >= 4 && (item.ammo === null || item.ammo > 0));
-        return ranged && ((bot.stats?.loot || 0) > 0 || (bot.lootedAreas?.length || 0) > 0) && this.getGearScore(bot) >= 0.42;
+        return ranged && ((bot.stats?.loot || 0) > 0 || (bot.lootedAreas?.length || 0) > 0) && this.getGearScore(bot) >= 0.3;
     }
 
     findNearestShelterTarget(bot) {
@@ -1609,12 +1615,13 @@ export class BotBrain {
 
     handleStuck(bot) {
         if (!bot.isStuck) return;
-        const escape = this.pickLocalNavigationStep(bot, bot.patrolTarget || bot.target?.position)
+        const combatTarget = bot.state === STATES.ENGAGE && bot.target?.isAlive ? bot.target : null;
+        const escape = this.pickLocalNavigationStep(bot, combatTarget?.position || bot.patrolTarget || bot.target?.position)
             || this.pickSpreadTarget(bot, 24, 70);
         if (escape) bot.patrolTarget = escape;
-        bot.target = null;
+        if (!combatTarget) bot.target = null;
         this.releaseLootReservation(bot);
-        this.releaseCombatReservation(bot);
+        if (!combatTarget) this.releaseCombatReservation(bot);
         bot.isStuck = false;
     }
 
