@@ -1129,8 +1129,11 @@ export class Bot {
         const horizontalFov = 2 * Math.atan(Math.tan(verticalFov * 0.5) * (camera.aspect || 1));
         const visibleAngle = Math.max(verticalFov, horizontalFov) * 0.5 + 0.22;
         const inView = distance > 0.001 && this._lodToEntity.dot(this._lodCameraForward) / distance >= Math.cos(visibleAngle);
-        const detailDistance = this.scene?.userData?.mobileMode ? 20 : 28;
-        const detailed = distanceSq <= 64 || (inView && distanceSq <= detailDistance * detailDistance);
+        const crowdedStart = this.scene?.userData?.gameState === 'countdown' || this.scene?.userData?.gameState === 'spawn';
+        const detailDistance = crowdedStart
+            ? (this.scene?.userData?.mobileMode ? 12 : 16)
+            : (this.scene?.userData?.mobileMode ? 20 : 28);
+        const detailed = distanceSq <= (crowdedStart ? 16 : 64) || (inView && distanceSq <= detailDistance * detailDistance);
         if (this._lodDetailed === detailed) return detailed;
         this._lodDetailed = detailed;
         for (const child of this.mesh.userData.detailChildren || []) child.visible = detailed;

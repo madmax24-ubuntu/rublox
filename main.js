@@ -1695,7 +1695,11 @@ class Game {
 	_checkWinLoseConditions() {
 		if (this.gameState !== "playing" || this.roundFinished) return;
 		const survivors = this.entityManager.getAliveSurvivors?.() || [];
-		if (survivors.length === 0) {
+		if (!this.player?.isAlive) {
+			this.endRound(
+				"Вы погибли. Нажмите E, чтобы начать новую игру",
+			);
+		} else if (survivors.length === 0) {
 			this.endRound(
 				"\u0412 \u0436\u0438\u0432\u044b\u0445 \u043d\u0438\u043a\u043e\u0433\u043e \u043d\u0435 \u043e\u0441\u0442\u0430\u043b\u043e\u0441\u044c. \u041d\u0430\u0436\u043c\u0438\u0442\u0435 E \u0447\u0442\u043e\u0431\u044b \u043d\u0430\u0447\u0430\u0442\u044c \u0437\u0430\u043d\u043e\u0432\u043e",
 			);
@@ -2455,6 +2459,11 @@ class Game {
 	}
 
 	update(delta) {
+		this.scene.userData.gameState = this.gameState;
+		if (this.gameState === "ended") {
+			if (this.input.isKeyPressed("KeyE")) window.location.reload();
+			return;
+		}
 		this.enforceNoBugPolicy(delta);
 		if (
 			this.isStarted &&
