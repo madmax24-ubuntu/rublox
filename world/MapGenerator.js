@@ -1072,9 +1072,9 @@ export class MapGenerator {
         addBox(w, 0.3, d, 0, -0.01, 0, floorMat, false, true);
         addBox(12, 0.3, d, 2.5, 4.15, 0, floorMat, false, true);
         addBox(3.2, 0.3, 3.4, -4.9, 4.15, -1.4, floorMat, false, true);
-        addBox(14, 0.3, d, -2, 8.35, 0, roofMat, false, true);
-        addBox(3.2, 0.3, 7, 6.4, 8.35, -3.5, roofMat, false, true);
-        addBox(3.2, 0.3, 4.2, 6.4, 8.35, 4.9, roofMat, false, true);
+        addBox(13.2, 0.3, d, -2.4, 8.35, 0, roofMat, false, true);
+        addBox(3.2, 0.3, 5.4, 6.4, 8.35, -4.3, roofMat, false, true);
+        addBox(3.2, 0.3, 2.8, 6.4, 8.35, 5.6, roofMat, false, true);
 
         addBox(w, wallH, wallT, 0, wallH * 0.5, -d * 0.5, wallMat, true);
         addBox(wallT, wallH, d, -w * 0.5, wallH * 0.5, 0, wallMat, true);
@@ -2243,14 +2243,23 @@ export class MapGenerator {
         const towerWallSegments = 24;
         const towerDoorIndex = Math.round((Math.atan2(-towerCZ, -towerCX) + Math.PI * 2) % (Math.PI * 2) / (Math.PI * 2) * towerWallSegments) % towerWallSegments;
         const towerDoorHeight = 3.4;
+        const totalSteps = 120;
+        const angleStep = 0.17;
+        const exitAngle = (totalSteps - 1) * angleStep;
+        const normalizedExitAngle = (exitAngle % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+        const towerRoofExitHeight = 4.2;
         for (let i = 0; i < towerWallSegments; i++) {
             const angle = i / towerWallSegments * Math.PI * 2;
             const segmentLength = 2 * Math.PI * towerRadius / towerWallSegments + 0.35;
             const sx = towerCX + Math.cos(angle) * towerRadius;
             const sz = towerCZ + Math.sin(angle) * towerRadius;
             const isDoor = i === towerDoorIndex;
-            const segmentHeight = isDoor ? towerHeight - towerDoorHeight : towerHeight;
-            const segmentY = isDoor ? towerDoorHeight + segmentHeight / 2 : towerHeight / 2;
+            const exitDistance = Math.abs(Math.atan2(Math.sin(angle - normalizedExitAngle), Math.cos(angle - normalizedExitAngle)));
+            const isRoofExit = exitDistance < 0.32;
+            const lowerGap = isDoor ? towerDoorHeight : 0;
+            const upperGap = isRoofExit ? towerRoofExitHeight : 0;
+            const segmentHeight = towerHeight - lowerGap - upperGap;
+            const segmentY = lowerGap + segmentHeight / 2;
             const segment = new THREE.Mesh(this.pool.getGeoBox(0.8, segmentHeight, segmentLength), wallMat);
             segment.position.set(sx, segmentY, sz);
             segment.rotation.y = -angle;
@@ -2288,10 +2297,8 @@ export class MapGenerator {
         towerFloorCollider.surfaceCircle = { x: towerCX, z: towerCZ, radius: towerRadius - 0.5 };
 
         // Spiral staircase
-        const totalSteps = 120;
         const stepH = towerHeight / totalSteps;
         const spiralR = towerRadius - 2;
-        const angleStep = 0.17;
         const stepWidth = 3.5;
         const stepDepth = 1.9;
         const stepGeo = this.pool.getGeoBox(stepWidth, stepH, stepDepth);
@@ -2360,7 +2367,6 @@ export class MapGenerator {
         const roofRadius = 6.2;
         const roofWidth = 4.5;
         const roofDepth = 2.2;
-        const exitAngle = (totalSteps - 1) * angleStep;
         const roofGeo = this.pool.getGeoBox(roofWidth, 0.5, roofDepth);
         for (let i = 0; i < roofSegmentCount; i++) {
             const angle = i / roofSegmentCount * Math.PI * 2;

@@ -766,6 +766,27 @@ function getThirdPersonWorldScale(rawType) {
     return 0.78;
 }
 
+const weaponModelTemplates = new Map();
+
+function getWeaponModelTemplate(type) {
+    let template = weaponModelTemplates.get(type);
+    if (template) return template;
+    template = new THREE.Group();
+    if (type === 'knife') template.add(createKnifeModel());
+    else if (type === 'bow') template.add(createBowModel());
+    else if (type === 'pistol') template.add(createGunModel('pistol'));
+    else if (type === 'rifle') template.add(createGunModel('rifle'));
+    else if (type === 'machinegun') template.add(createGunModel('machinegun'));
+    else if (type === 'shotgun') template.add(createGunModel('shotgun'));
+    else if (type === 'flamethrower') template.add(createGunModel('flamethrower'));
+    else if (type === 'laser') template.add(createGunModel('laser'));
+    configureMeshForGameplay(template);
+    template.userData.ignoreDamageTint = true;
+    template.scale.setScalar(getThirdPersonWorldScale(type));
+    weaponModelTemplates.set(type, template);
+    return template;
+}
+
 export class Weapon {
     constructor(type, scene) {
         this.type = normType(type);
@@ -829,18 +850,7 @@ export class Weapon {
             this.mesh = null;
             return;
         }
-        const group = new THREE.Group();
-
-        if (this.type === 'knife') group.add(createKnifeModel());
-        else if (this.type === 'bow') group.add(createBowModel());
-        else if (this.type === 'pistol') group.add(createGunModel('pistol'));
-        else if (this.type === 'rifle') group.add(createGunModel('rifle'));
-        else if (this.type === 'machinegun') group.add(createGunModel('machinegun'));
-        else if (this.type === 'shotgun') group.add(createGunModel('shotgun'));
-        else if (this.type === 'flamethrower') group.add(createGunModel('flamethrower'));
-        else if (this.type === 'laser') group.add(createGunModel('laser'));
-
-        configureMeshForGameplay(group);
+        const group = getWeaponModelTemplate(this.type).clone(true);
         group.userData.ignoreDamageTint = true;
         group.userData.baseRotation = new THREE.Euler(0, 0, 0);
         group.scale.setScalar(getThirdPersonWorldScale(this.type));
@@ -848,6 +858,11 @@ export class Weapon {
         this.mesh = group;
         // DON'T add to scene — weapon will be attached to player socket
         // this.scene?.add(group);
+    }
+
+    static prewarm(type) {
+        const normalized = normType(type);
+        if (normalized !== 'fists') getWeaponModelTemplate(normalized);
     }
 
     // Attach weapon mesh to a THREE.Object3D socket (e.g., player's weaponSocket)

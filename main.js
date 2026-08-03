@@ -80,6 +80,7 @@ import { ZombiePool } from "./entities/ZombiePool.js";
 import { ExplosiveBarrel } from "./entities/ExplosiveBarrel.js";
 import { EntityManager } from "./entities/EntityManager.js";
 import { LootManager } from "./items/LootManager.js";
+import { Weapon } from "./items/Weapon.js";
 import { HUD } from "./ui/HUD.js";
 import { YandexBridge } from "./core/YandexBridge.js";
 import { GAME_CONFIG, ROUND_MODES } from "./core/GameBalance.js";
@@ -546,6 +547,16 @@ class Game {
 			}
 			this.spawnTime = GAME_CONFIG.round.preFightInvulnerableSeconds;
 			this.spawnTimer = this.spawnTime;
+			this.weaponPrewarmQueue = [
+				"bow",
+				"pistol",
+				"rifle",
+				"machinegun",
+				"shotgun",
+				"flamethrower",
+				"laser",
+			];
+			this.weaponPrewarmAt = 0;
 			this.botLootPhaseDuration = GAME_CONFIG.round.botLootPhaseSeconds;
 			this.zonePhase = "waiting";
 			this.zonePhaseTimer = GAME_CONFIG.zone.waitStartSeconds;
@@ -906,6 +917,11 @@ class Game {
 
 	_updateCountdownState(delta) {
 		const dt = Number.isFinite(delta) ? delta : 0.016;
+		const now = performance.now();
+		if (this.weaponPrewarmQueue?.length && now >= this.weaponPrewarmAt) {
+			Weapon.prewarm(this.weaponPrewarmQueue.shift());
+			this.weaponPrewarmAt = now + (this.isMobile() ? 180 : 110);
+		}
 		this.countdownTimer -= dt;
 		const sec = Math.max(0, Math.ceil(this.countdownTimer));
 		if (sec !== this.lastCountdownSecond) {
@@ -933,6 +949,7 @@ class Game {
 				this.perkLocked = true;
 			}
 			this.spawnScatterInitialized = false;
+			this._spawnScatterWork = null;
 			this.gameState = "spawn";
 			this.perkLocked = true;
 			this.perkSelectionRequired = false;
@@ -977,7 +994,7 @@ class Game {
 			bot.isFrozen = false;
 		});
 
-		if (!this.spawnScatterInitialized) {
+		if (!this.spawnScatterInitialized && !this._spawnScatterWork) {
 			const floor =
 				this.map.getNavigationTiles?.() || this.map.getFloorTiles?.() || [];
 			const minR = (this.map.spawnCourtyardRadius || 54) + 18;
@@ -1007,7 +1024,31 @@ class Game {
 				Math.PI * 0.75,
 				Math.PI * 0.25,
 			];
-			for (let i = 0; i < this.bots.length; i++) {
+			this._spawnScatterWork = {
+				biomeDefs,
+				pools,
+				usedByBiome,
+				assignedCounts,
+				assignmentLimits,
+				biomeAngles,
+				cursor: 0,
+			};
+		}
+
+		if (!this.spawnScatterInitialized && this._spawnScatterWork) {
+			const work = this._spawnScatterWork;
+			const {
+				biomeDefs,
+				pools,
+				usedByBiome,
+				assignedCounts,
+				assignmentLimits,
+				biomeAngles,
+			} = work;
+			const deadline = performance.now() + (this.isMobile() ? 0.75 : 1.25);
+			const batchEnd = Math.min(this.bots.length, work.cursor + (this.isMobile() ? 4 : 8));
+			let i = work.cursor;
+			for (; i < batchEnd && performance.now() < deadline; i++) {
 				const bot = this.bots[i];
 				let biomeIndex =
 					bot.position.x < 0
@@ -1108,10 +1149,14 @@ class Game {
 				bot.assignedBiomeEntry = new THREE.Vector3(entryX, 0, entryZ);
 				bot.assignedBiomeTarget = bot.patrolTarget.clone();
 			}
-			this.spawnScatterInitialized = true;
+			work.cursor = i;
+			if (work.cursor >= this.bots.length) {
+				this.spawnScatterInitialized = true;
+				this._spawnScatterWork = null;
+			}
 		}
 
-		if (this.spawnTimer <= 0) {
+		if (this.spawnTimer <= 0 && this.spawnScatterInitialized) {
 			this.gameState = "playing";
 			this.setCenterPlatformOpen(true);
 			this.platformGateCycleOpen = true;
