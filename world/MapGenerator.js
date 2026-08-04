@@ -4334,8 +4334,8 @@ export class MapGenerator {
 			[startX + 64, startZ + 26],
 		].forEach(([x, z]) => this._addMilitaryTank(x, z));
 
-		// Easter egg: Stalker corpse near hangar door (outside, on the ground)
-		this._addStalkerCorpse(cx + 16, cz + 38);
+		// Easter egg: Stalker corpse visible near road (military area)
+		this._addStalkerCorpse(cx - 10, cz + 2);
 
 		// Окопы - больше и заметнее
 		this._addTrench(startX + 20, startZ + 20, size * 0.4);
@@ -6101,7 +6101,7 @@ export class MapGenerator {
 	}
 
 	_addStalkerCorpse(x, z) {
-		console.log('[MapGenerator] ADDING STALKER CORPSE at x=' + x + ' z=' + z);
+		// Easter egg: Stalker NPC corpse (bot-style model) visible in military area
 		const corpse = new THREE.Group();
 
 		// Stalker materials
@@ -6301,9 +6301,7 @@ export class MapGenerator {
 
 		corpse.position.set(x, 0.14, z);
 		corpse.userData.mapGenerated = true;
-		console.log('[MapGenerator] Corpse scene position:', corpse.position.x, corpse.position.y, corpse.position.z);
 		this.scene.add(corpse);
-		console.log('[MapGenerator] Corpse added to scene, children:', corpse.children.length);
 		this.addColliderBox(new THREE.Vector3(x, 0.3, z), 1.5, 0.6, 2.0, false);
 	}
 
