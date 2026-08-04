@@ -1072,9 +1072,10 @@ export class MapGenerator {
         addBox(w, 0.3, d, 0, -0.01, 0, floorMat, false, true);
         addBox(12, 0.3, d, 2.5, 4.15, 0, floorMat, false, true);
         addBox(3.2, 0.3, 3.4, -4.9, 4.15, -1.4, floorMat, false, true);
-        addBox(13.2, 0.3, d, -2.4, 8.35, 0, roofMat, false, true);
-        addBox(3.2, 0.3, 5.4, 6.4, 8.35, -4.3, roofMat, false, true);
-        addBox(3.2, 0.3, 2.8, 6.4, 8.35, 5.6, roofMat, false, true);
+        addBox(13.1, 0.3, d, -2.45, 8.35, 0, roofMat, false, true);
+        addBox(0.3, 0.3, d, 8.85, 8.35, 0, roofMat, false, true);
+        addBox(4.6, 0.3, 3.6, 6.4, 8.35, -5.2, roofMat, false, true);
+        addBox(4.6, 0.3, 2.4, 6.4, 8.35, 5.8, roofMat, false, true);
 
         addBox(w, wallH, wallT, 0, wallH * 0.5, -d * 0.5, wallMat, true);
         addBox(wallT, wallH, d, -w * 0.5, wallH * 0.5, 0, wallMat, true);
@@ -2255,7 +2256,7 @@ export class MapGenerator {
             const sz = towerCZ + Math.sin(angle) * towerRadius;
             const isDoor = i === towerDoorIndex;
             const exitDistance = Math.abs(Math.atan2(Math.sin(angle - normalizedExitAngle), Math.cos(angle - normalizedExitAngle)));
-            const isRoofExit = exitDistance < 0.32;
+            const isRoofExit = exitDistance < 1.3;
             const lowerGap = isDoor ? towerDoorHeight : 0;
             const upperGap = isRoofExit ? towerRoofExitHeight : 0;
             const segmentHeight = towerHeight - lowerGap - upperGap;
@@ -2354,113 +2355,63 @@ export class MapGenerator {
         this.scene.add(towerSteps);
 
         const topY = towerHeight;
-        const roofCore = new THREE.Mesh(this.pool.getGeoBox(8, 0.5, 8), darkMat);
-        roofCore.position.set(towerCX, topY + 0.25, towerCZ);
-        roofCore.userData.mapGenerated = true;
-        roofCore.userData.walkable = true;
-        roofCore.userData.isTowerStructure = true;
-        roofCore.frustumCulled = false;
-        this.scene.add(roofCore);
-        const roofCoreCollider = this.addColliderBox(roofCore.position.clone(), 8, 0.5, 8, true);
-        roofCoreCollider.isTowerStructure = true;
-        const roofSegmentCount = 20;
-        const roofRadius = 6.2;
-        const roofWidth = 4.5;
-        const roofDepth = 2.2;
-        const roofGeo = this.pool.getGeoBox(roofWidth, 0.5, roofDepth);
-        for (let i = 0; i < roofSegmentCount; i++) {
-            const angle = i / roofSegmentCount * Math.PI * 2;
-            const angularDistance = Math.abs(Math.atan2(Math.sin(angle - exitAngle), Math.cos(angle - exitAngle)));
-            if (angularDistance < 0.55) continue;
-            const x = towerCX + Math.cos(angle) * roofRadius;
-            const z = towerCZ + Math.sin(angle) * roofRadius;
-            const rotation = -angle + Math.PI / 2;
-            const platformSegment = new THREE.Mesh(roofGeo, darkMat);
-            platformSegment.position.set(x, topY + 0.25, z);
-            platformSegment.rotation.y = rotation;
-            platformSegment.userData.mapGenerated = true;
-            platformSegment.userData.walkable = true;
-            platformSegment.userData.isTowerStructure = true;
-            platformSegment.frustumCulled = false;
-            this.scene.add(platformSegment);
-            const c = Math.abs(Math.cos(rotation));
-            const s = Math.abs(Math.sin(rotation));
+        const roofCellSize = 2;
+        const roofRadius = 7.25;
+        const roofCells = [];
+        const radialX = Math.cos(exitAngle);
+        const radialZ = Math.sin(exitAngle);
+        const tangentX = -radialZ;
+        const tangentZ = radialX;
+        for (let dx = -6; dx <= 6; dx += roofCellSize) {
+            for (let dz = -6; dz <= 6; dz += roofCellSize) {
+                if (Math.hypot(dx, dz) > roofRadius - 0.4) continue;
+                const u = tangentX * dx + tangentZ * dz;
+                const v = radialX * dx + radialZ * dz;
+                if (u > -7 && u < 3.6 && v > -0.5) continue;
+                roofCells.push({
+                    x: towerCX + dx,
+                    z: towerCZ + dz,
+                });
+            }
+        }
+        const roofTiles = new THREE.InstancedMesh(
+            this.pool.getGeoBox(roofCellSize, 0.5, roofCellSize),
+            darkMat,
+            roofCells.length,
+        );
+        const roofMatrix = new THREE.Matrix4();
+        for (let i = 0; i < roofCells.length; i++) {
+            const cell = roofCells[i];
+            roofMatrix.makeTranslation(cell.x, topY + 0.25, cell.z);
+            roofTiles.setMatrixAt(i, roofMatrix);
             const collider = this.addColliderBox(
-                platformSegment.position.clone(),
-                roofWidth * c + roofDepth * s,
+                new THREE.Vector3(cell.x, topY + 0.25, cell.z),
+                roofCellSize,
                 0.5,
-                roofWidth * s + roofDepth * c,
-                true
+                roofCellSize,
+                true,
             );
             collider.isTowerStructure = true;
-            collider.surfaceOBB = {
-                x,
-                z,
-                halfWidth: roofWidth / 2,
-                halfDepth: roofDepth / 2,
-                rotation
-            };
         }
-        const landingAngle = exitAngle;
-        const landingX = towerCX + Math.cos(landingAngle) * 6.15;
-        const landingZ = towerCZ + Math.sin(landingAngle) * 6.15;
-        const landingRotation = -landingAngle + Math.PI / 2;
-        const landing = new THREE.Mesh(this.pool.getGeoBox(4.2, 0.5, 4.2), darkMat);
-        landing.position.set(landingX, topY + 0.25, landingZ);
-        landing.rotation.y = landingRotation;
-        landing.userData.mapGenerated = true;
-        landing.userData.walkable = true;
-        landing.userData.isTowerStructure = true;
-        landing.frustumCulled = false;
-        this.scene.add(landing);
-        const landingC = Math.abs(Math.cos(landingRotation));
-        const landingS = Math.abs(Math.sin(landingRotation));
-        const landingCollider = this.addColliderBox(
-            landing.position.clone(),
-            4.2 * landingC + 4.2 * landingS,
-            0.5,
-            4.2 * landingS + 4.2 * landingC,
-            true
-        );
-        landingCollider.isTowerStructure = true;
-        landingCollider.surfaceOBB = {
-            x: landingX,
-            z: landingZ,
-            halfWidth: 2.1,
-            halfDepth: 2.1,
-            rotation: landingRotation
-        };
-
-        const exitBridgeRadius = 3.65;
-        const exitBridgeX = towerCX + Math.cos(exitAngle) * exitBridgeRadius;
-        const exitBridgeZ = towerCZ + Math.sin(exitAngle) * exitBridgeRadius;
-        const exitBridge = new THREE.Mesh(this.pool.getGeoBox(4.2, 0.5, 5.2), darkMat);
-        exitBridge.position.set(exitBridgeX, topY + 0.25, exitBridgeZ);
-        exitBridge.rotation.y = landingRotation;
-        exitBridge.userData.mapGenerated = true;
-        exitBridge.userData.walkable = true;
-        exitBridge.userData.isTowerStructure = true;
-        exitBridge.frustumCulled = false;
-        this.scene.add(exitBridge);
-        const exitBridgeC = Math.abs(Math.cos(landingRotation));
-        const exitBridgeS = Math.abs(Math.sin(landingRotation));
-        const exitBridgeCollider = this.addColliderBox(
-            exitBridge.position.clone(),
-            4.2 * exitBridgeC + 5.2 * exitBridgeS,
-            0.5,
-            4.2 * exitBridgeS + 5.2 * exitBridgeC,
-            true
-        );
-        exitBridgeCollider.isTowerStructure = true;
-        exitBridgeCollider.surfaceOBB = {
-            x: exitBridgeX,
-            z: exitBridgeZ,
-            halfWidth: 2.1,
-            halfDepth: 2.6,
-            rotation: landingRotation
-        };
-
+        roofTiles.instanceMatrix.needsUpdate = true;
+        roofTiles.computeBoundingSphere();
+        roofTiles.frustumCulled = false;
+        roofTiles.userData.mapGenerated = true;
+        roofTiles.userData.walkable = true;
+        roofTiles.userData.isTowerStructure = true;
+        this.scene.add(roofTiles);
         const towerRoute = [];
+        const doorAngle = towerDoorIndex / towerWallSegments * Math.PI * 2;
+        towerRoute.push(new THREE.Vector3(
+            towerCX + Math.cos(doorAngle) * (towerRadius + 2.2),
+            0.2,
+            towerCZ + Math.sin(doorAngle) * (towerRadius + 2.2),
+        ));
+        towerRoute.push(new THREE.Vector3(
+            towerCX + Math.cos(doorAngle) * (towerRadius - 2.4),
+            0.4,
+            towerCZ + Math.sin(doorAngle) * (towerRadius - 2.4),
+        ));
         for (let i = 0; i < totalSteps; i += 10) {
             const angle = i * angleStep;
             towerRoute.push(new THREE.Vector3(
@@ -2469,16 +2420,26 @@ export class MapGenerator {
                 towerCZ + Math.sin(angle) * spiralR,
             ));
         }
-        towerRoute.push(new THREE.Vector3(landingX, topY + 0.6, landingZ));
+        towerRoute.push(new THREE.Vector3(
+            towerCX + Math.cos(exitAngle) * spiralR,
+            topY + 0.5,
+            towerCZ + Math.sin(exitAngle) * spiralR,
+        ));
+        towerRoute.push(new THREE.Vector3(
+            towerCX + radialX * 4.8 + tangentX * 5,
+            topY + 0.6,
+            towerCZ + radialZ * 4.8 + tangentZ * 5,
+        ));
         towerRoute.push(new THREE.Vector3(towerCX, topY + 0.6, towerCZ));
         this._elevatedRoutes.push(towerRoute);
-
-        const canopyGeo = this.pool.getGeoCone(towerRadius + 1, 4);
-        const roof = new THREE.Mesh(canopyGeo, wallMat);
-        roof.position.set(towerCX, topY + 7, towerCZ);
-        roof.userData.mapGenerated = true;
-        roof.userData.isTowerStructure = true;
-        this.scene.add(roof);
+        this._buildings.push({
+            x: towerCX,
+            z: towerCZ,
+            w: towerRadius * 2,
+            d: towerRadius * 2,
+            route: towerRoute,
+            template: { type: 'maze_tower', biome: 'maze' }
+        });
 
         // Tower interior — torches and chests
         this._addTowerInterior(towerCX, towerCZ, towerHeight, towerRadius);
@@ -5564,6 +5525,22 @@ export class MapGenerator {
             }
         }
         return null;
+    }
+
+    getStructureApproachRoute(x, z, from = null) {
+        const structure = this.getStructureAtPoint(x, z, 0.2);
+        if (!structure) return null;
+        if (from && this.getStructureAtPoint(from.x, from.z, 0.2) === structure) return null;
+        const target = new THREE.Vector3(x, Number.isFinite(this.getSurfaceHeightAt?.(x, z)) ? this.getSurfaceHeightAt(x, z) : 0.2, z);
+        if (structure.route?.length >= 2) {
+            return [structure.route[0].clone(), structure.route[1].clone(), target];
+        }
+        const entranceZ = structure.z + structure.d * 0.5;
+        return [
+            new THREE.Vector3(structure.x, 0.2, entranceZ + 2.2),
+            new THREE.Vector3(structure.x, 0.2, entranceZ - 1.8),
+            target
+        ];
     }
 
     isWalkableAt(x, z) {

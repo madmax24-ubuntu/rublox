@@ -214,8 +214,8 @@ export class Bot {
 
         // Personality traits — each bot is unique
         this.personality = {
-            aggression: 0.72 + Math.random() * 0.28,
-            caution: 0.12 + Math.random() * 0.68,
+            aggression: 0.82 + Math.random() * 0.18,
+            caution: 0.1 + Math.random() * 0.5,
             lootFocus: 0.15 + Math.random() * 0.85
         };
 
@@ -1317,8 +1317,8 @@ export class Bot {
             }
 
             const projectileData = weapon.type === 'bow'
-                ? weapon.attack(this, null, this.audioSynthRef, direction, { chargeRatio: 0.55 })
-                : weapon.attack(this, null, this.audioSynthRef, direction);
+                ? weapon.attack(this, null, this.audioSynthRef, direction, { chargeRatio: 0.55, ignoreCooldown: true })
+                : weapon.attack(this, null, this.audioSynthRef, direction, { ignoreCooldown: true });
             const cadence = Math.max(0.09, (weapon.cooldown || 0.2) * (weapon.type === 'bow' ? 0.95 : 0.82));
             if (projectileData && projectileData.projectiles) {
                 for (const proj of projectileData.projectiles) {
@@ -1338,7 +1338,7 @@ export class Bot {
                 return { fired: true, damage: weapon.damage };
             }
         } else {
-            const result = weapon.attack(this, target, this.audioSynthRef);
+            const result = weapon.attack(this, target, this.audioSynthRef, null, { ignoreCooldown: true });
             if (result && result.hit) {
                 const killed = target.takeDamage(result.damage, result.isHeadshot, this, result.knockback || 0);
                 this.nextAttackTime = now + Math.max(0.12, (weapon.cooldown || 0.3) * 0.85);
@@ -1382,6 +1382,7 @@ export class Bot {
     isDirectionBlocked(dir, distance = 3.5, colliders = null) {
         if (!this.physicsRef?.getNearbyColliders) return false;
         const bottom = this.position.y - this.physics.height + 0.2;
+        const top = this.position.y - 0.05;
         const maxDistance = Math.max(0.8, Number(distance) || 3.5);
         const endX = this.position.x + dir.x * maxDistance;
         const endZ = this.position.z + dir.z * maxDistance;
@@ -1391,9 +1392,9 @@ export class Bot {
             this._tmpProbe.copy(this.position).addScaledVector(dir, probeDistance);
             for (const box of nearby) {
                 if (box.enabled === false || box.walkable) continue;
+                if (top < box.min.y + 0.05 || bottom > box.max.y - 0.1) continue;
                 if (this._tmpProbe.x < box.min.x - 0.45 || this._tmpProbe.x > box.max.x + 0.45) continue;
                 if (this._tmpProbe.z < box.min.z - 0.45 || this._tmpProbe.z > box.max.z + 0.45) continue;
-                if (bottom > box.max.y - 0.1) continue;
                 return true;
             }
         }
@@ -1406,11 +1407,14 @@ export class Bot {
         if (!this.physicsRef?.getNearbyColliders) return result;
         const radius = (this.physics?.radius || 0.5) + 0.6;
         const sampleDist = 4.0;
+        const bottom = this.position.y - this.physics.height + 0.2;
+        const top = this.position.y - 0.05;
         this._tmpProbe2.copy(this.position).addScaledVector(forward, sampleDist);
         const nearby = this.physicsRef.getNearbyColliders(this._tmpProbe2, 2.6);
         for (const box of nearby) {
             if (box.enabled === false) continue;
             if (box.walkable) continue;
+            if (top < box.min.y + 0.05 || bottom > box.max.y - 0.1) continue;
             const closestX = Math.max(box.min.x, Math.min(box.max.x, this.position.x));
             const closestZ = Math.max(box.min.z, Math.min(box.max.z, this.position.z));
             const dx = this.position.x - closestX;

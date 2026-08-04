@@ -560,7 +560,7 @@ export class Player {
                 const direction = this._tmpFireDir;
                 controls.getWorldDirection(direction);
                 const chargeRatio = Math.max(0.35, Math.min(1, this.bowCharge / this.bowChargeMax));
-                const result = activeWeapon.attack(this, null, audioSynth, direction, { chargeRatio });
+                const result = activeWeapon.attack(this, null, audioSynth, direction, { chargeRatio, ignoreCooldown: true });
                 const muzzle = this._tmpMuzzle;
                 muzzle.copy(controls.camera.position).addScaledVector(direction, 0.6);
 
@@ -597,7 +597,7 @@ export class Player {
                 } else {
                     controls.getWorldDirection(direction);
                 }
-                const result = activeWeapon.attack(this, null, audioSynth, direction);
+                const result = activeWeapon.attack(this, null, audioSynth, direction, { ignoreCooldown: true });
                 const muzzle = this._tmpMuzzle;
                 muzzle.copy(controls.camera.position);
                 muzzle.addScaledVector(direction, 0.6);
@@ -626,7 +626,7 @@ export class Player {
             } else {
                 const target = entityManager.getNearestEnemy(this.position, activeWeapon.range);
                 if (target) {
-                    const result = activeWeapon.attack(this, target, audioSynth);
+                    const result = activeWeapon.attack(this, target, audioSynth, null, { ignoreCooldown: true });
                     if (result && result.hit) {
                         target.takeDamage(result.damage, result.isHeadshot, this, result.knockback || 0);
                         this.viewKick = 0.3 * this.recoilScale;
@@ -857,7 +857,7 @@ export class Player {
         }
         this.updateViewWeapon();
         // Обновляем видимость рук при смене оружия (сразу, не ждём update())
-        const isFirstPerson = this._stableFirstPerson ?? (controls && controls.isLocked);
+        const isFirstPerson = this._stableFirstPerson === true || this.input?.isMobile === true;
         this.updateFirstPersonArmsVisibility(isFirstPerson);
         if (this.hudRef) {
             this.hudRef.updateAmmo(this.currentWeapon);

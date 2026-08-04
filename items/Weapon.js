@@ -910,11 +910,11 @@ export class Weapon {
 
     attack(owner, target, audioSynth, directionOverride = null, options = null) {
         const now = performance.now() / 1000;
-        if (now - this.lastAttackTime < this.cooldown) return false;
-        this.lastAttackTime = now;
+        if (!options?.ignoreCooldown && now - this.lastAttackTime < this.cooldown) return false;
 
         if (this.type === 'knife' && this.durability !== null && this.durability <= 0) return false;
         if (this.maxAmmo !== null && this.ammo <= 0) return false;
+        this.lastAttackTime = now;
 
         this.ensureFiniteTransform();
         this.animateAttack();
