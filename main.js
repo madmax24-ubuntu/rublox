@@ -1778,24 +1778,24 @@ class Game {
 	}
 
 	_checkStalkerCorpseEasterEgg() {
-		if (this.gameState !== 'playing' || !this.player?.isAlive) return;
+		if (this.gameState !== "playing" || !this.player?.isAlive) return;
 		if (this._easterCorpseTriggered) return;
-		if (!this.input.isKeyPressed('KeyE')) return;
-		
+		if (!this.input.isKeyPressed("KeyE")) return;
+
 		const playerPos = this.player.position;
 		const threshold = 3.0;
-		
+
 		// Walk the scene children to find the corpse
 		this.scene.traverse((obj) => {
 			if (obj.userData?.easterEgg && !obj.userData?.easterEggCollected) {
 				const dist = playerPos.distanceTo(obj.position);
 				if (dist < threshold) {
-					obj.userData.easterEGGCollected = true;
+					obj.userData.easterEggCollected = true;
 					this._easterCorpseTriggered = true;
-					const weaponType = obj.userData.easterEggWeapon || 'bazooka';
-					
+					const weaponType = obj.userData.easterEggWeapon || "bazooka";
+
 					// Give the player the bazooka (unlimited ammo)
-					this.player.pickupLoot({ type: 'weapon', weaponType });
+					this.player.pickupLoot({ type: "weapon", weaponType });
 					this.hud.showGameMessage(
 						`\ud83d\udea8 Найден легендарный БАЗУКА! Бесконечные ракеты.`,
 					);
