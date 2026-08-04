@@ -3027,7 +3027,6 @@ class Game {
 			// YieldScheduler: кэшируем aliveZombies для исключения filter() каждый кадр
 			const aliveZombies = this.zombies.filter((z) => z?.isAlive).length;
 			const growth = Math.floor(Math.min(5, elapsed / 120)) * 2;
-			const nightBonus = isNight ? (this.isMobile() ? 16 : 24) : 0;
 			const basePersistent =
 				elapsed < gracePeriod
 					? this.isMobile()
@@ -3036,7 +3035,9 @@ class Game {
 					: this.isMobile()
 						? 44
 						: 60;
-			const minAlive = basePersistent + growth + nightBonus;
+			const nightZombies =
+				basePersistent + growth + (isNight ? (this.isMobile() ? 16 : 24) : 0);
+			const minAlive = isNight ? nightZombies : Math.floor(nightZombies / 2);
 			if (aliveZombies < minAlive) {
 				const need = minAlive - aliveZombies;
 				this.queuePoiBurst(
