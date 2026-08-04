@@ -60,8 +60,8 @@ export class BotBrain {
         this.hearingRange = 64;
         this.shotHearingRange = 120;
         this.losMemorySeconds = 4;
-        this.reactionMin = 0.06;
-        this.reactionMax = 0.16;
+        this.reactionMin = 0.04;
+        this.reactionMax = 0.10;
         this._nextElevatedRouteAt = 0;
     }
 
@@ -759,14 +759,16 @@ export class BotBrain {
             if (lowHp && !wellArmed) return ctx.shelterTarget ? STATES.RETREAT : STATES.EXPLORE;
             return STATES.ENGAGE;
         }
-        // Extended zombie threat radius — bots should engage zombies from further away
-        if (ctx.nearestZombie && ctx.nearestZombieDist < 60) {
-            if (hasRealWeapon && !veryLowHp) return STATES.ENGAGE;
-            // If zombie is very close and bot is low HP, retreat
-            if (ctx.nearestZombieDist < 10 && lowHp) return ctx.shelterTarget ? STATES.RETREAT : STATES.EXPLORE;
+        // Extended zombie threat radius — bots engage zombies aggressively
+        if (ctx.nearestZombie && ctx.nearestZombieDist < 40) {
+            if (hasRealWeapon && !veryLowHp && !lowHp) return STATES.ENGAGE;
+            if (ctx.nearestZombieDist < 25 && !veryLowHp) return STATES.ENGAGE;
+            if (ctx.nearestZombieDist < 12 && !veryLowHp) return STATES.ENGAGE;
+            if (ctx.nearestZombieDist < 10 && lowHp) return STATES.RETREAT;
         }
 
-        if (hasRealWeapon && ctx.huntTarget?.isAlive && ctx.hp >= 0.32 && ctx.crowdNear < 7) {
+        // Hunt active target — engage if weapon ready
+        if (hasRealWeapon && ctx.huntTarget?.isAlive && ctx.hp >= 0.28 && ctx.crowdNear < 8) {
             return STATES.ENGAGE;
         }
 
@@ -804,13 +806,14 @@ export class BotBrain {
             const closeThreat = ctx.nearestEnemyDist < 15;
             if (isBeingShot && closeThreat && !veryLowHp) return STATES.ENGAGE;
             if (ctx.nearestEnemy && ctx.nearestEnemyDist < 8 && !veryLowHp) return STATES.ENGAGE;
-            if (hasRealWeapon && ctx.nearestEnemy && ctx.nearestEnemyDist < 52 && ctx.crowdNear < 5 && !veryLowHp) return STATES.ENGAGE;
+            // Better self-defense: engage if enemy is visible and within medium range
+            if (hasRealWeapon && ctx.nearestEnemy && ctx.nearestEnemyDist < 48 && ctx.crowdNear < 5 && !veryLowHp) return STATES.ENGAGE;
             if (ctx.lootTarget) return STATES.LOOT;
-            if (ctx.nearestEnemy && ctx.nearestEnemyDist < 55) return STATES.HIDE;
+            if (ctx.nearestEnemy && ctx.nearestEnemyDist < 45) return STATES.HIDE;
             return STATES.EXPLORE;
         }
 
-        if (endgame && armed && ctx.hp >= 0.38 && ctx.nearestEnemy && ctx.nearestEnemyDist < engageDist && ctx.crowdNear < 5) {
+        if (endgame && armed && ctx.hp >= 0.28 && ctx.nearestEnemy && ctx.nearestEnemyDist < engageDist && ctx.crowdNear < 6) {
             return STATES.ENGAGE;
         }
 
@@ -819,15 +822,15 @@ export class BotBrain {
             if (!hasRealWeapon && ctx.nearestEnemyDist > 2) {
                 return STATES.LOOT;
             }
-            const isBeingAttacked = ctx.heardShot || (bot._lastAttackedBy && performance.now() - bot._lastAttackedBy < 3000);
+            const isBeingAttacked = ctx.heardShot || (bot._lastAttackedBy && performance.now() - bot._lastAttackedBy < 3500);
             if (isBeingAttacked && ctx.crowdNear < crowdTolerance) {
                 return STATES.ENGAGE;
             }
             if (wellArmed && ctx.nearestEnemyDist < engageDist && ctx.crowdNear < crowdLeave) {
                 return STATES.ENGAGE;
             }
-            // Retaliate for recent attacks
-            if (bot._lastAttackedBy && performance.now() - bot._lastAttackedBy < 4000 && ctx.crowdNear < 2) {
+            // Retaliate for recent attacks — extended window
+            if (bot._lastAttackedBy && performance.now() - bot._lastAttackedBy < 5000 && ctx.crowdNear < 3) {
                 return STATES.ENGAGE;
             }
             // Always loot if target available and enemy not too close
@@ -903,10 +906,25 @@ export class BotBrain {
             bot.assignedBiomeTarget = null;
         }
 
-        if (!ctx.earlyGamePhase && ctx.combatReady && ctx.huntTarget?.isAlive && ctx.crowdNear < 4) {
+        // Active hunting: pursue known targets aggressively
+        if (!ctx.earlyGamePhase && ctx.combatReady && ctx.huntTarget?.isAlive && ctx.crowdNear < 6) {
             bot.patrolTarget = ctx.huntTarget.position;
-            this.steerMove(bot, ctx.huntTarget.position, bot.physics.speed * 1.18);
+            this.steerMove(bot, ctx.huntTarget.position, bot.physics.speed * 1.22);
             return;
+        }
+        // Respond to nearby gunfire — move toward sound or cover
+        if (!ctx.earlyGamePhase && ctx.heardShot && !ctx.nearestEnemy && bot.patrolTarget) {
+            const dToTarget = bot.position.distanceTo(bot.patrolTarget);
+            if (dToTarget < 10) {
+                // Near patrol target but heard gunfire — reposition or investigate
+                const reposition = this.pickSpreadTarget(bot, 20, 50);
+                if (reposition) {
+                    bot.patrolTarget = reposition;
+                    bot._scatterTargetUntil = now + 6000;
+                    this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 1.1);
+                    return;
+                }
+            }
         }
 
         const agg = Math.min(1, (bot.personality?.aggression ?? 0.5) + ctx.gear * 0.32);
@@ -1166,16 +1184,30 @@ export class BotBrain {
             return;
         }
         const nowSec = performance.now() / 1000;
-        if (!bot._engageWindowUntil || nowSec >= bot._engageWindowUntil) {
-            // Shorter engage windows during early game
-            const windowDuration = ctx.earlyGamePhase ? (3 + Math.random()) : (5 + Math.random() * 2);
-            bot._engageWindowUntil = nowSec + windowDuration;
+        // Continuous fire: remove engage window gaps — bots shoot when they see target
+        if (bot._reloadCoverUntil && nowSec < bot._reloadCoverUntil) {
+            // Only enter cover if out of ammo or critically low HP
+            const weapon = bot.currentWeapon;
+            if ((weapon?.type === 'shotgun' || weapon?.type === 'machinegun' || weapon?.type === 'rifle') && weapon.ammo > 0 && ctx.hp > 0.15) {
+                // Keep shooting — don't reload during active combat unless critical
+            } else if (ctx.hp < 0.15 || !weapon?.ammo || weapon.ammo <= 1) {
+                bot.state = STATES.RELOAD_COVER;
+                this.actReloadCover(bot, ctx);
+                return;
+            } else {
+                // Short reload only during early game or very low ammo
+                if (ctx.earlyGamePhase && (!weapon?.ammo || weapon.ammo <= 0)) {
+                    bot.state = STATES.RELOAD_COVER;
+                    this.actReloadCover(bot, ctx);
+                    return;
+                }
+            }
         }
-        if (nowSec >= bot._engageWindowUntil) {
-            bot._reloadCoverUntil = nowSec + 1.35 + Math.random() * 0.85;
-            bot._engageWindowUntil = nowSec + (ctx.earlyGamePhase ? 3 : 5) + Math.random() * 2;
-            bot.state = STATES.RELOAD_COVER;
-            this.actReloadCover(bot, ctx);
+        bot._reloadCoverUntil = nowSec + (ctx.earlyGamePhase ? 8 : 15) + Math.random() * 5;
+        if (!this.tryReserveCombat(bot, target, target.constructor?.name === 'Zombie' ? 4 : 5)) {
+            this.releaseCombatReservation(bot);
+            bot.patrolTarget = this.pickSpreadTarget(bot, 40, 120);
+            if (bot.patrolTarget) this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 1.02);
             return;
         }
         if (!this.tryReserveCombat(bot, target, target.constructor?.name === 'Zombie' ? 4 : 5)) {
@@ -1207,10 +1239,10 @@ export class BotBrain {
             }
         }
 
-        // Retreat earlier — don't fight to the death
+        // Retreat when HP drops below threshold — smarter timing
         const hpThreshold = ctx.earlyGamePhase
-            ? (0.38 - agg * 0.1 + cau * 0.08)
-            : (0.3 - agg * 0.08 + cau * 0.08);
+            ? (0.40 - agg * 0.08 + cau * 0.1)
+            : (0.25 - agg * 0.06 + cau * 0.1);
         if (ctx.hp < hpThreshold) {
             bot.state = STATES.RETREAT;
             this.actRetreat(bot, ctx);
@@ -1223,34 +1255,36 @@ export class BotBrain {
             if (bot._reactionTargetKey !== targetKey) {
                 bot._reactionTargetKey = targetKey;
                 const reactionRange = this.reactionMax - this.reactionMin;
-                const reactionDelay = (this.reactionMin + Math.random() * reactionRange) * (1 + cau * 0.8);
+                const reactionDelay = (this.reactionMin + Math.random() * reactionRange) * (0.6 + cau * 0.4);
                 bot._reactionReadyAt = nowSec + reactionDelay;
             }
-            // Strafe direction changes less frequently — more natural
+            // Improved strafe: larger circles, less frequent changes, smarter movement
             if (!bot._strafeUntil || nowSec >= bot._strafeUntil) {
-                bot._strafeDir = bot._strafeDir ? -bot._strafeDir : ((bot.id % 2) ? 1 : -1);
-                bot._strafeUntil = nowSec + 2.2 + (bot.id % 5) * 0.18;
+                bot._strafeDir = bot._strafeDir ? -bot._strafeDir : ((bot.id % 3) - 1);
+                bot._strafeUntil = nowSec + 3.0 + (bot.id % 4) * 0.25;
             }
             const strafeDir = bot._strafeDir;
             const to = this._tmpVec.subVectors(target.position, bot.position).normalize();
-            this._tmpSide.set(-to.z, 0, to.x).multiplyScalar(strafeDir * (3.4 + (bot.id % 3)));
+            // Larger strafe arcs for better positioning
+            const strafeRadius = 4.5 + (bot.id % 4) * 0.4;
+            this._tmpSide.set(-to.z, 0, to.x).multiplyScalar(strafeDir * strafeRadius);
             this._tmpSideTarget.set(bot.position.x + this._tmpSide.x, 0, bot.position.z + this._tmpSide.z);
             if (bot.mapRef?.isWalkableAt?.(this._tmpSideTarget.x, this._tmpSideTarget.z)) {
-                this.steerMove(bot, this._tmpSideTarget, bot.physics.speed * 0.92);
-                bot.lookAt(target.position);
+                this.steerMove(bot, this._tmpSideTarget, bot.physics.speed * 0.88);
             }
+            bot.lookAt(target.position);
+            // Continuous fire — don't miss attacks
             if (this.attackCooldown <= 0) {
                 if (bot._reactionReadyAt && nowSec < bot._reactionReadyAt) return;
                 const tv = target.physics?.velocity;
                 const targetSpeed = tv ? Math.hypot(tv.x || 0, tv.z || 0) : 0;
                 const distNorm = Math.max(0, Math.min(1, dist / Math.max(8, (weapon.range || 40))));
                 const moveNorm = Math.max(0, Math.min(1, targetSpeed / 9));
-                const accuracyFactor = 1 - (agg - 0.5) * 0.3;
-                bot._dynamicAimError = (0.01 + distNorm * 0.03 + moveNorm * 0.04) * accuracyFactor;
+                const accuracyFactor = 0.7 + agg * 0.25;
+                bot._dynamicAimError = (0.008 + distNorm * 0.025 + moveNorm * 0.03) * (1.0 - agg * 0.1);
                 bot.attack(target, entityManager);
                 bot.applyWeaponRecoil();
-
-                this.attackCooldown = Math.max(0.05, (weapon.cooldown || 0.2) * 0.64);
+                this.attackCooldown = Math.max(0.04, (weapon.cooldown || 0.2) * 0.55);
             }
             return;
         }
@@ -1258,11 +1292,10 @@ export class BotBrain {
         bot._reactionReadyAt = 0;
         bot.patrolTarget = target.position;
         
-        // Cautious approach: move slower when approaching a target from distance
-        const approachMult = dist > 20 ? 1.16 : 1.42;
-        const cauMod = 1 - (cau - 0.5) * 0.3;
-        const approachSpeed = bot.physics.speed * approachMult * cauMod;
-        this.steerMove(bot, target.position, approachSpeed);
+        // Aggressive approach: move fast toward combat target
+        const approachMult = dist > 30 ? 1.35 : dist > 15 ? 1.5 : 1.65;
+        const cauMod = 1 - (cau - 0.5) * 0.2;
+        this.steerMove(bot, target.position, bot.physics.speed * approachMult * cauMod);
     }
 
     actRetreat(bot, ctx) {
@@ -1273,9 +1306,12 @@ export class BotBrain {
         bot.patrolTarget = target;
         bot.target = null;
         this.releaseCombatReservation(bot);
-        // Бегите быстрее, когда здоровье критически низкое
-        const fleeSpeed = ctx.hp < 0.3 ? 1.5 : 1.28;
+        // Faster flee when HP is critical
+        const fleeSpeed = ctx.hp < 0.2 ? 1.65 : ctx.hp < 0.35 ? 1.5 : 1.35;
         this.steerMove(bot, target, bot.physics.speed * fleeSpeed);
+        // Stop fighting and fully disengage
+        if (bot._reactionTargetKey) bot._reactionTargetKey = null;
+        if (bot._reactionReadyAt) bot._reactionReadyAt = 0;
     }
 
     actReloadCover(bot, ctx) {
@@ -1439,7 +1475,7 @@ export class BotBrain {
             if (newLen > 0.001) dir.multiplyScalar(1 / newLen);
         }
         
-        let move = dir;
+        const move = dir;
         if (bot.isStuck) {
             const waypoint = this.pickLocalNavigationStep(bot, target);
             if (waypoint) {
@@ -1804,7 +1840,7 @@ export class BotBrain {
         if (!bot.isStuck) return;
         const combatTarget = bot.state === STATES.ENGAGE && bot.target?.isAlive ? bot.target : null;
         const now = performance.now();
-        if (now - (bot._lastStuckRecoveryAt || 0) > 10000) bot._stuckRecoveries = 0;
+        if (now - (bot._lastStuckRecoveryAt || 0) > 8000) bot._stuckRecoveries = 0;
         bot._lastStuckRecoveryAt = now;
         bot._stuckRecoveries = (bot._stuckRecoveries || 0) + 1;
         if (bot._stuckRecoveries >= 2) {
@@ -1813,17 +1849,19 @@ export class BotBrain {
             bot.assignedBiomeGate = null;
             bot._huntTarget = null;
             bot._huntUntil = 0;
+            bot.patrolTarget = null;
         }
+        // More aggressive stuck recovery — pick wider targets faster
         const escape = bot._stuckRecoveries >= 2
-            ? this.pickSpreadTarget(bot, 55, 120)
+            ? this.pickSpreadTarget(bot, 60, 130)
             : this.pickLocalNavigationStep(bot, combatTarget?.position || bot.patrolTarget || bot.target?.position)
-                || this.pickSpreadTarget(bot, 32, 90);
+                || this.pickSpreadTarget(bot, 40, 100);
         if (escape) {
             bot.patrolTarget = escape.clone?.() || escape;
             bot._navWaypoint = bot.patrolTarget;
-            bot._navWaypointUntil = now + 3200;
+            bot._navWaypointUntil = now + 4000;
         }
-        bot._scatterTargetUntil = now + 6500;
+        bot._scatterTargetUntil = now + 8000;
         bot._elevatedRoute = null;
         bot._structureRoute = null;
         bot._fsmCtx = null;
