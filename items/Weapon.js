@@ -1970,26 +1970,46 @@ function createBazookaModel() {
 	const gripMat = getMaterial("baz_grip_pbr", () =>
 		createWeaponMaterial(createPolymerTexture2("#2a2a22")),
 	);
-	const brassMat = getMaterial("baz_brass", () =>
-		new THREE.MeshStandardMaterial({
-			color: 0xb5a040, metalness: 0.9, roughness: 0.2,
-			map: createBrassTexture()
-		}),
+	const brassMat = getMaterial(
+		"baz_brass",
+		() =>
+			new THREE.MeshStandardMaterial({
+				color: 0xb5a040,
+				metalness: 0.9,
+				roughness: 0.2,
+				map: createBrassTexture(),
+			}),
 	);
 
 	// === MAIN TUBE (with texture rings) ===
 	// Base tube
 	group.add(
 		createPart(
-			getGeom("baz_tube", () => new THREE.CylinderGeometry(0.13, 0.13, 1.35, 12)),
-			tubeMat, 0, 0, 0, 0, Math.PI / 2,
+			getGeom(
+				"baz_tube",
+				() => new THREE.CylinderGeometry(0.13, 0.13, 1.35, 12),
+			),
+			tubeMat,
+			0,
+			0,
+			0,
+			0,
+			Math.PI / 2,
 		),
 	);
 	// Tube end rings (decorative)
 	for (let i = 0; i < 4; i++) {
 		const ring = createPart(
-			getGeom(`baz_ring_${i}`, () => new THREE.TorusGeometry(0.135, 0.008, 4, 12)),
-			darkMat, 0.15 + i * 0.32, 0, 0, 0, Math.PI / 2,
+			getGeom(
+				`baz_ring_${i}`,
+				() => new THREE.TorusGeometry(0.135, 0.008, 4, 12),
+			),
+			darkMat,
+			0.15 + i * 0.32,
+			0,
+			0,
+			0,
+			Math.PI / 2,
 		);
 		group.add(ring);
 	}
@@ -1998,58 +2018,98 @@ function createBazookaModel() {
 	// Muzzle brake housing
 	group.add(
 		createPart(
-			getGeom("baz_muzzle_brk", () => new THREE.CylinderGeometry(0.16, 0.14, 0.2, 12)),
-			darkMat, 0.82, 0, 0, 0, Math.PI / 2,
+			getGeom(
+				"baz_muzzle_brk",
+				() => new THREE.CylinderGeometry(0.16, 0.14, 0.2, 12),
+			),
+			darkMat,
+			0.82,
+			0,
+			0,
+			0,
+			Math.PI / 2,
 		),
 	);
 	// Muzzle brake fins (8 radial fins)
 	for (let i = 0; i < 8; i++) {
 		const fin = createPart(
 			getGeom(`baz_mfin_${i}`, () => new THREE.BoxGeometry(0.04, 0.06, 0.03)),
-			steelMat, 0.95, 0, 0,
+			steelMat,
+			0.95,
+			0,
+			0,
 		);
 		fin.rotation.z = (Math.PI / 4) * i;
 		group.add(fin);
 	}
 	// Muzzle opening (dark)
 	const muzzleOpen = createPart(
-		getGeom("baz_mz_open", () => new THREE.CylinderGeometry(0.12, 0.12, 0.02, 12)),
-		darkMat, 0.93, 0, 0, 0, Math.PI / 2,
+		getGeom(
+			"baz_mz_open",
+			() => new THREE.CylinderGeometry(0.12, 0.12, 0.02, 12),
+		),
+		darkMat,
+		0.93,
+		0,
+		0,
+		0,
+		Math.PI / 2,
 	);
 	group.add(muzzleOpen);
 
 	// === FRONT SIGHT ASSEMBLY ===
 	const sightBase = createPart(
 		getGeom("baz_sight_base", () => new THREE.BoxGeometry(0.06, 0.12, 0.06)),
-		darkMat, -0.25, 0.16, 0,
+		darkMat,
+		-0.25,
+		0.16,
+		0,
 	);
 	group.add(sightBase);
 	// Front sight post
 	group.add(
 		createPart(
-			getGeom("baz_sight_post", () => new THREE.CylinderGeometry(0.015, 0.015, 0.1, 6)),
-			brassMat, -0.25, 0.25, 0,
+			getGeom(
+				"baz_sight_post",
+				() => new THREE.CylinderGeometry(0.015, 0.015, 0.1, 6),
+			),
+			brassMat,
+			-0.25,
+			0.25,
+			0,
 		),
 	);
 
 	// === REAR SIGHT ASSEMBLY ===
 	const rearSight = createPart(
 		getGeom("baz_rear_sight", () => new THREE.BoxGeometry(0.1, 0.14, 0.08)),
-		darkMat, -0.65, 0.17, 0,
+		darkMat,
+		-0.65,
+		0.17,
+		0,
 	);
 	group.add(rearSight);
 	// Rear sight aperture
 	group.add(
 		createPart(
-			getGeom("baz_sight_ap", () => new THREE.CylinderGeometry(0.025, 0.025, 0.02, 8)),
-			darkMat, -0.65, 0.24, 0,
+			getGeom(
+				"baz_sight_ap",
+				() => new THREE.CylinderGeometry(0.025, 0.025, 0.02, 8),
+			),
+			darkMat,
+			-0.65,
+			0.24,
+			0,
 		),
 	);
 
 	// === CARRY HANDLE / PIVOT ===
 	const pivot = createPart(
 		getGeom("baz_pivot", () => new THREE.BoxGeometry(0.08, 0.18, 0.06)),
-		steelMat, -0.5, 0.18, 0,
+		steelMat,
+		-0.5,
+		0.18,
+		0,
 	);
 	group.add(pivot);
 
@@ -2058,21 +2118,39 @@ function createBazookaModel() {
 	group.add(
 		createPart(
 			getGeom("baz_tguard", () => new THREE.TorusGeometry(0.055, 0.012, 4, 8)),
-			darkMat, -0.45, -0.1, 0, 0, 0, Math.PI,
+			darkMat,
+			-0.45,
+			-0.1,
+			0,
+			0,
+			0,
+			Math.PI,
 		),
 	);
 	// Pistol grip with rubber texture
 	group.add(
 		createPart(
 			getGeom("baz_pistol_grip", () => new THREE.BoxGeometry(0.12, 0.26, 0.12)),
-			gripMat, -0.42, -0.28, 0, 0, 0, -0.12,
+			gripMat,
+			-0.42,
+			-0.28,
+			0,
+			0,
+			0,
+			-0.12,
 		),
 	);
 	// Grip texture lines
 	for (let i = 0; i < 5; i++) {
 		const line = createPart(
-			getGeom(`baz_grip_line_${i}`, () => new THREE.BoxGeometry(0.13, 0.005, 0.01)),
-			darkMat, -0.42, -0.22 + i * 0.03, 0.065,
+			getGeom(
+				`baz_grip_line_${i}`,
+				() => new THREE.BoxGeometry(0.13, 0.005, 0.01),
+			),
+			darkMat,
+			-0.42,
+			-0.22 + i * 0.03,
+			0.065,
 		);
 		group.add(line);
 	}
@@ -2082,42 +2160,70 @@ function createBazookaModel() {
 	group.add(
 		createPart(
 			getGeom("baz_stock_conn", () => new THREE.BoxGeometry(0.14, 0.16, 0.14)),
-			tubeMat, -0.82, -0.02, 0,
+			tubeMat,
+			-0.82,
+			-0.02,
+			0,
 		),
 	);
 	// Main stock tube
 	group.add(
 		createPart(
-			getGeom("baz_stock_main", () => new THREE.CylinderGeometry(0.09, 0.09, 0.5, 10)),
-			tubeMat, -1.05, -0.02, 0, 0, Math.PI / 2,
+			getGeom(
+				"baz_stock_main",
+				() => new THREE.CylinderGeometry(0.09, 0.09, 0.5, 10),
+			),
+			tubeMat,
+			-1.05,
+			-0.02,
+			0,
+			0,
+			Math.PI / 2,
 		),
 	);
 	// Cheek rest pad
 	group.add(
 		createPart(
 			getGeom("baz_cheek_pad", () => new THREE.BoxGeometry(0.16, 0.08, 0.18)),
-			gripMat, -1.0, 0.1, 0,
+			gripMat,
+			-1.0,
+			0.1,
+			0,
 		),
 	);
 	// Buttpad (rubber)
 	group.add(
 		createPart(
 			getGeom("baz_buttpad", () => new THREE.BoxGeometry(0.06, 0.2, 0.2)),
-			gripMat, -1.32, -0.02, 0,
+			gripMat,
+			-1.32,
+			-0.02,
+			0,
 		),
 	);
 
 	// === WARNING STRIPE (red band on tube) ===
 	const stripeMat = getMaterial(
 		"baz_stripe_pbr",
-		() => new THREE.MeshStandardMaterial({
-			color: 0xcc3333, roughness: 0.5, metalness: 0.1,
-		}),
+		() =>
+			new THREE.MeshStandardMaterial({
+				color: 0xcc3333,
+				roughness: 0.5,
+				metalness: 0.1,
+			}),
 	);
 	group.add(
 		createPart(
-			getGeom("baz_warn_str", () => new THREE.TorusGeometry(0.138, 0.012, 4, 12)),
-			stripeMat, 0.35, 0, 0, 0, Math.PI / 2,
+			getGeom(
+				"baz_warn_str",
+				() => new THREE.TorusGeometry(0.138, 0.012, 4, 12),
+			),
+			stripeMat,
+			0.35,
+			0,
+			0,
+			0,
+			Math.PI / 2,
 		),
 	);
 

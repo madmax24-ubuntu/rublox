@@ -4334,8 +4334,8 @@ export class MapGenerator {
 			[startX + 64, startZ + 26],
 		].forEach(([x, z]) => this._addMilitaryTank(x, z));
 
-		// Easter egg: Stalker corpse inside military building near tanks
-		this._addStalkerCorpse(startX + 15, startZ + 40);
+		// Easter egg: Stalker corpse inside military hangar
+		this._addStalkerCorpse(cx + 16, cz + 18);
 
 		// Окопы - больше и заметнее
 		this._addTrench(startX + 20, startZ + 20, size * 0.4);
@@ -6101,201 +6101,154 @@ export class MapGenerator {
 	}
 
 	_addStalkerCorpse(x, z) {
-		// Easter egg: Detailed Stalker-style corpse inside military building
-		// When player approaches and presses 'E', they get the legendary Bazooka
+		// Easter egg: Stalker NPC corpse (bot-style model) inside hangar
 		const corpse = new THREE.Group();
-		const skinMat = this.pool.getMatStd(0x9e8b6e, 0.75, 0, false, false, 1, 0, 0);
+
+		// Stalker materials
 		const uniformMat = this.pool.getMatStd(0x3a4a32, 0.85, 0, false, false, 1, 0, 0);
 		const vestMat = this.pool.getMatStd(0x4a3f32, 0.8, 0, false, false, 1, 0, 0);
 		const bootMat = this.pool.getMatStd(0x1a1a1a, 0.9, 0, false, false, 1, 0, 0);
-		const metalMat = this.pool.getMatStd(0x6b7b5a, 0.6, 0.3, false, false, 1, 0, 0);
+		const skinMat = this.pool.getMatStd(0x9e8b6e, 0.75, 0, false, false, 1, 0, 0);
+		const gasMaskMat = this.pool.getMatStd(0x1a1a1a, 0.7, 0, false, false, 1, 0, 0);
+		const filterMat = this.pool.getMatStd(0x2d2d2d, 0.6, 0, false, false, 1, 0, 0);
+		const eyeMat = this.pool.getMatStd(0x111111, 0.3, 0, false, false, 1, 0, 0);
 
-		// === TORSO (lying on back, slightly tilted) ===
-		const torsoGeo = this.pool.getGeoBox(0.55, 0.28, 1.0);
+		// === BODY (bot-style, lying on back) ===
+		const torsoGeo = this.pool.getGeoBox(0.9, 0.55, 0.5);
 		const torso = new THREE.Mesh(torsoGeo, uniformMat);
-		torso.position.set(0, 0.14, 0);
-		torso.rotation.z = 0.06;
-		torso.userData.mapGenerated = true;
+		torso.position.set(0, 0.3, 0);
 		corpse.add(torso);
 
+		const lowerTorsoGeo = this.pool.getGeoBox(0.85, 0.45, 0.5);
+		const lowerTorso = new THREE.Mesh(lowerTorsoGeo, uniformMat);
+		lowerTorso.position.set(0, 0.05, 0);
+		corpse.add(lowerTorso);
+
 		// Tactical vest
-		const vestGeo = this.pool.getGeoBox(0.52, 0.12, 0.65);
+		const vestGeo = this.pool.getGeoBox(0.95, 0.5, 0.12);
 		const vest = new THREE.Mesh(vestGeo, vestMat);
-		vest.position.set(0, 0.22, 0.15);
-		vest.rotation.z = 0.06;
-		vest.userData.mapGenerated = true;
+		vest.position.set(0, 0.3, 0.3);
 		corpse.add(vest);
+
 		// Vest pockets
-		for (const side of [-1, 1]) {
-			const pocketGeo = this.pool.getGeoBox(0.12, 0.1, 0.1);
-			const pocket = new THREE.Mesh(pocketGeo, vestMat);
-			pocket.position.set(side * 0.2, 0.2, 0.25);
-			pocket.rotation.z = 0.06;
-			pocket.userData.mapGenerated = true;
-			corpse.add(pocket);
+		for (const s of [-1, 1]) {
+			const pGeo = this.pool.getGeoBox(0.1, 0.12, 0.1);
+			const p = new THREE.Mesh(pGeo, vestMat);
+			p.position.set(s * 0.25, 0.3, 0.36);
+			corpse.add(p);
 		}
 
-		// === HEAD with gas mask ===
-		const headGeo = this.pool.getGeoBox(0.38, 0.35, 0.35);
+		// Belt with pouches
+		const beltGeo = this.pool.getGeoBox(0.9, 0.1, 0.6);
+		const belt = new THREE.Mesh(beltGeo, vestMat);
+		belt.position.set(0, 0.12, 0);
+		corpse.add(belt);
+		for (const s of [-1, 1]) {
+			const ppGeo = this.pool.getGeoBox(0.08, 0.35, 0.08);
+			const pp = new THREE.Mesh(ppGeo, vestMat);
+			pp.position.set(s * 0.35, 0.05, -0.3);
+			corpse.add(pp);
+		}
+
+		// === HEAD with GAS MASK ===
+		const headGeo = this.pool.getGeoBox(0.65, 0.65, 0.65);
 		const head = new THREE.Mesh(headGeo, skinMat);
-		head.position.set(0.18, 0.1, -0.55);
-		head.rotation.x = -0.35;
-		head.rotation.z = 0.08;
-		head.userData.mapGenerated = true;
+		head.position.set(0, 0.85, -0.4);
+		head.rotation.x = 0.1;
 		corpse.add(head);
 
-		// Gas mask base
-		const maskGeo = this.pool.getGeoBox(0.34, 0.28, 0.2);
-		const maskMat = this.pool.getMatStd(0x1a1a1a, 0.7, 0, false, false, 1, 0, 0);
-		const mask = new THREE.Mesh(maskGeo, maskMat);
-		mask.position.set(0.22, 0.1, -0.52);
-		mask.rotation.x = -0.35;
-		mask.rotation.z = 0.08;
-		mask.userData.mapGenerated = true;
+		// Gas mask
+		const maskGeo = this.pool.getGeoBox(0.45, 0.35, 0.2);
+		const mask = new THREE.Mesh(maskGeo, gasMaskMat);
+		mask.position.set(0, 0.85, -0.65);
+		mask.rotation.x = 0.1;
 		corpse.add(mask);
 
-		// Gas mask filter (circular)
-		const filterGeo = this.pool.getGeoCylinder(0.1, 0.1, 0.12, 8);
-		const filterMat = this.pool.getMatStd(0x2d2d2d, 0.6, 0, false, false, 1, 0, 0);
+		// Gas mask filter (prominent)
+		const filterGeo = this.pool.getGeoCylinder(0.15, 0.15, 0.12, 8);
 		const filter = new THREE.Mesh(filterGeo, filterMat);
-		filter.position.set(0.22, 0.06, -0.62);
-		filter.rotation.x = -0.35;
-		filter.userData.mapGenerated = true;
+		filter.position.set(0, 0.85, -0.75);
+		filter.rotation.x = 0.1;
 		corpse.add(filter);
 
 		// Gas mask tube
-		const tubeGeo = this.pool.getGeoCylinder(0.03, 0.03, 0.25, 6);
-		const tube = new THREE.Mesh(tubeGeo, maskMat);
-		tube.position.set(0.22, -0.02, -0.48);
-		tube.rotation.x = -0.35;
-		tube.userData.mapGenerated = true;
+		const tubeGeo = this.pool.getGeoCylinder(0.03, 0.03, 0.2, 6);
+		const tube = new THREE.Mesh(tubeGeo, gasMaskMat);
+		tube.position.set(0, 0.75, -0.6);
+		tube.rotation.x = 0.1;
 		corpse.add(tube);
 
-		// Eyes (visible above mask)
-		const eyeMat = this.pool.getMatStd(0x111111, 0.3, 0, false, false, 1, 0, 0);
-		for (const side of [-1, 1]) {
-			const eyeGeo = this.pool.getGeoBox(0.06, 0.04, 0.04);
-			const eye = new THREE.Mesh(eyeGeo, eyeMat);
-			eye.position.set(0.2 + side * 0.08, 0.16, -0.5);
-			eye.rotation.x = -0.35;
-			eye.userData.mapGenerated = true;
-			corpse.add(eye);
+		// Eyes
+		for (const s of [-1, 1]) {
+			const eGeo = this.pool.getGeoBox(0.1, 0.1, 0.05);
+			const e = new THREE.Mesh(eGeo, eyeMat);
+			e.position.set(s * 0.16, 0.92, -0.38);
+			corpse.add(e);
 		}
 
-		// === LEGS (bent at knees, boots) ===
-		for (const side of [-1, 1]) {
-			// Upper leg
-			const upperLegGeo = this.pool.getGeoBox(0.2, 0.2, 0.65);
-			const upperLeg = new THREE.Mesh(upperLegGeo, uniformMat);
-			upperLeg.position.set(side * 0.16, 0.06, 0.45);
-			upperLeg.rotation.x = -0.8;
-			upperLeg.userData.mapGenerated = true;
-			corpse.add(upperLeg);
+		// === BACKPACK ===
+		const packGeo = this.pool.getGeoBox(0.55, 0.4, 0.3);
+		const pack = new THREE.Mesh(packGeo, vestMat);
+		pack.position.set(0, 0.3, 0.4);
+		corpse.add(pack);
+		for (const s of [-1, 1]) {
+			const strGeo = this.pool.getGeoBox(0.08, 0.4, 0.35);
+			const str = new THREE.Mesh(strGeo, vestMat);
+			str.position.set(s * 0.28, 0.3, 0.35);
+			corpse.add(str);
+		}
 
-			// Lower leg
-			const lowerLegGeo = this.pool.getGeoBox(0.18, 0.18, 0.6);
-			const lowerLeg = new THREE.Mesh(lowerLegGeo, uniformMat);
-			lowerLeg.position.set(side * 0.16, 0.06, 0.85);
-			lowerLeg.rotation.x = -0.3;
-			lowerLeg.userData.mapGenerated = true;
-			corpse.add(lowerLeg);
+		// === LEGS (bent at knees) ===
+		for (const s of [-1, 1]) {
+			const ulGeo = this.pool.getGeoBox(0.3, 0.45, 0.3);
+			const ul = new THREE.Mesh(ulGeo, uniformMat);
+			ul.position.set(s * 0.22, 0.05, 0.35);
+			ul.rotation.x = -0.8;
+			corpse.add(ul);
 
-			// Boot
-			const bootGeo = this.pool.getGeoBox(0.2, 0.15, 0.28);
+			const llGeo = this.pool.getGeoBox(0.28, 0.45, 0.28);
+			const ll = new THREE.Mesh(llGeo, uniformMat);
+			ll.position.set(s * 0.22, 0.05, 0.75);
+			ll.rotation.x = -0.3;
+			corpse.add(ll);
+
+			const bootGeo = this.pool.getGeoBox(0.32, 0.16, 0.42);
 			const boot = new THREE.Mesh(bootGeo, bootMat);
-			boot.position.set(side * 0.16, 0.02, 1.15);
-			boot.rotation.x = -0.1;
-			boot.userData.mapGenerated = true;
+			boot.position.set(s * 0.22, 0.02, 1.0);
 			corpse.add(boot);
 		}
 
 		// === ARMS ===
-		for (const side of [-1, 1]) {
-			// Upper arm
-			const upperArmGeo = this.pool.getGeoBox(0.16, 0.35, 0.16);
-			const upperArm = new THREE.Mesh(upperArmGeo, uniformMat);
-			upperArm.position.set(side * 0.4, 0.1, -0.15);
-			upperArm.rotation.x = -0.5;
-			upperArm.rotation.z = side * 0.3;
-			upperArm.userData.mapGenerated = true;
-			corpse.add(upperArm);
+		for (const s of [-1, 1]) {
+			const uaGeo = this.pool.getGeoBox(0.26, 0.45, 0.26);
+			const ua = new THREE.Mesh(uaGeo, uniformMat);
+			ua.position.set(s * 0.62, 0.3, -0.1);
+			ua.rotation.x = -0.2;
+			ua.rotation.z = s * 0.3;
+			corpse.add(ua);
 
-			// Forearm
-			const forearmGeo = this.pool.getGeoBox(0.14, 0.3, 0.14);
-			const forearm = new THREE.Mesh(forearmGeo, uniformMat);
-			forearm.position.set(side * 0.38, 0.1, -0.45);
-			forearm.rotation.x = -0.8;
-			forearm.rotation.z = side * 0.2;
-			forearm.userData.mapGenerated = true;
-			corpse.add(forearm);
+			const faGeo = this.pool.getGeoBox(0.24, 0.4, 0.24);
+			const fa = new THREE.Mesh(faGeo, bootMat);
+			fa.position.set(s * 0.62, 0.1, -0.4);
+			fa.rotation.x = -0.4;
+			fa.rotation.z = s * 0.2;
+			corpse.add(fa);
 
-			// Glove/hand
-			const handGeo = this.pool.getGeoBox(0.12, 0.1, 0.12);
-			const handMat = this.pool.getMatStd(0x2a2a2a, 0.7, 0, false, false, 1, 0, 0);
-			const hand = new THREE.Mesh(handGeo, handMat);
-			hand.position.set(side * 0.38, 0.1, -0.65);
-			hand.rotation.x = -0.8;
-			hand.userData.mapGenerated = true;
+			const handGeo = this.pool.getGeoBox(0.2, 0.15, 0.2);
+			const hand = new THREE.Mesh(handGeo, bootMat);
+			hand.position.set(s * 0.62, 0.05, -0.6);
 			corpse.add(hand);
 		}
 
-		// === BELT with pouches ===
-		const beltGeo = this.pool.getGeoBox(0.5, 0.08, 0.3);
-		const belt = new THREE.Mesh(beltGeo, vestMat);
-		belt.position.set(0, 0.12, 0.15);
-		belt.userData.mapGenerated = true;
-		corpse.add(belt);
-		for (const side of [-1, 1]) {
-			const pouchGeo = this.pool.getGeoBox(0.1, 0.12, 0.1);
-			const pouch = new THREE.Mesh(pouchGeo, vestMat);
-			pouch.position.set(side * 0.2, 0.12, 0.2);
-			pouch.userData.mapGenerated = true;
-			corpse.add(pouch);
-		}
-
-		// === BACKPACK ===
-		const packGeo = this.pool.getGeoBox(0.38, 0.35, 0.22);
-		const pack = new THREE.Mesh(packGeo, vestMat);
-		pack.position.set(0, 0.15, 0.6);
-		pack.userData.mapGenerated = true;
-		corpse.add(pack);
-		// Pack straps
-		for (const side of [-1, 1]) {
-			const strapGeo = this.pool.getGeoBox(0.06, 0.3, 0.25);
-			const strap = new THREE.Mesh(strapGeo, vestMat);
-			strap.position.set(side * 0.18, 0.15, 0.55);
-			strap.userData.mapGenerated = true;
-			corpse.add(strap);
-		}
-
-		// === RIFLE (dropped next to corpse) ===
-		const rifleGeo = this.pool.getGeoBox(0.06, 0.06, 0.85);
-		const rifle = new THREE.Mesh(rifleGeo, metalMat);
-		rifle.position.set(-0.6, 0.08, -0.3);
-		rifle.rotation.x = 0.2;
-		rifle.rotation.z = 0.3;
-		rifle.userData.mapGenerated = true;
-		corpse.add(rifle);
-		const barrelGeo = this.pool.getGeoCylinder(0.035, 0.035, 0.5, 6);
-		const barrel = new THREE.Mesh(barrelGeo, metalMat);
-		barrel.position.set(-0.6, 0.12, -0.75);
-		barrel.rotation.x = 0.2;
-		barrel.rotation.z = 0.3;
-		barrel.userData.mapGenerated = true;
-		corpse.add(barrel);
-
-		// === HIDDEN interaction marker ===
 		corpse.userData.isStalkerCorpse = true;
 		corpse.userData.easterEgg = true;
 		corpse.userData.easterEggWeapon = "bazooka";
 		corpse.userData.easterEggCollected = false;
 
 		corpse.position.set(x, 0.14, z);
-		corpse.rotation.y = (Math.random() - 0.5) * 0.4;
 		corpse.userData.mapGenerated = true;
 		this.scene.add(corpse);
-
-		this.addColliderBox(new THREE.Vector3(x, 0.3, z), 1.2, 0.6, 1.6, false);
+		this.addColliderBox(new THREE.Vector3(x, 0.3, z), 1.5, 0.6, 2.0, false);
 	}
 
 	_addMilitaryFences(startX, startZ, size) {
