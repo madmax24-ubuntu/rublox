@@ -641,14 +641,29 @@ class Game {
 				if (!/^\d$/.test(e.key || "")) return;
 				this._easterKeyBuffer = (this._easterKeyBuffer + e.key).slice(-6);
 				clearTimeout(this._easterBufferTimer);
-				this._easterBufferTimer = setTimeout(() => (this._easterKeyBuffer = ""), 3000);
+				this._easterBufferTimer = setTimeout(
+					() => (this._easterKeyBuffer = ""),
+					3000,
+				);
 				if (this._easterKeyBuffer === "787898") this.toggleInvincibility();
 			});
 			document.addEventListener("mobileAction", (e) => {
-				const sequence = ["Space", "MouseLeft", "Space", "MouseLeft", "KeyE", "Space"];
+				const sequence = [
+					"Space",
+					"MouseLeft",
+					"Space",
+					"MouseLeft",
+					"KeyE",
+					"Space",
+				];
 				this._easterMobileBuffer.push(e.detail);
-				if (this._easterMobileBuffer.length > sequence.length) this._easterMobileBuffer.shift();
-				if (sequence.every((key, index) => this._easterMobileBuffer[index] === key)) {
+				if (this._easterMobileBuffer.length > sequence.length)
+					this._easterMobileBuffer.shift();
+				if (
+					sequence.every(
+						(key, index) => this._easterMobileBuffer[index] === key,
+					)
+				) {
 					this.toggleInvincibility();
 					this._easterMobileBuffer.length = 0;
 				}
@@ -672,7 +687,9 @@ class Game {
 		this.player.setInvulnerable(this._invincible);
 		if (this._invincible) this.player.health = this.player.maxHealth;
 		this.hud?.updateHealth?.(this.player.health, this.player.maxHealth);
-		this.hud?.showGameMessage?.(`Пасхалка: бессмертие ${this._invincible ? "включено" : "выключено"}!`);
+		this.hud?.showGameMessage?.(
+			`Пасхалка: бессмертие ${this._invincible ? "включено" : "выключено"}!`,
+		);
 	}
 
 	setPaused(value) {
@@ -1046,7 +1063,10 @@ class Game {
 				biomeAngles,
 			} = work;
 			const deadline = performance.now() + (this.isMobile() ? 0.75 : 1.25);
-			const batchEnd = Math.min(this.bots.length, work.cursor + (this.isMobile() ? 4 : 8));
+			const batchEnd = Math.min(
+				this.bots.length,
+				work.cursor + (this.isMobile() ? 4 : 8),
+			);
 			let i = work.cursor;
 			for (; i < batchEnd && performance.now() < deadline; i++) {
 				const bot = this.bots[i];
@@ -1235,9 +1255,13 @@ class Game {
 			if (restored > 0) {
 				if (!this.fullChestRefillDone) {
 					this.fullChestRefillDone = true;
-					this.hud.showGameMessage?.("Событие: сундуки пополнены и снова закрыты!");
+					this.hud.showGameMessage?.(
+						"Событие: сундуки пополнены и снова закрыты!",
+					);
 				} else {
-					this.hud.showLootNotification?.(`Часть сундуков пополнена: ${restored}`);
+					this.hud.showLootNotification?.(
+						`Часть сундуков пополнена: ${restored}`,
+					);
 				}
 			}
 			this.chestRespawnTimer = 60;
@@ -1741,9 +1765,7 @@ class Game {
 		if (this.gameState !== "playing" || this.roundFinished) return;
 		const survivors = this.entityManager.getAliveSurvivors?.() || [];
 		if (!this.player?.isAlive) {
-			this.endRound(
-				"Вы погибли. Нажмите E, чтобы начать новую игру",
-			);
+			this.endRound("Вы погибли. Нажмите E, чтобы начать новую игру");
 		} else if (survivors.length === 0) {
 			this.endRound(
 				"\u0412 \u0436\u0438\u0432\u044b\u0445 \u043d\u0438\u043a\u043e\u0433\u043e \u043d\u0435 \u043e\u0441\u0442\u0430\u043b\u043e\u0441\u044c. \u041d\u0430\u0436\u043c\u0438\u0442\u0435 E \u0447\u0442\u043e\u0431\u044b \u043d\u0430\u0447\u0430\u0442\u044c \u0437\u0430\u043d\u043e\u0432\u043e",
@@ -1753,6 +1775,34 @@ class Game {
 				"\u041f\u043e\u0431\u0435\u0434\u0430! \u0422\u044b \u043e\u0441\u0442\u0430\u043b\u0441\u044f \u043f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u043c \u0432\u044b\u0436\u0438\u0432\u0448\u0438\u043c. \u041d\u0430\u0436\u043c\u0438\u0442\u0435 E \u0447\u0442\u043e\u0431\u044b \u043d\u0430\u0447\u0430\u0442\u044c \u0437\u0430\u043d\u043e\u0432\u043e",
 			);
 		}
+	}
+
+	_checkStalkerCorpseEasterEgg() {
+		if (this.gameState !== 'playing' || !this.player?.isAlive) return;
+		if (this._easterCorpseTriggered) return;
+		if (!this.input.isKeyPressed('KeyE')) return;
+		
+		const playerPos = this.player.position;
+		const threshold = 3.0;
+		
+		// Walk the scene children to find the corpse
+		this.scene.traverse((obj) => {
+			if (obj.userData?.easterEgg && !obj.userData?.easterEggCollected) {
+				const dist = playerPos.distanceTo(obj.position);
+				if (dist < threshold) {
+					obj.userData.easterEGGCollected = true;
+					this._easterCorpseTriggered = true;
+					const weaponType = obj.userData.easterEggWeapon || 'bazooka';
+					
+					// Give the player the bazooka (unlimited ammo)
+					this.player.pickupLoot({ type: 'weapon', weaponType });
+					this.hud.showGameMessage(
+						`\ud83d\udea8 Найден легендарный БАЗУКА! Бесконечные ракеты.`,
+					);
+					this.audioSynth?.playPickup?.();
+				}
+			}
+		});
 	}
 
 	getSafeZoneTarget(position) {
@@ -2089,11 +2139,21 @@ class Game {
 			0,
 			this.platformGateCycleTimer - delta,
 		);
-		if (this.platformGateCycleOpen && !this.platformGateWarning10 && this.platformGateCycleTimer <= 10) {
+		if (
+			this.platformGateCycleOpen &&
+			!this.platformGateWarning10 &&
+			this.platformGateCycleTimer <= 10
+		) {
 			this.platformGateWarning10 = true;
-			this.hud.showGameMessage("Внимание: ворота закроются через 10 секунд. Покиньте центр!");
+			this.hud.showGameMessage(
+				"Внимание: ворота закроются через 10 секунд. Покиньте центр!",
+			);
 		}
-		if (this.platformGateCycleOpen && !this.platformGateEvacuationStarted && this.platformGateCycleTimer <= 12) {
+		if (
+			this.platformGateCycleOpen &&
+			!this.platformGateEvacuationStarted &&
+			this.platformGateCycleTimer <= 12
+		) {
 			this.platformGateEvacuationStarted = true;
 			this.evacuateCenterEntities();
 		}
@@ -2104,7 +2164,9 @@ class Game {
 			this.platformGateWarning10 = false;
 			this.platformGateEvacuationStarted = false;
 			this.triggerPlatformUnavailable(false);
-			this.hud.showGameMessage("Ворота закрыты. Лазер уничтожает оставшихся в центре!");
+			this.hud.showGameMessage(
+				"Ворота закрыты. Лазер уничтожает оставшихся в центре!",
+			);
 			return;
 		}
 		this.platformGateCycleOpen = true;
@@ -2125,7 +2187,10 @@ class Game {
 			const dz = entity.position.z - center.z;
 			const dist = Math.hypot(dx, dz);
 			if (dist >= 62) return;
-			const angle = dist > 0.1 ? Math.atan2(dz, dx) : ((Number(entity.id) || 0) * 2.399963229);
+			const angle =
+				dist > 0.1
+					? Math.atan2(dz, dx)
+					: (Number(entity.id) || 0) * 2.399963229;
 			entity.target = null;
 			entity.assistTarget = null;
 			const evacuationTarget = new THREE.Vector3(
@@ -2401,7 +2466,8 @@ class Game {
 						if (!nearby) continue;
 						for (const house of nearby) {
 							const distance = Math.hypot(tile.x - house.x, tile.z - house.z);
-							if (distance < 18) houseBoost = Math.max(houseBoost, 1 - distance / 18);
+							if (distance < 18)
+								houseBoost = Math.max(houseBoost, 1 - distance / 18);
 						}
 					}
 				}
@@ -2414,7 +2480,8 @@ class Game {
 						if (!nearby) continue;
 						for (const hangar of nearby) {
 							const distance = Math.hypot(tile.x - hangar.x, tile.z - hangar.z);
-							if (distance < 28) hangarBoost = Math.max(hangarBoost, 1 - distance / 28);
+							if (distance < 28)
+								hangarBoost = Math.max(hangarBoost, 1 - distance / 28);
 						}
 					}
 				}
@@ -2559,6 +2626,8 @@ class Game {
 			this.entityManager,
 			this.cameraController,
 		);
+		// Easter egg: Stalker corpse → infinite Bazooka
+		this._checkStalkerCorpseEasterEgg();
 		// Обновляем камеру (позиция + вращение); frozen=true во время таймера старта
 		this.cameraController.update(
 			delta,
@@ -2698,7 +2767,10 @@ class Game {
 			if (!bot?.isAlive) continue;
 			const far = bot._lodDetailed === false;
 			if (far && !refreshFarBots) continue;
-			bot.syncVisualAfterPhysics?.(far ? (this.isMobile() ? 0.05 : 0.033) : delta, far);
+			bot.syncVisualAfterPhysics?.(
+				far ? (this.isMobile() ? 0.05 : 0.033) : delta,
+				far,
+			);
 		}
 		this.updateBotLodBatch(delta);
 		if (this.gameState === "playing") {
@@ -3267,7 +3339,11 @@ class Game {
 				this.lastAudioWeatherType = weatherType;
 				this.audioSynth?.setWeatherState?.(weatherType);
 			}
-			if (weatherType === "clear" && changedWeather === "clear" && !this.activeEvent?.type) {
+			if (
+				weatherType === "clear" &&
+				changedWeather === "clear" &&
+				!this.activeEvent?.type
+			) {
 				this.env.forceNightTimer = 0;
 				this.env.dayTime = 0.3;
 			}
@@ -3574,7 +3650,9 @@ class Game {
 		if (count <= 0) return 0;
 
 		let spawned = 0;
-		const biomePools = (this.zombieSpawnCandidatesByBiome || []).filter((pool) => pool.length);
+		const biomePools = (this.zombieSpawnCandidatesByBiome || []).filter(
+			(pool) => pool.length,
+		);
 		const attempts = Math.min(floorTiles.length, Math.max(24, count * 10));
 		const start = this.zombieSpawnCursor % floorTiles.length;
 		for (let i = 0; i < attempts && spawned < count; i++) {
@@ -3608,7 +3686,8 @@ class Game {
 			spawned++;
 		}
 		this.zombieSpawnCursor = (start + attempts) % floorTiles.length;
-		this.zombieSpawnBiomeCursor = (this.zombieSpawnBiomeCursor + Math.max(1, spawned)) % 4;
+		this.zombieSpawnBiomeCursor =
+			(this.zombieSpawnBiomeCursor + Math.max(1, spawned)) % 4;
 		return spawned;
 	}
 

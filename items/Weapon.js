@@ -160,7 +160,8 @@ const WEAPON_BALANCE = {
     flamethrower: { damage: 6.8, range: 13.5, cooldown: 0.08, ammo: 260, durability: null, projectileSpeed: 16, flameCount: 4 },
     pistol: { damage: 23, range: 62, cooldown: 0.36, ammo: 90, durability: null, projectileSpeed: 82 },
     rifle: { damage: 29, range: 96, cooldown: 0.3, ammo: 120, durability: null, projectileSpeed: 98 },
-    machinegun: { damage: 14, range: 82, cooldown: 0.105, ammo: 180, durability: null, projectileSpeed: 94 }
+    machinegun: { damage: 14, range: 82, cooldown: 0.105, ammo: 180, durability: null, projectileSpeed: 94 },
+    bazooka: { damage: 100, range: 90, cooldown: 1.8, ammo: null, durability: null, projectileSpeed: 28 }
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════
@@ -240,7 +241,7 @@ export function createGunshotSound(type, audioContext, volume = 0.5, position = 
     rvGain.gain.value = 0.15;
     const irLen = audioContext.sampleRate * 1.5;
     const impulse = audioContext.createBuffer(2, irLen, audioContext.sampleRate);
-    for (let ch=0;ch<2;ch++) { const d=impulse.getChannelData(ch); for(let i=0;i<irLen;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/irLen,2); }
+    for (let ch=0;ch<2;ch++) { const d=impulse.getChannelData(ch); for(let i=0;i<irLen;i++) d[i]=(Math.random()*2-1)*(1-i/irLen) ** 2; }
     conv.buffer = impulse;
     masterGain.connect(conv); conv.connect(rvGain); rvGain.connect(audioContext.destination);
 
@@ -308,6 +309,18 @@ export function createGunshotSound(type, audioContext, volume = 0.5, position = 
             mkOsc(600, 200, 0.08, 0.3, 'triangle');
             break;
         }
+        case 'bazooka': {
+            // Rocket launch: loud boom + low rumble + high whistle
+            mkNoise(0.5, 1.0, null, 800, null);
+            mkOsc(80, 15, 0.6, 0.8, 'sawtooth');
+            mkOsc(40, 10, 0.9, 0.6);
+            mkNoise(0.03, 0.6, 4000, null, null);
+            mkOsc(1000, 200, 0.25, 0.4);
+            // Impact/explosion tail
+            mkNoise(0.4, 0.9, null, 1200, null);
+            mkOsc(50, 8, 0.5, 0.7);
+            break;
+        }
         default: {
             mkNoise(0.08, 0.3, null, 3000, null);
         }
@@ -331,6 +344,7 @@ const TYPE_ALIASES = {
     'shotgun': 'shotgun',
     'flamethrower': 'flamethrower',
     'laser': 'laser',
+    'bazooka': 'bazooka',
     'fists': 'fists'
 };
 
@@ -644,6 +658,37 @@ function createGunModel(style) {
     return group;
 }
 
+function createBazookaModel() {
+    const group = new THREE.Group();
+    // Olive-drab / dark-green military tube
+    const tubeMat = getMaterial('bazooka_tube', () => createWeaponMaterial(createPolymerTexture2('#4a5632')));
+    const darkMat = getMaterial('bazooka_dark', () => createWeaponMaterial(createPolymerTexture2('#2d3522')));
+    const steelMat = getMaterial('bazooka_steel', () => createWeaponMaterial(createPBRMetalTexture('#6b7b5a')));
+    const gripMat = getMaterial('bazooka_grip', () => createWeaponMaterial(createPolymerTexture2('#3a4230')));
+    
+    // Main launch tube
+    group.add(createPart(getGeom('baz_tube', () => new THREE.CylinderGeometry(0.12, 0.12, 1.2, 10)), tubeMat, 0, 0, 0, 0, Math.PI / 2));
+    // Muzzle brake
+    group.add(createPart(getGeom('baz_muzzle', () => new THREE.CylinderGeometry(0.14, 0.12, 0.15, 10)), darkMat, 0.68, 0, 0, 0, Math.PI / 2));
+    for (let i = 0; i < 3; i++) {
+        group.add(createPart(getGeom(`baz_mz_${i}`, () => new THREE.CylinderGeometry(0.15, 0.14, 0.015, 10)), steelMat, 0.72 + i * 0.015, 0, 0, 0, Math.PI / 2));
+    }
+    // Rear sight block
+    group.add(createPart(getGeom('baz_sight', () => new THREE.BoxGeometry(0.06, 0.08, 0.08)), darkMat, -0.3, 0.1, 0));
+    // Trigger guard & pistol grip
+    group.add(createPart(getGeom('baz_guard', () => new THREE.TorusGeometry(0.05, 0.01, 4, 8)), darkMat, -0.3, -0.15, 0, 0, 0, Math.PI));
+    group.add(createPart(getGeom('baz_grip', () => new THREE.BoxGeometry(0.1, 0.22, 0.1)), gripMat, -0.28, -0.24, 0, 0, 0, -0.1));
+    // Shoulder stock
+    group.add(createPart(getGeom('baz_stock', () => new THREE.BoxGeometry(0.32, 0.14, 0.13)), tubeMat, -0.82, -0.02, 0));
+    group.add(createPart(getGeom('baz_butt', () => new THREE.BoxGeometry(0.04, 0.18, 0.14)), gripMat, -1.0, -0.02, 0));
+    // Ammo indicator stripe (red)
+    const stripeMat = getMaterial('baz_stripe', () => new THREE.MeshStandardMaterial({ color: 0xcc3333, roughness: 0.6 }));
+    group.add(createPart(getGeom('baz_str', () => new THREE.BoxGeometry(0.08, 0.25, 0.01)), stripeMat, 0.3, 0.13, 0));
+    
+    group.rotation.y = Math.PI;
+    return group;
+}
+
 function createArrowProjectileMesh() {
     const group = new THREE.Group();
     // Premium arrow — carbon shaft, broadhead tip, red fletching, nock
@@ -736,6 +781,10 @@ function getViewPoseForType(rawType) {
         base.position.set(0.22, -0.45, -0.98);
         base.rotation.set(0.05, -Math.PI / 2, -0.05);
         base.scale = 0.67;
+    } else if (type === 'bazooka') {
+        base.position.set(0.24, -0.46, -1.05);
+        base.rotation.set(0.05, -Math.PI / 2, -0.05);
+        base.scale = 0.58;
     }
 
     return base;
@@ -750,6 +799,7 @@ function getThirdPersonGripForType(rawType) {
     if (type === 'shotgun') return { forward: 0.24, right: 0.12, up: -0.34 };
     if (type === 'rifle' || type === 'machinegun') return { forward: 0.25, right: 0.12, up: -0.35 };
     if (type === 'flamethrower' || type === 'laser') return { forward: 0.24, right: 0.12, up: -0.35 };
+    if (type === 'bazooka') return { forward: 0.26, right: 0.14, up: -0.38 };
     return base;
 }
 
@@ -763,6 +813,7 @@ function getThirdPersonWorldScale(rawType) {
     if (type === 'machinegun') return 0.72;
     if (type === 'flamethrower') return 0.7;
     if (type === 'laser') return 0.72;
+    if (type === 'bazooka') return 0.9;
     return 0.78;
 }
 
@@ -780,6 +831,7 @@ function getWeaponModelTemplate(type) {
     else if (type === 'shotgun') template.add(createGunModel('shotgun'));
     else if (type === 'flamethrower') template.add(createGunModel('flamethrower'));
     else if (type === 'laser') template.add(createGunModel('laser'));
+    else if (type === 'bazooka') template.add(createBazookaModel());
     configureMeshForGameplay(template);
     template.userData.ignoreDamageTint = true;
     template.scale.setScalar(getThirdPersonWorldScale(type));
@@ -934,6 +986,7 @@ export class Weapon {
             else if (this.type === 'pistol') audioSynth.playPistol?.(srcPos, srcKey);
             else if (this.type === 'machinegun') audioSynth.playMachinegun?.(srcPos, srcKey);
             else if (this.type === 'rifle') audioSynth.playRifle?.(srcPos, srcKey);
+            else if (this.type === 'bazooka') audioSynth.playBazooka?.(srcPos, srcKey);
         }
 
         if (this.type === 'fists' || this.type === 'knife') {
@@ -1027,12 +1080,19 @@ export class Weapon {
             const m = getMaterial('proj_bullet_v2', () => new THREE.MeshBasicMaterial({ color: 0xffd54f }));
             mesh = createPart(getGeom('proj_bullet_v2', () => new THREE.CylinderGeometry(0.055, 0.055, 0.7, 8)), m, 0, 0, 0, 0, 0, Math.PI / 2);
             knockback = type === 'rifle' || type === 'machinegun' ? 4 : 3;
+        } else if (type === 'bazooka') {
+            const m = getMaterial('proj_rocket', () => new THREE.MeshStandardMaterial({ color: 0x4a5632, roughness: 0.6, metalness: 0.4 }));
+            mesh = createPart(getGeom('proj_rocket', () => new THREE.CylinderGeometry(0.06, 0.06, 0.5, 8)), m, 0, 0, 0, 0, Math.PI / 2);
+            // Rocket fins
+            const finMat = getMaterial('proj_rocket_fin', () => new THREE.MeshStandardMaterial({ color: 0x2d3522, roughness: 0.7 }));
+            for (let i = 0; i < 4; i++) {
+                const fin = createPart(getGeom(`proj_rfin_${i}`, () => new THREE.BoxGeometry(0.02, 0.06, 0.12)), finMat, -0.2, 0, 0);
+                fin.rotation.z = (Math.PI / 2) * i;
+                mesh.add(fin);
+            }
+            knockback = 12;
+            gravity = 0.008;
         } else if (type === 'flame') {
-            const m = getMaterial('proj_flame_v2', () => new THREE.MeshBasicMaterial({ color: 0xff7a00, transparent: true, opacity: 0.88 }));
-            mesh = createPart(getGeom('proj_flame_v2', () => new THREE.ConeGeometry(0.28, 0.85, 7)), m, 0, 0, 0, 0, 0, Math.PI / 2);
-            knockback = 2;
-            gravity = 0;
-        } else {
             const m = getMaterial('proj_generic', () => new THREE.MeshStandardMaterial({ color: 0x8b4513, roughness: 0.8, flatShading: true }));
             mesh = createPart(getGeom('proj_generic', () => new THREE.ConeGeometry(0.1, 0.3, 8)), m);
         }

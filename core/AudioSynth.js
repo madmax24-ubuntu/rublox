@@ -266,7 +266,7 @@ export class AudioSynth {
         for (let ch = 0; ch < 2; ch++) {
             const data = impulse.getChannelData(ch);
             for (let i = 0; i < length; i++) {
-                data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+                data[i] = (Math.random() * 2 - 1) * (1 - i / length) ** decay;
             }
         }
         return impulse;
@@ -1135,6 +1135,31 @@ export class AudioSynth {
             this.flamethrowerPending.delete(voiceKey);
             if (played) refreshStop();
             else this.playProceduralShot('flamethrower', 0.22 * scale, position);
+            return played;
+        });
+    }
+
+    playBazooka(position = null, emitterKey = 'global') {
+        const voiceKey = `bazooka:${emitterKey}`;
+        if (!this.canPlayWeaponSfx(voiceKey, this.weaponSfxCooldown.rifle)) return false;
+        const scale = this.getEmitterSfxScale(emitterKey);
+        // Use rifle sample as base but with lower volume for the explosive launch
+        this.playSample(this.sampleCatalog.rifle, {
+            volume: (this.isMobileDevice ? 0.9 : 1.1) * scale,
+            rate: 0.7,
+            loop: false,
+            reverbSend: 0.04,
+            position,
+            category: 'weapon',
+            voiceKey,
+            priority: this.getEmitterSfxPriority(emitterKey)
+        }).then(played => {
+            if (played) {
+                // Add impact/explosion tail
+                setTimeout(() => {
+                    this.playProceduralShot('shotgun', 0.6 * scale, position);
+                }, 350);
+            }
             return played;
         });
     }

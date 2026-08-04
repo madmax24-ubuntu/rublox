@@ -830,7 +830,7 @@ export class MapGenerator {
 
         // Bridge rails
         const railGeo = this.pool.getGeoBox(0.3, 1.5, 8);
-        for (let side of [-1, 1]) {
+        for (const side of [-1, 1]) {
             const rail = new THREE.Mesh(railGeo, bridgeMat);
             rail.position.set(x + side * 5.5, 1.5, z);
             rail.userData.mapGenerated = true;
@@ -1169,7 +1169,7 @@ export class MapGenerator {
 
         // Стены первого этажа
         const wallThick = 1.2;
-        for (let side of [-1, 1]) {
+        for (const side of [-1, 1]) {
             const sideGeo = this.pool.getGeoBox(wallThick, storyH, d);
             const sideWall = new THREE.Mesh(sideGeo, wallMat);
             sideWall.position.set(side * w / 2, storyH / 2 + 0.3, 0);
@@ -1221,7 +1221,7 @@ export class MapGenerator {
 
         // Окна первого этажа
         const winMat = this.pool.getMatStd(0xfff9c4, 0.3, 0.1, false, false, 1, 0xfff9c4, 0.1);
-        for (let side of [-1, 1]) {
+        for (const side of [-1, 1]) {
             const winGeo = this.pool.getGeoBox(0.1, 1.2, 1.2);
             const win = new THREE.Mesh(winGeo, winMat);
             win.position.set(side * w / 2 + 0.05, 2 + 0.3, 0);
@@ -1285,7 +1285,7 @@ export class MapGenerator {
         this.addColliderBox(new THREE.Vector3(x + stairX, floor2YL, z - d / 2 + floor2BackD / 2), stairW, 0.3, floor2BackD, true);
 
         // Стены второго этажа
-        for (let side of [-1, 1]) {
+        for (const side of [-1, 1]) {
             const sideGeo = this.pool.getGeoBox(wallThick, storyH, d);
             const sideWall = new THREE.Mesh(sideGeo, wallMat);
             sideWall.position.set(side * w / 2, storyH + storyH / 2 + 0.3, 0);
@@ -1310,7 +1310,7 @@ export class MapGenerator {
         cabin.add(back2);
 
         // Окна второго этажа
-        for (let side of [-1, 1]) {
+        for (const side of [-1, 1]) {
             const winGeo = this.pool.getGeoBox(0.1, 1.2, 1.2);
             const win = new THREE.Mesh(winGeo, winMat);
             win.position.set(side * w / 2 + 0.05, storyH + 2 + 0.3, 0);
@@ -1392,7 +1392,7 @@ export class MapGenerator {
 
         // Walls
         const wt = 0.3;
-        for (let side of [-1, 1]) {
+        for (const side of [-1, 1]) {
             const sw = new THREE.Mesh(this.pool.getGeoBox(wt, h, d), wallMat);
             sw.position.set(side * w / 2, h / 2 + 0.3, 0);
             sw.userData.mapGenerated = true;
@@ -1837,7 +1837,7 @@ export class MapGenerator {
         barrel.add(body);
 
         // Metal bands
-        for (let y of [0.3, 0.9]) {
+        for (const y of [0.3, 0.9]) {
             const bandGeo = new THREE.TorusGeometry(0.55, 0.04, 6, 12);
             const band = new THREE.Mesh(bandGeo, bandMat);
             band.position.y = y;
@@ -2015,7 +2015,7 @@ export class MapGenerator {
 
         // Walls
         const wallThick = 0.3;
-        for (let side of [-1, 1]) {
+        for (const side of [-1, 1]) {
             const sideGeo = this.pool.getGeoBox(wallThick, h, d);
             const sideWall = new THREE.Mesh(sideGeo, wallMat);
             sideWall.position.set(side * w / 2, h / 2, 0);
@@ -2074,7 +2074,7 @@ export class MapGenerator {
 
         // Windows
         const winMat = this.pool.getMatStd(0xfff9c4, 0.3, 0.1, false, true, 0.7, 0, 0);
-        for (let wx of [-2, 2]) {
+        for (const wx of [-2, 2]) {
             const winGeo = this.pool.getGeoBox(0.8, 1, 0.1);
             const win = new THREE.Mesh(winGeo, winMat);
             win.position.set(wx, h * 0.6, d / 2 + 0.1);
@@ -2526,7 +2526,7 @@ export class MapGenerator {
 
             // Metal bands
             const bandMat = this.pool.getMatStd(0x424242, 0.6, 0.8, true, false, 1, 0, 0);
-            for (let by of [0.2, 0.6]) {
+            for (const by of [0.2, 0.6]) {
                 const bandGeo = new THREE.TorusGeometry(0.6, 0.04, 6, 12);
                 const band = new THREE.Mesh(bandGeo, bandMat);
                 band.position.y = by;
@@ -2657,7 +2657,7 @@ export class MapGenerator {
         gateGroup.add(arch);
 
         // Gate pillars
-        for (let side of [-1, 1]) {
+        for (const side of [-1, 1]) {
             const pillarGeo = this.pool.getGeoBox(3, wallHeight + 6, 3);
             const pillar = new THREE.Mesh(pillarGeo, mat);
             pillar.position.set(side * 5, (wallHeight + 6) / 2, 0);
@@ -2868,6 +2868,9 @@ export class MapGenerator {
             this._addDestroyedTank(tx, tz);
         }
         [[startX + 18, startZ + 36], [startX + 64, startZ + 26]].forEach(([x, z]) => this._addMilitaryTank(x, z));
+
+        // Easter egg: Stalker corpse near tanks (gives infinite Bazooka)
+        this._addStalkerCorpse(startX + 36, startZ + 48);
 
         // Окопы - больше и заметнее
         this._addTrench(startX + 20, startZ + 20, size * 0.4);
@@ -3296,7 +3299,7 @@ export class MapGenerator {
         tank.add(barrel);
 
         // Гусеницы (одна может быть сломана)
-        for (let side of [-1, 1]) {
+        for (const side of [-1, 1]) {
             const trackGeo = this.pool.getGeoBox(1.25, 1.25, 9.8);
             const trackMat = this.pool.getMatStd(0x3d3d3d, 0.9, 0, false, false, 1, 0, 0);
             const track = new THREE.Mesh(trackGeo, trackMat);
@@ -3339,7 +3342,7 @@ export class MapGenerator {
         this.scene.add(bottom);
 
         // Стенки окопа + коллайдеры
-        for (let side of [-1, 1]) {
+        for (const side of [-1, 1]) {
             const wallGeo = this.pool.getGeoBox(0.3, 1, length);
             const wall = new THREE.Mesh(wallGeo, trenchMat);
             wall.position.set(x + side * 1.5, 0.5, z);
@@ -3356,7 +3359,7 @@ export class MapGenerator {
         bottom2.userData.mapGenerated = true;
         this.scene.add(bottom2);
 
-        for (let side of [-1, 1]) {
+        for (const side of [-1, 1]) {
             const wallGeo = this.pool.getGeoBox(length, 1, 0.3);
             const wall = new THREE.Mesh(wallGeo, trenchMat);
             wall.position.set(x + length / 2, 0.5, z + length / 2 + side * 1.5);
@@ -3789,7 +3792,7 @@ export class MapGenerator {
 
         // Walls
         const wallThick = 0.5;
-        for (let side of [-1, 1]) {
+        for (const side of [-1, 1]) {
             const sideGeo = this.pool.getGeoBox(wallThick, h, d);
             const sideWall = new THREE.Mesh(sideGeo, wallMat);
             sideWall.position.set(x + side * w / 2, h / 2, z);
@@ -3878,7 +3881,7 @@ export class MapGenerator {
         tank.add(barrel);
 
         // Tracks
-        for (let side of [-1, 1]) {
+        for (const side of [-1, 1]) {
             const trackGeo = this.pool.getGeoBox(1.4, 1.5, 10.8);
             const trackMat = this.pool.getMatStd(COLORS.militaryTread, 0.9, 0, false, false, 1, 0, 0);
             const track = new THREE.Mesh(trackGeo, trackMat);
@@ -3895,6 +3898,81 @@ export class MapGenerator {
         this.addColliderBox(
             new THREE.Vector3(x, 3, z),
             8, 6, 12, false
+        );
+    }
+
+    _addStalkerCorpse(x, z) {
+        // Easter egg: "Stalker" corpse — a fallen soldier model lying near the tank
+        // When player approaches and presses 'E', they get the legendary Bazooka
+        const corpse = new THREE.Group();
+        const skinMat = this.pool.getMatStd(0x8e7c6b, 0.8, 0, false, false, 1, 0, 0);
+        const uniformMat = this.pool.getMatStd(0x4a5632, 0.9, 0, false, false, 1, 0, 0);
+        const bootMat = this.pool.getMatStd(0x2d2d2d, 0.95, 0, false, false, 1, 0, 0);
+
+        // Body (lying face-down, slightly angled)
+        const bodyGeo = this.pool.getGeoBox(0.5, 0.25, 1.1);
+        const body = new THREE.Mesh(bodyGeo, uniformMat);
+        body.position.set(0, 0.12, 0);
+        body.rotation.z = 0.05;
+        body.userData.mapGenerated = true;
+        corpse.add(body);
+
+        // Head
+        const headGeo = this.pool.getGeoSphere(0.14, 8, 6);
+        const head = new THREE.Mesh(headGeo, skinMat);
+        head.position.set(0.15, 0.08, -0.6);
+        head.rotation.x = -0.3;
+        head.userData.mapGenerated = true;
+        corpse.add(head);
+
+        // Legs (bent at knees)
+        const legGeo = this.pool.getGeoBox(0.18, 0.22, 0.7);
+        for (const side of [-1, 1]) {
+            const leg = new THREE.Mesh(legGeo, uniformMat);
+            leg.position.set(side * 0.15, 0.05, 0.6);
+            leg.rotation.x = -0.8;
+            leg.userData.mapGenerated = true;
+            corpse.add(leg);
+            // Boot
+            const boot = new THREE.Mesh(this.pool.getGeoBox(0.16, 0.1, 0.2), bootMat);
+            boot.position.set(side * 0.15, 0.0, 0.95);
+            boot.userData.mapGenerated = true;
+            corpse.add(boot);
+        }
+
+        // Arms (reaching forward)
+        const armGeo = this.pool.getGeoBox(0.14, 0.18, 0.6);
+        for (const side of [-1, 1]) {
+            const arm = new THREE.Mesh(armGeo, uniformMat);
+            arm.position.set(side * 0.35, 0.08, -0.35);
+            arm.rotation.x = -0.6;
+            arm.rotation.z = side * 0.25;
+            arm.userData.mapGenerated = true;
+            corpse.add(arm);
+        }
+
+        // Backpack
+        const packGeo = this.pool.getGeoBox(0.35, 0.3, 0.2);
+        const pack = new THREE.Mesh(packGeo, uniformMat);
+        pack.position.set(0, 0.12, 0.55);
+        pack.userData.mapGenerated = true;
+        corpse.add(pack);
+
+        // Interaction marker (invisible hitbox)
+        corpse.userData.isStalkerCorpse = true;
+        corpse.userData.easterEgg = true;
+        corpse.userData.easterEggWeapon = 'bazooka';
+        corpse.userData.easterEggCollected = false;
+
+        corpse.position.set(x, 0, z);
+        corpse.rotation.y = (Math.random() - 0.5) * 0.4;
+        corpse.userData.mapGenerated = true;
+        this.scene.add(corpse);
+
+        // Add a subtle collider
+        this.addColliderBox(
+            new THREE.Vector3(x, 0.3, z),
+            1.0, 0.6, 1.4, false
         );
     }
 
@@ -4311,7 +4389,7 @@ export class MapGenerator {
             snowman.add(head);
 
             // Eyes (coal)
-            for (let side of [-0.2, 0.2]) {
+            for (const side of [-0.2, 0.2]) {
                 const eyeGeo = this.pool.getGeoSphere(0.08);
                 const eye = new THREE.Mesh(eyeGeo, coalMat);
                 eye.position.set(side, 3.9, 0.5);
@@ -4329,7 +4407,7 @@ export class MapGenerator {
 
             // Arms (sticks)
             const armMat = this.pool.getMatStd(0x5d4037, 0.9, 0, false, false, 1, 0, 0);
-            for (let side of [-1, 1]) {
+            for (const side of [-1, 1]) {
                 const armGeo = this.pool.getGeoCylinder(0.05, 0.05, 1.2);
                 const arm = new THREE.Mesh(armGeo, armMat);
                 arm.position.set(side * 1.1, 2.7, 0);
@@ -4369,7 +4447,7 @@ export class MapGenerator {
             sleigh.add(seat);
 
             // Runners (metal)
-            for (let side of [-0.8, 0.8]) {
+            for (const side of [-0.8, 0.8]) {
                 const runnerGeo = this.pool.getGeoBox(0.1, 0.1, 3);
                 const runner = new THREE.Mesh(runnerGeo, metalMat);
                 runner.position.set(side, 0.1, 0);

@@ -14,6 +14,7 @@ const STATES = {
 };
 
 const WEAPON_PRIORITY = {
+	bazooka: 10,
 	machinegun: 9,
 	rifle: 8,
 	shotgun: 7,
@@ -1564,9 +1565,9 @@ export class BotBrain {
 			}
 			// Improved strafe: larger circles, less frequent changes, smarter movement
 			if (!bot._strafeUntil || nowSec >= bot._strafeUntil) {
-				bot._strafeDir = bot._strafeDir ? -bot._strafeDir : ((bot.id % 3) - 1);
+				bot._strafeDir = bot._strafeDir ? -bot._strafeDir : (bot.id % 3) - 1;
 				// Ensure strafe direction is never 0 — always move
-				if (bot._strafeDir === 0) bot._strafeDir = (bot.id % 2 === 0) ? 1 : -1;
+				if (bot._strafeDir === 0) bot._strafeDir = bot.id % 2 === 0 ? 1 : -1;
 				bot._strafeUntil = nowSec + 3.0 + (bot.id % 4) * 0.25;
 			}
 			const strafeDir = bot._strafeDir || 1;
