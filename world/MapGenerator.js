@@ -6105,12 +6105,66 @@ export class MapGenerator {
 		const corpse = new THREE.Group();
 
 		// Stalker materials
-		const uniformMat = this.pool.getMatStd(0x3a4a32, 0.85, 0, false, false, 1, 0, 0);
-		const vestMat = this.pool.getMatStd(0x4a3f32, 0.8, 0, false, false, 1, 0, 0);
-		const bootMat = this.pool.getMatStd(0x1a1a1a, 0.9, 0, false, false, 1, 0, 0);
-		const skinMat = this.pool.getMatStd(0x9e8b6e, 0.75, 0, false, false, 1, 0, 0);
-		const gasMaskMat = this.pool.getMatStd(0x1a1a1a, 0.7, 0, false, false, 1, 0, 0);
-		const filterMat = this.pool.getMatStd(0x2d2d2d, 0.6, 0, false, false, 1, 0, 0);
+		const uniformMat = this.pool.getMatStd(
+			0x3a4a32,
+			0.85,
+			0,
+			false,
+			false,
+			1,
+			0,
+			0,
+		);
+		const vestMat = this.pool.getMatStd(
+			0x4a3f32,
+			0.8,
+			0,
+			false,
+			false,
+			1,
+			0,
+			0,
+		);
+		const bootMat = this.pool.getMatStd(
+			0x1a1a1a,
+			0.9,
+			0,
+			false,
+			false,
+			1,
+			0,
+			0,
+		);
+		const skinMat = this.pool.getMatStd(
+			0x9e8b6e,
+			0.75,
+			0,
+			false,
+			false,
+			1,
+			0,
+			0,
+		);
+		const gasMaskMat = this.pool.getMatStd(
+			0x1a1a1a,
+			0.7,
+			0,
+			false,
+			false,
+			1,
+			0,
+			0,
+		);
+		const filterMat = this.pool.getMatStd(
+			0x2d2d2d,
+			0.6,
+			0,
+			false,
+			false,
+			1,
+			0,
+			0,
+		);
 		const eyeMat = this.pool.getMatStd(0x111111, 0.3, 0, false, false, 1, 0, 0);
 
 		// === BODY (bot-style, lying on back) ===

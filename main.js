@@ -475,6 +475,8 @@ class Game {
 
 			this.entityManager = new EntityManager(this.scene);
 			this.entityManager.physicsRef = this.physics;
+			this.entityManager.mapGenerator = this.map;
+			this.entityManager.audioSynth = this.audioSynth;
 			this.scene.userData.entityManager = this.entityManager;
 			this.zombiePool = new ZombiePool(
 				this.scene,
