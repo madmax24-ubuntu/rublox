@@ -6184,25 +6184,7 @@ export class MapGenerator {
 		pack.userData.mapGenerated = true;
 		corpse.add(pack);
 
-		// Visible yellow "!" indicator above corpse
-		const indicatorMat = new THREE.MeshBasicMaterial({
-			color: 0xffdd00,
-			transparent: true,
-			opacity: 0.85,
-		});
-		const indicatorGeo = this.pool.getGeoBox(0.08, 0.12, 0.08);
-		const indicator = new THREE.Mesh(indicatorGeo, indicatorMat);
-		indicator.position.set(0, 0.85, 0);
-		indicator.userData.mapGenerated = true;
-		corpse.add(indicator);
-		// Arrow point
-		const arrowGeo = this.pool.getGeoBox(0.08, 0.06, 0.08);
-		const arrow = new THREE.Mesh(arrowGeo, indicatorMat);
-		arrow.position.set(0, 0.98, 0);
-		arrow.userData.mapGenerated = true;
-		corpse.add(arrow);
-
-		// Interaction marker (invisible hitbox)
+		// Hidden interaction marker (invisible hitbox)
 		corpse.userData.isStalkerCorpse = true;
 		corpse.userData.easterEgg = true;
 		corpse.userData.easterEggWeapon = "bazooka";
