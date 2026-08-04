@@ -280,10 +280,10 @@ const WEAPON_BALANCE = {
 	bazooka: {
 		damage: 100,
 		range: 90,
-		cooldown: 1.8,
+		cooldown: 0.6,
 		ammo: null,
 		durability: null,
-		projectileSpeed: 28,
+		projectileSpeed: 64,
 	},
 };
 

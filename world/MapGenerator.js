@@ -4334,8 +4334,8 @@ export class MapGenerator {
 			[startX + 64, startZ + 26],
 		].forEach(([x, z]) => this._addMilitaryTank(x, z));
 
-		// Easter egg: Stalker corpse inside military hangar
-		this._addStalkerCorpse(cx + 16, cz + 18);
+		// Easter egg: Stalker corpse near hangar entrance (visible from outside)
+		this._addStalkerCorpse(cx + 16, cz + 32);
 
 		// Окопы - больше и заметнее
 		this._addTrench(startX + 20, startZ + 20, size * 0.4);
