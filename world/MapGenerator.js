@@ -4494,11 +4494,12 @@ export class MapGenerator {
 			wall.userData.mapGenerated = true;
 			wall.userData.isWall = true;
 			group.add(wall);
+			// Full depth collider — matches visual wall and eliminates corner gaps
 			this.addColliderBox(
 				new THREE.Vector3(x + (side * w) / 2, h / 2, z),
 				0.9,
 				h,
-				d - 0.9,
+				d,
 				false,
 			);
 		}
@@ -4533,8 +4534,8 @@ export class MapGenerator {
 		}
 		if (doorRightW > 0) {
 			const dr = new THREE.Mesh(
-			this.pool.getGeoBox(doorRightW, h, 0.9),
-			wallMat,
+				this.pool.getGeoBox(doorRightW, h, 0.9),
+				wallMat,
 			);
 			dr.position.set(w / 2 - doorRightW / 2, h / 2, d / 2);
 			dr.userData.mapGenerated = true;
@@ -4563,8 +4564,8 @@ export class MapGenerator {
 			);
 		}
 		const door = new THREE.Mesh(
-		this.pool.getGeoBox(doorW, doorH, 0.1),
-		doorMat,
+			this.pool.getGeoBox(doorW, doorH, 0.1),
+			doorMat,
 		);
 		door.position.set(0, doorH / 2, d / 2 + 0.05);
 		door.userData.mapGenerated = true;
@@ -4609,7 +4610,11 @@ export class MapGenerator {
 				post.userData.mapGenerated = true;
 				group.add(post);
 				this.addColliderBox(
-					new THREE.Vector3(x + side * (w / 2 - 0.6), h / 2, z + end * (d / 2 - 0.6)),
+					new THREE.Vector3(
+						x + side * (w / 2 - 0.6),
+						h / 2,
+						z + end * (d / 2 - 0.6),
+					),
 					1.2,
 					h,
 					1.2,
