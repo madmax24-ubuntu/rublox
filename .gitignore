@@ -18,6 +18,7 @@ Thumbs.db
 
 # Test results
 test-results/
+tests/*.png
 
 # Claude Code local settings
 .claude/
