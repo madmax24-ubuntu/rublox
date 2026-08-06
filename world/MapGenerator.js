@@ -4498,7 +4498,7 @@ export class MapGenerator {
 				new THREE.Vector3(x + (side * w) / 2, h / 2, z),
 				0.9,
 				h,
-				d,
+				d - 0.9,
 				false,
 			);
 		}
@@ -4519,20 +4519,34 @@ export class MapGenerator {
 				this.pool.getGeoBox(doorLeftW, h, 0.9),
 				wallMat,
 			);
-			dl.position.set(-doorLeftW / 2 - 0.5, h / 2, d / 2);
+			dl.position.set(-w / 2 + doorLeftW / 2, h / 2, d / 2);
 			dl.userData.mapGenerated = true;
 			dl.userData.isWall = true;
 			group.add(dl);
+			this.addColliderBox(
+				new THREE.Vector3(x - w / 2 + doorLeftW / 2, h / 2, z + d / 2),
+				doorLeftW,
+				h,
+				0.9,
+				false,
+			);
 		}
 		if (doorRightW > 0) {
 			const dr = new THREE.Mesh(
 			this.pool.getGeoBox(doorRightW, h, 0.9),
 			wallMat,
 			);
-			dr.position.set(doorRightW / 2 + 0.5, h / 2, d / 2);
+			dr.position.set(w / 2 - doorRightW / 2, h / 2, d / 2);
 			dr.userData.mapGenerated = true;
 			dr.userData.isWall = true;
 			group.add(dr);
+			this.addColliderBox(
+				new THREE.Vector3(x + w / 2 - doorRightW / 2, h / 2, z + d / 2),
+				doorRightW,
+				h,
+				0.9,
+				false,
+			);
 		}
 		if (doorTopH > 0) {
 			const dt = new THREE.Mesh(this.pool.getGeoBox(w, doorTopH, 0.9), wallMat);
@@ -4540,6 +4554,13 @@ export class MapGenerator {
 			dt.userData.mapGenerated = true;
 			dt.userData.isWall = true;
 			group.add(dt);
+			this.addColliderBox(
+				new THREE.Vector3(x, doorH + doorTopH / 2, z + d / 2),
+				w,
+				doorTopH,
+				0.9,
+				false,
+			);
 		}
 		const door = new THREE.Mesh(
 		this.pool.getGeoBox(doorW, doorH, 0.1),
@@ -4549,11 +4570,11 @@ export class MapGenerator {
 		door.userData.mapGenerated = true;
 		group.add(door);
 		this.addColliderBox(
-		new THREE.Vector3(x, doorH / 2, z + d / 2 + 0.05),
-		doorW,
-		doorH,
-		0.1,
-		true,
+			new THREE.Vector3(x, doorH / 2, z + d / 2 - 0.5),
+			doorW,
+			doorH,
+			2,
+			true,
 		);
 		const backWall = new THREE.Mesh(this.pool.getGeoBox(w, h, 0.9), wallMat);
 		backWall.position.set(0, h / 2, -d / 2);
@@ -4587,6 +4608,13 @@ export class MapGenerator {
 				post.position.set(side * (w / 2 - 0.6), h / 2, end * (d / 2 - 0.6));
 				post.userData.mapGenerated = true;
 				group.add(post);
+				this.addColliderBox(
+					new THREE.Vector3(x + side * (w / 2 - 0.6), h / 2, z + end * (d / 2 - 0.6)),
+					1.2,
+					h,
+					1.2,
+					false,
+				);
 			}
 		}
 		group.position.set(x, 0, z);
