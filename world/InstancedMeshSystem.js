@@ -48,8 +48,8 @@ export class InstancedMeshSystem {
             if (group.entries.length < minCount) { skippedTooFew++; continue; }
 
             const { geoKey, matKey, entries } = group;
-            let geo = entries[0].geometry.clone();
-            let mat = this._cloneMaterial(entries[0].material);
+            const geo = entries[0].geometry.clone();
+            const mat = this._cloneMaterial(entries[0].material);
 
             // Check if ANY entry has isTerrain — skip instancing for terrain groups
             let hasTerrain = false;
@@ -197,6 +197,7 @@ export class InstancedMeshSystem {
             obj.userData.isTerrain || obj.userData.biomeGate || obj.userData.biomeBoundary ||
             obj.userData.gameplayBoundary || obj.userData.isTowerStructure ||
             obj.userData.dynamic || obj.userData.isChest ||
+            obj.userData.easterEgg ||
             (obj.userData.isCornucopia && !obj.userData.isSpawnPlatform)) { skipReasons.aniInt++; return; }
         const geoKey = this.pool.geoKey(obj.geometry) || `uuid:${obj.geometry.uuid}`;
         if (!geoKey) { skipReasons.noGeoKey++; return; }

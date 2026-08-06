@@ -209,7 +209,10 @@ export class MapGenerator {
 
 	_freezeStaticTransforms() {
 		this.scene.traverse((object) => {
-			if (!object.userData?.mapGenerated || object.matrixAutoUpdate === false)
+			if (
+				(!object.userData?.mapGenerated && !object.userData?.easterEgg) ||
+				object.matrixAutoUpdate === false
+			)
 				return;
 			const data = object.userData;
 			if (
@@ -223,6 +226,7 @@ export class MapGenerator {
 				data.isCrystal ||
 				data.isFirefly ||
 				data.isChest ||
+				data.easterEgg ||
 				data.biomeGate ||
 				(data.isCornucopia && !data.isSpawnPlatform)
 			)
@@ -241,7 +245,8 @@ export class MapGenerator {
 			obj.userData?.isSnowParticles ||
 			obj.userData?.gameplayBoundary ||
 			obj.userData?.isBarbedWire ||
-			obj.userData?.isTowerStructure;
+			obj.userData?.isTowerStructure ||
+			obj.userData?.buildingType;
 		const intrudes = (box) => {
 			const x = box.min.x > 0 ? box.min.x : box.max.x < 0 ? box.max.x : 0;
 			const z = box.min.z > 0 ? box.min.z : box.max.z < 0 ? box.max.z : 0;
@@ -4334,8 +4339,7 @@ export class MapGenerator {
 			[startX + 64, startZ + 26],
 		].forEach(([x, z]) => this._addMilitaryTank(x, z));
 
-		// Easter egg: Stalker corpse visible near road (military area)
-		this._addStalkerCorpse(cx - 10, cz + 2);
+		// Easter egg: Stalker corpse placed inside the hangar (see _addMilitaryHangar)
 
 		// Окопы - больше и заметнее
 		this._addTrench(startX + 20, startZ + 20, size * 0.4);
@@ -4480,6 +4484,10 @@ export class MapGenerator {
 		floor.userData.mapGenerated = true;
 		floor.userData.walkable = true;
 		group.add(floor);
+		const doorW = 4;
+		const doorH = 3.5;
+		const doorLeftW = w / 2 - doorW / 2 - 0.5;
+		const doorRightW = w / 2 - doorW / 2 - 0.5;
 		for (const side of [-1, 1]) {
 			const wall = new THREE.Mesh(this.pool.getGeoBox(0.9, h, d), wallMat);
 			wall.position.set((side * w) / 2, h / 2, 0);
@@ -4494,8 +4502,6 @@ export class MapGenerator {
 				false,
 			);
 		}
-		const doorW = 4;
-		const doorH = 3.5;
 		const doorMat = this.pool.getMatStd(
 			0x4e342e,
 			0.9,
@@ -4507,8 +4513,6 @@ export class MapGenerator {
 			0,
 			false,
 		);
-		const doorLeftW = w / 2 - doorW / 2 - 0.5;
-		const doorRightW = w / 2 - doorW / 2 - 0.5;
 		const doorTopH = h - doorH - 0.5;
 		if (doorLeftW > 0) {
 			const dl = new THREE.Mesh(
@@ -4519,30 +4523,16 @@ export class MapGenerator {
 			dl.userData.mapGenerated = true;
 			dl.userData.isWall = true;
 			group.add(dl);
-			this.addColliderBox(
-				new THREE.Vector3(x - doorLeftW / 2 - 0.5, h / 2, z + d / 2),
-				doorLeftW,
-				h,
-				0.9,
-				false,
-			);
 		}
 		if (doorRightW > 0) {
 			const dr = new THREE.Mesh(
-				this.pool.getGeoBox(doorRightW, h, 0.9),
-				wallMat,
+			this.pool.getGeoBox(doorRightW, h, 0.9),
+			wallMat,
 			);
 			dr.position.set(doorRightW / 2 + 0.5, h / 2, d / 2);
 			dr.userData.mapGenerated = true;
 			dr.userData.isWall = true;
 			group.add(dr);
-			this.addColliderBox(
-				new THREE.Vector3(x + doorRightW / 2 + 0.5, h / 2, z + d / 2),
-				doorRightW,
-				h,
-				0.9,
-				false,
-			);
 		}
 		if (doorTopH > 0) {
 			const dt = new THREE.Mesh(this.pool.getGeoBox(w, doorTopH, 0.9), wallMat);
@@ -4550,21 +4540,21 @@ export class MapGenerator {
 			dt.userData.mapGenerated = true;
 			dt.userData.isWall = true;
 			group.add(dt);
-			this.addColliderBox(
-				new THREE.Vector3(x, doorH + doorTopH / 2, z + d / 2),
-				w,
-				doorTopH,
-				0.9,
-				false,
-			);
 		}
 		const door = new THREE.Mesh(
-			this.pool.getGeoBox(doorW, doorH, 0.1),
-			doorMat,
+		this.pool.getGeoBox(doorW, doorH, 0.1),
+		doorMat,
 		);
 		door.position.set(0, doorH / 2, d / 2 + 0.05);
 		door.userData.mapGenerated = true;
 		group.add(door);
+		this.addColliderBox(
+		new THREE.Vector3(x, doorH / 2, z + d / 2 + 0.05),
+		doorW,
+		doorH,
+		0.1,
+		true,
+		);
 		const backWall = new THREE.Mesh(this.pool.getGeoBox(w, h, 0.9), wallMat);
 		backWall.position.set(0, h / 2, -d / 2);
 		backWall.userData.mapGenerated = true;
@@ -4577,31 +4567,6 @@ export class MapGenerator {
 			0.9,
 			false,
 		);
-		if (doorLeftW > 0) {
-			this.addColliderBox(
-				new THREE.Vector3(x - doorLeftW / 2 - 0.5, h / 2, z + d / 2),
-				doorLeftW,
-				h,
-				0.9,
-				false,
-			);
-			this.addColliderBox(
-				new THREE.Vector3(x + doorRightW / 2 + 0.5, h / 2, z + d / 2),
-				doorRightW,
-				h,
-				0.9,
-				false,
-			);
-		}
-		if (doorTopH > 0) {
-			this.addColliderBox(
-				new THREE.Vector3(x, doorH + doorTopH / 2, z + d / 2),
-				w,
-				doorTopH,
-				0.9,
-				false,
-			);
-		}
 		const roof = new THREE.Mesh(
 			this.pool.getGeoBox(w + 1.8, 0.8, d + 1.8),
 			wallMat,
@@ -4638,6 +4603,19 @@ export class MapGenerator {
 			[12, 18],
 		]) {
 			this._registerChestSpot(x + ox, z + oz, "hangar", 3);
+		}
+		// Easter egg: Stalker corpse on the floor, just inside the door
+		this._addStalkerCorpse(0, d / 2 - 2, 0.3, group);
+		// Disable frustum culling on the group when it contains easterEgg children
+		// Three.js skips ALL children if parent Group.frustumCulled=true and bounding box misses frustum
+		let hasEasterEgg = false;
+		group.traverse((obj) => {
+			if (obj.userData && obj.userData.easterEgg) {
+				hasEasterEgg = true;
+			}
+		});
+		if (hasEasterEgg) {
+			group.frustumCulled = false;
 		}
 	}
 
@@ -6100,7 +6078,7 @@ export class MapGenerator {
 		this.addColliderBox(new THREE.Vector3(x, 3, z), 8, 6, 12, false);
 	}
 
-	_addStalkerCorpse(x, z) {
+	_addStalkerCorpse(x, z, floorY = 0, parent) {
 		// Easter egg: Stalker NPC corpse (bot-style model) visible in military area
 		const corpse = new THREE.Group();
 
@@ -6299,10 +6277,64 @@ export class MapGenerator {
 		corpse.userData.easterEggWeapon = "bazooka";
 		corpse.userData.easterEggCollected = false;
 
-		corpse.position.set(x, 0.14, z);
+		// Blood pool on the floor
+		const bloodMat = new THREE.MeshStandardMaterial({
+			color: 0x8b0000,
+			emissive: 0x4a0000,
+			emissiveIntensity: 0.8,
+			transparent: true,
+			opacity: 0.7,
+			roughness: 0.3,
+		});
+		const bloodPool = new THREE.Mesh(
+			this.pool.getGeoCylinder(0.8, 0.8, 0.02, 16),
+			bloodMat,
+		);
+		bloodPool.position.set(0, 0.01, 0);
+		corpse.add(bloodPool);
+		bloodPool.frustumCulled = false;
+
+		// Blood splatter on nearby floor
+		const splatMat = new THREE.MeshStandardMaterial({
+			color: 0x6b0000,
+			emissive: 0x3a0000,
+			emissiveIntensity: 0.6,
+			transparent: true,
+			opacity: 0.5,
+			roughness: 0.4,
+		});
+		for (let i = 0; i < 4; i++) {
+			const angle = (i / 4) * Math.PI * 2;
+			const dist = 0.9 + Math.random() * 0.6;
+			const splat = new THREE.Mesh(
+				this.pool.getGeoCylinder(
+					0.15 + Math.random() * 0.2,
+					0.15 + Math.random() * 0.2,
+					0.01,
+					8,
+				),
+				splatMat,
+			);
+			const r = splat.geometry.parameters.radiusTop;
+			splat.position.set(Math.cos(angle) * dist, 0.01, Math.sin(angle) * dist);
+			corpse.add(splat);
+			splat.frustumCulled = false;
+		}
+
+		// Disable frustum culling on Group itself AND all children
+		// Three.js skips children if Group.frustumCulled=true and bounding box misses frustum
+		corpse.frustumCulled = false;
+		corpse.traverse((child) => {
+			if (child.isMesh) {
+				child.frustumCulled = false;
+				child.userData.easterEgg = true;
+			}
+		});
+
+		corpse.position.set(x, floorY, z);
 		corpse.userData.mapGenerated = true;
-		this.scene.add(corpse);
-		this.addColliderBox(new THREE.Vector3(x, 0.3, z), 1.5, 0.6, 2.0, false);
+		(parent || this.scene).add(corpse);
+		this.addColliderBox(new THREE.Vector3(x, floorY, z), 1.5, 0.6, 2.0, false);
 	}
 
 	_addMilitaryFences(startX, startZ, size) {

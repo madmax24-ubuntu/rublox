@@ -99,6 +99,7 @@ class Game {
 		this._tmpAudioForward = new THREE.Vector3();
 		this._frustumBox = new THREE.Box3();
 		this._tmpSafeZone = new THREE.Vector3();
+		this._tmpEasterPos = new THREE.Vector3();
 		this.initialized = false;
 		// YieldScheduler для предотвращения фризов >1ms
 		this.yieldScheduler = yieldScheduler;
@@ -1787,10 +1788,11 @@ class Game {
 		const playerPos = this.player.position;
 		const threshold = 3.0;
 
-		// Walk the scene children to find the corpse
+		// Walk the scene children to find the corpse (use world position)
 		this.scene.traverse((obj) => {
 			if (obj.userData?.easterEgg && !obj.userData?.easterEggCollected) {
-				const dist = playerPos.distanceTo(obj.position);
+				const worldPos = obj.getWorldPosition(this._tmpEasterPos);
+				const dist = playerPos.distanceTo(worldPos);
 				if (dist < threshold) {
 					obj.userData.easterEggCollected = true;
 					this._easterCorpseTriggered = true;
