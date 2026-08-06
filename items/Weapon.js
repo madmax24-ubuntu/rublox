@@ -1933,7 +1933,7 @@ function createGunModel(style) {
 function createBazookaModel() {
 	const group = new THREE.Group();
 
-	// Materials - matching reference: green tube, dark bell, small sight, stock
+	// Materials - matching RPG-7 reference: green tube, dark bell/muzzle, sight, stock
 	const tubeMat = new THREE.MeshStandardMaterial({
 		color: 0x4a7a3a,
 		roughness: 0.6,
@@ -1955,38 +1955,51 @@ function createBazookaModel() {
 		metalness: 0.1,
 	});
 
-	// === GREEN TUBE ===
-	const tubeGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.65, 12);
+	// === GREEN TUBE (long main body) ===
+	const tubeGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.8, 12);
 	const tube = new THREE.Mesh(tubeGeo, tubeMat);
-	tube.position.set(0.33, 0, 0);
+	tube.position.set(0.3, 0, 0);
 	tube.rotation.z = Math.PI / 2;
 	group.add(tube);
 
 	// === DARK MUZZLE RING (front opening) ===
-	const muzzleGeo = new THREE.TorusGeometry(0.19, 0.015, 4, 12);
+	const muzzleGeo = new THREE.TorusGeometry(0.19, 0.02, 4, 12);
 	const muzzle = new THREE.Mesh(muzzleGeo, darkMat);
-	muzzle.position.set(0.655, 0, 0);
+	muzzle.position.set(0.7, 0, 0);
 	muzzle.rotation.y = Math.PI / 2;
 	group.add(muzzle);
 
 	// === DARK REAR BELL (large, flaring out) ===
-	const bellGeo = new THREE.CylinderGeometry(0.22, 0.3, 0.12, 16);
+	const bellGeo = new THREE.CylinderGeometry(0.22, 0.35, 0.15, 16);
 	const bell = new THREE.Mesh(bellGeo, darkMat);
-	bell.position.set(-0.06, 0, 0);
+	bell.position.set(-0.1, 0, 0);
 	bell.rotation.z = Math.PI / 2;
 	group.add(bell);
 
-	// === SMALL SIGHT (rectangular box on top, tiny blue reticle dot) ===
-	const sightGeo = new THREE.BoxGeometry(0.12, 0.08, 0.06);
+	// === SIGHT (rectangular box on top with blue reticle) ===
+	const sightGeo = new THREE.BoxGeometry(0.2, 0.1, 0.08);
 	const sight = new THREE.Mesh(sightGeo, sightMat);
-	sight.position.set(0.45, 0.2, 0);
+	sight.position.set(0.3, 0.22, 0);
 	group.add(sight);
 
-	// === STOCK (rear) ===
-	const stockGeo = new THREE.BoxGeometry(0.14, 0.12, 0.1);
+	// Reticle dot (blue)
+	const reticleMat = new THREE.MeshBasicMaterial({ color: 0x4488ff });
+	const reticleGeo = new THREE.SphereGeometry(0.015, 6, 6);
+	const reticle = new THREE.Mesh(reticleGeo, reticleMat);
+	reticle.position.set(0.3, 0.27, 0);
+	group.add(reticle);
+
+	// === STOCK (rear, longer) ===
+	const stockGeo = new THREE.BoxGeometry(0.16, 0.12, 0.1);
 	const stock = new THREE.Mesh(stockGeo, stockMat);
-	stock.position.set(-0.18, -0.02, 0);
+	stock.position.set(-0.28, -0.02, 0);
 	group.add(stock);
+
+	// === GRIP (under sight, for holding) ===
+	const gripGeo = new THREE.BoxGeometry(0.06, 0.14, 0.06);
+	const grip = new THREE.Mesh(gripGeo, stockMat);
+	grip.position.set(0.3, -0.16, 0);
+	group.add(grip);
 
 	return group;
 }
@@ -2024,7 +2037,10 @@ function createBazookaProjectileMesh() {
 	// Main body tube (long cylinder, rounded at nose end)
 	group.add(
 		createPart(
-			getGeom("rpg7_rbody", () => new THREE.CylinderGeometry(0.08, 0.08, 0.35, 8)),
+			getGeom(
+				"rpg7_rbody",
+				() => new THREE.CylinderGeometry(0.08, 0.08, 0.35, 8),
+			),
 			bodyMat,
 			0.05,
 			0,
@@ -2037,7 +2053,10 @@ function createBazookaProjectileMesh() {
 	// Rounded nose cap (hemisphere)
 	group.add(
 		createPart(
-			getGeom("rpg7_rnose", () => new THREE.SphereGeometry(0.08, 8, 8, 0, Math.PI)),
+			getGeom(
+				"rpg7_rnose",
+				() => new THREE.SphereGeometry(0.08, 8, 8, 0, Math.PI),
+			),
 			bodyMat,
 			0.22,
 			0,
@@ -2252,9 +2271,9 @@ function getViewPoseForType(rawType) {
 		base.rotation.set(0.05, -Math.PI / 2, -0.05);
 		base.scale = 0.67;
 	} else if (type === "bazooka") {
-		base.position.set(0.24, -0.46, -1.05);
+		base.position.set(0.28, -0.44, -1.0);
 		base.rotation.set(0.05, -Math.PI / 2, -0.05);
-		base.scale = 0.58;
+		base.scale = 0.68;
 	}
 
 	return base;

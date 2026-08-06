@@ -4486,8 +4486,8 @@ export class MapGenerator {
 		group.add(floor);
 		const doorW = 4;
 		const doorH = 3.5;
-		const doorLeftW = w / 2 - doorW / 2 - 0.5;
-		const doorRightW = w / 2 - doorW / 2 - 0.5;
+		const doorLeftW = w / 2 - doorW / 2;
+		const doorRightW = w / 2 - doorW / 2;
 		for (const side of [-1, 1]) {
 			const wall = new THREE.Mesh(this.pool.getGeoBox(0.9, h, d), wallMat);
 			wall.position.set((side * w) / 2, h / 2, 0);
@@ -4570,13 +4570,7 @@ export class MapGenerator {
 		door.position.set(0, doorH / 2, d / 2 + 0.05);
 		door.userData.mapGenerated = true;
 		group.add(door);
-		this.addColliderBox(
-			new THREE.Vector3(x, doorH / 2, z + d / 2 - 0.5),
-			doorW,
-			doorH,
-			2,
-			true,
-		);
+		// No door collider — entrance is walkable (door is visual only)
 		const backWall = new THREE.Mesh(this.pool.getGeoBox(w, h, 0.9), wallMat);
 		backWall.position.set(0, h / 2, -d / 2);
 		backWall.userData.mapGenerated = true;
