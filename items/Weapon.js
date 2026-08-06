@@ -74,29 +74,6 @@ function createMetalTexture(baseColor = "#7a8590") {
 	});
 }
 
-// ── Dark Metal (for polymer/coated parts) ──
-function createDarkMetalTexture(baseColor = "#1a1f25") {
-	return createCanvasTexture(512, 512, (ctx, w, h) => {
-		ctx.fillStyle = baseColor;
-		ctx.fillRect(0, 0, w, h);
-		for (let i = 0; i < 5000; i++) {
-			const x = Math.random() * w,
-				y = Math.random() * h,
-				v = Math.random() * 20 - 10;
-			ctx.fillStyle = `rgba(${v > 0 ? v : 0},${v > 0 ? v : 0},${v > 0 ? v : 0},0.1)`;
-			ctx.fillRect(x, y, 1, 1);
-		}
-		for (let y = 0; y < h; y += 3) {
-			ctx.strokeStyle = `rgba(255,255,255,${Math.random() * 0.02})`;
-			ctx.lineWidth = 0.5;
-			ctx.beginPath();
-			ctx.moveTo(0, y);
-			ctx.lineTo(w, y + Math.random() * 2 - 1);
-			ctx.stroke();
-		}
-	});
-}
-
 // ── Premium Wood (quarter-sawn figure) ──
 function createWoodTexture(baseColor = "#5a3a20") {
 	return createCanvasTexture(512, 512, (ctx, w, h) => {
@@ -206,7 +183,7 @@ const WEAPON_BALANCE = {
 	fists: {
 		damage: 8,
 		range: 2.4,
-		cooldown: 0.38,
+		cooldown: 0.2,
 		ammo: null,
 		durability: null,
 		projectileSpeed: 0,
@@ -214,7 +191,7 @@ const WEAPON_BALANCE = {
 	knife: {
 		damage: 24,
 		range: 3.4,
-		cooldown: 0.42,
+		cooldown: 0.2,
 		ammo: null,
 		durability: 80,
 		projectileSpeed: 0,
@@ -222,7 +199,7 @@ const WEAPON_BALANCE = {
 	bow: {
 		damage: 28,
 		range: 20,
-		cooldown: 1.18,
+		cooldown: 0.5,
 		ammo: 48,
 		durability: null,
 		projectileSpeed: 46,
@@ -230,7 +207,7 @@ const WEAPON_BALANCE = {
 	laser: {
 		damage: 24,
 		range: 86,
-		cooldown: 0.34,
+		cooldown: 0.08,
 		ammo: 30,
 		durability: null,
 		projectileSpeed: 62,
@@ -238,7 +215,7 @@ const WEAPON_BALANCE = {
 	shotgun: {
 		damage: 18,
 		range: 11.5,
-		cooldown: 0.98,
+		cooldown: 0.25,
 		ammo: 36,
 		durability: null,
 		projectileSpeed: 48,
@@ -256,7 +233,7 @@ const WEAPON_BALANCE = {
 	pistol: {
 		damage: 23,
 		range: 62,
-		cooldown: 0.36,
+		cooldown: 0.2,
 		ammo: 90,
 		durability: null,
 		projectileSpeed: 82,
@@ -264,7 +241,7 @@ const WEAPON_BALANCE = {
 	rifle: {
 		damage: 29,
 		range: 96,
-		cooldown: 0.3,
+		cooldown: 0.15,
 		ammo: 120,
 		durability: null,
 		projectileSpeed: 98,
@@ -272,18 +249,18 @@ const WEAPON_BALANCE = {
 	machinegun: {
 		damage: 14,
 		range: 82,
-		cooldown: 0.105,
+		cooldown: 0.06,
 		ammo: 180,
 		durability: null,
 		projectileSpeed: 94,
 	},
 	bazooka: {
-		damage: 100,
-		range: 90,
-		cooldown: 0.6,
+		damage: 150,
+		range: 100,
+		cooldown: 2.5,
 		ammo: null,
 		durability: null,
-		projectileSpeed: 64,
+		projectileSpeed: 55,
 	},
 };
 
@@ -307,6 +284,7 @@ export class WeaponAnimation {
 		this.reloadDuration = 2.0;
 		this.heatGlow = 0;
 		this.lastShotTime = 0;
+		this.recoilAmount = 1;
 	}
 	update(delta, isShooting, isMoving, mouseDx, mouseDy) {
 		this.time += delta;
@@ -331,8 +309,9 @@ export class WeaponAnimation {
 		}
 		if (!isShooting) this.heatGlow *= Math.max(0, 1 - delta * 0.3);
 	}
-	triggerRecoil() {
-		this.recoilKick = 1;
+	triggerRecoil(amount) {
+		this.recoilAmount = amount || this.recoilAmount;
+		this.recoilKick = this.recoilAmount;
 		this.recoilRecovery = 0;
 		this.muzzleFlash = 1;
 		this.lastShotTime = this.time;
@@ -342,7 +321,7 @@ export class WeaponAnimation {
 		this.reloadProgress = 0;
 		this.reloadDuration = dur || 2.0;
 	}
-	applyToMesh(mesh, weaponType) {
+	applyToMesh(mesh, _weaponType) {
 		if (!mesh) return;
 		if (mesh.userData.basePositionX === undefined) {
 			mesh.userData.basePositionX = mesh.position.x;
@@ -361,7 +340,8 @@ export class WeaponAnimation {
 			mesh.userData.basePositionX +
 			Math.cos(this.bobPhase * 0.5) * this.bobAmount * 0.45 +
 			this.swayX * 0.02;
-		mesh.position.z = mesh.userData.basePositionZ + this.recoilKick * 0.045;
+		mesh.position.z =
+			mesh.userData.basePositionZ + this.recoilKick * this.recoilAmount * 0.045;
 	}
 }
 
@@ -372,7 +352,7 @@ export function createGunshotSound(
 	type,
 	audioContext,
 	volume = 0.5,
-	position = null,
+	_position = null,
 ) {
 	if (!audioContext) return null;
 	const now = audioContext.currentTime;
@@ -451,6 +431,11 @@ export function createGunshotSound(
 		o.stop(now + dur + 0.01);
 	};
 
+	const playShotgunFizzle = () => {
+		for (let i = 1; i < 5; i++)
+			mkNoise(0.02, 0.15, 5000 + i * 1000, null, null);
+	};
+
 	switch (type) {
 		case "pistol": {
 			mkNoise(0.06, 0.6, null, null, 4000);
@@ -473,8 +458,7 @@ export function createGunshotSound(
 		case "shotgun": {
 			mkNoise(0.2, 0.8, null, 3000, null);
 			mkOsc(120, 20, 0.3, 0.7);
-			for (let i = 1; i < 5; i++)
-				mkNoise(0.02, 0.15, 5000 + i * 1000, null, null);
+			playShotgunFizzle();
 			break;
 		}
 		case "laser": {
@@ -767,20 +751,6 @@ function createBowModel() {
 				map: createPolymerTexture("#1d1210"),
 			}),
 	);
-	const stringMat = getMaterial(
-		"bow_string",
-		() => new THREE.LineBasicMaterial({ color: 0x707070 }),
-	);
-	const nockMat = getMaterial(
-		"bow_nock",
-		() =>
-			new THREE.MeshStandardMaterial({
-				color: 0xe8e0d0,
-				roughness: 0.4,
-				metalness: 0.1,
-				flatShading: true,
-			}),
-	);
 
 	// T limb segments (modern recurve)
 	const segGeom = getGeom(
@@ -795,7 +765,7 @@ function createBowModel() {
 		[-0.08, -0.52, -0.26, -0.05],
 		[-0.16, -0.88, -0.48, -0.08],
 	];
-	for (const [x, y, r, twist] of segData) {
+	for (const [x, y, r, _twist] of segData) {
 		group.add(createPart(segGeom, limbMat, x, y, 0, 0, 0, r));
 	}
 	// Limb tips (cammes)
@@ -838,6 +808,11 @@ function createBowModel() {
 			0.05,
 			0,
 		),
+	);
+	// String material
+	const stringMat = getMaterial(
+		"bow_string",
+		() => new THREE.LineBasicMaterial({ color: 0x707070 }),
 	);
 
 	// String (3 segments)
@@ -1957,269 +1932,157 @@ function createGunModel(style) {
 
 function createBazookaModel() {
 	const group = new THREE.Group();
-	// Detailed military green with PBR textures
-	const tubeMat = getMaterial("baz_tube_pbr", () =>
-		createWeaponMaterial(createPBRMetalTexture("#3a4a32")),
-	);
-	const darkMat = getMaterial("baz_dark_pbr", () =>
-		createWeaponMaterial(createPolymerTexture2("#1a2a18")),
-	);
-	const steelMat = getMaterial("baz_steel_pbr", () =>
-		createWeaponMaterial(createPBRMetalTexture("#5a6a52")),
-	);
-	const gripMat = getMaterial("baz_grip_pbr", () =>
-		createWeaponMaterial(createPolymerTexture2("#2a2a22")),
-	);
-	const brassMat = getMaterial(
-		"baz_brass",
+
+	// Materials - matching reference: green tube, dark bell, small sight, stock
+	const tubeMat = new THREE.MeshStandardMaterial({
+		color: 0x4a7a3a,
+		roughness: 0.6,
+		metalness: 0.3,
+	});
+	const darkMat = new THREE.MeshStandardMaterial({
+		color: 0x333333,
+		metalness: 0.8,
+		roughness: 0.3,
+	});
+	const sightMat = new THREE.MeshStandardMaterial({
+		color: 0x222222,
+		metalness: 0.9,
+		roughness: 0.2,
+	});
+	const stockMat = new THREE.MeshStandardMaterial({
+		color: 0x5a4a3a,
+		roughness: 0.7,
+		metalness: 0.1,
+	});
+
+	// === GREEN TUBE ===
+	const tubeGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.65, 12);
+	const tube = new THREE.Mesh(tubeGeo, tubeMat);
+	tube.position.set(0.33, 0, 0);
+	tube.rotation.z = Math.PI / 2;
+	group.add(tube);
+
+	// === DARK MUZZLE RING (front opening) ===
+	const muzzleGeo = new THREE.TorusGeometry(0.19, 0.015, 4, 12);
+	const muzzle = new THREE.Mesh(muzzleGeo, darkMat);
+	muzzle.position.set(0.655, 0, 0);
+	muzzle.rotation.y = Math.PI / 2;
+	group.add(muzzle);
+
+	// === DARK REAR BELL (large, flaring out) ===
+	const bellGeo = new THREE.CylinderGeometry(0.22, 0.3, 0.12, 16);
+	const bell = new THREE.Mesh(bellGeo, darkMat);
+	bell.position.set(-0.06, 0, 0);
+	bell.rotation.z = Math.PI / 2;
+	group.add(bell);
+
+	// === SMALL SIGHT (rectangular box on top, tiny blue reticle dot) ===
+	const sightGeo = new THREE.BoxGeometry(0.12, 0.08, 0.06);
+	const sight = new THREE.Mesh(sightGeo, sightMat);
+	sight.position.set(0.45, 0.2, 0);
+	group.add(sight);
+
+	// === STOCK (rear) ===
+	const stockGeo = new THREE.BoxGeometry(0.14, 0.12, 0.1);
+	const stock = new THREE.Mesh(stockGeo, stockMat);
+	stock.position.set(-0.18, -0.02, 0);
+	group.add(stock);
+
+	return group;
+}
+// RPG-7 rocket (PG-7V) — points along +X (muzzle at +X, nozzle at -X)
+function createBazookaProjectileMesh() {
+	const group = new THREE.Group();
+	group.userData.hasSmokeTrail = true;
+
+	// Nose cone (orange -> red gradient)
+	const noseMat = getMaterial(
+		"rpg7_rnose",
 		() =>
 			new THREE.MeshStandardMaterial({
-				color: 0xb5a040,
-				metalness: 0.9,
-				roughness: 0.2,
-				map: createBrassTexture(),
+				color: 0xff4400,
+				emissive: 0x440000,
+				roughness: 0.4,
+			}),
+	);
+	// Body (dark gray)
+	const bodyMat = getMaterial(
+		"rpg7_rbody",
+		() =>
+			new THREE.MeshStandardMaterial({
+				color: 0x444444,
+				roughness: 0.5,
+				metalness: 0.6,
+			}),
+	);
+	// Fins
+	const finMat = getMaterial(
+		"rpg7_rfin",
+		() => new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.6 }),
+	);
+	// Nozzle
+	const nozzleMat = getMaterial(
+		"rpg7_rnozzle",
+		() =>
+			new THREE.MeshStandardMaterial({
+				color: 0x666666,
+				emissive: 0xff4400,
+				emissiveIntensity: 0.5,
 			}),
 	);
 
-	// === MAIN TUBE (with texture rings) ===
-	// Base tube
+	// Warhead body (centered at +0.06)
 	group.add(
 		createPart(
 			getGeom(
-				"baz_tube",
-				() => new THREE.CylinderGeometry(0.13, 0.13, 1.35, 12),
+				"rpg7_rbody",
+				() => new THREE.CylinderGeometry(0.1, 0.1, 0.12, 8),
 			),
-			tubeMat,
-			0,
+			bodyMat,
+			0.06,
 			0,
 			0,
 			0,
 			Math.PI / 2,
 		),
 	);
-	// Tube end rings (decorative)
-	for (let i = 0; i < 4; i++) {
-		const ring = createPart(
-			getGeom(
-				`baz_ring_${i}`,
-				() => new THREE.TorusGeometry(0.135, 0.008, 4, 12),
-			),
-			darkMat,
-			0.15 + i * 0.32,
-			0,
-			0,
-			0,
-			Math.PI / 2,
-		);
-		group.add(ring);
-	}
 
-	// === MUZZLE SECTION ===
-	// Muzzle brake housing
+	// Ogive nose cone (at +0.15, pointing toward +X)
 	group.add(
 		createPart(
-			getGeom(
-				"baz_muzzle_brk",
-				() => new THREE.CylinderGeometry(0.16, 0.14, 0.2, 12),
-			),
-			darkMat,
-			0.82,
+			getGeom("rpg7_rnose", () => new THREE.ConeGeometry(0.1, 0.12, 8)),
+			noseMat,
+			0.15,
 			0,
 			0,
 			0,
-			Math.PI / 2,
+			0,
+			-Math.PI / 2,
 		),
 	);
-	// Muzzle brake fins (8 radial fins)
-	for (let i = 0; i < 8; i++) {
+
+	// 4 fins (at -0.06)
+	for (let i = 0; i < 4; i++) {
 		const fin = createPart(
-			getGeom(`baz_mfin_${i}`, () => new THREE.BoxGeometry(0.04, 0.06, 0.03)),
-			steelMat,
-			0.95,
+			getGeom(`rpg7_rfin_${i}`, () => new THREE.BoxGeometry(0.02, 0.08, 0.12)),
+			finMat,
+			-0.06,
 			0,
 			0,
 		);
-		fin.rotation.z = (Math.PI / 4) * i;
+		fin.rotation.z = (Math.PI / 2) * i;
 		group.add(fin);
 	}
-	// Muzzle opening (dark)
-	const muzzleOpen = createPart(
-		getGeom(
-			"baz_mz_open",
-			() => new THREE.CylinderGeometry(0.12, 0.12, 0.02, 12),
-		),
-		darkMat,
-		0.93,
-		0,
-		0,
-		0,
-		Math.PI / 2,
-	);
-	group.add(muzzleOpen);
 
-	// === FRONT SIGHT ASSEMBLY ===
-	const sightBase = createPart(
-		getGeom("baz_sight_base", () => new THREE.BoxGeometry(0.06, 0.12, 0.06)),
-		darkMat,
-		-0.25,
-		0.16,
-		0,
-	);
-	group.add(sightBase);
-	// Front sight post
+	// Exhaust nozzle (at -0.18)
 	group.add(
 		createPart(
 			getGeom(
-				"baz_sight_post",
-				() => new THREE.CylinderGeometry(0.015, 0.015, 0.1, 6),
+				"rpg7_rnozzle",
+				() => new THREE.CylinderGeometry(0.04, 0.06, 0.04, 8),
 			),
-			brassMat,
-			-0.25,
-			0.25,
-			0,
-		),
-	);
-
-	// === REAR SIGHT ASSEMBLY ===
-	const rearSight = createPart(
-		getGeom("baz_rear_sight", () => new THREE.BoxGeometry(0.1, 0.14, 0.08)),
-		darkMat,
-		-0.65,
-		0.17,
-		0,
-	);
-	group.add(rearSight);
-	// Rear sight aperture
-	group.add(
-		createPart(
-			getGeom(
-				"baz_sight_ap",
-				() => new THREE.CylinderGeometry(0.025, 0.025, 0.02, 8),
-			),
-			darkMat,
-			-0.65,
-			0.24,
-			0,
-		),
-	);
-
-	// === CARRY HANDLE / PIVOT ===
-	const pivot = createPart(
-		getGeom("baz_pivot", () => new THREE.BoxGeometry(0.08, 0.18, 0.06)),
-		steelMat,
-		-0.5,
-		0.18,
-		0,
-	);
-	group.add(pivot);
-
-	// === TRIGGER SECTION ===
-	// Trigger guard
-	group.add(
-		createPart(
-			getGeom("baz_tguard", () => new THREE.TorusGeometry(0.055, 0.012, 4, 8)),
-			darkMat,
-			-0.45,
-			-0.1,
-			0,
-			0,
-			0,
-			Math.PI,
-		),
-	);
-	// Pistol grip with rubber texture
-	group.add(
-		createPart(
-			getGeom("baz_pistol_grip", () => new THREE.BoxGeometry(0.12, 0.26, 0.12)),
-			gripMat,
-			-0.42,
-			-0.28,
-			0,
-			0,
-			0,
-			-0.12,
-		),
-	);
-	// Grip texture lines
-	for (let i = 0; i < 5; i++) {
-		const line = createPart(
-			getGeom(
-				`baz_grip_line_${i}`,
-				() => new THREE.BoxGeometry(0.13, 0.005, 0.01),
-			),
-			darkMat,
-			-0.42,
-			-0.22 + i * 0.03,
-			0.065,
-		);
-		group.add(line);
-	}
-
-	// === STOCK ASSEMBLY ===
-	// Stock connector
-	group.add(
-		createPart(
-			getGeom("baz_stock_conn", () => new THREE.BoxGeometry(0.14, 0.16, 0.14)),
-			tubeMat,
-			-0.82,
-			-0.02,
-			0,
-		),
-	);
-	// Main stock tube
-	group.add(
-		createPart(
-			getGeom(
-				"baz_stock_main",
-				() => new THREE.CylinderGeometry(0.09, 0.09, 0.5, 10),
-			),
-			tubeMat,
-			-1.05,
-			-0.02,
-			0,
-			0,
-			Math.PI / 2,
-		),
-	);
-	// Cheek rest pad
-	group.add(
-		createPart(
-			getGeom("baz_cheek_pad", () => new THREE.BoxGeometry(0.16, 0.08, 0.18)),
-			gripMat,
-			-1.0,
-			0.1,
-			0,
-		),
-	);
-	// Buttpad (rubber)
-	group.add(
-		createPart(
-			getGeom("baz_buttpad", () => new THREE.BoxGeometry(0.06, 0.2, 0.2)),
-			gripMat,
-			-1.32,
-			-0.02,
-			0,
-		),
-	);
-
-	// === WARNING STRIPE (red band on tube) ===
-	const stripeMat = getMaterial(
-		"baz_stripe_pbr",
-		() =>
-			new THREE.MeshStandardMaterial({
-				color: 0xcc3333,
-				roughness: 0.5,
-				metalness: 0.1,
-			}),
-	);
-	group.add(
-		createPart(
-			getGeom(
-				"baz_warn_str",
-				() => new THREE.TorusGeometry(0.138, 0.012, 4, 12),
-			),
-			stripeMat,
-			0.35,
+			nozzleMat,
+			-0.18,
 			0,
 			0,
 			0,
@@ -2227,7 +2090,6 @@ function createBazookaModel() {
 		),
 	);
 
-	group.rotation.y = Math.PI;
 	return group;
 }
 
@@ -2786,49 +2648,10 @@ export class Weapon {
 			);
 			knockback = type === "rifle" || type === "machinegun" ? 4 : 3;
 		} else if (type === "bazooka") {
-			const m = getMaterial(
-				"proj_rocket",
-				() =>
-					new THREE.MeshStandardMaterial({
-						color: 0x4a5632,
-						roughness: 0.6,
-						metalness: 0.4,
-					}),
-			);
-			mesh = createPart(
-				getGeom(
-					"proj_rocket",
-					() => new THREE.CylinderGeometry(0.06, 0.06, 0.5, 8),
-				),
-				m,
-				0,
-				0,
-				0,
-				0,
-				Math.PI / 2,
-			);
-			// Rocket fins
-			const finMat = getMaterial(
-				"proj_rocket_fin",
-				() =>
-					new THREE.MeshStandardMaterial({ color: 0x2d3522, roughness: 0.7 }),
-			);
-			for (let i = 0; i < 4; i++) {
-				const fin = createPart(
-					getGeom(
-						`proj_rfin_${i}`,
-						() => new THREE.BoxGeometry(0.02, 0.06, 0.12),
-					),
-					finMat,
-					-0.2,
-					0,
-					0,
-				);
-				fin.rotation.z = (Math.PI / 2) * i;
-				mesh.add(fin);
-			}
-			knockback = 12;
-			gravity = 0.008;
+			mesh = createBazookaProjectileMesh();
+			mesh.userData.hasSmokeTrail = true;
+			knockback = 15;
+			gravity = 0.005;
 		} else if (type === "flame") {
 			const m = getMaterial(
 				"proj_generic",
@@ -2872,6 +2695,7 @@ export class Weapon {
 			travelled: 0,
 			maxDistance,
 			align: type === "bow" ? "arrow" : null,
+			hasSmokeTrail: mesh?.userData?.hasSmokeTrail || false,
 			type,
 		};
 	}

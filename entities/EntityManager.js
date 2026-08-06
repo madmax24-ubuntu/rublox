@@ -94,6 +94,43 @@ export class EntityManager {
 				const flicker = 0.85 + Math.random() * 0.3;
 				proj.mesh.scale.setScalar(flicker);
 			}
+			// Smoke trail for rocket projectiles
+			if (proj.hasSmokeTrail) {
+				if (!proj.smokeTrails) proj.smokeTrails = [];
+				if (!proj._smokeTimer) proj._smokeTimer = 0;
+				proj._smokeTimer += delta;
+				if (proj._smokeTimer >= 0.05) {
+					proj._smokeTimer = 0;
+					const smokeGeo = new THREE.SphereGeometry(0.12, 6, 6);
+					const smokeMat = new THREE.MeshBasicMaterial({
+						color: 0x888888,
+						transparent: true,
+						opacity: 0.4,
+						depthWrite: false,
+					});
+					const smoke = new THREE.Mesh(smokeGeo, smokeMat);
+					smoke.position.copy(proj.mesh.position);
+					smoke.scale.setScalar(0.3);
+					smoke.userData.smokeLife = 1.5;
+					this.scene.add(smoke);
+					proj.smokeTrails.push(smoke);
+				}
+				// Fade existing smoke
+				for (let j = proj.smokeTrails.length - 1; j >= 0; j--) {
+					const smoke = proj.smokeTrails[j];
+					smoke.userData.smokeLife -= delta;
+					smoke.material.opacity = Math.max(
+						0,
+						(smoke.userData.smokeLife / 1.5) * 0.35,
+					);
+					smoke.scale.addScalar(delta * 0.3);
+					if (smoke.userData.smokeLife <= 0) {
+						this.scene.remove(smoke);
+						smoke.material.dispose();
+						proj.smokeTrails.splice(j, 1);
+					}
+				}
+			}
 			if (proj.align === "arrow") {
 				const forward =
 					proj._forward || (proj._forward = new THREE.Vector3(1, 0, 0));
@@ -405,7 +442,7 @@ export class EntityManager {
 		return null;
 	}
 
-	distancePointToSegmentFast(px, py, pz, a, b, ab, abLenSq) {
+	distancePointToSegmentFast(px, py, pz, a, _b, ab, abLenSq) {
 		if (abLenSq < 1e-6) {
 			const dx0 = px - a.x;
 			const dy0 = py - a.y;
@@ -449,6 +486,14 @@ export class EntityManager {
 					child.visible = false;
 				}
 			});
+		}
+		// Clean up smoke trails
+		if (proj.smokeTrails) {
+			for (const smoke of proj.smokeTrails) {
+				this.scene.remove(smoke);
+				smoke.material.dispose();
+			}
+			proj.smokeTrails.length = 0;
 		}
 		this.projectiles.splice(index, 1);
 	}
@@ -517,12 +562,70 @@ export class EntityManager {
 		for (let i = this.effects.length - 1; i >= 0; i--) {
 			const fx = this.effects[i];
 			fx.userData.life -= delta;
-			fx.scale.addScalar(delta * 1.8);
-			fx.traverse((child) => {
-				if (child.material) {
-					child.material.opacity = Math.max(0, fx.userData.life * 2);
+			const ud = fx.userData;
+
+			// Per-child update based on type
+			for (const child of fx.children) {
+				if (child.isPointLight && child.userData.fade) {
+					child.intensity = Math.max(0, 8 * ud.life);
+					continue;
 				}
-			});
+				if (!child.isMesh || !child.material) continue;
+
+				// Debris physics (has velocity)
+				if (child.userData.vel) {
+					child.userData.vel.y -= 9.8 * delta;
+					child.position.add(child.userData.vel.clone().multiplyScalar(delta));
+					child.userData.life -= delta;
+					if (child.userData.life <= 0) {
+						child.visible = false;
+					}
+					continue;
+				}
+
+				// Smoke rising
+				if (
+					child.material.color &&
+					child.material.color.r < 0.3 &&
+					child.material.transparent
+				) {
+					child.position.y += delta * (ud.smokeRise || 1);
+					child.scale.addScalar(delta * 0.5);
+				}
+
+				// Shockwave ring (torus)
+				if (child.geometry.type === "TorusGeometry") {
+					child.scale.setScalar(
+						Math.max(0.1, child.scale.x + delta * (ud.shockExpand || 8)),
+					);
+					child.material.opacity = Math.max(0, (ud.life / 2) * 0.5);
+					continue;
+				}
+
+				// Core flash (fast decay)
+				if (
+					child.material.color &&
+					child.material.color.r === 1 &&
+					child.material.color.g === 1 &&
+					child.material.color.b === 1 &&
+					child.material.transparent
+				) {
+					child.material.opacity = Math.max(0, ud.life * (ud.coreDecay || 4));
+					child.scale.setScalar(
+						Math.max(0.1, child.scale.x + delta * (ud.scaleRate || 2)),
+					);
+					continue;
+				}
+
+				// Standard fire/smoke
+				if (child.material.transparent) {
+					child.material.opacity = Math.max(0, ud.life * 2);
+					child.scale.setScalar(
+						Math.max(0.1, child.scale.x + delta * (ud.scaleRate || 1.8)),
+					);
+				}
+			}
+
 			if (fx.userData.life <= 0) {
 				this.scene.remove(fx);
 				// Dispose non-cached materials to prevent GPU memory leaks
@@ -542,50 +645,133 @@ export class EntityManager {
 	}
 
 	spawnBazookaExplosion(position, projectile) {
-		const radius = 6;
-		const damage = Math.round((projectile?.damage || 100) * 0.8);
-		const knockback = projectile?.knockback || 12;
+		const radius = 8;
+		const damage = Math.round((projectile?.damage || 100) * 0.9);
+		const knockback = projectile?.knockback || 15;
 
-		// Visual explosion effect - multiple expanding spheres
+		// Multi-layer explosion effect
 		const explosionGroup = new THREE.Group();
-		const explosionGeo = new THREE.SphereGeometry(0.3, 16, 16);
-		const explosionMat = new THREE.MeshBasicMaterial({
-			color: 0xff6600,
+
+		// Core yellow-white hot flash
+		const coreGeo = new THREE.SphereGeometry(0.4, 16, 16);
+		const coreMat = new THREE.MeshBasicMaterial({
+			color: 0xffffcc,
+			transparent: true,
+			opacity: 1,
+		});
+		const core = new THREE.Mesh(coreGeo, coreMat);
+		core.scale.setScalar(0.3);
+		explosionGroup.add(core);
+
+		// Inner bright yellow fireball
+		const innerGeo = new THREE.SphereGeometry(0.6, 12, 12);
+		const innerMat = new THREE.MeshBasicMaterial({
+			color: 0xffcc00,
 			transparent: true,
 			opacity: 0.9,
 		});
-		const fireGeo = new THREE.SphereGeometry(0.5, 12, 12);
-		const fireMat = new THREE.MeshBasicMaterial({
-			color: 0xffaa00,
+		const inner = new THREE.Mesh(innerGeo, innerMat);
+		inner.scale.setScalar(0.5);
+		explosionGroup.add(inner);
+
+		// Outer yellow fireball
+		const outerGeo = new THREE.SphereGeometry(0.8, 10, 10);
+		const outerMat = new THREE.MeshBasicMaterial({
+			color: 0xffdd00,
 			transparent: true,
 			opacity: 0.7,
 		});
-		const smokeGeo = new THREE.SphereGeometry(0.4, 8, 8);
+		const outer = new THREE.Mesh(outerGeo, outerMat);
+		outer.scale.setScalar(0.6);
+		explosionGroup.add(outer);
+
+		// Primary smoke cloud
+		const smokeGeo = new THREE.SphereGeometry(0.7, 8, 8);
 		const smokeMat = new THREE.MeshBasicMaterial({
-			color: 0x444444,
+			color: 0x333333,
+			transparent: true,
+			opacity: 0.6,
+			depthWrite: false,
+		});
+		const smoke1 = new THREE.Mesh(smokeGeo, smokeMat);
+		smoke1.scale.setScalar(0.4);
+		explosionGroup.add(smoke1);
+
+		// Secondary smoke cloud (offset, billowing)
+		const smoke2 = new THREE.Mesh(smokeGeo, smokeMat.clone());
+		smoke2.scale.setScalar(0.3);
+		smoke2.position.set(0.5, 0.3, -0.2);
+		explosionGroup.add(smoke2);
+
+		// Shockwave ring
+		const shockGeo = new THREE.TorusGeometry(0.5, 0.05, 8, 24);
+		const shockMat = new THREE.MeshBasicMaterial({
+			color: 0xffffcc,
 			transparent: true,
 			opacity: 0.5,
 		});
+		const shock = new THREE.Mesh(shockGeo, shockMat);
+		shock.rotation.set(Math.PI / 2, 0, 0);
+		shock.scale.setScalar(0.1);
+		explosionGroup.add(shock);
 
-		const puff1 = new THREE.Mesh(explosionGeo, explosionMat);
-		puff1.scale.setScalar(0.5);
-		explosionGroup.add(puff1);
+		// Ground scorch mark
+		const scorchGeo = new THREE.CircleGeometry(2.5, 16);
+		const scorchMat = new THREE.MeshBasicMaterial({
+			color: 0x222222,
+			transparent: true,
+			opacity: 0.7,
+		});
+		const scorch = new THREE.Mesh(scorchGeo, scorchMat);
+		scorch.rotation.x = -Math.PI / 2;
+		scorch.position.y = -0.02;
+		explosionGroup.add(scorch);
 
-		const puff2 = new THREE.Mesh(fireGeo, fireMat);
-		puff2.scale.setScalar(0.8);
-		explosionGroup.add(puff2);
+		// Point light
+		const light = new THREE.PointLight(0xffcc00, 8, 15);
+		light.userData = { fade: true };
+		explosionGroup.add(light);
 
-		const puff3 = new THREE.Mesh(smokeGeo, smokeMat);
-		puff3.scale.setScalar(1);
-		explosionGroup.add(puff3);
+		// Debris particles
+		const debrisGeo = new THREE.BoxGeometry(0.06, 0.06, 0.06);
+		const debrisMat = new THREE.MeshStandardMaterial({ color: 0x555555 });
+		const debris = [];
+		for (let i = 0; i < 16; i++) {
+			const d = new THREE.Mesh(debrisGeo, debrisMat);
+			const theta = Math.random() * Math.PI * 2;
+			const phi = Math.random() * Math.PI;
+			const r = Math.random() * 0.3;
+			d.position.set(
+				r * Math.sin(phi) * Math.cos(theta),
+				r * Math.cos(phi),
+				r * Math.sin(phi) * Math.sin(theta),
+			);
+			d.userData = {
+				vel: new THREE.Vector3(
+					(Math.random() - 0.5) * 8,
+					Math.random() * 6 + 2,
+					(Math.random() - 0.5) * 8,
+				),
+				life: 1.5,
+			};
+			explosionGroup.add(d);
+			debris.push(d);
+		}
 
 		explosionGroup.position.copy(position);
-		explosionGroup.userData = { life: 1.2, scaleRate: 2.5 };
+		explosionGroup.userData = {
+			life: 2.0,
+			scaleRate: 3.0,
+			coreDecay: 4.0,
+			smokeRise: 1.2,
+			shockExpand: 10.0,
+		};
 		this.scene.add(explosionGroup);
 		this.effects.push(explosionGroup);
 
 		// Damage nearby entities
 		const targets = this.getNearbyEntities(position, radius);
+		let totalDmg = 0;
 		for (const ent of targets) {
 			if (!ent?.isAlive) continue;
 			const dx = ent.position.x - position.x;
@@ -594,7 +780,7 @@ export class EntityManager {
 			const dist = Math.max(0.01, Math.sqrt(dx * dx + dy * dy + dz * dz));
 			if (dist > radius) continue;
 			const t = 1 - dist / radius;
-			const dmg = Math.round(damage * (0.3 + t * 0.7));
+			const dmg = Math.round(damage * (0.4 + t * 0.6));
 			ent.takeDamage(
 				dmg,
 				false,
@@ -605,14 +791,15 @@ export class EntityManager {
 			if (ent.physics?.velocity) {
 				ent.physics.velocity.x += (dx / dist) * knockback * t;
 				ent.physics.velocity.z += (dz / dist) * knockback * t;
-				ent.physics.velocity.y += 2.4 * t;
+				ent.physics.velocity.y += 3 * t;
 			}
+			totalDmg += dmg;
 		}
 
 		// Create crater zone
 		const mapGen = this.mapGenerator;
 		if (mapGen?.addCraterSlowZone) {
-			mapGen.addCraterSlowZone(position.x, position.z, 3.5, 0.4, 40);
+			mapGen.addCraterSlowZone(position.x, position.z, 4, 0.5, 45);
 		}
 
 		// Play explosion sound
@@ -620,6 +807,8 @@ export class EntityManager {
 		if (audioSynth?.playExplosion) {
 			audioSynth.playExplosion(position);
 		}
+
+		return { entitiesHit: targets.length, totalDamage: totalDmg };
 	}
 
 	getNearestEnemy(position, maxDistance = Infinity) {

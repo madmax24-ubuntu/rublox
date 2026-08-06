@@ -71,7 +71,11 @@ export class AudioSynth {
 			rifle: 0.08,
 			machinegun: 0.055,
 			flamethrower: 0.09,
+			bazooka: 0.08,
 		};
+		// Pre-generated procedural buffers for bazooka
+		this.bazookaLaunchBuffer = null;
+		this.bazookaExplosionBuffer = null;
 
 		this.sampleCatalog = {
 			ambient: [],
@@ -182,6 +186,11 @@ export class AudioSynth {
 
 			this.reverb.buffer = this.createImpulse(1.6, 1.8);
 			this.reverbGain.gain.value = 0.055;
+
+			// Pre-generate bazooka launch buffer (avoids freeze on first shot)
+			this.bazookaLaunchBuffer = this.createBazookaLaunchBuffer();
+			// Pre-generate bazooka explosion buffer (avoids freeze on first explosion)
+			this.bazookaExplosionBuffer = this.createBazookaExplosionBuffer();
 			this.sfxLimiter.threshold.value = -6;
 			this.sfxLimiter.knee.value = 3;
 			this.sfxLimiter.ratio.value = 4;
@@ -255,6 +264,44 @@ export class AudioSynth {
 		return impulse;
 	}
 
+	// Pre-generate bazooka launch sound buffer (whoosh + rumble)
+	createBazookaLaunchBuffer() {
+		const ctx = this.audioContext;
+		const rate = ctx.sampleRate;
+		const launchDur = 0.6;
+		const bufSize = rate * launchDur;
+		const buffer = ctx.createBuffer(1, bufSize, rate);
+		const data = buffer.getChannelData(0);
+		for (let i = 0; i < bufSize; i++) {
+			const t = i / rate;
+			const env =
+				t < 0.08 ? t / 0.08 : t < 0.3 ? 1 : Math.max(0, 1 - (t - 0.3) / 0.3);
+			const filter = Math.exp(-t * 6);
+			data[i] = (Math.random() * 2 - 1) * env * filter * 0.8;
+		}
+		return buffer;
+	}
+
+	// Pre-generate bazooka explosion sound buffer (double boom + rumble)
+	createBazookaExplosionBuffer() {
+		const ctx = this.audioContext;
+		const rate = ctx.sampleRate;
+		const dur = 1.5;
+		const bufSize = rate * dur;
+		const buffer = ctx.createBuffer(1, bufSize, rate);
+		const data = buffer.getChannelData(0);
+		for (let i = 0; i < bufSize; i++) {
+			const t = i / rate;
+			const env = Math.exp(-t * 3);
+			const boom1 = Math.exp(-((t - 0) / 0.08) * ((t - 0) / 0.08)) * 0.8;
+			const boom2 = Math.exp(-((t - 0.1) / 0.06) * ((t - 0.1) / 0.06)) * 0.5;
+			const rumble = Math.sin(t * 40 * Math.PI) * Math.exp(-t * 2) * 0.3;
+			data[i] =
+				(boom1 + boom2 + rumble + (Math.random() * 2 - 1) * env * 0.4) * 0.9;
+		}
+		return buffer;
+	}
+
 	createRainNoiseBuffer(duration = 2.4) {
 		if (!this.audioContext) return null;
 		if (this.rainNoiseBuffer) return this.rainNoiseBuffer;
@@ -282,7 +329,7 @@ export class AudioSynth {
 			paths.map(async (path) => {
 				try {
 					const response = await fetch(path, { cache: "force-cache" });
-					if (!response.ok) return;
+					if (!response.ok) return null;
 					const buffer = await this.audioContext.decodeAudioData(
 						await response.arrayBuffer(),
 					);
@@ -827,7 +874,7 @@ export class AudioSynth {
 		this.stopWeatherLoop();
 	}
 
-	playGrieverMove(position) {
+	playGrieverMove(_position) {
 		return false;
 	}
 
@@ -853,11 +900,11 @@ export class AudioSynth {
 		});
 	}
 
-	playStoneDoorClose(position) {
+	playStoneDoorClose(_position) {
 		return false;
 	}
 
-	playBoxArrival(position) {
+	playBoxArrival(_position) {
 		return false;
 	}
 
@@ -1144,7 +1191,7 @@ export class AudioSynth {
 		return true;
 	}
 
-	fallbackZombieMoan(type, freq, dur, vol, pos, cat) {
+	fallbackZombieMoan(type, freq, dur, vol, pos, _cat) {
 		this._ensureLazyInit();
 		if (!this.audioContext) return;
 		const now = this.audioContext.currentTime;
@@ -1163,7 +1210,7 @@ export class AudioSynth {
 		osc.stop(now + dur + 0.05);
 	}
 
-	fallbackZombieAttack(type, freq, dur, vol, pos, cat) {
+	fallbackZombieAttack(type, freq, dur, vol, pos, _cat) {
 		this._ensureLazyInit();
 		if (!this.audioContext) return;
 		const now = this.audioContext.currentTime;
@@ -1456,29 +1503,86 @@ export class AudioSynth {
 	}
 
 	playBazooka(position = null, emitterKey = "global") {
+		this._ensureLazyInit();
+		const ctx = this.audioContext;
+		if (!ctx || !this.bazookaLaunchBuffer) return false;
 		const voiceKey = `bazooka:${emitterKey}`;
-		if (!this.canPlayWeaponSfx(voiceKey, this.weaponSfxCooldown.rifle))
+		if (!this.canPlayWeaponSfx(voiceKey, this.weaponSfxCooldown.bazooka))
 			return false;
 		const scale = this.getEmitterSfxScale(emitterKey);
-		// Use rifle sample as base but with lower volume for the explosive launch
-		this.playSample(this.sampleCatalog.rifle, {
-			volume: (this.isMobileDevice ? 0.9 : 1.1) * scale,
-			rate: 0.7,
-			loop: false,
-			reverbSend: 0.04,
-			position,
-			category: "weapon",
-			voiceKey,
-			priority: this.getEmitterSfxPriority(emitterKey),
-		}).then((played) => {
-			if (played) {
-				// Add impact/explosion tail
-				setTimeout(() => {
-					this.playProceduralShot("shotgun", 0.6 * scale, position);
-				}, 350);
-			}
-			return played;
-		});
+
+		// === LAUNCH PHASE: play pre-generated buffer ===
+		const launchDur = 0.6;
+		const noiseSrc = ctx.createBufferSource();
+		noiseSrc.buffer = this.bazookaLaunchBuffer;
+		const noiseGain = ctx.createGain();
+		noiseGain.gain.value = 0.7 * scale;
+		const noiseFilter = ctx.createBiquadFilter();
+		noiseFilter.type = "bandpass";
+		noiseFilter.frequency.value = 400;
+		noiseFilter.Q.value = 1.5;
+		noiseSrc.connect(noiseFilter).connect(noiseGain);
+
+		const subOsc = ctx.createOscillator();
+		subOsc.type = "sine";
+		subOsc.frequency.setValueAtTime(90, ctx.currentTime);
+		subOsc.frequency.exponentialRampToValueAtTime(
+			50,
+			ctx.currentTime + launchDur,
+		);
+		const subGain = ctx.createGain();
+		subGain.gain.setValueAtTime(0, ctx.currentTime);
+		subGain.gain.linearRampToValueAtTime(0.5 * scale, ctx.currentTime + 0.05);
+		subGain.gain.linearRampToValueAtTime(0.4 * scale, ctx.currentTime + 0.25);
+		subGain.gain.linearRampToValueAtTime(0, ctx.currentTime + launchDur);
+		subOsc.connect(subGain);
+
+		// Panner
+		const pan = this.createPanner?.() || ctx.createPanner();
+		if (position) pan.position.set(position.x, position.y, position.z);
+		noiseGain.connect(pan);
+		subGain.connect(pan);
+		pan.connect(this.masterSfxGain);
+
+		noiseSrc.start(ctx.currentTime);
+		noiseSrc.stop(ctx.currentTime + launchDur);
+		subOsc.start(ctx.currentTime);
+		subOsc.stop(ctx.currentTime + launchDur);
+
+		// === EXPLOSION PHASE: double boom (delayed by travel time) ===
+		const travelTime = (60 / 64) * 1000; // ~937ms default
+		const expDelay = Math.min(travelTime, 2500);
+		setTimeout(() => {
+			this.playExplosion(position);
+		}, expDelay);
+	}
+
+	// Pre-generated explosion sound with double boom + rumble
+	playProceduralExplosion(position, scale = 1) {
+		this._ensureLazyInit();
+		const ctx = this.audioContext;
+		if (!ctx || !this.bazookaExplosionBuffer) return false;
+
+		const src = ctx.createBufferSource();
+		src.buffer = this.bazookaExplosionBuffer;
+		const gain = ctx.createGain();
+		gain.gain.setValueAtTime(0, ctx.currentTime);
+		gain.gain.linearRampToValueAtTime(0.9 * scale, ctx.currentTime + 0.02);
+		gain.gain.linearRampToValueAtTime(0.5 * scale, ctx.currentTime + 0.15);
+		gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 1.2);
+		const filter = ctx.createBiquadFilter();
+		filter.type = "lowpass";
+		filter.frequency.setValueAtTime(600, ctx.currentTime);
+		filter.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 1.2);
+		src.connect(filter).connect(gain);
+
+		const pan = this.createPanner?.() || ctx.createPanner();
+		if (position) pan.position.set(position.x, position.y, position.z);
+		gain.connect(pan);
+		pan.connect(this.masterSfxGain);
+
+		src.start(ctx.currentTime);
+		src.stop(ctx.currentTime + 1.5);
 	}
 
 	playTimerTick(volume = 1) {
