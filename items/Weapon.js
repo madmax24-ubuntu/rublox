@@ -1995,32 +1995,22 @@ function createBazookaProjectileMesh() {
 	const group = new THREE.Group();
 	group.userData.hasSmokeTrail = true;
 
-	// Nose cone (orange -> red gradient)
-	const noseMat = getMaterial(
-		"rpg7_rnose",
-		() =>
-			new THREE.MeshStandardMaterial({
-				color: 0xff4400,
-				emissive: 0x440000,
-				roughness: 0.4,
-			}),
-	);
-	// Body (dark gray)
+	// Body (dark gray cylinder, rounded nose) - RPG-7 rocket
 	const bodyMat = getMaterial(
 		"rpg7_rbody",
 		() =>
 			new THREE.MeshStandardMaterial({
-				color: 0x444444,
+				color: 0x555555,
 				roughness: 0.5,
 				metalness: 0.6,
 			}),
 	);
-	// Fins
+	// Fins (dark steel)
 	const finMat = getMaterial(
 		"rpg7_rfin",
 		() => new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.6 }),
 	);
-	// Nozzle
+	// Nozzle (glowing exhaust)
 	const nozzleMat = getMaterial(
 		"rpg7_rnozzle",
 		() =>
@@ -2031,15 +2021,12 @@ function createBazookaProjectileMesh() {
 			}),
 	);
 
-	// Warhead body (centered at +0.06)
+	// Main body tube (long cylinder, rounded at nose end)
 	group.add(
 		createPart(
-			getGeom(
-				"rpg7_rbody",
-				() => new THREE.CylinderGeometry(0.1, 0.1, 0.12, 8),
-			),
+			getGeom("rpg7_rbody", () => new THREE.CylinderGeometry(0.08, 0.08, 0.35, 8)),
 			bodyMat,
-			0.06,
+			0.05,
 			0,
 			0,
 			0,
@@ -2047,13 +2034,12 @@ function createBazookaProjectileMesh() {
 		),
 	);
 
-	// Ogive nose cone (at +0.15, pointing toward +X)
+	// Rounded nose cap (hemisphere)
 	group.add(
 		createPart(
-			getGeom("rpg7_rnose", () => new THREE.ConeGeometry(0.1, 0.12, 8)),
-			noseMat,
-			0.15,
-			0,
+			getGeom("rpg7_rnose", () => new THREE.SphereGeometry(0.08, 8, 8, 0, Math.PI)),
+			bodyMat,
+			0.22,
 			0,
 			0,
 			0,
@@ -2061,28 +2047,28 @@ function createBazookaProjectileMesh() {
 		),
 	);
 
-	// 4 fins (at -0.06)
-	for (let i = 0; i < 4; i++) {
+	// 2 tail fins (opposite each other, matching RPG-7 reference)
+	for (let i = 0; i < 2; i++) {
 		const fin = createPart(
-			getGeom(`rpg7_rfin_${i}`, () => new THREE.BoxGeometry(0.02, 0.08, 0.12)),
+			getGeom(`rpg7_rfin_${i}`, () => new THREE.BoxGeometry(0.02, 0.06, 0.14)),
 			finMat,
-			-0.06,
+			-0.12,
 			0,
 			0,
 		);
-		fin.rotation.z = (Math.PI / 2) * i;
+		fin.rotation.z = Math.PI * i;
 		group.add(fin);
 	}
 
-	// Exhaust nozzle (at -0.18)
+	// Exhaust nozzle (at rear)
 	group.add(
 		createPart(
 			getGeom(
 				"rpg7_rnozzle",
-				() => new THREE.CylinderGeometry(0.04, 0.06, 0.04, 8),
+				() => new THREE.CylinderGeometry(0.03, 0.05, 0.04, 8),
 			),
 			nozzleMat,
-			-0.18,
+			-0.2,
 			0,
 			0,
 			0,
