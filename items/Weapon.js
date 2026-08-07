@@ -1955,51 +1955,72 @@ function createBazookaModel() {
 		metalness: 0.1,
 	});
 
-	// === GREEN TUBE (long main body) ===
-	const tubeGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.8, 12);
+	// === GREEN TUBE (long main body - RPG-7 is ~1.2m) ===
+	const tubeGeo = new THREE.CylinderGeometry(0.2, 0.2, 1.2, 12);
 	const tube = new THREE.Mesh(tubeGeo, tubeMat);
-	tube.position.set(0.3, 0, 0);
+	tube.position.set(0.45, 0, 0);
 	tube.rotation.z = Math.PI / 2;
 	group.add(tube);
 
-	// === DARK MUZZLE RING (front opening) ===
+	// === MUZZLE RING (front opening) ===
 	const muzzleGeo = new THREE.TorusGeometry(0.19, 0.02, 4, 12);
 	const muzzle = new THREE.Mesh(muzzleGeo, darkMat);
-	muzzle.position.set(0.7, 0, 0);
+	muzzle.position.set(1.05, 0, 0);
 	muzzle.rotation.y = Math.PI / 2;
 	group.add(muzzle);
 
-	// === DARK REAR BELL (large, flaring out) ===
-	const bellGeo = new THREE.CylinderGeometry(0.22, 0.35, 0.15, 16);
+	// === MUZZLE FLASH HIDER (front) ===
+	const flashGeo = new THREE.CylinderGeometry(0.15, 0.18, 0.08, 12);
+	const flash = new THREE.Mesh(flashGeo, darkMat);
+	flash.position.set(1.13, 0, 0);
+	flash.rotation.z = Math.PI / 2;
+	group.add(flash);
+
+	// === REAR BELL (large, flaring out) ===
+	const bellGeo = new THREE.CylinderGeometry(0.22, 0.35, 0.18, 16);
 	const bell = new THREE.Mesh(bellGeo, darkMat);
-	bell.position.set(-0.1, 0, 0);
+	bell.position.set(-0.15, 0, 0);
 	bell.rotation.z = Math.PI / 2;
 	group.add(bell);
 
+	// === REAR BELL GUARD (wire ring) ===
+	const guardGeo = new THREE.TorusGeometry(0.33, 0.01, 4, 16);
+	const guard = new THREE.Mesh(guardGeo, darkMat);
+	guard.position.set(-0.24, 0, 0);
+	guard.rotation.y = Math.PI / 2;
+	group.add(guard);
+
 	// === SIGHT (rectangular box on top with blue reticle) ===
-	const sightGeo = new THREE.BoxGeometry(0.2, 0.1, 0.08);
+	const sightGeo = new THREE.BoxGeometry(0.25, 0.1, 0.08);
 	const sight = new THREE.Mesh(sightGeo, sightMat);
-	sight.position.set(0.3, 0.22, 0);
+	sight.position.set(0.5, 0.22, 0);
 	group.add(sight);
 
 	// Reticle dot (blue)
 	const reticleMat = new THREE.MeshBasicMaterial({ color: 0x4488ff });
 	const reticleGeo = new THREE.SphereGeometry(0.015, 6, 6);
 	const reticle = new THREE.Mesh(reticleGeo, reticleMat);
-	reticle.position.set(0.3, 0.27, 0);
+	reticle.position.set(0.5, 0.27, 0);
 	group.add(reticle);
 
-	// === STOCK (rear, longer) ===
-	const stockGeo = new THREE.BoxGeometry(0.16, 0.12, 0.1);
+	// === GRIP (under tube, for holding) ===
+	const gripGeo = new THREE.BoxGeometry(0.06, 0.16, 0.06);
+	const grip = new THREE.Mesh(gripGeo, stockMat);
+	grip.position.set(0.55, -0.18, 0);
+	group.add(grip);
+
+	// === STOCK (rear, long) ===
+	const stockGeo = new THREE.BoxGeometry(0.2, 0.12, 0.1);
 	const stock = new THREE.Mesh(stockGeo, stockMat);
-	stock.position.set(-0.28, -0.02, 0);
+	stock.position.set(-0.4, -0.02, 0);
 	group.add(stock);
 
-	// === GRIP (under sight, for holding) ===
-	const gripGeo = new THREE.BoxGeometry(0.06, 0.14, 0.06);
-	const grip = new THREE.Mesh(gripGeo, stockMat);
-	grip.position.set(0.3, -0.16, 0);
-	group.add(grip);
+	// === CARRYING HANDLE (top of tube, rear) ===
+	const handleGeo = new THREE.TorusGeometry(0.08, 0.01, 4, 8, Math.PI);
+	const handle = new THREE.Mesh(handleGeo, darkMat);
+	handle.position.set(-0.05, 0.22, 0);
+	handle.rotation.y = Math.PI / 2;
+	group.add(handle);
 
 	return group;
 }
@@ -2271,9 +2292,9 @@ function getViewPoseForType(rawType) {
 		base.rotation.set(0.05, -Math.PI / 2, -0.05);
 		base.scale = 0.67;
 	} else if (type === "bazooka") {
-		base.position.set(0.28, -0.44, -1.0);
+		base.position.set(0.32, -0.42, -1.1);
 		base.rotation.set(0.05, -Math.PI / 2, -0.05);
-		base.scale = 0.68;
+		base.scale = 0.58;
 	}
 
 	return base;

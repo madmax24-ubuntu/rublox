@@ -4524,11 +4524,12 @@ export class MapGenerator {
 			dl.userData.mapGenerated = true;
 			dl.userData.isWall = true;
 			group.add(dl);
+			// Full depth collider — covers the gap between side wall and door frame
 			this.addColliderBox(
-				new THREE.Vector3(x - w / 2 + doorLeftW / 2, h / 2, z + d / 2),
+				new THREE.Vector3(x - w / 2 + doorLeftW / 2, h / 2, z),
 				doorLeftW,
 				h,
-				0.9,
+				d,
 				false,
 			);
 		}
@@ -4541,11 +4542,12 @@ export class MapGenerator {
 			dr.userData.mapGenerated = true;
 			dr.userData.isWall = true;
 			group.add(dr);
+			// Full depth collider — covers the gap between side wall and door frame
 			this.addColliderBox(
-				new THREE.Vector3(x + w / 2 - doorRightW / 2, h / 2, z + d / 2),
+				new THREE.Vector3(x + w / 2 - doorRightW / 2, h / 2, z),
 				doorRightW,
 				h,
-				0.9,
+				d,
 				false,
 			);
 		}

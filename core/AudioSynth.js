@@ -264,40 +264,69 @@ export class AudioSynth {
 		return impulse;
 	}
 
-	// Pre-generate bazooka launch sound buffer (whoosh + rumble)
+	// Pre-generate bazooka launch sound buffer (ignition + thrust roar)
 	createBazookaLaunchBuffer() {
 		const ctx = this.audioContext;
 		const rate = ctx.sampleRate;
-		const launchDur = 0.6;
+		const launchDur = 0.8;
 		const bufSize = rate * launchDur;
 		const buffer = ctx.createBuffer(1, bufSize, rate);
 		const data = buffer.getChannelData(0);
 		for (let i = 0; i < bufSize; i++) {
 			const t = i / rate;
-			const env =
-				t < 0.08 ? t / 0.08 : t < 0.3 ? 1 : Math.max(0, 1 - (t - 0.3) / 0.3);
-			const filter = Math.exp(-t * 6);
-			data[i] = (Math.random() * 2 - 1) * env * filter * 0.8;
+			// Ignition crack (very short, very loud at t=0)
+			const ignition = Math.exp(-t * 80) * 0.9;
+			// Thrust envelope: rise fast, sustain, then decay
+			const thrustEnv =
+				t < 0.05
+					? t / 0.05
+					: t < 0.4
+						? 1
+						: t < 0.6
+							? 1 - (t - 0.4) / 0.2
+							: 0;
+			// Thrust rumble (low frequency component)
+			const thrustRumble = Math.sin(t * 30 * Math.PI) * thrustEnv * 0.4;
+			// Sustained noise (high frequency whoosh)
+			const noise = (Math.random() * 2 - 1) * thrustEnv * Math.exp(-t * 3) * 0.6;
+			// High frequency hiss
+			const hiss = (Math.random() * 2 - 1) * thrustEnv * 0.2;
+			data[i] = ignition + thrustRumble + noise + hiss;
 		}
 		return buffer;
 	}
 
-	// Pre-generate bazooka explosion sound buffer (double boom + rumble)
+	// Pre-generate bazooka explosion sound buffer (double boom + rumble + debris)
 	createBazookaExplosionBuffer() {
 		const ctx = this.audioContext;
 		const rate = ctx.sampleRate;
-		const dur = 1.5;
+		const dur = 2.0;
 		const bufSize = rate * dur;
 		const buffer = ctx.createBuffer(1, bufSize, rate);
 		const data = buffer.getChannelData(0);
 		for (let i = 0; i < bufSize; i++) {
 			const t = i / rate;
-			const env = Math.exp(-t * 3);
-			const boom1 = Math.exp(-((t - 0) / 0.08) * ((t - 0) / 0.08)) * 0.8;
-			const boom2 = Math.exp(-((t - 0.1) / 0.06) * ((t - 0.1) / 0.06)) * 0.5;
-			const rumble = Math.sin(t * 40 * Math.PI) * Math.exp(-t * 2) * 0.3;
+			// Primary boom (very sharp, very loud)
+			const boom1 =
+				Math.exp(-((t - 0) / 0.04) * ((t - 0) / 0.04)) * 0.9;
+			// Secondary boom (slight delay, softer)
+			const boom2 =
+				Math.exp(-((t - 0.08) / 0.05) * ((t - 0.08) / 0.05)) * 0.5;
+			// Low frequency rumble (sustained, decaying)
+			const rumble =
+				Math.sin(t * 25 * Math.PI) * Math.exp(-t * 1.5) * 0.5;
+			const rumble2 =
+				Math.sin(t * 15 * Math.PI + 1.3) * Math.exp(-t * 1.2) * 0.3;
+			// Debris impact noise (scattered high frequency, decaying)
+			const debris =
+				(Math.random() * 2 - 1) * Math.exp(-t * 2) * 0.3;
+			// Overall decay envelope
+			const env = Math.exp(-t * 2);
+			// Echo/reverb tail (delayed, softer)
+			const echo =
+				Math.exp(-((t - 0.3) / 0.5) * ((t - 0.3) / 0.5)) * 0.2;
 			data[i] =
-				(boom1 + boom2 + rumble + (Math.random() * 2 - 1) * env * 0.4) * 0.9;
+				(boom1 + boom2 + rumble + rumble2 + debris + echo) * 0.85;
 		}
 		return buffer;
 	}
