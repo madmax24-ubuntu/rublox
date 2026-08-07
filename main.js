@@ -371,8 +371,8 @@ class Game {
 				document.body.appendChild(this.renderer.domElement);
 			}
 
-			// Init audio in parallel with map generation — binds unlock handlers early
-			const audioInitPromise = this.audioSynth.init().catch(() => {});
+			// Init audio in background — sync phase (audioContext) completes immediately, async phase (worker + samples) runs in background
+			this.audioSynth.init().catch(() => {});
 
 			this.roundMode = "hybrid";
 			this.perk = "none";
@@ -455,9 +455,6 @@ class Game {
 
 			// Wait for map generation to complete (populates spawnPads)
 			await this.map._generatePromise;
-
-			// Ensure audio is fully initialized (worker buffers + samples loaded)
-			await audioInitPromise;
 
 			this.map.finalizeColliders();
 

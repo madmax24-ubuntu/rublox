@@ -76,6 +76,7 @@ export class AudioSynth {
 		// Pre-generated procedural buffers for bazooka
 		this.bazookaLaunchBuffer = null;
 		this.bazookaExplosionBuffer = null;
+		this._asyncInit = null;
 
 		this.sampleCatalog = {
 			ambient: [],
@@ -170,11 +171,15 @@ export class AudioSynth {
 					_self._workerQueue.delete(type);
 				}
 			};
-			this._postWorker = function (type, params) {
+			this._postWorker = function (type, params, timeout = 5000) {
 				if (this._workerReady.has(type)) return this._workerReady.get(type);
 				const p = new Promise((r) => {
 					this._workerQueue.set(type, r);
 					this._worker.postMessage({ type, params });
+					setTimeout(() => {
+						this._workerQueue.delete(type);
+						r(null);
+					}, timeout);
 				});
 				this._workerReady.set(type, p);
 				return p;
@@ -193,6 +198,7 @@ export class AudioSynth {
 	async init() {
 		if (this._initPromise) return this._initPromise;
 		this._initPromise = this._doInit().catch(() => false);
+		if (this._asyncInit) await this._asyncInit;
 		return this._initPromise;
 	}
 
@@ -213,29 +219,12 @@ export class AudioSynth {
 			this.reverb = this.audioContext.createConvolver();
 			this.reverbGain = this.audioContext.createGain();
 			this.sfxLimiter = this.audioContext.createDynamicsCompressor();
-
-			const rate = this.audioContext.sampleRate;
-			if (this._useWorker) {
-				const [launchData, explosionData, impulseData] =
-					await Promise.all([
-						this._postWorker("bazookaLaunch", { rate, dur: 0.9 }),
-						this._postWorker("bazookaExplosion", { rate, dur: 2.5 }),
-						this._postWorker("impulse", { rate, duration: 1.6, decay: 1.8, channels: 2 }),
-					]);
-				this.bazookaLaunchBuffer = this._createBufferFromData(1, launchData, rate);
-				this.bazookaExplosionBuffer = this._createBufferFromData(1, explosionData, rate);
-				this.reverb.buffer = this._createBufferFromData(2, impulseData, rate);
-			} else {
-				this._createSyncBuffers(rate);
-			}
 			this.reverbGain.gain.value = 0.055;
-
 			this.sfxLimiter.threshold.value = -6;
 			this.sfxLimiter.knee.value = 3;
 			this.sfxLimiter.ratio.value = 4;
 			this.sfxLimiter.attack.value = 0.0015;
 			this.sfxLimiter.release.value = 0.08;
-
 			this.musicGain.connect(this.audioContext.destination);
 			Object.keys(this.categoryGains).forEach((key) => {
 				const gainNode = this.categoryGains[key];
@@ -247,16 +236,36 @@ export class AudioSynth {
 			this.sfxLimiter.connect(this.audioContext.destination);
 			this.reverb.connect(this.reverbGain);
 			this.reverbGain.connect(this.audioContext.destination);
-
 			this.musicGain.gain.value = this.musicVolume;
 			this.masterSfxGain.gain.value = this.getAudibleVolume(this.sfxVolume);
-			await this.loadSamples();
+
+			this._asyncInit = this._generateBuffers().finally(() => {
+				if (this._worker) this._worker.terminate();
+			}).catch(() => {});
+
 			return true;
 		} catch (e) {
 			console.warn("Web Audio API not supported");
-		} finally {
 			if (this._worker) this._worker.terminate();
 		}
+	}
+
+	async _generateBuffers() {
+		const rate = this.audioContext.sampleRate;
+		if (this._useWorker) {
+			const [launchData, explosionData, impulseData] =
+				await Promise.all([
+					this._postWorker("bazookaLaunch", { rate, dur: 0.9 }),
+					this._postWorker("bazookaExplosion", { rate, dur: 2.5 }),
+					this._postWorker("impulse", { rate, duration: 1.6, decay: 1.8, channels: 2 }),
+				]);
+			this.bazookaLaunchBuffer = this._createBufferFromData(1, launchData, rate);
+			this.bazookaExplosionBuffer = this._createBufferFromData(1, explosionData, rate);
+			this.reverb.buffer = this._createBufferFromData(2, impulseData, rate);
+		} else {
+			this._createSyncBuffers(rate);
+		}
+		await this.loadSamples();
 	}
 
 	_createBufferFromData(channels, data, rate) {
