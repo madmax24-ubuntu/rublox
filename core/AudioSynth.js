@@ -188,13 +188,19 @@ export class AudioSynth {
 	_ensureLazyInit() {
 		this.bindUnlockHandlers();
 		if (!this._initPromise) {
-			this._lazyInitCalled = true;
 			this._initPromise = this.init().catch(() => false);
 		}
 		return this._initPromise;
 	}
 
 	async init() {
+		if (this._lazyInitCalled || this._initPromise) return true;
+		this._lazyInitCalled = true;
+		this._initPromise = this._doInit();
+		return this._initPromise;
+	}
+
+	async _doInit() {
 		try {
 			this.audioContext = new (
 				window.AudioContext || window.webkitAudioContext
@@ -498,7 +504,7 @@ export class AudioSynth {
 	}
 
 	async playSample(pathList, options = {}) {
-		this._ensureLazyInit();
+		await this._ensureLazyInit();
 		if (!this.audioContext) return false;
 		if (options.position) {
 			const dx = options.position.x - this.listenerPosition.x;
@@ -634,7 +640,7 @@ export class AudioSynth {
 		position = null,
 		category = "sfx",
 	) {
-		this._ensureLazyInit();
+		await this._ensureLazyInit();
 		if (!this.audioContext) return;
 		if (this.audioContext.state !== "running") {
 			await this.unlock();
@@ -666,7 +672,7 @@ export class AudioSynth {
 		position = null,
 		category = "weapon",
 	} = {}) {
-		this._ensureLazyInit();
+		await this._ensureLazyInit();
 		if (!this.audioContext) return;
 		if (this.audioContext.state !== "running") {
 			await this.unlock();
@@ -712,7 +718,7 @@ export class AudioSynth {
 		position = null,
 		category = "weapon",
 	) {
-		this._ensureLazyInit();
+		await this._ensureLazyInit();
 		if (!this.audioContext) return;
 		if (this.audioContext.state !== "running") {
 			await this.unlock();
@@ -1247,8 +1253,8 @@ export class AudioSynth {
 		return true;
 	}
 
-	fallbackZombieMoan(type, freq, dur, vol, pos, _cat) {
-		this._ensureLazyInit();
+	async fallbackZombieMoan(type, freq, dur, vol, pos, _cat) {
+		await this._ensureLazyInit();
 		if (!this.audioContext) return;
 		const now = this.audioContext.currentTime;
 		const osc = this.audioContext.createOscillator();
@@ -1266,8 +1272,8 @@ export class AudioSynth {
 		osc.stop(now + dur + 0.05);
 	}
 
-	fallbackZombieAttack(type, freq, dur, vol, pos, _cat) {
-		this._ensureLazyInit();
+	async fallbackZombieAttack(type, freq, dur, vol, pos, _cat) {
+		await this._ensureLazyInit();
 		if (!this.audioContext) return;
 		const now = this.audioContext.currentTime;
 		const osc = this.audioContext.createOscillator();
@@ -1648,8 +1654,8 @@ export class AudioSynth {
 	}
 
 	// Pre-generated explosion sound with double boom + rumble
-	playProceduralExplosion(position, scale = 1) {
-		this._ensureLazyInit();
+	async playProceduralExplosion(position, scale = 1) {
+		await this._ensureLazyInit();
 		const ctx = this.audioContext;
 		if (!ctx || !this.bazookaExplosionBuffer) return false;
 		const now = ctx.currentTime;
@@ -1761,8 +1767,8 @@ export class AudioSynth {
 		}, 1100);
 	}
 
-	startWeatherLoop(options = {}) {
-		this._ensureLazyInit();
+	async startWeatherLoop(options = {}) {
+		await this._ensureLazyInit();
 		if (!this.audioContext) return;
 		const {
 			continuous = false,
@@ -1803,14 +1809,15 @@ export class AudioSynth {
 		}
 
 		const tick = () => {
-			const played = this.playSample(sampleList, {
+			this.playSample(sampleList, {
 				volume,
 				rateMin,
 				rateMax,
 				reverbSend: 0.12,
 				category,
+			}).then((played) => {
+				if (!played && typeof fallback === "function") fallback();
 			});
-			if (!played && typeof fallback === "function") fallback();
 		};
 
 		tick();
@@ -1911,8 +1918,8 @@ export class AudioSynth {
 		return this.survivalMusicBuffer;
 	}
 
-	playMusic() {
-		this._ensureLazyInit();
+	async playMusic() {
+		await this._ensureLazyInit();
 		if (!this.audioContext || this.musicStarted) return;
 		this.musicStarted = true;
 

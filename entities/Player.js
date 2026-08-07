@@ -135,6 +135,7 @@ export class Player {
 		if (type === "pistol") return "Пистолет";
 		if (type === "rifle") return "Винтовка";
 		if (type === "machinegun") return "Пулемет";
+		if (type === "bazooka") return "Базука";
 		return type || "Предмет";
 	}
 
