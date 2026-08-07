@@ -298,7 +298,8 @@ export class MapGenerator {
 				collider.isBiomeEntrance ||
 				collider.biomeBoundary ||
 				collider.gameplayBoundary ||
-				collider.isTowerStructure
+				collider.isTowerStructure ||
+				collider.isBuildingWall
 			)
 				return true;
 			if (intrudes(collider)) return false;
@@ -357,7 +358,8 @@ export class MapGenerator {
 				collider.enabled === false ||
 				collider.walkable ||
 				collider.gameplayBoundary ||
-				collider.isBiomeEntrance
+				collider.isBiomeEntrance ||
+				collider.isBuildingWall
 			)
 				return true;
 			const cx = (collider.min.x + collider.max.x) * 0.5;
@@ -432,7 +434,8 @@ export class MapGenerator {
 				collider.isTowerStair ||
 				collider.biomeBoundary ||
 				collider.gameplayBoundary ||
-				collider.isTowerStructure
+				collider.isTowerStructure ||
+				collider.isBuildingWall
 			)
 				return true;
 			const width = Math.max(0.01, collider.max.x - collider.min.x);
@@ -480,7 +483,8 @@ export class MapGenerator {
 				collider.isTowerStructure ||
 				collider.isTowerStair ||
 				collider.isBiomeResidence ||
-				collider.isTrap
+				collider.isTrap ||
+				collider.isBuildingWall
 			)
 				return true;
 			const width = collider.max.x - collider.min.x;
@@ -530,7 +534,8 @@ export class MapGenerator {
 			if (
 				collider.isCornucopia ||
 				collider.isBiomeEntrance ||
-				collider.biomeBoundary
+				collider.biomeBoundary ||
+				collider.isBuildingWall
 			)
 				return true;
 			const x = (collider.min.x + collider.max.x) * 0.5;
@@ -1399,7 +1404,8 @@ export class MapGenerator {
 				collider.isBiomeEntrance ||
 				collider.biomeBoundary ||
 				collider.isCornucopia ||
-				collider.isTowerStructure
+				collider.isTowerStructure ||
+				collider.isBuildingWall
 			)
 				return true;
 			const x = (collider.min.x + collider.max.x) * 0.5;
@@ -4490,37 +4496,15 @@ export class MapGenerator {
 		const doorH = 3.5;
 		const doorLeftW = w / 2 - doorW / 2;
 		const doorRightW = w / 2 - doorW / 2;
+		// Side walls (local coords)
 		for (const side of [-1, 1]) {
 			const wall = new THREE.Mesh(this.pool.getGeoBox(0.9, h, d), wallMat);
 			wall.position.set((side * w) / 2, h / 2, 0);
 			wall.userData.mapGenerated = true;
 			wall.userData.isWall = true;
 			group.add(wall);
-			this.addColliderBox(
-				new THREE.Vector3(x + (side * w) / 2, h / 2, z),
-				1.5,
-				h,
-				d,
-				false,
-				false,
-				true,
-			);
 		}
-		// Corner seal colliders — prevent diagonal clipping through wall intersections
-		for (const cx of [x - w / 2, x + w / 2]) {
-			for (const cz of [z - d / 2, z + d / 2]) {
-				this.addColliderBox(
-					new THREE.Vector3(cx, h / 2, cz),
-					3.0,
-					h,
-					3.0,
-					false,
-					false,
-					true,
-				);
-			}
-		}
-		// Открытый проход — передняя стенка не имеет коллайдеров, проход свободен
+		// Front door sections (local coords)
 		const doorTopH = h - doorH - 0.5;
 		if (doorLeftW > 0) {
 			const dl = new THREE.Mesh(
@@ -4531,15 +4515,6 @@ export class MapGenerator {
 			dl.userData.mapGenerated = true;
 			dl.userData.isWall = true;
 			group.add(dl);
-			this.addColliderBox(
-				new THREE.Vector3(x - w / 2 + doorLeftW / 2, h / 2, z + d / 2),
-				doorLeftW,
-				h,
-				2.0,
-				false,
-				false,
-				true,
-			);
 		}
 		if (doorRightW > 0) {
 			const dr = new THREE.Mesh(
@@ -4550,15 +4525,6 @@ export class MapGenerator {
 			dr.userData.mapGenerated = true;
 			dr.userData.isWall = true;
 			group.add(dr);
-			this.addColliderBox(
-				new THREE.Vector3(x + w / 2 - doorRightW / 2, h / 2, z + d / 2),
-				doorRightW,
-				h,
-				2.0,
-				false,
-				false,
-				true,
-			);
 		}
 		if (doorTopH > 0) {
 			const dt = new THREE.Mesh(this.pool.getGeoBox(w, doorTopH, 0.9), wallMat);
@@ -4566,33 +4532,119 @@ export class MapGenerator {
 			dt.userData.mapGenerated = true;
 			dt.userData.isWall = true;
 			group.add(dt);
-			this.addColliderBox(
-				new THREE.Vector3(x, doorH + doorTopH / 2, z + d / 2),
-				w,
-				doorTopH,
-				2.0,
-				false,
-				false,
-				true,
-			);
 		}
-		// Открытый проход без двери — проход свободен и физически корректен
+		// Back wall (local coords)
 		const backWall = new THREE.Mesh(this.pool.getGeoBox(w, h, 0.9), wallMat);
 		backWall.position.set(0, h / 2, -d / 2);
 		backWall.userData.mapGenerated = true;
 		backWall.userData.isWall = true;
 		group.add(backWall);
+		// Roof (local coords)
+		const roof = new THREE.Mesh(
+			this.pool.getGeoBox(w + 1.8, 0.8, d + 1.8),
+			wallMat,
+		);
+		roof.position.y = h;
+		roof.userData.mapGenerated = true;
+		group.add(roof);
+		// Corner posts (local coords)
+		for (const end of [-1, 1]) {
+			for (const side of [-1, 1]) {
+				const post = new THREE.Mesh(this.pool.getGeoBox(1.2, h, 1.2), wallMat);
+				post.position.set(side * (w / 2 - 0.6), h / 2, end * (d / 2 - 0.6));
+				post.userData.mapGenerated = true;
+				group.add(post);
+			}
+		}
+		// Set group position BEFORE adding to scene and creating colliders
+		group.position.set(x, 0, z);
+		group.userData.mapGenerated = true;
+		group.userData.buildingType = "hangar";
+		this.scene.add(group);
+		// NOW create all colliders in world space
+		// Side walls: overhang 0.5 beyond visual mesh on each side
+		for (const side of [-1, 1]) {
+			this.addColliderBox(
+				new THREE.Vector3(x + (side * w) / 2, h / 2, z),
+				1.5,
+				h,
+				d + 1.0,
+				false,
+				false,
+				true,
+			);
+		}
+		// Door sections
+		if (doorLeftW > 0) {
+			this.addColliderBox(
+				new THREE.Vector3(x - w / 2 + doorLeftW / 2, h / 2, z + d / 2),
+				doorLeftW + 0.5,
+				h,
+				2.5,
+				false,
+				false,
+				true,
+			);
+		}
+		if (doorRightW > 0) {
+			this.addColliderBox(
+				new THREE.Vector3(x + w / 2 - doorRightW / 2, h / 2, z + d / 2),
+				doorRightW + 0.5,
+				h,
+				2.5,
+				false,
+				false,
+				true,
+			);
+		}
+		if (doorTopH > 0) {
+			this.addColliderBox(
+				new THREE.Vector3(x, doorH + doorTopH / 2, z + d / 2),
+				w + 0.5,
+				doorTopH,
+				2.5,
+				false,
+				false,
+				true,
+			);
+		}
+		// Back wall
 		this.addColliderBox(
 			new THREE.Vector3(x, h / 2, z - d / 2),
-			w,
+			w + 0.5,
 			h,
-			2.0,
+			2.5,
 			false,
 			false,
 			true,
 		);
-		// Floor collider — walkable surface
-		this.addColliderBox(new THREE.Vector3(x, 0.15, z), w, 0.3, d, true);
+		// Corner colliders: seal gaps between side walls and door/back walls
+		// Use 5x14x5 to fully bridge all wall intersections
+		for (const cx of [x - w / 2, x + w / 2]) {
+			for (const cz of [z - d / 2, z + d / 2]) {
+				this.addColliderBox(
+					new THREE.Vector3(cx, h / 2, cz),
+					5.0,
+					h,
+					5.0,
+					false,
+					false,
+					true,
+				);
+			}
+		}
+		// Floor collider — walkable surface (isBuildingWall protects from cleanup)
+		this.addColliderBox(new THREE.Vector3(x, 0.15, z), w, 0.3, d, true, false, true);
+		// Roof collider (isBuildingWall protects from cleanup)
+		this.addColliderBox(
+			new THREE.Vector3(x, h + 0.5, z),
+			w + 1.8,
+			1.8,
+			d + 1.8,
+			false,
+			false,
+			true,
+		);
 		// Front corner colliders — seal gaps between side walls and door sections
 		for (const side of [-1, 1]) {
 			this.addColliderBox(
@@ -4605,43 +4657,6 @@ export class MapGenerator {
 				true,
 			);
 		}
-		const roof = new THREE.Mesh(
-			this.pool.getGeoBox(w + 1.8, 0.8, d + 1.8),
-			wallMat,
-		);
-		roof.position.y = h;
-		roof.userData.mapGenerated = true;
-		group.add(roof);
-		this.addColliderBox(
-			new THREE.Vector3(x, h, z),
-			w + 1.8,
-			0.8,
-			d + 1.8,
-			false,
-		);
-		for (const end of [-1, 1]) {
-			for (const side of [-1, 1]) {
-				const post = new THREE.Mesh(this.pool.getGeoBox(1.2, h, 1.2), wallMat);
-				post.position.set(side * (w / 2 - 0.6), h / 2, end * (d / 2 - 0.6));
-				post.userData.mapGenerated = true;
-				group.add(post);
-				this.addColliderBox(
-					new THREE.Vector3(
-						x + side * (w / 2 - 0.6),
-						h / 2,
-						z + end * (d / 2 - 0.6),
-					),
-					1.2,
-					h,
-					1.2,
-					false,
-				);
-			}
-		}
-		group.position.set(x, 0, z);
-		group.userData.mapGenerated = true;
-		group.userData.buildingType = "hangar";
-		this.scene.add(group);
 		this._buildings.push({ x, z, w, d, template: { type: "hangar" } });
 		for (const [ox, oz] of [
 			[-12, -18],
@@ -8503,10 +8518,14 @@ export class MapGenerator {
 		};
 		const source = this._lastAddedMapObject;
 		if (source && this._isAttachedToScene(source)) {
-			const sourceBounds = new THREE.Box3().setFromObject(source);
-			sourceBounds.expandByScalar(0.25);
-			if (!sourceBounds.isEmpty() && sourceBounds.containsPoint(center))
-				box.source = source;
+			try {
+				const sourceBounds = new THREE.Box3().setFromObject(source);
+				sourceBounds.expandByScalar(0.25);
+				if (!sourceBounds.isEmpty() && sourceBounds.containsPoint(center))
+					box.source = source;
+			} catch (_) {
+				// setFromObject can fail on some objects; proceed without source link
+			}
 		}
 		this.colliders.push(box);
 		this.colliderVersion++;
