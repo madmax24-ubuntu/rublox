@@ -4512,8 +4512,7 @@ export class MapGenerator {
 				this.pool.getGeoBox(doorLeftW, h, 0.9),
 				wallMat,
 			);
-		
-dl.position.set(-w / 2 + doorLeftW / 2, h / 2, d / 2);
+			dl.position.set(-w / 2 + doorLeftW / 2, h / 2, d / 2);
 			dl.userData.mapGenerated = true;
 			dl.userData.isWall = true;
 			group.add(dl);
