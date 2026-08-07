@@ -361,6 +361,7 @@ class Game {
 			});
 			this.input.attachListeners();
 			this.audioSynth = new AudioSynth();
+			this.audioSynth.init().catch(() => {});
 			this.hud = new HUD();
 
 			// Insert canvas AFTER HUD so HUD panels can capture pointer events

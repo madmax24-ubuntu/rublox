@@ -158,9 +158,35 @@ export class AudioSynth {
 		};
 
 		this._lazyInitCalled = false;
+		this._useWorker = typeof Worker !== "undefined";
+
+		if (this._useWorker) {
+			this._worker = new Worker(new URL("./AudioSynthWorker.js", import.meta.url));
+			this._workerQueue = new Map();
+			this._workerReady = new Map();
+			const _self = this;
+			this._worker.onmessage = function (e) {
+				const { type, data, error } = e.data;
+				const resolve = _self._workerQueue.get(type);
+				if (resolve) {
+					resolve(error ? null : data);
+					_self._workerQueue.delete(type);
+				}
+			};
+			this._postWorker = function (type, params) {
+				if (this._workerReady.has(type)) return this._workerReady.get(type);
+				const p = new Promise((r) => {
+					this._workerQueue.set(type, r);
+					this._worker.postMessage({ type, params });
+				});
+				this._workerReady.set(type, p);
+				return p;
+			};
+		}
 	}
 
 	_ensureLazyInit() {
+		this.bindUnlockHandlers();
 		if (!this._initPromise) {
 			this._lazyInitCalled = true;
 			this._initPromise = this.init().catch(() => false);
@@ -186,17 +212,26 @@ export class AudioSynth {
 			this.reverbGain = this.audioContext.createGain();
 			this.sfxLimiter = this.audioContext.createDynamicsCompressor();
 
-			this.reverb.buffer = this.createImpulse(1.6, 1.8);
+			const rate = this.audioContext.sampleRate;
+			if (this._useWorker) {
+				const [launchData, explosionData, hissData, crackleData, impulseData] =
+					await Promise.all([
+						this._postWorker("bazookaLaunch", { rate, dur: 0.9 }),
+						this._postWorker("bazookaExplosion", { rate, dur: 2.5 }),
+						this._postWorker("bazookaHiss", { rate, dur: 0.9 }),
+						this._postWorker("explosionCrackle", { rate, dur: 0.6 }),
+						this._postWorker("impulse", { rate, duration: 1.6, decay: 1.8, channels: 2 }),
+					]);
+				this.bazookaLaunchBuffer = this._createBufferFromData(1, launchData, rate);
+				this.bazookaExplosionBuffer = this._createBufferFromData(1, explosionData, rate);
+				this.bazookaHissBuffer = this._createBufferFromData(1, hissData, rate);
+				this.explosionCrackleBuffer = this._createBufferFromData(1, crackleData, rate);
+				this.reverb.buffer = this._createBufferFromData(2, impulseData, rate);
+			} else {
+				this._createSyncBuffers(rate);
+			}
 			this.reverbGain.gain.value = 0.055;
 
-			// Pre-generate bazooka launch buffer (avoids freeze on first shot)
-			this.bazookaLaunchBuffer = this.createBazookaLaunchBuffer();
-			// Pre-generate bazooka explosion buffer (avoids freeze on first explosion)
-			this.bazookaExplosionBuffer = this.createBazookaExplosionBuffer();
-			// Pre-generate bazooka hiss buffer (avoids freeze during launch phase)
-			this.bazookaHissBuffer = this.createBazookaHissBuffer();
-			// Pre-generate explosion crackle buffer (avoids freeze during explosion)
-			this.explosionCrackleBuffer = this.createExplosionCrackleBuffer();
 			this.sfxLimiter.threshold.value = -6;
 			this.sfxLimiter.knee.value = 3;
 			this.sfxLimiter.ratio.value = 4;
@@ -218,11 +253,78 @@ export class AudioSynth {
 			this.musicGain.gain.value = this.musicVolume;
 			this.masterSfxGain.gain.value = this.getAudibleVolume(this.sfxVolume);
 			this.loadSamples().catch(() => {});
-			this.bindUnlockHandlers();
 			return true;
 		} catch (e) {
 			console.warn("Web Audio API not supported");
+		} finally {
+			if (this._worker) this._worker.terminate();
 		}
+	}
+
+	_createBufferFromData(channels, data, rate) {
+		const buffer = this.audioContext.createBuffer(channels, data.length, rate);
+		if (channels === 1) {
+			buffer.getChannelData(0).set(data);
+		} else {
+			for (let ch = 0; ch < channels; ch++) {
+				buffer.getChannelData(ch).set(data[ch]);
+			}
+		}
+		return buffer;
+	}
+
+	/* Sync buffer generation fallback (Node.js tests, no Worker) */
+	_createSyncBuffers(rate) {
+		const mkBuf = (dur, fn) => {
+			const buf = this.audioContext.createBuffer(1, Math.floor(rate * dur), rate);
+			const d = buf.getChannelData(0);
+			for (let i = 0; i < d.length; i++) d[i] = fn(i / rate, i);
+			return buf;
+		};
+		const mkImpulse = (dur, decay) => {
+			const len = Math.floor(rate * dur);
+			const buf = this.audioContext.createBuffer(2, len, rate);
+			for (let ch = 0; ch < 2; ch++) {
+				const d = buf.getChannelData(ch);
+				for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * ((1 - i / len) ** decay);
+			}
+			return buf;
+		};
+		const gauss = (x, s) => Math.exp(-1.0 * ((x / s) ** 2));
+		this.bazookaLaunchBuffer = mkBuf(0.9, (t) => {
+			const ign = Math.exp(-t * 120) * 1.2;
+			const ign2 = gauss(t - 0.015, 0.012) * 0.6;
+			const te = t < 0.03 ? t / 0.03 : t < 0.5 ? 1 : t < 0.7 ? 1 - (t - 0.5) / 0.2 : 0;
+			const tr = Math.sin(t * 40 * Math.PI) * te * 0.5;
+			const st = Math.sin(t * 20 * Math.PI) * te * 0.4;
+			const w = Math.sin(t * 280 * Math.PI) * te * 0.2;
+			const n = (Math.random() * 2 - 1) * te * Math.exp(-t * 2.5) * 0.6;
+			const h = (Math.random() * 2 - 1) * te * 0.3;
+			const c = (Math.random() * 2 - 1) * te * 0.12;
+			const th = Math.exp(-t * 60) * 0.8;
+			return ign + ign2 + tr + st + w + n + h + c + th;
+		});
+		this.bazookaExplosionBuffer = mkBuf(2.5, (t) => {
+			const b1 = gauss(t, 0.015) * 1.2;
+			const b2 = gauss(t - 0.04, 0.03) * 0.7;
+			const b3 = gauss(t - 0.1, 0.04) * 0.4;
+			const sr = Math.sin(t * 18 * Math.PI) * Math.exp(-t * 0.6) * 0.6;
+			const mr = Math.sin(t * 55 * Math.PI) * Math.exp(-t * 1.0) * 0.5;
+			const cr = (Math.random() * 2 - 1) * Math.exp(-t * 2.0) * 0.4;
+			const re = t < 0.08 ? t / 0.08 : gauss(t - 0.08, 0.7);
+			const r = (Math.random() * 2 - 1) * re * 0.3;
+			const e = t > 0.12 ? gauss(t - 0.12, 0.6) * 0.25 : 0;
+			const gr = Math.sin(t * 6 * Math.PI + 0.5) * Math.exp(-t * 0.4) * 0.35;
+			return (b1 + b2 + b3 + sr + mr + cr + r + e + gr) * 0.8;
+		});
+		this.bazookaHissBuffer = mkBuf(0.9, (t) => {
+			const e = t < 0.05 ? t / 0.05 : t < 0.5 ? 1 : Math.max(0, 1 - (t - 0.5) / 0.4);
+			return (Math.random() * 2 - 1) * e * 0.35;
+		});
+		this.explosionCrackleBuffer = mkBuf(0.6, (t) => {
+			return (Math.random() * 2 - 1) * Math.exp(-t * 4) * 0.45;
+		});
+		this.reverb.buffer = mkImpulse(1.6, 1.8);
 	}
 
 	bindUnlockHandlers() {
@@ -256,144 +358,6 @@ export class AudioSynth {
 			});
 		return this._unlockInProgress;
 	}
-	createImpulse(duration, decay) {
-		const ctx = this.audioContext;
-		const rate = ctx.sampleRate;
-		const length = Math.floor(rate * duration);
-		const impulse = ctx.createBuffer(2, length, rate);
-		for (let ch = 0; ch < 2; ch++) {
-			const data = impulse.getChannelData(ch);
-			for (let i = 0; i < length; i++) {
-				data[i] = (Math.random() * 2 - 1) * (1 - i / length) ** decay;
-			}
-		}
-		return impulse;
-	}
-
-	// Pre-generate bazooka launch sound buffer (ignition + thrust roar)
-	createBazookaLaunchBuffer() {
-		const ctx = this.audioContext;
-		const rate = ctx.sampleRate;
-		const launchDur = 0.9;
-		const bufSize = rate * launchDur;
-		const buffer = ctx.createBuffer(1, bufSize, rate);
-		const data = buffer.getChannelData(0);
-		for (let i = 0; i < bufSize; i++) {
-			const t = i / rate;
-			// Ignition crack (very short, very loud at t=0)
-			const ignition = Math.exp(-t * 100) * 1.0;
-			// Secondary ignition pop
-			const ignition2 = Math.exp(-(((t - 0.02) / 0.015) ** 2)) * 0.5;
-			// Thrust envelope: rise fast, sustain, then decay
-			const thrustEnv =
-				t < 0.04 ? t / 0.04 : t < 0.5 ? 1 : t < 0.7 ? 1 - (t - 0.5) / 0.2 : 0;
-			// Thrust rumble (low frequency engine)
-			const thrustRumble = Math.sin(t * 55 * Math.PI) * thrustEnv * 0.45;
-			// Deep sub-thrust
-			const subThrust = Math.sin(t * 28 * Math.PI) * thrustEnv * 0.35;
-			// Sustained noise (high frequency whoosh)
-			const noise =
-				(Math.random() * 2 - 1) * thrustEnv * Math.exp(-t * 2.5) * 0.55;
-			// High frequency hiss (exhaust)
-			const hiss = (Math.random() * 2 - 1) * thrustEnv * 0.25;
-			// Crackle (sparks from exhaust)
-			const crackle = (Math.random() * 2 - 1) * thrustEnv * 0.1;
-			data[i] =
-				ignition +
-				ignition2 +
-				thrustRumble +
-				subThrust +
-				noise +
-				hiss +
-				crackle;
-		}
-		return buffer;
-	}
-
-	// Pre-generate bazooka explosion sound buffer (double boom + rumble + debris)
-	createBazookaExplosionBuffer() {
-		const ctx = this.audioContext;
-		const rate = ctx.sampleRate;
-		const dur = 2.5;
-		const bufSize = rate * dur;
-		const buffer = ctx.createBuffer(1, bufSize, rate);
-		const data = buffer.getChannelData(0);
-		for (let i = 0; i < bufSize; i++) {
-			const t = i / rate;
-			// Primary boom (extremely sharp initial crack)
-			const boom1 = Math.exp(-((t - 0) / 0.02) * ((t - 0) / 0.02)) * 1.0;
-			// Secondary boom (pressure wave reflection)
-			const boom2 =
-				Math.exp(-((t - 0.05) / 0.035) * ((t - 0.05) / 0.035)) * 0.65;
-			// Third boom (debris impact cluster)
-			const boom3 = Math.exp(-((t - 0.12) / 0.05) * ((t - 0.12) / 0.05)) * 0.35;
-			// Deep sub-bass rumble (sustained, very low frequency)
-			const subRumble = Math.sin(t * 32 * Math.PI) * Math.exp(-t * 0.8) * 0.5;
-			// Mid-frequency rumble (explosion body)
-			const midRumble = Math.sin(t * 64 * Math.PI) * Math.exp(-t * 1.2) * 0.45;
-			// High-frequency crackle (debris and sparks)
-			const crackle = (Math.random() * 2 - 1) * Math.exp(-t * 2.5) * 0.35;
-			// Sustained roar (explosion tail)
-			const roarEnv =
-				t < 0.1 ? t / 0.1 : Math.exp(-((t - 0.1) / 0.8) * ((t - 0.1) / 0.8));
-			const roar = (Math.random() * 2 - 1) * roarEnv * 0.25;
-			// Echo/reverb tail (delayed reflection)
-			const echo =
-				t > 0.15 ? Math.exp(-((t - 0.15) / 0.7) * ((t - 0.15) / 0.7)) * 0.2 : 0;
-			// Ground rumble (very low, long decay)
-			const groundRumble =
-				Math.sin(t * 8 * Math.PI + 0.5) * Math.exp(-t * 0.5) * 0.3;
-			data[i] =
-				(boom1 +
-					boom2 +
-					boom3 +
-					subRumble +
-					midRumble +
-					crackle +
-					roar +
-					echo +
-					groundRumble) *
-				0.85;
-		}
-		return buffer;
-	}
-
-	// Pre-generate exhaust hiss buffer for bazooka launch
-	createBazookaHissBuffer() {
-		const ctx = this.audioContext;
-		const rate = ctx.sampleRate;
-		const dur = 0.9;
-		const bufSize = rate * dur;
-		const buffer = ctx.createBuffer(1, bufSize, rate);
-		const data = buffer.getChannelData(0);
-		for (let i = 0; i < bufSize; i++) {
-			const t = i / rate;
-			const env =
-				t < 0.05
-					? t / 0.05
-					: t < 0.5
-						? 1
-						: Math.max(0, 1 - (t - 0.5) / (dur - 0.5));
-			data[i] = (Math.random() * 2 - 1) * env * 0.3;
-		}
-		return buffer;
-	}
-
-	// Pre-generate explosion crackle buffer (high-frequency debris)
-	createExplosionCrackleBuffer() {
-		const ctx = this.audioContext;
-		const rate = ctx.sampleRate;
-		const dur = 0.6;
-		const bufSize = rate * dur;
-		const buffer = ctx.createBuffer(1, bufSize, rate);
-		const data = buffer.getChannelData(0);
-		for (let i = 0; i < bufSize; i++) {
-			const t = i / rate;
-			data[i] = (Math.random() * 2 - 1) * Math.exp(-t * 5) * 0.4;
-		}
-		return buffer;
-	}
-
 	createRainNoiseBuffer(duration = 2.4) {
 		if (!this.audioContext) return null;
 		if (this.rainNoiseBuffer) return this.rainNoiseBuffer;

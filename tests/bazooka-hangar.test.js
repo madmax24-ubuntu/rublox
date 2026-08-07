@@ -96,6 +96,8 @@ class MockAudioContext {
 globalThis.window = globalThis.window || {};
 globalThis.window.AudioContext = MockAudioContext;
 globalThis.window.webkitAudioContext = MockAudioContext;
+globalThis.window.addEventListener = () => {};
+globalThis.window.removeEventListener = () => {};
 globalThis.AudioContext = MockAudioContext;
 globalThis.webkitAudioContext = MockAudioContext;
 
