@@ -278,17 +278,12 @@ export class AudioSynth {
 			const ignition = Math.exp(-t * 80) * 0.9;
 			// Thrust envelope: rise fast, sustain, then decay
 			const thrustEnv =
-				t < 0.05
-					? t / 0.05
-					: t < 0.4
-						? 1
-						: t < 0.6
-							? 1 - (t - 0.4) / 0.2
-							: 0;
+				t < 0.05 ? t / 0.05 : t < 0.4 ? 1 : t < 0.6 ? 1 - (t - 0.4) / 0.2 : 0;
 			// Thrust rumble (low frequency component)
 			const thrustRumble = Math.sin(t * 30 * Math.PI) * thrustEnv * 0.4;
 			// Sustained noise (high frequency whoosh)
-			const noise = (Math.random() * 2 - 1) * thrustEnv * Math.exp(-t * 3) * 0.6;
+			const noise =
+				(Math.random() * 2 - 1) * thrustEnv * Math.exp(-t * 3) * 0.6;
 			// High frequency hiss
 			const hiss = (Math.random() * 2 - 1) * thrustEnv * 0.2;
 			data[i] = ignition + thrustRumble + noise + hiss;
@@ -307,26 +302,20 @@ export class AudioSynth {
 		for (let i = 0; i < bufSize; i++) {
 			const t = i / rate;
 			// Primary boom (very sharp, very loud)
-			const boom1 =
-				Math.exp(-((t - 0) / 0.04) * ((t - 0) / 0.04)) * 0.9;
+			const boom1 = Math.exp(-((t - 0) / 0.04) * ((t - 0) / 0.04)) * 0.9;
 			// Secondary boom (slight delay, softer)
-			const boom2 =
-				Math.exp(-((t - 0.08) / 0.05) * ((t - 0.08) / 0.05)) * 0.5;
+			const boom2 = Math.exp(-((t - 0.08) / 0.05) * ((t - 0.08) / 0.05)) * 0.5;
 			// Low frequency rumble (sustained, decaying)
-			const rumble =
-				Math.sin(t * 25 * Math.PI) * Math.exp(-t * 1.5) * 0.5;
+			const rumble = Math.sin(t * 25 * Math.PI) * Math.exp(-t * 1.5) * 0.5;
 			const rumble2 =
 				Math.sin(t * 15 * Math.PI + 1.3) * Math.exp(-t * 1.2) * 0.3;
 			// Debris impact noise (scattered high frequency, decaying)
-			const debris =
-				(Math.random() * 2 - 1) * Math.exp(-t * 2) * 0.3;
+			const debris = (Math.random() * 2 - 1) * Math.exp(-t * 2) * 0.3;
 			// Overall decay envelope
 			const env = Math.exp(-t * 2);
 			// Echo/reverb tail (delayed, softer)
-			const echo =
-				Math.exp(-((t - 0.3) / 0.5) * ((t - 0.3) / 0.5)) * 0.2;
-			data[i] =
-				(boom1 + boom2 + rumble + rumble2 + debris + echo) * 0.85;
+			const echo = Math.exp(-((t - 0.3) / 0.5) * ((t - 0.3) / 0.5)) * 0.2;
+			data[i] = (boom1 + boom2 + rumble + rumble2 + debris + echo) * 0.85;
 		}
 		return buffer;
 	}
@@ -1540,50 +1529,45 @@ export class AudioSynth {
 			return false;
 		const scale = this.getEmitterSfxScale(emitterKey);
 
-		// === LAUNCH PHASE: play pre-generated buffer ===
-		const launchDur = 0.6;
+		// === LAUNCH PHASE: pre-generated buffer, minimal nodes (no freeze) ===
+		const launchDur = 0.8;
 		const noiseSrc = ctx.createBufferSource();
 		noiseSrc.buffer = this.bazookaLaunchBuffer;
 		const noiseGain = ctx.createGain();
 		noiseGain.gain.value = 0.7 * scale;
-		const noiseFilter = ctx.createBiquadFilter();
-		noiseFilter.type = "bandpass";
-		noiseFilter.frequency.value = 400;
-		noiseFilter.Q.value = 1.5;
-		noiseSrc.connect(noiseFilter).connect(noiseGain);
-
+		noiseSrc.connect(noiseGain);
+		// Sub-bass oscillator for rocket rumble
 		const subOsc = ctx.createOscillator();
 		subOsc.type = "sine";
-		subOsc.frequency.setValueAtTime(90, ctx.currentTime);
+		subOsc.frequency.setValueAtTime(70, ctx.currentTime);
 		subOsc.frequency.exponentialRampToValueAtTime(
-			50,
+			30,
 			ctx.currentTime + launchDur,
 		);
 		const subGain = ctx.createGain();
 		subGain.gain.setValueAtTime(0, ctx.currentTime);
-		subGain.gain.linearRampToValueAtTime(0.5 * scale, ctx.currentTime + 0.05);
-		subGain.gain.linearRampToValueAtTime(0.4 * scale, ctx.currentTime + 0.25);
+		subGain.gain.linearRampToValueAtTime(0.3 * scale, ctx.currentTime + 0.05);
 		subGain.gain.linearRampToValueAtTime(0, ctx.currentTime + launchDur);
 		subOsc.connect(subGain);
-
-		// Panner
+		// Connect through panner
 		const pan = this.createPanner?.() || ctx.createPanner();
 		if (position) pan.position.set(position.x, position.y, position.z);
 		noiseGain.connect(pan);
 		subGain.connect(pan);
 		pan.connect(this.masterSfxGain);
-
 		noiseSrc.start(ctx.currentTime);
 		noiseSrc.stop(ctx.currentTime + launchDur);
 		subOsc.start(ctx.currentTime);
 		subOsc.stop(ctx.currentTime + launchDur);
 
-		// === EXPLOSION PHASE: double boom (delayed by travel time) ===
-		const travelTime = (60 / 64) * 1000; // ~937ms default
-		const expDelay = Math.min(travelTime, 2500);
-		setTimeout(() => {
-			this.playExplosion(position);
-		}, expDelay);
+		// === EXPLOSION PHASE: delayed by rocket travel time ===
+		const travelTime = 1500 + Math.random() * 500; // 1.5-2s travel time
+		setTimeout(
+			() => {
+				this.playProceduralExplosion(position);
+			},
+			Math.min(travelTime, 2500),
+		);
 	}
 
 	// Pre-generated explosion sound with double boom + rumble

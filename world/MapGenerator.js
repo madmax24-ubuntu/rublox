@@ -4494,7 +4494,7 @@ export class MapGenerator {
 			wall.userData.mapGenerated = true;
 			wall.userData.isWall = true;
 			group.add(wall);
-			// Full depth collider — matches visual wall and eliminates corner gaps
+			// Collider matches wall FULL DEPTH so you cannot clip through walls
 			this.addColliderBox(
 				new THREE.Vector3(x + (side * w) / 2, h / 2, z),
 				0.9,
@@ -4526,10 +4526,10 @@ export class MapGenerator {
 			group.add(dl);
 			// Full depth collider — covers the gap between side wall and door frame
 			this.addColliderBox(
-				new THREE.Vector3(x - w / 2 + doorLeftW / 2, h / 2, z),
+				new THREE.Vector3(x - w / 2 + doorLeftW / 2, h / 2, z + d / 2),
 				doorLeftW,
 				h,
-				d,
+				0.9,
 				false,
 			);
 		}
@@ -4544,10 +4544,10 @@ export class MapGenerator {
 			group.add(dr);
 			// Full depth collider — covers the gap between side wall and door frame
 			this.addColliderBox(
-				new THREE.Vector3(x + w / 2 - doorRightW / 2, h / 2, z),
+				new THREE.Vector3(x + w / 2 - doorRightW / 2, h / 2, z + d / 2),
 				doorRightW,
 				h,
-				d,
+				0.9,
 				false,
 			);
 		}

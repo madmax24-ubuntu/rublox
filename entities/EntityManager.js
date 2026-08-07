@@ -303,13 +303,15 @@ export class EntityManager {
 		const probe = this._tmpProbePos
 			.copy(prevPos)
 			.addScaledVector(dir, length * 0.5);
+		// Larger query radius so rocket hits ANY collider (walls, crates, props)
 		const nearby = physics.getNearbyColliders(
 			probe,
-			Math.max(2.5, length * 0.6 + 0.8),
+			Math.max(3, length * 0.8 + 1.2),
 		);
 		for (const box of nearby) {
 			if (box.enabled === false) continue;
-			if (box.walkable) continue;
+			// Bazooka hits ALL colliders (no walkable filter), others ignore walkable ground
+			if (box.walkable && projectile.type !== "bazooka") continue;
 			if (this.segmentIntersectsBox(prevPos, pos, box)) {
 				return this._tmpVecF.copy(pos);
 			}
@@ -645,9 +647,9 @@ export class EntityManager {
 	}
 
 	spawnBazookaExplosion(position, projectile) {
-		const radius = 8;
-		const damage = Math.round((projectile?.damage || 100) * 0.9);
-		const knockback = projectile?.knockback || 15;
+		const radius = 15; // Large blast radius for realistic rocket damage
+		const damage = Math.round((projectile?.damage || 100) * 1.2);
+		const knockback = projectile?.knockback || 25;
 
 		// Multi-layer explosion effect
 		const explosionGroup = new THREE.Group();
