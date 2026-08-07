@@ -59,18 +59,13 @@ export class Physics {
 		// Check for collider changes (version or reference)
 		const mg = this.mapGenerator;
 		const newVersion = mg?.colliderVersion ?? 0;
-		if (newVersion !== this._colliderVersion) {
-			const newColliders = mg.getColliders?.() || this.colliders;
+		const newColliders = mg.getColliders?.() || this.colliders;
+		if (newVersion !== this._colliderVersion || newColliders !== this.colliders) {
 			this.colliders = newColliders;
 			this.colliderGridCount = this.colliders.length;
 			this.dynamicColliders = this.colliders.filter((box) => box.dynamic);
 			this.rebuildColliderGrid();
 			this._colliderVersion = newVersion;
-		} else if (newColliders !== this.colliders) {
-			this.colliders = newColliders;
-			this.colliderGridCount = this.colliders.length;
-			this.dynamicColliders = this.colliders.filter((box) => box.dynamic);
-			this.rebuildColliderGrid();
 		}
 
 		const npcStride = this.mapGenerator?.isMobile ? 3 : 2;
