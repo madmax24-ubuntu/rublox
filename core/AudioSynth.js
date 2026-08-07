@@ -76,6 +76,8 @@ export class AudioSynth {
 		// Pre-generated procedural buffers for bazooka
 		this.bazookaLaunchBuffer = null;
 		this.bazookaExplosionBuffer = null;
+		this.bazookaHissBuffer = null;
+		this.explosionCrackleBuffer = null;
 
 		this.sampleCatalog = {
 			ambient: [],
@@ -191,6 +193,10 @@ export class AudioSynth {
 			this.bazookaLaunchBuffer = this.createBazookaLaunchBuffer();
 			// Pre-generate bazooka explosion buffer (avoids freeze on first explosion)
 			this.bazookaExplosionBuffer = this.createBazookaExplosionBuffer();
+			// Pre-generate bazooka hiss buffer (avoids freeze during launch phase)
+			this.bazookaHissBuffer = this.createBazookaHissBuffer();
+			// Pre-generate explosion crackle buffer (avoids freeze during explosion)
+			this.explosionCrackleBuffer = this.createExplosionCrackleBuffer();
 			this.sfxLimiter.threshold.value = -6;
 			this.sfxLimiter.knee.value = 3;
 			this.sfxLimiter.ratio.value = 4;
@@ -280,13 +286,7 @@ export class AudioSynth {
 			const ignition2 = Math.exp(-(((t - 0.02) / 0.015) ** 2)) * 0.5;
 			// Thrust envelope: rise fast, sustain, then decay
 			const thrustEnv =
-				t < 0.04
-					? t / 0.04
-					: t < 0.5
-						? 1
-						: t < 0.7
-							? 1 - (t - 0.5) / 0.2
-							: 0;
+				t < 0.04 ? t / 0.04 : t < 0.5 ? 1 : t < 0.7 ? 1 - (t - 0.5) / 0.2 : 0;
 			// Thrust rumble (low frequency engine)
 			const thrustRumble = Math.sin(t * 28 * Math.PI) * thrustEnv * 0.45;
 			// Deep sub-thrust
@@ -298,7 +298,14 @@ export class AudioSynth {
 			const hiss = (Math.random() * 2 - 1) * thrustEnv * 0.25;
 			// Crackle (sparks from exhaust)
 			const crackle = (Math.random() * 2 - 1) * thrustEnv * 0.1;
-			data[i] = ignition + ignition2 + thrustRumble + subThrust + noise + hiss + crackle;
+			data[i] =
+				ignition +
+				ignition2 +
+				thrustRumble +
+				subThrust +
+				noise +
+				hiss +
+				crackle;
 		}
 		return buffer;
 	}
@@ -316,36 +323,73 @@ export class AudioSynth {
 			// Primary boom (extremely sharp initial crack)
 			const boom1 = Math.exp(-((t - 0) / 0.02) * ((t - 0) / 0.02)) * 1.0;
 			// Secondary boom (pressure wave reflection)
-			const boom2 = Math.exp(-((t - 0.05) / 0.035) * ((t - 0.05) / 0.035)) * 0.65;
+			const boom2 =
+				Math.exp(-((t - 0.05) / 0.035) * ((t - 0.05) / 0.035)) * 0.65;
 			// Third boom (debris impact cluster)
 			const boom3 = Math.exp(-((t - 0.12) / 0.05) * ((t - 0.12) / 0.05)) * 0.35;
 			// Deep sub-bass rumble (sustained, very low frequency)
-			const subRumble =
-				Math.sin(t * 16 * Math.PI) * Math.exp(-t * 0.8) * 0.5;
+			const subRumble = Math.sin(t * 16 * Math.PI) * Math.exp(-t * 0.8) * 0.5;
 			// Mid-frequency rumble (explosion body)
-			const midRumble =
-				Math.sin(t * 32 * Math.PI) * Math.exp(-t * 1.2) * 0.45;
+			const midRumble = Math.sin(t * 32 * Math.PI) * Math.exp(-t * 1.2) * 0.45;
 			// High-frequency crackle (debris and sparks)
-			const crackle =
-				(Math.random() * 2 - 1) * Math.exp(-t * 2.5) * 0.35;
+			const crackle = (Math.random() * 2 - 1) * Math.exp(-t * 2.5) * 0.35;
 			// Sustained roar (explosion tail)
 			const roarEnv =
-				t < 0.1
-					? t / 0.1
-					: Math.exp(-((t - 0.1) / 0.8) * ((t - 0.1) / 0.8));
+				t < 0.1 ? t / 0.1 : Math.exp(-((t - 0.1) / 0.8) * ((t - 0.1) / 0.8));
 			const roar = (Math.random() * 2 - 1) * roarEnv * 0.25;
 			// Echo/reverb tail (delayed reflection)
 			const echo =
-				t > 0.15
-					? Math.exp(-((t - 0.15) / 0.7) * ((t - 0.15) / 0.7)) * 0.2
-					: 0;
+				t > 0.15 ? Math.exp(-((t - 0.15) / 0.7) * ((t - 0.15) / 0.7)) * 0.2 : 0;
 			// Ground rumble (very low, long decay)
 			const groundRumble =
 				Math.sin(t * 8 * Math.PI + 0.5) * Math.exp(-t * 0.5) * 0.3;
 			data[i] =
-				(boom1 + boom2 + boom3 + subRumble + midRumble +
-					crackle + roar + echo + groundRumble) *
+				(boom1 +
+					boom2 +
+					boom3 +
+					subRumble +
+					midRumble +
+					crackle +
+					roar +
+					echo +
+					groundRumble) *
 				0.85;
+		}
+		return buffer;
+	}
+
+	// Pre-generate exhaust hiss buffer for bazooka launch
+	createBazookaHissBuffer() {
+		const ctx = this.audioContext;
+		const rate = ctx.sampleRate;
+		const dur = 0.9;
+		const bufSize = rate * dur;
+		const buffer = ctx.createBuffer(1, bufSize, rate);
+		const data = buffer.getChannelData(0);
+		for (let i = 0; i < bufSize; i++) {
+			const t = i / rate;
+			const env =
+				t < 0.05
+					? t / 0.05
+					: t < 0.5
+						? 1
+						: Math.max(0, 1 - (t - 0.5) / (dur - 0.5));
+			data[i] = (Math.random() * 2 - 1) * env * 0.3;
+		}
+		return buffer;
+	}
+
+	// Pre-generate explosion crackle buffer (high-frequency debris)
+	createExplosionCrackleBuffer() {
+		const ctx = this.audioContext;
+		const rate = ctx.sampleRate;
+		const dur = 0.6;
+		const bufSize = rate * dur;
+		const buffer = ctx.createBuffer(1, bufSize, rate);
+		const data = buffer.getChannelData(0);
+		for (let i = 0; i < bufSize; i++) {
+			const t = i / rate;
+			data[i] = (Math.random() * 2 - 1) * Math.exp(-t * 5) * 0.4;
 		}
 		return buffer;
 	}
@@ -1600,25 +1644,9 @@ export class AudioSynth {
 		rumbleOsc.connect(rumbleFilter);
 		rumbleFilter.connect(rumbleGain);
 
-		// Layer 4: High-frequency hiss (exhaust gases)
-		const hissBuf = ctx.createBuffer(
-			1,
-			Math.floor(ctx.sampleRate * launchDur),
-			ctx.sampleRate,
-		);
-		const hissData = hissBuf.getChannelData(0);
-		for (let i = 0; i < hissData.length; i++) {
-			const t = i / ctx.sampleRate;
-			const env =
-				t < 0.05
-					? t / 0.05
-					: t < 0.5
-						? 1
-						: Math.max(0, 1 - (t - 0.5) / (launchDur - 0.5));
-			hissData[i] = (Math.random() * 2 - 1) * env * 0.3;
-		}
+		// Layer 4: High-frequency hiss (exhaust gases) — uses pre-generated buffer
 		const hissSrc = ctx.createBufferSource();
-		hissSrc.buffer = hissBuf;
+		hissSrc.buffer = this.bazookaHissBuffer;
 		const hissGain = ctx.createGain();
 		hissGain.gain.value = 0.25 * scale;
 		const hissFilter = ctx.createBiquadFilter();
@@ -1690,20 +1718,9 @@ export class AudioSynth {
 		subGain.gain.linearRampToValueAtTime(0, now + 1.0);
 		subOsc.connect(subGain);
 
-		// Layer 3: High-frequency debris crackle
-		const crackleDur = 0.6;
-		const crackleBuf = ctx.createBuffer(
-			1,
-			Math.floor(ctx.sampleRate * crackleDur),
-			ctx.sampleRate,
-		);
-		const cData = crackleBuf.getChannelData(0);
-		for (let i = 0; i < cData.length; i++) {
-			const t = i / ctx.sampleRate;
-			cData[i] = (Math.random() * 2 - 1) * Math.exp(-t * 5) * 0.4;
-		}
+		// Layer 3: High-frequency debris crackle — uses pre-generated buffer
 		const crackleSrc = ctx.createBufferSource();
-		crackleSrc.buffer = crackleBuf;
+		crackleSrc.buffer = this.explosionCrackleBuffer;
 		const crackleGain = ctx.createGain();
 		crackleGain.gain.value = 0.3 * scale;
 		const crackleFilter = ctx.createBiquadFilter();
@@ -1724,7 +1741,7 @@ export class AudioSynth {
 		subOsc.start(now);
 		subOsc.stop(now + 1.01);
 		crackleSrc.start(now);
-		crackleSrc.stop(now + crackleDur + 0.01);
+		crackleSrc.stop(now + 0.61);
 	}
 
 	playTimerTick(volume = 1) {

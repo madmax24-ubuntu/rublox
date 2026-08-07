@@ -4590,6 +4590,26 @@ export class MapGenerator {
 			false,
 			true,
 		);
+		// Floor collider — prevents walking through the hangar floor
+		this.addColliderBox(
+			new THREE.Vector3(x, 0.15, z),
+			w,
+			0.3,
+			d,
+			false,
+		);
+		// Front corner colliders — seal gaps between side walls and door sections
+		for (const side of [-1, 1]) {
+			this.addColliderBox(
+				new THREE.Vector3(x + side * w / 2, h / 2, z + d / 2),
+				1.2,
+				h,
+				1.2,
+				false,
+				false,
+				true,
+			);
+		}
 		const roof = new THREE.Mesh(
 			this.pool.getGeoBox(w + 1.8, 0.8, d + 1.8),
 			wallMat,

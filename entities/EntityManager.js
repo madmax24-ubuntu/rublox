@@ -604,7 +604,10 @@ export class EntityManager {
 
 				// === FIREBALL (orange/red, expands then fades) ===
 				if (etype === "fireball") {
-					const fbScale = Math.max(0.1, child.scale.x + delta * (ud.scaleRate || 4));
+					const fbScale = Math.max(
+						0.1,
+						child.scale.x + delta * (ud.scaleRate || 4),
+					);
 					child.scale.setScalar(fbScale);
 					child.material.opacity = Math.max(0, lifeRatio * 0.9);
 					continue;
@@ -730,9 +733,10 @@ export class EntityManager {
 				"exp_core",
 				() =>
 					new THREE.MeshBasicMaterial({
-						color: 0xffffee,
+						color: 0xffffff,
 						transparent: true,
 						opacity: 1,
+						blending: THREE.AdditiveBlending,
 					}),
 			),
 		);
@@ -747,13 +751,14 @@ export class EntityManager {
 				"exp_inner",
 				() =>
 					new THREE.MeshBasicMaterial({
-						color: 0xff8800,
+						color: 0xffaa00,
 						transparent: true,
 						opacity: 0.95,
+						blending: THREE.AdditiveBlending,
 					}),
 			),
 		);
-		inner.scale.setScalar(0.4);
+		inner.scale.setScalar(0.5);
 		inner.userData.expType = "fireball";
 		explosionGroup.add(inner);
 
@@ -764,38 +769,42 @@ export class EntityManager {
 				"exp_outer",
 				() =>
 					new THREE.MeshBasicMaterial({
-						color: 0xff4400,
+						color: 0xff5500,
 						transparent: true,
-						opacity: 0.6,
+						opacity: 0.7,
+						blending: THREE.AdditiveBlending,
 					}),
 			),
 		);
-		outer.scale.setScalar(0.3);
+		outer.scale.setScalar(0.4);
 		outer.userData.expType = "fireball";
 		explosionGroup.add(outer);
 
-		// === SMOKE CLOUDS (dark gray, rising) ===
+		// === SMOKE CLOUDS (dark gray, rising) — shared material ===
 		const smokePositions = [
-			{ x: 0, y: 0, z: 0, s: 0.6 },
-			{ x: 0.8, y: 0.2, z: -0.3, s: 0.5 },
-			{ x: -0.6, y: 0.4, z: 0.5, s: 0.45 },
-			{ x: 0.3, y: 0.5, z: 0.7, s: 0.4 },
-			{ x: -0.9, y: 0.1, z: -0.5, s: 0.55 },
+			{ x: 0, y: 0, z: 0, s: 0.7 },
+			{ x: 0.8, y: 0.2, z: -0.3, s: 0.6 },
+			{ x: -0.6, y: 0.4, z: 0.5, s: 0.55 },
+			{ x: 0.3, y: 0.5, z: 0.7, s: 0.5 },
+			{ x: -0.9, y: 0.1, z: -0.5, s: 0.65 },
+			{ x: 0.5, y: 0.3, z: 0.4, s: 0.5 },
 		];
+		const smokeMat = getMat(
+			"exp_smoke",
+			() =>
+				new THREE.MeshBasicMaterial({
+					color: 0x2a2a2a,
+					transparent: true,
+					opacity: 0.5,
+					depthWrite: false,
+				}),
+		);
+		const smokeGeo = getGeo(
+			"exp_smoke",
+			() => new THREE.SphereGeometry(0.8, 8, 8),
+		);
 		for (const sp of smokePositions) {
-			const smoke = new THREE.Mesh(
-				getGeo("exp_smoke", () => new THREE.SphereGeometry(0.8, 8, 8)),
-				getMat(
-					`exp_smoke_${sp.x}_${sp.z}`,
-					() =>
-						new THREE.MeshBasicMaterial({
-							color: 0x2a2a2a,
-							transparent: true,
-							opacity: 0.5,
-							depthWrite: false,
-						}),
-				),
-			);
+			const smoke = new THREE.Mesh(smokeGeo, smokeMat);
 			smoke.position.set(sp.x, sp.y, sp.z);
 			smoke.scale.setScalar(sp.s);
 			smoke.userData.expType = "smoke";
@@ -805,14 +814,15 @@ export class EntityManager {
 
 		// === SHOCKWAVE RING (expanding torus) ===
 		const shock = new THREE.Mesh(
-			getGeo("exp_shock", () => new THREE.TorusGeometry(1.0, 0.12, 8, 32)),
+			getGeo("exp_shock", () => new THREE.TorusGeometry(1.0, 0.15, 8, 32)),
 			getMat(
 				"exp_shock",
 				() =>
 					new THREE.MeshBasicMaterial({
 						color: 0xffffff,
 						transparent: true,
-						opacity: 0.8,
+						opacity: 0.9,
+						blending: THREE.AdditiveBlending,
 					}),
 			),
 		);
@@ -823,21 +833,22 @@ export class EntityManager {
 
 		// === GROUND FLASH (bright ring at ground level) ===
 		const groundFlash = new THREE.Mesh(
-			getGeo("exp_groundflash", () => new THREE.RingGeometry(0.3, 2.0, 24)),
+			getGeo("exp_groundflash", () => new THREE.RingGeometry(0.3, 2.5, 24)),
 			getMat(
 				"exp_groundflash",
 				() =>
 					new THREE.MeshBasicMaterial({
-						color: 0xffaa00,
+						color: 0xffcc44,
 						transparent: true,
-						opacity: 0.9,
+						opacity: 1,
 						side: THREE.DoubleSide,
+						blending: THREE.AdditiveBlending,
 					}),
 			),
 		);
 		groundFlash.rotation.x = -Math.PI / 2;
 		groundFlash.position.y = -0.01;
-		groundFlash.scale.setScalar(0.2);
+		groundFlash.scale.setScalar(0.3);
 		groundFlash.userData.expType = "groundFlash";
 		explosionGroup.add(groundFlash);
 
@@ -862,22 +873,22 @@ export class EntityManager {
 		// === SPARKS (small bright particles flying outward) ===
 		const sparkGeo = getGeo(
 			"exp_spark",
-			() => new THREE.BoxGeometry(0.04, 0.04, 0.15),
+			() => new THREE.BoxGeometry(0.05, 0.05, 0.2),
 		);
 		const sparkMat = getMat(
 			"exp_spark",
 			() => new THREE.MeshBasicMaterial({ color: 0xffcc44 }),
 		);
-		for (let i = 0; i < 16; i++) {
+		for (let i = 0; i < 12; i++) {
 			const spark = new THREE.Mesh(sparkGeo, sparkMat);
 			const theta = Math.random() * Math.PI * 2;
 			const phi = Math.random() * Math.PI * 0.6;
 			spark.position.set(0, 0, 0);
 			spark.userData = {
 				vel: new THREE.Vector3(
-					Math.sin(phi) * Math.cos(theta) * (4 + Math.random() * 10),
-					Math.cos(phi) * (3 + Math.random() * 6),
-					Math.sin(phi) * Math.sin(theta) * (4 + Math.random() * 10),
+					Math.sin(phi) * Math.cos(theta) * (5 + Math.random() * 12),
+					Math.cos(phi) * (4 + Math.random() * 8),
+					Math.sin(phi) * Math.sin(theta) * (5 + Math.random() * 12),
 				),
 				life: 0.6 + Math.random() * 0.5,
 			};
@@ -887,17 +898,17 @@ export class EntityManager {
 		// === DEBRIS (heavier chunks) ===
 		const debrisGeo = getGeo(
 			"exp_debris",
-			() => new THREE.BoxGeometry(0.06, 0.06, 0.06),
+			() => new THREE.BoxGeometry(0.08, 0.08, 0.08),
 		);
 		const debrisMat = getMat(
 			"exp_debris",
 			() => new THREE.MeshStandardMaterial({ color: 0x555555 }),
 		);
-		for (let i = 0; i < 18; i++) {
+		for (let i = 0; i < 12; i++) {
 			const d = new THREE.Mesh(debrisGeo, debrisMat);
 			const theta = Math.random() * Math.PI * 2;
 			const phi = Math.random() * Math.PI;
-			const r = Math.random() * 0.3;
+			const r = Math.random() * 0.4;
 			d.position.set(
 				r * Math.sin(phi) * Math.cos(theta),
 				r * Math.cos(phi),
@@ -905,9 +916,9 @@ export class EntityManager {
 			);
 			d.userData = {
 				vel: new THREE.Vector3(
-					(Math.random() - 0.5) * 10,
-					Math.random() * 7 + 2,
-					(Math.random() - 0.5) * 10,
+					(Math.random() - 0.5) * 12,
+					Math.random() * 8 + 2,
+					(Math.random() - 0.5) * 12,
 				),
 				life: 1.5,
 			};
@@ -915,7 +926,7 @@ export class EntityManager {
 		}
 
 		// === DYNAMIC LIGHT (intense flash, then fade) ===
-		const light = new THREE.PointLight(0xffaa44, 25, 30);
+		const light = new THREE.PointLight(0xffcc44, 40, 35);
 		light.userData = { fade: true, expLight: true };
 		explosionGroup.add(light);
 
