@@ -361,7 +361,6 @@ class Game {
 			});
 			this.input.attachListeners();
 			this.audioSynth = new AudioSynth();
-			this.audioSynth.init().catch(() => {});
 			this.hud = new HUD();
 
 			// Insert canvas AFTER HUD so HUD panels can capture pointer events
@@ -371,6 +370,9 @@ class Game {
 			} else {
 				document.body.appendChild(this.renderer.domElement);
 			}
+
+			// Init audio in parallel with map generation — binds unlock handlers early
+			const audioInitPromise = this.audioSynth.init().catch(() => {});
 
 			this.roundMode = "hybrid";
 			this.perk = "none";
@@ -453,6 +455,9 @@ class Game {
 
 			// Wait for map generation to complete (populates spawnPads)
 			await this.map._generatePromise;
+
+			// Ensure audio is fully initialized (worker buffers + samples loaded)
+			await audioInitPromise;
 
 			this.map.finalizeColliders();
 
