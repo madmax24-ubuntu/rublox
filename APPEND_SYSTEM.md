@@ -1,92 +1,123 @@
-# ГЛОБАЛЬНЫЕ ПРАВИЛА И ИНСТРУКЦИИ
+# UNIVERSAL GLOBAL INSTRUCTIONS — APPLY TO ALL PROJECTS
 
-## ОБЯЗАТЕЛЬНЫЕ ТРЕБОВАНИЯ
+## 1. ALWAYS USE GIT (NON-NEGOTIABLE)
 
-### 1. Git — СТРОГО ОБЯЗАТЕЛЬНО
-- **ВСЕ** изменения должны быть зафиксированы через Git.
-- Перед началом работы: `git status`, `git diff`, `git log -1 --oneline`.
-- После изменений: `git add <files>`, `git commit -m 'message'`, при необходимости `git push`.
-- Если файл был случайно удалён (например, AGENTS.md), восстановить: `git restore <file>`.
-- Никогда не работай без фиксации — это предотвращает потерю работы.
+### Before any work
+- `git status` — check current state
+- `git diff` — confirm working copy is clean
+- `git log -1 --oneline` — know the last commit
+
+### After changes
+- `node --check <file>.js` — syntax valid
+- `git diff --stat` — diff matches intent
+- `git add <file>` + `git commit -m "type(scope): description"`
+- Push only after ALL task commits are done: `git push`
+
+**NEVER commit generated artifacts:** screenshots, logs, tmp files, node_modules, build output.
+**Conventional types:** `feat`, `fix`, `refactor`, `debug`, `chore`
+**One logical change per commit.** No drive-by refactors.
 
 ---
 
-## MCP codebase-memory — ПРАВИЛА ИСПОЛЬЗОВАНИЯ
+## 2. MCP codebase-memory — RULES FOR DISCOVERY
 
-### Когда использовать
-- **Поиск кода/функций/классов**: `codebase_memory_search_graph` (не `search_graph`!)
-- **Архитектура проекта**: `codebase_memory_get_architecture` — для общей структуры
-- **Список проектов**: `codebase_memory_list_projects` — если нужно переключиться между проектами
-- **Точный поиск по тексту**: `codebase_memory_search_code` — для конкретных строк/литералов
-- **Зависимости/цепочки вызовов**: `codebase_memory_trace_path`
+### Available tools (use these names exactly)
+- `codebase_memory_list_projects` — list all indexed projects
+- `codebase_memory_search_graph` — find functions/classes by name pattern (BM25 search)
+- `codebase_memory_get_code_snippet` — read specific function source by qualified name
+- `codebase_memory_trace_path` — trace call chains (who calls what)
+- `codebase_memory_get_architecture` — project structure overview
+- `codebase_memory_search_code` — exact text search in code files
 
-### Критичные правила
-1. **ВСЕГДА передавай аргумент `project` в объекте `args`**:
+### CRITICAL RULES
+1. **ALWAYS pass `project` argument via `args`**:
    ```
-   { "server": "codebase-memory", "tool": "search_graph", "args": { "project": "<project_name>", "query": "...", "label": "Class|Function|Method", "limit": 20 } }
+   { "server": "codebase-memory", "tool": "search_graph", "args": { "project": "<name>", "query": "...", "label": "Class|Function|Method", "limit": 20 } }
    ```
-2. Если получил ошибку `missing required argument: project` — это значит ты не передал `project` правильно. **Перечитай ошибку и исправь, не повторяй ошибку.**
-3. Имя проекта берётся из `codebase_memory_list_projects` — не гадай.
-4. Для точного чтения кода используй `codebase_memory_get_code_snippet` с `qualified_name` (полный путь типа `rublox.items.Weapon.createGunshotSound`).
+2. If you get `missing required argument: project` — you passed it wrong. Read the error, fix it, do NOT repeat.
+3. Get project name from `codebase_memory_list_projects` — do not guess.
+4. Use `codebase_memory_get_code_snippet` with `qualified_name` to read exact function bodies.
+
+### Discovery order
+1. `codebase_memory_get_architecture` → project structure
+2. `codebase_memory_search_graph` → find target function/class
+3. `codebase_memory_get_code_snippet` → read the actual code
+4. `codebase_memory_trace_path` → trace dependencies
 
 ---
 
-## MCP three.js-devtools — ПРАВИЛА ИСПОЛЬЗОВАНИЯ
+## 3. MCP three.js-devtools — BRIDGE REQUIRED
 
-### Перед использованием — ОБЯЗАТЕЛЕН бридж
-1. **Сервер должен работать**: `npx nodemon --watch server.js server.js` (порт 3001).
-2. **Открыть прокси в браузере**: `http://localhost:48385` (или другой прокси-порт).
-3. **Проверить бридж**: `threejs_devtools_bridge_status` — должно быть `Bridge: connected`.
-4. Если `NOT connected`: перезагрузить страницу (Ctrl+Shift+R), проверить сервер, очистить кэш браузера.
+### Before using ANY three.js tool, verify the bridge
+1. **Dev server must be running**: `npx nodemon --watch server.js server.js` (or project equivalent)
+2. **Open the proxy URL** in your browser (check server output for the URL, e.g., `http://localhost:48385`)
+3. **Verify bridge**: `threejs_devtools_bridge_status` → must say `Bridge: connected`
+4. If `NOT connected`: hard refresh the browser page (Ctrl+Shift+R), check server is running
 
-### Инструменты (названия полные, не сокращённые)
-- **Поиск объектов сцены**: `threejs_devtools_find_objects` (не `scene_tree`!)
-- **Детали объекта**: `threejs_devtools_object_details`
-- **Материалы**: `threejs_devtools_material_list`, `threejs_devtools_material_details`
-- **Текстуры**: `threejs_devtools_texture_list`, `threejs_devtools_texture_details`
-- **Камера**: `threejs_devtools_camera_details`, `threejs_devtools_set_camera`
-- **Скриншот**: `threejs_devtools_take_screenshot`
-- **Рендер/настройки**: `threejs_devtools_renderer_settings`
-- **Перформанс**: `threejs_devtools_performance_snapshot`
-- **JS-выполнение**: `threejs_devtools_run_js` — для быстрых тестов/проверок
+### Available tools (use full names, NOT abbreviations)
+- `threejs_devtools_find_objects` — search by type, material, visibility (NOT `scene_tree`)
+- `threejs_devtools_object_details` — inspect specific object
+- `threejs_devtools_material_list` / `material_details` — inspect materials
+- `threejs_devtools_texture_list` / `texture_details` — inspect textures
+- `threejs_devtools_camera_details` / `set_camera` — camera controls
+- `threejs_devtools_take_screenshot` — capture scene state
+- `threejs_devtools_perf_monitor` / `performance_snapshot` — FPS, draw calls, triangles
+- `threejs_devtools_bounding_boxes` — show/hide colliders
+- `threejs_devtools_run_js` — execute JS on the scene (for quick tests)
+- `threejs_devtools_renderer_settings` — renderer config
 
-### Правило
-Если получил `Error: No Three.js app connected` — бридж не подключен. **Не повторяй вызов**, сначала проверь `threejs_devtools_bridge_status`.
+### Rule
+If you get `Error: No Three.js app connected` — the bridge is not connected. **Do NOT repeat the call.** Fix the bridge first with `threejs_devtools_bridge_status`.
 
 ---
 
-## ТЕСТИРОВАНИЕ — Playwright headless
+## 4. PLAYWRIGHT — HEADLESS VERIFICATION
 
-### Обязательное правило
-- **ВСЕ изменения в коде должны быть проверены** через Playwright в headless режиме.
-- Не полагаться на визуальную проверку — использовать автотесты.
+### When to run
+After changes to: 3D scene, entities, rendering, colliders, UI, or any visual feature.
 
-### Как запускать
+### Commands
 ```bash
-# Проверка работы приложения (headless)
-npx playwright test --project chromium --headed=false
+npx playwright test --project=chromium           # headless (pipeline)
+npx playwright test --project=chromium --headed  # interactive (debugging)
+npx playwright test --project=chromium --grep "test-name"  # specific test
 ```
 
-### Пример теста для проверки багов
-```javascript
-// tests/example.spec.js
-import { test, expect } from '@playwright/test';
-
-test('bazooka explosion works', async ({ page }) => {
-  await page.goto('http://localhost:3001');
-  // Проверка что выстрел базуки не фризит
-  // Проверка что анимация взрыва появляется
-  // Проверка что звук играет (через Web Audio API)
-});
-```
+### Screenshots are artifacts
+Screenshots saved to `tests/screenshots/` are **NEVER committed** — they are generated artifacts.
 
 ---
 
-## ИТОГОВЫЙ ЧЕК-ЛИСТ ПЕРЕД ЗАВЕРШЕНИЕМ РАБОТЫ
+## 5. VERIFICATION CHECKLIST (BEFORE EVERY COMMIT)
 
-1. [ ] `git status` — все изменения видны
-2. [ ] `git diff` — код корректен, нет опечаток
-3. [ ] `node --check <file>` — синтаксис OK
-4. [ ] `lens_diagnostics` или `verify_code` — нет ошибок
-5. [ ] Playwright headless — тесты проходят
-6. [ ] `git add <files>` + `git commit -m '<message>'` — зафиксировано
+1. [ ] `node --check <file>.js` — syntax valid
+2. [ ] `git diff --stat <file>` — diff matches intent
+3. [ ] No unintended side effects in modified region
+4. [ ] No duplicate variable declarations
+5. [ ] Import statements present for new dependencies
+6. [ ] Playwright tests pass (if visual/rendering/collider changes)
+7. [ ] No secrets, tokens, or API keys in diff
+8. [ ] No generated artifacts (screenshots, logs, builds) in diff
+
+---
+
+## 6. WORKFLOW ORDER (STRICT)
+
+1. **DISCOVER** — MCP codebase-memory or three.js-devtools
+2. **READ** — the target code file(s)
+3. **APPLY** — targeted edits using `patch` (not `sed` for multiline)
+4. **VERIFY** — `node --check` + `git diff --stat` + Playwright
+5. **COMMIT** — `git add` + `git commit -m "type(scope): description"`
+6. **PUSH** — `git push` after ALL task commits
+
+**NEVER skip discovery or verification.**
+**NEVER commit without verifying.**
+
+---
+
+## 7. COMMUNICATION
+
+- Language: Russian for discussion, English for code
+- Format: concrete — file paths, line numbers, command output
+- No introductions, no filler. Lead with the change or answer.
+- Never fabricate output — if a tool fails, say so and try an alternative.
