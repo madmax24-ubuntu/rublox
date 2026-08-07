@@ -76,8 +76,6 @@ export class AudioSynth {
 		// Pre-generated procedural buffers for bazooka
 		this.bazookaLaunchBuffer = null;
 		this.bazookaExplosionBuffer = null;
-		this.bazookaHissBuffer = null;
-		this.explosionCrackleBuffer = null;
 
 		this.sampleCatalog = {
 			ambient: [],
@@ -220,18 +218,14 @@ export class AudioSynth {
 
 			const rate = this.audioContext.sampleRate;
 			if (this._useWorker) {
-				const [launchData, explosionData, hissData, crackleData, impulseData] =
+				const [launchData, explosionData, impulseData] =
 					await Promise.all([
 						this._postWorker("bazookaLaunch", { rate, dur: 0.9 }),
 						this._postWorker("bazookaExplosion", { rate, dur: 2.5 }),
-						this._postWorker("bazookaHiss", { rate, dur: 0.9 }),
-						this._postWorker("explosionCrackle", { rate, dur: 0.6 }),
 						this._postWorker("impulse", { rate, duration: 1.6, decay: 1.8, channels: 2 }),
 					]);
 				this.bazookaLaunchBuffer = this._createBufferFromData(1, launchData, rate);
 				this.bazookaExplosionBuffer = this._createBufferFromData(1, explosionData, rate);
-				this.bazookaHissBuffer = this._createBufferFromData(1, hissData, rate);
-				this.explosionCrackleBuffer = this._createBufferFromData(1, crackleData, rate);
 				this.reverb.buffer = this._createBufferFromData(2, impulseData, rate);
 			} else {
 				this._createSyncBuffers(rate);
@@ -322,13 +316,6 @@ export class AudioSynth {
 			const e = t > 0.12 ? gauss(t - 0.12, 0.6) * 0.25 : 0;
 			const gr = Math.sin(t * 6 * Math.PI + 0.5) * Math.exp(-t * 0.4) * 0.35;
 			return (b1 + b2 + b3 + sr + mr + cr + r + e + gr) * 0.8;
-		});
-		this.bazookaHissBuffer = mkBuf(0.9, (t) => {
-			const e = t < 0.05 ? t / 0.05 : t < 0.5 ? 1 : Math.max(0, 1 - (t - 0.5) / 0.4);
-			return (Math.random() * 2 - 1) * e * 0.35;
-		});
-		this.explosionCrackleBuffer = mkBuf(0.6, (t) => {
-			return (Math.random() * 2 - 1) * Math.exp(-t * 4) * 0.45;
 		});
 		this.reverb.buffer = mkImpulse(1.6, 1.8);
 	}
@@ -1574,83 +1561,22 @@ export class AudioSynth {
 		const scale = this.getEmitterSfxScale(emitterKey);
 		const now = ctx.currentTime;
 
-		// === LAUNCH PHASE: layered ignition + thrust + rumble ===
-		const launchDur = 0.9;
-
-		// Layer 1: Pre-generated launch buffer (ignition crack + thrust roar)
-		const noiseSrc = ctx.createBufferSource();
-		noiseSrc.buffer = this.bazookaLaunchBuffer;
-		const noiseGain = ctx.createGain();
-		noiseGain.gain.setValueAtTime(0.8 * scale, now);
-		noiseGain.gain.linearRampToValueAtTime(0.4 * scale, now + launchDur);
-		noiseSrc.connect(noiseGain);
-
-		// Layer 2: Sub-bass oscillator (deep ignition boom)
-		const subOsc = ctx.createOscillator();
-		subOsc.type = "sine";
-		subOsc.frequency.setValueAtTime(85, now);
-		subOsc.frequency.exponentialRampToValueAtTime(28, now + launchDur);
-		const subGain = ctx.createGain();
-		subGain.gain.setValueAtTime(0, now);
-		subGain.gain.linearRampToValueAtTime(0.45 * scale, now + 0.03);
-		subGain.gain.linearRampToValueAtTime(0.2 * scale, now + 0.3);
-		subGain.gain.linearRampToValueAtTime(0, now + launchDur);
-		subOsc.connect(subGain);
-
-		// Layer 3: Mid-frequency rumble (thrust engine character)
-		const rumbleOsc = ctx.createOscillator();
-		rumbleOsc.type = "sawtooth";
-		rumbleOsc.frequency.setValueAtTime(120, now);
-		rumbleOsc.frequency.exponentialRampToValueAtTime(50, now + launchDur * 0.7);
-		const rumbleGain = ctx.createGain();
-		rumbleGain.gain.setValueAtTime(0, now);
-		rumbleGain.gain.linearRampToValueAtTime(0.15 * scale, now + 0.04);
-		rumbleGain.gain.linearRampToValueAtTime(0.08 * scale, now + 0.4);
-		rumbleGain.gain.linearRampToValueAtTime(0, now + launchDur * 0.75);
-		const rumbleFilter = ctx.createBiquadFilter();
-		rumbleFilter.type = "lowpass";
-		rumbleFilter.frequency.setValueAtTime(400, now);
-		rumbleFilter.frequency.exponentialRampToValueAtTime(100, now + launchDur);
-		rumbleOsc.connect(rumbleFilter);
-		rumbleFilter.connect(rumbleGain);
-
-		// Layer 4: High-frequency hiss (exhaust gases) — uses pre-generated buffer
-		const hissSrc = ctx.createBufferSource();
-		hissSrc.buffer = this.bazookaHissBuffer;
-		const hissGain = ctx.createGain();
-		hissGain.gain.value = 0.25 * scale;
-		const hissFilter = ctx.createBiquadFilter();
-		hissFilter.type = "bandpass";
-		hissFilter.frequency.value = 3500;
-		hissFilter.Q.value = 1.5;
-		hissSrc.connect(hissFilter);
-		hissFilter.connect(hissGain);
-
-		// Connect all layers through panner
+		// Launch: play pre-mixed buffer (ignition + thrust + rumble + hiss)
+		const src = ctx.createBufferSource();
+		src.buffer = this.bazookaLaunchBuffer;
+		const gain = ctx.createGain();
+		gain.gain.value = 0.8 * scale;
 		const pan = this.createPanner(position);
-		noiseGain.connect(pan);
-		subGain.connect(pan);
-		rumbleGain.connect(pan);
-		hissGain.connect(pan);
+		src.connect(gain).connect(pan);
 		pan.connect(this.masterSfxGain);
+		src.start(now);
+		src.stop(now + 0.91);
 
-		noiseSrc.start(now);
-		noiseSrc.stop(now + launchDur + 0.01);
-		subOsc.start(now);
-		subOsc.stop(now + launchDur + 0.01);
-		rumbleOsc.start(now);
-		rumbleOsc.stop(now + launchDur + 0.01);
-		hissSrc.start(now);
-		hissSrc.stop(now + launchDur + 0.01);
-
-		// === EXPLOSION PHASE: delayed by rocket travel time ===
+		// Explosion: delayed by rocket travel time
 		const travelTime = 700 + Math.random() * 500;
-		setTimeout(
-			() => {
-				this.playProceduralExplosion(position);
-			},
-			Math.min(travelTime, 2500),
-		);
+		setTimeout(() => {
+			this.playProceduralExplosion(position, scale);
+		}, Math.min(travelTime, 2500));
 	}
 
 	// Pre-generated explosion sound with double boom + rumble
@@ -1660,56 +1586,16 @@ export class AudioSynth {
 		if (!ctx || !this.bazookaExplosionBuffer) return false;
 		const now = ctx.currentTime;
 
-		// Layer 1: Pre-generated explosion buffer (booms + rumble + crackle)
+		// Play pre-mixed explosion buffer (booms + rumble + crackle + echo)
 		const src = ctx.createBufferSource();
 		src.buffer = this.bazookaExplosionBuffer;
-		const mainGain = ctx.createGain();
-		mainGain.gain.setValueAtTime(0, now);
-		mainGain.gain.linearRampToValueAtTime(1.0 * scale, now + 0.01);
-		mainGain.gain.linearRampToValueAtTime(0.6 * scale, now + 0.1);
-		mainGain.gain.linearRampToValueAtTime(0.3 * scale, now + 0.5);
-		mainGain.gain.linearRampToValueAtTime(0, now + 2.0);
-		const mainFilter = ctx.createBiquadFilter();
-		mainFilter.type = "lowpass";
-		mainFilter.frequency.setValueAtTime(800, now);
-		mainFilter.frequency.exponentialRampToValueAtTime(100, now + 1.5);
-		src.connect(mainFilter).connect(mainGain);
-
-		// Layer 2: Sub-bass thump (deep ground shake)
-		const subOsc = ctx.createOscillator();
-		subOsc.type = "sine";
-		subOsc.frequency.setValueAtTime(45, now);
-		subOsc.frequency.exponentialRampToValueAtTime(18, now + 1.0);
-		const subGain = ctx.createGain();
-		subGain.gain.setValueAtTime(0, now);
-		subGain.gain.linearRampToValueAtTime(0.5 * scale, now + 0.02);
-		subGain.gain.linearRampToValueAtTime(0.2 * scale, now + 0.3);
-		subGain.gain.linearRampToValueAtTime(0, now + 1.0);
-		subOsc.connect(subGain);
-
-		// Layer 3: High-frequency debris crackle — uses pre-generated buffer
-		const crackleSrc = ctx.createBufferSource();
-		crackleSrc.buffer = this.explosionCrackleBuffer;
-		const crackleGain = ctx.createGain();
-		crackleGain.gain.value = 0.3 * scale;
-		const crackleFilter = ctx.createBiquadFilter();
-		crackleFilter.type = "highpass";
-		crackleFilter.frequency.value = 2000;
-		crackleSrc.connect(crackleFilter).connect(crackleGain);
-
-		// Connect all layers through panner
+		const gain = ctx.createGain();
+		gain.gain.value = scale;
 		const pan = this.createPanner(position);
-		mainGain.connect(pan);
-		subGain.connect(pan);
-		crackleGain.connect(pan);
+		src.connect(gain).connect(pan);
 		pan.connect(this.masterSfxGain);
-
 		src.start(now);
-		src.stop(now + 2.5);
-		subOsc.start(now);
-		subOsc.stop(now + 1.01);
-		crackleSrc.start(now);
-		crackleSrc.stop(now + 0.61);
+		src.stop(now + 2.51);
 	}
 
 	playTimerTick(volume = 1) {

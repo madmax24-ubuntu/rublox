@@ -133,14 +133,6 @@ assert(
 	audioSynth.bazookaExplosionBuffer !== null,
 	"bazookaExplosionBuffer pre-generated",
 );
-assert(
-	audioSynth.bazookaHissBuffer !== null,
-	"bazookaHissBuffer pre-generated",
-);
-assert(
-	audioSynth.explosionCrackleBuffer !== null,
-	"explosionCrackleBuffer pre-generated",
-);
 
 assert(
 	audioSynth.bazookaLaunchBuffer.numberOfChannels === 1,
