@@ -288,9 +288,9 @@ export class AudioSynth {
 			const thrustEnv =
 				t < 0.04 ? t / 0.04 : t < 0.5 ? 1 : t < 0.7 ? 1 - (t - 0.5) / 0.2 : 0;
 			// Thrust rumble (low frequency engine)
-			const thrustRumble = Math.sin(t * 28 * Math.PI) * thrustEnv * 0.45;
+			const thrustRumble = Math.sin(t * 55 * Math.PI) * thrustEnv * 0.45;
 			// Deep sub-thrust
-			const subThrust = Math.sin(t * 14 * Math.PI) * thrustEnv * 0.3;
+			const subThrust = Math.sin(t * 28 * Math.PI) * thrustEnv * 0.35;
 			// Sustained noise (high frequency whoosh)
 			const noise =
 				(Math.random() * 2 - 1) * thrustEnv * Math.exp(-t * 2.5) * 0.55;
@@ -328,9 +328,9 @@ export class AudioSynth {
 			// Third boom (debris impact cluster)
 			const boom3 = Math.exp(-((t - 0.12) / 0.05) * ((t - 0.12) / 0.05)) * 0.35;
 			// Deep sub-bass rumble (sustained, very low frequency)
-			const subRumble = Math.sin(t * 16 * Math.PI) * Math.exp(-t * 0.8) * 0.5;
+			const subRumble = Math.sin(t * 32 * Math.PI) * Math.exp(-t * 0.8) * 0.5;
 			// Mid-frequency rumble (explosion body)
-			const midRumble = Math.sin(t * 32 * Math.PI) * Math.exp(-t * 1.2) * 0.45;
+			const midRumble = Math.sin(t * 64 * Math.PI) * Math.exp(-t * 1.2) * 0.45;
 			// High-frequency crackle (debris and sparks)
 			const crackle = (Math.random() * 2 - 1) * Math.exp(-t * 2.5) * 0.35;
 			// Sustained roar (explosion tail)

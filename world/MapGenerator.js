@@ -4500,7 +4500,7 @@ export class MapGenerator {
 				new THREE.Vector3(x + (side * w) / 2, h / 2, z),
 				1.5,
 				h,
-				d + 1.0,
+				d,
 				false,
 				false,
 				true,

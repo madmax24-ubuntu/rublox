@@ -2330,6 +2330,20 @@ function getThirdPersonWorldScale(rawType) {
 }
 
 const weaponModelTemplates = new Map();
+const projectileModelTemplates = new Map();
+
+function getProjectileModelTemplate(type) {
+	let template = projectileModelTemplates.get(type);
+	if (template) return template;
+	template =
+		type === "bazooka"
+			? createBazookaProjectileMesh()
+			: type === "bow"
+				? createArrowProjectileMesh()
+				: null;
+	if (template) projectileModelTemplates.set(type, template);
+	return template;
+}
 
 function getWeaponModelTemplate(type) {
 	let template = weaponModelTemplates.get(type);
@@ -2428,6 +2442,8 @@ export class Weapon {
 	static prewarm(type) {
 		const normalized = normType(type);
 		if (normalized !== "fists") getWeaponModelTemplate(normalized);
+		if (normalized === "bazooka" || normalized === "bow")
+			getProjectileModelTemplate(normalized);
 	}
 
 	// Attach weapon mesh to a THREE.Object3D socket (e.g., player's weaponSocket)
@@ -2646,7 +2662,8 @@ export class Weapon {
 			knockback = 5;
 			gravity = 0;
 		} else if (type === "bow") {
-			mesh = createArrowProjectileMesh();
+			const tmpl = getProjectileModelTemplate("bow");
+			mesh = tmpl ? tmpl.clone(true) : createArrowProjectileMesh();
 			knockback = 6;
 			gravity = 0.02;
 		} else if (
@@ -2674,7 +2691,8 @@ export class Weapon {
 			);
 			knockback = type === "rifle" || type === "machinegun" ? 4 : 3;
 		} else if (type === "bazooka") {
-			mesh = createBazookaProjectileMesh();
+			const tmpl = getProjectileModelTemplate("bazooka");
+			mesh = tmpl ? tmpl.clone(true) : createBazookaProjectileMesh();
 			mesh.userData.hasSmokeTrail = true;
 			knockback = 15;
 			gravity = 0.005;

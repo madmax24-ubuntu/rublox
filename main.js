@@ -558,6 +558,7 @@ class Game {
 				"shotgun",
 				"flamethrower",
 				"laser",
+				"bazooka",
 			];
 			this.weaponPrewarmAt = 0;
 			this.botLootPhaseDuration = GAME_CONFIG.round.botLootPhaseSeconds;
