@@ -66,6 +66,7 @@ export class MapGenerator {
 		this.halfSize = HALF;
 
 		this.colliders = [];
+		this.colliderVersion = 0;
 		this.spawnPads = [];
 		this.colliderGrid = new Map();
 		this.colliderGridCellSize = 16;
@@ -4590,18 +4591,12 @@ export class MapGenerator {
 			false,
 			true,
 		);
-		// Floor collider — prevents walking through the hangar floor
-		this.addColliderBox(
-			new THREE.Vector3(x, 0.15, z),
-			w,
-			0.3,
-			d,
-			false,
-		);
+		// Floor collider — walkable surface
+		this.addColliderBox(new THREE.Vector3(x, 0.15, z), w, 0.3, d, true);
 		// Front corner colliders — seal gaps between side walls and door sections
 		for (const side of [-1, 1]) {
 			this.addColliderBox(
-				new THREE.Vector3(x + side * w / 2, h / 2, z + d / 2),
+				new THREE.Vector3(x + (side * w) / 2, h / 2, z + d / 2),
 				1.2,
 				h,
 				1.2,
@@ -8514,6 +8509,7 @@ export class MapGenerator {
 				box.source = source;
 		}
 		this.colliders.push(box);
+		this.colliderVersion++;
 		return box;
 	}
 

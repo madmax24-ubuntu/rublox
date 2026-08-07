@@ -1594,8 +1594,8 @@ export class AudioSynth {
 		});
 	}
 
-	playBazooka(position = null, emitterKey = "global") {
-		this._ensureLazyInit();
+	async playBazooka(position = null, emitterKey = "global") {
+		await this._ensureLazyInit();
 		const ctx = this.audioContext;
 		if (!ctx || !this.bazookaLaunchBuffer) return false;
 		const voiceKey = `bazooka:${emitterKey}`;
@@ -1657,8 +1657,7 @@ export class AudioSynth {
 		hissFilter.connect(hissGain);
 
 		// Connect all layers through panner
-		const pan = this.createPanner?.() || ctx.createPanner();
-		if (position) pan.position.set(position.x, position.y, position.z);
+		const pan = this.createPanner(position);
 		noiseGain.connect(pan);
 		subGain.connect(pan);
 		rumbleGain.connect(pan);
@@ -1729,8 +1728,7 @@ export class AudioSynth {
 		crackleSrc.connect(crackleFilter).connect(crackleGain);
 
 		// Connect all layers through panner
-		const pan = this.createPanner?.() || ctx.createPanner();
-		if (position) pan.position.set(position.x, position.y, position.z);
+		const pan = this.createPanner(position);
 		mainGain.connect(pan);
 		subGain.connect(pan);
 		crackleGain.connect(pan);
