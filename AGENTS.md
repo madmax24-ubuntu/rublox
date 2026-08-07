@@ -2,6 +2,8 @@
 
 This file is the **single source of truth** for how you work on this project. Read it on every session start.
 
+**IMPORTANT:** Universal rules are in `APPEND_SYSTEM.md` — read it FIRST, then this file. Never ignore either.
+
 ---
 
 ## 1. WORKFLOW — STRICT EXECUTION ORDER
