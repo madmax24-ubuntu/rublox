@@ -653,47 +653,138 @@ export class EntityManager {
 		const explosionGroup = new THREE.Group();
 		const getGeo = (key, fn) => {
 			if (!this._explosionGeos) this._explosionGeos = new Map();
-			return this._explosionGeos.get(key) ?? (this._explosionGeos.set(key, fn()), this._explosionGeos.get(key));
+			return (
+				this._explosionGeos.get(key) ??
+				(this._explosionGeos.set(key, fn()), this._explosionGeos.get(key))
+			);
 		};
 		const getMat = (key, fn) => {
 			if (!this._explosionMats) this._explosionMats = new Map();
-			return this._explosionMats.get(key) ?? (this._explosionMats.set(key, fn()), this._explosionMats.get(key));
+			return (
+				this._explosionMats.get(key) ??
+				(this._explosionMats.set(key, fn()), this._explosionMats.get(key))
+			);
 		};
-		const core = new THREE.Mesh(getGeo("exp_core", () => new THREE.SphereGeometry(0.4, 16, 16)), getMat("exp_core", () => new THREE.MeshBasicMaterial({ color: 0xffffcc, transparent: true, opacity: 1 })));
-		core.scale.setScalar(0.3);
+		const core = new THREE.Mesh(
+			getGeo("exp_core", () => new THREE.SphereGeometry(0.4, 16, 16)),
+			getMat(
+				"exp_core",
+				() =>
+					new THREE.MeshBasicMaterial({
+						color: 0xffffcc,
+						transparent: true,
+						opacity: 1,
+					}),
+			),
+		);
+		core.scale.setScalar(0.5);
 		explosionGroup.add(core);
-		const inner = new THREE.Mesh(getGeo("exp_inner", () => new THREE.SphereGeometry(0.6, 12, 12)), getMat("exp_inner", () => new THREE.MeshBasicMaterial({ color: 0xffcc00, transparent: true, opacity: 0.9 })));
-		inner.scale.setScalar(0.5);
+		const inner = new THREE.Mesh(
+			getGeo("exp_inner", () => new THREE.SphereGeometry(0.6, 12, 12)),
+			getMat(
+				"exp_inner",
+				() =>
+					new THREE.MeshBasicMaterial({
+						color: 0xffcc00,
+						transparent: true,
+						opacity: 0.9,
+					}),
+			),
+		);
+		inner.scale.setScalar(0.6);
 		explosionGroup.add(inner);
-		const outer = new THREE.Mesh(getGeo("exp_outer", () => new THREE.SphereGeometry(0.8, 10, 10)), getMat("exp_outer", () => new THREE.MeshBasicMaterial({ color: 0xffdd00, transparent: true, opacity: 0.7 })));
-		outer.scale.setScalar(0.6);
+		const outer = new THREE.Mesh(
+			getGeo("exp_outer", () => new THREE.SphereGeometry(0.8, 10, 10)),
+			getMat(
+				"exp_outer",
+				() =>
+					new THREE.MeshBasicMaterial({
+						color: 0xffdd00,
+						transparent: true,
+						opacity: 0.7,
+					}),
+			),
+		);
+		outer.scale.setScalar(0.8);
 		explosionGroup.add(outer);
-		const smoke1 = new THREE.Mesh(getGeo("exp_smoke", () => new THREE.SphereGeometry(0.7, 8, 8)), getMat("exp_smoke", () => new THREE.MeshBasicMaterial({ color: 0x333333, transparent: true, opacity: 0.6, depthWrite: false })));
-		smoke1.scale.setScalar(0.4);
+		const smoke1 = new THREE.Mesh(
+			getGeo("exp_smoke", () => new THREE.SphereGeometry(0.7, 8, 8)),
+			getMat(
+				"exp_smoke",
+				() =>
+					new THREE.MeshBasicMaterial({
+						color: 0x333333,
+						transparent: true,
+						opacity: 0.6,
+						depthWrite: false,
+					}),
+			),
+		);
+		smoke1.scale.setScalar(0.5);
 		explosionGroup.add(smoke1);
-		const smoke2 = new THREE.Mesh(getGeo("exp_smoke", () => new THREE.SphereGeometry(0.7, 8, 8)), getMat("exp_smoke2", () => new THREE.MeshBasicMaterial({ color: 0x333333, transparent: true, opacity: 0.6, depthWrite: false })));
-		smoke2.scale.setScalar(0.3);
+		const smoke2 = new THREE.Mesh(
+			getGeo("exp_smoke", () => new THREE.SphereGeometry(0.7, 8, 8)),
+			getMat(
+				"exp_smoke2",
+				() =>
+					new THREE.MeshBasicMaterial({
+						color: 0x333333,
+						transparent: true,
+						opacity: 0.6,
+						depthWrite: false,
+					}),
+			),
+		);
+		smoke2.scale.setScalar(0.4);
 		smoke2.position.set(0.5, 0.3, -0.2);
 		explosionGroup.add(smoke2);
-		const shock = new THREE.Mesh(getGeo("exp_shock", () => new THREE.TorusGeometry(0.5, 0.05, 8, 24)), getMat("exp_shock", () => new THREE.MeshBasicMaterial({ color: 0xffffcc, transparent: true, opacity: 0.5 })));
+		const shock = new THREE.Mesh(
+			getGeo("exp_shock", () => new THREE.TorusGeometry(0.5, 0.08, 8, 32)),
+			getMat(
+				"exp_shock",
+				() =>
+					new THREE.MeshBasicMaterial({
+						color: 0xffffcc,
+						transparent: true,
+						opacity: 0.7,
+					}),
+			),
+		);
 		shock.rotation.set(Math.PI / 2, 0, 0);
-		shock.scale.setScalar(0.1);
+		shock.scale.setScalar(0.2);
 		explosionGroup.add(shock);
-		const scorch = new THREE.Mesh(getGeo("exp_scorch", () => new THREE.CircleGeometry(2.5, 16)), getMat("exp_scorch", () => new THREE.MeshBasicMaterial({ color: 0x222222, transparent: true, opacity: 0.7 })));
+		const scorch = new THREE.Mesh(
+			getGeo("exp_scorch", () => new THREE.CircleGeometry(2.5, 16)),
+			getMat(
+				"exp_scorch",
+				() =>
+					new THREE.MeshBasicMaterial({
+						color: 0x222222,
+						transparent: true,
+						opacity: 0.7,
+					}),
+			),
+		);
 		scorch.rotation.x = -Math.PI / 2;
 		scorch.position.y = -0.02;
 		explosionGroup.add(scorch);
-		const light = new THREE.PointLight(0xffcc00, 8, 15);
+		const light = new THREE.PointLight(0xffcc00, 12, 20);
 		light.userData = { fade: true };
 		explosionGroup.add(light);
-		const debrisGeo = getGeo("exp_debris", () => new THREE.BoxGeometry(0.06, 0.06, 0.06));
-		const debrisMat = getMat("exp_debris", () => new THREE.MeshStandardMaterial({ color: 0x555555 }));
+		const debrisGeo = getGeo(
+			"exp_debris",
+			() => new THREE.BoxGeometry(0.06, 0.06, 0.06),
+		);
+		const debrisMat = getMat(
+			"exp_debris",
+			() => new THREE.MeshStandardMaterial({ color: 0x555555 }),
+		);
 		const debris = [];
-		for (let i = 0; i < 16; i++) {
+		for (let i = 0; i < 24; i++) {
 			const d = new THREE.Mesh(debrisGeo, debrisMat);
 			const theta = Math.random() * Math.PI * 2;
 			const phi = Math.random() * Math.PI;
-			const r = Math.random() * 0.3;
+			const r = Math.random() * 0.4;
 			d.position.set(
 				r * Math.sin(phi) * Math.cos(theta),
 				r * Math.cos(phi),
@@ -701,11 +792,11 @@ export class EntityManager {
 			);
 			d.userData = {
 				vel: new THREE.Vector3(
-					(Math.random() - 0.5) * 8,
-					Math.random() * 6 + 2,
-					(Math.random() - 0.5) * 8,
+					(Math.random() - 0.5) * 12,
+					Math.random() * 8 + 3,
+					(Math.random() - 0.5) * 12,
 				),
-				life: 1.5,
+				life: 1.8,
 			};
 			explosionGroup.add(d);
 			debris.push(d);
@@ -713,11 +804,11 @@ export class EntityManager {
 
 		explosionGroup.position.copy(position);
 		explosionGroup.userData = {
-			life: 2.0,
-			scaleRate: 3.0,
-			coreDecay: 4.0,
-			smokeRise: 1.2,
-			shockExpand: 10.0,
+			life: 2.5,
+			scaleRate: 4.0,
+			coreDecay: 5.0,
+			smokeRise: 1.5,
+			shockExpand: 14.0,
 		};
 		this.scene.add(explosionGroup);
 		this.effects.push(explosionGroup);

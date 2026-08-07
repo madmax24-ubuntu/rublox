@@ -4512,10 +4512,20 @@ export class MapGenerator {
 				this.pool.getGeoBox(doorLeftW, h, 0.9),
 				wallMat,
 			);
-			dl.position.set(-w / 2 + doorLeftW / 2, h / 2, d / 2);
+		
+dl.position.set(-w / 2 + doorLeftW / 2, h / 2, d / 2);
 			dl.userData.mapGenerated = true;
 			dl.userData.isWall = true;
 			group.add(dl);
+			this.addColliderBox(
+				new THREE.Vector3(x - w / 2 + doorLeftW / 2, h / 2, z + d / 2),
+				doorLeftW,
+				h,
+				0.9,
+				false,
+				false,
+				true,
+			);
 		}
 		if (doorRightW > 0) {
 			const dr = new THREE.Mesh(
@@ -4526,6 +4536,15 @@ export class MapGenerator {
 			dr.userData.mapGenerated = true;
 			dr.userData.isWall = true;
 			group.add(dr);
+			this.addColliderBox(
+				new THREE.Vector3(x + w / 2 - doorRightW / 2, h / 2, z + d / 2),
+				doorRightW,
+				h,
+				0.9,
+				false,
+				false,
+				true,
+			);
 		}
 		if (doorTopH > 0) {
 			const dt = new THREE.Mesh(this.pool.getGeoBox(w, doorTopH, 0.9), wallMat);
@@ -4533,6 +4552,15 @@ export class MapGenerator {
 			dt.userData.mapGenerated = true;
 			dt.userData.isWall = true;
 			group.add(dt);
+			this.addColliderBox(
+				new THREE.Vector3(x, doorH + doorTopH / 2, z + d / 2),
+				w,
+				doorTopH,
+				0.9,
+				false,
+				false,
+				true,
+			);
 		}
 		// Открытый проход без двери — проход свободен и физически корректен
 		const backWall = new THREE.Mesh(this.pool.getGeoBox(w, h, 0.9), wallMat);
@@ -4540,7 +4568,7 @@ export class MapGenerator {
 		backWall.userData.mapGenerated = true;
 		backWall.userData.isWall = true;
 		group.add(backWall);
-this.addColliderBox(
+		this.addColliderBox(
 			new THREE.Vector3(x, h / 2, z - d / 2),
 			w,
 			h,

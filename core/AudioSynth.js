@@ -302,20 +302,20 @@ export class AudioSynth {
 		for (let i = 0; i < bufSize; i++) {
 			const t = i / rate;
 			// Primary boom (very sharp, very loud)
-			const boom1 = Math.exp(-((t - 0) / 0.04) * ((t - 0) / 0.04)) * 0.9;
+			const boom1 = Math.exp(-((t - 0) / 0.03) * ((t - 0) / 0.03)) * 1.0;
 			// Secondary boom (slight delay, softer)
-			const boom2 = Math.exp(-((t - 0.08) / 0.05) * ((t - 0.08) / 0.05)) * 0.5;
+			const boom2 = Math.exp(-((t - 0.06) / 0.04) * ((t - 0.06) / 0.04)) * 0.6;
 			// Low frequency rumble (sustained, decaying)
-			const rumble = Math.sin(t * 25 * Math.PI) * Math.exp(-t * 1.5) * 0.5;
+			const rumble = Math.sin(t * 30 * Math.PI) * Math.exp(-t * 1.2) * 0.6;
 			const rumble2 =
-				Math.sin(t * 15 * Math.PI + 1.3) * Math.exp(-t * 1.2) * 0.3;
+				Math.sin(t * 18 * Math.PI + 1.3) * Math.exp(-t * 1.0) * 0.4;
 			// Debris impact noise (scattered high frequency, decaying)
-			const debris = (Math.random() * 2 - 1) * Math.exp(-t * 2) * 0.3;
+			const debris = (Math.random() * 2 - 1) * Math.exp(-t * 1.8) * 0.4;
 			// Overall decay envelope
-			const env = Math.exp(-t * 2);
+			const env = Math.exp(-t * 1.8);
 			// Echo/reverb tail (delayed, softer)
-			const echo = Math.exp(-((t - 0.3) / 0.5) * ((t - 0.3) / 0.5)) * 0.2;
-			data[i] = (boom1 + boom2 + rumble + rumble2 + debris + echo) * 0.85;
+			const echo = Math.exp(-((t - 0.2) / 0.6) * ((t - 0.2) / 0.6)) * 0.25;
+			data[i] = (boom1 + boom2 + rumble + rumble2 + debris + echo) * 0.95;
 		}
 		return buffer;
 	}
@@ -1561,7 +1561,7 @@ export class AudioSynth {
 		subOsc.stop(ctx.currentTime + launchDur);
 
 		// === EXPLOSION PHASE: delayed by rocket travel time ===
-		const travelTime = 1500 + Math.random() * 500; // 1.5-2s travel time
+		const travelTime = 800 + Math.random() * 400; // 0.8-1.2s travel time — faster impact
 		setTimeout(
 			() => {
 				this.playProceduralExplosion(position);
