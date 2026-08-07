@@ -647,96 +647,47 @@ export class EntityManager {
 	}
 
 	spawnBazookaExplosion(position, projectile) {
-		const radius = 15; // Large blast radius for realistic rocket damage
+		const radius = 15;
 		const damage = Math.round((projectile?.damage || 100) * 1.2);
 		const knockback = projectile?.knockback || 25;
-
-		// Multi-layer explosion effect
 		const explosionGroup = new THREE.Group();
-
-		// Core yellow-white hot flash
-		const coreGeo = new THREE.SphereGeometry(0.4, 16, 16);
-		const coreMat = new THREE.MeshBasicMaterial({
-			color: 0xffffcc,
-			transparent: true,
-			opacity: 1,
-		});
-		const core = new THREE.Mesh(coreGeo, coreMat);
+		const getGeo = (key, fn) => {
+			if (!this._explosionGeos) this._explosionGeos = new Map();
+			return this._explosionGeos.get(key) ?? (this._explosionGeos.set(key, fn()), this._explosionGeos.get(key));
+		};
+		const getMat = (key, fn) => {
+			if (!this._explosionMats) this._explosionMats = new Map();
+			return this._explosionMats.get(key) ?? (this._explosionMats.set(key, fn()), this._explosionMats.get(key));
+		};
+		const core = new THREE.Mesh(getGeo("exp_core", () => new THREE.SphereGeometry(0.4, 16, 16)), getMat("exp_core", () => new THREE.MeshBasicMaterial({ color: 0xffffcc, transparent: true, opacity: 1 })));
 		core.scale.setScalar(0.3);
 		explosionGroup.add(core);
-
-		// Inner bright yellow fireball
-		const innerGeo = new THREE.SphereGeometry(0.6, 12, 12);
-		const innerMat = new THREE.MeshBasicMaterial({
-			color: 0xffcc00,
-			transparent: true,
-			opacity: 0.9,
-		});
-		const inner = new THREE.Mesh(innerGeo, innerMat);
+		const inner = new THREE.Mesh(getGeo("exp_inner", () => new THREE.SphereGeometry(0.6, 12, 12)), getMat("exp_inner", () => new THREE.MeshBasicMaterial({ color: 0xffcc00, transparent: true, opacity: 0.9 })));
 		inner.scale.setScalar(0.5);
 		explosionGroup.add(inner);
-
-		// Outer yellow fireball
-		const outerGeo = new THREE.SphereGeometry(0.8, 10, 10);
-		const outerMat = new THREE.MeshBasicMaterial({
-			color: 0xffdd00,
-			transparent: true,
-			opacity: 0.7,
-		});
-		const outer = new THREE.Mesh(outerGeo, outerMat);
+		const outer = new THREE.Mesh(getGeo("exp_outer", () => new THREE.SphereGeometry(0.8, 10, 10)), getMat("exp_outer", () => new THREE.MeshBasicMaterial({ color: 0xffdd00, transparent: true, opacity: 0.7 })));
 		outer.scale.setScalar(0.6);
 		explosionGroup.add(outer);
-
-		// Primary smoke cloud
-		const smokeGeo = new THREE.SphereGeometry(0.7, 8, 8);
-		const smokeMat = new THREE.MeshBasicMaterial({
-			color: 0x333333,
-			transparent: true,
-			opacity: 0.6,
-			depthWrite: false,
-		});
-		const smoke1 = new THREE.Mesh(smokeGeo, smokeMat);
+		const smoke1 = new THREE.Mesh(getGeo("exp_smoke", () => new THREE.SphereGeometry(0.7, 8, 8)), getMat("exp_smoke", () => new THREE.MeshBasicMaterial({ color: 0x333333, transparent: true, opacity: 0.6, depthWrite: false })));
 		smoke1.scale.setScalar(0.4);
 		explosionGroup.add(smoke1);
-
-		// Secondary smoke cloud (offset, billowing)
-		const smoke2 = new THREE.Mesh(smokeGeo, smokeMat.clone());
+		const smoke2 = new THREE.Mesh(getGeo("exp_smoke", () => new THREE.SphereGeometry(0.7, 8, 8)), getMat("exp_smoke2", () => new THREE.MeshBasicMaterial({ color: 0x333333, transparent: true, opacity: 0.6, depthWrite: false })));
 		smoke2.scale.setScalar(0.3);
 		smoke2.position.set(0.5, 0.3, -0.2);
 		explosionGroup.add(smoke2);
-
-		// Shockwave ring
-		const shockGeo = new THREE.TorusGeometry(0.5, 0.05, 8, 24);
-		const shockMat = new THREE.MeshBasicMaterial({
-			color: 0xffffcc,
-			transparent: true,
-			opacity: 0.5,
-		});
-		const shock = new THREE.Mesh(shockGeo, shockMat);
+		const shock = new THREE.Mesh(getGeo("exp_shock", () => new THREE.TorusGeometry(0.5, 0.05, 8, 24)), getMat("exp_shock", () => new THREE.MeshBasicMaterial({ color: 0xffffcc, transparent: true, opacity: 0.5 })));
 		shock.rotation.set(Math.PI / 2, 0, 0);
 		shock.scale.setScalar(0.1);
 		explosionGroup.add(shock);
-
-		// Ground scorch mark
-		const scorchGeo = new THREE.CircleGeometry(2.5, 16);
-		const scorchMat = new THREE.MeshBasicMaterial({
-			color: 0x222222,
-			transparent: true,
-			opacity: 0.7,
-		});
-		const scorch = new THREE.Mesh(scorchGeo, scorchMat);
+		const scorch = new THREE.Mesh(getGeo("exp_scorch", () => new THREE.CircleGeometry(2.5, 16)), getMat("exp_scorch", () => new THREE.MeshBasicMaterial({ color: 0x222222, transparent: true, opacity: 0.7 })));
 		scorch.rotation.x = -Math.PI / 2;
 		scorch.position.y = -0.02;
 		explosionGroup.add(scorch);
-
-		// Point light
 		const light = new THREE.PointLight(0xffcc00, 8, 15);
 		light.userData = { fade: true };
 		explosionGroup.add(light);
-
-		// Debris particles
-		const debrisGeo = new THREE.BoxGeometry(0.06, 0.06, 0.06);
-		const debrisMat = new THREE.MeshStandardMaterial({ color: 0x555555 });
+		const debrisGeo = getGeo("exp_debris", () => new THREE.BoxGeometry(0.06, 0.06, 0.06));
+		const debrisMat = getMat("exp_debris", () => new THREE.MeshStandardMaterial({ color: 0x555555 }));
 		const debris = [];
 		for (let i = 0; i < 16; i++) {
 			const d = new THREE.Mesh(debrisGeo, debrisMat);

@@ -52,7 +52,7 @@ export class Physics {
         if (this.playerEntity === entity) this.playerEntity = null;
     }
 
-    update(delta, gameState) {
+    update(delta, _gameState) {
         // Cache colliders (check once)
         const newColliders = this.mapGenerator.getColliders?.() || this.colliders;
         if (newColliders !== this.colliders) {
@@ -62,7 +62,7 @@ export class Physics {
             this.rebuildColliderGrid();
         }
 
-        const isCountdown = gameState === 'countdown';
+        
         const npcStride = this.mapGenerator?.isMobile ? 3 : 2;
         const physicsFrame = this._physicsFrame++;
         const playerEntity = this.playerEntity;
@@ -321,16 +321,13 @@ export class Physics {
         const pos = entity.position;
         const bottom = pos.y - (entity.physics?.height || 1.7);
         const pushDistSq = (baseRadius + 0.5) * (baseRadius + 0.5);
-
-        // Увеличено ограничение push (0.24→0.40) для плавного движения через проходы
-        const maxPushPerStep = 0.40;
-
-        const nearby = this.getNearbyColliders(pos, baseRadius + 1.2);
+        const maxPushPerStep = 0.50;
+        const nearby = this.getNearbyColliders(pos, baseRadius + 2.0);
         if (!nearby.length) return;
-
-        // Multi-pass resolution with clamped push distance
+        const hasBuildingWall = nearby.some(b => b.isBuildingWall);
+        const maxPasses = hasBuildingWall ? 6 : 2;
         let pushed = false;
-        for (let pass = 0; pass < 2; pass++) {
+        for (let pass = 0; pass < maxPasses; pass++) {
             pushed = false;
 
             for (const box of nearby) {

@@ -493,6 +493,7 @@ export class MapGenerator {
 			)
 				return false;
 			if (collider.walkable) return true;
+			if (collider.isBuildingWall) return true;
 			return !(
 				collider.min.y >= -0.2 &&
 				collider.max.y <= 0.4 &&
@@ -4494,26 +4495,17 @@ export class MapGenerator {
 			wall.userData.mapGenerated = true;
 			wall.userData.isWall = true;
 			group.add(wall);
-			// Collider matches wall FULL DEPTH so you cannot clip through walls
 			this.addColliderBox(
 				new THREE.Vector3(x + (side * w) / 2, h / 2, z),
 				0.9,
 				h,
 				d,
 				false,
+				false,
+				true,
 			);
 		}
-		const doorMat = this.pool.getMatStd(
-			0x4e342e,
-			0.9,
-			0,
-			false,
-			false,
-			1,
-			0,
-			0,
-			false,
-		);
+		// Открытый проход — передняя стенка не имеет коллайдеров, проход свободен
 		const doorTopH = h - doorH - 0.5;
 		if (doorLeftW > 0) {
 			const dl = new THREE.Mesh(
@@ -4524,14 +4516,6 @@ export class MapGenerator {
 			dl.userData.mapGenerated = true;
 			dl.userData.isWall = true;
 			group.add(dl);
-			// Full depth collider — covers the gap between side wall and door frame
-			this.addColliderBox(
-				new THREE.Vector3(x - w / 2 + doorLeftW / 2, h / 2, z + d / 2),
-				doorLeftW,
-				h,
-				0.9,
-				false,
-			);
 		}
 		if (doorRightW > 0) {
 			const dr = new THREE.Mesh(
@@ -4542,14 +4526,6 @@ export class MapGenerator {
 			dr.userData.mapGenerated = true;
 			dr.userData.isWall = true;
 			group.add(dr);
-			// Full depth collider — covers the gap between side wall and door frame
-			this.addColliderBox(
-				new THREE.Vector3(x + w / 2 - doorRightW / 2, h / 2, z + d / 2),
-				doorRightW,
-				h,
-				0.9,
-				false,
-			);
 		}
 		if (doorTopH > 0) {
 			const dt = new THREE.Mesh(this.pool.getGeoBox(w, doorTopH, 0.9), wallMat);
@@ -4557,33 +4533,21 @@ export class MapGenerator {
 			dt.userData.mapGenerated = true;
 			dt.userData.isWall = true;
 			group.add(dt);
-			this.addColliderBox(
-				new THREE.Vector3(x, doorH + doorTopH / 2, z + d / 2),
-				w,
-				doorTopH,
-				0.9,
-				false,
-			);
 		}
-		const door = new THREE.Mesh(
-			this.pool.getGeoBox(doorW, doorH, 0.1),
-			doorMat,
-		);
-		door.position.set(0, doorH / 2, d / 2 + 0.05);
-		door.userData.mapGenerated = true;
-		group.add(door);
-		// No door collider — entrance is walkable (door is visual only)
+		// Открытый проход без двери — проход свободен и физически корректен
 		const backWall = new THREE.Mesh(this.pool.getGeoBox(w, h, 0.9), wallMat);
 		backWall.position.set(0, h / 2, -d / 2);
 		backWall.userData.mapGenerated = true;
 		backWall.userData.isWall = true;
 		group.add(backWall);
-		this.addColliderBox(
+this.addColliderBox(
 			new THREE.Vector3(x, h / 2, z - d / 2),
 			w,
 			h,
 			0.9,
 			false,
+			false,
+			true,
 		);
 		const roof = new THREE.Mesh(
 			this.pool.getGeoBox(w + 1.8, 0.8, d + 1.8),
@@ -8461,6 +8425,7 @@ export class MapGenerator {
 		depth,
 		walkable = false,
 		biomeBoundary = false,
+		isBuildingWall = false,
 	) {
 		const box = {
 			min: new THREE.Vector3(
@@ -8478,6 +8443,7 @@ export class MapGenerator {
 			dynamic: false,
 			physicsType: "STATIC",
 			biomeBoundary,
+			isBuildingWall,
 		};
 		const source = this._lastAddedMapObject;
 		if (source && this._isAttachedToScene(source)) {
