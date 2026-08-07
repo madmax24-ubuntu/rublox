@@ -4497,22 +4497,22 @@ export class MapGenerator {
 			group.add(wall);
 			this.addColliderBox(
 				new THREE.Vector3(x + (side * w) / 2, h / 2, z),
-				0.9,
+				1.5,
 				h,
-				d,
+				d + 1.0,
 				false,
 				false,
 				true,
 			);
 		}
-		// Corner seal colliders — prevent clipping through wall intersections
+		// Corner seal colliders — prevent diagonal clipping through wall intersections
 		for (const cx of [x - w / 2, x + w / 2]) {
 			for (const cz of [z - d / 2, z + d / 2]) {
 				this.addColliderBox(
 					new THREE.Vector3(cx, h / 2, cz),
-					2.0,
+					3.0,
 					h,
-					2.0,
+					3.0,
 					false,
 					false,
 					true,
@@ -4534,7 +4534,7 @@ export class MapGenerator {
 				new THREE.Vector3(x - w / 2 + doorLeftW / 2, h / 2, z + d / 2),
 				doorLeftW,
 				h,
-				0.9,
+				2.0,
 				false,
 				false,
 				true,
@@ -4553,7 +4553,7 @@ export class MapGenerator {
 				new THREE.Vector3(x + w / 2 - doorRightW / 2, h / 2, z + d / 2),
 				doorRightW,
 				h,
-				0.9,
+				2.0,
 				false,
 				false,
 				true,
@@ -4569,7 +4569,7 @@ export class MapGenerator {
 				new THREE.Vector3(x, doorH + doorTopH / 2, z + d / 2),
 				w,
 				doorTopH,
-				0.9,
+				2.0,
 				false,
 				false,
 				true,
@@ -4585,7 +4585,7 @@ export class MapGenerator {
 			new THREE.Vector3(x, h / 2, z - d / 2),
 			w,
 			h,
-			0.9,
+			2.0,
 			false,
 			false,
 			true,
