@@ -250,7 +250,7 @@ export class AudioSynth {
 
 			this.musicGain.gain.value = this.musicVolume;
 			this.masterSfxGain.gain.value = this.getAudibleVolume(this.sfxVolume);
-			this.loadSamples().catch(() => {});
+			await this.loadSamples();
 			return true;
 		} catch (e) {
 			console.warn("Web Audio API not supported");
