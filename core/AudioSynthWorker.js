@@ -69,16 +69,18 @@ self.onmessage = function (e) {
 	switch (type) {
 		case "bazookaLaunch":
 			data = generateBazookaLaunch(params.rate, params.dur);
+			self.postMessage({ type, data }, [data]);
 			break;
 		case "bazookaExplosion":
 			data = generateBazookaExplosion(params.rate, params.dur);
+			self.postMessage({ type, data }, [data]);
 			break;
 		case "impulse":
 			data = generateImpulse(params.rate, params.duration, params.decay, params.channels);
+			self.postMessage({ type, data }, [data, ...data]);
 			break;
 		default:
 			self.postMessage({ type, error: "unknown type: " + type });
 			return;
 	}
-	self.postMessage({ type, data }, [data]);
 };
