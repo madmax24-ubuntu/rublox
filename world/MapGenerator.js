@@ -4505,6 +4505,20 @@ export class MapGenerator {
 				true,
 			);
 		}
+		// Corner seal colliders — prevent clipping through wall intersections
+		for (const cx of [x - w / 2, x + w / 2]) {
+			for (const cz of [z - d / 2, z + d / 2]) {
+				this.addColliderBox(
+					new THREE.Vector3(cx, h / 2, cz),
+					2.0,
+					h,
+					2.0,
+					false,
+					false,
+					true,
+				);
+			}
+		}
 		// Открытый проход — передняя стенка не имеет коллайдеров, проход свободен
 		const doorTopH = h - doorH - 0.5;
 		if (doorLeftW > 0) {

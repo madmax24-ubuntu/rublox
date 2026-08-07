@@ -565,16 +565,23 @@ export class EntityManager {
 			const fx = this.effects[i];
 			fx.userData.life -= delta;
 			const ud = fx.userData;
+			const lifeRatio = Math.max(0, ud.life / 3.0);
 
 			// Per-child update based on type
 			for (const child of fx.children) {
+				// === LIGHT (explosion light: intense flash then fade) ===
 				if (child.isPointLight && child.userData.fade) {
-					child.intensity = Math.max(0, 8 * ud.life);
+					if (child.userData.expLight) {
+						child.intensity = Math.max(0, 25 * lifeRatio * lifeRatio);
+					} else {
+						child.intensity = Math.max(0, 8 * ud.life);
+					}
 					continue;
 				}
 				if (!child.isMesh || !child.material) continue;
+				const etype = child.userData.expType;
 
-				// Debris physics (has velocity)
+				// === DEBRIS / SPARKS (has velocity — physics-driven) ===
 				if (child.userData.vel) {
 					child.userData.vel.y -= 9.8 * delta;
 					child.position.add(child.userData.vel.clone().multiplyScalar(delta));
@@ -585,7 +592,57 @@ export class EntityManager {
 					continue;
 				}
 
-				// Smoke rising
+				// === CORE (bright white flash, very fast decay) ===
+				if (etype === "core") {
+					const coreFade = Math.max(0, 1 - ud.life * (ud.coreDecay || 6));
+					child.material.opacity = coreFade;
+					child.scale.setScalar(
+						Math.max(0.05, 0.3 + delta * (ud.scaleRate || 5) * lifeRatio),
+					);
+					continue;
+				}
+
+				// === FIREBALL (orange/red, expands then fades) ===
+				if (etype === "fireball") {
+					const fbScale = Math.max(0.1, child.scale.x + delta * (ud.scaleRate || 4));
+					child.scale.setScalar(fbScale);
+					child.material.opacity = Math.max(0, lifeRatio * 0.9);
+					continue;
+				}
+
+				// === SMOKE (rises, expands, slow fade) ===
+				if (etype === "smoke") {
+					child.position.y += delta * (child.userData.smokeSpeed || 1.2);
+					child.scale.addScalar(delta * 0.8);
+					child.material.opacity = Math.max(0, lifeRatio * 0.45);
+					continue;
+				}
+
+				// === SHOCKWAVE (rapid expansion, fast fade) ===
+				if (etype === "shockwave") {
+					child.scale.setScalar(
+						Math.max(0.05, child.scale.x + delta * (ud.shockExpand || 18)),
+					);
+					child.material.opacity = Math.max(0, lifeRatio * lifeRatio * 0.8);
+					continue;
+				}
+
+				// === GROUND FLASH (expands outward, fades quickly) ===
+				if (etype === "groundFlash") {
+					child.scale.setScalar(
+						Math.max(0.1, child.scale.x + delta * (ud.groundFlashRate || 8)),
+					);
+					child.material.opacity = Math.max(0, lifeRatio * lifeRatio * 0.85);
+					continue;
+				}
+
+				// === SCORCH MARK (stays on ground, very slow fade) ===
+				if (etype === "scorch") {
+					child.material.opacity = Math.max(0.15, 0.6 * lifeRatio);
+					continue;
+				}
+
+				// === LEGACY: Smoke rising (color-based fallback) ===
 				if (
 					child.material.color &&
 					child.material.color.r < 0.3 &&
@@ -595,7 +652,7 @@ export class EntityManager {
 					child.scale.addScalar(delta * 0.5);
 				}
 
-				// Shockwave ring (torus)
+				// === LEGACY: Shockwave ring (torus geometry fallback) ===
 				if (child.geometry.type === "TorusGeometry") {
 					child.scale.setScalar(
 						Math.max(0.1, child.scale.x + delta * (ud.shockExpand || 8)),
@@ -604,7 +661,7 @@ export class EntityManager {
 					continue;
 				}
 
-				// Core flash (fast decay)
+				// === LEGACY: Core flash (color-based fallback) ===
 				if (
 					child.material.color &&
 					child.material.color.r === 1 &&
@@ -619,7 +676,7 @@ export class EntityManager {
 					continue;
 				}
 
-				// Standard fire/smoke
+				// === LEGACY: Standard fire/smoke fallback ===
 				if (child.material.transparent) {
 					child.material.opacity = Math.max(0, ud.life * 2);
 					child.scale.setScalar(
@@ -665,112 +722,169 @@ export class EntityManager {
 				(this._explosionMats.set(key, fn()), this._explosionMats.get(key))
 			);
 		};
+
+		// === FIREBALL CORE (bright white-yellow, fast decay) ===
 		const core = new THREE.Mesh(
-			getGeo("exp_core", () => new THREE.SphereGeometry(0.4, 16, 16)),
+			getGeo("exp_core", () => new THREE.SphereGeometry(0.5, 16, 16)),
 			getMat(
 				"exp_core",
 				() =>
 					new THREE.MeshBasicMaterial({
-						color: 0xffffcc,
+						color: 0xffffee,
 						transparent: true,
 						opacity: 1,
 					}),
 			),
 		);
-		core.scale.setScalar(0.5);
+		core.scale.setScalar(0.3);
+		core.userData.expType = "core";
 		explosionGroup.add(core);
+
+		// === FIREBALL INNER (orange, medium decay) ===
 		const inner = new THREE.Mesh(
-			getGeo("exp_inner", () => new THREE.SphereGeometry(0.6, 12, 12)),
+			getGeo("exp_inner", () => new THREE.SphereGeometry(0.7, 12, 12)),
 			getMat(
 				"exp_inner",
 				() =>
 					new THREE.MeshBasicMaterial({
-						color: 0xffcc00,
+						color: 0xff8800,
 						transparent: true,
-						opacity: 0.9,
+						opacity: 0.95,
 					}),
 			),
 		);
-		inner.scale.setScalar(0.6);
+		inner.scale.setScalar(0.4);
+		inner.userData.expType = "fireball";
 		explosionGroup.add(inner);
+
+		// === FIREBALL OUTER (red-orange, slow decay) ===
 		const outer = new THREE.Mesh(
-			getGeo("exp_outer", () => new THREE.SphereGeometry(0.8, 10, 10)),
+			getGeo("exp_outer", () => new THREE.SphereGeometry(1.0, 10, 10)),
 			getMat(
 				"exp_outer",
 				() =>
 					new THREE.MeshBasicMaterial({
-						color: 0xffdd00,
+						color: 0xff4400,
 						transparent: true,
-						opacity: 0.7,
+						opacity: 0.6,
 					}),
 			),
 		);
-		outer.scale.setScalar(0.8);
+		outer.scale.setScalar(0.3);
+		outer.userData.expType = "fireball";
 		explosionGroup.add(outer);
-		const smoke1 = new THREE.Mesh(
-			getGeo("exp_smoke", () => new THREE.SphereGeometry(0.7, 8, 8)),
-			getMat(
-				"exp_smoke",
-				() =>
-					new THREE.MeshBasicMaterial({
-						color: 0x333333,
-						transparent: true,
-						opacity: 0.6,
-						depthWrite: false,
-					}),
-			),
-		);
-		smoke1.scale.setScalar(0.5);
-		explosionGroup.add(smoke1);
-		const smoke2 = new THREE.Mesh(
-			getGeo("exp_smoke", () => new THREE.SphereGeometry(0.7, 8, 8)),
-			getMat(
-				"exp_smoke2",
-				() =>
-					new THREE.MeshBasicMaterial({
-						color: 0x333333,
-						transparent: true,
-						opacity: 0.6,
-						depthWrite: false,
-					}),
-			),
-		);
-		smoke2.scale.setScalar(0.4);
-		smoke2.position.set(0.5, 0.3, -0.2);
-		explosionGroup.add(smoke2);
+
+		// === SMOKE CLOUDS (dark gray, rising) ===
+		const smokePositions = [
+			{ x: 0, y: 0, z: 0, s: 0.6 },
+			{ x: 0.8, y: 0.2, z: -0.3, s: 0.5 },
+			{ x: -0.6, y: 0.4, z: 0.5, s: 0.45 },
+			{ x: 0.3, y: 0.5, z: 0.7, s: 0.4 },
+			{ x: -0.9, y: 0.1, z: -0.5, s: 0.55 },
+		];
+		for (const sp of smokePositions) {
+			const smoke = new THREE.Mesh(
+				getGeo("exp_smoke", () => new THREE.SphereGeometry(0.8, 8, 8)),
+				getMat(
+					`exp_smoke_${sp.x}_${sp.z}`,
+					() =>
+						new THREE.MeshBasicMaterial({
+							color: 0x2a2a2a,
+							transparent: true,
+							opacity: 0.5,
+							depthWrite: false,
+						}),
+				),
+			);
+			smoke.position.set(sp.x, sp.y, sp.z);
+			smoke.scale.setScalar(sp.s);
+			smoke.userData.expType = "smoke";
+			smoke.userData.smokeSpeed = 0.8 + Math.random() * 1.2;
+			explosionGroup.add(smoke);
+		}
+
+		// === SHOCKWAVE RING (expanding torus) ===
 		const shock = new THREE.Mesh(
-			getGeo("exp_shock", () => new THREE.TorusGeometry(0.5, 0.08, 8, 32)),
+			getGeo("exp_shock", () => new THREE.TorusGeometry(1.0, 0.12, 8, 32)),
 			getMat(
 				"exp_shock",
 				() =>
 					new THREE.MeshBasicMaterial({
-						color: 0xffffcc,
+						color: 0xffffff,
 						transparent: true,
-						opacity: 0.7,
+						opacity: 0.8,
 					}),
 			),
 		);
 		shock.rotation.set(Math.PI / 2, 0, 0);
-		shock.scale.setScalar(0.2);
+		shock.scale.setScalar(0.1);
+		shock.userData.expType = "shockwave";
 		explosionGroup.add(shock);
+
+		// === GROUND FLASH (bright ring at ground level) ===
+		const groundFlash = new THREE.Mesh(
+			getGeo("exp_groundflash", () => new THREE.RingGeometry(0.3, 2.0, 24)),
+			getMat(
+				"exp_groundflash",
+				() =>
+					new THREE.MeshBasicMaterial({
+						color: 0xffaa00,
+						transparent: true,
+						opacity: 0.9,
+						side: THREE.DoubleSide,
+					}),
+			),
+		);
+		groundFlash.rotation.x = -Math.PI / 2;
+		groundFlash.position.y = -0.01;
+		groundFlash.scale.setScalar(0.2);
+		groundFlash.userData.expType = "groundFlash";
+		explosionGroup.add(groundFlash);
+
+		// === SCORCH MARK (permanent ground stain, fades slowly) ===
 		const scorch = new THREE.Mesh(
 			getGeo("exp_scorch", () => new THREE.CircleGeometry(2.5, 16)),
 			getMat(
 				"exp_scorch",
 				() =>
 					new THREE.MeshBasicMaterial({
-						color: 0x222222,
+						color: 0x1a1a1a,
 						transparent: true,
-						opacity: 0.7,
+						opacity: 0.6,
 					}),
 			),
 		);
 		scorch.rotation.x = -Math.PI / 2;
-		scorch.position.y = -0.02;
+		scorch.position.y = -0.03;
+		scorch.userData.expType = "scorch";
 		explosionGroup.add(scorch);
-		const light = new THREE.PointLight(0xffcc00, 12, 20);
-		light.userData = { fade: true };
-		explosionGroup.add(light);
+
+		// === SPARKS (small bright particles flying outward) ===
+		const sparkGeo = getGeo(
+			"exp_spark",
+			() => new THREE.BoxGeometry(0.04, 0.04, 0.15),
+		);
+		const sparkMat = getMat(
+			"exp_spark",
+			() => new THREE.MeshBasicMaterial({ color: 0xffcc44 }),
+		);
+		for (let i = 0; i < 16; i++) {
+			const spark = new THREE.Mesh(sparkGeo, sparkMat);
+			const theta = Math.random() * Math.PI * 2;
+			const phi = Math.random() * Math.PI * 0.6;
+			spark.position.set(0, 0, 0);
+			spark.userData = {
+				vel: new THREE.Vector3(
+					Math.sin(phi) * Math.cos(theta) * (4 + Math.random() * 10),
+					Math.cos(phi) * (3 + Math.random() * 6),
+					Math.sin(phi) * Math.sin(theta) * (4 + Math.random() * 10),
+				),
+				life: 0.6 + Math.random() * 0.5,
+			};
+			explosionGroup.add(spark);
+		}
+
+		// === DEBRIS (heavier chunks) ===
 		const debrisGeo = getGeo(
 			"exp_debris",
 			() => new THREE.BoxGeometry(0.06, 0.06, 0.06),
@@ -779,12 +893,11 @@ export class EntityManager {
 			"exp_debris",
 			() => new THREE.MeshStandardMaterial({ color: 0x555555 }),
 		);
-		const debris = [];
-		for (let i = 0; i < 24; i++) {
+		for (let i = 0; i < 18; i++) {
 			const d = new THREE.Mesh(debrisGeo, debrisMat);
 			const theta = Math.random() * Math.PI * 2;
 			const phi = Math.random() * Math.PI;
-			const r = Math.random() * 0.4;
+			const r = Math.random() * 0.3;
 			d.position.set(
 				r * Math.sin(phi) * Math.cos(theta),
 				r * Math.cos(phi),
@@ -792,23 +905,28 @@ export class EntityManager {
 			);
 			d.userData = {
 				vel: new THREE.Vector3(
-					(Math.random() - 0.5) * 12,
-					Math.random() * 8 + 3,
-					(Math.random() - 0.5) * 12,
+					(Math.random() - 0.5) * 10,
+					Math.random() * 7 + 2,
+					(Math.random() - 0.5) * 10,
 				),
-				life: 1.8,
+				life: 1.5,
 			};
 			explosionGroup.add(d);
-			debris.push(d);
 		}
+
+		// === DYNAMIC LIGHT (intense flash, then fade) ===
+		const light = new THREE.PointLight(0xffaa44, 25, 30);
+		light.userData = { fade: true, expLight: true };
+		explosionGroup.add(light);
 
 		explosionGroup.position.copy(position);
 		explosionGroup.userData = {
-			life: 2.5,
-			scaleRate: 4.0,
-			coreDecay: 5.0,
-			smokeRise: 1.5,
-			shockExpand: 14.0,
+			life: 3.0,
+			scaleRate: 5.0,
+			coreDecay: 6.0,
+			smokeRise: 1.8,
+			shockExpand: 18.0,
+			groundFlashRate: 8.0,
 		};
 		this.scene.add(explosionGroup);
 		this.effects.push(explosionGroup);
@@ -846,10 +964,10 @@ export class EntityManager {
 			mapGen.addCraterSlowZone(position.x, position.z, 4, 0.5, 45);
 		}
 
-		// Play explosion sound
+		// Play explosion sound (procedural, no freeze)
 		const audioSynth = this.audioSynth;
-		if (audioSynth?.playExplosion) {
-			audioSynth.playExplosion(position);
+		if (audioSynth?.playProceduralExplosion) {
+			audioSynth.playProceduralExplosion(position);
 		}
 
 		return { entitiesHit: targets.length, totalDamage: totalDmg };
