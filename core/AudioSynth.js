@@ -155,7 +155,6 @@ export class AudioSynth {
 			music: [],
 		};
 
-		this._lazyInitCalled = false;
 		this._useWorker = typeof Worker !== "undefined";
 
 		if (this._useWorker) {
@@ -186,15 +185,14 @@ export class AudioSynth {
 	_ensureLazyInit() {
 		this.bindUnlockHandlers();
 		if (!this._initPromise) {
-			this._initPromise = this.init().catch(() => false);
+			this._initPromise = this._doInit().catch(() => false);
 		}
 		return this._initPromise;
 	}
 
 	async init() {
-		if (this._lazyInitCalled || this._initPromise) return true;
-		this._lazyInitCalled = true;
-		this._initPromise = this._doInit();
+		if (this._initPromise) return this._initPromise;
+		this._initPromise = this._doInit().catch(() => false);
 		return this._initPromise;
 	}
 
