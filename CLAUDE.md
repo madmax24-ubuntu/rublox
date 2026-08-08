@@ -63,9 +63,13 @@ threejs-devtools MCP requires a running dev server and an open browser for the b
 
    Server runs on `http://localhost:3001`
 
-2. **Open the proxy URL in your browser** (this injects the bridge):
-   - Go to `http://localhost:48385`
-   - The page must fully load for the bridge script to execute
+2. **Launch headless browser via bootstrap script** (injects bridge automatically):
+
+   ```bash
+   Start-Process -FilePath "node.exe" -ArgumentList "scripts/bootstrap-bridge.cjs"
+   ```
+
+   Wait ~3 seconds for bridge WebSocket to establish.
 
 3. **Verify the bridge is connected:**
 
@@ -79,19 +83,18 @@ threejs-devtools MCP requires a running dev server and an open browser for the b
 
 - Check server is running: `curl http://localhost:3001/`
 - Check proxy URL matches: `set_dev_port(3001)`
-- Refresh/reload the browser at `http://localhost:48385`
-- Clear browser cache if stale scripts are cached
+- Re-run bootstrap script
 
-**Quick reconnect script:**
+**After testing — ALWAYS cleanup:**
+
+   ```bash
+   Get-Process -Name "playwright","chromium" | Stop-Process -Force
+   ```
+
+**Quick reconnect (one-liner):**
 
 ```bash
-# Start server in background
-npx nodemon server.js & sleep 2
-# Verify server is up
-curl -s -o /dev/null http://localhost:3001/
-# Reconnect bridge
-mcp__threejs_devtools_set_dev_port 3001
-mcp__threejs_devtools_bridge_status
+npx nodemon server.js & sleep 2; curl -s -o /dev/null http://localhost:3001/; Start-Process -FilePath "node.exe" -ArgumentList "scripts/bootstrap-bridge.cjs"; sleep 3; mcp__threejs_devtools_bridge_status
 ```
 
 ---
