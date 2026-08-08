@@ -187,10 +187,10 @@ export class AudioSynth {
 			this.reverb.buffer = this.createImpulse(1.6, 1.8);
 			this.reverbGain.gain.value = 0.055;
 
-			// Pre-generate bazooka launch buffer (avoids freeze on first shot)
-			this.bazookaLaunchBuffer = this.createBazookaLaunchBuffer();
-			// Pre-generate bazooka explosion buffer (avoids freeze on first explosion)
-			this.bazookaExplosionBuffer = this.createBazookaExplosionBuffer();
+			// Do NOT pre-generate bazooka buffers synchronously — let worker handle it
+			// Worker generates better quality buffers without blocking the main thread
+			this.bazookaLaunchBuffer = null;
+			this.bazookaExplosionBuffer = null;
 
 			this.sfxLimiter.threshold.value = -6;
 			this.sfxLimiter.knee.value = 3;
@@ -320,7 +320,7 @@ export class AudioSynth {
 		return impulse;
 	}
 
-	// Pre-generate bazooka launch sound buffer (ignition + thrust roar)
+	// Fallback bazooka launch sound buffer (ignition + thrust roar + rumble)
 	createBazookaLaunchBuffer() {
 		const ctx = this.audioContext;
 		const rate = ctx.sampleRate;
@@ -330,85 +330,67 @@ export class AudioSynth {
 		const data = buffer.getChannelData(0);
 		for (let i = 0; i < bufSize; i++) {
 			const t = i / rate;
-			// Ignition crack (very short, very loud at t=0)
-			const ignition = Math.exp(-t * 100) * 1.0;
-			// Secondary ignition pop
-			const ignition2 = Math.exp(-(((t - 0.02) / 0.015) ** 2)) * 0.5;
-			// Thrust envelope: rise fast, sustain, then decay
+			const ignition = Math.exp(-t * 120) * 1.5;
+			const ignition2 = Math.exp(-(((t - 0.015) / 0.012) ** 2)) * 0.8;
 			const thrustEnv =
 				t < 0.04 ? t / 0.04 : t < 0.5 ? 1 : t < 0.7 ? 1 - (t - 0.5) / 0.2 : 0;
-			// Thrust rumble (low frequency engine)
-			const thrustRumble = Math.sin(t * 55 * Math.PI) * thrustEnv * 0.45;
-			// Deep sub-thrust
-			const subThrust = Math.sin(t * 28 * Math.PI) * thrustEnv * 0.35;
-			// Sustained noise (high frequency whoosh)
+			const thrustRumble = Math.sin(t * 55 * Math.PI) * thrustEnv * 0.6;
+			const subThrust = Math.sin(t * 28 * Math.PI) * thrustEnv * 0.5;
+			const whine = Math.sin(t * 280 * Math.PI) * thrustEnv * 0.25;
 			const noise =
-				(Math.random() * 2 - 1) * thrustEnv * Math.exp(-t * 2.5) * 0.55;
-			// High frequency hiss (exhaust)
-			const hiss = (Math.random() * 2 - 1) * thrustEnv * 0.25;
-			// Crackle (sparks from exhaust)
-			const crackle = (Math.random() * 2 - 1) * thrustEnv * 0.1;
-			data[i] =
-				ignition +
-				ignition2 +
-				thrustRumble +
-				subThrust +
-				noise +
-				hiss +
-				crackle;
+				(Math.random() * 2 - 1) * thrustEnv * Math.exp(-t * 2.5) * 0.7;
+			const hiss = (Math.random() * 2 - 1) * thrustEnv * 0.3;
+			const crackle = (Math.random() * 2 - 1) * thrustEnv * 0.15;
+			const thump = Math.exp(-t * 60) * 1.0;
+			const subOsc = Math.sin(t * 85 * Math.PI) * Math.exp(-t * 3) * 0.6;
+			const rumbleOsc = (Math.sin(t * 120 * Math.PI) > 0 ? 1 : -1) * thrustEnv * 0.2;
+			data[i] = ignition + ignition2 + thrustRumble + subThrust + whine + noise + hiss + crackle + thump + subOsc + rumbleOsc;
 		}
 		return buffer;
 	}
 
-	// Pre-generate bazooka explosion sound buffer (double boom + rumble + debris)
+	// Fallback bazooka explosion buffer (loud: booms + rumble + crackle + echo + ground)
 	createBazookaExplosionBuffer() {
 		const ctx = this.audioContext;
 		const rate = ctx.sampleRate;
-		const dur = 2.5;
+		const dur = 3.0;
 		const bufSize = rate * dur;
 		const buffer = ctx.createBuffer(1, bufSize, rate);
 		const data = buffer.getChannelData(0);
 		for (let i = 0; i < bufSize; i++) {
 			const t = i / rate;
-			// Primary boom (extremely sharp initial crack)
-			const boom1 = Math.exp(-((t - 0) / 0.02) * ((t - 0) / 0.02)) * 1.0;
-			// Secondary boom (pressure wave reflection)
-			const boom2 =
-				Math.exp(-((t - 0.05) / 0.035) * ((t - 0.05) / 0.035)) * 0.65;
-			// Third boom (debris impact cluster)
-			const boom3 = Math.exp(-((t - 0.12) / 0.05) * ((t - 0.12) / 0.05)) * 0.35;
-			// Deep sub-bass rumble (sustained, very low frequency)
-			const subRumble = Math.sin(t * 32 * Math.PI) * Math.exp(-t * 0.8) * 0.5;
-			// Mid-frequency rumble (explosion body)
-			const midRumble = Math.sin(t * 64 * Math.PI) * Math.exp(-t * 1.2) * 0.45;
-			// High-frequency crackle (debris and sparks)
-			const crackle = (Math.random() * 2 - 1) * Math.exp(-t * 2.5) * 0.35;
-			// Sustained roar (explosion tail)
-			const roarEnv =
-				t < 0.1 ? t / 0.1 : Math.exp(-((t - 0.1) / 0.8) * ((t - 0.1) / 0.8));
-			const roar = (Math.random() * 2 - 1) * roarEnv * 0.25;
-			// Echo/reverb tail (delayed reflection)
-			const echo =
-				t > 0.15 ? Math.exp(-((t - 0.15) / 0.7) * ((t - 0.15) / 0.7)) * 0.2 : 0;
-			// Ground rumble (very low, long decay)
-			const groundRumble =
-				Math.sin(t * 8 * Math.PI + 0.5) * Math.exp(-t * 0.5) * 0.3;
-			data[i] =
-				(boom1 +
-					boom2 +
-					boom3 +
-					subRumble +
-					midRumble +
-					crackle +
-					roar +
-					echo +
-					groundRumble) *
-				0.85;
+			const boom1 = Math.exp(-((t / 0.01) ** 2)) * 1.8;
+			const boom2 = Math.exp(-(((t - 0.03) / 0.025) ** 2)) * 1.0;
+			const boom3 = Math.exp(-(((t - 0.08) / 0.04) ** 2)) * 0.7;
+			const boom4 = Math.exp(-(((t - 0.15) / 0.06) ** 2)) * 0.4;
+			const subRumble = Math.sin(t * 12 * Math.PI) * Math.exp(-t * 0.4) * 0.8;
+			const subRumble2 = Math.sin(t * 8 * Math.PI) * Math.exp(-t * 0.3) * 0.6;
+			const midRumble = Math.sin(t * 55 * Math.PI) * Math.exp(-t * 0.8) * 0.7;
+			const midRumble2 = Math.sin(t * 80 * Math.PI) * Math.exp(-t * 1.0) * 0.4;
+			const crackle = (Math.random() * 2 - 1) * Math.exp(-t * 1.5) * 0.5;
+			const roarEnv = t < 0.05 ? t / 0.05 : Math.exp(-(((t - 0.05) / 0.8) ** 2));
+			const roar = (Math.random() * 2 - 1) * roarEnv * 0.4;
+			const echo = t > 0.1 ? Math.exp(-(((t - 0.1) / 0.8) ** 2)) * 0.35 : 0;
+			const groundRumble = Math.sin(t * 4 * Math.PI + 0.5) * Math.exp(-t * 0.3) * 0.5;
+			const groundRumble2 = Math.sin(t * 6 * Math.PI + 1.2) * Math.exp(-t * 0.25) * 0.4;
+			const subThump = Math.sin(t * 45 * Math.PI) * Math.exp(-t * 3) * 0.7;
+			const debris = (Math.random() * 2 - 1) * Math.exp(-t * 2.5) * 0.3;
+			data[i] = (boom1 + boom2 + boom3 + boom4 + subRumble + subRumble2 + midRumble + midRumble2 + crackle + roar + echo + groundRumble + groundRumble2 + subThump + debris) * 1.0;
 		}
 		return buffer;
 	}
 
-		createRainNoiseBuffer(duration = 2.4) {
+	// Ensure bazooka buffers are available (generate fallback if worker hasn't finished)
+	_ensureBazookaBuffersReady() {
+		if (!this.bazookaLaunchBuffer) {
+			this.bazookaLaunchBuffer = this.createBazookaLaunchBuffer();
+		}
+		if (!this.bazookaExplosionBuffer) {
+			this.bazookaExplosionBuffer = this.createBazookaExplosionBuffer();
+		}
+	}
+
+	createRainNoiseBuffer(duration = 2.4) {
 		if (!this.audioContext) return null;
 		if (this.rainNoiseBuffer) return this.rainNoiseBuffer;
 		const rate = this.audioContext.sampleRate;
@@ -1611,7 +1593,8 @@ export class AudioSynth {
 	async playBazooka(position = null, emitterKey = "global") {
 		await this._ensureLazyInit();
 		const ctx = this.audioContext;
-		if (!ctx || !this.bazookaLaunchBuffer) return false;
+		if (!ctx) return false;
+		this._ensureBazookaBuffersReady();
 		const voiceKey = `bazooka:${emitterKey}`;
 		if (!this.canPlayWeaponSfx(voiceKey, this.weaponSfxCooldown.bazooka))
 			return false;
@@ -1644,7 +1627,8 @@ export class AudioSynth {
 	playProceduralExplosion(position, scale = 1) {
 		this._ensureLazyInit();
 		const ctx = this.audioContext;
-		if (!ctx || !this.bazookaExplosionBuffer) return false;
+		if (!ctx) return false;
+		this._ensureBazookaBuffersReady();
 
 		const src = ctx.createBufferSource();
 		src.buffer = this.bazookaExplosionBuffer;
@@ -1654,7 +1638,7 @@ export class AudioSynth {
 		src.connect(gain).connect(pan);
 		pan.connect(this.masterSfxGain);
 		src.start(ctx.currentTime);
-		src.stop(ctx.currentTime + 2.5);
+		src.stop(ctx.currentTime + 3.0);
 	}
 
 	playTimerTick(volume = 1) {
