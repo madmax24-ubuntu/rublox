@@ -6171,24 +6171,24 @@ export class MapGenerator {
 		corpse.add(pelvis);
 
 		// === TACTICAL VEST (wraps torso) ===
-		const vest = new THREE.Mesh(new THREE.CylinderGeometry(0.34 * s, 0.34 * s, 0.45 * s, 16), vestMat);
+		const vest = new THREE.Mesh(new THREE.CylinderGeometry(0.36 * s, 0.36 * s, 0.48 * s, 16), vestMat);
 		vest.position.set(0, 0.65 * s, 0);
 		vest.rotation.x = 0.2;
 		corpse.add(vest);
 
-		// Vest pouches (front)
-		for (let i = 0; i < 3; i++) {
-			const p = new THREE.Mesh(new THREE.BoxGeometry(0.08 * s, 0.06 * s, 0.05 * s), vestMat);
-			p.position.set(0, 0.45 * s + i * 0.1 * s, 0.34 * s);
+		// Vest pouches (front - 4 rows)
+		for (let i = 0; i < 4; i++) {
+			const p = new THREE.Mesh(new THREE.BoxGeometry(0.1 * s, 0.06 * s, 0.06 * s), vestMat);
+			p.position.set(0, 0.42 * s + i * 0.08 * s, 0.36 * s);
 			p.rotation.x = 0.2;
 			corpse.add(p);
 		}
 
 		// Vest pouches (sides)
 		for (const side of [-1, 1]) {
-			for (let i = 0; i < 2; i++) {
+			for (let i = 0; i < 3; i++) {
 				const p = new THREE.Mesh(new THREE.BoxGeometry(0.06 * s, 0.08 * s, 0.06 * s), vestMat);
-				p.position.set(side * (0.05 + i * 0.08) * s, 0.55 * s + (i - 0.5) * 0.08 * s, 0.3 * s);
+				p.position.set(side * (0.06 + i * 0.08) * s, 0.55 * s + (i - 1) * 0.08 * s, 0.32 * s);
 				p.rotation.x = 0.2;
 				corpse.add(p);
 			}
@@ -6197,26 +6197,26 @@ export class MapGenerator {
 		// Side pouches
 		for (const side of [-1, 1]) {
 			const sp = new THREE.Mesh(new THREE.BoxGeometry(0.06 * s, 0.14 * s, 0.06 * s), vestMat);
-			sp.position.set(side * 0.36 * s, 0.55 * s, 0.24 * s);
+			sp.position.set(side * 0.38 * s, 0.55 * s, 0.26 * s);
 			corpse.add(sp);
 		}
 
 		// Belt
-		const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.34 * s, 0.34 * s, 0.04 * s, 16), vestMat);
+		const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.36 * s, 0.36 * s, 0.04 * s, 16), vestMat);
 		belt.position.set(0, 0.28 * s, 0);
 		corpse.add(belt);
 
 		// Belt pouches
 		for (const side of [-1, 1]) {
-			const pp = new THREE.Mesh(new THREE.BoxGeometry(0.04 * s, 0.12 * s, 0.04 * s), vestMat);
-			pp.position.set(side * 0.3 * s, 0.2 * s, -0.06 * s);
+			const pp = new THREE.Mesh(new THREE.BoxGeometry(0.05 * s, 0.12 * s, 0.05 * s), vestMat);
+			pp.position.set(side * 0.32 * s, 0.2 * s, -0.06 * s);
 			corpse.add(pp);
 		}
 
-		// Shoulder pads
+		// Shoulder pads (heavy)
 		for (const side of [-1, 1]) {
-			const sp = new THREE.Mesh(new THREE.SphereGeometry(0.1 * s, 8, 8), vestMat);
-			sp.position.set(side * 0.34 * s, 0.9 * s, 0);
+			const sp = new THREE.Mesh(new THREE.SphereGeometry(0.12 * s, 8, 8), vestMat);
+			sp.position.set(side * 0.36 * s, 0.9 * s, 0);
 			corpse.add(sp);
 		}
 
@@ -6252,14 +6252,14 @@ export class MapGenerator {
 		corpse.add(mask);
 
 		// Gas mask Filter (prominent round)
-		const filter = new THREE.Mesh(new THREE.CylinderGeometry(0.1 * s, 0.1 * s, 0.08 * s, 12), filterMat);
-		filter.position.set(0.18 * s, 0.95 * s, -0.22 * s);
+		const filter = new THREE.Mesh(new THREE.CylinderGeometry(0.12 * s, 0.12 * s, 0.1 * s, 12), filterMat);
+		filter.position.set(0.2 * s, 0.95 * s, -0.24 * s);
 		filter.rotation.z = Math.PI / 2;
 		corpse.add(filter);
 
 		// Hose
-		const hose = new THREE.Mesh(new THREE.CylinderGeometry(0.02 * s, 0.02 * s, 0.1 * s, 8), gasMaskMat);
-		hose.position.set(0.14 * s, 0.9 * s, -0.18 * s);
+		const hose = new THREE.Mesh(new THREE.CylinderGeometry(0.02 * s, 0.02 * s, 0.12 * s, 8), gasMaskMat);
+		hose.position.set(0.15 * s, 0.9 * s, -0.2 * s);
 		hose.rotation.z = Math.PI / 2;
 		corpse.add(hose);
 
