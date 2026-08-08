@@ -52,10 +52,11 @@ test('screenshot stalker corpse close-up', async ({ page }) => {
 			const camera = window.game.camera;
 			camera.position.set(
 				corpseWorldPos.x + 2.5,
-				corpseWorldPos.y + 1.5,
+				corpseWorldPos.y + 1.0,
 				corpseWorldPos.z + 2.5
 			);
-			camera.lookAt(corpseWorldPos);
+			const lookTarget = new window.THREE.Vector3(corpseWorldPos.x, corpseWorldPos.y + 0.6, corpseWorldPos.z);
+			camera.lookAt(lookTarget);
 			console.log('Camera after:', camera.position);
 		}
 	});
