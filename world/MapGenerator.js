@@ -6147,69 +6147,34 @@ export class MapGenerator {
 		const corpse = new THREE.Group();
 
 		// Materials matching reference image (military green palette)
-		const uniformMat = this.pool.getMatStd(
-			0x3a5a2a,
-			0.8,
-			0,
-			false,
-			false,
-			1,
-			0,
-			0,
-		);
-		const vestMat = this.pool.getMatStd(
-			0x2a4a1a,
-			0.75,
-			0,
-			false,
-			false,
-			1,
-			0,
-			0,
-		);
-		const bootMat = this.pool.getMatStd(
-			0x1a1a0a,
-			0.85,
-			0,
-			false,
-			false,
-			1,
-			0,
-			0,
-		);
-		const skinMat = this.pool.getMatStd(
-			0x8a7a5e,
-			0.7,
-			0,
-			false,
-			false,
-			1,
-			0,
-			0,
-		);
-		const gasMaskMat = this.pool.getMatStd(
-			0x1a1a1a,
-			0.6,
-			0,
-			false,
-			false,
-			1,
-			0,
-			0,
-		);
-		const filterMat = this.pool.getMatStd(
-			0x3d3d3d,
-			0.5,
-			0,
-			false,
-			false,
-			1,
-			0,
-			0,
-		);
-		const eyeMat = this.pool.getMatStd(0x111111, 0.2, 0, false, false, 1, 0, 0);
-		const helmetMat = this.pool.getMatStd(0x4a7a3a, 0.8, 0, false, false, 1, 0, 0);
-		const strapMat = this.pool.getMatStd(0x1a1a1a, 0.6, 0, false, false, 1, 0, 0);
+		// Create materials directly to avoid MeshPool caching issues
+		const uniformMat = new THREE.MeshStandardMaterial({
+			color: 0x3a5a2a, roughness: 0.8, metalness: 0, flatShading: false,
+		});
+		const vestMat = new THREE.MeshStandardMaterial({
+			color: 0x2a4a1a, roughness: 0.75, metalness: 0, flatShading: false,
+		});
+		const bootMat = new THREE.MeshStandardMaterial({
+			color: 0x1a1a0a, roughness: 0.85, metalness: 0, flatShading: false,
+		});
+		const skinMat = new THREE.MeshStandardMaterial({
+			color: 0x8a7a5e, roughness: 0.7, metalness: 0, flatShading: false,
+		});
+		const gasMaskMat = new THREE.MeshStandardMaterial({
+			color: 0x1a1a1a, roughness: 0.6, metalness: 0, flatShading: false,
+		});
+		const filterMat = new THREE.MeshStandardMaterial({
+			color: 0x3d3d3d, roughness: 0.5, metalness: 0, flatShading: false,
+		});
+		const eyeMat = new THREE.MeshStandardMaterial({
+			color: 0x111111, roughness: 0.2, metalness: 0, flatShading: false,
+		});
+		const helmetMat = new THREE.MeshStandardMaterial({
+			color: 0x4a7a3a, roughness: 0.8, metalness: 0, flatShading: false,
+		});
+		const strapMat = new THREE.MeshStandardMaterial({
+			color: 0x1a1a1a, roughness: 0.6, metalness: 0, flatShading: false,
+		});
 
 		// === SITTING/SLUMPING POSE (against wall) ===
 		// Scale factor for overall size
