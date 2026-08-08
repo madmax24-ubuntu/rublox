@@ -6348,6 +6348,7 @@ export class MapGenerator {
 		});
 
 		corpse.position.set(x, floorY, z);
+		corpse.rotation.y = -Math.PI / 4;
 		corpse.userData.mapGenerated = true;
 		(parent || this.scene).add(corpse);
 		this.addColliderBox(new THREE.Vector3(x, floorY, z), 1.2, 1.4, 1.8, false);
