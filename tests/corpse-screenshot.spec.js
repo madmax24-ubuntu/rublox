@@ -36,29 +36,22 @@ test('screenshot stalker corpse close-up', async ({ page }) => {
 			if (corpse) {
 				const corpseWorldPos = new window.THREE.Vector3();
 				corpse.getWorldPosition(corpseWorldPos);
-				const corpseParent = corpse.parent;
-				console.log('Corpse found at:', corpseWorldPos, 'parent:', corpseParent?.name);
+				console.log('Corpse found at:', corpseWorldPos);
 
 				// Stop game loop FIRST to prevent camera from being overwritten
 				if (window.game?.gameLoop) {
 					window.game.gameLoop.stop();
 				}
 
-				// Position camera close to corpse inside hangar (2m away)
+				// Position camera above and to side of lying corpse (bird's-eye view)
 				const camera = window.game.camera;
-				const hangarCenter = new window.THREE.Vector3();
-				if (corpseParent) {
-					corpseParent.getWorldPosition(hangarCenter);
-				}
-				// Camera between hangar center and corpse, 2m away from corpse
-				const dir = new window.THREE.Vector3().subVectors(hangarCenter, corpseWorldPos).normalize();
 				camera.position.set(
-					corpseWorldPos.x + dir.x * 2,
-					corpseWorldPos.y + 1.2,
-					corpseWorldPos.z + dir.z * 2
+					corpseWorldPos.x + 3,
+					corpseWorldPos.y + 4,
+					corpseWorldPos.z + 3
 				);
 				console.log('Camera positioned at:', camera.position);
-				const lookTarget = new window.THREE.Vector3(corpseWorldPos.x, corpseWorldPos.y + 0.6, corpseWorldPos.z);
+				const lookTarget = new window.THREE.Vector3(corpseWorldPos.x, corpseWorldPos.y + 0.5, corpseWorldPos.z);
 				camera.lookAt(lookTarget);
 
 				// Manually render the scene after camera is set
