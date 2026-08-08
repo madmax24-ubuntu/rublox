@@ -3,6 +3,9 @@ import { test } from '@playwright/test';
 test('debug game state transitions', async ({ page }) => {
 	test.setTimeout(120000);
 	
+	// Set test mode BEFORE page loads (game initializes on page load)
+	await page.addInitScript(() => { window.__kilo_test__ = true; });
+	
 	await page.goto('http://localhost:3001');
 	await page.waitForLoadState('domcontentloaded');
 	await page.waitForTimeout(2000);

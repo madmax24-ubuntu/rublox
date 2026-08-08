@@ -2,12 +2,15 @@ import { test, expect } from '@playwright/test';
 
 test('screenshot stalker corpse close-up', async ({ page }) => {
 	test.setTimeout(240000);
+	
+	// Set test mode BEFORE page loads (game initializes on page load)
+	await page.addInitScript(() => { window.__kilo_test__ = true; });
+	
 	await page.goto('http://localhost:3001');
 	await page.waitForLoadState('domcontentloaded');
 	await page.waitForTimeout(2000);
 
 	// Enable test mode (reduces countdown to 5s, speeds up spawn)
-	await page.evaluate(() => { window.__kilo_test__ = true; });
 
 	await page.getByRole('button', { name: /начать игру/i }).click({ force: true });
 	await page.waitForTimeout(3000);
