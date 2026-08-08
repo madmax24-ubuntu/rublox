@@ -37,15 +37,10 @@ test('screenshot stalker corpse close-up', async ({ page }) => {
 			const corpseWorldPos = new window.THREE.Vector3();
 			corpse.getWorldPosition(corpseWorldPos);
 			console.log('Corpse found at:', corpseWorldPos);
-			console.log('Corpse children:', corpse.children.length);
-			console.log('Camera before:', window.game.camera.position);
 
-			// Pause game first to prevent camera from being overwritten
-			if (window.game) {
-				window.game.isPaused = true;
-				if (window.game.gameLoop) {
-					window.game.gameLoop.isRunning = false;
-				}
+			// Stop game loop FIRST to prevent camera from being overwritten
+			if (window.game?.gameLoop) {
+				window.game.gameLoop.stop();
 			}
 
 			// Set camera position directly (bypass camera controller clamping)
@@ -57,11 +52,14 @@ test('screenshot stalker corpse close-up', async ({ page }) => {
 			);
 			const lookTarget = new window.THREE.Vector3(corpseWorldPos.x, corpseWorldPos.y + 0.6, corpseWorldPos.z);
 			camera.lookAt(lookTarget);
-			console.log('Camera after:', camera.position);
+
+			// Manually render the scene after camera is set
+			if (window.game?.renderer) {
+				window.game.renderer.render(scene, camera);
+			}
 		}
 	});
 
-	// Wait a frame for the change to take effect
-	await page.waitForTimeout(200);
+	// Take screenshot immediately after render
 	await page.screenshot({ path: 'screenshots/corpse-closeup.png' });
 });
