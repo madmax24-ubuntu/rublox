@@ -6143,43 +6143,110 @@ export class MapGenerator {
 	}
 
 		_addStalkerCorpse(x, z, floorY = 0, parent) {
-		const corpse = new THREE.Group();
-		const s = 1.0;
+		// === TEXTURE GENERATION ===
+		function _createCanvasTex(drawFn, w, h) {
+			const c = document.createElement('canvas');
+			c.width = w; c.height = h;
+			drawFn(c.getContext('2d'), w, h);
+			const tex = new THREE.CanvasTexture(c);
+			tex.colorSpace = THREE.SRGBColorSpace;
+			return tex;
+		}
 
-		// Materials
-		const uniformMat = new THREE.MeshStandardMaterial({ color: 0x4a6a3a, roughness: 0.8, metalness: 0 });
-		const vestMat = new THREE.MeshStandardMaterial({ color: 0x2a3a1a, roughness: 0.75, metalness: 0 });
-		const bootMat = new THREE.MeshStandardMaterial({ color: 0x1a1a0a, roughness: 0.85, metalness: 0 });
+		// Camo uniform texture
+		const uniformTex = _createCanvasTex((ctx, w, h) => {
+			ctx.fillStyle = '#4a6a3a'; ctx.fillRect(0, 0, w, h);
+			const colors = ['#2a3a0a','#3a5a2a','#1a2a0a','#5a7a4a','#3a4a2a','#6a5a3a','#2a1a0a'];
+			for (let i = 0; i < 80; i++) {
+				ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+				ctx.beginPath(); ctx.ellipse(Math.random()*w, Math.random()*h, 3+Math.random()*12, 3+Math.random()*12*(0.4+Math.random()*0.6), Math.random()*Math.PI, 0, Math.PI*2); ctx.fill();
+			}
+			const d=ctx.getImageData(0,0,w,h); for(let i=0;i<d.data.length;i+=4){const n=(Math.random()-0.5)*20;d.data[i]+=n;d.data[i+1]+=n;d.data[i+2]+=n} ctx.putImageData(d,0,0);
+		}, 256, 256);
+
+		// Tactical vest texture (MOLLE webbing + pouches + buckles)
+		const vestTex = _createCanvasTex((ctx, w, h) => {
+			ctx.fillStyle = '#2a3a1a'; ctx.fillRect(0, 0, w, h);
+			ctx.strokeStyle = '#1a2a0a'; ctx.lineWidth = 2;
+			for (let y = 10; y < h; y += 8) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+			ctx.strokeStyle = '#1a2a0a'; ctx.lineWidth = 3;
+			ctx.strokeRect(w*0.05, h*0.15, w*0.25, h*0.3); ctx.strokeRect(w*0.7, h*0.15, w*0.25, h*0.3); ctx.strokeRect(w*0.35, h*0.5, w*0.3, h*0.25);
+			ctx.fillStyle = '#5a5a5a'; ctx.fillRect(w*0.45, h*0.48, w*0.1, h*0.06);
+			ctx.fillStyle = '#8a8a8a'; ctx.fillRect(w*0.47, h*0.49, w*0.06, h*0.04);
+			ctx.strokeStyle = '#1a2a0a'; ctx.lineWidth = 5;
+			ctx.beginPath(); ctx.moveTo(w*0.02, 0); ctx.lineTo(w*0.02, h); ctx.stroke();
+			ctx.beginPath(); ctx.moveTo(w*0.98, 0); ctx.lineTo(w*0.98, h); ctx.stroke();
+			const d=ctx.getImageData(0,0,w,h); for(let i=0;i<d.data.length;i+=4){const n=(Math.random()-0.5)*15;d.data[i]+=n;d.data[i+1]+=n;d.data[i+2]+=n} ctx.putImageData(d,0,0);
+		}, 256, 256);
+
+		// Boot texture
+		const bootTex = _createCanvasTex((ctx, w, h) => {
+			ctx.fillStyle = '#1a1a0a'; ctx.fillRect(0, 0, w, h);
+			ctx.fillStyle = '#0a0a0a';
+			for (let y = 0; y < h; y += 6) for (let x = 0; x < w; x += 8) if (Math.random() > 0.3) ctx.fillRect(x, y, 4, 3);
+			ctx.strokeStyle = '#4a4a2a'; ctx.lineWidth = 2;
+			ctx.beginPath(); ctx.moveTo(w*0.45, 0); for(let y=0;y<h*0.4;y+=8) ctx.lineTo(w*(0.45+(Math.random()-0.5)*0.1), y); ctx.stroke();
+			ctx.beginPath(); ctx.moveTo(w*0.55, 0); for(let y=0;y<h*0.4;y+=8) ctx.lineTo(w*(0.55+(Math.random()-0.5)*0.1), y); ctx.stroke();
+			const d=ctx.getImageData(0,0,w,h); for(let i=0;i<d.data.length;i+=4){const n=(Math.random()-0.5)*25;d.data[i]+=n;d.data[i+1]+=n;d.data[i+2]+=n} ctx.putImageData(d,0,0);
+		}, 128, 128);
+
+		// Helmet texture
+		const helmetTex = _createCanvasTex((ctx, w, h) => {
+			ctx.fillStyle = '#3a5a2a'; ctx.fillRect(0, 0, w, h);
+			const colors = ['#2a4a1a','#4a6a3a','#1a3a0a','#5a7a4a'];
+			for (let i = 0; i < 40; i++) { ctx.fillStyle = colors[Math.floor(Math.random()*colors.length)]; ctx.beginPath(); ctx.ellipse(Math.random()*w, Math.random()*h, 4+Math.random()*10, 3+Math.random()*8, Math.random()*Math.PI, 0, Math.PI*2); ctx.fill(); }
+			ctx.strokeStyle = 'rgba(80,80,70,0.3)'; ctx.lineWidth = 1;
+			for (let i = 0; i < 15; i++) { ctx.beginPath(); ctx.moveTo(Math.random()*w, Math.random()*h); ctx.lineTo(Math.random()*w, Math.random()*h); ctx.stroke(); }
+			const d=ctx.getImageData(0,0,w,h); for(let i=0;i<d.data.length;i+=4){const n=(Math.random()-0.5)*15;d.data[i]+=n;d.data[i+1]+=n;d.data[i+2]+=n} ctx.putImageData(d,0,0);
+		}, 256, 256);
+
+		// Gas mask texture
+		const gasMaskTex = _createCanvasTex((ctx, w, h) => {
+			ctx.fillStyle = '#1a1a1a'; ctx.fillRect(0, 0, w, h);
+			for (let i = 0; i < 60; i++) { const s = 20+Math.random()*30; ctx.fillStyle=`rgb(${s},${s},${s})`; ctx.beginPath(); ctx.arc(Math.random()*w, Math.random()*h, 1+Math.random()*3, 0, Math.PI*2); ctx.fill(); }
+			ctx.fillStyle = '#0a0a0a'; ctx.beginPath(); ctx.arc(w*0.3, h*0.4, 8, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(w*0.7, h*0.4, 8, 0, Math.PI*2); ctx.fill();
+			ctx.fillStyle = '#2a2a2a'; ctx.beginPath(); ctx.ellipse(w*0.5, h*0.65, 12, 6, 0, 0, Math.PI*2); ctx.fill();
+		}, 128, 128);
+
+		// Filter texture (metal + rust)
+		const filterTex = _createCanvasTex((ctx, w, h) => {
+			ctx.fillStyle = '#4a4a4a'; ctx.fillRect(0, 0, w, h);
+			for (let i = 0; i < 30; i++) { const r = 80+Math.random()*60; ctx.fillStyle=`rgb(${r},${Math.floor(r*0.3)},${Math.floor(r*0.2)})`; ctx.beginPath(); ctx.arc(Math.random()*w, Math.random()*h, 2+Math.random()*5, 0, Math.PI*2); ctx.fill(); }
+			ctx.strokeStyle = '#3a3a3a'; ctx.lineWidth = 2;
+			for (let y = 5; y < h; y += 6) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+		}, 128, 128);
+
+		// Blood texture
+		const bloodTex = _createCanvasTex((ctx, w, h) => {
+			ctx.fillStyle = '#5a0000'; ctx.fillRect(0, 0, w, h);
+			for (let i = 0; i < 100; i++) { ctx.fillStyle=`rgba(${40+Math.random()*60},0,0,${0.3+Math.random()*0.5})`; ctx.beginPath(); ctx.ellipse(Math.random()*w, Math.random()*h, 3+Math.random()*15, 3+Math.random()*15, Math.random()*Math.PI, 0, Math.PI*2); ctx.fill(); }
+		}, 128, 128);
+
+		// === MATERIALS WITH TEXTURES ===
+		const uniformMat = new THREE.MeshStandardMaterial({ map: uniformTex, roughness: 0.8, metalness: 0 });
+		const vestMat = new THREE.MeshStandardMaterial({ map: vestTex, roughness: 0.75, metalness: 0 });
+		const bootMat = new THREE.MeshStandardMaterial({ map: bootTex, roughness: 0.85, metalness: 0 });
 		const skinMat = new THREE.MeshStandardMaterial({ color: 0x8a7a5e, roughness: 0.7, metalness: 0 });
-		const gasMaskMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.6, metalness: 0 });
-		const filterMat = new THREE.MeshStandardMaterial({ color: 0x4a4a4a, roughness: 0.5, metalness: 0.2 });
+		const gasMaskMat = new THREE.MeshStandardMaterial({ map: gasMaskTex, roughness: 0.6, metalness: 0 });
+		const filterMat = new THREE.MeshStandardMaterial({ map: filterTex, roughness: 0.5, metalness: 0.2 });
 		const eyeMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.2, metalness: 0 });
-		const helmetMat = new THREE.MeshStandardMaterial({ color: 0x3a5a2a, roughness: 0.8, metalness: 0 });
+		const helmetMat = new THREE.MeshStandardMaterial({ map: helmetTex, roughness: 0.8, metalness: 0 });
 		const strapMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.6, metalness: 0 });
-		const camoMat = new THREE.MeshStandardMaterial({ color: 0x2a3a0a, roughness: 0.8, metalness: 0 });
-		const camoDark = new THREE.MeshStandardMaterial({ color: 0x1a2a0a, roughness: 0.8, metalness: 0 });
-		const bloodMat = new THREE.MeshStandardMaterial({ color: 0x8b0000, emissive: 0x4a0000, emissiveIntensity: 0.8, transparent: true, opacity: 0.7, roughness: 0.3 });
+		const bloodMat = new THREE.MeshStandardMaterial({ map: bloodTex, emissive: 0x4a0000, emissiveIntensity: 0.5, transparent: true, opacity: 0.8, roughness: 0.3 });
 		const splatMat = new THREE.MeshStandardMaterial({ color: 0x6b0000, emissive: 0x3a0000, emissiveIntensity: 0.6, transparent: true, opacity: 0.5, roughness: 0.4 });
 
-		// === TORSO (sitting/slumping) - box for bulkier look ===
+		// === TORSO (sitting/slumping) ===
 		const torso = new THREE.Mesh(new THREE.BoxGeometry(0.7 * s, 0.5 * s, 0.45 * s), uniformMat);
 		torso.position.set(0, 0.65 * s, 0);
 		torso.rotation.x = 0.15;
 		corpse.add(torso);
-
-		// Camo patches on torso
-		for (let i = 0; i < 6; i++) {
-			const patch = new THREE.Mesh(new THREE.BoxGeometry(0.1 + Math.random() * 0.15, 0.08 + Math.random() * 0.1, 0.02), i % 2 === 0 ? camoMat : camoDark);
-			patch.position.set((Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.35, 0.23);
-			corpse.add(patch);
-		}
 
 		// Pelvis
 		const pelvis = new THREE.Mesh(new THREE.BoxGeometry(0.6 * s, 0.25 * s, 0.4 * s), uniformMat);
 		pelvis.position.set(0, 0.3 * s, 0);
 		corpse.add(pelvis);
 
-		// === PLATE CARRIER VEST (box - bulky) ===
+		// === PLATE CARRIER VEST ===
 		const vest = new THREE.Mesh(new THREE.BoxGeometry(0.75 * s, 0.55 * s, 0.2 * s), vestMat);
 		vest.position.set(0, 0.65 * s, 0.28 * s);
 		vest.rotation.x = 0.15;
@@ -6228,7 +6295,7 @@ export class MapGenerator {
 		head.rotation.z = 0.2;
 		corpse.add(head);
 
-		// === HELMET (box + dome + brim) ===
+		// === HELMET ===
 		const helmetDome = new THREE.Mesh(new THREE.BoxGeometry(0.4 * s, 0.25 * s, 0.35 * s), helmetMat);
 		helmetDome.position.set(0, 1.05 * s, 0);
 		helmetDome.rotation.z = 0.2;
@@ -6247,13 +6314,13 @@ export class MapGenerator {
 			corpse.add(rail);
 		}
 
-		// === GAS MASK (box + large filter) ===
+		// === GAS MASK ===
 		const mask = new THREE.Mesh(new THREE.BoxGeometry(0.3 * s, 0.22 * s, 0.15 * s), gasMaskMat);
 		mask.position.set(0, 0.92 * s, -0.1 * s);
 		mask.rotation.z = 0.2;
 		corpse.add(mask);
 
-		// Gas mask Filter (large round cylinder)
+		// Gas mask Filter
 		const filter = new THREE.Mesh(new THREE.CylinderGeometry(0.14 * s, 0.14 * s, 0.12 * s, 16), filterMat);
 		filter.position.set(0.2 * s, 0.92 * s, -0.15 * s);
 		filter.rotation.z = Math.PI / 2;
@@ -6272,62 +6339,39 @@ export class MapGenerator {
 			corpse.add(e);
 		}
 
-		// === ARMS (chunky, on thighs) ===
+		// === ARMS ===
 		for (const side of [-1, 1]) {
-			// Upper arm (box - chunky)
 			const ua = new THREE.Mesh(new THREE.BoxGeometry(0.18 * s, 0.28 * s, 0.18 * s), uniformMat);
 			ua.position.set(side * 0.45 * s, 0.5 * s, 0.15 * s);
 			ua.rotation.x = -0.4;
 			corpse.add(ua);
 
-			// Camo on arm
-			const armPatch = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.08, 0.04), camoDark);
-			armPatch.position.set(side * 0.45 * s, 0.5 * s, 0.24 * s);
-			corpse.add(armPatch);
-
-			// Forearm (box - chunky)
 			const fa = new THREE.Mesh(new THREE.BoxGeometry(0.16 * s, 0.25 * s, 0.16 * s), uniformMat);
 			fa.position.set(side * 0.42 * s, 0.28 * s, 0.38 * s);
 			fa.rotation.x = -0.3;
 			corpse.add(fa);
 
-			// Hand (sphere)
 			const hand = new THREE.Mesh(new THREE.SphereGeometry(0.07 * s, 8, 8), skinMat);
 			hand.position.set(side * 0.42 * s, 0.18 * s, 0.5 * s);
 			corpse.add(hand);
 		}
 
-		// === LEGS (chunky, extended) ===
+		// === LEGS ===
 		for (const side of [-1, 1]) {
-			// Upper leg (box - chunky)
 			const ul = new THREE.Mesh(new THREE.BoxGeometry(0.2 * s, 0.35 * s, 0.2 * s), uniformMat);
 			ul.position.set(side * 0.15 * s, 0.12 * s, 0.35 * s);
 			ul.rotation.x = -0.15;
 			corpse.add(ul);
 
-			// Camo on leg
-			const legPatch = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.1, 0.06), camoMat);
-			legPatch.position.set(side * 0.15 * s, 0.12 * s, 0.45 * s);
-			corpse.add(legPatch);
-
-			// Lower leg (box - chunky)
 			const ll = new THREE.Mesh(new THREE.BoxGeometry(0.18 * s, 0.32 * s, 0.18 * s), uniformMat);
 			ll.position.set(side * 0.15 * s, 0.06 * s, 0.65 * s);
 			ll.rotation.x = -0.1;
 			corpse.add(ll);
 
-			// Boot (capsule - heavy)
 			const boot = new THREE.Mesh(new THREE.CapsuleGeometry(0.16 * s, 0.25 * s, 8, 8), bootMat);
 			boot.position.set(side * 0.15 * s, 0.05 * s, 0.88 * s);
 			boot.rotation.z = Math.PI / 2;
 			corpse.add(boot);
-
-			// Boot tread marks
-			for (let t = 0; t < 3; t++) {
-				const tread = new THREE.Mesh(new THREE.BoxGeometry(0.02 * s, 0.02 * s, 0.2 * s), bootMat);
-				tread.position.set(side * 0.15 * s, 0.01 * s, 0.8 + t * 0.06 * s);
-				corpse.add(tread);
-			}
 		}
 
 		// === BACKPACK ===
@@ -6374,7 +6418,6 @@ export class MapGenerator {
 		corpse.userData.mapGenerated = true;
 		(parent || this.scene).add(corpse);
 		this.addColliderBox(new THREE.Vector3(x, floorY, z), 1.2, 1.4, 1.8, false);
-
 	}
 
 addMilitaryFences(startX, startZ, size) {
