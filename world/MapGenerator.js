@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { createCanvas } from "canvas";
 import { MapGeneratorNode } from "./MapGeneratorNode.js?v=1786192400000";
 import { AABBGrid } from "./AABBGrid.js";
 import { InstancedMeshSystem } from "./InstancedMeshSystem.js";
@@ -6145,7 +6146,7 @@ export class MapGenerator {
 		_addStalkerCorpse(x, z, floorY = 0, parent) {
 		// === TEXTURE GENERATION ===
 		function _createCanvasTex(drawFn, w, h) {
-			const c = document.createElement('canvas');
+			const c = typeof document !== 'undefined' ? document.createElement('canvas') : createCanvas(w, h);
 			c.width = w; c.height = h;
 			drawFn(c.getContext('2d'), w, h);
 			const tex = new THREE.CanvasTexture(c);
