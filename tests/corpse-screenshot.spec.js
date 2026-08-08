@@ -21,44 +21,52 @@ test('screenshot stalker corpse close-up', async ({ page }) => {
 		return window.game?.gameState === 'playing';
 	}, { timeout: 120000 });
 
-	// Find the stalker corpse and set camera close to it
-	await page.evaluate(() => {
-		let corpse = null;
-		const scene = window.game?.scene;
-		if (!scene) return;
+		// Find the stalker corpse and set camera close to it inside hangar
+		await page.evaluate(() => {
+			let corpse = null;
+			const scene = window.game?.scene;
+			if (!scene) return;
 
-		scene.traverse((child) => {
-			if (child.userData?.isStalkerCorpse) {
-				corpse = child;
+			scene.traverse((child) => {
+				if (child.userData?.isStalkerCorpse) {
+					corpse = child;
+				}
+			});
+
+			if (corpse) {
+				const corpseWorldPos = new window.THREE.Vector3();
+				corpse.getWorldPosition(corpseWorldPos);
+				const corpseParent = corpse.parent;
+				console.log('Corpse found at:', corpseWorldPos, 'parent:', corpseParent?.name);
+
+				// Stop game loop FIRST to prevent camera from being overwritten
+				if (window.game?.gameLoop) {
+					window.game.gameLoop.stop();
+				}
+
+				// Position camera close to corpse inside hangar (2m away)
+				const camera = window.game.camera;
+				const hangarCenter = new window.THREE.Vector3();
+				if (corpseParent) {
+					corpseParent.getWorldPosition(hangarCenter);
+				}
+				// Camera between hangar center and corpse, 2m away from corpse
+				const dir = new window.THREE.Vector3().subVectors(hangarCenter, corpseWorldPos).normalize();
+				camera.position.set(
+					corpseWorldPos.x + dir.x * 2,
+					corpseWorldPos.y + 1.2,
+					corpseWorldPos.z + dir.z * 2
+				);
+				console.log('Camera positioned at:', camera.position);
+				const lookTarget = new window.THREE.Vector3(corpseWorldPos.x, corpseWorldPos.y + 0.6, corpseWorldPos.z);
+				camera.lookAt(lookTarget);
+
+				// Manually render the scene after camera is set
+				if (window.game?.renderer) {
+					window.game.renderer.render(scene, camera);
+				}
 			}
 		});
-
-		if (corpse) {
-			const corpseWorldPos = new window.THREE.Vector3();
-			corpse.getWorldPosition(corpseWorldPos);
-			console.log('Corpse found at:', corpseWorldPos);
-
-			// Stop game loop FIRST to prevent camera from being overwritten
-			if (window.game?.gameLoop) {
-				window.game.gameLoop.stop();
-			}
-
-			// Set camera position directly (bypass camera controller clamping)
-			const camera = window.game.camera;
-			camera.position.set(
-				corpseWorldPos.x + 2.5,
-				corpseWorldPos.y + 1.0,
-				corpseWorldPos.z + 2.5
-			);
-			const lookTarget = new window.THREE.Vector3(corpseWorldPos.x, corpseWorldPos.y + 0.6, corpseWorldPos.z);
-			camera.lookAt(lookTarget);
-
-			// Manually render the scene after camera is set
-			if (window.game?.renderer) {
-				window.game.renderer.render(scene, camera);
-			}
-		}
-	});
 
 	// Take screenshot immediately after render
 	await page.screenshot({ path: 'screenshots/corpse-closeup.png' });
