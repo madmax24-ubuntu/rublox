@@ -6144,12 +6144,18 @@ export class MapGenerator {
 
 		_addStalkerCorpse(x, z, floorY = 0, parent) {
 		// === TEXTURE GENERATION ===
-		function _createCanvasTex(drawFn, w, h) {
+		function _createCanvasTex(drawFn, w, h, repeat) {
 			const c = typeof document !== 'undefined' ? document.createElement('canvas') : createCanvas(w, h);
 			c.width = w; c.height = h;
 			drawFn(c.getContext('2d'), w, h);
 			const tex = new THREE.CanvasTexture(c);
 			tex.colorSpace = THREE.SRGBColorSpace;
+			tex.wrapS = THREE.RepeatWrapping;
+			tex.wrapT = THREE.RepeatWrapping;
+			tex.repeat.set(repeat, repeat);
+			tex.generateMipmaps = true;
+			tex.minFilter = THREE.LinearMipmapLinearFilter;
+			tex.magFilter = THREE.LinearFilter;
 			return tex;
 		}
 
@@ -6157,48 +6163,48 @@ export class MapGenerator {
 		const uniformTex = _createCanvasTex((ctx, w, h) => {
 			ctx.fillStyle = '#4a6a3a'; ctx.fillRect(0, 0, w, h);
 			const colors = ['#2a3a0a','#3a5a2a','#1a2a0a','#5a7a4a','#3a4a2a','#6a5a3a','#2a1a0a'];
-			for (let i = 0; i < 80; i++) {
+			for (let i = 0; i < 200; i++) {
 				ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
-				ctx.beginPath(); ctx.ellipse(Math.random()*w, Math.random()*h, 3+Math.random()*12, 3+Math.random()*12*(0.4+Math.random()*0.6), Math.random()*Math.PI, 0, Math.PI*2); ctx.fill();
+				ctx.beginPath(); ctx.ellipse(Math.random()*w, Math.random()*h, 5+Math.random()*20, 5+Math.random()*20*(0.4+Math.random()*0.6), Math.random()*Math.PI, 0, Math.PI*2); ctx.fill();
 			}
 			const d=ctx.getImageData(0,0,w,h); for(let i=0;i<d.data.length;i+=4){const n=(Math.random()-0.5)*20;d.data[i]+=n;d.data[i+1]+=n;d.data[i+2]+=n} ctx.putImageData(d,0,0);
-		}, 256, 256);
+		}, 512, 512, 3);
 
 		// Tactical vest texture (MOLLE webbing + pouches + buckles)
 		const vestTex = _createCanvasTex((ctx, w, h) => {
 			ctx.fillStyle = '#2a3a1a'; ctx.fillRect(0, 0, w, h);
-			ctx.strokeStyle = '#1a2a0a'; ctx.lineWidth = 2;
-			for (let y = 10; y < h; y += 8) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
 			ctx.strokeStyle = '#1a2a0a'; ctx.lineWidth = 3;
+			for (let y = 10; y < h; y += 10) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+			ctx.strokeStyle = '#1a2a0a'; ctx.lineWidth = 4;
 			ctx.strokeRect(w*0.05, h*0.15, w*0.25, h*0.3); ctx.strokeRect(w*0.7, h*0.15, w*0.25, h*0.3); ctx.strokeRect(w*0.35, h*0.5, w*0.3, h*0.25);
 			ctx.fillStyle = '#5a5a5a'; ctx.fillRect(w*0.45, h*0.48, w*0.1, h*0.06);
 			ctx.fillStyle = '#8a8a8a'; ctx.fillRect(w*0.47, h*0.49, w*0.06, h*0.04);
-			ctx.strokeStyle = '#1a2a0a'; ctx.lineWidth = 5;
+			ctx.strokeStyle = '#1a2a0a'; ctx.lineWidth = 8;
 			ctx.beginPath(); ctx.moveTo(w*0.02, 0); ctx.lineTo(w*0.02, h); ctx.stroke();
 			ctx.beginPath(); ctx.moveTo(w*0.98, 0); ctx.lineTo(w*0.98, h); ctx.stroke();
 			const d=ctx.getImageData(0,0,w,h); for(let i=0;i<d.data.length;i+=4){const n=(Math.random()-0.5)*15;d.data[i]+=n;d.data[i+1]+=n;d.data[i+2]+=n} ctx.putImageData(d,0,0);
-		}, 256, 256);
+		}, 512, 512, 3);
 
 		// Boot texture
 		const bootTex = _createCanvasTex((ctx, w, h) => {
 			ctx.fillStyle = '#1a1a0a'; ctx.fillRect(0, 0, w, h);
 			ctx.fillStyle = '#0a0a0a';
 			for (let y = 0; y < h; y += 6) for (let x = 0; x < w; x += 8) if (Math.random() > 0.3) ctx.fillRect(x, y, 4, 3);
-			ctx.strokeStyle = '#4a4a2a'; ctx.lineWidth = 2;
+			ctx.strokeStyle = '#4a4a2a'; ctx.lineWidth = 3;
 			ctx.beginPath(); ctx.moveTo(w*0.45, 0); for(let y=0;y<h*0.4;y+=8) ctx.lineTo(w*(0.45+(Math.random()-0.5)*0.1), y); ctx.stroke();
 			ctx.beginPath(); ctx.moveTo(w*0.55, 0); for(let y=0;y<h*0.4;y+=8) ctx.lineTo(w*(0.55+(Math.random()-0.5)*0.1), y); ctx.stroke();
 			const d=ctx.getImageData(0,0,w,h); for(let i=0;i<d.data.length;i+=4){const n=(Math.random()-0.5)*25;d.data[i]+=n;d.data[i+1]+=n;d.data[i+2]+=n} ctx.putImageData(d,0,0);
-		}, 128, 128);
+		}, 256, 256, 4);
 
 		// Helmet texture
 		const helmetTex = _createCanvasTex((ctx, w, h) => {
 			ctx.fillStyle = '#3a5a2a'; ctx.fillRect(0, 0, w, h);
 			const colors = ['#2a4a1a','#4a6a3a','#1a3a0a','#5a7a4a'];
-			for (let i = 0; i < 40; i++) { ctx.fillStyle = colors[Math.floor(Math.random()*colors.length)]; ctx.beginPath(); ctx.ellipse(Math.random()*w, Math.random()*h, 4+Math.random()*10, 3+Math.random()*8, Math.random()*Math.PI, 0, Math.PI*2); ctx.fill(); }
+			for (let i = 0; i < 80; i++) { ctx.fillStyle = colors[Math.floor(Math.random()*colors.length)]; ctx.beginPath(); ctx.ellipse(Math.random()*w, Math.random()*h, 6+Math.random()*15, 5+Math.random()*12, Math.random()*Math.PI, 0, Math.PI*2); ctx.fill(); }
 			ctx.strokeStyle = 'rgba(80,80,70,0.3)'; ctx.lineWidth = 1;
-			for (let i = 0; i < 15; i++) { ctx.beginPath(); ctx.moveTo(Math.random()*w, Math.random()*h); ctx.lineTo(Math.random()*w, Math.random()*h); ctx.stroke(); }
+			for (let i = 0; i < 20; i++) { ctx.beginPath(); ctx.moveTo(Math.random()*w, Math.random()*h); ctx.lineTo(Math.random()*w, Math.random()*h); ctx.stroke(); }
 			const d=ctx.getImageData(0,0,w,h); for(let i=0;i<d.data.length;i+=4){const n=(Math.random()-0.5)*15;d.data[i]+=n;d.data[i+1]+=n;d.data[i+2]+=n} ctx.putImageData(d,0,0);
-		}, 256, 256);
+		}, 512, 512, 3);
 
 		// Gas mask texture
 		const gasMaskTex = _createCanvasTex((ctx, w, h) => {
@@ -6206,7 +6212,7 @@ export class MapGenerator {
 			for (let i = 0; i < 60; i++) { const s = 20+Math.random()*30; ctx.fillStyle=`rgb(${s},${s},${s})`; ctx.beginPath(); ctx.arc(Math.random()*w, Math.random()*h, 1+Math.random()*3, 0, Math.PI*2); ctx.fill(); }
 			ctx.fillStyle = '#0a0a0a'; ctx.beginPath(); ctx.arc(w*0.3, h*0.4, 8, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(w*0.7, h*0.4, 8, 0, Math.PI*2); ctx.fill();
 			ctx.fillStyle = '#2a2a2a'; ctx.beginPath(); ctx.ellipse(w*0.5, h*0.65, 12, 6, 0, 0, Math.PI*2); ctx.fill();
-		}, 128, 128);
+		}, 256, 256, 4);
 
 		// Filter texture (metal + rust)
 		const filterTex = _createCanvasTex((ctx, w, h) => {
@@ -6214,13 +6220,13 @@ export class MapGenerator {
 			for (let i = 0; i < 30; i++) { const r = 80+Math.random()*60; ctx.fillStyle=`rgb(${r},${Math.floor(r*0.3)},${Math.floor(r*0.2)})`; ctx.beginPath(); ctx.arc(Math.random()*w, Math.random()*h, 2+Math.random()*5, 0, Math.PI*2); ctx.fill(); }
 			ctx.strokeStyle = '#3a3a3a'; ctx.lineWidth = 2;
 			for (let y = 5; y < h; y += 6) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
-		}, 128, 128);
+		}, 256, 256, 4);
 
 		// Blood texture
 		const bloodTex = _createCanvasTex((ctx, w, h) => {
 			ctx.fillStyle = '#5a0000'; ctx.fillRect(0, 0, w, h);
 			for (let i = 0; i < 100; i++) { ctx.fillStyle=`rgba(${40+Math.random()*60},0,0,${0.3+Math.random()*0.5})`; ctx.beginPath(); ctx.ellipse(Math.random()*w, Math.random()*h, 3+Math.random()*15, 3+Math.random()*15, Math.random()*Math.PI, 0, Math.PI*2); ctx.fill(); }
-		}, 128, 128);
+		}, 256, 256, 4);
 
 		// === MATERIALS WITH TEXTURES ===
 		const uniformMat = new THREE.MeshStandardMaterial({ map: uniformTex, roughness: 0.8, metalness: 0 });
