@@ -27,8 +27,6 @@ test.describe("Bazooka sounds in real browser", () => {
         hasAudioSynth: !!synth,
         bazookaLaunchBuffer: synth?.bazookaLaunchBuffer ? "exists" : "null",
         bazookaExplosionBuffer: synth?.bazookaExplosionBuffer ? "exists" : "null",
-        bazookaHissBuffer: synth?.bazookaHissBuffer ? "exists" : "null",
-        explosionCrackleBuffer: synth?.explosionCrackleBuffer ? "exists" : "null",
         audioContext: synth?.audioContext ? "exists" : "null",
         ctxState: synth?.audioContext?.state || "null",
         sampleBuffers: synth?.sampleBuffers ? synth.sampleBuffers.size : 0,
