@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import { createCanvas } from "canvas";
 import { MapGeneratorNode } from "./MapGeneratorNode.js?v=1786192400000";
 import { AABBGrid } from "./AABBGrid.js";
 import { InstancedMeshSystem } from "./InstancedMeshSystem.js";
@@ -6236,6 +6235,7 @@ export class MapGenerator {
 		const bloodMat = new THREE.MeshStandardMaterial({ map: bloodTex, emissive: 0x4a0000, emissiveIntensity: 0.5, transparent: true, opacity: 0.8, roughness: 0.3 });
 		const splatMat = new THREE.MeshStandardMaterial({ color: 0x6b0000, emissive: 0x3a0000, emissiveIntensity: 0.6, transparent: true, opacity: 0.5, roughness: 0.4 });
 
+		const s = 1.0;
 		// === TORSO (sitting/slumping) ===
 		const torso = new THREE.Mesh(new THREE.BoxGeometry(0.7 * s, 0.5 * s, 0.45 * s), uniformMat);
 		torso.position.set(0, 0.65 * s, 0);
