@@ -6231,90 +6231,95 @@ export class MapGenerator {
 	const bloodMat = new THREE.MeshStandardMaterial({ map: bloodTex, emissive: 0x4a0000, emissiveIntensity: 0.5, transparent: true, opacity: 0.8, roughness: 0.3 });
 	const splatMat = new THREE.MeshStandardMaterial({ color: 0x6b0000, emissive: 0x3a0000, emissiveIntensity: 0.6, transparent: true, opacity: 0.5, roughness: 0.4 });
 
+	// === CORPSE GROUP ===
 	const corpse = new THREE.Group();
 
-	// === TORSO: BoxGeometry(2, 2, 1) ===
+	// === TORSO: BoxGeometry(2, 2, 1) — lying on right side, face up ===
 	const torso = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 1), uniformMat);
-	torso.position.set(0, 1.5, 0);
+	torso.rotation.z = -Math.PI / 2;
+	torso.position.set(0, 0, 0);
 	corpse.add(torso);
 
 	// === VEST on torso ===
 	const vest = new THREE.Mesh(new THREE.BoxGeometry(2.05, 2.05, 0.15), vestMat);
-	vest.position.set(0, 1.5, 0.55);
+	vest.rotation.z = -Math.PI / 2;
+	vest.position.set(0, 0.55, 0);
 	corpse.add(vest);
 
-	// === HEAD: BoxGeometry(1.2, 1.2, 1.2) ===
+	// === HEAD: BoxGeometry(1.2, 1.2, 1.2) — at top of body ===
 	const head = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), uniformMat);
-	head.position.set(0, 3.1, 0);
+	head.rotation.z = -Math.PI / 2;
+	head.position.set(1.6, 0, 0);
 	corpse.add(head);
 
-	// === HELMET on head (BoxGeometry) ===
+	// === HELMET on head ===
 	const helmet = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.8, 1.4), helmetMat);
-	helmet.position.set(0, 3.5, 0);
+	helmet.rotation.z = -Math.PI / 2;
+	helmet.position.set(2.0, 0, 0);
 	corpse.add(helmet);
 
-	// === GAS MASK on face (Z+ of head) ===
+	// === GAS MASK on face (Y+ after rotation = face direction) ===
 	// 2 dark lenses (CylinderGeometry)
 	const lensGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.12, 12);
 	for (const side of [-1, 1]) {
 		const lens = new THREE.Mesh(lensGeo, eyeMat);
-		lens.rotation.x = Math.PI / 2;
-		lens.position.set(side * 0.25, 3.1, 0.72);
+		lens.rotation.z = -Math.PI / 2;
+		lens.position.set(1.6, side * 0.25, 0.72);
 		corpse.add(lens);
 	}
 
 	// Side filter (CylinderGeometry)
 	const filter = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.18, 12), filterMat);
-	filter.rotation.x = Math.PI / 2;
-	filter.position.set(0.75, 3.1, 0.65);
+	filter.rotation.z = -Math.PI / 2;
+	filter.position.set(1.6, 0.72, 0.5);
 	corpse.add(filter);
 
 	// Hose from filter to mask
 	const hose = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.2, 8), gasMaskMat);
-	hose.rotation.x = Math.PI / 2;
-	hose.position.set(0.65, 3.1, 0.58);
+	hose.rotation.z = -Math.PI / 2;
+	hose.position.set(1.6, 0.62, 0.58);
 	corpse.add(hose);
 
 	// === ARMS: BoxGeometry(1, 2, 1) ===
-	const armGeo = new THREE.BoxGeometry(1, 2, 1);
-	const arms = [];
-	for (const side of [-1, 1]) {
-		const arm = new THREE.Mesh(armGeo, uniformMat);
-		arm.position.set(side * 1.5, 1.5, 0);
-		arm.userData.isArm = true;
-		corpse.add(arm);
-		arms.push(arm);
-	}
+	// Left arm: above body (Y+ side)
+	const armL = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), uniformMat);
+	armL.rotation.z = -Math.PI / 2;
+	armL.position.set(0, 1.5, 0.3);
+	armL.rotation.y = 0.3;
+	corpse.add(armL);
+
+	// Right arm: below body (Y- side, on ground)
+	const armR = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), uniformMat);
+	armR.rotation.z = -Math.PI / 2;
+	armR.position.set(0, -1.5, -0.2);
+	armR.rotation.y = -0.3;
+	corpse.add(armR);
 
 	// === LEGS: BoxGeometry(1, 2, 1) ===
-	const legGeo = new THREE.BoxGeometry(1, 2, 1);
-	const legs = [];
-	for (const side of [-1, 1]) {
-		const leg = new THREE.Mesh(legGeo, uniformMat);
-		leg.position.set(side * 0.5, -0.5, 0);
-		leg.userData.isLeg = true;
-		corpse.add(leg);
-		legs.push(leg);
-	}
+	// Left leg
+	const legL = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), uniformMat);
+	legL.rotation.z = -Math.PI / 2;
+	legL.position.set(-1.5, 0, 0);
+	legL.rotation.y = 0.2;
+	corpse.add(legL);
+
+	// Right leg
+	const legR = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), uniformMat);
+	legR.rotation.z = -Math.PI / 2;
+	legR.position.set(-1.5, 0, -0.3);
+	legR.rotation.y = -0.2;
+	corpse.add(legR);
 
 	// === BOOTS ===
-	for (const side of [-1, 1]) {
-		const boot = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.6, 1.05), bootMat);
-		boot.position.set(side * 0.5, -1.7, 0);
-		corpse.add(boot);
-	}
+	const bootL = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.6, 1.05), bootMat);
+	bootL.rotation.z = -Math.PI / 2;
+	bootL.position.set(-3.0, 0, 0);
+	corpse.add(bootL);
 
-	// === LYING POSE: rotate group to lie on right side ===
-	corpse.rotation.z = -Math.PI / 2;
-
-	// === ADJUST LIMB POSITIONS for natural corpse pose ===
-	// Left arm (was at X-1.5): bent upward
-	arms[0].rotation.z = -0.5;
-	// Right arm (was at X+1.5): bent downward
-	arms[1].rotation.z = 0.5;
-	// Legs: slightly bent
-	legs[0].rotation.z = 0.4;
-	legs[1].rotation.z = 0.4;
+	const bootR = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.6, 1.05), bootMat);
+	bootR.rotation.z = -Math.PI / 2;
+	bootR.position.set(-3.0, 0, -0.3);
+	corpse.add(bootR);
 
 	// Blood pool (on ground, under torso)
 	const bloodPool = new THREE.Mesh(
@@ -6350,7 +6355,7 @@ export class MapGenerator {
 	corpse.userData.mapGenerated = true;
 	corpse.userData.isStalkerCorpse = true;
 	(parent || this.scene).add(corpse);
-	this.addColliderBox(new THREE.Vector3(x, floorY, z), 3.5, 1.0, 4.0, false);
+	this.addColliderBox(new THREE.Vector3(x, floorY, z), 5.0, 1.0, 3.0, false);
 }
 addMilitaryFences(startX, startZ, size) {
 		const fenceMat = this.pool.getMatStd(
