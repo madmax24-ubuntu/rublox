@@ -6198,12 +6198,12 @@ export class MapGenerator {
 		vest.rotation.x = 0.15;
 		corpse.add(vest);
 
-		// Vest — chest rig pouches (3 per side)
+		// Vest — chest rig pouches (4 per side)
 		for (const side of [-1, 1]) {
-			for (let i = 0; i < 3; i++) {
-				const pGeo = this.pool.getGeoBox(0.1 * s, 0.08 * s, 0.07 * s);
+			for (let i = 0; i < 4; i++) {
+				const pGeo = this.pool.getGeoBox(0.1 * s, 0.08 * s, 0.08 * s);
 				const p = new THREE.Mesh(pGeo, vestMat);
-				p.position.set(side * (0.08 + i * 0.12) * s, 0.7 * s + (i - 1) * 0.08 * s, 0.38 * s);
+				p.position.set(side * (0.06 + i * 0.1) * s, 0.7 * s + (i - 1.5) * 0.09 * s, 0.4 * s);
 				p.rotation.x = 0.15;
 				corpse.add(p);
 			}
@@ -6211,9 +6211,9 @@ export class MapGenerator {
 
 		// Vest — side pouches
 		for (const side of [-1, 1]) {
-			const spGeo = this.pool.getGeoBox(0.07 * s, 0.15 * s, 0.07 * s);
+			const spGeo = this.pool.getGeoBox(0.08 * s, 0.18 * s, 0.08 * s);
 			const sp = new THREE.Mesh(spGeo, vestMat);
-			sp.position.set(side * 0.38 * s, 0.6 * s, 0.3 * s);
+			sp.position.set(side * 0.4 * s, 0.6 * s, 0.35 * s);
 			corpse.add(sp);
 		}
 
@@ -6244,17 +6244,17 @@ export class MapGenerator {
 		head.rotation.z = 0.25;
 		corpse.add(head);
 
-		// === HELMET (rounded combat helmet) ===
-		const helmetGeo = new THREE.CylinderGeometry(0.32 * s, 0.35 * s, 0.25 * s, 8);
+		// === HELMET (rounded combat helmet - more segments for rounder shape) ===
+		const helmetGeo = new THREE.CylinderGeometry(0.3 * s, 0.35 * s, 0.28 * s, 16);
 		const helmet = new THREE.Mesh(helmetGeo, helmetMat);
-		helmet.position.set(0, 1.2 * s, 0);
+		helmet.position.set(0, 1.18 * s, 0);
 		helmet.rotation.z = 0.25;
 		corpse.add(helmet);
 
 		// Helmet brim
-		const brimGeo = this.pool.getGeoBox(0.5 * s, 0.03 * s, 0.2 * s);
+		const brimGeo = this.pool.getGeoBox(0.45 * s, 0.03 * s, 0.22 * s);
 		const brim = new THREE.Mesh(brimGeo, helmetMat);
-		brim.position.set(0, 1.08 * s, -0.25 * s);
+		brim.position.set(0, 1.05 * s, -0.27 * s);
 		brim.rotation.z = 0.25;
 		corpse.add(brim);
 
@@ -6267,16 +6267,16 @@ export class MapGenerator {
 		}
 
 		// === GAS MASK (covers most of face) ===
-		const maskGeo = this.pool.getGeoBox(0.38 * s, 0.3 * s, 0.2 * s);
+		const maskGeo = this.pool.getGeoBox(0.42 * s, 0.32 * s, 0.22 * s);
 		const mask = new THREE.Mesh(maskGeo, gasMaskMat);
-		mask.position.set(0, 1.0 * s, -0.28 * s);
+		mask.position.set(0, 1.0 * s, -0.3 * s);
 		mask.rotation.z = 0.25;
 		corpse.add(mask);
 
 		// Gas mask — round filter (prominent on side)
-		const filterGeo = this.pool.getGeoCylinder(0.12 * s, 0.12 * s, 0.1 * s, 12);
+		const filterGeo = this.pool.getGeoCylinder(0.14 * s, 0.14 * s, 0.12 * s, 16);
 		const filter = new THREE.Mesh(filterGeo, filterMat);
-		filter.position.set(0.25 * s, 1.0 * s, -0.35 * s);
+		filter.position.set(0.28 * s, 1.0 * s, -0.38 * s);
 		filter.rotation.z = Math.PI / 2;
 		corpse.add(filter);
 
