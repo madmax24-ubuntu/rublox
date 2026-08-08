@@ -6147,14 +6147,14 @@ export class MapGenerator {
 		const s = 1.0;
 
 		// Materials
-		const uniformMat = new THREE.MeshStandardMaterial({ color: 0x3a5a2a, roughness: 0.8, metalness: 0 });
-		const vestMat = new THREE.MeshStandardMaterial({ color: 0x2a4a1a, roughness: 0.75, metalness: 0 });
-		const bootMat = new THREE.MeshStandardMaterial({ color: 0x1a1a0a, roughness: 0.85, metalness: 0 });
+		const uniformMat = new THREE.MeshStandardMaterial({ color: 0x4a6a3a, roughness: 0.8, metalness: 0 });
+		const vestMat = new THREE.MeshStandardMaterial({ color: 0x3a5a2a, roughness: 0.75, metalness: 0 });
+		const bootMat = new THREE.MeshStandardMaterial({ color: 0x2a2a1a, roughness: 0.85, metalness: 0 });
 		const skinMat = new THREE.MeshStandardMaterial({ color: 0x8a7a5e, roughness: 0.7, metalness: 0 });
 		const gasMaskMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.6, metalness: 0 });
-		const filterMat = new THREE.MeshStandardMaterial({ color: 0x3d3d3d, roughness: 0.5, metalness: 0 });
+		const filterMat = new THREE.MeshStandardMaterial({ color: 0x4a4a4a, roughness: 0.5, metalness: 0 });
 		const eyeMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.2, metalness: 0 });
-		const helmetMat = new THREE.MeshStandardMaterial({ color: 0x4a7a3a, roughness: 0.8, metalness: 0 });
+		const helmetMat = new THREE.MeshStandardMaterial({ color: 0x3a5a2a, roughness: 0.8, metalness: 0 });
 		const strapMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.6, metalness: 0 });
 		const bloodMat = new THREE.MeshStandardMaterial({ color: 0x8b0000, emissive: 0x4a0000, emissiveIntensity: 0.8, transparent: true, opacity: 0.7, roughness: 0.3 });
 		const splatMat = new THREE.MeshStandardMaterial({ color: 0x6b0000, emissive: 0x3a0000, emissiveIntensity: 0.6, transparent: true, opacity: 0.5, roughness: 0.4 });
