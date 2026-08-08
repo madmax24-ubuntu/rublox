@@ -37,20 +37,26 @@ test('screenshot stalker corpse close-up', async ({ page }) => {
 			const corpseWorldPos = new window.THREE.Vector3();
 			corpse.getWorldPosition(corpseWorldPos);
 			console.log('Corpse found at:', corpseWorldPos);
+			console.log('Corpse children:', corpse.children.length);
+			console.log('Camera before:', window.game.camera.position);
 
 			// Pause game first to prevent camera from being overwritten
-			if (window.game?.gameLoop) {
-				window.game.gameLoop.paused = true;
+			if (window.game) {
+				window.game.isPaused = true;
+				if (window.game.gameLoop) {
+					window.game.gameLoop.isRunning = false;
+				}
 			}
 
 			// Set camera position directly (bypass camera controller clamping)
 			const camera = window.game.camera;
 			camera.position.set(
-				corpseWorldPos.x + 1.5,
-				corpseWorldPos.y + 1.0,
-				corpseWorldPos.z + 1.5
+				corpseWorldPos.x + 2.5,
+				corpseWorldPos.y + 1.5,
+				corpseWorldPos.z + 2.5
 			);
 			camera.lookAt(corpseWorldPos);
+			console.log('Camera after:', camera.position);
 		}
 	});
 
