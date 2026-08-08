@@ -46,16 +46,17 @@ test('screenshot stalker corpse close-up', async ({ page }) => {
 					window.game.gameLoop.stop();
 				}
 
-				// Position camera above and to side of lying corpse (bird's-eye view)
-				const camera = window.game.camera;
-				camera.position.set(
-					corpseWorldPos.x + 3,
-					corpseWorldPos.y + 4,
-					corpseWorldPos.z + 3
-				);
-				console.log('Camera positioned at:', camera.position);
-				const lookTarget = new window.THREE.Vector3(corpseWorldPos.x, corpseWorldPos.y + 0.5, corpseWorldPos.z);
-				camera.lookAt(lookTarget);
+			// Position camera at side of lying corpse (looking at face)
+			// Corpse lying on right side: face is at Z+, head at X+
+			const camera = window.game.camera;
+			camera.position.set(
+				corpseWorldPos.x,
+				corpseWorldPos.y + 1.5,
+				corpseWorldPos.z + 4
+			);
+			console.log('Camera positioned at:', camera.position);
+			const lookTarget = new window.THREE.Vector3(corpseWorldPos.x, corpseWorldPos.y + 0.5, corpseWorldPos.z);
+			camera.lookAt(lookTarget);
 
 				// Manually render the scene after camera is set
 				if (window.game?.renderer) {
