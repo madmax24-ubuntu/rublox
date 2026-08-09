@@ -18,7 +18,7 @@
         "DEV_PORT": "3001",
         "BRIDGE_PORT": "9222",
         "HEADLESS": "true",
-        "BROWSER": "none"
+        "BROWSER": "headless"
       },
       "enabled": true
     }
