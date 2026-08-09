@@ -6436,9 +6436,6 @@ export class MapGenerator {
 	rightLegGroup.rotation.z = -0.2;
 
 	mainGroup.add(bodyGroup);
-	// Lay body flat on ground (with slight random rotation for realism)
-	bodyGroup.rotation.x = -Math.PI / 2 + (Math.random() * 0.3 - 0.15);
-	bodyGroup.rotation.y = Math.random() * Math.PI / 2;
 
 	// =====================================================
 	// AK RIFLE (on ground in front)
