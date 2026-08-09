@@ -1,0 +1,26 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "codebase_memory": {
+      "type": "local",
+      "command": ["npx", "-y", "codebase-memory-mcp"],
+      "enabled": true
+    },
+    "git_mcp": {
+      "type": "local",
+      "command": ["npx", "-y", "git-mcp"],
+      "enabled": true
+    },
+    "threejs_devtools": {
+      "type": "local",
+      "command": ["npx", "-y", "threejs-devtools-mcp"],
+      "environment": {
+        "DEV_PORT": "3001",
+        "BRIDGE_PORT": "9222",
+        "HEADLESS": "true",
+        "BROWSER": "none"
+      },
+      "enabled": true
+    }
+  }
+}
