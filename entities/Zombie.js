@@ -104,6 +104,119 @@ const _createZombieTexture = (variant, baseColorHex) => {
     return texture;
 };
 
+const STALKER_TEXTURES = {};
+const _createStalkerTexture = (type) => {
+    const key = `stalker_${type}`;
+    if (STALKER_TEXTURES[key]) return STALKER_TEXTURES[key];
+    const size = type === 'camo' ? 512 : 256;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    if (type === 'camo') {
+        ctx.fillStyle = '#3b4a3a';
+        ctx.fillRect(0, 0, size, size);
+        const colors = ['#2a3a0a','#3a5a2a','#1a2a0a','#5a7a4a','#3a4a2a','#6a5a3a','#2a1a0a'];
+        for (let i = 0; i < 200; i++) {
+            ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+            ctx.beginPath();
+            ctx.ellipse(Math.random()*size, Math.random()*size, 5+Math.random()*20, 5+Math.random()*20*(0.4+Math.random()*0.6), Math.random()*Math.PI, 0, Math.PI*2);
+            ctx.fill();
+        }
+        const d = ctx.getImageData(0, 0, size, size);
+        for (let i = 0; i < d.data.length; i += 4) { const n = (Math.random()-0.5)*20; d.data[i]+=n; d.data[i+1]+=n; d.data[i+2]+=n; }
+        ctx.putImageData(d, 0, 0);
+    } else if (type === 'vest') {
+        ctx.fillStyle = '#1a1d20';
+        ctx.fillRect(0, 0, size, size);
+        ctx.strokeStyle = '#121518'; ctx.lineWidth = 3;
+        for (let y = 8; y < size; y += 8) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(size, y); ctx.stroke(); }
+        for (let x = 8; x < size; x += 8) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, size); ctx.stroke(); }
+        ctx.fillStyle = '#2a2d30';
+        ctx.fillRect(size*0.1, size*0.1, size*0.3, size*0.3);
+        ctx.fillRect(size*0.6, size*0.1, size*0.3, size*0.3);
+        ctx.fillRect(size*0.1, size*0.5, size*0.3, size*0.3);
+        ctx.fillRect(size*0.6, size*0.5, size*0.3, size*0.3);
+        ctx.fillStyle = '#5a5a5a'; ctx.fillRect(size*0.42, size*0.45, size*0.16, size*0.1);
+        const d = ctx.getImageData(0, 0, size, size);
+        for (let i = 0; i < d.data.length; i += 4) { const n = (Math.random()-0.5)*12; d.data[i]+=n; d.data[i+1]+=n; d.data[i+2]+=n; }
+        ctx.putImageData(d, 0, 0);
+    } else if (type === 'gasMask') {
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(0, 0, size, size);
+        for (let i = 0; i < 60; i++) { const s = 20+Math.random()*30; ctx.fillStyle=`rgb(${s},${s},${s})`; ctx.beginPath(); ctx.arc(Math.random()*size, Math.random()*size, 1+Math.random()*3, 0, Math.PI*2); ctx.fill(); }
+        ctx.fillStyle = '#0a0a0a';
+        ctx.beginPath(); ctx.arc(size*0.3, size*0.4, 8, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(size*0.7, size*0.4, 8, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#2a2a2a';
+        ctx.beginPath(); ctx.ellipse(size*0.5, size*0.65, 12, 6, 0, 0, Math.PI*2); ctx.fill();
+        const d = ctx.getImageData(0, 0, size, size);
+        for (let i = 0; i < d.data.length; i += 4) { const n = (Math.random()-0.5)*10; d.data[i]+=n; d.data[i+1]+=n; d.data[i+2]+=n; }
+        ctx.putImageData(d, 0, 0);
+    } else if (type === 'boots') {
+        ctx.fillStyle = '#1a1a0a';
+        ctx.fillRect(0, 0, size, size);
+        ctx.fillStyle = '#0a0a0a';
+        for (let y = 0; y < size; y += 6) for (let x = 0; x < size; x += 8) if (Math.random() > 0.3) ctx.fillRect(x, y, 4, 3);
+        ctx.strokeStyle = '#4a4a2a'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(size*0.45, 0); for(let y=0;y<size*0.4;y+=8) ctx.lineTo(size*(0.45+(Math.random()-0.5)*0.1), y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(size*0.55, 0); for(let y=0;y<size*0.4;y+=8) ctx.lineTo(size*(0.55+(Math.random()-0.5)*0.1), y); ctx.stroke();
+        const d = ctx.getImageData(0, 0, size, size);
+        for (let i = 0; i < d.data.length; i += 4) { const n = (Math.random()-0.5)*25; d.data[i]+=n; d.data[i+1]+=n; d.data[i+2]+=n; }
+        ctx.putImageData(d, 0, 0);
+    } else if (type === 'helmet') {
+        ctx.fillStyle = '#3a5a2a';
+        ctx.fillRect(0, 0, size, size);
+        const colors = ['#2a4a1a','#4a6a3a','#1a3a0a','#5a7a4a'];
+        for (let i = 0; i < 40; i++) { ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)]; ctx.beginPath(); ctx.ellipse(Math.random()*size, Math.random()*size, 4+Math.random()*10, 3+Math.random()*8, Math.random()*Math.PI, 0, Math.PI*2); ctx.fill(); }
+        ctx.strokeStyle = 'rgba(80,80,70,0.3)'; ctx.lineWidth = 1;
+        for (let i = 0; i < 15; i++) { ctx.beginPath(); ctx.moveTo(Math.random()*size, Math.random()*size); ctx.lineTo(Math.random()*size, Math.random()*size); ctx.stroke(); }
+        const d = ctx.getImageData(0, 0, size, size);
+        for (let i = 0; i < d.data.length; i += 4) { const n = (Math.random()-0.5)*15; d.data[i]+=n; d.data[i+1]+=n; d.data[i+2]+=n; }
+        ctx.putImageData(d, 0, 0);
+    } else if (type === 'backpack') {
+        ctx.fillStyle = '#2a3a1a';
+        ctx.fillRect(0, 0, size, size);
+        ctx.strokeStyle = '#1a2a0a'; ctx.lineWidth = 2;
+        ctx.strokeRect(size*0.1, size*0.1, size*0.8, size*0.8);
+        ctx.strokeStyle = '#1a2a0a'; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(size*0.5, size*0.1); ctx.lineTo(size*0.5, size*0.9); ctx.stroke();
+        ctx.fillStyle = '#3a4a2a';
+        ctx.fillRect(size*0.15, size*0.15, size*0.3, size*0.35);
+        ctx.fillRect(size*0.55, size*0.15, size*0.3, size*0.35);
+        ctx.fillRect(size*0.15, size*0.55, size*0.3, size*0.3);
+        ctx.fillRect(size*0.55, size*0.55, size*0.3, size*0.3);
+        const d = ctx.getImageData(0, 0, size, size);
+        for (let i = 0; i < d.data.length; i += 4) { const n = (Math.random()-0.5)*18; d.data[i]+=n; d.data[i+1]+=n; d.data[i+2]+=n; }
+        ctx.putImageData(d, 0, 0);
+        } else if (type === 'blood') {
+            ctx.fillStyle = '#3a0000';
+            ctx.fillRect(0, 0, size, size);
+            for (let i = 0; i < 200; i++) {
+                const shade = Math.floor(Math.random() * 60 + 20);
+                ctx.fillStyle = `rgb(${shade + 100}, ${shade}, ${shade})`;
+                ctx.beginPath();
+                ctx.arc(Math.random() * size, Math.random() * size, 1 + Math.random() * 6, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            const d = ctx.getImageData(0, 0, size, size);
+            for (let i = 0; i < d.data.length; i += 4) { const n = (Math.random() - 0.5) * 20; d.data[i] += n; d.data[i + 1] += n; d.data[i + 2] += n; }
+            ctx.putImageData(d, 0, 0);
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.generateMipmaps = true;
+    texture.anisotropy = 4;
+    STALKER_TEXTURES[key] = texture;
+    return texture;
+};
+
 const VARIANT_CONFIG = {
     runner: {
         health: 42, speed: 5.7, damage: 6.4, knockbackMultiplier: 1.2,
@@ -159,6 +272,17 @@ const VARIANT_CONFIG = {
         hasArmorPlates: false, armAngle: -0.72, clawLength: 0.28,
         walkSpeed: 3.9, idleBreathe: 0.035,
         behavior: 'toxic'
+    },
+    stalker: {
+        health: 150, speed: 3.2, damage: 9.5, knockbackMultiplier: 0.6,
+        scale: 1.3, radius: 0.5, bodyColor: 0x3b4a3a, headColor: 0x3a5a2a, detailColor: 0x1a1d20,
+        eyeColor: 0x0a0c0e, glowColor: 0x4a6a3a, glowIntensity: 0.0,
+        attackCooldown: 0.8, patrolSpeed: 0.7, alertRadius: 85,
+        moanInterval: [3.0, 5.0], attackInterval: [0.6, 1.4],
+        hasHorns: false, hasMask: true, hasSpikes: false, hasBackpack: true,
+        hasArmorPlates: true, armAngle: -0.5, clawLength: 0.0,
+        walkSpeed: 3.5, idleBreathe: 0.02,
+        behavior: 'patrol'
     }
 };
 
@@ -177,7 +301,7 @@ export class Zombie {
             speed: 4.8
         };
 
-        const variants = ['normal', 'runner', 'crawler', 'toxic', 'heavy'];
+        const variants = ['normal', 'runner', 'crawler', 'toxic', 'heavy', 'stalker'];
         this.variant = VARIANT_CONFIG[forcedVariant] ? forcedVariant : variants[Math.floor(Math.random() * variants.length)];
         const cfg = VARIANT_CONFIG[this.variant];
         this.maxHealth = cfg.health;
@@ -555,7 +679,108 @@ export class Zombie {
             group.add(spine);
         }
 
-        if (this.variant !== 'crawler') {
+        if (this.variant === 'stalker') {
+            const camoTex = _createStalkerTexture('camo');
+            const vestTex = _createStalkerTexture('vest');
+            const gasMaskTex = _createStalkerTexture('gasMask');
+            const bootTex = _createStalkerTexture('boots');
+            const helmetTex = _createStalkerTexture('helmet');
+            const backpackTex = _createStalkerTexture('backpack');
+
+            const camoMat = new THREE.MeshStandardMaterial({ map: camoTex, roughness: 0.7, metalness: 0, flatShading: true });
+            const vestMat = new THREE.MeshStandardMaterial({ map: vestTex, roughness: 0.5, metalness: 0.1, flatShading: true });
+            const gasMaskMat = new THREE.MeshStandardMaterial({ map: gasMaskTex, roughness: 0.6, metalness: 0, flatShading: true });
+            const bootMat = new THREE.MeshStandardMaterial({ map: bootTex, roughness: 0.85, metalness: 0, flatShading: true });
+            const helmetMat = new THREE.MeshStandardMaterial({ map: helmetTex, roughness: 0.7, metalness: 0, flatShading: true });
+            const backpackMat = new THREE.MeshStandardMaterial({ map: backpackTex, roughness: 0.7, metalness: 0, flatShading: true });
+            const lensMat = new THREE.MeshStandardMaterial({ color: 0x0a0c0e, roughness: 0.2, metalness: 0.8 });
+            const skinMat = new THREE.MeshStandardMaterial({ color: 0xb89a7a, roughness: 0.6, flatShading: true });
+
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.1, 0.58), camoMat);
+            body.position.y = 0.92;
+            group.add(body);
+
+            const vest = new THREE.Mesh(new THREE.BoxGeometry(0.95, 1.0, 0.12), vestMat);
+            vest.position.set(0, 0.92, 0.36);
+            group.add(vest);
+
+            for (let i = 0; i < 4; i++) {
+                const pouch = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.3, 0.18), vestMat);
+                pouch.position.set(-0.4 + i * 0.27, 0.85, 0.44);
+                group.add(pouch);
+            }
+
+            const headGroup = new THREE.Group();
+            headGroup.position.set(0, 1.7, 0);
+            group.add(headGroup);
+
+            const headMesh = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), gasMaskMat);
+            headGroup.add(headMesh);
+
+            const lensGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.08, 12);
+            const leftLens = new THREE.Mesh(lensGeo, lensMat);
+            leftLens.rotation.x = Math.PI / 2;
+            leftLens.position.set(-0.16, 0.1, 0.36);
+            const rightLens = new THREE.Mesh(lensGeo, lensMat);
+            rightLens.rotation.x = Math.PI / 2;
+            rightLens.position.set(0.16, 0.1, 0.36);
+            headGroup.add(leftLens, rightLens);
+
+            const filterMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.28, 10), vestMat);
+            filterMesh.rotation.x = Math.PI / 2;
+            filterMesh.position.set(0.38, -0.1, 0.36);
+            headGroup.add(filterMesh);
+
+            const helmet = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.35, 0.8), helmetMat);
+            helmet.position.set(0, 0.5, 0);
+            headGroup.add(helmet);
+
+            const armGeo = new THREE.BoxGeometry(0.22, 0.7, 0.22);
+            const leftArm = new THREE.Mesh(armGeo, camoMat);
+            const rightArm = new THREE.Mesh(armGeo, camoMat);
+            leftArm.position.set(-0.54, 1.0, 0.1);
+            rightArm.position.set(0.54, 1.0, 0.1);
+            leftArm.rotation.x = cfg.armAngle;
+            rightArm.rotation.x = cfg.armAngle;
+            group.add(leftArm);
+            group.add(rightArm);
+
+            const gloveMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.7, flatShading: true });
+            const leftGlove = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.2, 0.18), gloveMat);
+            const rightGlove = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.2, 0.18), gloveMat);
+            leftGlove.position.set(-0.54, 0.62, 0.1);
+            rightGlove.position.set(0.54, 0.62, 0.1);
+            group.add(leftGlove, rightGlove);
+
+            const legGeo = new THREE.BoxGeometry(0.22, 0.7, 0.22);
+            const leftLeg = new THREE.Mesh(legGeo, camoMat);
+            const rightLeg = new THREE.Mesh(legGeo, camoMat);
+            leftLeg.position.set(-0.2, 0.25, 0);
+            rightLeg.position.set(0.2, 0.25, 0);
+            group.add(leftLeg);
+            group.add(rightLeg);
+
+            const leftBoot = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.2, 0.36), bootMat);
+            const rightBoot = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.2, 0.36), bootMat);
+            leftBoot.position.set(-0.2, 0.06, 0.06);
+            rightBoot.position.set(0.2, 0.06, 0.06);
+            group.add(leftBoot, rightBoot);
+
+            const backpack = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.7, 0.28), backpackMat);
+            backpack.position.set(0, 1.0, -0.38);
+            group.add(backpack);
+
+            const strap1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.8, 0.1), vestMat);
+            strap1.position.set(-0.2, 0.95, 0.3);
+            strap1.rotation.z = 0.2;
+            group.add(strap1);
+            const strap2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.8, 0.1), vestMat);
+            strap2.position.set(0.2, 0.95, 0.3);
+            strap2.rotation.z = -0.2;
+            group.add(strap2);
+        }
+
+        if (this.variant !== 'crawler' && this.variant !== 'stalker') {
             const chestWidth = this.variant === 'heavy' ? 0.82 : 0.58;
             const chestY = this.variant === 'heavy' ? 1.02 : 0.92;
             const chestZ = this.variant === 'heavy' ? 0.43 : 0.34;
@@ -584,7 +809,7 @@ export class Zombie {
                 group.add(filter);
             }
         }
-        if (this.variant === 'normal') {
+        if (this.variant === 'normal' && this.variant !== 'stalker') {
             for (const x of [-0.23, 0, 0.23]) {
                 const rib = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.08, 0.12), detailMat);
                 rib.position.set(x, 1.02, 0.38);
@@ -600,6 +825,7 @@ export class Zombie {
         });
         group.userData.isEntity = true;
         group.userData.isZombie = true;
+        group.userData.variant = this.variant;
         group.userData.limbs = group.children.filter(c =>
             c.geometry?.type === 'BoxGeometry' &&
             (c.position.x < -0.3 || c.position.x > 0.3 || c.position.y < 0.5)
@@ -621,6 +847,9 @@ export class Zombie {
                 leftLeg: group.children[6],
                 rightLeg: group.children[7]
             };
+        }
+        if (this.variant === 'stalker') {
+            group.userData.limbs = { leftArm, rightArm, leftLeg, rightLeg };
         }
         group.userData.detailChildren = [...group.children];
         const lodProxy = new THREE.Mesh(getZombieLodGeometry(), bodyMat);
@@ -693,6 +922,9 @@ export class Zombie {
                 usedAbility = true;
             } else if (this.variant === 'runner' && dist >= 4 && dist <= 14 && this.abilityCooldown <= 0) {
                 this.dashAt(target, audioSynth);
+                usedAbility = true;
+            } else if (this.variant === 'stalker' && dist >= 6 && dist <= 25 && this.abilityCooldown <= 0) {
+                this.shootAt(target, audioSynth);
                 usedAbility = true;
             }
 
@@ -826,6 +1058,32 @@ export class Zombie {
         this.attackCooldown = 0.9;
         this.abilityAnimationTimer = 0.65;
         audioSynth?.playZombieAbility?.(this.position, { variant: 'toxic', emitterKey: this.id });
+    }
+
+    shootAt(target, audioSynth) {
+        this.clearAcidProjectile();
+        const origin = this.position.clone();
+        origin.y += 0.6;
+        const aim = target.position.clone();
+        aim.y += 0.5;
+        const direction = aim.sub(origin).normalize();
+        const bulletMat = new THREE.MeshStandardMaterial({ color: 0xffcc00, emissive: 0xff8800, emissiveIntensity: 1.5 });
+        const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 6), bulletMat);
+        mesh.position.copy(origin);
+        mesh.frustumCulled = false;
+        mesh.renderOrder = 3;
+        this.scene.add(mesh);
+        const velocity = direction.multiplyScalar(28);
+        this.acidProjectile = {
+            mesh,
+            target,
+            velocity,
+            life: 2.2
+        };
+        this.abilityCooldown = 3.8 + Math.random() * 1.5;
+        this.attackCooldown = 0.5;
+        this.abilityAnimationTimer = 0.45;
+        audioSynth?.playZombieAbility?.(this.position, { variant: 'stalker', emitterKey: this.id });
     }
 
     updateAcidProjectile(delta, audioSynth) {
@@ -1107,7 +1365,60 @@ export class Zombie {
             this.physics.velocity.set(0, 0, 0);
             this.mesh.position.copy(this.position);
             this.mesh.position.y = this.position.y - (this.physics.height - 0.2) - 0.8;
-            this.mesh.rotation.set(-Math.PI / 2, this.rotation.y, 0);
+            if (this.variant === 'stalker') {
+                this.mesh.rotation.set(-Math.PI / 2, this.rotation.y, 0.25);
+                const limbs = this.mesh.userData.limbs;
+                if (limbs) {
+                    limbs.leftArm.rotation.z = 0.9;
+                    limbs.leftArm.rotation.x = 0.4;
+                    limbs.rightArm.rotation.z = -0.4;
+                    limbs.rightArm.rotation.x = -0.3;
+                    limbs.leftLeg.rotation.z = 0.35;
+                    limbs.leftLeg.rotation.x = 0.2;
+                    limbs.rightLeg.rotation.z = -0.3;
+                    limbs.rightLeg.rotation.x = -0.1;
+                }
+                const headGroup = this.mesh.children.find(c => c.isGroup && c.position.y > 1.5);
+                if (headGroup) {
+                    headGroup.rotation.y = 0.6;
+                    headGroup.rotation.x = -0.2;
+                }
+                const gunMetalMat = new THREE.MeshStandardMaterial({ color: 0x22252a, roughness: 0.3, metalness: 0.7 });
+                const gunWoodMat = new THREE.MeshStandardMaterial({ color: 0x6e3b19, roughness: 0.6 });
+                const magMat = new THREE.MeshStandardMaterial({ color: 0xb55215, roughness: 0.5 });
+                const akGroup = new THREE.Group();
+                const receiver = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.35, 1.2), gunMetalMat);
+                akGroup.add(receiver);
+                const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.1, 8), gunMetalMat);
+                barrel.rotation.x = Math.PI / 2; barrel.position.set(0, 0.05, 1.1);
+                akGroup.add(barrel);
+                const handguard = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.3, 0.7), gunWoodMat);
+                handguard.position.set(0, -0.02, 0.7); akGroup.add(handguard);
+                const stock = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.4, 0.8), gunWoodMat);
+                stock.position.set(0, -0.1, -0.9); akGroup.add(stock);
+                const mag = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.7, 0.3), magMat);
+                mag.rotation.x = -0.4; mag.position.set(0, -0.4, 0.3); akGroup.add(mag);
+                const grip = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.4, 0.2), gunWoodMat);
+                grip.rotation.x = 0.4; grip.position.set(0, -0.3, -0.2); akGroup.add(grip);
+                akGroup.rotation.x = Math.PI / 2; akGroup.rotation.z = -1.2;
+                akGroup.position.set(1.4, 0.15, 0.5);
+                this.mesh.add(akGroup);
+                const bloodTex = _createStalkerTexture('blood');
+                const bloodMat = new THREE.MeshStandardMaterial({ map: bloodTex, emissive: 0x4a0000, emissiveIntensity: 0.5, transparent: true, opacity: 0.8, roughness: 0.3 });
+                const bloodShape = new THREE.Shape();
+                bloodShape.moveTo(0, -1.5);
+                bloodShape.quadraticCurveTo(2, -1, 1.8, 1);
+                bloodShape.quadraticCurveTo(1, 2.5, -1, 2);
+                bloodShape.quadraticCurveTo(-2.5, 0, -1.5, -1.5);
+                const bloodGeo = new THREE.ShapeGeometry(bloodShape);
+                const bloodMesh = new THREE.Mesh(bloodGeo, bloodMat);
+                bloodMesh.rotation.x = -Math.PI / 2; bloodMesh.position.set(0, 0.01, 0); bloodMesh.scale.set(1.4, 1.4, 1.4);
+                this.mesh.add(bloodMesh);
+                this._akGroup = akGroup;
+                this._bloodMesh = bloodMesh;
+            } else {
+                this.mesh.rotation.set(-Math.PI / 2, this.rotation.y, 0);
+            }
             this._corpseTimer = this.scene?.userData?.mobileMode ? 1.2 : 2.2;
             this._corpseExpiresAt = performance.now() + this._corpseTimer * 1000;
             if (attacker?.stats) {
@@ -1183,6 +1494,23 @@ export class Zombie {
 
     dispose() {
         this.clearAcidProjectile();
+        if (this._akGroup) {
+            this._akGroup.traverse(child => {
+                if (child.isMesh) {
+                    child.geometry?.dispose();
+                    if (child.material) {
+                        if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+                        else child.material.dispose();
+                    }
+                }
+            });
+            this._akGroup = null;
+        }
+        if (this._bloodMesh) {
+            this._bloodMesh.geometry?.dispose();
+            if (this._bloodMesh.material) this._bloodMesh.material.dispose();
+            this._bloodMesh = null;
+        }
         if (this.mesh?.parent) this.mesh.parent.remove(this.mesh);
         this.mesh.visible = false;
     }
