@@ -9,3 +9,15 @@ Laser shot uses alienshoot1.wav from Space Shoot Sounds by Robin Lamb.
 License: Creative Commons CC0 1.0.
 
 Source: https://opengameart.org/content/space-shoot-sounds
+
+Bazooka launch uses "Rocket launcher fire" by ValhallaProject.
+
+License: Creative Commons Attribution-ShareAlike 4.0.
+
+Source: https://freesound.org/people/ValhallaProject/sounds/761514/
+
+Bazooka explosion uses "Explosion.wav" by cejordi84.
+
+License: Creative Commons CC0 1.0.
+
+Source: https://freesound.org/people/cejordi84/sounds/232398/
