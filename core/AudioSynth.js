@@ -286,6 +286,9 @@ export class AudioSynth {
 				this.bazookaLaunchBuffer = this._makeSimpleLaunchBuffer();
 				this.bazookaExplosionBuffer = this._makeSimpleExplosionBuffer();
 			}
+			// Register pre-generated buffers into sampleBuffers so playSample can find them
+			this.sampleBuffers.set(this._bazookaLaunchFallbackPath, this.bazookaLaunchBuffer);
+			this.sampleBuffers.set(this._bazookaExplosionFallbackPath, this.bazookaExplosionBuffer);
 			return true;
 		} catch (e) {
 			console.warn("Web Audio API not supported");

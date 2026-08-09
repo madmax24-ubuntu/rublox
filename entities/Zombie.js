@@ -603,7 +603,7 @@ export class Zombie {
                 sac.position.set(x, y, z);
                 group.add(sac);
             }
-        } else {
+        } else if (this.variant === 'normal') {
             const body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.1, 0.6), bodyMat);
             body.position.y = 0.9;
             group.add(body);
@@ -677,9 +677,7 @@ export class Zombie {
             const spine = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.9, 0.12), glowMat);
             spine.position.set(0, 1.1, -0.3);
             group.add(spine);
-        }
-
-        if (this.variant === 'stalker') {
+        } else if (this.variant === 'stalker') {
             const camoTex = _createStalkerTexture('camo');
             const vestTex = _createStalkerTexture('vest');
             const gasMaskTex = _createStalkerTexture('gasMask');
