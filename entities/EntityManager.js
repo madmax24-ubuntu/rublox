@@ -22,6 +22,7 @@ export class EntityManager {
 		this._lastRebuildCount = 0;
 		this._impactGeoCache = new Map();
 		this._tmpVecG = new THREE.Vector3();
+		this._rocketSmokeGeo = new THREE.SphereGeometry(0.12, 4, 3);
 	}
 
 	addEntity(entity) {
@@ -99,16 +100,15 @@ export class EntityManager {
 				if (!proj.smokeTrails) proj.smokeTrails = [];
 				if (!proj._smokeTimer) proj._smokeTimer = 0;
 				proj._smokeTimer += delta;
-				if (proj._smokeTimer >= 0.05) {
+				if (proj._smokeTimer >= 0.12 && proj.smokeTrails.length < 8) {
 					proj._smokeTimer = 0;
-					const smokeGeo = new THREE.SphereGeometry(0.12, 6, 6);
 					const smokeMat = new THREE.MeshBasicMaterial({
 						color: 0x888888,
 						transparent: true,
 						opacity: 0.4,
 						depthWrite: false,
 					});
-					const smoke = new THREE.Mesh(smokeGeo, smokeMat);
+					const smoke = new THREE.Mesh(this._rocketSmokeGeo, smokeMat);
 					smoke.position.copy(proj.mesh.position);
 					smoke.scale.setScalar(0.3);
 					smoke.userData.smokeLife = 1.5;
@@ -565,7 +565,8 @@ export class EntityManager {
 			const fx = this.effects[i];
 			fx.userData.life -= delta;
 			const ud = fx.userData;
-			const lifeRatio = Math.max(0, ud.life / 3.0);
+			const lifeRatio = Math.max(0, ud.life / (ud.duration || 3));
+			const elapsed = Math.max(0, (ud.duration || 3) - ud.life);
 
 			// Per-child update based on type
 			for (const child of fx.children) {
@@ -584,7 +585,7 @@ export class EntityManager {
 				// === DEBRIS / SPARKS (has velocity — physics-driven) ===
 				if (child.userData.vel) {
 					child.userData.vel.y -= 9.8 * delta;
-					child.position.add(child.userData.vel.clone().multiplyScalar(delta));
+					child.position.addScaledVector(child.userData.vel, delta);
 					child.userData.life -= delta;
 					if (child.userData.life <= 0) {
 						child.visible = false;
@@ -594,7 +595,7 @@ export class EntityManager {
 
 				// === CORE (bright white flash, very fast decay) ===
 				if (etype === "core") {
-					const coreFade = Math.max(0, 1 - ud.life * (ud.coreDecay || 6));
+					const coreFade = Math.max(0, 1 - elapsed * (ud.coreDecay || 6));
 					child.material.opacity = coreFade;
 					child.scale.setScalar(
 						Math.max(0.05, 0.3 + delta * (ud.scaleRate || 5) * lifeRatio),
@@ -718,17 +719,13 @@ export class EntityManager {
 				(this._explosionGeos.set(key, fn()), this._explosionGeos.get(key))
 			);
 		};
-		const getMat = (key, fn) => {
-			if (!this._explosionMats) this._explosionMats = new Map();
-			return (
-				this._explosionMats.get(key) ??
-				(this._explosionMats.set(key, fn()), this._explosionMats.get(key))
-			);
+		const getMat = (_key, fn) => {
+			return fn();
 		};
 
 		// === FIREBALL CORE (bright white-yellow, fast decay) ===
 		const core = new THREE.Mesh(
-			getGeo("exp_core", () => new THREE.SphereGeometry(0.5, 16, 16)),
+			getGeo("exp_core", () => new THREE.SphereGeometry(0.5, 10, 8)),
 			getMat(
 				"exp_core",
 				() =>
@@ -746,7 +743,7 @@ export class EntityManager {
 
 		// === FIREBALL INNER (orange, medium decay) ===
 		const inner = new THREE.Mesh(
-			getGeo("exp_inner", () => new THREE.SphereGeometry(0.7, 12, 12)),
+			getGeo("exp_inner", () => new THREE.SphereGeometry(0.7, 8, 6)),
 			getMat(
 				"exp_inner",
 				() =>
@@ -764,7 +761,7 @@ export class EntityManager {
 
 		// === FIREBALL OUTER (red-orange, slow decay) ===
 		const outer = new THREE.Mesh(
-			getGeo("exp_outer", () => new THREE.SphereGeometry(1.0, 10, 10)),
+			getGeo("exp_outer", () => new THREE.SphereGeometry(1.0, 8, 6)),
 			getMat(
 				"exp_outer",
 				() =>
@@ -785,9 +782,6 @@ export class EntityManager {
 			{ x: 0, y: 0, z: 0, s: 0.7 },
 			{ x: 0.8, y: 0.2, z: -0.3, s: 0.6 },
 			{ x: -0.6, y: 0.4, z: 0.5, s: 0.55 },
-			{ x: 0.3, y: 0.5, z: 0.7, s: 0.5 },
-			{ x: -0.9, y: 0.1, z: -0.5, s: 0.65 },
-			{ x: 0.5, y: 0.3, z: 0.4, s: 0.5 },
 		];
 		const smokeMat = getMat(
 			"exp_smoke",
@@ -801,7 +795,7 @@ export class EntityManager {
 		);
 		const smokeGeo = getGeo(
 			"exp_smoke",
-			() => new THREE.SphereGeometry(0.8, 8, 8),
+			() => new THREE.SphereGeometry(0.8, 6, 4),
 		);
 		for (const sp of smokePositions) {
 			const smoke = new THREE.Mesh(smokeGeo, smokeMat);
@@ -814,7 +808,7 @@ export class EntityManager {
 
 		// === SHOCKWAVE RING (expanding torus) ===
 		const shock = new THREE.Mesh(
-			getGeo("exp_shock", () => new THREE.TorusGeometry(1.0, 0.15, 8, 32)),
+			getGeo("exp_shock", () => new THREE.TorusGeometry(1.0, 0.15, 6, 20)),
 			getMat(
 				"exp_shock",
 				() =>
@@ -833,7 +827,7 @@ export class EntityManager {
 
 		// === GROUND FLASH (bright ring at ground level) ===
 		const groundFlash = new THREE.Mesh(
-			getGeo("exp_groundflash", () => new THREE.RingGeometry(0.3, 2.5, 24)),
+			getGeo("exp_groundflash", () => new THREE.RingGeometry(0.3, 2.5, 16)),
 			getMat(
 				"exp_groundflash",
 				() =>
@@ -870,69 +864,10 @@ export class EntityManager {
 		scorch.userData.expType = "scorch";
 		explosionGroup.add(scorch);
 
-		// === SPARKS (small bright particles flying outward) ===
-		const sparkGeo = getGeo(
-			"exp_spark",
-			() => new THREE.BoxGeometry(0.05, 0.05, 0.2),
-		);
-		const sparkMat = getMat(
-			"exp_spark",
-			() => new THREE.MeshBasicMaterial({ color: 0xffcc44 }),
-		);
-		for (let i = 0; i < 12; i++) {
-			const spark = new THREE.Mesh(sparkGeo, sparkMat);
-			const theta = Math.random() * Math.PI * 2;
-			const phi = Math.random() * Math.PI * 0.6;
-			spark.position.set(0, 0, 0);
-			spark.userData = {
-				vel: new THREE.Vector3(
-					Math.sin(phi) * Math.cos(theta) * (5 + Math.random() * 12),
-					Math.cos(phi) * (4 + Math.random() * 8),
-					Math.sin(phi) * Math.sin(theta) * (5 + Math.random() * 12),
-				),
-				life: 0.6 + Math.random() * 0.5,
-			};
-			explosionGroup.add(spark);
-		}
-
-		// === DEBRIS (heavier chunks) ===
-		const debrisGeo = getGeo(
-			"exp_debris",
-			() => new THREE.BoxGeometry(0.08, 0.08, 0.08),
-		);
-		const debrisMat = getMat(
-			"exp_debris",
-			() => new THREE.MeshStandardMaterial({ color: 0x555555 }),
-		);
-		for (let i = 0; i < 12; i++) {
-			const d = new THREE.Mesh(debrisGeo, debrisMat);
-			const theta = Math.random() * Math.PI * 2;
-			const phi = Math.random() * Math.PI;
-			const r = Math.random() * 0.4;
-			d.position.set(
-				r * Math.sin(phi) * Math.cos(theta),
-				r * Math.cos(phi),
-				r * Math.sin(phi) * Math.sin(theta),
-			);
-			d.userData = {
-				vel: new THREE.Vector3(
-					(Math.random() - 0.5) * 12,
-					Math.random() * 8 + 2,
-					(Math.random() - 0.5) * 12,
-				),
-				life: 1.5,
-			};
-			explosionGroup.add(d);
-		}
-
-		// === DYNAMIC LIGHT (intense flash, then fade) ===
-		const light = new THREE.PointLight(0xffcc44, 40, 35);
-		light.userData = { fade: true, expLight: true };
-		explosionGroup.add(light);
-
 		explosionGroup.position.copy(position);
 		explosionGroup.userData = {
-			life: 3.0,
+			life: 2.0,
+			duration: 2.0,
 			scaleRate: 5.0,
 			coreDecay: 6.0,
 			smokeRise: 1.8,

@@ -17,7 +17,7 @@ export class Player {
 			onGround: false,
 			height: 1.7,
 			radius: 0.4,
-			speed: 8,
+			speed: 13.6,
 		};
 
 		this.health = 100;
@@ -1215,7 +1215,7 @@ export class Player {
 		} else if (perk === "moreAmmo") {
 			this.perkAmmoBonus = 2.1;
 		} else if (perk === "fastRun") {
-			this.physics.speed = this.baseSpeed * 1.7;
+			this.physics.speed = this.baseSpeed * 1.35;
 		} else if (perk === "thickSkin") {
 			this.damageReduction = 0.42;
 		} else if (perk === "steadyAim") {

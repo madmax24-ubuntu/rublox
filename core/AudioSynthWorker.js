@@ -1,7 +1,7 @@
 /* AudioSynth buffer generation worker — runs heavy math off the main thread */
 
 /* ── Bazooka Launch Buffer (complete: ignition + thrust + rumble + hiss) ── */
-function generateBazookaLaunch(rate, dur = 0.9) {
+function generateBazookaLaunch(rate, dur = 0.72) {
 	const len = Math.floor(rate * dur);
 	const buf = new Float32Array(len);
 	for (let i = 0; i < len; i++) {
@@ -18,13 +18,13 @@ function generateBazookaLaunch(rate, dur = 0.9) {
 		const thump = Math.exp(-t * 60) * 0.8;
 		const subOsc = Math.sin(t * 85 * Math.PI) * Math.exp(-t * 3) * 0.45;
 		const rumbleOsc = (Math.sin(t * 120 * Math.PI) > 0 ? 1 : -1) * thrustEnv * 0.15;
-		buf[i] = ignition + ignition2 + thrustRumble + subThrust + whine + noise + hiss + crackle + thump + subOsc + rumbleOsc;
+		buf[i] = Math.tanh((ignition + ignition2 + thrustRumble + subThrust + whine + noise + hiss + crackle + thump + subOsc + rumbleOsc) * 0.72);
 	}
 	return buf;
 }
 
 /* ── Bazooka Explosion Buffer (massive: booms + rumble + crackle + echo + ground) ── */
-function generateBazookaExplosion(rate, dur = 3.5) {
+function generateBazookaExplosion(rate, dur = 2.4) {
 	const len = Math.floor(rate * dur);
 	const buf = new Float32Array(len);
 	for (let i = 0; i < len; i++) {
@@ -59,7 +59,7 @@ function generateBazookaExplosion(rate, dur = 3.5) {
 		const debris = (Math.random() * 2 - 1) * Math.exp(-t * 2.5) * 0.4;
 		// Metal shrapnel
 		const shrapnel = (Math.random() * 2 - 1) * Math.exp(-t * 4) * 0.25;
-		buf[i] = (boom1 + boom2 + boom3 + boom4 + subRumble + subRumble2 + midRumble + midRumble2 + crackle + roar + echo + groundRumble + groundRumble2 + subThump + debris + shrapnel) * 1.0;
+		buf[i] = Math.tanh((boom1 + boom2 + boom3 + boom4 + subRumble + subRumble2 + midRumble + midRumble2 + crackle + roar + echo + groundRumble + groundRumble2 + subThump + debris + shrapnel) * 0.48);
 	}
 	return buf;
 }

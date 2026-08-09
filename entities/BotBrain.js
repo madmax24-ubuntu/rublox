@@ -56,8 +56,8 @@ export class BotBrain {
 		this._tmpSideTarget = new THREE.Vector3();
 		this._tmpCoverVec = new THREE.Vector3();
 		this._tmpSpreadVec = new THREE.Vector3();
-		this.baseVisionRange = 128;
-		this.fov = 172 * (Math.PI / 180);
+		this.baseVisionRange = 144;
+		this.fov = 178 * (Math.PI / 180);
 		this.hearingRange = 64;
 		this.shotHearingRange = 120;
 		this.losMemorySeconds = 4;
@@ -432,14 +432,12 @@ export class BotBrain {
 			? zone.getDistanceFromZone(bot.position)
 			: 0;
 
-		// OPTIMIZED: Smaller radius for better performance
 		const queryRadius = earlyGamePhase
-			? 68
-			: Math.min(128, this.baseVisionRange * this.visionMultiplier);
+			? 76
+			: Math.min(144, this.baseVisionRange * this.visionMultiplier);
 		const closeCombatRadius = 56;
 
-		// OPTIMIZED: Cache nearby query with 150ms TTL to avoid per-frame getNearbyEntities (causes micro-stutters)
-		const cacheAge = (bot._nearbyCacheTime || 0) + 0.15 - now / 1000;
+		const cacheAge = (bot._nearbyCacheTime || 0) + 0.2 - now / 1000;
 		let nearby = null;
 		if (cacheAge > 0) {
 			nearby = bot._cachedNearby;
@@ -465,8 +463,7 @@ export class BotBrain {
 		const forward = this._tmpForward;
 		const fovCos = Math.cos(this.fov / 2);
 
-		// OPTIMIZED: Skip LOS checks 2 out of 3 collectContext calls (reduces freezes)
-		const skipLos = (Math.floor(now / 270) + bot.id) % 3 < 2;
+		const skipLos = (Math.floor(now / 240) + bot.id) % 4 < 3;
 		const skipLosEarlyGame = earlyGamePhase;
 
 		const hearingRangeSq = this.hearingRange * this.hearingRange;
@@ -575,7 +572,7 @@ export class BotBrain {
 					)
 						continue;
 					const distance = bot.position.distanceTo(candidate.position);
-					if (distance < 12 || distance > 120) continue;
+					if (distance < 12 || distance > 170) continue;
 					const spread =
 						((Number(candidate.id) * 19 + Number(bot.id) * 31) % 47) * 0.7;
 					const score = distance + spread;

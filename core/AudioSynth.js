@@ -77,8 +77,8 @@ export class AudioSynth {
 		this.bazookaLaunchBuffer = null;
 		this.bazookaExplosionBuffer = null;
 		// Fallback audio files (decoded async — no freeze)
-		this._bazookaLaunchFallbackPath = "assets/audio/weapons/machinegun_ppsh_a.wav";
-		this._bazookaExplosionFallbackPath = "assets/audio/weapons/shotgun_shotty.wav";
+		this._bazookaLaunchFallbackPath = "assets/audio/weapons/shotgun_model12_b.wav";
+		this._bazookaExplosionFallbackPath = "assets/audio/weapons/shotgun_model12_a.wav";
 
 		this.sampleCatalog = {
 			ambient: [],
@@ -251,12 +251,12 @@ export class AudioSynth {
 					if (msgType === "bazookaLaunch") {
 						worker.postMessage({
 							type: "bazookaLaunch",
-							params: { rate, dur: 0.9 },
+							params: { rate, dur: 0.72 },
 						});
 					} else if (msgType === "bazookaExplosion") {
 						worker.postMessage({
 							type: "bazookaExplosion",
-							params: { rate, dur: 3.5 },
+							params: { rate, dur: 2.4 },
 						});
 					} else if (msgType === "impulse") {
 						worker.postMessage({
@@ -1662,11 +1662,21 @@ export class AudioSynth {
 		await this._ensureLazyInit();
 		const ctx = this.audioContext;
 		if (!ctx) return false;
-		await this._ensureBazookaBuffersReady();
 		const voiceKey = `bazooka:${emitterKey}`;
 		if (!this.canPlayWeaponSfx(voiceKey, this.weaponSfxCooldown.bazooka))
 			return false;
 		const scale = this.getEmitterSfxScale(emitterKey);
+		if (!this.bazookaLaunchBuffer) {
+			this._ensureBazookaBuffersReady().catch(() => {});
+			this.playSample([this._bazookaLaunchFallbackPath], {
+				volume: 0.9 * scale,
+				position,
+				category: "weapon",
+				voiceKey,
+				maxDuration: 0.7,
+			});
+			return true;
+		}
 		const now = ctx.currentTime;
 		const launchDur = this.bazookaLaunchBuffer?.duration ?? 0.9;
 
@@ -1680,15 +1690,7 @@ export class AudioSynth {
 		pan.connect(this.masterSfxGain);
 		src.start(now);
 		src.stop(now + launchDur + 0.01);
-
-		// === EXPLOSION PHASE: delayed by rocket travel time ===
-		const travelTime = 700 + Math.random() * 500;
-		setTimeout(
-			() => {
-				this.playProceduralExplosion(position, 1.5).catch(() => {});
-			},
-			Math.min(travelTime, 2500),
-		);
+		return true;
 	}
 
 	// Simplified explosion: pre-mixed buffer + gain + panner (3 nodes)
@@ -1696,7 +1698,18 @@ export class AudioSynth {
 		await this._ensureLazyInit();
 		const ctx = this.audioContext;
 		if (!ctx) return false;
-		await this._ensureBazookaBuffersReady();
+		if (!this.bazookaExplosionBuffer) {
+			this._ensureBazookaBuffersReady().catch(() => {});
+			this.playSample([this._bazookaExplosionFallbackPath], {
+				volume: 1.15 * scale,
+				rateMin: 0.72,
+				rateMax: 0.78,
+				position,
+				category: "sfx",
+				maxDuration: 1.1,
+			});
+			return true;
+		}
 
 		const src = ctx.createBufferSource();
 		src.buffer = this.bazookaExplosionBuffer;
@@ -1707,6 +1720,7 @@ export class AudioSynth {
 		pan.connect(this.masterSfxGain);
 		src.start(ctx.currentTime);
 		src.stop(ctx.currentTime + (this.bazookaExplosionBuffer?.duration ?? 3.0) + 0.01);
+		return true;
 	}
 
 	playTimerTick(volume = 1) {
