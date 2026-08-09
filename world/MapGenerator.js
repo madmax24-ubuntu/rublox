@@ -6153,7 +6153,7 @@ export class MapGenerator {
 		} else {
 			c = { width: w, height: h, getContext: () => null, toDataURL: () => '' };
 		}
-		if (!c.width) { c.width = w; c.height = h; }
+		c.width = w; c.height = h;
 		const ctx = c.getContext('2d');
 		if (ctx) drawFn(ctx, w, h);
 		const tex = new THREE.CanvasTexture(c);
