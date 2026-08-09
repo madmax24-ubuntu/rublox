@@ -849,7 +849,7 @@ export class Zombie {
             };
         }
         if (this.variant === 'stalker') {
-            group.userData.limbs = { leftArm, rightArm, leftLeg, rightLeg };
+            group.userData.limbs = { leftArm: group.children[7], rightArm: group.children[8], leftLeg: group.children[11], rightLeg: group.children[12] };
         }
         group.userData.detailChildren = [...group.children];
         const lodProxy = new THREE.Mesh(getZombieLodGeometry(), bodyMat);
