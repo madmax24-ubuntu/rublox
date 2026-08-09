@@ -1,4 +1,4 @@
-import * as THREE from "three";
+﻿import * as THREE from "three";
 import { MapGeneratorNode } from "./MapGeneratorNode.js?v=1786192400000";
 import { AABBGrid } from "./AABBGrid.js";
 import { InstancedMeshSystem } from "./InstancedMeshSystem.js";
@@ -6151,7 +6151,6 @@ export class MapGenerator {
 		} else if (typeof createCanvas !== 'undefined') {
 			c = createCanvas(w, h);
 		} else {
-			// Node.js without canvas package — return solid color texture
 			c = { width: w, height: h, getContext: () => null, toDataURL: () => '' };
 		}
 		if (!c.width) { c.width = w; c.height = h; }
@@ -6168,7 +6167,7 @@ export class MapGenerator {
 		return tex;
 	}
 
-	// Camo texture (uniform, helmet)
+	// Camo texture (digital woodland)
 	const camoTex = _createCanvasTex((ctx, w, h) => {
 		ctx.fillStyle = '#3b4a3a'; ctx.fillRect(0, 0, w, h);
 		const colors = ['#2a3a0a','#3a5a2a','#1a2a0a','#5a7a4a','#3a4a2a','#6a5a3a','#2a1a0a'];
@@ -6179,7 +6178,7 @@ export class MapGenerator {
 		const d=ctx.getImageData(0,0,w,h); for(let i=0;i<d.data.length;i+=4){const n=(Math.random()-0.5)*20;d.data[i]+=n;d.data[i+1]+=n;d.data[i+2]+=n} ctx.putImageData(d,0,0);
 	}, 512, 512, 3);
 
-	// Skin texture (face, neck, hands, feet)
+	// Skin texture
 	const skinTex = _createCanvasTex((ctx, w, h) => {
 		ctx.fillStyle = '#b89a7a'; ctx.fillRect(0, 0, w, h);
 		for (let i = 0; i < 300; i++) {
@@ -6203,7 +6202,7 @@ export class MapGenerator {
 		const d=ctx.getImageData(0,0,w,h); for(let i=0;i<d.data.length;i+=4){const n=(Math.random()-0.5)*12;d.data[i]+=n;d.data[i+1]+=n;d.data[i+2]+=n} ctx.putImageData(d,0,0);
 	}, 512, 512, 3);
 
-	// Boot texture (treaded military boots)
+	// Boot texture
 	const bootTex = _createCanvasTex((ctx, w, h) => {
 		ctx.fillStyle = '#1a1a0a'; ctx.fillRect(0, 0, w, h);
 		ctx.fillStyle = '#0a0a0a';
@@ -6220,22 +6219,48 @@ export class MapGenerator {
 		for (let i = 0; i < 60; i++) { const s = 20+Math.random()*30; ctx.fillStyle=`rgb(${s},${s},${s})`; ctx.beginPath(); ctx.arc(Math.random()*w, Math.random()*h, 1+Math.random()*3, 0, Math.PI*2); ctx.fill(); }
 	}, 256, 256, 4);
 
+	// Helmet texture (military)
+	const helmetTex = _createCanvasTex((ctx, w, h) => {
+		ctx.fillStyle = '#2a3a1a'; ctx.fillRect(0, 0, w, h);
+		const colors = ['#3a4a2a','#2a3a0a','#4a5a3a','#1a2a0a'];
+		for (let i = 0; i < 100; i++) {
+			ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+			ctx.beginPath(); ctx.ellipse(Math.random()*w, Math.random()*h, 3+Math.random()*15, 3+Math.random()*15, Math.random()*Math.PI, 0, Math.PI*2); ctx.fill();
+		}
+		// Helmet rim
+		ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 4;
+		ctx.beginPath(); ctx.arc(w/2, h/2, Math.min(w,h)*0.4, 0, Math.PI*2); ctx.stroke();
+		const d=ctx.getImageData(0,0,w,h); for(let i=0;i<d.data.length;i+=4){const n=(Math.random()-0.5)*15;d.data[i]+=n;d.data[i+1]+=n;d.data[i+2]+=n} ctx.putImageData(d,0,0);
+	}, 256, 256, 4);
+
 	// Blood texture
 	const bloodTex = _createCanvasTex((ctx, w, h) => {
 		ctx.fillStyle = '#5a0000'; ctx.fillRect(0, 0, w, h);
 		for (let i = 0; i < 100; i++) { ctx.fillStyle=`rgba(${40+Math.random()*60},0,0,${0.3+Math.random()*0.5})`; ctx.beginPath(); ctx.ellipse(Math.random()*w, Math.random()*h, 3+Math.random()*15, 3+Math.random()*15, Math.random()*Math.PI, 0, Math.PI*2); ctx.fill(); }
 	}, 256, 256, 4);
 
+	// Backpack texture
+	const backpackTex = _createCanvasTex((ctx, w, h) => {
+		ctx.fillStyle = '#3a4a2a'; ctx.fillRect(0, 0, w, h);
+		ctx.strokeStyle = '#2a1a0a'; ctx.lineWidth = 3;
+		ctx.beginPath(); ctx.moveTo(0, h*0.3); ctx.lineTo(w, h*0.3); ctx.stroke();
+		ctx.beginPath(); ctx.moveTo(0, h*0.7); ctx.lineTo(w, h*0.7); ctx.stroke();
+		ctx.fillStyle = '#2a2a2a'; ctx.fillRect(w*0.1, h*0.15, w*0.3, h*0.1); ctx.fillRect(w*0.6, h*0.15, w*0.3, h*0.1);
+		const d=ctx.getImageData(0,0,w,h); for(let i=0;i<d.data.length;i+=4){const n=(Math.random()-0.5)*15;d.data[i]+=n;d.data[i+1]+=n;d.data[i+2]+=n} ctx.putImageData(d,0,0);
+	}, 256, 256, 3);
+
 	// =====================================================
 	// MATERIALS
 	// =====================================================
-	const camoMat = new THREE.MeshStandardMaterial({ map: camoTex, roughness: 0.7, metalness: 0 });
-	const skinMat = new THREE.MeshStandardMaterial({ map: skinTex, roughness: 0.6, metalness: 0 });
-	const vestMat = new THREE.MeshStandardMaterial({ map: vestTex, roughness: 0.5, metalness: 0.1 });
-	const bootMat = new THREE.MeshStandardMaterial({ map: bootTex, roughness: 0.85, metalness: 0 });
-	const gasMaskMat = new THREE.MeshStandardMaterial({ map: gasMaskTex, roughness: 0.6, metalness: 0 });
+	const camoMat = new THREE.MeshStandardMaterial({ map: camoTex, roughness: 0.7, metalness: 0, flatShading: true });
+	const skinMat = new THREE.MeshStandardMaterial({ map: skinTex, roughness: 0.6, metalness: 0, flatShading: true });
+	const vestMat = new THREE.MeshStandardMaterial({ map: vestTex, roughness: 0.5, metalness: 0.1, flatShading: true });
+	const bootMat = new THREE.MeshStandardMaterial({ map: bootTex, roughness: 0.85, metalness: 0, flatShading: true });
+	const gasMaskMat = new THREE.MeshStandardMaterial({ map: gasMaskTex, roughness: 0.6, metalness: 0, flatShading: true });
+	const helmetMat = new THREE.MeshStandardMaterial({ map: helmetTex, roughness: 0.7, metalness: 0, flatShading: true });
 	const lensMat = new THREE.MeshStandardMaterial({ color: 0x0a0c0e, roughness: 0.2, metalness: 0.8 });
 	const bloodMat = new THREE.MeshStandardMaterial({ map: bloodTex, emissive: 0x4a0000, emissiveIntensity: 0.5, transparent: true, opacity: 0.8, roughness: 0.3 });
+	const backpackMat = new THREE.MeshStandardMaterial({ map: backpackTex, roughness: 0.7, metalness: 0, flatShading: true });
 
 	// =====================================================
 	// MAIN CORPSE GROUP
@@ -6243,128 +6268,177 @@ export class MapGenerator {
 	const mainGroup = new THREE.Group();
 
 	// =====================================================
-	// BLOOD PUDDLE ON GROUND
+	// BLOOD PUDDLE ON GROUND (under sitting corpse)
 	// =====================================================
 	const bloodShape = new THREE.Shape();
-	bloodShape.moveTo(0, -0.8);
-	bloodShape.quadraticCurveTo(1.2, -0.6, 1.0, 0.5);
-	bloodShape.quadraticCurveTo(0.5, 1.2, -0.5, 1.0);
-	bloodShape.quadraticCurveTo(-1.5, 0.5, -1.0, -0.8);
+	bloodShape.moveTo(0, -0.6);
+	bloodShape.quadraticCurveTo(0.8, -0.5, 0.6, 0.3);
+	bloodShape.quadraticCurveTo(0.2, 0.8, -0.4, 0.6);
+	bloodShape.quadraticCurveTo(-1.0, 0.2, -0.8, -0.4);
 	const bloodGeo = new THREE.ShapeGeometry(bloodShape);
 	const bloodMesh = new THREE.Mesh(bloodGeo, bloodMat);
 	bloodMesh.rotation.x = -Math.PI / 2;
-	bloodMesh.position.set(0, 0.01, 0);
-	bloodMesh.scale.set(1.2, 1.2, 1.2);
+	bloodMesh.position.set(0, 0.01, -0.3);
+	bloodMesh.scale.set(1.0, 1.0, 1.0);
 	mainGroup.add(bloodMesh);
 
 	// =====================================================
-	// TORSO GROUP (with vest, head, arms, legs)
+	// BODY GROUP (sitting/slumping pose)
 	// =====================================================
-	const torsoGroup = new THREE.Group();
+	const bodyGroup = new THREE.Group();
+	// Sitting position: torso at hip height, slumping forward slightly
+	bodyGroup.position.set(0, 0.45, 0);
 
-	// Naked torso (realistic human proportions: ~0.45 wide x 1.2 tall x 0.35 deep)
-	const torsoMesh = new THREE.Mesh(new THREE.BoxGeometry(0.45, 1.2, 0.35), camoMat);
-	torsoGroup.add(torsoMesh);
+	// TORSO (wider, more realistic proportions)
+	const torsoMesh = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.1, 0.6), camoMat);
+	torsoMesh.position.y = 0.55;
+	bodyGroup.add(torsoMesh);
 
-	// Vest plate (slightly larger than torso)
-	const vestMesh = new THREE.Mesh(new THREE.BoxGeometry(0.48, 1.0, 0.42), vestMat);
-	vestMesh.position.set(0, -0.05, 0);
-	torsoGroup.add(vestMesh);
+	// VEST (MOLLE plate carrier on front)
+	const vestMesh = new THREE.Mesh(new THREE.BoxGeometry(0.85, 1.0, 0.14), vestMat);
+	vestMesh.position.set(0, 0.5, 0.34);
+	bodyGroup.add(vestMesh);
 
-	// Pouches on chest (4 MOLLE pouches)
-	for (let i = 0; i < 4; i++) {
-		const pouch = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.3, 0.15), vestMat);
-		pouch.position.set(-0.2 + i * 0.12, -0.15, 0.38);
-		torsoGroup.add(pouch);
+	// MOLLE pouches on vest (6 pouches)
+	for (let row = 0; row < 2; row++) {
+		for (let col = 0; col < 3; col++) {
+			const pouch = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.28, 0.16), vestMat);
+			pouch.position.set(-0.3 + col * 0.3, 0.35 + row * 0.3, 0.42);
+			bodyGroup.add(pouch);
+		}
 	}
 
-	// =====================================================
-	// HEAD GROUP (on neck)
-	// =====================================================
+	// HEAD GROUP
 	const headGroup = new THREE.Group();
-	headGroup.position.set(0, 0.75, 0);
+	headGroup.position.set(0, 1.2, 0);
 
-	// Head covered in gas mask (dark rubber) — realistic head size ~0.5
-	const headMesh = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), gasMaskMat);
+	// Head (more rounded - cylinder for better proportions)
+	const headMesh = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), gasMaskMat);
 	headGroup.add(headMesh);
 
 	// Gas mask lenses (eyes)
-	const lensGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.04, 12);
+	const lensGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.06, 12);
 	const leftLens = new THREE.Mesh(lensGeo, lensMat);
 	leftLens.rotation.x = Math.PI / 2;
-	leftLens.position.set(-0.12, 0.05, 0.26);
+	leftLens.position.set(-0.14, 0.05, 0.32);
 
-	const rightLens = leftLens.clone();
-	rightLens.position.x = 0.12;
+	const rightLens = new THREE.Mesh(lensGeo, lensMat);
+	rightLens.rotation.x = Math.PI / 2;
+	rightLens.position.set(0.14, 0.05, 0.32);
 	headGroup.add(leftLens, rightLens);
 
-	// Filter canister
-	const filterMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.2, 12), vestMat);
+	// Gas mask filter (large side filter like in reference)
+	const filterMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.3, 10), gasMaskMat);
 	filterMesh.rotation.x = Math.PI / 2;
-	filterMesh.rotation.z = -0.3;
-	filterMesh.position.set(0.1, -0.1, 0.3);
+	filterMesh.position.set(0.32, -0.05, 0.2);
 	headGroup.add(filterMesh);
 
-	torsoGroup.add(headGroup);
+	// Military helmet (on top of head)
+	const helmetMesh = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.3, 0.7), helmetMat);
+	helmetMesh.position.set(0, 0.45, 0);
+	headGroup.add(helmetMesh);
 
-	// =====================================================
-	// LEFT ARM (shoulder joint) — realistic arm ~0.2 wide x 1.0 long
-	// =====================================================
+	bodyGroup.add(headGroup);
+
+	// LEFT ARM (upper + lower)
 	const leftArmGroup = new THREE.Group();
-	leftArmGroup.position.set(-0.28, 0.45, 0);
-	const leftArmMesh = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.0, 0.2), camoMat);
-	leftArmMesh.position.y = -0.45;
-	leftArmGroup.add(leftArmMesh);
-	// Hand (skin)
-	const leftHand = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.2, 0.15), skinMat);
-	leftHand.position.y = -0.95;
+	leftArmGroup.position.set(-0.45, 1.0, 0);
+
+	const leftUpperArm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.5, 0.22), camoMat);
+	leftUpperArm.position.y = -0.25;
+	leftArmGroup.add(leftUpperArm);
+
+	const leftLowerArm = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.5, 0.2), camoMat);
+	leftLowerArm.position.y = -0.75;
+	leftArmGroup.add(leftLowerArm);
+
+	const leftHand = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.18, 0.16), skinMat);
+	leftHand.position.y = -1.0;
 	leftArmGroup.add(leftHand);
-	torsoGroup.add(leftArmGroup);
 
-	// =====================================================
-	// RIGHT ARM (shoulder joint) — realistic arm ~0.2 wide x 1.0 long
-	// =====================================================
+	bodyGroup.add(leftArmGroup);
+
+	// RIGHT ARM (upper + lower)
 	const rightArmGroup = new THREE.Group();
-	rightArmGroup.position.set(0.28, 0.45, 0);
-	const rightArmMesh = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.0, 0.2), camoMat);
-	rightArmMesh.position.y = -0.45;
-	rightArmGroup.add(rightArmMesh);
-	// Hand (skin)
-	const rightHand = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.2, 0.15), skinMat);
-	rightHand.position.y = -0.95;
+	rightArmGroup.position.set(0.45, 1.0, 0);
+
+	const rightUpperArm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.5, 0.22), camoMat);
+	rightUpperArm.position.y = -0.25;
+	rightArmGroup.add(rightUpperArm);
+
+	const rightLowerArm = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.5, 0.2), camoMat);
+	rightLowerArm.position.y = -0.75;
+	rightArmGroup.add(rightLowerArm);
+
+	const rightHand = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.18, 0.16), skinMat);
+	rightHand.position.y = -1.0;
 	rightArmGroup.add(rightHand);
-	torsoGroup.add(rightArmGroup);
 
-	// =====================================================
-	// LEFT LEG (hip joint) — realistic leg ~0.25 wide x 1.3 long
-	// =====================================================
+	bodyGroup.add(rightArmGroup);
+
+	// LEFT LEG (thigh + calf)
 	const leftLegGroup = new THREE.Group();
-	leftLegGroup.position.set(-0.15, -0.6, 0);
-	const leftLegMesh = new THREE.Mesh(new THREE.BoxGeometry(0.25, 1.3, 0.25), camoMat);
-	leftLegMesh.position.y = -0.55;
-	leftLegGroup.add(leftLegMesh);
-	// Boot
-	const leftBoot = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.4, 0.5), bootMat);
-	leftBoot.position.y = -1.4;
+	leftLegGroup.position.set(-0.2, 0.0, 0);
+
+	const leftThigh = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.6, 0.28), camoMat);
+	leftThigh.position.y = -0.3;
+	leftLegGroup.add(leftThigh);
+
+	const leftCalf = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.6, 0.24), camoMat);
+	leftCalf.position.y = -0.9;
+	leftLegGroup.add(leftCalf);
+
+	const leftBoot = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.4), bootMat);
+	leftBoot.position.y = -1.2;
 	leftLegGroup.add(leftBoot);
-	torsoGroup.add(leftLegGroup);
 
-	// =====================================================
-	// RIGHT LEG (hip joint) — realistic leg ~0.25 wide x 1.3 long
-	// =====================================================
+	bodyGroup.add(leftLegGroup);
+
+	// RIGHT LEG (thigh + calf)
 	const rightLegGroup = new THREE.Group();
-	rightLegGroup.position.set(0.15, -0.6, 0);
-	const rightLegMesh = new THREE.Mesh(new THREE.BoxGeometry(0.25, 1.3, 0.25), camoMat);
-	rightLegMesh.position.y = -0.55;
-	rightLegGroup.add(rightLegMesh);
-	// Boot
-	const rightBoot = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.4, 0.5), bootMat);
-	rightBoot.position.y = -1.4;
+	rightLegGroup.position.set(0.2, 0.0, 0);
+
+	const rightThigh = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.6, 0.28), camoMat);
+	rightThigh.position.y = -0.3;
+	rightLegGroup.add(rightThigh);
+
+	const rightCalf = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.6, 0.24), camoMat);
+	rightCalf.position.y = -0.9;
+	rightLegGroup.add(rightCalf);
+
+	const rightBoot = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.4), bootMat);
+	rightBoot.position.y = -1.2;
 	rightLegGroup.add(rightBoot);
-	torsoGroup.add(rightLegGroup);
+
+	bodyGroup.add(rightLegGroup);
 
 	// =====================================================
-	// AK RIFLE (on ground near body)
+	// SITTING POSE
+	// =====================================================
+	// Torso slumping forward slightly (70 degrees from vertical)
+	bodyGroup.rotation.x = 0.3;
+
+	// Head tilted slightly down
+	headGroup.rotation.x = -0.3;
+
+	// Arms hanging down, resting on legs
+	leftArmGroup.rotation.x = 0.5;
+	leftArmGroup.rotation.z = 0.3;
+
+	rightArmGroup.rotation.x = 0.5;
+	rightArmGroup.rotation.z = -0.3;
+
+	// Legs extended forward, slightly bent
+	leftLegGroup.rotation.x = -0.8;
+	leftLegGroup.rotation.z = 0.2;
+
+	rightLegGroup.rotation.x = -0.8;
+	rightLegGroup.rotation.z = -0.2;
+
+	mainGroup.add(bodyGroup);
+
+	// =====================================================
+	// AK RIFLE (on ground in front)
 	// =====================================================
 	const gunMetalMat = new THREE.MeshStandardMaterial({ color: 0x22252a, roughness: 0.3, metalness: 0.7 });
 	const gunWoodMat = new THREE.MeshStandardMaterial({ color: 0x6e3b19, roughness: 0.6 });
@@ -6372,67 +6446,90 @@ export class MapGenerator {
 
 	const akGroup = new THREE.Group();
 
-	// Receiver
-	const receiver = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.35, 1.2), gunMetalMat);
+	const receiver = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.35, 1.0), gunMetalMat);
 	akGroup.add(receiver);
 
-	// Barrel
-	const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.1, 8), gunMetalMat);
+	const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.9, 8), gunMetalMat);
 	barrel.rotation.x = Math.PI / 2;
-	barrel.position.set(0, 0.05, 1.1);
+	barrel.position.set(0, 0.05, 0.9);
 	akGroup.add(barrel);
 
-	// Handguard (wood)
-	const handguard = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.3, 0.7), gunWoodMat);
-	handguard.position.set(0, -0.02, 0.7);
+	const handguard = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.28, 0.5), gunWoodMat);
+	handguard.position.set(0, -0.02, 0.6);
 	akGroup.add(handguard);
 
-	// Stock (wood)
-	const stock = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.4, 0.8), gunWoodMat);
-	stock.position.set(0, -0.1, -0.9);
+	const stock = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.35, 0.6), gunWoodMat);
+	stock.position.set(0, -0.1, -0.7);
 	akGroup.add(stock);
 
-	// Magazine (curved bakelite)
-	const mag = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.7, 0.3), magMat);
+	const mag = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.6, 0.28), magMat);
 	mag.rotation.x = -0.4;
-	mag.position.set(0, -0.4, 0.3);
+	mag.position.set(0, -0.35, 0.25);
 	akGroup.add(mag);
 
-	// Grip (wood)
-	const grip = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.4, 0.2), gunWoodMat);
+	const grip = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.35, 0.18), gunWoodMat);
 	grip.rotation.x = 0.4;
-	grip.position.set(0, -0.3, -0.2);
+	grip.position.set(0, -0.25, -0.2);
 	akGroup.add(grip);
 
-	// =====================================================
-	// CORPSE POSE (lying on back/side)
-	// =====================================================
-	torsoGroup.rotation.x = -Math.PI / 2;
-	torsoGroup.rotation.z = 0.25;
-	torsoGroup.position.set(0, 0.6, 0);
-
-	headGroup.rotation.y = 0.6;
-	headGroup.rotation.x = -0.2;
-
-	leftArmGroup.rotation.z = 0.9;
-	leftArmGroup.rotation.x = 0.4;
-
-	rightArmGroup.rotation.z = -0.4;
-	rightArmGroup.rotation.x = -0.3;
-
-	leftLegGroup.rotation.z = 0.35;
-	leftLegGroup.rotation.x = 0.2;
-
-	rightLegGroup.rotation.z = -0.3;
-	rightLegGroup.rotation.x = -0.1;
-
-	// AK on ground near body
+	// AK on ground in front of corpse
 	akGroup.rotation.x = Math.PI / 2;
-	akGroup.rotation.z = -1.2;
-	akGroup.position.set(0.8, 0.08, 0.3);
+	akGroup.rotation.z = -0.6;
+	akGroup.position.set(0.3, 0.08, 1.2);
 
-	mainGroup.add(torsoGroup);
 	mainGroup.add(akGroup);
+
+	// =====================================================
+	// BACKPACK (on ground to the left)
+	// =====================================================
+	const bpGroup = new THREE.Group();
+
+	const bpBody = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 0.3), backpackMat);
+	bpGroup.add(bpBody);
+
+	const bpStrap = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.08, 0.06), vestMat);
+	bpStrap.position.set(0, 0.32, 0);
+	bpGroup.add(bpStrap);
+
+	const bpStrap2 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.6, 0.06), vestMat);
+	bpStrap2.position.set(0.25, 0, 0);
+	bpGroup.add(bpStrap2);
+
+	// Backpack on ground to the left
+	bpGroup.rotation.y = 0.5;
+	bpGroup.position.set(-1.5, 0.3, 0.2);
+	mainGroup.add(bpGroup);
+
+	// =====================================================
+	// AMMO BOXES (on ground to the right)
+	// =====================================================
+	const ammoMat = new THREE.MeshStandardMaterial({ color: 0x4a5a3a, roughness: 0.7, metalness: 0, flatShading: true });
+	const ammoBoxMat = new THREE.MeshStandardMaterial({ color: 0x6a4a2a, roughness: 0.6, flatShading: true });
+
+	const ammoGroup = new THREE.Group();
+
+	// Military ammo crate
+	const ammoCrate = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.3, 0.35), ammoMat);
+	ammoGroup.add(ammoCrate);
+
+	// Wooden ammo box
+	const ammoBox = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.2), ammoBoxMat);
+	ammoBox.position.set(0.6, 0.1, 0);
+	ammoGroup.add(ammoBox);
+
+	// Loose ammo rounds
+	const roundGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.08, 6);
+	const roundMat = new THREE.MeshStandardMaterial({ color: 0xb55215, roughness: 0.4, metalness: 0.6 });
+	for (let i = 0; i < 4; i++) {
+		const round = new THREE.Mesh(roundGeo, roundMat);
+		round.position.set(-0.1 + i * 0.15, 0.04, 0.3 + (i % 2) * 0.1);
+		round.rotation.x = Math.PI / 2;
+		ammoGroup.add(round);
+	}
+
+	ammoGroup.position.set(1.2, 0.15, 0.6);
+	ammoGroup.rotation.y = -0.4;
+	mainGroup.add(ammoGroup);
 
 	// =====================================================
 	// FINAL SETUP
@@ -6449,8 +6546,9 @@ export class MapGenerator {
 	mainGroup.userData.mapGenerated = true;
 	mainGroup.userData.isStalkerCorpse = true;
 	(parent || this.scene).add(mainGroup);
-	this.addColliderBox(new THREE.Vector3(x, floorY, z), 3.0, 1.5, 2.5, false);
+	this.addColliderBox(new THREE.Vector3(x, floorY, z), 3.0, 1.5, 3.0, false);
 	}
+
 addMilitaryFences(startX, startZ, size) {
 		const fenceMat = this.pool.getMatStd(
 			0x4a5238,
