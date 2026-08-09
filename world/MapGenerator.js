@@ -6145,9 +6145,18 @@ export class MapGenerator {
 	_addStalkerCorpse(x, z, floorY = 0, parent) {
 	// === TEXTURE GENERATION ===
 	function _createCanvasTex(drawFn, w, h, repeat) {
-		const c = typeof document !== 'undefined' ? document.createElement('canvas') : createCanvas(w, h);
-		c.width = w; c.height = h;
-		drawFn(c.getContext('2d'), w, h);
+		let c;
+		if (typeof document !== 'undefined') {
+			c = document.createElement('canvas');
+		} else if (typeof createCanvas !== 'undefined') {
+			c = createCanvas(w, h);
+		} else {
+			// Node.js without canvas package — return solid color texture
+			c = { width: w, height: h, getContext: () => null, toDataURL: () => '' };
+		}
+		if (!c.width) { c.width = w; c.height = h; }
+		const ctx = c.getContext('2d');
+		if (ctx) drawFn(ctx, w, h);
 		const tex = new THREE.CanvasTexture(c);
 		tex.colorSpace = THREE.SRGBColorSpace;
 		tex.wrapS = THREE.RepeatWrapping;

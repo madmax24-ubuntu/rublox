@@ -170,7 +170,7 @@ console.log("\n=== Test 3: playProceduralExplosion crash fix ===");
 
 let explosionError = null;
 try {
-	audioSynth.playProceduralExplosion(testPos);
+	await audioSynth.playProceduralExplosion(testPos);
 } catch (e) {
 	explosionError = e.message;
 }
