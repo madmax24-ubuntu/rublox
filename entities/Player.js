@@ -112,6 +112,10 @@ export class Player {
 		this.burnTickTimer = 0;
 		this.burnDamagePerSecond = 0;
 		this.burnAttacker = null;
+		this.radTimer = 0;
+		this.radTickTimer = 0;
+		this.radDamagePerSecond = 0;
+		this.radAttacker = null;
 		this.lastFlashTime = 0;
 		this.bowCharge = 0;
 		this.bowChargeMax = 1.2;
@@ -364,6 +368,7 @@ export class Player {
 		if (!this.isAlive) return;
 		this.audioSynthRef = audioSynth;
 		this.updateBurning(delta);
+		this.updateRadiation(delta);
 		this.updateHealthRegen(delta);
 		if (this.trailCooldown > 0) {
 			this.trailCooldown = Math.max(0, this.trailCooldown - delta);
@@ -1146,6 +1151,7 @@ export class Player {
 				attacker.stats.kills += 1;
 			}
 			this.clearBurning();
+			this.clearRadiation();
 		}
 		const hpDelta = Math.max(0, hpBefore - this.health);
 		const armorDelta = Math.max(0, armorBefore - this.armor);
@@ -1154,7 +1160,8 @@ export class Player {
 			source === "zone" ||
 			source === "storm" ||
 			source === "burn" ||
-			source === "trap";
+			source === "trap" ||
+			source === "radiation";
 		if (!isDotDamage && tookRealDamage) {
 			this.flashDamage();
 			// Damage popup removed - spawnDamagePopup.js was cleaned up
@@ -1162,9 +1169,14 @@ export class Player {
 		if (source === "flame" && this.isAlive) {
 			this.applyBurn(2.2, 4.2, attacker);
 		}
+		if (source === "stalker" && this.isAlive) {
+			this.applyRadiation(10, 3.5, attacker);
+		}
 		if (this.audioSynthRef && tookRealDamage) {
 			if (source === "zone" && this.audioSynthRef.playZoneDamage) {
 				this.audioSynthRef.playZoneDamage();
+			} else if (source === "radiation") {
+				this.audioSynthRef.playGeigerCounter?.();
 			} else if (this.audioSynthRef.playPlayerHurt) {
 				this.audioSynthRef.playPlayerHurt();
 			} else if (this.audioSynthRef.playHurt) {
@@ -1324,6 +1336,46 @@ export class Player {
 		this.mesh.traverse((child) => {
 			if (!child.material || !child.material.emissive) return;
 			child.material.emissive.setHex(0xff6d00);
+			child.material.emissiveIntensity = intensity;
+		});
+	}
+
+	applyRadiation(duration = 10, damagePerSecond = 3.5, attacker = null) {
+		this.radTimer = Math.max(this.radTimer, duration);
+		this.radTickTimer = Math.max(this.radTickTimer, 0.08);
+		this.radDamagePerSecond = Math.max(this.radDamagePerSecond, damagePerSecond);
+		if (attacker) this.radAttacker = attacker;
+		this.hudRef?.setContamActive?.(true);
+	}
+
+	clearRadiation() {
+		this.radTimer = 0;
+		this.radTickTimer = 0;
+		this.radDamagePerSecond = 0;
+		this.radAttacker = null;
+		this.setRadiationVisual(0);
+	}
+
+	updateRadiation(delta) {
+		if (this.radTimer <= 0 || !this.isAlive) return;
+		this.radTimer = Math.max(0, this.radTimer - delta);
+		this.radTickTimer -= delta;
+		const pulse = 0.2 + Math.sin(performance.now() * 0.04) * 0.1;
+		this.setRadiationVisual(Math.max(0.1, pulse));
+		while (this.radTickTimer <= 0 && this.isAlive) {
+			const tickDamage = this.radDamagePerSecond * 0.25;
+			this.takeDamage(tickDamage, false, this.radAttacker, 0, "radiation");
+			this.radTickTimer += 0.25;
+		}
+		this.hudRef?.setContamActive?.(this.radTimer > 0);
+		if (this.radTimer <= 0) this.clearRadiation();
+	}
+
+	setRadiationVisual(intensity) {
+		if (!this.mesh) return;
+		this.mesh.traverse((child) => {
+			if (!child.material || !child.material.emissive) return;
+			child.material.emissive.setHex(0x33ff33);
 			child.material.emissiveIntensity = intensity;
 		});
 	}

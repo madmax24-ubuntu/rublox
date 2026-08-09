@@ -808,6 +808,42 @@ export class AudioSynth {
 		noise.stop(now + Math.max(0.03, duration) + 0.03);
 	}
 
+	playGeigerCounter(volume = 0.12, count = 6) {
+		if (!this.audioContext) {
+			this._ensureLazyInit();
+			if (!this.audioContext) return;
+		}
+		if (this.audioContext.state === "suspended") {
+			this.audioContext.resume().catch(() => {});
+		}
+		const ctx = this.audioContext;
+		const now = ctx.currentTime;
+		for (let i = 0; i < count; i++) {
+			setTimeout(() => {
+				if (!this.audioContext) return;
+				const noise = ctx.createBufferSource();
+				noise.buffer = this.createRainNoiseBuffer(0.04);
+				noise.loop = false;
+				const hp = ctx.createBiquadFilter();
+				hp.type = "highpass";
+				hp.frequency.value = 2300 + i * 200;
+				const lp = ctx.createBiquadFilter();
+				lp.type = "lowpass";
+				lp.frequency.value = 8800;
+				const gain = ctx.createGain();
+				gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+				gain.gain.exponentialRampToValueAtTime(volume, ctx.currentTime + 0.005);
+				gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.04);
+				noise.connect(hp);
+				hp.connect(lp);
+				lp.connect(gain);
+				gain.connect(this.getCategoryGain("sfx"));
+				noise.start(ctx.currentTime);
+				noise.stop(ctx.currentTime + 0.05);
+			}, i * (60 + Math.random() * 90));
+		}
+	}
+
 	async playProceduralShot(
 		kind = "generic",
 		volume = 0.14,

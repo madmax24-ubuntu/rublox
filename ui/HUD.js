@@ -397,6 +397,20 @@ export class HUD {
         `;
         hud.appendChild(stormOverlay);
 
+        const contamOverlay = document.createElement('div');
+        contamOverlay.id = 'contamOverlay';
+        contamOverlay.style.cssText = `
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 30% 30%, rgba(120, 255, 160, 0.18), rgba(12, 30, 18, 0.58));
+            mix-blend-mode: screen;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            z-index: 899;
+        `;
+        hud.appendChild(contamOverlay);
+
         const countdown = document.createElement('div');
         countdown.id = 'countdown';
         countdown.style.cssText = `
@@ -1549,6 +1563,12 @@ export class HUD {
             storm.style.background = 'radial-gradient(circle at 30% 30%, rgba(120, 140, 255, 0.2), rgba(20, 30, 40, 0.55))';
         }
         storm.style.opacity = active ? '1' : '0';
+    }
+
+    setContamActive(active) {
+        const contam = document.getElementById('contamOverlay');
+        if (!contam) return;
+        contam.style.opacity = active ? '1' : '0';
     }
 
     setVisionIntensity(intensity = 0) {

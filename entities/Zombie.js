@@ -932,12 +932,15 @@ export class Zombie {
                 const targetType = target?.constructor?.name;
                 const damage = targetType === 'Bot' ? this.damage * 0.42 : this.damage;
                 const knockback = this.variant === 'heavy' ? 11 : 3.2;
-                target.takeDamage(damage, false, this, knockback, this.variant === 'heavy' ? 'heavySmash' : 'zombie');
+                const source = this.variant === 'stalker' ? 'stalker' : (this.variant === 'heavy' ? 'heavySmash' : 'zombie');
+                target.takeDamage(damage, false, this, knockback, source);
                 if (this.variant === 'normal') target.applySlow?.(0.68, 1.5);
+                if (this.variant === 'stalker') target.applyRadiation?.(10, 3.5, this);
                 this.attackCooldown = cfg.attackCooldown;
                 this.abilityAnimationTimer = this.variant === 'heavy' ? 0.55 : 0.28;
                 if (audioSynth) {
                     audioSynth.playZombieAttack?.(this.position, { variant: this.variant, emitterKey: this.id });
+                    audioSynth.playGeigerCounter?.();
                     if (this.variant === 'heavy') {
                         audioSynth.playZombieAbility?.(this.position, { variant: 'heavy', emitterKey: this.id });
                     }
@@ -1110,6 +1113,7 @@ export class Zombie {
         if (hitTarget) {
             target.takeDamage(this.damage * 0.78, false, this, 1.4, 'acid');
             target.applySlow?.(0.55, 2.2);
+            if (this.variant === 'stalker') target.applyRadiation?.(10, 3.5, this);
             audioSynth?.playZombieAbility?.(projectile.mesh.position, { variant: 'acidImpact', emitterKey: this.id });
             this.clearAcidProjectile();
             return;
