@@ -339,6 +339,7 @@ export class Zombie {
 
         const variants = ['normal', 'runner', 'crawler', 'toxic', 'heavy', 'stalker'];
         this.variant = VARIANT_CONFIG[forcedVariant] ? forcedVariant : variants[Math.floor(Math.random() * variants.length)];
+        if (this.variant === 'stalker') console.log(`[STALKER_PROBE] Zombie #${this.id} spawned, variant=stalker`);
         const cfg = VARIANT_CONFIG[this.variant];
         this.maxHealth = cfg.health;
         this.health = cfg.health;
@@ -716,6 +717,7 @@ export class Zombie {
             spine.position.set(0, 1.1, -0.3);
             group.add(spine);
         } else if (this.variant === 'stalker') {
+            console.log(`[STALKER_PROBE] Building running mesh for Zombie #${this.id}`);
             const body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.1, 0.58), STALKER_MATERIALS.camo);
             body.position.y = 0.92;
             group.add(body);
@@ -882,6 +884,7 @@ export class Zombie {
     }
 
     _applyStalkerCorpse() {
+        console.log(`[STALKER_PROBE] Applying corpse for Zombie #${this.id}`);
         const mainGroup = new THREE.Group();
         mainGroup.position.set(this.position.x, this.position.y, this.position.z);
         mainGroup.rotation.y = Math.random() * Math.PI * 0.3 - 0.15;
@@ -891,6 +894,7 @@ export class Zombie {
         this.mesh.position.set(0, 0, 0);
         this.mesh.rotation.set(0, 0, 0);
         this.mesh.updateMatrixWorld(true);
+        console.log(`[STALKER_PROBE] Mesh child count before corpse build: ${this.mesh.children.length}, at (${this.position.x.toFixed(1)}, ${this.position.y.toFixed(1)}, ${this.position.z.toFixed(1)})`);
         const bodyGroup = new THREE.Group();
         bodyGroup.position.set(0, 0.45, 0);
         bodyGroup.rotation.x = 0.3;
