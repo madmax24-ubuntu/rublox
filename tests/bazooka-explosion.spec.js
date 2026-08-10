@@ -26,8 +26,10 @@ test('verify bazooka explosion renders correctly', async ({ page }) => {
         const em = game?.entityManager;
         if (!em) return { error: 'entityManager not available' };
 
-        // Position: 5 units right, slightly above ground
-        const pos = { x: 5, y: 0.5, z: -10 };
+        // Need real Vector3 for getNearbyEntities() — reconstruct from existing instance prototype
+        const template = em.scene.children?.[0]?.position;
+        const pos = Object.create(template?.constructor?.prototype ?? null);
+        Object.assign(pos, { x: 5, y: 0.5, z: -10 });
         // Projectile: bazooka default damage/knockback
         const proj = { damage: 100, knockback: 25 };
 
