@@ -81,7 +81,11 @@ export class ZombiePool {
     }
 
     release(zombie, force = false) {
-        if (!zombie || zombie._pooled || (zombie.isAlive && !force)) return;
+        if (!zombie || zombie._pooled || (zombie.isAlive && !force)) {
+            if (!zombie?.isAlive && zombie?.variant === 'stalker') console.log('[POOL_RELEASE] Skipped: variant=stalker, _pooled=' + zombie._pooled + ', isAlive=' + zombie.isAlive);
+            return;
+        }
+        if (zombie.variant === 'stalker') console.log(`[POOL_RELEASE] Zombie #${zombie.id} stalker release: _canPool=${zombie._canPool}`);
         // Don't pool variants that had permanent mesh corruption
         if (!zombie._canPool) {
             zombie.dispose?.();

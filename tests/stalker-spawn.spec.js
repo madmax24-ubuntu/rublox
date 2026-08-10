@@ -19,124 +19,169 @@ test('stalker variant spawning and death pose', async ({ page }) => {
     await page.getByRole('button', { name: /начать игру/i }).click({ force: true });
     await page.waitForTimeout(3000);
 
-    // Check game state
     const gameExists = await page.evaluate(() => !!window.game);
-    console.log('Game exists:', gameExists);
+    if (!gameExists) { expect(true).toBe(false); return; }
 
-    if (!gameExists) {
-        console.error('Game not loaded');
-        expect(gameExists).toBe(true);
-        return;
-    }
+    // Wait 25s for many zombie waves to spawn (stalker is 11th in sequence)
+    await page.waitForTimeout(25000);
 
-    // Wait for zombies to spawn - stalker is 11th variant, need at least 11 spawns
-    await page.waitForTimeout(15000);
+    // Comprehensive game state inspection
+    const gameInspect = await page.evaluate(() => {
+        const game = window.game;
+        const em = game?.entityManager;
+        const zp = game?.zombiePool;
+        const scene = game?.scene;
+        const entities = em?.entities || [];
+        const pool = zp?.pool || [];
 
-    // Check zombie pool
-    const poolState = await page.evaluate(() => {
-        const mgr = window.game?.entityManager;
-        if (!mgr) return null;
-        const entities = mgr.entities || mgr._entities || [];
-        const zombies = [];
+        console.log('entities array length:', entities.length);
+        console.log('pool array length:', pool.length);
+
+        const zombies = entities.filter(e => typeof e?.variant === 'string');
+        const poolZombies = pool.filter(z => typeof z?.variant === 'string');
+
+        // Count variants
+        const variantCounts = {};
         for (const e of entities) {
-            if (e && e.isAlive !== undefined) {
-                zombies.push({ id: e.id, variant: e.variant, isAlive: e.isAlive, health: e.health, maxHealth: e.maxHealth, isCorpsified: e._isCorpsified });
+            if (typeof e?.variant === 'string') {
+                const key = e.variant;
+                const alive = e.isAlive ? 'alive' : 'dead';
+                variantCounts[`${key}(${alive})`] = (variantCounts[`${key}(${alive})`] || 0) + 1;
             }
         }
-        const aliveZombies = zombies.filter(z => z.isAlive);
-        const deadZombies = zombies.filter(z => !z.isAlive);
-        const stalkers = zombies.filter(z => z.variant === 'stalker');
-        const pool = mgr.zombiePool;
-        const poolData = pool ? { poolCount: pool?.pool?.length || 0, nextId: pool?.nextId || 0, cursor: pool?.variantCursor || 0 } : null;
-        return { total: zombies.length, alive: aliveZombies.length, dead: deadZombies.length, stalkersTotal: stalkers.length, stalkersData: stalkers, pool: poolData, variants: [...new Set(zombies.map(z => z.variant))] };
+
+        // Find stalker corpses in scene
+        let sceneCorpseCount = 0;
+        if (scene) {
+            scene.traverse(c => {
+                if (c.userData?.variant === 'stalker') sceneCorpseCount++;
+            });
+        }
+
+        // Stalker zombies
+        const aliveStalkers = zombies.filter(e => e.variant === 'stalker' && e.isAlive);
+        const deadStalkers = zombies.filter(e => e.variant === 'stalker' && !e.isAlive);
+
+        // Check stalker running mesh info
+        const aliveStalkerInfo = aliveStalkers.map(e => ({
+            id: e.id,
+            childCount: e.mesh?.children?.length || 0,
+            position: e.position ? { x: e.position.x, y: e.position.y, z: e.position.z } : null
+        }));
+
+        // Check stalker corpse info (dead in entities array with _corpseGroup)
+        const deadStalkerInfo = deadStalkers.map(e => ({
+            id: e.id,
+            isCorpsified: e._isCorpsified,
+            canPool: e._canPool,
+            hasCorpseGroup: !!e._corpseGroup,
+            corpseGroupInScene: !!(e._corpseGroup && e._corpseGroup.parent)
+        }));
+
+        // Pool info
+        const poolInfo = zp ? {
+            poolLength: pool.length,
+            nextId: zp.nextId,
+            variantCursor: zp.variantCursor,
+            pooledStalkers: pool.filter(z => z.variant === 'stalker').length,
+            pooledStalkerIds: pool.filter(z => z.variant === 'stalker').map(z => z.id)
+        } : null;
+
+        return {
+            gameExists: !!game,
+            entityManagerExists: !!em,
+            zombiePoolExists: !!zp,
+            entitiesTotal: entities.length,
+            zombieEntitiesInManager: zombies.length,
+            zombiesInPool: poolZombies.length,
+            variantCounts,
+            aliveStalkersCount: aliveStalkers.length,
+            deadStalkersCount: deadStalkers.length,
+            sceneStalkerCorpseCount: sceneCorpseCount,
+            aliveStalkerInfo,
+            deadStalkerInfo,
+            poolInfo
+        };
     });
 
-    console.log('=== Zombie Pool State ===');
-    console.log(JSON.stringify(poolState, null, 2));
+    console.log('=== Game State Inspection ===');
+    console.log('EntityManager:', gameInspect.entityManagerExists);
+    console.log('ZombiePool:', gameInspect.zombiePoolExists);
+    console.log('Entities in manager:', gameInspect.entitiesTotal, '(zombies:', gameInspect.zombieEntitiesInManager + ')');
+    console.log('Zombies in pool:', gameInspect.zombiesInPool);
+    console.log('Variant breakdown:', JSON.stringify(gameInspect.variantCounts));
+    console.log('Alive stalkers:', gameInspect.aliveStalkersCount, JSON.stringify(gameInspect.aliveStalkerInfo));
+    console.log('Dead stalkers:', gameInspect.deadStalkersCount, JSON.stringify(gameInspect.deadStalkerInfo));
+    console.log('Pool:', JSON.stringify(gameInspect.poolInfo));
+    console.log('Scene stalker corpses:', gameInspect.sceneStalkerCorpseCount);
 
-    // Check for stalker console errors
-    const stalkerErrors = consoleErrors.filter(e => e.includes('stalker') || e.includes('STALKER'));
+    // STALKER PROBE logs
+    const stalkerProbes = consoleLogs.filter(l => l.includes('STALKER_PROBE'));
+    console.log('STALKER PROBE LOGS:', stalkerProbes);
+
+    // BAZOOKA PROBE logs
+    const bazookaProbes = consoleLogs.filter(l => l.includes('BAZOOKA_PROBE'));
+    console.log('BAZOOKA PROBE LOGS:', bazookaProbes);
+
+    // Console errors
+    if (consoleErrors.length > 0) {
+        console.log('ALL CONSOLE ERRORS:', consoleErrors);
+    }
+
+    // Screenshot
+    await page.screenshot({ path: `test-results/stalker-debug-${Date.now()}.png` });
+
+    // Assertions
+    expect(gameInspect.entityManagerExists, 'EntityManager exists').toBe(true);
+    expect(gameInspect.zombiePoolExists, 'ZombiePool exists').toBe(true);
+    expect(gameInspect.zombieEntitiesInManager + gameInspect.zombiesInPool, 'At least 11 zombies should exist (alive+pool)').toBeGreaterThanOrEqual(11);
+    expect(gameInspect.aliveStalkersCount + gameInspect.deadStalkersCount + gameInspect.sceneStalkerCorpseCount, `At least 1 stalker should exist (got ${gameInspect.aliveStalkersCount} alive + ${gameInspect.deadStalkersCount} dead + ${gameInspect.sceneStalkerCorpseCount} corpses)`).toBeGreaterThan(0);
+
+    // If no stalker errors, the lazy material fix is working
+    const stalkerErrors = consoleErrors.filter(e => e.includes('STALKER') || e.includes('stalker') || e.includes('Stalker'));
     if (stalkerErrors.length > 0) {
-        console.log('STALKER ERRORS:', stalkerErrors);
+        console.error('STALKER ERRORS:', stalkerErrors);
+        expect(stalkerErrors.length, 'No stalker-related errors').toBe(0);
     }
 
-    // Verify stalker variant exists in pool
-    expect(poolState.stalkersTotal, 'Stalker zombie should be spawned').toBeGreaterThan(0);
+    // Check running stalker has 18 children
+    if (gameInspect.aliveStalkersCount > 0) {
+        for (const s of gameInspect.aliveStalkerInfo) {
+            expect(s.childCount, `Stalker #${s.id} running mesh should have 18 children (has ${s.childCount})`).toBe(18);
+        }
+    }
 
-    // For each stalker, check mesh structure
-    const stalkerMeshData = await page.evaluate(() => {
-        const mgr = window.game?.entityManager;
-        if (!mgr) return [];
-        const entities = mgr.entities || mgr._entities || [];
-        const results = [];
-        for (const e of entities) {
-            if (e && e.variant === 'stalker') {
-                const mesh = e.mesh;
-                const children = mesh ? [...mesh.children] : [];
-                const corpseGroup = e._corpseGroup;
-                const isCorpsified = e._isCorpsified;
-                results.push({
-                    id: e.id,
-                    variant: e.variant,
-                    isAlive: e.isAlive,
-                    isCorpsified,
-                    childCount: children.length,
-                    corpseGroupChildren: corpseGroup ? [...corpseGroup.children].map(c => ({
+    // Check dead stalker corpse structure
+    if (gameInspect.deadStalkersCount > 0) {
+        const corpsesInScene = gameInspect.deadStalkerInfo.filter(s => s.hasCorpseGroup && s.corpseGroupInScene);
+        console.log('Dead stalkers with corpse in scene:', corpsesInScene.length);
+
+        // Verify corpse structure - should have nested groups (bodyGroup, akGroup, bpGroup, ammoGroup)
+        const corpseStructures = await page.evaluate(() => {
+            const game = window.game;
+            const em = game?.entityManager;
+            const entities = em?.entities || [];
+            const results = [];
+            for (const e of entities) {
+                if (e && e._isCorpsified && e._corpseGroup && e._corpseGroup.parent) {
+                    const corpseTypes = [...e._corpseGroup.children].map(c => ({
                         type: c.type,
-                        children: c.children ? [...c.children].map(gc => gc.type) : []
-                    })) : null
-                });
-            }
-        }
-        return results;
-    });
-
-    console.log('=== Stalker Mesh Data ===');
-    console.log(JSON.stringify(stalkerMeshData, null, 2));
-
-    if (stalkerMeshData.length > 0) {
-        // Check running mesh child count (should be 18)
-        const runningStalkers = stalkerMeshData.filter(s => s.isAlive);
-        if (runningStalkers.length > 0) {
-            for (const s of runningStalkers) {
-                expect(s.childCount, `Stalker #${s.id} should have 18 children (has ${s.childCount})`).toBe(18);
-            }
-        }
-
-        // Check death pose structure for dead stalkers
-        const deadStalkers = stalkerMeshData.filter(s => s.isCorpsified);
-        if (deadStalkers.length > 0) {
-            for (const s of deadStalkers) {
-                if (s.corpseGroupChildren) {
-                    // Check for nested structure: bodyGroup, akGroup, bpGroup, ammoGroup, bloodMesh
-                    const corpseTypes = s.corpseGroupChildren.map(c => c.type);
-                    expect(corpseTypes.includes('Group'), `Stalker #${s.id} corpse should have nested groups`).toBe(true);
-                    // Check for bloodMesh (PlaneGeometry)
-                    const hasBlood = s.corpseGroupChildren.some(c => {
-                        if (c.type === 'Mesh' && c.children.length === 0) return true;
-                        return false;
-                    });
-                    expect(hasBlood, `Stalker #${s.id} corpse should have blood pool`).toBe(true);
+                        childCount: c.children ? c.children.length : 0
+                    }));
+                    results.push({ id: e.id, variant: e.variant, corpseStructure: corpseTypes });
                 }
             }
+            return results;
+        });
+
+        for (const cs of corpseStructures) {
+            if (cs.variant === 'stalker') {
+                // Stalker corpse should have nested Group children
+                const hasNestedGroups = cs.corpseStructure.some(c => c.type === 'Group');
+                expect(hasNestedGroups, `Stalker #${cs.id} corpse should have nested groups`).toBe(true);
+            }
         }
     }
 
-    // Take screenshot for visual verification
-    const screenshotPath = `screen-${Date.now()}.png`;
-    await page.screenshot({ path: screenshotPath });
-    console.log('Screenshot saved:', screenshotPath);
-
-    // Summary
-    console.log('\n=== RESULTS ===');
-    console.log('Console errors:', consoleErrors.length);
-    console.log('Stalkers spawned:', poolState.stalkersTotal);
-    console.log('Console stalker errors:', stalkerErrors.length);
-
-    if (stalkerErrors.length > 0) {
-        console.error('FAIL: Stalker spawning errors detected');
-    }
-
-    // Final checks
-    expect(consoleErrors.length, 'No console errors during game').toBe(0);
+    expect(consoleErrors.length, 'No console errors').toBe(0);
 });

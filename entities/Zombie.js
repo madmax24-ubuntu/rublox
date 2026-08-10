@@ -1619,6 +1619,7 @@ export class Zombie {
             if (this.variant === 'stalker') {
                 this._canPool = false;
                 this.mesh.visible = false;
+                console.log(`[STALKER_PROBE] Zombie #${this.id} died, _canPool=false, calling _applyStalkerCorpse`);
                 this._applyStalkerCorpse();
             } else {
                 this.mesh.rotation.set(-Math.PI / 2, this.rotation.y, 0);
