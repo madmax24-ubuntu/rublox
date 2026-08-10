@@ -329,7 +329,9 @@ export class Zombie {
         this._lodCameraForward = new THREE.Vector3();
         this._lodToEntity = new THREE.Vector3();
         this._dirVec = new THREE.Vector3();
-        this._corpseTimer = 0;
+        this._corpseGroup = null;
+        this._isCorpsified = false;
+        this._canPool = true;
         this._animTime = performance.now() * 0.001;
         this._moanPhase = Math.random() * Math.PI * 2;
         this._roamAngle = Math.random() * Math.PI * 2;
@@ -826,19 +828,21 @@ export class Zombie {
         group.userData.isEntity = true;
         group.userData.isZombie = true;
         group.userData.variant = this.variant;
-        group.userData.limbs = group.children.filter(c =>
-            c.geometry?.type === 'BoxGeometry' &&
-            (c.position.x < -0.3 || c.position.x > 0.3 || c.position.y < 0.5)
-        );
-        if (group.children.length >= 4) {
-            const arms = group.children.filter(c => c.position.y > 0.5 && c.position.y < 1.3 && Math.abs(c.position.x) > 0.3);
-            const legs = group.children.filter(c => c.position.y < 0.5 && Math.abs(c.position.x) < 0.3);
-            group.userData.limbs = {
-                leftArm: arms[0] || null,
-                rightArm: arms[1] || null,
-                leftLeg: legs[0] || null,
-                rightLeg: legs[1] || null
-            };
+        if (this.variant !== 'stalker' && this.variant !== 'crawler') {
+            group.userData.limbs = group.children.filter(c =>
+                c.geometry?.type === 'BoxGeometry' &&
+                (c.position.x < -0.3 || c.position.x > 0.3 || c.position.y < 0.5)
+            );
+            if (group.children.length >= 4) {
+                const arms = group.children.filter(c => c.position.y > 0.5 && c.position.y < 1.3 && Math.abs(c.position.x) > 0.3);
+                const legs = group.children.filter(c => c.position.y < 0.5 && Math.abs(c.position.x) < 0.3);
+                group.userData.limbs = {
+                    leftArm: arms[0] || null,
+                    rightArm: arms[1] || null,
+                    leftLeg: legs[0] || null,
+                    rightLeg: legs[1] || null
+                };
+            }
         }
         if (this.variant === 'crawler') {
             group.userData.limbs = {
@@ -860,10 +864,48 @@ export class Zombie {
         return group;
     }
 
+    _cloneGroup(group) {
+        const cloned = new THREE.Group();
+        cloned.position.copy(group.position);
+        cloned.rotation.copy(group.rotation);
+        cloned.scale.copy(group.scale);
+        cloned.quaternion.copy(group.quaternion);
+        cloned.userData = {...group.userData};
+        group.children.forEach(child => {
+            const c = this._cloneTree(child);
+            cloned.add(c);
+        });
+        return cloned;
+    }
+
+    _cloneTree(obj) {
+        if (obj.isGroup) {
+            const cloned = new THREE.Group();
+            cloned.position.copy(obj.position);
+            cloned.rotation.copy(obj.rotation);
+            cloned.scale.copy(obj.scale);
+            cloned.quaternion.copy(obj.quaternion);
+            cloned.userData = {...obj.userData};
+            obj.children.forEach(child => {
+                cloned.add(this._cloneTree(child));
+            });
+            return cloned;
+        }
+        const mesh = obj.clone();
+        if (mesh.isMesh) {
+            mesh.material = obj.material;
+        }
+        return mesh;
+    }
+
     update(delta, entityManager, audioSynth) {
         this.updateAcidProjectile(delta, audioSynth);
         if (!this.isAlive) {
-            this.mesh.position.copy(this.position);
+            if (this._corpseGroup) {
+                this._corpseGroup.position.copy(this.position);
+            } else {
+                this.mesh.position.copy(this.position);
+            }
             this._corpseTimer -= delta;
             if (this._corpseTimer <= 0) {
                 this.dispose();
@@ -1370,23 +1412,95 @@ export class Zombie {
             this.mesh.position.copy(this.position);
             this.mesh.position.y = this.position.y - (this.physics.height - 0.2) - 0.8;
             if (this.variant === 'stalker') {
-                this.mesh.rotation.set(-Math.PI / 2, this.rotation.y, 0.25);
-                const limbs = this.mesh.userData.limbs;
-                if (limbs) {
-                    limbs.leftArm.rotation.z = 0.9;
-                    limbs.leftArm.rotation.x = 0.4;
-                    limbs.rightArm.rotation.z = -0.4;
-                    limbs.rightArm.rotation.x = -0.3;
-                    limbs.leftLeg.rotation.z = 0.35;
-                    limbs.leftLeg.rotation.x = 0.2;
-                    limbs.rightLeg.rotation.z = -0.3;
-                    limbs.rightLeg.rotation.x = -0.1;
+                this._canPool = false;
+                this.mesh.visible = false;
+                const corpseGroup = new THREE.Group();
+                corpseGroup.position.copy(this.position);
+                corpseGroup.rotation.set(0, 0, 0);
+                this._corpseGroup = corpseGroup;
+                this._isCorpsified = true;
+                const bodyChild = this.mesh.children[0];
+                const bodyMesh = new THREE.Mesh(bodyChild.geometry.clone(), bodyChild.material);
+                bodyMesh.position.set(0, 0.55, 0);
+                corpseGroup.add(bodyMesh);
+                // Vest
+                const vestChild = this.mesh.children[1];
+                const vestMesh = new THREE.Mesh(vestChild.geometry.clone(), vestChild.material);
+                vestMesh.position.copy(vestChild.position);
+                vestMesh.position.set(0, 0.55, 0);
+                corpseGroup.add(vestMesh);
+                // Pouches
+                for (let i = 2; i <= 5; i++) {
+                    if (this.mesh.children[i]) {
+                        const p = new THREE.Mesh(this.mesh.children[i].geometry.clone(), this.mesh.children[i].material);
+                        p.position.copy(this.mesh.children[i].position);
+                        p.material = this.mesh.children[i].material;
+                        corpseGroup.add(p);
+                    }
                 }
-                const headGroup = this.mesh.children.find(c => c.isGroup && c.position.y > 1.5);
-                if (headGroup) {
-                    headGroup.rotation.y = 0.6;
-                    headGroup.rotation.x = -0.2;
+                // Backpack
+                if (this.mesh.children[15]) {
+                    const bp = new THREE.Mesh(this.mesh.children[15].geometry.clone(), this.mesh.children[15].material);
+                    bp.position.copy(this.mesh.children[15].position);
+                    corpseGroup.add(bp);
                 }
+                // Straps
+                if (this.mesh.children[16]) {
+                    const s1 = new THREE.Mesh(this.mesh.children[16].geometry.clone(), this.mesh.children[16].material);
+                    s1.position.copy(this.mesh.children[16].position);
+                    corpseGroup.add(s1);
+                }
+                if (this.mesh.children[17]) {
+                    const s2 = new THREE.Mesh(this.mesh.children[17].geometry.clone(), this.mesh.children[17].material);
+                    s2.position.copy(this.mesh.children[17].position);
+                    corpseGroup.add(s2);
+                }
+                // Ribs
+                if (this.mesh.children[18]) {
+                    const ribs = new THREE.Mesh(this.mesh.children[18].geometry.clone(), this.mesh.children[18].material);
+                    ribs.position.copy(this.mesh.children[18].position);
+                    corpseGroup.add(ribs);
+                }
+                const headY = bodyMesh.position.y + 0.7;
+                const headChild = this.mesh.children.find(c => c.isGroup);
+                const headRotY = this.mesh.rotation.y;
+                const headBodyRot = -headRotY;
+                bodyMesh.rotation.set(-1.55, headBodyRot, 0.35);
+                if (headChild) {
+                    const headGroup = new THREE.Group();
+                    headGroup.position.set(0, headY, 0);
+                    headChild.children.forEach(c => {
+                        const cloned = c.clone();
+                        if (cloned.isMesh) cloned.material = c.material;
+                        cloned.position.copy(c.position);
+                        cloned.rotation.copy(c.rotation);
+                        cloned.scale.copy(c.scale);
+                        headGroup.add(cloned);
+                    });
+                    headGroup.rotation.set(-0.25, headBodyRot, 0.15);
+                    corpseGroup.add(headGroup);
+                }
+                if (this.mesh.userData.limbs) {
+                    const limbs = this.mesh.userData.limbs;
+                    const leftArm = new THREE.Mesh(limbs.leftArm.geometry.clone(), limbs.leftArm.material);
+                    const rightArm = new THREE.Mesh(limbs.rightArm.geometry.clone(), limbs.rightArm.material);
+                    leftArm.position.set(-0.4, 0.85, 0.4);
+                    rightArm.position.set(0.4, 0.85, 0.4);
+                    leftArm.rotation.set(-1.2, 0, 0.7);
+                    rightArm.rotation.set(-1.0, 0, -0.7);
+                    corpseGroup.add(leftArm);
+                    corpseGroup.add(rightArm);
+                    const leftLeg = new THREE.Mesh(limbs.leftLeg.geometry.clone(), limbs.leftLeg.material);
+                    const rightLeg = new THREE.Mesh(limbs.rightLeg.geometry.clone(), limbs.rightLeg.material);
+                    leftLeg.position.set(-0.18, 0.25, 0.65);
+                    rightLeg.position.set(0.18, 0.25, 0.65);
+                    leftLeg.rotation.set(0.2, 0, 0);
+                    rightLeg.rotation.set(0.2, 0, 0);
+                    corpseGroup.add(leftLeg);
+                    corpseGroup.add(rightLeg);
+                }
+                this.mesh.position.set(0, 0, 0);
+                this.mesh.rotation.set(0, this.rotation.y, 0);
                 const gunMetalMat = new THREE.MeshStandardMaterial({ color: 0x22252a, roughness: 0.3, metalness: 0.7 });
                 const gunWoodMat = new THREE.MeshStandardMaterial({ color: 0x6e3b19, roughness: 0.6 });
                 const magMat = new THREE.MeshStandardMaterial({ color: 0xb55215, roughness: 0.5 });
@@ -1395,7 +1509,7 @@ export class Zombie {
                 akGroup.add(receiver);
                 const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.1, 8), gunMetalMat);
                 barrel.rotation.x = Math.PI / 2; barrel.position.set(0, 0.05, 1.1);
-                akGroup.add(barrel);
+                akGroup.position.set(1.4, 0.15, 0.5);
                 const handguard = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.3, 0.7), gunWoodMat);
                 handguard.position.set(0, -0.02, 0.7); akGroup.add(handguard);
                 const stock = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.4, 0.8), gunWoodMat);
@@ -1405,8 +1519,8 @@ export class Zombie {
                 const grip = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.4, 0.2), gunWoodMat);
                 grip.rotation.x = 0.4; grip.position.set(0, -0.3, -0.2); akGroup.add(grip);
                 akGroup.rotation.x = Math.PI / 2; akGroup.rotation.z = -1.2;
-                akGroup.position.set(1.4, 0.15, 0.5);
-                this.mesh.add(akGroup);
+                corpseGroup.add(akGroup);
+                this._akGroup = akGroup;
                 const bloodTex = _createStalkerTexture('blood');
                 const bloodMat = new THREE.MeshStandardMaterial({ map: bloodTex, emissive: 0x4a0000, emissiveIntensity: 0.5, transparent: true, opacity: 0.8, roughness: 0.3 });
                 const bloodShape = new THREE.Shape();
@@ -1417,9 +1531,9 @@ export class Zombie {
                 const bloodGeo = new THREE.ShapeGeometry(bloodShape);
                 const bloodMesh = new THREE.Mesh(bloodGeo, bloodMat);
                 bloodMesh.rotation.x = -Math.PI / 2; bloodMesh.position.set(0, 0.01, 0); bloodMesh.scale.set(1.4, 1.4, 1.4);
-                this.mesh.add(bloodMesh);
-                this._akGroup = akGroup;
+                corpseGroup.add(bloodMesh);
                 this._bloodMesh = bloodMesh;
+                this.scene.add(corpseGroup);
             } else {
                 this.mesh.rotation.set(-Math.PI / 2, this.rotation.y, 0);
             }
@@ -1498,24 +1612,40 @@ export class Zombie {
 
     dispose() {
         this.clearAcidProjectile();
-        if (this._akGroup) {
-            this._akGroup.traverse(child => {
-                if (child.isMesh) {
-                    child.geometry?.dispose();
-                    if (child.material) {
-                        if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
-                        else child.material.dispose();
-                    }
+        if (this._isCorpsified && this._corpseGroup) {
+            if (this._corpseGroup.parent) {
+                this._corpseGroup.parent.remove(this._corpseGroup);
+            }
+            for (const child of this._corpseGroup.children) {
+                if (child.isMesh || child.isGroup) {
+                    child.traverse(c => {
+                        if (c.isMesh) {
+                            c.geometry?.dispose();
+                            if (c.material) {
+                                if (Array.isArray(c.material)) c.material.forEach(m => m.dispose());
+                                else m.dispose && c.material.dispose();
+                            }
+                        }
+                    });
                 }
-            });
-            this._akGroup = null;
+            }
+            this._corpseGroup.children.length = 0;
+            this._corpseGroup = null;
+            this._isCorpsified = false;
+        } else {
+            // Restore running mesh rotation & limbs for non-stalker variants
+            this.mesh.rotation.set(0, 0, 0);
+            if (this.mesh.userData.limbs) {
+                const limbs = this.mesh.userData.limbs;
+                if (limbs.leftArm) limbs.leftArm.rotation.set(0, 0, 0);
+                if (limbs.rightArm) limbs.rightArm.rotation.set(0, 0, 0);
+                if (limbs.leftLeg) limbs.leftLeg.rotation.set(0, 0, 0);
+                if (limbs.rightLeg) limbs.rightLeg.rotation.set(0, 0, 0);
+            }
+            const headGroup = this.mesh.children.find(c => c.isGroup && c.position.y > 1.5);
+            if (headGroup) headGroup.rotation.set(0, 0, 0);
         }
-        if (this._bloodMesh) {
-            this._bloodMesh.geometry?.dispose();
-            if (this._bloodMesh.material) this._bloodMesh.material.dispose();
-            this._bloodMesh = null;
-        }
-        if (this.mesh?.parent) this.mesh.parent.remove(this.mesh);
         this.mesh.visible = false;
+        this._corpseTimer = 0;
     }
 }

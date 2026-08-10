@@ -80,7 +80,11 @@ export class ZombiePool {
 
     release(zombie, force = false) {
         if (!zombie || zombie._pooled || (zombie.isAlive && !force)) return;
-
+        // Don't pool variants that had permanent mesh corruption
+        if (!zombie._canPool) {
+            zombie.dispose?.();
+            return;
+        }
         zombie.isAlive = false;
         zombie._pooled = true;
         zombie.clearAcidProjectile?.();
