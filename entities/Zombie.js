@@ -93,6 +93,7 @@ const _createZombieTexture = (variant, baseColorHex) => {
         }
     }
     const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.colorSpace = THREE.SRGBColorSpace;
@@ -206,6 +207,7 @@ const _createStalkerTexture = (type) => {
     }
 
     const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
     texture.wrapS = THREE.RepeatWrapping;
     texture.wrapT = THREE.RepeatWrapping;
     texture.colorSpace = THREE.SRGBColorSpace;

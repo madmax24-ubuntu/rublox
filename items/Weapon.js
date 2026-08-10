@@ -17,6 +17,7 @@ function createCanvasTexture(width, height, drawFn) {
 	const ctx = canvas.getContext("2d");
 	drawFn(ctx, width, height);
 	const texture = new THREE.CanvasTexture(canvas);
+	texture.needsUpdate = true;
 	texture.wrapS = THREE.RepeatWrapping;
 	texture.wrapT = THREE.RepeatWrapping;
 	texture.minFilter = THREE.LinearMipmapLinearFilter;
