@@ -1616,20 +1616,21 @@ export class Zombie {
             if (this._corpseGroup.parent) {
                 this._corpseGroup.parent.remove(this._corpseGroup);
             }
-            for (const child of this._corpseGroup.children) {
-                if (child.isMesh || child.isGroup) {
-                    child.traverse(c => {
-                        if (c.isMesh) {
-                            c.geometry?.dispose();
-                            if (c.material) {
-                                if (Array.isArray(c.material)) c.material.forEach(m => m.dispose());
-                                else m.dispose && c.material.dispose();
-                            }
+            const _disposeObj = o => {
+                if (o.isMesh) {
+                    o.geometry?.dispose();
+                    const mat = o.material;
+                    if (mat) {
+                        if (Array.isArray(mat)) {
+                            for (let i = 0; i < mat.length; i++) mat[i]?.dispose?.();
+                        } else {
+                            mat.dispose?.();
                         }
-                    });
+                    }
                 }
-            }
-            this._corpseGroup.children.length = 0;
+                for (const ch of o.children) _disposeObj(ch);
+            };
+            _disposeObj(this._corpseGroup);
             this._corpseGroup = null;
             this._isCorpsified = false;
         } else {
