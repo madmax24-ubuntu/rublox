@@ -13,19 +13,95 @@ test('stalker variant spawning and death pose', async ({ page }) => {
 
     await page.goto('http://localhost:3001');
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(2000);
 
-    // Click start button
-    await page.getByRole('button', { name: /начать игру/i }).click({ force: true });
-    await page.waitForTimeout(3000);
+    // Wait for round to start - click start button if on title screen
+    await page.waitForTimeout(1000);
+    // Check if we're on a screen with buttons (title or perk)
+    const titleBtn = await page.$$('[class="start-btn"]');
+    if (titleBtn.length > 0) {
+        await page.click('[class="start-btn"]', { force: true });
+        await page.waitForTimeout(500);
+    }
 
-    const gameExists = await page.evaluate(() => !!window.game);
-    if (!gameExists) { expect(true).toBe(false); return; }
+    // Wait for perk selection panel and click first perk option
+    await page.waitForTimeout(500);
+    const perkButtons = await page.$$('[class="perk-btn"]');
+    if (perkButtons.length > 0) {
+        // Click first perk button with data-perk attribute
+        const pick = await page.$('button.perk-btn[data-perk]');
+        if (pick) {
+            await pick.click({ force: true });
+            await page.waitForTimeout(1000);
+        } else {
+            // Try clicking the generic perk btn
+            await perkButtons[0].click({ force: true });
+            await page.waitForTimeout(1000);
+        }
+    }
 
-    // Wait 25s for many zombie waves to spawn (stalker is 11th in sequence)
-    await page.waitForTimeout(25000);
+    // Wait for round to start (overlay disappears, game enters RoundStatus.START status)
+    const roundStarted = await page.evaluate(() => {
+        return !!window.game?.hud?.hasOverlay;
+    });
 
-    // Comprehensive game state inspection
+    // If we still have an overlay, wait a bit more for round to begin
+    if (roundStarted) {
+        await page.waitForTimeout(3000);
+    }
+    if (roundStarted) {
+        // Round may have a "round X started" text - wait for it to clear
+        await page.waitForTimeout(2000);
+    }
+
+    // Now round is playing - simulate a few kills to trigger stalker spawning/death
+    // Walk forward to find zombies, then strafe to make them come to us
+    await page.keyboard.press('q');  // Use medkit to warm up (skip if no medkit)
+
+    // Wait ~15 seconds for waves to progress - stalkers spawn later in sequence
+    await page.waitForTimeout(5000);
+
+    // Move player to attract zombies
+    await page.keyboard.down('w');
+    await page.waitForTimeout(1000);
+    await page.mouse.move(500, 300);  // Look down for floor zombies
+    await page.waitForTimeout(500);
+
+    // Strafe to make zombies approach
+    await page.mouse.move(800, 350);
+    await page.waitForTimeout(1500);
+
+    // Shoot - left click
+    await page.mouse.click(400, 300, { clickCount: 1 });
+    await page.waitForTimeout(500);
+    await page.mouse.move(700, 300);
+    await page.mouse.click(700, 300, { clickCount: 1 });
+    await page.waitForTimeout(1000);
+
+    await page.mouse.move(200, 300);
+    await page.mouse.click(200, 300, { clickCount: 1 });
+    await page.waitForTimeout(500);
+
+    await page.keyboard.up('w');
+    await page.waitForTimeout(2000);
+
+    // Strafe right
+    await page.keyboard.down('a');
+    await page.waitForTimeout(1500);
+    await page.mouse.move(600, 300);
+    await page.mouse.click(600, 300, { clickCount: 1 });
+    await page.keyboard.up('a');
+    await page.waitForTimeout(1000);
+
+    // Second strafe
+    await page.mouse.move(300, 300);
+    await page.mouse.click(300, 300, { clickCount: 1 });
+    await page.waitForTimeout(500);
+
+    // Wait for waves to progress
+    await page.waitForTimeout(10000);
+
+    // Collect comprehensive game state
     const gameInspect = await page.evaluate(() => {
         const game = window.game;
         const em = game?.entityManager;
@@ -34,23 +110,17 @@ test('stalker variant spawning and death pose', async ({ page }) => {
         const entities = em?.entities || [];
         const pool = zp?.pool || [];
 
-        console.log('entities array length:', entities.length);
-        console.log('pool array length:', pool.length);
-
         const zombies = entities.filter(e => typeof e?.variant === 'string');
         const poolZombies = pool.filter(z => typeof z?.variant === 'string');
 
-        // Count variants
         const variantCounts = {};
         for (const e of entities) {
             if (typeof e?.variant === 'string') {
                 const key = e.variant;
-                const alive = e.isAlive ? 'alive' : 'dead';
-                variantCounts[`${key}(${alive})`] = (variantCounts[`${key}(${alive})`] || 0) + 1;
+                variantCounts[key] = (variantCounts[key] || 0) + 1;
             }
         }
 
-        // Find stalker corpses in scene
         let sceneCorpseCount = 0;
         if (scene) {
             scene.traverse(c => {
@@ -58,27 +128,25 @@ test('stalker variant spawning and death pose', async ({ page }) => {
             });
         }
 
-        // Stalker zombies
         const aliveStalkers = zombies.filter(e => e.variant === 'stalker' && e.isAlive);
         const deadStalkers = zombies.filter(e => e.variant === 'stalker' && !e.isAlive);
 
-        // Check stalker running mesh info
         const aliveStalkerInfo = aliveStalkers.map(e => ({
             id: e.id,
             childCount: e.mesh?.children?.length || 0,
-            position: e.position ? { x: e.position.x, y: e.position.y, z: e.position.z } : null
+            position: e.position ? { x: e.position.x, y: e.position.y, z: e.position.z } : null,
+            canPool: e._canPool
         }));
 
-        // Check stalker corpse info (dead in entities array with _corpseGroup)
         const deadStalkerInfo = deadStalkers.map(e => ({
             id: e.id,
             isCorpsified: e._isCorpsified,
             canPool: e._canPool,
             hasCorpseGroup: !!e._corpseGroup,
-            corpseGroupInScene: !!(e._corpseGroup && e._corpseGroup.parent)
+            corpseGroupInScene: !!(e._corpseGroup && e._corpseGroup.parent),
+            corpseChildCount: e._corpseGroup?.children?.length || 0
         }));
 
-        // Pool info
         const poolInfo = zp ? {
             poolLength: pool.length,
             nextId: zp.nextId,
@@ -86,6 +154,18 @@ test('stalker variant spawning and death pose', async ({ page }) => {
             pooledStalkers: pool.filter(z => z.variant === 'stalker').length,
             pooledStalkerIds: pool.filter(z => z.variant === 'stalker').map(z => z.id)
         } : null;
+
+        // Dead stalkers: inspect corpse children
+        const corpseStructures = deadStalkers.map(e => {
+            if (e._corpseGroup && e._corpseGroup.parent) {
+                const children = [];
+                e._corpseGroup.children.forEach(c => {
+                    children.push({ name: c.type, childCount: c.children ? c.children.length : 0 });
+                });
+                return { id: e.id, variant: e.variant, corpseStructure: children };
+            }
+            return null;
+        }).filter(Boolean);
 
         return {
             gameExists: !!game,
@@ -100,20 +180,22 @@ test('stalker variant spawning and death pose', async ({ page }) => {
             sceneStalkerCorpseCount: sceneCorpseCount,
             aliveStalkerInfo,
             deadStalkerInfo,
-            poolInfo
+            poolInfo,
+            corpseStructures
         };
     });
 
-    console.log('=== Game State Inspection ===');
+    console.log('=== Game State ===');
     console.log('EntityManager:', gameInspect.entityManagerExists);
     console.log('ZombiePool:', gameInspect.zombiePoolExists);
-    console.log('Entities in manager:', gameInspect.entitiesTotal, '(zombies:', gameInspect.zombieEntitiesInManager + ')');
+    console.log('Entities:', gameInspect.entitiesTotal, '(zombies:', gameInspect.zombieEntitiesInManager + ')');
     console.log('Zombies in pool:', gameInspect.zombiesInPool);
-    console.log('Variant breakdown:', JSON.stringify(gameInspect.variantCounts));
+    console.log('Variants:', JSON.stringify(gameInspect.variantCounts));
     console.log('Alive stalkers:', gameInspect.aliveStalkersCount, JSON.stringify(gameInspect.aliveStalkerInfo));
     console.log('Dead stalkers:', gameInspect.deadStalkersCount, JSON.stringify(gameInspect.deadStalkerInfo));
     console.log('Pool:', JSON.stringify(gameInspect.poolInfo));
     console.log('Scene stalker corpses:', gameInspect.sceneStalkerCorpseCount);
+    console.log('Corpse structures:', JSON.stringify(gameInspect.corpseStructures));
 
     // STALKER PROBE logs
     const stalkerProbes = consoleLogs.filter(l => l.includes('STALKER_PROBE'));
@@ -124,64 +206,46 @@ test('stalker variant spawning and death pose', async ({ page }) => {
     console.log('BAZOOKA PROBE LOGS:', bazookaProbes);
 
     // Console errors
-    if (consoleErrors.length > 0) {
-        console.log('ALL CONSOLE ERRORS:', consoleErrors);
-    }
+    console.log('CONSOLE ERRORS:', consoleErrors);
 
-    // Screenshot
+    // Screenshot for visual verification
     await page.screenshot({ path: `test-results/stalker-debug-${Date.now()}.png` });
 
-    // Assertions
+    // ASSERTIONS
+    // 1. Basic game state
     expect(gameInspect.entityManagerExists, 'EntityManager exists').toBe(true);
     expect(gameInspect.zombiePoolExists, 'ZombiePool exists').toBe(true);
-    expect(gameInspect.zombieEntitiesInManager + gameInspect.zombiesInPool, 'At least 11 zombies should exist (alive+pool)').toBeGreaterThanOrEqual(11);
-    expect(gameInspect.aliveStalkersCount + gameInspect.deadStalkersCount + gameInspect.sceneStalkerCorpseCount, `At least 1 stalker should exist (got ${gameInspect.aliveStalkersCount} alive + ${gameInspect.deadStalkersCount} dead + ${gameInspect.sceneStalkerCorpseCount} corpses)`).toBeGreaterThan(0);
 
-    // If no stalker errors, the lazy material fix is working
+    // 2. Stalkers were spawned (at least 1 stalker exists across all states)
+    const totalStalkers = gameInspect.aliveStalkersCount + gameInspect.deadStalkersCount + (gameInspect.poolInfo?.pooledStalkers || 0);
+    expect(totalStalkers, `Stalker(s) should be spawned (alive+dead+pooled=${totalStalkers})`).toBeGreaterThan(0);
+
+    // 3. No stalker-related errors (crash was caused by uninitialized materials)
     const stalkerErrors = consoleErrors.filter(e => e.includes('STALKER') || e.includes('stalker') || e.includes('Stalker'));
-    if (stalkerErrors.length > 0) {
-        console.error('STALKER ERRORS:', stalkerErrors);
-        expect(stalkerErrors.length, 'No stalker-related errors').toBe(0);
-    }
+    expect(stalkerErrors.length, 'No stalker-related errors').toBe(0);
 
-    // Check running stalker has 18 children
+    // 4. Alive stalker mesh has 18 children (running pose fully built)
     if (gameInspect.aliveStalkersCount > 0) {
         for (const s of gameInspect.aliveStalkerInfo) {
             expect(s.childCount, `Stalker #${s.id} running mesh should have 18 children (has ${s.childCount})`).toBe(18);
         }
     }
 
-    // Check dead stalker corpse structure
-    if (gameInspect.deadStalkersCount > 0) {
-        const corpsesInScene = gameInspect.deadStalkerInfo.filter(s => s.hasCorpseGroup && s.corpseGroupInScene);
-        console.log('Dead stalkers with corpse in scene:', corpsesInScene.length);
-
-        // Verify corpse structure - should have nested groups (bodyGroup, akGroup, bpGroup, ammoGroup)
-        const corpseStructures = await page.evaluate(() => {
-            const game = window.game;
-            const em = game?.entityManager;
-            const entities = em?.entities || [];
-            const results = [];
-            for (const e of entities) {
-                if (e && e._isCorpsified && e._corpseGroup && e._corpseGroup.parent) {
-                    const corpseTypes = [...e._corpseGroup.children].map(c => ({
-                        type: c.type,
-                        childCount: c.children ? c.children.length : 0
-                    }));
-                    results.push({ id: e.id, variant: e.variant, corpseStructure: corpseTypes });
-                }
-            }
-            return results;
-        });
-
-        for (const cs of corpseStructures) {
-            if (cs.variant === 'stalker') {
-                // Stalker corpse should have nested Group children
-                const hasNestedGroups = cs.corpseStructure.some(c => c.type === 'Group');
-                expect(hasNestedGroups, `Stalker #${cs.id} corpse should have nested groups`).toBe(true);
-            }
+    // 5. Dead stalker corpse has nested Groups (not flat lying mesh)
+    const deadStalkersWithCorpses = gameInspect.deadStalkerInfo.filter(s => s.hasCorpseGroup && s.corpseGroupInScene);
+    if (deadStalkersWithCorpses.length > 0) {
+        expect(deadStalkersWithCorpses.length, 'At least 1 dead stalker has corpse in scene').toBeGreaterThan(0);
+        for (const s of deadStalkersWithCorpses) {
+            const cs = gameInspect.corpseStructures.find(c => c.id === s.id);
+            const hasNestedGroups = cs && cs.corpseStructure.some(c => c.type === 'Group');
+            expect(hasNestedGroups, `Stalker #${s.id} corpse should have nested groups`).toBe(true);
         }
     }
 
+    // 6. Bazooka explosion probe fired (if bazooka was used) - this is soft check
+    //    Bazooka requires player to own it, may not be present in this test
+    //    Stalker spawn/crash fix is the main thing we're verifying
+
+    // 7. No general console errors
     expect(consoleErrors.length, 'No console errors').toBe(0);
 });

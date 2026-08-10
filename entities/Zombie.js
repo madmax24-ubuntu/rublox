@@ -216,6 +216,7 @@ const _createStalkerTexture = (type) => {
     texture.magFilter = THREE.LinearFilter;
     texture.generateMipmaps = true;
     texture.anisotropy = 4;
+    STALKER_TEXTURES[type] = texture;
     return texture;
 };
 
