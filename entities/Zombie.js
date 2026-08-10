@@ -889,6 +889,7 @@ export class Zombie {
         mainGroup.frustumCulled = false;
         this._corpseGroup = mainGroup;
         this._isCorpsified = true;
+        mainGroup.userData.isStalkerCorpse = true;
         this.mesh.position.set(0, 0, 0);
         this.mesh.rotation.set(0, 0, 0);
         this.mesh.updateMatrixWorld(true);
