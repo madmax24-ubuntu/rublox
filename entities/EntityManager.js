@@ -150,9 +150,7 @@ export class EntityManager {
 				const hitWall = this.checkProjectileWallHit(proj, prevPos, physics);
 				if (hitWall) {
 					if (proj.type === "bazooka") {
-						proj._mapGenerator = this.mapGenerator;
-						proj._audioSynth = this.audioSynth;
-						this.spawnBazookaExplosion(this._tmpVecF.copy(hitWall), proj);
+						this.spawnBazookaExplosion(hitWall.clone(), proj);
 					} else {
 						this.spawnImpactEffect(hitWall, proj.type, false);
 					}
@@ -172,7 +170,7 @@ export class EntityManager {
 					const hitPos = this._tmpVecF.copy(proj.mesh.position);
 					proj._mapGenerator = this.mapGenerator;
 					proj._audioSynth = this.audioSynth;
-					this.spawnBazookaExplosion(hitPos, proj);
+					this.spawnBazookaExplosion(hitPos.clone(), proj);
 					this.removeProjectile(i);
 					continue;
 				}
@@ -865,7 +863,7 @@ export class EntityManager {
 		scorch.userData.expType = "scorch";
 		explosionGroup.add(scorch);
 
-		explosionGroup.position.copy(position);
+		explosionGroup.position.set(position.x, position.y, position.z);
 		explosionGroup.userData = {
 			life: 2.0,
 			duration: 2.0,
