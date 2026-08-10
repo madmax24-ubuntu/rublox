@@ -219,6 +219,39 @@ const _createStalkerTexture = (type) => {
     return texture;
 };
 
+const STALKER_MATERIALS = {
+    camo: new THREE.MeshStandardMaterial({ map: STALKER_TEXTURES.camo, roughness: 0.7, metalness: 0, flatShading: true }),
+    vest: new THREE.MeshStandardMaterial({ map: STALKER_TEXTURES.vest, roughness: 0.5, metalness: 0.1, flatShading: true }),
+    gasMask: new THREE.MeshStandardMaterial({ map: STALKER_TEXTURES.gasMask, roughness: 0.6, metalness: 0, flatShading: true }),
+    boot: new THREE.MeshStandardMaterial({ map: STALKER_TEXTURES.boots, roughness: 0.85, metalness: 0, flatShading: true }),
+    helmet: new THREE.MeshStandardMaterial({ map: STALKER_TEXTURES.helmet, roughness: 0.7, metalness: 0, flatShading: true }),
+    backpack: new THREE.MeshStandardMaterial({ map: STALKER_TEXTURES.backpack, roughness: 0.7, metalness: 0, flatShading: true }),
+    lens: new THREE.MeshStandardMaterial({ color: 0x0a0c0e, roughness: 0.2, metalness: 0.8 }),
+    skin: new THREE.MeshStandardMaterial({ color: 0xb89a7a, roughness: 0.6, flatShading: true }),
+    glove: new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.7, flatShading: true })
+};
+
+const STALKER_DETAIL_MAT = new THREE.MeshStandardMaterial({ color: 0x1a1d20, roughness: 0.6, flatShading: true });
+
+const _setWorldTransform = (obj, orig) => {
+    obj.matrix.elements.set(orig.matrixWorld.elements);
+    obj.matrix.decompose(obj.position, obj.quaternion, obj.scale);
+    obj.updateMatrix();
+    return obj;
+};
+const _clonePreserveWorld = (orig) => {
+    const mesh = new THREE.Mesh(orig.geometry.clone(), orig.material.clone());
+    mesh.scale.set(1, 1, 1);
+    _setWorldTransform(mesh, orig);
+    return mesh;
+};
+const _setWorldTransformGroup = (group, origGroup) => {
+    group.position.copy(origGroup.matrixWorld.decompose().position);
+    group.quaternion.copy(origGroup.matrixWorld.decompose().quaternion);
+    group.scale.set(1, 1, 1);
+    group.updateMatrixWorld();
+};
+
 const VARIANT_CONFIG = {
     runner: {
         health: 42, speed: 5.7, damage: 6.4, knockbackMultiplier: 1.2,
@@ -682,32 +715,16 @@ export class Zombie {
             spine.position.set(0, 1.1, -0.3);
             group.add(spine);
         } else if (this.variant === 'stalker') {
-            const camoTex = _createStalkerTexture('camo');
-            const vestTex = _createStalkerTexture('vest');
-            const gasMaskTex = _createStalkerTexture('gasMask');
-            const bootTex = _createStalkerTexture('boots');
-            const helmetTex = _createStalkerTexture('helmet');
-            const backpackTex = _createStalkerTexture('backpack');
-
-            const camoMat = new THREE.MeshStandardMaterial({ map: camoTex, roughness: 0.7, metalness: 0, flatShading: true });
-            const vestMat = new THREE.MeshStandardMaterial({ map: vestTex, roughness: 0.5, metalness: 0.1, flatShading: true });
-            const gasMaskMat = new THREE.MeshStandardMaterial({ map: gasMaskTex, roughness: 0.6, metalness: 0, flatShading: true });
-            const bootMat = new THREE.MeshStandardMaterial({ map: bootTex, roughness: 0.85, metalness: 0, flatShading: true });
-            const helmetMat = new THREE.MeshStandardMaterial({ map: helmetTex, roughness: 0.7, metalness: 0, flatShading: true });
-            const backpackMat = new THREE.MeshStandardMaterial({ map: backpackTex, roughness: 0.7, metalness: 0, flatShading: true });
-            const lensMat = new THREE.MeshStandardMaterial({ color: 0x0a0c0e, roughness: 0.2, metalness: 0.8 });
-            const skinMat = new THREE.MeshStandardMaterial({ color: 0xb89a7a, roughness: 0.6, flatShading: true });
-
-            const body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.1, 0.58), camoMat);
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.1, 0.58), STALKER_MATERIALS.camo);
             body.position.y = 0.92;
             group.add(body);
 
-            const vest = new THREE.Mesh(new THREE.BoxGeometry(0.95, 1.0, 0.12), vestMat);
+            const vest = new THREE.Mesh(new THREE.BoxGeometry(0.95, 1.0, 0.12), STALKER_MATERIALS.vest);
             vest.position.set(0, 0.92, 0.36);
             group.add(vest);
 
             for (let i = 0; i < 4; i++) {
-                const pouch = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.3, 0.18), vestMat);
+                const pouch = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.3, 0.18), STALKER_MATERIALS.vest);
                 pouch.position.set(-0.4 + i * 0.27, 0.85, 0.44);
                 group.add(pouch);
             }
@@ -716,30 +733,30 @@ export class Zombie {
             headGroup.position.set(0, 1.7, 0);
             group.add(headGroup);
 
-            const headMesh = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), gasMaskMat);
+            const headMesh = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), STALKER_MATERIALS.gasMask);
             headGroup.add(headMesh);
 
             const lensGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.08, 12);
-            const leftLens = new THREE.Mesh(lensGeo, lensMat);
+            const leftLens = new THREE.Mesh(lensGeo, STALKER_MATERIALS.lens);
             leftLens.rotation.x = Math.PI / 2;
             leftLens.position.set(-0.16, 0.1, 0.36);
-            const rightLens = new THREE.Mesh(lensGeo, lensMat);
+            const rightLens = new THREE.Mesh(lensGeo, STALKER_MATERIALS.lens);
             rightLens.rotation.x = Math.PI / 2;
             rightLens.position.set(0.16, 0.1, 0.36);
             headGroup.add(leftLens, rightLens);
 
-            const filterMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.28, 10), vestMat);
+            const filterMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.28, 10), STALKER_MATERIALS.gasMask);
             filterMesh.rotation.x = Math.PI / 2;
             filterMesh.position.set(0.38, -0.1, 0.36);
             headGroup.add(filterMesh);
 
-            const helmet = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.35, 0.8), helmetMat);
+            const helmet = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.35, 0.8), STALKER_MATERIALS.helmet);
             helmet.position.set(0, 0.5, 0);
             headGroup.add(helmet);
 
             const armGeo = new THREE.BoxGeometry(0.22, 0.7, 0.22);
-            const leftArm = new THREE.Mesh(armGeo, camoMat);
-            const rightArm = new THREE.Mesh(armGeo, camoMat);
+            const leftArm = new THREE.Mesh(armGeo, STALKER_MATERIALS.camo);
+            const rightArm = new THREE.Mesh(armGeo, STALKER_MATERIALS.camo);
             leftArm.position.set(-0.54, 1.0, 0.1);
             rightArm.position.set(0.54, 1.0, 0.1);
             leftArm.rotation.x = cfg.armAngle;
@@ -747,36 +764,35 @@ export class Zombie {
             group.add(leftArm);
             group.add(rightArm);
 
-            const gloveMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.7, flatShading: true });
-            const leftGlove = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.2, 0.18), gloveMat);
-            const rightGlove = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.2, 0.18), gloveMat);
+            const leftGlove = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.2, 0.18), STALKER_MATERIALS.glove);
+            const rightGlove = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.2, 0.18), STALKER_MATERIALS.glove);
             leftGlove.position.set(-0.54, 0.62, 0.1);
             rightGlove.position.set(0.54, 0.62, 0.1);
             group.add(leftGlove, rightGlove);
 
             const legGeo = new THREE.BoxGeometry(0.22, 0.7, 0.22);
-            const leftLeg = new THREE.Mesh(legGeo, camoMat);
-            const rightLeg = new THREE.Mesh(legGeo, camoMat);
+            const leftLeg = new THREE.Mesh(legGeo, STALKER_MATERIALS.camo);
+            const rightLeg = new THREE.Mesh(legGeo, STALKER_MATERIALS.camo);
             leftLeg.position.set(-0.2, 0.25, 0);
             rightLeg.position.set(0.2, 0.25, 0);
             group.add(leftLeg);
             group.add(rightLeg);
 
-            const leftBoot = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.2, 0.36), bootMat);
-            const rightBoot = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.2, 0.36), bootMat);
+            const leftBoot = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.2, 0.36), STALKER_MATERIALS.boot);
+            const rightBoot = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.2, 0.36), STALKER_MATERIALS.boot);
             leftBoot.position.set(-0.2, 0.06, 0.06);
             rightBoot.position.set(0.2, 0.06, 0.06);
             group.add(leftBoot, rightBoot);
 
-            const backpack = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.7, 0.28), backpackMat);
+            const backpack = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.7, 0.28), STALKER_MATERIALS.backpack);
             backpack.position.set(0, 1.0, -0.38);
             group.add(backpack);
 
-            const strap1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.8, 0.1), vestMat);
+            const strap1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.8, 0.1), STALKER_MATERIALS.vest);
             strap1.position.set(-0.2, 0.95, 0.3);
             strap1.rotation.z = 0.2;
             group.add(strap1);
-            const strap2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.8, 0.1), vestMat);
+            const strap2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.8, 0.1), STALKER_MATERIALS.vest);
             strap2.position.set(0.2, 0.95, 0.3);
             strap2.rotation.z = -0.2;
             group.add(strap2);
@@ -796,7 +812,7 @@ export class Zombie {
                 group.add(boot);
             }
         } else {
-            const ribs = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.12, 0.78), detailMat);
+            const ribs = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.12, 0.78), STALKER_DETAIL_MAT);
             ribs.position.set(0, 0.65, 0.18);
             group.add(ribs);
         }
@@ -862,6 +878,190 @@ export class Zombie {
         group.add(lodProxy);
         group.userData.lodProxy = lodProxy;
         return group;
+    }
+
+    _applyStalkerCorpse() {
+        const mainGroup = new THREE.Group();
+        mainGroup.position.set(this.position.x, this.position.y, this.position.z);
+        mainGroup.rotation.y = Math.random() * Math.PI * 0.3 - 0.15;
+        mainGroup.frustumCulled = false;
+        this._corpseGroup = mainGroup;
+        this._isCorpsified = true;
+        this.mesh.position.set(0, 0, 0);
+        this.mesh.rotation.set(0, 0, 0);
+        this.mesh.updateMatrixWorld(true);
+        const bodyGroup = new THREE.Group();
+        bodyGroup.position.set(0, 0.45, 0);
+        bodyGroup.rotation.x = 0.3;
+        mainGroup.add(bodyGroup);
+        const bodyChild = this.mesh.children[0];
+        if (bodyChild?.isMesh) {
+            const torso = _clonePreserveWorld(bodyChild);
+            torso.position.set(0, 0.55, 0);
+            bodyGroup.add(torso);
+        }
+        const vestChild = this.mesh.children[1];
+        if (vestChild?.isMesh) {
+            const vest = _clonePreserveWorld(vestChild);
+            vest.position.set(0, 0.5, 0.34);
+            bodyGroup.add(vest);
+        }
+        for (let row = 0; row < 2; row++) {
+            for (let col = 0; col < 3; col++) {
+                const pouch = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.28, 0.16), STALKER_MATERIALS.vest);
+                pouch.position.set(-0.3 + col * 0.3, 0.35 + row * 0.3, 0.42);
+                bodyGroup.add(pouch);
+            }
+        }
+        const headGroupOrig = this.mesh.children[6];
+        const headGroup = new THREE.Group();
+        headGroup.position.set(0, 1.2, 0);
+        headGroup.rotation.x = -0.3;
+        bodyGroup.add(headGroup);
+        if (headGroupOrig?.isGroup) {
+            const [headOrig, leftLensOrig, rightLensOrig, filterOrig, helmetOrig] = headGroupOrig.children;
+            if (headOrig?.isMesh) {
+                const headMesh = new THREE.Mesh(headOrig.geometry.clone(), headOrig.material.clone());
+                headGroup.add(headMesh);
+            }
+            if (leftLensOrig?.isMesh) {
+                const ll = _clonePreserveWorld(leftLensOrig);
+                ll.position.set(-0.14, 0.05, 0.32);
+                headGroup.add(ll);
+            }
+            if (rightLensOrig?.isMesh) {
+                const lr = _clonePreserveWorld(rightLensOrig);
+                lr.position.set(0.14, 0.05, 0.32);
+                headGroup.add(lr);
+            }
+            if (filterOrig?.isMesh) {
+                const fl = _clonePreserveWorld(filterOrig);
+                fl.position.set(0.32, -0.05, 0.2);
+                headGroup.add(fl);
+            }
+            if (helmetOrig?.isMesh) {
+                const hm = _clonePreserveWorld(helmetOrig);
+                hm.position.set(0, 0.45, 0);
+                headGroup.add(hm);
+            }
+        }
+        for (const side of [-1, 1]) {
+            const armGroup = new THREE.Group();
+            const sideLabel = side < 0 ? 'left' : 'right';
+            armGroup.position.set(side * 0.45, 1.0, 0);
+            const armOrig = this.mesh.children[side < 0 ? 7 : 8];
+            const gloveOrig = this.mesh.children[side < 0 ? 9 : 10];
+            if (armOrig?.isMesh) {
+                const upper = _clonePreserveWorld(armOrig);
+                upper.position.y = -0.25;
+                armGroup.add(upper);
+            }
+            if (gloveOrig?.isMesh) {
+                const hand = _clonePreserveWorld(gloveOrig);
+                hand.position.y = -0.8;
+                armGroup.add(hand);
+            }
+            bodyGroup.add(armGroup);
+        }
+        for (const side of [-1, 1]) {
+            const legGroup = new THREE.Group();
+            const sideLabel = side < 0 ? 'left' : 'right';
+            legGroup.position.set(side * 0.2, 0, 0);
+            const legOrig = this.mesh.children[side < 0 ? 11 : 12];
+            const bootOrig = this.mesh.children[side < 0 ? 13 : 14];
+            if (legOrig?.isMesh) {
+                const thigh = _clonePreserveWorld(legOrig);
+                thigh.position.y = -0.3;
+                legGroup.add(thigh);
+            }
+            if (bootOrig?.isMesh) {
+                const boot = _clonePreserveWorld(bootOrig);
+                boot.position.y = -1.2;
+                legGroup.add(boot);
+            }
+            bodyGroup.add(legGroup);
+        }
+        bodyGroup.children[5].position.x = -0.45;
+        bodyGroup.children[6].position.x = 0.45;
+        const leftArmGroup = bodyGroup.children[5];
+        const rightArmGroup = bodyGroup.children[6];
+        leftArmGroup.rotation.x = 0.5;
+        leftArmGroup.rotation.z = 0.3;
+        rightArmGroup.rotation.x = 0.5;
+        rightArmGroup.rotation.z = -0.3;
+        const leftLegGroup = bodyGroup.children[7];
+        const rightLegGroup = bodyGroup.children[8];
+        leftLegGroup.rotation.x = -0.8;
+        leftLegGroup.rotation.z = 0.2;
+        rightLegGroup.rotation.x = -0.8;
+        rightLegGroup.rotation.z = -0.2;
+        const ribs = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.12, 0.78), STALKER_DETAIL_MAT);
+        ribs.position.set(0, 0.65, -0.2);
+        bodyGroup.add(ribs);
+        const gunMetal = new THREE.MeshStandardMaterial({ color: 0x22252a, roughness: 0.3, metalness: 0.7 });
+        const gunWood = new THREE.MeshStandardMaterial({ color: 0x6e3b19, roughness: 0.6 });
+        const magMat = new THREE.MeshStandardMaterial({ color: 0xb55215, roughness: 0.5 });
+        const akGroup = new THREE.Group();
+        const rx = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.35, 1.0), gunMetal);
+        akGroup.add(rx);
+        const brl = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.9, 8), gunMetal);
+        brl.rotation.x = Math.PI / 2; brl.position.set(0, 0.05, 0.9);
+        akGroup.add(brl);
+        const hg = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.28, 0.5), gunWood);
+        hg.position.set(0, -0.02, 0.6); akGroup.add(hg);
+        const st = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.35, 0.6), gunWood);
+        st.position.set(0, -0.1, -0.7); akGroup.add(st);
+        const mg = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.6, 0.28), magMat);
+        mg.rotation.x = -0.4; mg.position.set(0, -0.35, 0.25);
+        akGroup.add(mg);
+        const gr = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.35, 0.18), gunWood);
+        gr.rotation.x = 0.4; gr.position.set(0, -0.25, -0.2);
+        akGroup.add(gr);
+        akGroup.position.set(0.3, 0.08, 1.2);
+        akGroup.rotation.x = Math.PI / 2; akGroup.rotation.z = -0.6;
+        mainGroup.add(akGroup);
+        this._akGroup = akGroup;
+        const bpGroup = new THREE.Group();
+        const bpBody = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 0.3), STALKER_MATERIALS.backpack);
+        bpGroup.add(bpBody);
+        const bpS1 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.08, 0.06), STALKER_MATERIALS.vest);
+        bpS1.position.set(0, 0.32, 0); bpGroup.add(bpS1);
+        const bpS2 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.6, 0.06), STALKER_MATERIALS.vest);
+        bpS2.position.set(0.25, 0, 0); bpGroup.add(bpS2);
+        bpGroup.position.set(-1.5, 0.12, 0.2);
+        bpGroup.rotation.y = 0.5;
+        mainGroup.add(bpGroup);
+        this._bpGroup = bpGroup;
+        const ammoMat = new THREE.MeshStandardMaterial({ color: 0x4a5a3a, roughness: 0.7 });
+        const ammoBoxMat = new THREE.MeshStandardMaterial({ color: 0x6a4a2a, roughness: 0.6, flatShading: true });
+        const roundMat = new THREE.MeshStandardMaterial({ color: 0xb55215, roughness: 0.4, metalness: 0.6 });
+        const ammoGroup = new THREE.Group();
+        const crate = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.3, 0.35), ammoMat);
+        ammoGroup.add(crate);
+        const ax = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.2), ammoBoxMat);
+        ax.position.set(0.6, 0.1, 0); ammoGroup.add(ax);
+        const rdGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.08, 6);
+        for (let i = 0; i < 4; i++) {
+            const rd = new THREE.Mesh(rdGeo, roundMat);
+            rd.position.set(-0.4 + i * 0.2, 0.04, 0.3 + (i % 2) * 0.1);
+            rd.rotation.x = Math.PI / 2;
+            ammoGroup.add(rd);
+        }
+        ammoGroup.position.set(1.2, 0.15, 0.6);
+        ammoGroup.rotation.y = -0.4;
+        mainGroup.add(ammoGroup);
+        this._ammoGroup = ammoGroup;
+        const bloodGeo = new THREE.PlaneGeometry(2, 2);
+        const bloodTex = _createStalkerTexture('blood');
+        const bloodMat = new THREE.MeshStandardMaterial({ map: bloodTex, transparent: true, opacity: 0.7, roughness: 0.3, depthWrite: false, side: THREE.DoubleSide });
+        const bloodMesh = new THREE.Mesh(bloodGeo, bloodMat);
+        bloodMesh.rotation.y = Math.random() * Math.PI;
+        bloodMesh.position.set(0.5, 0.01, -0.3);
+        bloodMesh.scale.set(0.8 + Math.random() * 0.4, 0.8 + Math.random() * 0.4, 1);
+        mainGroup.add(bloodMesh);
+        this._bloodMesh = bloodMesh;
+        mainGroup.traverse(c => { if (c.isMesh) { c.frustumCulled = false; c.castShadow = true; c.receiveShadow = true; } });
+        this.scene.add(mainGroup);
     }
 
     _cloneGroup(group) {
@@ -1414,158 +1614,7 @@ export class Zombie {
             if (this.variant === 'stalker') {
                 this._canPool = false;
                 this.mesh.visible = false;
-                const corpseGroup = new THREE.Group();
-                corpseGroup.position.copy(this.position);
-                corpseGroup.rotation.set(0, 0, 0);
-                this._corpseGroup = corpseGroup;
-                this._isCorpsified = true;
-                const _setWorldTransform = (obj, orig) => {
-                    obj.matrix.elements.set(orig.matrixWorld.elements);
-                    obj.matrix.decompose(obj.position, obj.quaternion, obj.scale);
-                    obj.updateMatrix();
-                    return obj;
-                };
-                const _clonePreserveWorld = (orig) => {
-                    const mesh = new THREE.Mesh(orig.geometry.clone(), orig.material.clone());
-                    mesh.scale.set(1, 1, 1);
-                    _setWorldTransform(mesh, orig);
-                    return mesh;
-                };
-                const _setWorldTransformGroup = (group, origGroup) => {
-                    group.position.setFromMatrixPosition(origGroup.matrixWorld);
-                    group.quaternion.setFromRotationMatrix(origGroup.matrixWorld);
-                    group.scale.set(1, 1, 1);
-                    group.updateMatrixWorld();
-                };
-                const _setWorldTransformGroup = (group, origGroup) => {
-                    const wmPos = origGroup.matrixWorld.clone().setFromMatrixPosition(origGroup.matrixWorld);
-                    const wmRot = origGroup.matrixWorld.clone().decompose().quaternion;
-                    group.position.copy(wmPos);
-                    group.quaternion.copy(wmRot);
-                    group.scale.set(1, 1, 1);
-                    group.updateMatrixWorld();
-                };
-                let bodyEndsY = 0.55;
-                // Body - sitting pose (torso flat on ground)
-                const bodyChild = this.mesh.children[0];
-                let bodyMesh;
-                if (bodyChild) {
-                    bodyMesh = _clonePreserveWorld(bodyChild);
-                    corpseGroup.add(bodyMesh);
-                    bodyMesh.rotation.z = -1.57;
-                    bodyMesh.position.y = 0.55;
-                    bodyMesh.rotation.y = 0;
-                    bodyEndsY = bodyMesh.position.y + bodyChild.geometry.boundingSphere.radius;
-                }
-                // Vest - preserve world position from running mesh
-                const vestChild = this.mesh.children[1];
-                if (vestChild && vestChild.isMesh) {
-                    const vestMesh = _clonePreserveWorld(vestChild);
-                    corpseGroup.add(vestMesh);
-                }
-                // Pouches
-                for (let i = 2; i <= 5; i++) {
-                    const pc = this.mesh.children[i];
-                    if (pc && pc.isMesh) {
-                        const p = _clonePreserveWorld(pc);
-                        corpseGroup.add(p);
-                    }
-                }
-                // Backpack
-                const bpChild = this.mesh.children[15];
-                if (bpChild && bpChild.isMesh) {
-                    const bp = _clonePreserveWorld(bpChild);
-                    corpseGroup.add(bp);
-                }
-                // Straps
-                const s1Child = this.mesh.children[16];
-                if (s1Child && s1Child.isMesh) {
-                    const s1 = _clonePreserveWorld(s1Child);
-                    corpseGroup.add(s1);
-                }
-                const s2Child = this.mesh.children[17];
-                if (s2Child && s2Child.isMesh) {
-                    const s2 = _clonePreserveWorld(s2Child);
-                    corpseGroup.add(s2);
-                }
-                // Ribs
-                const ribsChild = this.mesh.children[18];
-                if (ribsChild && ribsChild.isMesh) {
-                    const rb = _clonePreserveWorld(ribsChild);
-                    corpseGroup.add(rb);
-                }
-                // Head - clone preserving world transforms then apply death tilt
-                const headChild = this.mesh.children.find(c => c.isGroup && c.position.y > 0.5);
-                const headBodyRot = -this.mesh.rotation.y;
-                bodyMesh.rotation.y = headBodyRot;
-                if (headChild) {
-                    const headGroup = new THREE.Group();
-                    headChild.updateMatrixWorld();
-                    _setWorldTransformGroup(headGroup, headChild);
-                    headChild.children.forEach(c => {
-                        if (!c.isMesh) return;
-                        const clone = _clonePreserveWorld(c);
-                        headGroup.add(clone);
-                    });
-                    headGroup.updateMatrixWorld(false);
-                    headGroup.rotation.x -= 0.15;
-                    headGroup.updateMatrixWorld(false);
-                    corpseGroup.add(headGroup);
-                }
-                if (this.mesh.userData.limbs) {
-                    const limbs = this.mesh.userData.limbs;
-                    const leftArm = new THREE.Mesh(limbs.leftArm.geometry.clone(), limbs.leftArm.material.clone());
-                    const rightArm = new THREE.Mesh(limbs.rightArm.geometry.clone(), limbs.rightArm.material.clone());
-                    leftArm.position.set(-0.4, 0.55, 0.45);
-                    rightArm.position.set(0.4, 0.55, 0.45);
-                    leftArm.rotation.set(-1.0, 0, 0.5);
-                    rightArm.rotation.set(-0.8, 0, -0.5);
-                    corpseGroup.add(leftArm);
-                    corpseGroup.add(rightArm);
-                    const leftLeg = new THREE.Mesh(limbs.leftLeg.geometry.clone(), limbs.leftLeg.material.clone());
-                    const rightLeg = new THREE.Mesh(limbs.rightLeg.geometry.clone(), limbs.rightLeg.material.clone());
-                    leftLeg.position.set(-0.12, 0.15, 0.75);
-                    rightLeg.position.set(0.12, 0.15, 0.75);
-                    leftLeg.rotation.set(0.1, 0, 0);
-                    rightLeg.rotation.set(0.1, 0, 0);
-                    corpseGroup.add(leftLeg);
-                    corpseGroup.add(rightLeg);
-                }
-                this.mesh.position.set(0, 0, 0);
-                this.mesh.rotation.set(0, this.rotation.y, 0);
-                const gunMetalMat = new THREE.MeshStandardMaterial({ color: 0x22252a, roughness: 0.3, metalness: 0.7 });
-                const gunWoodMat = new THREE.MeshStandardMaterial({ color: 0x6e3b19, roughness: 0.6 });
-                const magMat = new THREE.MeshStandardMaterial({ color: 0xb55215, roughness: 0.5 });
-                const akGroup = new THREE.Group();
-                const receiver = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.35, 1.2), gunMetalMat);
-                akGroup.add(receiver);
-                const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.1, 8), gunMetalMat);
-                barrel.rotation.x = Math.PI / 2; barrel.position.set(0, 0.05, 1.1);
-                akGroup.position.set(1.4, 0.15, 0.5);
-                const handguard = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.3, 0.7), gunWoodMat);
-                handguard.position.set(0, -0.02, 0.7); akGroup.add(handguard);
-                const stock = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.4, 0.8), gunWoodMat);
-                stock.position.set(0, -0.1, -0.9); akGroup.add(stock);
-                const mag = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.7, 0.3), magMat);
-                mag.rotation.x = -0.4; mag.position.set(0, -0.4, 0.3); akGroup.add(mag);
-                const grip = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.4, 0.2), gunWoodMat);
-                grip.rotation.x = 0.4; grip.position.set(0, -0.3, -0.2); akGroup.add(grip);
-                akGroup.rotation.x = Math.PI / 2; akGroup.rotation.z = -1.2;
-                corpseGroup.add(akGroup);
-                this._akGroup = akGroup;
-                const bloodTex = _createStalkerTexture('blood');
-                const bloodMat = new THREE.MeshStandardMaterial({ map: bloodTex, emissive: 0x4a0000, emissiveIntensity: 0.5, transparent: true, opacity: 0.8, roughness: 0.3, depthWrite: false });
-                const bloodShape = new THREE.Shape();
-                bloodShape.moveTo(0, -1.5);
-                bloodShape.quadraticCurveTo(2, -1, 1.8, 1);
-                bloodShape.quadraticCurveTo(1, 2.5, -1, 2);
-                bloodShape.quadraticCurveTo(-2.5, 0, -1.5, -1.5);
-                const bloodGeo = new THREE.ShapeGeometry(bloodShape);
-                const bloodMesh = new THREE.Mesh(bloodGeo, bloodMat);
-                bloodMesh.rotation.y = Math.random() * 0.5; bloodMesh.position.set(0, 0.01, 0); bloodMesh.scale.set(1.2, 1.2, 1.2);
-                corpseGroup.add(bloodMesh);
-                this._bloodMesh = bloodMesh;
-                this.scene.add(corpseGroup);
+                this._applyStalkerCorpse();
             } else {
                 this.mesh.rotation.set(-Math.PI / 2, this.rotation.y, 0);
             }

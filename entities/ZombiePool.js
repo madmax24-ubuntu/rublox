@@ -64,6 +64,8 @@ export class ZombiePool {
             zombie.soundTimer = 2 + Math.random() * 3;
             zombie._corpseTimer = 0;
             zombie._corpseExpiresAt = 0;
+            zombie._isCorpsified = false;
+            zombie._corpseGroup = null;
             zombie._pooled = false;
             zombie._animTime = performance.now() * 0.001;
             zombie._roamAngle = Math.random() * Math.PI * 2;
@@ -87,8 +89,30 @@ export class ZombiePool {
         }
         zombie.isAlive = false;
         zombie._pooled = true;
+        zombie._isCorpsified = false;
+        zombie._corpseGroup = null;
         zombie.clearAcidProjectile?.();
         zombie.mesh.visible = false;
+
+        // Remove corpse group if stalker corpsified
+        if (zombie._corpseGroup) {
+            if (zombie._corpseGroup.parent) zombie._corpseGroup.parent.remove(zombie._corpseGroup);
+            const _destroy = o => {
+                if (o.isMesh) {
+                    o.geometry?.dispose();
+                    if (o.material) {
+                        if (Array.isArray(o.material)) {
+                            o.material.forEach(m => m?.dispose?.());
+                        } else {
+                            o.material.dispose?.();
+                        }
+                    }
+                }
+                o.children?.forEach(_destroy);
+            };
+            _destroy(zombie._corpseGroup);
+            zombie._corpseGroup = null;
+        }
 
         // Remove from scene graph
         if (zombie.mesh.parent) {
