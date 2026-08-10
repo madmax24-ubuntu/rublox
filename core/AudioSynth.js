@@ -455,9 +455,9 @@ export class AudioSynth {
 		const d = buf.getChannelData(0);
 		for (let i = 0; i < len; i++) {
 			const t = i / rate;
-			const boom = Math.exp(-t * 15) * 1.5;
-			const rumble = Math.sin(t * 20 * Math.PI) * Math.exp(-t * 2) * 0.6;
-			const noise = (Math.random() * 2 - 1) * Math.exp(-t * 3) * 0.4;
+			const boom = Math.exp(-t * 15) * 2.0;
+			const rumble = Math.sin(t * 20 * Math.PI) * Math.exp(-t * 2) * 1.0;
+			const noise = (Math.random() * 2 - 1) * Math.exp(-t * 3) * 0.8;
 			d[i] = boom + rumble + noise;
 		}
 		return buf;
@@ -1465,7 +1465,7 @@ export class AudioSynth {
 
 	playExplosion(position = null) {
 		this.playSample(this.sampleCatalog.explosion, {
-			volume: this.isMobileDevice ? 0.4 : 0.55,
+			volume: this.isMobileDevice ? 0.75 : 1.2,
 			rateMin: 0.8,
 			rateMax: 1.0,
 			position,
@@ -1712,7 +1712,7 @@ export class AudioSynth {
 			return false;
 		const scale = this.getEmitterSfxScale(emitterKey);
 		return this.playSample(this.sampleCatalog.bazookaLaunch, {
-			volume: 1.05 * scale,
+			volume: 1.5 * scale,
 			rate: 1,
 			position,
 			category: "weapon",
@@ -1733,7 +1733,7 @@ export class AudioSynth {
 			this.sampleBuffers.set(this._bazookaExplosionFallbackPath, this.bazookaExplosionBuffer);
 		}
 		return this.playSample(this.sampleCatalog.bazookaExplosion, {
-			volume: 1.15 * scale,
+			volume: 2.0 * scale,
 			rate: 1,
 			position,
 			category: "sfx",

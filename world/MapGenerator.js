@@ -6216,8 +6216,8 @@ export class MapGenerator {
 
 	// Gas mask texture (rubber)
 	const gasMaskTex = _createCanvasTex((ctx, w, h) => {
-		ctx.fillStyle = '#1a1a1a'; ctx.fillRect(0, 0, w, h);
-		for (let i = 0; i < 60; i++) { const s = 20+Math.random()*30; ctx.fillStyle=`rgb(${s},${s},${s})`; ctx.beginPath(); ctx.arc(Math.random()*w, Math.random()*h, 1+Math.random()*3, 0, Math.PI*2); ctx.fill(); }
+		ctx.fillStyle = '#5a5a5a'; ctx.fillRect(0, 0, w, h);
+		for (let i = 0; i < 60; i++) { const s = 60+Math.random()*40; ctx.fillStyle=`rgb(${s},${s},${s})`; ctx.beginPath(); ctx.arc(Math.random()*w, Math.random()*h, 1+Math.random()*3, 0, Math.PI*2); ctx.fill(); }
 	}, 256, 256, 4);
 
 	// Helmet texture (military)
@@ -6441,9 +6441,9 @@ export class MapGenerator {
 	// =====================================================
 	// AK RIFLE (on ground in front)
 	// =====================================================
-	const gunMetalMat = new THREE.MeshStandardMaterial({ color: 0x22252a, roughness: 0.3, metalness: 0.7 });
-	const gunWoodMat = new THREE.MeshStandardMaterial({ color: 0x6e3b19, roughness: 0.6 });
-	const magMat = new THREE.MeshStandardMaterial({ color: 0xb55215, roughness: 0.5 });
+	const gunMetalMat = new THREE.MeshStandardMaterial({ color: 0x8a8a8a, roughness: 0.3, metalness: 0.7 });
+	const gunWoodMat = new THREE.MeshStandardMaterial({ color: 0x8b5a3a, roughness: 0.6 });
+	const magMat = new THREE.MeshStandardMaterial({ color: 0x808060, roughness: 0.5 });
 
 	const akGroup = new THREE.Group();
 

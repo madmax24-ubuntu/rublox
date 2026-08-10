@@ -145,13 +145,13 @@ const _createStalkerTexture = (type) => {
         for (let i = 0; i < d.data.length; i += 4) { const n = (Math.random()-0.5)*12; d.data[i]+=n; d.data[i+1]+=n; d.data[i+2]+=n; }
         ctx.putImageData(d, 0, 0);
     } else if (type === 'gasMask') {
-        ctx.fillStyle = '#1a1a1a';
+        ctx.fillStyle = '#5a5a5a';
         ctx.fillRect(0, 0, size, size);
-        for (let i = 0; i < 60; i++) { const s = 20+Math.random()*30; ctx.fillStyle=`rgb(${s},${s},${s})`; ctx.beginPath(); ctx.arc(Math.random()*size, Math.random()*size, 1+Math.random()*3, 0, Math.PI*2); ctx.fill(); }
-        ctx.fillStyle = '#0a0a0a';
+        for (let i = 0; i < 60; i++) { const s = 60+Math.random()*40; ctx.fillStyle=`rgb(${s},${s},${s})`; ctx.beginPath(); ctx.arc(Math.random()*size, Math.random()*size, 1+Math.random()*3, 0, Math.PI*2); ctx.fill(); }
+        ctx.fillStyle = '#2a2a2a';
         ctx.beginPath(); ctx.arc(size*0.3, size*0.4, 8, 0, Math.PI*2); ctx.fill();
         ctx.beginPath(); ctx.arc(size*0.7, size*0.4, 8, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#2a2a2a';
+        ctx.fillStyle = '#4a4a3a';
         ctx.beginPath(); ctx.ellipse(size*0.5, size*0.65, 12, 6, 0, 0, Math.PI*2); ctx.fill();
         const d = ctx.getImageData(0, 0, size, size);
         for (let i = 0; i < d.data.length; i += 4) { const n = (Math.random()-0.5)*10; d.data[i]+=n; d.data[i+1]+=n; d.data[i+2]+=n; }
@@ -224,7 +224,7 @@ const STALKER_MATERIALS_CACHE = {};
 const STALKER_MATERIALS = {
     get camo() { return (STALKER_MATERIALS_CACHE.camo ??= new THREE.MeshStandardMaterial({ map: STALKER_TEXTURES.camo || _createStalkerTexture('camo'), roughness: 0.7, metalness: 0, flatShading: true })); },
     get vest() { return (STALKER_MATERIALS_CACHE.vest ??= new THREE.MeshStandardMaterial({ map: STALKER_TEXTURES.vest || _createStalkerTexture('vest'), roughness: 0.5, metalness: 0.1, flatShading: true })); },
-    get gasMask() { return (STALKER_MATERIALS_CACHE.gasMask ??= new THREE.MeshStandardMaterial({ map: STALKER_TEXTURES.gasMask || _createStalkerTexture('gasMask'), roughness: 0.6, metalness: 0, flatShading: true })); },
+    get gasMask() { return (STALKER_MATERIALS_CACHE.gasMask ??= new THREE.MeshStandardMaterial({ map: STALKER_TEXTURES.gasMask || _createStalkerTexture('gasMask'), roughness: 0.6, metalness: 0.2, flatShading: true })); },
     get boot() { return (STALKER_MATERIALS_CACHE.boot ??= new THREE.MeshStandardMaterial({ map: STALKER_TEXTURES.boots || _createStalkerTexture('boots'), roughness: 0.85, metalness: 0, flatShading: true })); },
     get helmet() { return (STALKER_MATERIALS_CACHE.helmet ??= new THREE.MeshStandardMaterial({ map: STALKER_TEXTURES.helmet || _createStalkerTexture('helmet'), roughness: 0.7, metalness: 0, flatShading: true })); },
     get backpack() { return (STALKER_MATERIALS_CACHE.backpack ??= new THREE.MeshStandardMaterial({ map: STALKER_TEXTURES.backpack || _createStalkerTexture('backpack'), roughness: 0.7, metalness: 0, flatShading: true })); },
