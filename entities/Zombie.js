@@ -1419,83 +1419,115 @@ export class Zombie {
                 corpseGroup.rotation.set(0, 0, 0);
                 this._corpseGroup = corpseGroup;
                 this._isCorpsified = true;
+                const _setWorldTransform = (obj, orig) => {
+                    obj.matrix.elements.set(orig.matrixWorld.elements);
+                    obj.matrix.decompose(obj.position, obj.quaternion, obj.scale);
+                    obj.updateMatrix();
+                    return obj;
+                };
+                const _clonePreserveWorld = (orig) => {
+                    const mesh = new THREE.Mesh(orig.geometry.clone(), orig.material.clone());
+                    mesh.scale.set(1, 1, 1);
+                    _setWorldTransform(mesh, orig);
+                    return mesh;
+                };
+                const _setWorldTransformGroup = (group, origGroup) => {
+                    group.position.setFromMatrixPosition(origGroup.matrixWorld);
+                    group.quaternion.setFromRotationMatrix(origGroup.matrixWorld);
+                    group.scale.set(1, 1, 1);
+                    group.updateMatrixWorld();
+                };
+                const _setWorldTransformGroup = (group, origGroup) => {
+                    const wmPos = origGroup.matrixWorld.clone().setFromMatrixPosition(origGroup.matrixWorld);
+                    const wmRot = origGroup.matrixWorld.clone().decompose().quaternion;
+                    group.position.copy(wmPos);
+                    group.quaternion.copy(wmRot);
+                    group.scale.set(1, 1, 1);
+                    group.updateMatrixWorld();
+                };
+                let bodyEndsY = 0.55;
+                // Body - sitting pose (torso flat on ground)
                 const bodyChild = this.mesh.children[0];
-                const bodyMesh = new THREE.Mesh(bodyChild.geometry.clone(), bodyChild.material);
-                bodyMesh.position.set(0, 0.55, 0);
-                corpseGroup.add(bodyMesh);
-                // Vest
+                let bodyMesh;
+                if (bodyChild) {
+                    bodyMesh = _clonePreserveWorld(bodyChild);
+                    corpseGroup.add(bodyMesh);
+                    bodyMesh.rotation.z = -1.57;
+                    bodyMesh.position.y = 0.55;
+                    bodyMesh.rotation.y = 0;
+                    bodyEndsY = bodyMesh.position.y + bodyChild.geometry.boundingSphere.radius;
+                }
+                // Vest - preserve world position from running mesh
                 const vestChild = this.mesh.children[1];
-                const vestMesh = new THREE.Mesh(vestChild.geometry.clone(), vestChild.material);
-                vestMesh.position.copy(vestChild.position);
-                vestMesh.position.set(0, 0.55, 0);
-                corpseGroup.add(vestMesh);
+                if (vestChild && vestChild.isMesh) {
+                    const vestMesh = _clonePreserveWorld(vestChild);
+                    corpseGroup.add(vestMesh);
+                }
                 // Pouches
                 for (let i = 2; i <= 5; i++) {
-                    if (this.mesh.children[i]) {
-                        const p = new THREE.Mesh(this.mesh.children[i].geometry.clone(), this.mesh.children[i].material);
-                        p.position.copy(this.mesh.children[i].position);
-                        p.material = this.mesh.children[i].material;
+                    const pc = this.mesh.children[i];
+                    if (pc && pc.isMesh) {
+                        const p = _clonePreserveWorld(pc);
                         corpseGroup.add(p);
                     }
                 }
                 // Backpack
-                if (this.mesh.children[15]) {
-                    const bp = new THREE.Mesh(this.mesh.children[15].geometry.clone(), this.mesh.children[15].material);
-                    bp.position.copy(this.mesh.children[15].position);
+                const bpChild = this.mesh.children[15];
+                if (bpChild && bpChild.isMesh) {
+                    const bp = _clonePreserveWorld(bpChild);
                     corpseGroup.add(bp);
                 }
                 // Straps
-                if (this.mesh.children[16]) {
-                    const s1 = new THREE.Mesh(this.mesh.children[16].geometry.clone(), this.mesh.children[16].material);
-                    s1.position.copy(this.mesh.children[16].position);
+                const s1Child = this.mesh.children[16];
+                if (s1Child && s1Child.isMesh) {
+                    const s1 = _clonePreserveWorld(s1Child);
                     corpseGroup.add(s1);
                 }
-                if (this.mesh.children[17]) {
-                    const s2 = new THREE.Mesh(this.mesh.children[17].geometry.clone(), this.mesh.children[17].material);
-                    s2.position.copy(this.mesh.children[17].position);
+                const s2Child = this.mesh.children[17];
+                if (s2Child && s2Child.isMesh) {
+                    const s2 = _clonePreserveWorld(s2Child);
                     corpseGroup.add(s2);
                 }
                 // Ribs
-                if (this.mesh.children[18]) {
-                    const ribs = new THREE.Mesh(this.mesh.children[18].geometry.clone(), this.mesh.children[18].material);
-                    ribs.position.copy(this.mesh.children[18].position);
-                    corpseGroup.add(ribs);
+                const ribsChild = this.mesh.children[18];
+                if (ribsChild && ribsChild.isMesh) {
+                    const rb = _clonePreserveWorld(ribsChild);
+                    corpseGroup.add(rb);
                 }
-                const headY = bodyMesh.position.y + 0.7;
-                const headChild = this.mesh.children.find(c => c.isGroup);
-                const headRotY = this.mesh.rotation.y;
-                const headBodyRot = -headRotY;
-                bodyMesh.rotation.set(-1.55, headBodyRot, 0.35);
+                // Head - clone preserving world transforms then apply death tilt
+                const headChild = this.mesh.children.find(c => c.isGroup && c.position.y > 0.5);
+                const headBodyRot = -this.mesh.rotation.y;
+                bodyMesh.rotation.y = headBodyRot;
                 if (headChild) {
                     const headGroup = new THREE.Group();
-                    headGroup.position.set(0, headY, 0);
+                    headChild.updateMatrixWorld();
+                    _setWorldTransformGroup(headGroup, headChild);
                     headChild.children.forEach(c => {
-                        const cloned = c.clone();
-                        if (cloned.isMesh) cloned.material = c.material;
-                        cloned.position.copy(c.position);
-                        cloned.rotation.copy(c.rotation);
-                        cloned.scale.copy(c.scale);
-                        headGroup.add(cloned);
+                        if (!c.isMesh) return;
+                        const clone = _clonePreserveWorld(c);
+                        headGroup.add(clone);
                     });
-                    headGroup.rotation.set(-0.25, headBodyRot, 0.15);
+                    headGroup.updateMatrixWorld(false);
+                    headGroup.rotation.x -= 0.15;
+                    headGroup.updateMatrixWorld(false);
                     corpseGroup.add(headGroup);
                 }
                 if (this.mesh.userData.limbs) {
                     const limbs = this.mesh.userData.limbs;
-                    const leftArm = new THREE.Mesh(limbs.leftArm.geometry.clone(), limbs.leftArm.material);
-                    const rightArm = new THREE.Mesh(limbs.rightArm.geometry.clone(), limbs.rightArm.material);
-                    leftArm.position.set(-0.4, 0.85, 0.4);
-                    rightArm.position.set(0.4, 0.85, 0.4);
-                    leftArm.rotation.set(-1.2, 0, 0.7);
-                    rightArm.rotation.set(-1.0, 0, -0.7);
+                    const leftArm = new THREE.Mesh(limbs.leftArm.geometry.clone(), limbs.leftArm.material.clone());
+                    const rightArm = new THREE.Mesh(limbs.rightArm.geometry.clone(), limbs.rightArm.material.clone());
+                    leftArm.position.set(-0.4, 0.55, 0.45);
+                    rightArm.position.set(0.4, 0.55, 0.45);
+                    leftArm.rotation.set(-1.0, 0, 0.5);
+                    rightArm.rotation.set(-0.8, 0, -0.5);
                     corpseGroup.add(leftArm);
                     corpseGroup.add(rightArm);
-                    const leftLeg = new THREE.Mesh(limbs.leftLeg.geometry.clone(), limbs.leftLeg.material);
-                    const rightLeg = new THREE.Mesh(limbs.rightLeg.geometry.clone(), limbs.rightLeg.material);
-                    leftLeg.position.set(-0.18, 0.25, 0.65);
-                    rightLeg.position.set(0.18, 0.25, 0.65);
-                    leftLeg.rotation.set(0.2, 0, 0);
-                    rightLeg.rotation.set(0.2, 0, 0);
+                    const leftLeg = new THREE.Mesh(limbs.leftLeg.geometry.clone(), limbs.leftLeg.material.clone());
+                    const rightLeg = new THREE.Mesh(limbs.rightLeg.geometry.clone(), limbs.rightLeg.material.clone());
+                    leftLeg.position.set(-0.12, 0.15, 0.75);
+                    rightLeg.position.set(0.12, 0.15, 0.75);
+                    leftLeg.rotation.set(0.1, 0, 0);
+                    rightLeg.rotation.set(0.1, 0, 0);
                     corpseGroup.add(leftLeg);
                     corpseGroup.add(rightLeg);
                 }
@@ -1522,7 +1554,7 @@ export class Zombie {
                 corpseGroup.add(akGroup);
                 this._akGroup = akGroup;
                 const bloodTex = _createStalkerTexture('blood');
-                const bloodMat = new THREE.MeshStandardMaterial({ map: bloodTex, emissive: 0x4a0000, emissiveIntensity: 0.5, transparent: true, opacity: 0.8, roughness: 0.3 });
+                const bloodMat = new THREE.MeshStandardMaterial({ map: bloodTex, emissive: 0x4a0000, emissiveIntensity: 0.5, transparent: true, opacity: 0.8, roughness: 0.3, depthWrite: false });
                 const bloodShape = new THREE.Shape();
                 bloodShape.moveTo(0, -1.5);
                 bloodShape.quadraticCurveTo(2, -1, 1.8, 1);
@@ -1530,7 +1562,7 @@ export class Zombie {
                 bloodShape.quadraticCurveTo(-2.5, 0, -1.5, -1.5);
                 const bloodGeo = new THREE.ShapeGeometry(bloodShape);
                 const bloodMesh = new THREE.Mesh(bloodGeo, bloodMat);
-                bloodMesh.rotation.x = -Math.PI / 2; bloodMesh.position.set(0, 0.01, 0); bloodMesh.scale.set(1.4, 1.4, 1.4);
+                bloodMesh.rotation.y = Math.random() * 0.5; bloodMesh.position.set(0, 0.01, 0); bloodMesh.scale.set(1.2, 1.2, 1.2);
                 corpseGroup.add(bloodMesh);
                 this._bloodMesh = bloodMesh;
                 this.scene.add(corpseGroup);

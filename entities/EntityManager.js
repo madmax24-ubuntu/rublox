@@ -913,9 +913,8 @@ export class EntityManager {
 
 					// Play explosion sound (procedural)
 		const audioSynth = this.audioSynth;
-		if (audioSynth?.playProceduralExplosion) {
-			await audioSynth.playProceduralExplosion(position);
-		}
+		audioSynth?.playProceduralExplosion(position);
+		
 
 		return { entitiesHit: targets.length, totalDamage: totalDmg };
 	}
