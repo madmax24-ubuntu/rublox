@@ -711,8 +711,7 @@ export class EntityManager {
 		const damage = Math.round((projectile?.damage || 100) * 1.2);
 		const knockback = projectile?.knockback || 25;
 		const explosionGroup = new THREE.Group();
-		console.log(`[BAZOOKA_PROBE] Explosion spawned at (${position.x.toFixed(1)}, ${position.y.toFixed(1)}, ${position.z.toFixed(1)}), damage=${damage}`);
-		const getGeo = (key, fn) => {
+        const getGeo = (key, fn) => {
 			if (!this._explosionGeos) this._explosionGeos = new Map();
 			return (
 				this._explosionGeos.get(key) ??

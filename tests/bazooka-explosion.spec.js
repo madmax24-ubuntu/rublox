@@ -1,98 +1,87 @@
 import { test, expect } from '@playwright/test';
 
-test('verify bazooka explosion position and rendering', async ({ page }) => {
+test('verify bazooka explosion renders correctly', async ({ page }) => {
     const consoleLogs = [];
     const consoleErrors = [];
-    const isSafeIgnore = /Audio.*was|audio.*context|Playground.*not|CSP|cross-origin|third-party|deprecated|prefers-reduced|getAnimations/i;
+    const safeIgnore = /Audio.*was|audio.*context|Playground.*not|CSP|cross-origin|third-party|deprecated|prefers-reduced|getAnimations/i;
     page.on('console', msg => {
         const text = msg.text();
         const type = msg.type();
-        if (isSafeIgnore.test(text)) return;
+        if (safeIgnore.test(text)) return;
         consoleLogs.push(text);
         if (type === 'error') consoleErrors.push(text);
     });
 
     await page.goto('http://localhost:3001');
+    // Wait for game to initialize
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
+    // Wait for game module to be ready on window
+    await page.waitForFunction(() => window.game, { timeout: 15000 });
 
-    // Directly test bazooka explosion by spawning one via EntityManager API
-    // This bypasses menu navigation and tests the rendering directly
+    // Directly call EntityManager.spawnBazookaExplosion with position + projectile data
+    // No need for full game round — the function builds all fireball/smoke/shockwave elements
     const explosionResult = await page.evaluate(() => {
-        const { EntityManager } = window;
+        const game = window.game;
+        const em = game?.entityManager;
+        if (!em) return { error: 'entityManager not available' };
 
-        // Import THREE
-        return new Promise(async (resolve) => {
-            try {
-                const { default: THREE } = await import('https://unpkg.com/three@0.172.0/three.module.js');
+        // Position: 5 units right, slightly above ground
+        const pos = { x: 5, y: 0.5, z: -10 };
+        // Projectile: bazooka default damage/knockback
+        const proj = { damage: 100, knockback: 25 };
 
-                const game = window.game;
-                const em = game?.entityManager;
+        em.spawnBazookaExplosion(pos, proj);
 
-                // Test position - spawn explosion at a specific known point
-                const testPos = new THREE.Vector3(5, 0, -10);
-                const fakeProj = { damage: 100, knockback: 25, type: 'bazooka' };
+        // Inspect explosion effects array
+        const effects = em.effects || [];
+        const explosionGroup = effects[effects.length - 1];
 
-                em.spawnBazookaExplosion(testPos, fakeProj);
-
-                // Inspect the explosion effect
-                const effects = em.effects || [];
-                const explosionEffects = effects.filter(e => e.userData?.explosion);
-
-                resolve({
-                    explosionCount: explosionEffects.length,
-                    explosions: explosionEffects.map(e => ({
-                        position: e.position ? { x: +e.position.x.toFixed(2), y: +e.position.y.toFixed(2), z: +e.position.z.toFixed(2) } : null,
-                        childCount: e.children ? e.children.length : 0,
-                        children: e.children ? e.children.map(c => ({
-                            type: c.type,
-                            isMesh: !!c.isMesh,
-                            userData: c.userData || {},
-                        })) : [],
-                    })),
-                });
-            } catch (e) {
-                resolve({ error: e.message });
-            }
-        });
+        return {
+            childCount: explosionGroup ? explosionGroup.children.length : null,
+            children: explosionGroup?.children ? explosionGroup.children.map(c => ({
+                type: c.type,
+                expType: c.userData?.expType || null,
+                visible: c.visible,
+            })) : [],
+            explosionPosition: explosionGroup ? {
+                x: +explosionGroup.position.x.toFixed(2),
+                y: +explosionGroup.position.y.toFixed(2),
+                z: +explosionGroup.position.z.toFixed(2),
+            } : null,
+            effectCount: em.effects?.length || 0,
+        };
     });
 
     console.log('Explosion result:', JSON.stringify(explosionResult, null, 2));
 
     // Screenshot for visual verification
-    await page.screenshot({ path: `test-results/bazooka-explosion-${Date.now()}.png` });
+    await page.screenshot({ path: `test-results/bazooka-test-${Date.now()}.png` });
 
-    // Stalker probes
-    console.log('STALKER PROBE LOGS:', consoleLogs.filter(l => l.includes('STALKER')));
-
-    // Bazooka probes
-    const bazookaProbes = consoleLogs.filter(l => l.includes('BAZOOKA'));
-    console.log('BAZOOKA PROBE LOGS:', bazookaProbes);
-
-    // Console errors
-    console.log('CONSOLE ERRORS:', consoleErrors);
-
-    // Assertions
-    const stalkerErrors = consoleErrors.filter(e => e.includes('STALKER') || e.includes('stalker') || e.includes('Stalker'));
-    expect(stalkerErrors.length, 'No stalker-related errors').toBe(0);
-
-    // Bazooka explosion verification
+    // Verify explosion spawned
     if (!explosionResult.error) {
-        // 1. Explosion should have been spawned
-        expect(explosionResult.explosionCount, 'At least 1 explosion spawned').toBeGreaterThan(0);
+        // Core explosion group: 1 (core) + 1 (inner) + 1 (outer) + 3 (smoke) + 1 (shockwave) + 1 (groundFlash) + 1 (scorch) = 9 children
+        expect(explosionResult.childCount, 'Explosion should have 9 children (core+inner+outer+smoke×3+shockwave+groundFlash+scorch)').toBe(9);
 
-        for (const exp of explosionResult.explosions) {
-            // 2. Explosion children: core + inner + outer + smoke3 + shock + groundFlash + scorch = 9
-            expect(exp.childCount, 'Explosion should have ~9 children (core,inner,outer,smoke×3,shockwave,groundFlash,scorch)').toBe(9);
+        // Verify all element types present
+        const types = explosionResult.children.map(c => c.expType);
+        expect(types.includes('core'), 'Core fireball present').toBe(true);
+        expect(types.filter(t => t === 'fireball').length, 'Inner + Outer fireball present').toBe(2);
+        expect(types.filter(t => t === 'smoke').length, '3 smoke clouds present').toBe(3);
+        expect(types.includes('shockwave'), 'Shockwave present').toBe(true);
+        expect(types.includes('groundFlash'), 'Ground flash present').toBe(true);
+        expect(types.includes('scorch'), 'Scorch mark present').toBe(true);
 
-            // 3. Explosion position should be valid (not NaN/corrupted)
-            expect(exp.position.x, 'X position valid (not NaN)').toMatch(/-?\d/);
-            expect(exp.position.y, 'Y position valid (not NaN)').toMatch(/-?\d/);
-            expect(exp.position.z, 'Z position valid (not NaN)').toMatch(/-?\d/);
-        }
+        // Position integrity check
+        expect(explosionResult.explosionPosition.x).not.toBeNaN;
+        expect(explosionResult.explosionPosition.y).not.toBeNaN;
+        expect(explosionResult.explosionPosition.z).not.toBeNaN;
+        expect(explosionResult.explosionPosition.x).toBeCloseTo(5, 1);
+        expect(explosionResult.explosionPosition.y).toBeCloseTo(0.5, 1);
+        expect(explosionResult.explosionPosition.z).toBeCloseTo(-10, 1);
     } else {
-        console.error('Explosion spawn failed:', explosionResult.error);
+        console.error('Spawn failed:', explosionResult.error);
     }
 
-    expect(consoleErrors.length, 'No console errors').toBe(0);
+    expect(consoleErrors.filter(e => !safeIgnore.test(e)).length, 'No console errors').toBe(0);
 });
