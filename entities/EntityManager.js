@@ -911,10 +911,10 @@ export class EntityManager {
 			mapGen.addCraterSlowZone(position.x, position.z, 4, 0.5, 45);
 		}
 
-		// Play explosion sound (procedural, no freeze)
+					// Play explosion sound (procedural)
 		const audioSynth = this.audioSynth;
 		if (audioSynth?.playProceduralExplosion) {
-			audioSynth.playProceduralExplosion(position);
+			await audioSynth.playProceduralExplosion(position);
 		}
 
 		return { entitiesHit: targets.length, totalDamage: totalDmg };

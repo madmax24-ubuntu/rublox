@@ -1701,6 +1701,12 @@ export class AudioSynth {
 
 	async playBazooka(position = null, emitterKey = "global") {
 		await this._ensureLazyInit();
+		if (this.bazookaLaunchBuffer) {
+			this.sampleBuffers.set(this._bazookaLaunchFallbackPath, this.bazookaLaunchBuffer);
+		} else if (!this.sampleBuffers.get(this._bazookaLaunchFallbackPath)) {
+			this.bazookaLaunchBuffer = this._makeSimpleLaunchBuffer();
+			this.sampleBuffers.set(this._bazookaLaunchFallbackPath, this.bazookaLaunchBuffer);
+		}
 		const voiceKey = `bazooka:${emitterKey}`;
 		if (!this.canPlayWeaponSfx(voiceKey, this.weaponSfxCooldown.bazooka))
 			return false;
@@ -1720,6 +1726,12 @@ export class AudioSynth {
 	// Simplified explosion: pre-mixed buffer + gain + panner (3 nodes)
 	async playProceduralExplosion(position, scale = 1) {
 		await this._ensureLazyInit();
+		if (this.bazookaExplosionBuffer) {
+			this.sampleBuffers.set(this._bazookaExplosionFallbackPath, this.bazookaExplosionBuffer);
+		} else if (!this.sampleBuffers.get(this._bazookaExplosionFallbackPath)) {
+			this.bazookaExplosionBuffer = this._makeSimpleExplosionBuffer();
+			this.sampleBuffers.set(this._bazookaExplosionFallbackPath, this.bazookaExplosionBuffer);
+		}
 		return this.playSample(this.sampleCatalog.bazookaExplosion, {
 			volume: 1.15 * scale,
 			rate: 1,
