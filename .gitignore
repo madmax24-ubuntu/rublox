@@ -16,22 +16,24 @@ yandex-game/
 Thumbs.db
 .vscode/
 
-# Test results
-test-results/
-*.png
-
-# Claude Code local settings
-.claude/
-CLAUDE.md
-
-# OpenCode local settings
-.opencode/
+# Local generated / dev artifacts
 .codebase-memory/
-
-# Playwright MCP
 .playwright-mcp/
-
-# Local generated artifacts
+.opencode/
+opencode.json
+opencode.jsonc
 conversations/
 project/
 screenshots/
+
+# Tests & test artifacts
+tests/
+
+# Build scripts
+scripts/
+
+# Local-only config
+.env
+
+# Documentation (keep in repo)
+*.DOCS.md
