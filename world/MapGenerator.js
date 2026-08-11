@@ -6475,8 +6475,7 @@ export class MapGenerator {
 
 	// AK on ground in front of corpse
 	akGroup.rotation.x = Math.PI / 2;
-	akGroup.rotation.z = -0.6;
-	akGroup.position.set(0.3, 0.08, 1.2);
+	akGroup.position.set(0.4, 0.30, 1.4);
 
 	mainGroup.add(akGroup);
 
