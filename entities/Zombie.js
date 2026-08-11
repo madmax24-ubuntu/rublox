@@ -893,247 +893,186 @@ export class Zombie {
         this.mesh.position.set(0, 0, 0);
         this.mesh.rotation.set(0, 0, 0);
         this.mesh.updateMatrixWorld(true);
-        const bodyGroup = new THREE.Group();
-        bodyGroup.position.set(0, 0.45, 0);
-        bodyGroup.rotation.x = 0.3;
-        mainGroup.add(bodyGroup);
-        const bodyChild = this.mesh.children[0];
-        if (bodyChild?.isMesh) {
-            const torso = _clonePreserveWorld(bodyChild);
-            torso.position.set(0, 0.55, 0);
-            bodyGroup.add(torso);
-        }
-        const vestChild = this.mesh.children[1];
-        if (vestChild?.isMesh) {
-            const vest = _clonePreserveWorld(vestChild);
-            vest.position.set(0, 0.5, 0.34);
-            bodyGroup.add(vest);
-        }
-        for (let row = 0; row < 2; row++) {
-            for (let col = 0; col < 3; col++) {
-                const pouch = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.28, 0.16), STALKER_MATERIALS.vest);
-                pouch.position.set(-0.3 + col * 0.3, 0.35 + row * 0.3, 0.42);
-                bodyGroup.add(pouch);
-            }
-        }
-        const headGroupOrig = this.mesh.children[6];
-        const headGroup = new THREE.Group();
-        headGroup.position.set(0, 1.2, 0);
-        headGroup.rotation.x = -0.3;
-        bodyGroup.add(headGroup);
-        if (headGroupOrig?.isGroup) {
-            const [headOrig, leftLensOrig, rightLensOrig, filterOrig, helmetOrig] = headGroupOrig.children;
-            if (headOrig?.isMesh) {
-                const headMesh = new THREE.Mesh(headOrig.geometry.clone(), headOrig.material.clone());
-                headGroup.add(headMesh);
-            }
-            if (leftLensOrig?.isMesh) {
-                const ll = new THREE.Mesh(leftLensOrig.geometry.clone(), leftLensOrig.material.clone());
-                ll.position.set(-0.14, 0.05, 0.32);
-                headGroup.add(ll);
-            }
-            if (rightLensOrig?.isMesh) {
-                const lr = new THREE.Mesh(rightLensOrig.geometry.clone(), rightLensOrig.material.clone());
-                lr.position.set(0.14, 0.05, 0.32);
-                headGroup.add(lr);
-            }
-            if (filterOrig?.isMesh) {
-                const fl = new THREE.Mesh(filterOrig.geometry.clone(), filterOrig.material.clone());
-                fl.position.set(0.32, -0.05, 0.2);
-                headGroup.add(fl);
-            }
-            if (helmetOrig?.isMesh) {
-                const hm = new THREE.Mesh(helmetOrig.geometry.clone(), helmetOrig.material.clone());
-                hm.position.set(0, 0.45, 0);
-                headGroup.add(hm);
-            }
-        }
-        for (const side of [-1, 1]) {
-            const armGroup = new THREE.Group();
-            const sideLabel = side < 0 ? 'left' : 'right';
-            armGroup.position.set(side * 0.45, 1.0, 0);
-            const armOrig = this.mesh.children[side < 0 ? 7 : 8];
-            const gloveOrig = this.mesh.children[side < 0 ? 9 : 10];
-            if (armOrig?.isMesh) {
-                const upper = _clonePreserveWorld(armOrig);
-                upper.position.y = -0.25;
-                armGroup.add(upper);
-            }
-            if (gloveOrig?.isMesh) {
-                const hand = _clonePreserveWorld(gloveOrig);
-                hand.position.y = -0.8;
-                armGroup.add(hand);
-            }
-            bodyGroup.add(armGroup);
-        }
-        for (const side of [-1, 1]) {
-            const legGroup = new THREE.Group();
-            const sideLabel = side < 0 ? 'left' : 'right';
-            legGroup.position.set(side * 0.2, 0, 0);
-            const legOrig = this.mesh.children[side < 0 ? 11 : 12];
-            const bootOrig = this.mesh.children[side < 0 ? 13 : 14];
-            if (legOrig?.isMesh) {
-                const thigh = _clonePreserveWorld(legOrig);
-                thigh.position.y = -0.3;
-                legGroup.add(thigh);
-            }
-            if (bootOrig?.isMesh) {
-                const boot = _clonePreserveWorld(bootOrig);
-                boot.position.y = -1.2;
-                legGroup.add(boot);
-            }
-            bodyGroup.add(legGroup);
-        }
-        bodyGroup.children[5].position.x = -0.45;
-        bodyGroup.children[6].position.x = 0.45;
-        const leftArmGroup = bodyGroup.children[5];
-        const rightArmGroup = bodyGroup.children[6];
-        leftArmGroup.rotation.x = 0.5;
-        leftArmGroup.rotation.z = 0.3;
-        rightArmGroup.rotation.x = 0.5;
-        rightArmGroup.rotation.z = -0.3;
-        const leftLegGroup = bodyGroup.children[7];
-        const rightLegGroup = bodyGroup.children[8];
-        leftLegGroup.rotation.x = -0.8;
-        leftLegGroup.rotation.z = 0.2;
-        rightLegGroup.rotation.x = -0.8;
-        rightLegGroup.rotation.z = -0.2;
-        const ribs = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.12, 0.78), STALKER_DETAIL_MAT);
-        ribs.position.set(0, 0.65, -0.2);
-        bodyGroup.add(ribs);
 
-        // === AK-47 Corpse on Ground - Detailed Model ===
+        // Semi-upright sitting pose: tilted back ~30° (reference match)
+        const bodyGroup = new THREE.Group();
+        bodyGroup.position.set(0, 0, 0);
+        bodyGroup.rotation.x = -0.52;
+        mainGroup.add(bodyGroup);
+
+        // Torso
+        const torso = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.1, 0.58), STALKER_MATERIALS.camo);
+        torso.position.set(0, 0.95, -0.3);
+        bodyGroup.add(torso);
+
+        // Vest
+        const vest = new THREE.Mesh(new THREE.BoxGeometry(0.95, 1.0, 0.12), STALKER_MATERIALS.vest);
+        vest.position.set(0, 0.95, 0.06);
+        bodyGroup.add(vest);
+
+        // MOLLE pouches
+        for (let i = 0; i < 4; i++) {
+            const pouch = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.3, 0.18), STALKER_MATERIALS.vest);
+            pouch.position.set(-0.4 + i * 0.27, 0.85, 0.14);
+            bodyGroup.add(pouch);
+        }
+
+        // Head at top of torso, tilted back naturally
+        const headGroup = new THREE.Group();
+        headGroup.position.set(0, 1.75, -0.3);
+        headGroup.rotation.x = 0.3;
+        bodyGroup.add(headGroup);
+
+        const headMesh = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), STALKER_MATERIALS.gasMask);
+        headGroup.add(headMesh);
+
+        const lensGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.08, 12);
+        const leftLens = new THREE.Mesh(lensGeo, STALKER_MATERIALS.lens);
+        leftLens.rotation.x = Math.PI / 2; leftLens.position.set(-0.16, 0.08, 0.36);
+        headGroup.add(leftLens);
+        const rightLens = new THREE.Mesh(lensGeo, STALKER_MATERIALS.lens);
+        rightLens.rotation.x = Math.PI / 2; rightLens.position.set(0.16, 0.08, 0.36);
+        headGroup.add(rightLens);
+
+        const filterMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.28, 10), STALKER_MATERIALS.gasMask);
+        filterMesh.rotation.x = Math.PI / 2; filterMesh.position.set(0.38, -0.08, 0.36);
+        headGroup.add(filterMesh);
+
+        const helmet = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.35, 0.8), STALKER_MATERIALS.helmet);
+        helmet.position.set(0, 0.5, 0);
+        headGroup.add(helmet);
+
+        // Arms: right bent behind body supporting weight, left extended forward on ground
+        const armGeo = new THREE.BoxGeometry(0.22, 0.7, 0.22);
+        const upperR = new THREE.Mesh(armGeo, STALKER_MATERIALS.camo);
+        upperR.position.set(0.54, 0.9, -0.4); upperR.rotation.x = -1.0;
+        bodyGroup.add(upperR);
+        const forearmR = new THREE.Mesh(armGeo, STALKER_MATERIALS.camo);
+        forearmR.position.set(0.58, 0.35, -0.6); forearmR.rotation.x = 0.6;
+        bodyGroup.add(forearmR);
+        const handR = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.2, 0.18), STALKER_MATERIALS.glove);
+        handR.position.set(0.6, 0.02, -0.8);
+        bodyGroup.add(handR);
+
+        const upperL = new THREE.Mesh(armGeo, STALKER_MATERIALS.camo);
+        upperL.position.set(-0.54, 0.9, -0.4); upperL.rotation.x = 1.2;
+        bodyGroup.add(upperL);
+        const forearmL = new THREE.Mesh(armGeo, STALKER_MATERIALS.camo);
+        forearmL.position.set(-0.45, 0.35, -0.55); forearmL.rotation.x = 0.7;
+        bodyGroup.add(forearmL);
+        const handL = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.2, 0.18), STALKER_MATERIALS.glove);
+        handL.position.set(-0.35, 0.02, -1.0);
+        bodyGroup.add(handL);
+
+        // Hips - direct child of bodyGroup for natural leg pivot
+        const hips = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.28, 0.48), STALKER_MATERIALS.camo);
+        hips.position.set(0, 0.45, -0.3);
+        bodyGroup.add(hips);
+
+        // Legs: bent at knees, feet flat on ground
+        const legGeo = new THREE.BoxGeometry(0.22, 0.7, 0.22);
+        // Left leg hierarchy: hip -> thigh -> knee -> shin -> ankle -> boot
+        const thighL = new THREE.Group();
+        thighL.position.set(-0.18, 0.45, -0.3);
+        thighL.rotation.x = 0.8;
+        const thighMeshL = new THREE.Mesh(legGeo, STALKER_MATERIALS.camo);
+        thighMeshL.position.set(0, 0, 0); thighL.add(thighMeshL);
+        const shinL = new THREE.Group();
+        shinL.position.set(0, 0.28, 0.28);
+        shinL.rotation.x = -0.9;
+        const shinMeshL = new THREE.Mesh(legGeo, STALKER_MATERIALS.camo);
+        shinL.add(shinMeshL);
+        const bootL = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.2, 0.36), STALKER_MATERIALS.boot);
+        bootL.position.set(0, 0.28, 0.18); bootL.rotation.x = 0.4;
+        shinL.add(bootL);
+        thighL.add(shinL);
+        bodyGroup.add(thighL);
+
+        // Right leg
+        const thighR = new THREE.Group();
+        thighR.position.set(0.18, 0.45, -0.3);
+        thighR.rotation.x = 0.8;
+        const thighMeshR = new THREE.Mesh(legGeo, STALKER_MATERIALS.camo);
+        thighMeshR.position.set(0, 0, 0); thighR.add(thighMeshR);
+        const shinR = new THREE.Group();
+        shinR.position.set(0, 0.28, 0.28);
+        shinR.rotation.x = -0.9;
+        const shinMeshR = new THREE.Mesh(legGeo, STALKER_MATERIALS.camo);
+        shinR.add(shinMeshR);
+        const bootR = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.2, 0.36), STALKER_MATERIALS.boot);
+        bootR.position.set(0, 0.28, 0.18); bootR.rotation.x = 0.4;
+        shinR.add(bootR);
+        thighR.add(shinR);
+        bodyGroup.add(thighR);
+
+        // AK-47 closer to camera in foreground
         const gunSteel = new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.35, metalness: 0.75 });
         const gunWood = new THREE.MeshStandardMaterial({ color: 0x7a4a20, roughness: 0.65, flatShading: true });
         const magSteel = new THREE.MeshStandardMaterial({ color: 0x4a4a4a, roughness: 0.3, metalness: 0.8 });
-        const akGroup = new THREE.Group();
-        akGroup.frustumCulled = false;
 
-        // (1) Receiver (основной ствол/приемник) - main rectangular body
+        const akGroup = new THREE.Group();
         const receiver = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.22, 0.7), gunSteel);
         akGroup.add(receiver);
-
-        // (2) Barrel (ствол) - long thin metal
         const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 0.5, 8), gunSteel);
-        barrel.rotation.x = Math.PI / 2; barrel.position.set(0, 0.08, 0.55);
+        barrel.rotation.x = Math.PI / 2; barrel.position.set(0, 0, 0.55);
         akGroup.add(barrel);
-
-        // (3) Muzzle brake (муль) - front of barrel, slightly tapered
         const muzzleBrake = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.08), gunSteel);
-        muzzleBrake.position.set(0, 0.08, 0.82);
+        muzzleBrake.position.set(0, 0, 0.82);
         akGroup.add(muzzleBrake);
-
-        // (4) Sight (прицел) - iron sight mount on barrel
-        const sightBase = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.06), gunSteel);
-        sightBase.position.set(0, 0.1, 0.82);
-        akGroup.add(sightBase);
-        const sightLeaf = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.12, 0.04), gunSteel);
-        sightLeaf.position.set(0, 0.16, 0.82);
-        akGroup.add(sightLeaf);
-
-        // (5) Sight (задний прицел) - front sight
-        const frontSight = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.05), gunSteel);
-        frontSight.position.set(0, 0.15, 0.5);
-        akGroup.add(frontSight);
-
-        // (6) Safety lever (переключателя режима огня) - on left side of receiver
-        const safety = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.1, 0.14), gunSteel);
-        safety.position.set(-0.08, -0.02, 0.15);
-        akGroup.add(safety);
-
-        // (7) Handguard (рукоятка ствaла) - curved wood over barrel
         const handguard = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.14, 0.32), gunWood);
         handguard.position.set(0, -0.02, 0.4);
         akGroup.add(handguard);
-
-        // (8) Curved magazine (изогнутый магазин) - 7.62mm curved
         const magBody = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.2, 0.5), magSteel);
-        magBody.rotation.x = -0.35; magBody.position.set(0, -0.18, 0.2);
+        magBody.rotation.x = -0.35; magBody.position.set(0, 0.08, 0.2);
         akGroup.add(magBody);
-
-        // (9) Trigger guard (спусковой крючок)
-        const triggerGuard = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.06, 0.12), gunSteel);
-        triggerGuard.position.set(0, -0.14, -0.08);
-        akGroup.add(triggerGuard);
-
-        // (10) Trigger (спусковой крюкa)
-        const trigger = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.04, 0.06), gunSteel);
-        trigger.position.set(0, -0.1, -0.06);
-        akGroup.add(trigger);
-
-        // (11) Pistol grip (пистолетка) - wood angled handle
         const grip = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.28, 0.1), gunWood);
-        grip.rotation.x = -0.4; grip.position.set(0, -0.28, -0.32);
+        grip.rotation.x = -0.4; grip.position.set(0, 0.04, -0.32);
         akGroup.add(grip);
-
-        // (12) Grip safety (упорa рукоятки)
-        const gripSafety = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.06), gunSteel);
-        gripSafety.rotation.x = -0.4; gripSafety.position.set(0, -0.38, -0.32);
-        akGroup.add(gripSafety);
-
-        // (13) Stock (приклад) - wood, slightly angled back
         const stock = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.24, 0.55), gunWood);
         stock.rotation.x = 0.15; stock.position.set(0, 0.1, -0.55);
         akGroup.add(stock);
-
-        // (14) Buttpad (накладка прикладa)
         const buttpad = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.12, 0.08), gunSteel);
         buttpad.rotation.x = 0.15; buttpad.position.set(0, 0.08, -0.82);
         akGroup.add(buttpad);
-
-        // (15) Charging handle (рама затвора)
-        const chargingHandle = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.04, 0.12), gunSteel);
-        chargingHandle.position.set(0, 0.14, -0.3);
-        akGroup.add(chargingHandle);
-
-        // (16) Selector knob (крутька режима огня)
-        const selectorKnob = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.06, 8), gunSteel);
-        selectorKnob.rotation.x = Math.PI / 2; selectorKnob.position.set(0, 0.14, 0.35);
-        akGroup.add(selectorKnob);
-
-        akGroup.position.set(0.5, 0.30, 1.4);
+        akGroup.position.set(0.65, 0.01, 0.6);
+        akGroup.rotation.y = -0.2;
         akGroup.rotation.x = Math.PI / 2;
         mainGroup.add(akGroup);
-        this._akGroup = akGroup;
+
+        // Backpack on ground left - lying flat at an angle
         const bpGroup = new THREE.Group();
-        const bpBody = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 0.3), STALKER_MATERIALS.backpack);
+        const bpBody = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.45, 0.35), STALKER_MATERIALS.backpack);
         bpGroup.add(bpBody);
-        const bpS1 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.08, 0.06), STALKER_MATERIALS.vest);
-        bpS1.position.set(0, 0.32, 0); bpGroup.add(bpS1);
-        const bpS2 = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.6, 0.06), STALKER_MATERIALS.vest);
-        bpS2.position.set(0.25, 0, 0); bpGroup.add(bpS2);
-        bpGroup.position.set(-1.5, 0.12, 0.2);
-        bpGroup.rotation.y = 0.5;
+        const bpS1 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.06, 0.06), STALKER_MATERIALS.vest);
+        bpS1.position.set(0, 0.25, 0); bpGroup.add(bpS1);
+        const bpS2 = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.45, 0.06), STALKER_MATERIALS.vest);
+        bpS2.position.set(0.22, 0, 0); bpGroup.add(bpS2);
+        bpGroup.position.set(-0.9, 0.08, 0.5);
+        bpGroup.rotation.y = 1.0;
+        bpGroup.rotation.x = -0.4;
+        bpGroup.rotation.z = 0.2;
         mainGroup.add(bpGroup);
-        this._bpGroup = bpGroup;
-        const ammoMat = new THREE.MeshStandardMaterial({ color: 0x4a5a3a, roughness: 0.7 });
-        const ammoBoxMat = new THREE.MeshStandardMaterial({ color: 0x6a4a2a, roughness: 0.6, flatShading: true });
-        const roundMat = new THREE.MeshStandardMaterial({ color: 0xb55215, roughness: 0.4, metalness: 0.6 });
+
+        // Ammo boxes right side
         const ammoGroup = new THREE.Group();
-        const crate = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.3, 0.35), ammoMat);
-        ammoGroup.add(crate);
-        const ax = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.2), ammoBoxMat);
-        ax.position.set(0.6, 0.1, 0); ammoGroup.add(ax);
-        const rdGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.08, 6);
-        for (let i = 0; i < 4; i++) {
-            const rd = new THREE.Mesh(rdGeo, roundMat);
-            rd.position.set(-0.4 + i * 0.2, 0.04, 0.3 + (i % 2) * 0.1);
-            rd.rotation.x = Math.PI / 2;
-            ammoGroup.add(rd);
+        for (let i = 0; i < 3; i++) {
+            const box = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.18), magSteel);
+            box.position.set(0.6 + i * 0.18, 0.01, 0.4 + i * 0.12);
+            box.rotation.y = 0.3 + i * 0.4;
+            box.rotation.x = -0.05;
+            ammoGroup.add(box);
         }
-        ammoGroup.position.set(1.2, 0.15, 0.6);
-        ammoGroup.rotation.y = -0.4;
         mainGroup.add(ammoGroup);
-        this._ammoGroup = ammoGroup;
-        const bloodGeo = new THREE.PlaneGeometry(2, 2);
-        const bloodTex = _createStalkerTexture('blood');
-        const bloodMat = new THREE.MeshStandardMaterial({ map: bloodTex, transparent: true, opacity: 0.7, roughness: 0.3, depthWrite: false, side: THREE.DoubleSide });
-        const bloodMesh = new THREE.Mesh(bloodGeo, bloodMat);
-        bloodMesh.rotation.y = Math.random() * Math.PI;
-        bloodMesh.position.set(0.5, 0.01, -0.3);
-        bloodMesh.scale.set(0.8 + Math.random() * 0.4, 0.8 + Math.random() * 0.4, 1);
-        mainGroup.add(bloodMesh);
-        this._bloodMesh = bloodMesh;
+
+        // Blood pool under body
+        const bloodGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.005, 16);
+        const bloodMat = new THREE.MeshStandardMaterial({ color: 0x3a0808, roughness: 0.5, metalness: 0 });
+        bloodMat.transparent = true;
+        bloodMat.opacity = 0.75;
+        const blood = new THREE.Mesh(bloodGeo, bloodMat);
+        blood.position.set(0, 0.005, 0);
+        mainGroup.add(blood);
+
         mainGroup.traverse(c => { if (c.isMesh) { c.frustumCulled = false; c.castShadow = true; c.receiveShadow = true; } });
         this.scene.add(mainGroup);
     }
