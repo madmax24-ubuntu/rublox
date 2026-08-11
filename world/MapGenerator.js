@@ -6407,26 +6407,26 @@ export class MapGenerator {
 	// SITTING POSE
 	// =====================================================
 	// Torso slumping forward slightly (70 degrees from vertical)
-	bodyGroup.rotation.x = 0.2;
+	bodyGroup.rotation.x = 0.1;
 	bodyGroup.rotation.z = 0.0;
 
 	// Head tilted slightly down
-	headGroup.rotation.x = -0.3;
-	headGroup.rotation.z = 0.1;
+	headGroup.rotation.x = -0.4;
+	headGroup.rotation.z = 0.2;
 
 	// Arms hanging down, resting on legs
-	leftArmGroup.rotation.x = 0.4;
-	leftArmGroup.rotation.z = 0.2;
+	leftArmGroup.rotation.x = 0.3;
+	leftArmGroup.rotation.z = 0.1;
 
-	rightArmGroup.rotation.x = 0.4;
-	rightArmGroup.rotation.z = -0.2;
+	rightArmGroup.rotation.x = 0.3;
+	rightArmGroup.rotation.z = -0.1;
 
 	// Legs extended forward, slightly bent
-	leftLegGroup.rotation.x = -0.8;
-	leftLegGroup.rotation.z = 0.2;
+	leftLegGroup.rotation.x = -0.6;
+	leftLegGroup.rotation.z = 0.15;
 
-	rightLegGroup.rotation.x = -0.8;
-	rightLegGroup.rotation.z = -0.2;
+	rightLegGroup.rotation.x = -0.6;
+	rightLegGroup.rotation.z = -0.15;
 
 	mainGroup.add(bodyGroup);
 
@@ -6467,8 +6467,8 @@ export class MapGenerator {
 
 	// AK on ground in front of corpse
 	akGroup.rotation.x = Math.PI / 2;
-	akGroup.rotation.z = 0.3;
-	akGroup.position.set(0.2, 0.25, 1.2);
+	akGroup.rotation.z = 0.2;
+	akGroup.position.set(0.3, 0.25, 1.0);
 
 	mainGroup.add(akGroup);
 
@@ -6489,8 +6489,8 @@ export class MapGenerator {
 	bpGroup.add(bpStrap2);
 
 	// Backpack on ground to the left
-	bpGroup.rotation.y = 0.3;
-	bpGroup.position.set(-1.5, 0.25, 0.3);
+	bpGroup.rotation.y = 0.4;
+	bpGroup.position.set(-1.2, 0.25, 0.4);
 	mainGroup.add(bpGroup);
 
 	// =====================================================
@@ -6520,8 +6520,8 @@ export class MapGenerator {
 		ammoGroup.add(round);
 	}
 
-	ammoGroup.position.set(1.2, 0.15, 0.8);
-	ammoGroup.rotation.y = -0.2;
+	ammoGroup.position.set(1.0, 0.15, 0.6);
+	ammoGroup.rotation.y = -0.15;
 	mainGroup.add(ammoGroup);
 
 	// =====================================================
@@ -6543,7 +6543,7 @@ export class MapGenerator {
 	this.addColliderBox(new THREE.Vector3(x, floorY, z), 3.0, 1.5, 3.0, false);
 	}
 
-addMilitaryFences(startX, startZ, size) {
+	addMilitaryFences(startX, startZ, size) {
 		const fenceMat = this.pool.getMatStd(
 			0x4a5238,
 			0.9,
