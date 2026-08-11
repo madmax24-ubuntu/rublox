@@ -18,7 +18,20 @@ Thumbs.db
 
 # Test results
 test-results/
-tests/*.png
+*.png
 
 # Claude Code local settings
 .claude/
+CLAUDE.md
+
+# OpenCode local settings
+.opencode/
+.codebase-memory/
+
+# Playwright MCP
+.playwright-mcp/
+
+# Local generated artifacts
+conversations/
+project/
+screenshots/

@@ -406,7 +406,10 @@ export class AudioSynth {
 		const ctx = this.audioContext;
 		if (!ctx) return;
 		if (this.bazookaLaunchBuffer && this.bazookaExplosionBuffer) return;
-		if (this._bazookaFallbackReady) return;
+		if (this._bazookaFallbackReady) {
+			this.setupBazookaFallbackInSampleBuffers();
+			return;
+		}
 		if (this._bazookaFallbackLoading) return this._bazookaFallbackLoading;
 		this._bazookaFallbackLoading = (async () => {
 			try {
@@ -426,9 +429,51 @@ export class AudioSynth {
 				if (!this.bazookaExplosionBuffer) this.bazookaExplosionBuffer = this._makeSimpleExplosionBuffer();
 			}
 			this._bazookaFallbackReady = true;
+			this.setupBazookaFallbackInSampleBuffers();
 			this._bazookaFallbackLoading = null;
 		})();
 		await this._bazookaFallbackLoading;
+	}
+
+	setupBazookaFallbackInSampleBuffers() {
+		if (this.bazookaLaunchBuffer) {
+			this.sampleBuffers.set(this._bazookaLaunchFallbackPath, this.bazookaLaunchBuffer);
+		}
+		if (this.bazookaExplosionBuffer) {
+			this.sampleBuffers.set(this._bazookaExplosionFallbackPath, this.bazookaExplosionBuffer);
+		}
+	}
+
+	async _ensureLazyInit() {
+		if (this._lazyInitCalled) return;
+		this._lazyInitCalled = true;
+		if (this._initPromise) return this._initPromise;
+		this._initPromise = this._doLazyInit();
+		return this._initPromise;
+	}
+
+	async _doLazyInit() {
+		if (this._unlockInProgress) await this._unlockInProgress;
+		if (!this.audioContext) {
+			this._unlockInProgress = this._doUnlock();
+			await this._unlockInProgress;
+			this._unlockInProgress = null;
+			if (!this.audioContext) return;
+		}
+		if (this.audioContext.state === 'suspended') {
+			try {
+				await this.audioContext.resume();
+			} catch (_) {
+				// Some mobile browsers don't support resume
+			}
+			if (this.audioContext.state !== 'running') return;
+		}
+		if (!this.sampleLoadStarted) {
+			this.sampleLoadStarted = true;
+			this._preloadAllSamples();
+		}
+		this._setupAudioNodes();
+		this._ensureBazookaBuffersReady();
 	}
 
 	// Simple procedural launch buffer (fast to generate, used only as last-resort fallback)

@@ -9,7 +9,7 @@ export class ZombiePool {
         this.pool = [];
         this.nextId = 1;
         this.variantCursor = 0;
-        this.variantSequence = ['normal', 'runner', 'crawler', 'toxic', 'normal', 'runner', 'heavy', 'crawler', 'toxic', 'normal', 'stalker'];
+        this.variantSequence = ['normal', 'runner', 'crawler', 'toxic', 'normal', 'runner', 'stalker', 'heavy', 'crawler', 'toxic', 'stalker', 'normal'];
     }
 
     async prewarm(count = 20) {
