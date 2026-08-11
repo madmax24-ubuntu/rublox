@@ -1,0 +1,10 @@
+# Node modules
+node_modules/
+
+# AI tool caches
+.codebase-memory/
+.opencode/
+.playwright-mcp/
+
+# IDE settings
+.vscode/
