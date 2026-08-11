@@ -4668,8 +4668,8 @@ export class MapGenerator {
 		]) {
 			this._registerChestSpot(x + ox, z + oz, "hangar", 3);
 		}
-		// Easter egg: Stalker corpse sitting/slumping inside hangar (visible from entrance)
-		this._addStalkerCorpse(w / 2 - 5, d / 2 - 8, 0.3, group);
+		// Easter egg: Stalker corpse sitting/slumping outside hangar (visible from entrance)
+		this._addStalkerCorpse(w / 2 - 5, d / 2 + 4, 0, this.scene);
 		// Frustum culling remains enabled for hangar group; easter egg meshes have frustumCulled=false individually
 	}
 
@@ -6407,17 +6407,19 @@ export class MapGenerator {
 	// SITTING POSE
 	// =====================================================
 	// Torso slumping forward slightly (70 degrees from vertical)
-	bodyGroup.rotation.x = 0.3;
+	bodyGroup.rotation.x = 0.2;
+	bodyGroup.rotation.z = 0.0;
 
 	// Head tilted slightly down
 	headGroup.rotation.x = -0.3;
+	headGroup.rotation.z = 0.1;
 
 	// Arms hanging down, resting on legs
-	leftArmGroup.rotation.x = 0.5;
-	leftArmGroup.rotation.z = 0.3;
+	leftArmGroup.rotation.x = 0.4;
+	leftArmGroup.rotation.z = 0.2;
 
-	rightArmGroup.rotation.x = 0.5;
-	rightArmGroup.rotation.z = -0.3;
+	rightArmGroup.rotation.x = 0.4;
+	rightArmGroup.rotation.z = -0.2;
 
 	// Legs extended forward, slightly bent
 	leftLegGroup.rotation.x = -0.8;
@@ -6465,7 +6467,8 @@ export class MapGenerator {
 
 	// AK on ground in front of corpse
 	akGroup.rotation.x = Math.PI / 2;
-	akGroup.position.set(0.4, 0.30, 1.4);
+	akGroup.rotation.z = 0.3;
+	akGroup.position.set(0.2, 0.25, 1.2);
 
 	mainGroup.add(akGroup);
 
@@ -6486,8 +6489,8 @@ export class MapGenerator {
 	bpGroup.add(bpStrap2);
 
 	// Backpack on ground to the left
-	bpGroup.rotation.y = 0.5;
-	bpGroup.position.set(-1.5, 0.3, 0.2);
+	bpGroup.rotation.y = 0.3;
+	bpGroup.position.set(-1.5, 0.25, 0.3);
 	mainGroup.add(bpGroup);
 
 	// =====================================================
@@ -6517,8 +6520,8 @@ export class MapGenerator {
 		ammoGroup.add(round);
 	}
 
-	ammoGroup.position.set(1.2, 0.15, 0.6);
-	ammoGroup.rotation.y = -0.4;
+	ammoGroup.position.set(1.2, 0.15, 0.8);
+	ammoGroup.rotation.y = -0.2;
 	mainGroup.add(ammoGroup);
 
 	// =====================================================
@@ -6533,6 +6536,7 @@ export class MapGenerator {
 	});
 
 	mainGroup.position.set(x, floorY, z);
+	mainGroup.rotation.y = Math.PI / 2;
 	mainGroup.userData.mapGenerated = true;
 	mainGroup.userData.isStalkerCorpse = true;
 	(parent || this.scene).add(mainGroup);
