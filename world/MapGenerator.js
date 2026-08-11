@@ -4668,8 +4668,8 @@ export class MapGenerator {
 		]) {
 			this._registerChestSpot(x + ox, z + oz, "hangar", 3);
 		}
-		// Easter egg: Stalker corpse sitting/slumping outside hangar (visible from entrance)
-		this._addStalkerCorpse(w / 2 - 5, d / 2 + 4, 0, this.scene);
+		// Easter egg: Stalker corpse sitting/slumping inside hangar (visible from entrance)
+		this._addStalkerCorpse(w / 2 - 5, d / 2 - 8, 0.3, group);
 		// Frustum culling remains enabled for hangar group; easter egg meshes have frustumCulled=false individually
 	}
 
