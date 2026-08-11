@@ -4670,17 +4670,7 @@ export class MapGenerator {
 		}
 		// Easter egg: Stalker corpse sitting/slumping inside hangar (visible from entrance)
 		this._addStalkerCorpse(w / 2 - 5, d / 2 - 8, 0.3, group);
-		// Disable frustum culling on the group when it contains easterEgg children
-		// Three.js skips ALL children if parent Group.frustumCulled=true and bounding box misses frustum
-		let hasEasterEgg = false;
-		group.traverse((obj) => {
-			if (obj.userData && obj.userData.easterEgg) {
-				hasEasterEgg = true;
-			}
-		});
-		if (hasEasterEgg) {
-			group.frustumCulled = false;
-		}
+		// Frustum culling remains enabled for hangar group; easter egg meshes have frustumCulled=false individually
 	}
 
 	_addReferenceMilitaryRuin(x, z, w, d) {
