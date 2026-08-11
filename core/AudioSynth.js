@@ -444,38 +444,6 @@ export class AudioSynth {
 		}
 	}
 
-	async _ensureLazyInit() {
-		if (this._lazyInitCalled) return;
-		this._lazyInitCalled = true;
-		if (this._initPromise) return this._initPromise;
-		this._initPromise = this._doLazyInit();
-		return this._initPromise;
-	}
-
-	async _doLazyInit() {
-		if (this._unlockInProgress) await this._unlockInProgress;
-		if (!this.audioContext) {
-			this._unlockInProgress = this._doUnlock();
-			await this._unlockInProgress;
-			this._unlockInProgress = null;
-			if (!this.audioContext) return;
-		}
-		if (this.audioContext.state === 'suspended') {
-			try {
-				await this.audioContext.resume();
-			} catch (_) {
-				// Some mobile browsers don't support resume
-			}
-			if (this.audioContext.state !== 'running') return;
-		}
-		if (!this.sampleLoadStarted) {
-			this.sampleLoadStarted = true;
-			this._preloadAllSamples();
-		}
-		this._setupAudioNodes();
-		this._ensureBazookaBuffersReady();
-	}
-
 	// Simple procedural launch buffer (fast to generate, used only as last-resort fallback)
 	_makeSimpleLaunchBuffer() {
 		const ctx = this.audioContext;
@@ -2056,3 +2024,4 @@ export class AudioSynth {
 		}
 	}
 }
+
