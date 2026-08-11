@@ -236,7 +236,7 @@ const STALKER_MATERIALS = {
 const STALKER_DETAIL_MAT = new THREE.MeshStandardMaterial({ color: 0x1a1d20, roughness: 0.6, flatShading: true });
 
 const _setWorldTransform = (obj, orig) => {
-    obj.matrix.elements.set(orig.matrixWorld.elements);
+    obj.matrix.copy(orig.matrixWorld);
     obj.matrix.decompose(obj.position, obj.quaternion, obj.scale);
     obj.updateMatrix();
     return obj;
@@ -1091,8 +1091,8 @@ export class Zombie {
         selectorKnob.rotation.x = Math.PI / 2; selectorKnob.position.set(0, 0.14, 0.35);
         akGroup.add(selectorKnob);
 
-        akGroup.position.set(0.3, 0.08, 1.2);
-        akGroup.rotation.x = Math.PI / 2; akGroup.rotation.z = -0.6;
+        akGroup.position.set(0.5, 0.30, 1.4);
+        akGroup.rotation.x = Math.PI / 2;
         mainGroup.add(akGroup);
         this._akGroup = akGroup;
         const bpGroup = new THREE.Group();
