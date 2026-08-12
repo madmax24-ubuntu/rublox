@@ -756,8 +756,9 @@ export class MapGenerator {
 			this.scene.add(plane);
 		}
 
-		// Terrain collider top at y=0.14 matches terrain mesh top (0.02 + 0.12 = 0.14)
-		// This prevents physics from detecting building floors (y=0.15) as the highest surface
+		// Terrain collider: thick box for reliable physics detection.
+		// visualY = 0.02 matches the visual terrain mesh (PlaneGeometry at y=0.02).
+		// Collider top at 0.14 ensures physics still detects terrain above building floors.
 		const terrainCollider = this.addColliderBox(
 			new THREE.Vector3(0, 0.07, 0),
 			HALF * 2,
@@ -766,6 +767,7 @@ export class MapGenerator {
 			true,
 		);
 		terrainCollider.isTerrain = true;
+		terrainCollider.visualY = 0.02;
 
 		// Height map (flat = 0)
 		this.heightMap = [];
@@ -8821,9 +8823,11 @@ export class MapGenerator {
 			return 2.0;
 		}
 
-		// Find the highest walkable surface at this position
+		// Find the highest walkable surface at this position.
+		// Changed: prefer highest surface (for correct building-floor placement)
+		// instead of closest to fallbackY (which always favoured terrain).
 		const maxSearchY = fallbackY + 3;
-		let closestY = fallbackY;
+		let highestY = fallbackY;
 		let found = false;
 		for (const col of this.colliders) {
 			if (!col.walkable) continue;
@@ -8858,17 +8862,16 @@ export class MapGenerator {
 				z >= col.min.z &&
 				z <= col.max.z
 			) {
-				if (col.max.y > closestY && col.max.y <= maxSearchY) {
-					// Prefer surfaces close to fallbackY (ground level), not highest surface
-					const diff = Math.abs(col.max.y - fallbackY);
-					if (!found || diff < Math.abs(closestY - fallbackY)) {
-						closestY = col.max.y;
-						found = true;
-					}
+				// Use visualY when available (matches the visual mesh top surface),
+				// otherwise fall back to collider max.y
+				const surfaceY = col.visualY !== undefined ? col.visualY : col.max.y;
+				if (surfaceY > highestY && col.max.y <= maxSearchY) {
+					highestY = surfaceY;
+					found = true;
 				}
 			}
 		}
-		return found ? closestY : fallbackY;
+		return found ? highestY : fallbackY;
 	}
 
 	getTraps() {

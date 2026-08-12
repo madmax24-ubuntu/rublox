@@ -113,9 +113,12 @@ export class LootManager {
     }
 
     getChestPlacementY(x, z) {
-        const terrainY = this.mapGenerator.getHeightAt?.(x, z);
-        if (!Number.isFinite(terrainY)) return null;
-        return terrainY - 0.42;
+        // Use raycastGroundY to find the actual walkable surface height
+        // (building floors inside structures, terrain outside).
+        // The chest sits ON the surface, so subtract half its height (~0.85/2≈0.42).
+        const surfaceY = this.mapGenerator.raycastGroundY?.(x, z, 0);
+        if (!Number.isFinite(surfaceY)) return null;
+        return surfaceY - 0.42;
     }
 
     isChestPlacementClear(x, y, z) {
@@ -168,7 +171,9 @@ export class LootManager {
             const pz = z + oz;
             const py = this.getChestPlacementY(px, pz);
             if (!Number.isFinite(py)) continue;
-            if (py < -0.1 || py > 0.8) continue;
+            // Allow any reasonable surface height: terrain (~0), building floors (~0.3+), towers (~15+).
+            // Only reject obviously wrong values (underground or impossibly high).
+            if (py < -2 || py > 30) continue;
             const groundY = py;
             if (this.isChestPlacementClear(px, groundY, pz)) return { x: px, y: groundY, z: pz };
         }

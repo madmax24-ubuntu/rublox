@@ -331,23 +331,26 @@ export class AudioSynth {
 		const data = buffer.getChannelData(0);
 		for (let i = 0; i < bufSize; i++) {
 			const t = i / rate;
-			const boom1 = Math.exp(-((t / 0.01) ** 2)) * 1.8;
-			const boom2 = Math.exp(-(((t - 0.03) / 0.025) ** 2)) * 1.0;
-			const boom3 = Math.exp(-(((t - 0.08) / 0.04) ** 2)) * 0.7;
-			const boom4 = Math.exp(-(((t - 0.15) / 0.06) ** 2)) * 0.4;
-			const subRumble = Math.sin(t * 12 * Math.PI) * Math.exp(-t * 0.4) * 0.8;
-			const subRumble2 = Math.sin(t * 8 * Math.PI) * Math.exp(-t * 0.3) * 0.6;
-			const midRumble = Math.sin(t * 55 * Math.PI) * Math.exp(-t * 0.8) * 0.7;
-			const midRumble2 = Math.sin(t * 80 * Math.PI) * Math.exp(-t * 1.0) * 0.4;
-			const crackle = (Math.random() * 2 - 1) * Math.exp(-t * 1.5) * 0.5;
+			const boom1 = Math.exp(-((t / 0.01) ** 2)) * 2.2;
+			const boom2 = Math.exp(-(((t - 0.03) / 0.025) ** 2)) * 1.3;
+			const boom3 = Math.exp(-(((t - 0.08) / 0.04) ** 2)) * 0.9;
+			const boom4 = Math.exp(-(((t - 0.15) / 0.06) ** 2)) * 0.5;
+			const subRumble = Math.sin(t * 12 * Math.PI) * Math.exp(-t * 0.4) * 1.0;
+			const subRumble2 = Math.sin(t * 8 * Math.PI) * Math.exp(-t * 0.3) * 0.8;
+			const midRumble = Math.sin(t * 55 * Math.PI) * Math.exp(-t * 0.8) * 0.9;
+			const midRumble2 = Math.sin(t * 80 * Math.PI) * Math.exp(-t * 1.0) * 0.5;
+			const crackle = (Math.random() * 2 - 1) * Math.exp(-t * 1.5) * 0.7;
 			const roarEnv = t < 0.05 ? t / 0.05 : Math.exp(-(((t - 0.05) / 0.8) ** 2));
-			const roar = (Math.random() * 2 - 1) * roarEnv * 0.4;
-			const echo = t > 0.1 ? Math.exp(-(((t - 0.1) / 0.8) ** 2)) * 0.35 : 0;
-			const groundRumble = Math.sin(t * 4 * Math.PI + 0.5) * Math.exp(-t * 0.3) * 0.5;
-			const groundRumble2 = Math.sin(t * 6 * Math.PI + 1.2) * Math.exp(-t * 0.25) * 0.4;
-			const subThump = Math.sin(t * 45 * Math.PI) * Math.exp(-t * 3) * 0.7;
-			const debris = (Math.random() * 2 - 1) * Math.exp(-t * 2.5) * 0.3;
-			data[i] = (boom1 + boom2 + boom3 + boom4 + subRumble + subRumble2 + midRumble + midRumble2 + crackle + roar + echo + groundRumble + groundRumble2 + subThump + debris) * 1.0;
+			const roar = (Math.random() * 2 - 1) * roarEnv * 0.5;
+			const echo = t > 0.1 ? Math.exp(-(((t - 0.1) / 0.8) ** 2)) * 0.45 : 0;
+			const groundRumble = Math.sin(t * 4 * Math.PI + 0.5) * Math.exp(-t * 0.3) * 0.6;
+			const groundRumble2 = Math.sin(t * 6 * Math.PI + 1.2) * Math.exp(-t * 0.25) * 0.5;
+			const subThump = Math.sin(t * 45 * Math.PI) * Math.exp(-t * 3) * 0.9;
+			const debris = (Math.random() * 2 - 1) * Math.exp(-t * 2.5) * 0.4;
+			data[i] = clamp(
+				(boom1 + boom2 + boom3 + boom4 + subRumble + subRumble2 + midRumble + midRumble2 + crackle + roar + echo + groundRumble + groundRumble2 + subThump + debris) * 0.7,
+				-2, 2,
+			);
 		}
 		return buffer;
 	}
@@ -415,15 +418,35 @@ export class AudioSynth {
 	_makeSimpleExplosionBuffer() {
 		const ctx = this.audioContext;
 		const rate = ctx.sampleRate;
-		const len = Math.floor(rate * 2.0);
+		const len = Math.floor(rate * 3.0);
 		const buf = ctx.createBuffer(1, len, rate);
 		const d = buf.getChannelData(0);
 		for (let i = 0; i < len; i++) {
 			const t = i / rate;
-			const boom = Math.exp(-t * 15) * 2.0;
-			const rumble = Math.sin(t * 20 * Math.PI) * Math.exp(-t * 2) * 1.0;
-			const noise = (Math.random() * 2 - 1) * Math.exp(-t * 3) * 0.8;
-			d[i] = boom + rumble + noise;
+			// Multiple boom peaks for a rich impact sound
+			const boom1 = Math.exp(-((t / 0.01) ** 2)) * 2.0;
+			const boom2 = Math.exp(-(((t - 0.03) / 0.025) ** 2)) * 1.2;
+			const boom3 = Math.exp(-(((t - 0.08) / 0.04) ** 2)) * 0.8;
+			// Deep sub-bass rumble
+			const subRumble = Math.sin(t * 10 * Math.PI) * Math.exp(-t * 0.4) * 1.0;
+			const subRumble2 = Math.sin(t * 6 * Math.PI) * Math.exp(-t * 0.3) * 0.7;
+			// Mid-frequency body
+			const midRumble = Math.sin(t * 55 * Math.PI) * Math.exp(-t * 0.8) * 0.9;
+			const midRumble2 = Math.sin(t * 80 * Math.PI) * Math.exp(-t * 1.0) * 0.5;
+			// High-frequency crackle/debris
+			const crackle = (Math.random() * 2 - 1) * Math.exp(-t * 1.5) * 0.7;
+			const debris = (Math.random() * 2 - 1) * Math.exp(-t * 2.5) * 0.4;
+			// Atmospheric roar
+			const roarEnv = t < 0.05 ? t / 0.05 : Math.exp(-(((t - 0.05) / 0.8) ** 2));
+			const roar = (Math.random() * 2 - 1) * roarEnv * 0.5;
+			// Ground shake
+			const groundRumble = Math.sin(t * 4 * Math.PI + 0.5) * Math.exp(-t * 0.3) * 0.6;
+			// Echo/shockwave return
+			const echo = t > 0.12 ? Math.exp(-(((t - 0.12) / 0.8) ** 2)) * 0.4 : 0;
+			d[i] = clamp(
+				(boom1 + boom2 + boom3 + subRumble + subRumble2 + midRumble + midRumble2 + crackle + debris + roar + groundRumble + echo) * 0.7,
+				-2, 2,
+			);
 		}
 		return buf;
 	}
@@ -1781,7 +1804,7 @@ export class AudioSynth {
 		});
 	}
 
-	// Simplified explosion: pre-mixed buffer + gain + panner (3 nodes)
+	// Explosion: loud positional burst + heavy reverb. Category "weapon" gets higher base gain.
 	async playProceduralExplosion(position, scale = 1) {
 		await this._ensureLazyInit();
 		if (this.bazookaExplosionBuffer) {
@@ -1791,13 +1814,13 @@ export class AudioSynth {
 			this.sampleBuffers.set(this._bazookaExplosionFallbackPath, this.bazookaExplosionBuffer);
 		}
 		return this.playSample(this.sampleCatalog.bazookaExplosion, {
-			volume: 2.0 * scale,
+			volume: 3.5 * scale,
 			rate: 1,
 			position,
-			category: "sfx",
+			category: "weapon",
 			priority: 3,
 			maxDuration: 3.4,
-			reverbSend: 0.08,
+			reverbSend: 0.15,
 		});
 	}
 
