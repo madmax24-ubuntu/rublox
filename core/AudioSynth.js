@@ -824,7 +824,7 @@ export class AudioSynth {
 		noise.stop(now + Math.max(0.03, duration) + 0.03);
 	}
 
-	playGeigerCounter(volume = 0.12, count = 6) {
+	playGeigerCounter(volume = 0.18, count = 10) {
 		if (!this.audioContext) {
 			this._ensureLazyInit();
 			if (!this.audioContext) return;
@@ -834,29 +834,74 @@ export class AudioSynth {
 		}
 		const ctx = this.audioContext;
 		const now = ctx.currentTime;
+		const gainNode = this.getCategoryGain("sfx");
+
+		// Generate S.T.A.L.K.E.R.-style geiger clicks with crackling rhythm
+		let delayBase = 0;
 		for (let i = 0; i < count; i++) {
+			// Random intervals between clicks (Stalker geiger rhythm)
+			const interval = 40 + Math.random() * 120;
+			if (i > 0 && Math.random() < 0.25) delayBase += 200 + Math.random() * 300; // Occasional pauses
+
 			setTimeout(() => {
 				if (!this.audioContext) return;
+
+				// Sharp click: use oscillator sweep for metallic crackle
+				const osc = ctx.createOscillator();
+				osc.type = "sawtooth";
+				const clickFreq = 2800 + Math.random() * 2200;
+				osc.frequency.setValueAtTime(300, ctx.currentTime);
+				osc.frequency.exponentialRampToValueAtTime(clickFreq, ctx.currentTime + 0.008);
+
+				// Noise component for crackling texture
 				const noise = ctx.createBufferSource();
-				noise.buffer = this.createRainNoiseBuffer(0.04);
+				noise.buffer = this.createRainNoiseBuffer(0.035);
 				noise.loop = false;
-				const hp = ctx.createBiquadFilter();
-				hp.type = "highpass";
-				hp.frequency.value = 2300 + i * 200;
-				const lp = ctx.createBiquadFilter();
-				lp.type = "lowpass";
-				lp.frequency.value = 8800;
-				const gain = ctx.createGain();
-				gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-				gain.gain.exponentialRampToValueAtTime(volume, ctx.currentTime + 0.005);
-				gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.04);
-				noise.connect(hp);
-				hp.connect(lp);
-				lp.connect(gain);
-				gain.connect(this.getCategoryGain("sfx"));
+
+				// Bandpass filter for crisp click
+				const bp = ctx.createBiquadFilter();
+				bp.type = "bandpass";
+				bp.frequency.value = clickFreq;
+				bp.Q.value = 8 + Math.random() * 6;
+
+				// Click envelope: sharp attack, fast decay
+				const clickGain = ctx.createGain();
+				clickGain.gain.setValueAtTime(0.0001, ctx.currentTime);
+				clickGain.gain.exponentialRampToValueAtTime(volume * 0.9, ctx.currentTime + 0.003);
+				clickGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.025);
+				clickGain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.06);
+
+				// Connect oscillator and noise through filter
+				osc.connect(bp);
+				noise.connect(bp);
+				bp.connect(clickGain);
+				clickGain.connect(gainNode);
+
+				osc.start(ctx.currentTime);
+				osc.stop(ctx.currentTime + 0.07);
 				noise.start(ctx.currentTime);
-				noise.stop(ctx.currentTime + 0.05);
-			}, i * (60 + Math.random() * 90));
+				noise.stop(ctx.currentTime + 0.06);
+
+				// Secondary crackle: lower volume, offset timing
+				if (Math.random() > 0.5) {
+					setTimeout(() => {
+						if (!this.audioContext) return;
+						const osc2 = ctx.createOscillator();
+						osc2.type = "square";
+						osc2.frequency.value = clickFreq * 1.2;
+						const clickGain2 = ctx.createGain();
+						clickGain2.gain.setValueAtTime(0.0001, ctx.currentTime);
+						clickGain2.gain.exponentialRampToValueAtTime(volume * 0.15, ctx.currentTime + 0.002);
+						clickGain2.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.03);
+						osc2.connect(clickGain2);
+						clickGain2.connect(gainNode);
+						osc2.start(ctx.currentTime);
+						osc2.stop(ctx.currentTime + 0.04);
+					}, 15 + Math.random() * 25);
+				}
+			}, delayBase + Math.random() * 30);
+
+			delayBase += interval;
 		}
 	}
 
