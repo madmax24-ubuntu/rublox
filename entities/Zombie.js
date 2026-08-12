@@ -288,12 +288,13 @@ const _createStalkerTexture = (type) => {
     return texture;
 };
 
-const _morphStalkerGeo = (box, sx, sy, sz, morphs) => {
+const _morphStalkerGeo = (box, sx, sy, sz, morphs, pad = 0.12) => {
     const pos = box.attributes.position;
     const uv = box.attributes.uv;
     const hw = box.parameters.width / 2, hh = box.parameters.height / 2, hd = box.parameters.depth / 2;
     const w = hw * 2, h = hh * 2, d = hd * 2;
     const eps = 0.001;
+    const padU = pad, padV = pad;
 
     // Track original positions for UV correction
     const origPos = new Float32Array(pos.count * 3);
@@ -352,6 +353,14 @@ const _morphStalkerGeo = (box, sx, sy, sz, morphs) => {
                 v = uv.getY(i);
             }
 
+            // Apply padding — shrink UV range to avoid texture vignette edges
+            if (u !== undefined) {
+                u = Math.max(0, Math.min(1, padU + u * (1 - padU * 2)));
+                v = Math.max(0, Math.min(1, padV + v * (1 - padV * 2)));
+            } else {
+                u = 0.5;
+                v = 0.5;
+            }
             uv.setX(i, u);
             uv.setY(i, v);
         }
@@ -366,10 +375,10 @@ const _morphStalkerGeo = (box, sx, sy, sz, morphs) => {
 };
 
 const _createStalkerGeometry = (part) => {
-    let w, h, d, sx, sy, sz, morphs;
+    let w, h, d, sx, sy, sz, morphs, pad;
     switch (part) {
         case 'helmet':
-            w = 0.82; h = 0.37; d = 0.82; sx = 3; sy = 3; sz = 3;
+            w = 0.82; h = 0.37; d = 0.82; sx = 3; sy = 3; sz = 3; pad = 0.06;
             morphs = {
                 top: (i,x,y,z,pos) => { const dx=x, dz=z, r=Math.sqrt(dx*dx+dz*dz), maxR=0.42, rise=0.16*Math.max(0,1-r/maxR); pos.setY(i, y+rise); },
                 front: (i,x,y,z,pos) => { pos.setZ(i, z+0.03); },
@@ -377,7 +386,7 @@ const _createStalkerGeometry = (part) => {
             };
             break;
         case 'head':
-            w = 0.72; h = 0.72; d = 0.72; sx = 2; sy = 2; sz = 2;
+            w = 0.72; h = 0.72; d = 0.72; sx = 2; sy = 2; sz = 2; pad = 0.06;
             morphs = {
                 front: (i,x,y,z,pos) => { const crv=0.06*Math.max(0,1-Math.abs(y)/0.36); pos.setZ(i, z+crv); },
                 left: (i,x,y,z,pos) => { pos.setX(i, x+0.015); },
@@ -385,53 +394,53 @@ const _createStalkerGeometry = (part) => {
             };
             break;
         case 'vest':
-            w = 0.82; h = 0.9; d = 0.11; sx = 4; sy = 4; sz = 2;
+            w = 0.82; h = 0.9; d = 0.11; sx = 4; sy = 4; sz = 2; pad = 0.04;
             morphs = {
                 front: (i,x,y,z,pos) => { const crv=0.025*Math.min(1,Math.abs(y)/0.45); pos.setZ(i, z+crv); }
             };
             break;
         case 'torso':
-            w = 0.78; h = 0.95; d = 0.52; sx = 3; sy = 3; sz = 2;
+            w = 0.78; h = 0.95; d = 0.52; sx = 3; sy = 3; sz = 2; pad = 0.16;
             morphs = {
                 top: (i,x,y,z,pos) => { const s=0.88; pos.setX(i, x*s); },
                 front: (i,x,y,z,pos) => { pos.setZ(i, z+0.015); }
             };
             break;
         case 'backpack':
-            w = 0.48; h = 0.64; d = 0.22; sx = 2; sy = 2; sz = 1;
+            w = 0.48; h = 0.64; d = 0.22; sx = 2; sy = 2; sz = 1; pad = 0.10;
             morphs = {
                 top: (i,x,y,z,pos) => { const r=Math.sqrt(x*x+z*z), mx=0.25, rise=0.025*Math.max(0,1-r/mx); pos.setY(i, y+rise); }
             };
             break;
         case 'arm':
-            w = 0.2; h = 0.68; d = 0.2; sx = 2; sy = 4; sz = 2;
+            w = 0.2; h = 0.68; d = 0.2; sx = 2; sy = 4; sz = 2; pad = 0.10;
             morphs = {
                 top: (i,x,y,z,pos) => { const yN=(y+0.34)/0.68, s=0.25+0.75*(1-yN); const cw=w*s/2; pos.setX(i, x*s); pos.setZ(i, z*s); },
                 front: (i,x,y,z,pos) => { const yN=(y+0.34)/0.68, crv=0.018*Math.sin(yN*Math.PI); pos.setZ(i, z+crv); }
             };
             break;
         case 'leg':
-            w = 0.2; h = 0.68; d = 0.2; sx = 2; sy = 4; sz = 2;
+            w = 0.2; h = 0.68; d = 0.2; sx = 2; sy = 4; sz = 2; pad = 0.10;
             morphs = {
                 top: (i,x,y,z,pos) => { const yN=(y+0.34)/0.68, baseS=1.0, tipS=1.25, s=tipS+(baseS-tipS)*yN; pos.setX(i, x*s/1.15); },
                 front: (i,x,y,z,pos) => { const yN=(y+0.34)/0.68, crv=0.025*Math.sin(yN*Math.PI); pos.setZ(i, z+crv); }
             };
             break;
         case 'knee':
-            w = 0.22; h = 0.18; d = 0.16; sx = 1; sy = 1; sz = 1;
+            w = 0.22; h = 0.18; d = 0.16; sx = 1; sy = 1; sz = 1; pad = 0.04;
             morphs = {
                 front: (i,x,y,z,pos) => { pos.setZ(i, z+0.04); }
             };
             break;
         case 'boot':
-            w = 0.24; h = 0.16; d = 0.32; sx = 2; sy = 1; sz = 2;
+            w = 0.24; h = 0.16; d = 0.32; sx = 2; sy = 1; sz = 2; pad = 0.04;
             morphs = {
                 front: (i,x,y,z,pos) => { pos.setZ(i, z+0.05); },
                 top: (i,x,y,z,pos) => { pos.setY(i, y+0.008); }
             };
             break;
         case 'pouch':
-            w = 0.2; h = 0.26; d = 0.14; sx = 2; sy = 2; sz = 1;
+            w = 0.2; h = 0.26; d = 0.14; sx = 2; sy = 2; sz = 1; pad = 0.04;
             morphs = {
                 front: (i,x,y,z,pos) => { pos.setZ(i, z+0.025); }
             };
@@ -440,7 +449,7 @@ const _createStalkerGeometry = (part) => {
             return new THREE.BoxGeometry(w||0.2, h||0.2, d||0.2);
     }
     const box = new THREE.BoxGeometry(w, h, d, sx, sy, sz);
-    _morphStalkerGeo(box, sx, sy, sz, morphs);
+    _morphStalkerGeo(box, sx, sy, sz, morphs, pad);
     return box;
 };
 
