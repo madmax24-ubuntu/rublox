@@ -108,6 +108,8 @@ const _createZombieTexture = (variant, baseColorHex) => {
 const STALKER_TEXTURES = {
     camo: null, vest: null, gasMask: null, boots: null, helmet: null, backpack: null, blood: null
 };
+// Force regeneration of stalker textures on load
+for (const key in STALKER_TEXTURES) { STALKER_TEXTURES[key] = null; }
 const _createStalkerTexture = (type) => {
     if (STALKER_TEXTURES[type]) return STALKER_TEXTURES[type];
     const size = type === 'camo' ? 512 : 256;
@@ -117,13 +119,13 @@ const _createStalkerTexture = (type) => {
     const ctx = canvas.getContext('2d');
 
     if (type === 'camo') {
-        ctx.fillStyle = '#3b4a3a';
+        ctx.fillStyle = '#3f5f3d';
         ctx.fillRect(0, 0, size, size);
-        const colors = ['#2d4a1e','#3a5a2a','#1a3510','#4a7a3a','#3d5d2d'];
+        const colors = ['#2d5a1e','#3a6a2a','#1a4f10','#4a8a3a','#3d6d2d','#6a5a3a'];
         for (let i = 0; i < 200; i++) {
             ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
             ctx.beginPath();
-            const ps = 10 + Math.random() * 20;
+            const ps = 12 + Math.random() * 25;
             ctx.ellipse(Math.random()*size, Math.random()*size, ps, ps*(0.4+Math.random()*0.6), Math.random()*Math.PI, 0, Math.PI*2);
             ctx.fill();
         }
@@ -136,6 +138,12 @@ const _createStalkerTexture = (type) => {
             ctx.fill();
             ctx.globalAlpha = 1;
         }
+        // Dark edge vignette
+        const vignette = ctx.createRadialGradient(size/2, size/2, size*0.3, size/2, size/2, size*0.72);
+        vignette.addColorStop(0, 'rgba(0,0,0,0)');
+        vignette.addColorStop(1, 'rgba(0,0,0,0.45)');
+        ctx.fillStyle = vignette;
+        ctx.fillRect(0, 0, size, size);
         const d = ctx.getImageData(0, 0, size, size);
         for (let i = 0; i < d.data.length; i += 4) { const n = (Math.random()-0.5)*25; d.data[i]+=n; d.data[i+1]+=n; d.data[i+2]+=n; }
         ctx.putImageData(d, 0, 0);
@@ -155,6 +163,18 @@ const _createStalkerTexture = (type) => {
         ctx.strokeStyle = '#4a4d42'; ctx.lineWidth = 1.5;
         ctx.strokeRect(size*0.1, size*0.1, size*0.3, size*0.3);
         ctx.strokeRect(size*0.6, size*0.1, size*0.3, size*0.3);
+        ctx.strokeRect(size*0.1, size*0.5, size*0.3, size*0.3);
+        ctx.strokeRect(size*0.6, size*0.5, size*0.3, size*0.3);
+        // Stitch marks inside each pouch
+        ctx.strokeStyle = 'rgba(160,160,140,0.6)'; ctx.lineWidth = 0.7;
+        const pouches = [[0.1, 0.1, 0.3, 0.3], [0.6, 0.1, 0.3, 0.3], [0.1, 0.5, 0.3, 0.3], [0.6, 0.5, 0.3, 0.3]];
+        for (const [px, py, pw, ph] of pouches) {
+            const ix = size*(px+0.04), iy = size*(py+0.03);
+            const iw = size*pw*0.72, ih = size*ph*0.72;
+            for (let sy = iy; sy < iy+ih; sy += 5) {
+                ctx.beginPath(); ctx.moveTo(ix, sy); ctx.lineTo(ix+iw, sy); ctx.stroke();
+            }
+        }
         ctx.fillStyle = '#5a5a5a'; ctx.fillRect(size*0.42, size*0.45, size*0.16, size*0.1);
         ctx.strokeStyle = 'rgba(90,90,80,0.4)'; ctx.lineWidth = 1;
         for (let i = 0; i < 20; i++) { ctx.beginPath(); ctx.moveTo(Math.random()*size, Math.random()*size); ctx.lineTo(Math.random()*size, Math.random()*size); ctx.stroke(); }
@@ -165,12 +185,20 @@ const _createStalkerTexture = (type) => {
         ctx.fillStyle = '#3a3a3a';
         ctx.fillRect(0, 0, size, size);
         for (let i = 0; i < 60; i++) { const s = 45+Math.random()*35; ctx.fillStyle=`rgb(${s},${s},${s})`; ctx.beginPath(); ctx.arc(Math.random()*size, Math.random()*size, 1+Math.random()*3, 0, Math.PI*2); ctx.fill(); }
+        // Lens outer rings
         ctx.fillStyle = '#151515';
-        ctx.beginPath(); ctx.arc(size*0.3, size*0.4, 14, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.arc(size*0.7, size*0.4, 14, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#2a2a2a';
-        ctx.beginPath(); ctx.arc(size*0.3, size*0.4, 10, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.arc(size*0.7, size*0.4, 10, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(size*0.3, size*0.4, 18, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(size*0.7, size*0.4, 18, 0, Math.PI*2); ctx.fill();
+        // Lens gradient: darker edges, lighter center
+        const drawLens = (cx, cy, r) => {
+            const g = ctx.createRadialGradient(cx, cy, r*0.2, cx, cy, r);
+            g.addColorStop(0, '#3a3a3a');
+            g.addColorStop(1, '#1a1a1a');
+            ctx.fillStyle = g;
+            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
+        };
+        drawLens(size*0.3, size*0.4, 14);
+        drawLens(size*0.7, size*0.4, 14);
         ctx.fillStyle = '#282822';
         ctx.beginPath(); ctx.ellipse(size*0.5, size*0.65, 14, 7, 0, 0, Math.PI*2); ctx.fill();
         ctx.strokeStyle = '#252525'; ctx.lineWidth = 1.5;
@@ -200,7 +228,7 @@ const _createStalkerTexture = (type) => {
     } else if (type === 'helmet') {
         ctx.fillStyle = '#3a5a2a';
         ctx.fillRect(0, 0, size, size);
-        const colors = ['#2a4a1a','#4a7a3a','#1a3a10','#5a8a4a', '#3d6d2d'];
+        const colors = ['#2d5a1e','#3a6a2a','#1a4f10','#4a8a3a','#3d6d2d','#6a5a3a'];
         for (let i = 0; i < 40; i++) {
             ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
             ctx.beginPath();
@@ -262,10 +290,21 @@ const _createStalkerTexture = (type) => {
 
 const _morphStalkerGeo = (box, sx, sy, sz, morphs) => {
     const pos = box.attributes.position;
+    const uv = box.attributes.uv;
     const hw = box.parameters.width / 2, hh = box.parameters.height / 2, hd = box.parameters.depth / 2;
+    const w = hw * 2, h = hh * 2, d = hd * 2;
     const eps = 0.001;
+
+    // Track original positions for UV correction
+    const origPos = new Float32Array(pos.count * 3);
     for (let i = 0; i < pos.count; i++) {
-        const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+        origPos[i*3] = pos.getX(i);
+        origPos[i*3+1] = pos.getY(i);
+        origPos[i*3+2] = pos.getZ(i);
+    }
+
+    for (let i = 0; i < pos.count; i++) {
+        const x = origPos[i*3], y = origPos[i*3+1], z = origPos[i*3+2];
         if (morphs.top && Math.abs(y - hh) < eps) morphs.top(i, x, y, z, pos);
         if (morphs.bottom && Math.abs(y + hh) < eps) morphs.bottom(i, x, y, z, pos);
         if (morphs.front && Math.abs(z - hd) < eps) morphs.front(i, x, y, z, pos);
@@ -273,7 +312,57 @@ const _morphStalkerGeo = (box, sx, sy, sz, morphs) => {
         if (morphs.right && Math.abs(x - hw) < eps) morphs.right(i, x, y, z, pos);
         if (morphs.left && Math.abs(x + hw) < eps) morphs.left(i, x, y, z, pos);
     }
+
+    // Adjust UVs based on position deltas
+    if (uv) {
+        for (let i = 0; i < pos.count; i++) {
+            const origX = origPos[i*3], origY = origPos[i*3+1], origZ = origPos[i*3+2];
+
+            let u, v;
+
+            // Determine which face this vertex belongs to
+            const isTop = Math.abs(origY - hh) < eps;
+            const isBottom = Math.abs(origY + hh) < eps;
+            const isFront = Math.abs(origZ - hd) < eps;
+            const isBack = Math.abs(origZ + hd) < eps;
+            const isRight = Math.abs(origX - hw) < eps;
+            const isLeft = Math.abs(origX + hw) < eps;
+
+            // UV adjustments per face
+            if (isTop) {
+                u = (pos.getX(i) + hw) / w;
+                v = 0.5 - (pos.getZ(i) + hd) / d;
+            } else if (isBottom) {
+                u = (pos.getX(i) + hw) / w;
+                v = 0.5 + (pos.getZ(i) + hd) / d;
+            } else if (isFront) {
+                u = (pos.getX(i) + hw) / w;
+                v = (pos.getY(i) + hh) / h;
+            } else if (isBack) {
+                u = (pos.getX(i) - hw) / w;
+                v = (pos.getY(i) + hh) / h;
+            } else if (isRight) {
+                u = (pos.getZ(i) + hd) / d;
+                v = (pos.getY(i) + hh) / h;
+            } else if (isLeft) {
+                u = (pos.getZ(i) - hd) / d;
+                v = (pos.getY(i) + hh) / h;
+            } else {
+                u = uv.getX(i);
+                v = uv.getY(i);
+            }
+
+            uv.setX(i, u);
+            uv.setY(i, v);
+        }
+    }
+
+    pos.needsUpdate = true;
+    if (uv) uv.needsUpdate = true;
     box.computeVertexNormals();
+
+    // Clean up
+    origPos.fill(0);
 };
 
 const _createStalkerGeometry = (part) => {
@@ -362,6 +451,8 @@ const _getStalkerGeo = (part) => {
 };
 
 const STALKER_MATERIALS_CACHE = {};
+// Force regeneration of stalker materials on load
+for (const key in STALKER_MATERIALS_CACHE) { delete STALKER_MATERIALS_CACHE[key]; }
 const STALKER_MATERIALS = {
     get camo() { return (STALKER_MATERIALS_CACHE.camo ??= new THREE.MeshStandardMaterial({ map: STALKER_TEXTURES.camo || _createStalkerTexture('camo'), roughness: 0.7, metalness: 0, flatShading: true })); },
     get vest() { return (STALKER_MATERIALS_CACHE.vest ??= new THREE.MeshStandardMaterial({ map: STALKER_TEXTURES.vest || _createStalkerTexture('vest'), roughness: 0.5, metalness: 0.1, flatShading: true })); },

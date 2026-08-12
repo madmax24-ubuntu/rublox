@@ -191,6 +191,44 @@ test('stalker variant uses custom BufferGeometry', async ({ page }) => {
     expect(inspect.meshScale, 'Stalker mesh scale should match config (~1.3)').toBeGreaterThan(1.2);
     expect(inspect.meshScale, 'Stalker mesh scale should match config (~1.3)').toBeLessThan(1.5);
 
+    // UV attribute exists and has values after morphing
+    const uvTest = await page.evaluate(() => {
+        const game = window.game;
+        const em = game?.entityManager;
+        if (!em) return { uvOk: false };
+        const zombies = em.entities.filter(e => e?.variant === 'stalker' && e.isAlive);
+        if (zombies.length === 0) return { uvOk: false };
+        const stalker = zombies[0];
+        const children = stalker.mesh?.children || [];
+        // Check torso, vest, helmet, arm, leg have valid UVs after morph
+        const checkGeo = (mesh) => {
+            if (!mesh?.geometry?.attributes?.uv) return false;
+            const uv = mesh.geometry.attributes.uv;
+            const pos = mesh.geometry.attributes.position;
+            if (!pos || uv.count !== pos.count) return false;
+            // Verify UVs are populated (not all zeros)
+            let nonZero = 0;
+            for (let i = 0; i < Math.min(uv.count, 12); i++) {
+                if (Math.abs(uv.getX(i)) > 0.001 || Math.abs(uv.getY(i)) > 0.001) nonZero++;
+            }
+            return nonZero > 0;
+        };
+        return {
+            uvOk: true,
+            torsoHasUV: checkGeo(children[0]),
+            vestHasUV: checkGeo(children[1]),
+            helmetHasUV: checkGeo(children[9]?.children?.[4]),
+            armHasUV: checkGeo(children[10]),
+            legHasUV: checkGeo(children[14]),
+        };
+    });
+
+    expect(uvTest.torsoHasUV, 'Torso geometry must have UV attribute after morph').toBe(true);
+    expect(uvTest.vestHasUV, 'Vest geometry must have UV attribute after morph').toBe(true);
+    expect(uvTest.helmetHasUV, 'Helmet geometry must have UV attribute after morph').toBe(true);
+    expect(uvTest.armHasUV, 'Arm geometry must have UV attribute after morph').toBe(true);
+    expect(uvTest.legHasUV, 'Leg geometry must have UV attribute after morph').toBe(true);
+
     // Screenshot for visual reference
     await page.screenshot({ path: `test-results/stalker-geometry-${Date.now()}.png` });
 
