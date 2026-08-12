@@ -119,78 +119,118 @@ const _createStalkerTexture = (type) => {
     if (type === 'camo') {
         ctx.fillStyle = '#3b4a3a';
         ctx.fillRect(0, 0, size, size);
-        const colors = ['#2a3a0a','#3a5a2a','#1a2a0a','#5a7a4a','#3a4a2a','#6a5a3a','#2a1a0a'];
+        const colors = ['#2d4a1e','#3a5a2a','#1a3510','#4a7a3a','#3d5d2d'];
         for (let i = 0; i < 200; i++) {
             ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
             ctx.beginPath();
-            ctx.ellipse(Math.random()*size, Math.random()*size, 5+Math.random()*20, 5+Math.random()*20*(0.4+Math.random()*0.6), Math.random()*Math.PI, 0, Math.PI*2);
+            const ps = 10 + Math.random() * 20;
+            ctx.ellipse(Math.random()*size, Math.random()*size, ps, ps*(0.4+Math.random()*0.6), Math.random()*Math.PI, 0, Math.PI*2);
             ctx.fill();
         }
+        const mudColors = ['#5a3a1a','#3a2a0a','#4a2a0a'];
+        for (let i = 0; i < 25; i++) {
+            ctx.fillStyle = mudColors[Math.floor(Math.random() * mudColors.length)];
+            ctx.globalAlpha = 0.3 + Math.random() * 0.3;
+            ctx.beginPath();
+            ctx.ellipse(Math.random()*size, Math.random()*size, 5+Math.random()*15, 5+Math.random()*12, Math.random()*Math.PI, 0, Math.PI*2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
         const d = ctx.getImageData(0, 0, size, size);
-        for (let i = 0; i < d.data.length; i += 4) { const n = (Math.random()-0.5)*20; d.data[i]+=n; d.data[i+1]+=n; d.data[i+2]+=n; }
+        for (let i = 0; i < d.data.length; i += 4) { const n = (Math.random()-0.5)*25; d.data[i]+=n; d.data[i+1]+=n; d.data[i+2]+=n; }
         ctx.putImageData(d, 0, 0);
     } else if (type === 'vest') {
-        ctx.fillStyle = '#1a1d20';
+        ctx.fillStyle = '#222a20';
         ctx.fillRect(0, 0, size, size);
-        ctx.strokeStyle = '#121518'; ctx.lineWidth = 3;
+        ctx.strokeStyle = '#353530'; ctx.lineWidth = 2.5;
         for (let y = 8; y < size; y += 8) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(size, y); ctx.stroke(); }
         for (let x = 8; x < size; x += 8) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, size); ctx.stroke(); }
-        ctx.fillStyle = '#2a2d30';
+        ctx.strokeStyle = '#1a1d18'; ctx.lineWidth = 1;
+        for (let y = 4; y < size; y += 8) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(size, y); ctx.stroke(); }
+        ctx.fillStyle = '#3a3d35';
         ctx.fillRect(size*0.1, size*0.1, size*0.3, size*0.3);
         ctx.fillRect(size*0.6, size*0.1, size*0.3, size*0.3);
         ctx.fillRect(size*0.1, size*0.5, size*0.3, size*0.3);
         ctx.fillRect(size*0.6, size*0.5, size*0.3, size*0.3);
+        ctx.strokeStyle = '#4a4d42'; ctx.lineWidth = 1.5;
+        ctx.strokeRect(size*0.1, size*0.1, size*0.3, size*0.3);
+        ctx.strokeRect(size*0.6, size*0.1, size*0.3, size*0.3);
         ctx.fillStyle = '#5a5a5a'; ctx.fillRect(size*0.42, size*0.45, size*0.16, size*0.1);
+        ctx.strokeStyle = 'rgba(90,90,80,0.4)'; ctx.lineWidth = 1;
+        for (let i = 0; i < 20; i++) { ctx.beginPath(); ctx.moveTo(Math.random()*size, Math.random()*size); ctx.lineTo(Math.random()*size, Math.random()*size); ctx.stroke(); }
+        const d = ctx.getImageData(0, 0, size, size);
+        for (let i = 0; i < d.data.length; i += 4) { const n = (Math.random()-0.5)*14; d.data[i]+=n; d.data[i+1]+=n; d.data[i+2]+=n; }
+        ctx.putImageData(d, 0, 0);
+    } else if (type === 'gasMask') {
+        ctx.fillStyle = '#3a3a3a';
+        ctx.fillRect(0, 0, size, size);
+        for (let i = 0; i < 60; i++) { const s = 45+Math.random()*35; ctx.fillStyle=`rgb(${s},${s},${s})`; ctx.beginPath(); ctx.arc(Math.random()*size, Math.random()*size, 1+Math.random()*3, 0, Math.PI*2); ctx.fill(); }
+        ctx.fillStyle = '#151515';
+        ctx.beginPath(); ctx.arc(size*0.3, size*0.4, 14, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(size*0.7, size*0.4, 14, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#2a2a2a';
+        ctx.beginPath(); ctx.arc(size*0.3, size*0.4, 10, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(size*0.7, size*0.4, 10, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#282822';
+        ctx.beginPath(); ctx.ellipse(size*0.5, size*0.65, 14, 7, 0, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = '#252525'; ctx.lineWidth = 1.5;
+        for (let i = 0; i < 6; i++) { const a = Math.random()*Math.PI*2; ctx.beginPath(); ctx.arc(size*0.5, size*0.5, 20+Math.random()*20, a, a+0.8); ctx.stroke(); }
         const d = ctx.getImageData(0, 0, size, size);
         for (let i = 0; i < d.data.length; i += 4) { const n = (Math.random()-0.5)*12; d.data[i]+=n; d.data[i+1]+=n; d.data[i+2]+=n; }
         ctx.putImageData(d, 0, 0);
-    } else if (type === 'gasMask') {
-        ctx.fillStyle = '#5a5a5a';
-        ctx.fillRect(0, 0, size, size);
-        for (let i = 0; i < 60; i++) { const s = 60+Math.random()*40; ctx.fillStyle=`rgb(${s},${s},${s})`; ctx.beginPath(); ctx.arc(Math.random()*size, Math.random()*size, 1+Math.random()*3, 0, Math.PI*2); ctx.fill(); }
-        ctx.fillStyle = '#2a2a2a';
-        ctx.beginPath(); ctx.arc(size*0.3, size*0.4, 8, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.arc(size*0.7, size*0.4, 8, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#4a4a3a';
-        ctx.beginPath(); ctx.ellipse(size*0.5, size*0.65, 12, 6, 0, 0, Math.PI*2); ctx.fill();
-        const d = ctx.getImageData(0, 0, size, size);
-        for (let i = 0; i < d.data.length; i += 4) { const n = (Math.random()-0.5)*10; d.data[i]+=n; d.data[i+1]+=n; d.data[i+2]+=n; }
-        ctx.putImageData(d, 0, 0);
     } else if (type === 'boots') {
-        ctx.fillStyle = '#1a1a0a';
+        ctx.fillStyle = '#2a1a0a';
         ctx.fillRect(0, 0, size, size);
+        for (let i = 0; i < 40; i++) {
+            ctx.fillStyle = `rgba(${30+Math.floor(Math.random()*20)},${15+Math.floor(Math.random()*15)},${10+Math.floor(Math.random()*10)},0.3)`;
+            ctx.beginPath();
+            ctx.ellipse(Math.random()*size, Math.random()*size, 3+Math.random()*8, 3+Math.random()*8, Math.random()*Math.PI, 0, Math.PI*2);
+            ctx.fill();
+        }
+        ctx.strokeStyle = '#1a0a02'; ctx.lineWidth = 2;
+        for (let i = 0; i < 8; i++) { ctx.beginPath(); ctx.moveTo(Math.random()*size, Math.random()*size); ctx.lineTo(Math.random()*size, Math.random()*size); ctx.stroke(); }
         ctx.fillStyle = '#0a0a0a';
         for (let y = 0; y < size; y += 6) for (let x = 0; x < size; x += 8) if (Math.random() > 0.3) ctx.fillRect(x, y, 4, 3);
-        ctx.strokeStyle = '#4a4a2a'; ctx.lineWidth = 3;
+        ctx.strokeStyle = '#3a2a1a'; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(size*0.45, 0); for(let y=0;y<size*0.4;y+=8) ctx.lineTo(size*(0.45+(Math.random()-0.5)*0.1), y); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(size*0.55, 0); for(let y=0;y<size*0.4;y+=8) ctx.lineTo(size*(0.55+(Math.random()-0.5)*0.1), y); ctx.stroke();
         const d = ctx.getImageData(0, 0, size, size);
-        for (let i = 0; i < d.data.length; i += 4) { const n = (Math.random()-0.5)*25; d.data[i]+=n; d.data[i+1]+=n; d.data[i+2]+=n; }
+        for (let i = 0; i < d.data.length; i += 4) { const n = (Math.random()-0.5)*28; d.data[i]+=n; d.data[i+1]+=n; d.data[i+2]+=n; }
         ctx.putImageData(d, 0, 0);
     } else if (type === 'helmet') {
         ctx.fillStyle = '#3a5a2a';
         ctx.fillRect(0, 0, size, size);
-        const colors = ['#2a4a1a','#4a6a3a','#1a3a0a','#5a7a4a'];
-        for (let i = 0; i < 40; i++) { ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)]; ctx.beginPath(); ctx.ellipse(Math.random()*size, Math.random()*size, 4+Math.random()*10, 3+Math.random()*8, Math.random()*Math.PI, 0, Math.PI*2); ctx.fill(); }
-        ctx.strokeStyle = 'rgba(80,80,70,0.3)'; ctx.lineWidth = 1;
-        for (let i = 0; i < 15; i++) { ctx.beginPath(); ctx.moveTo(Math.random()*size, Math.random()*size); ctx.lineTo(Math.random()*size, Math.random()*size); ctx.stroke(); }
+        const colors = ['#2a4a1a','#4a7a3a','#1a3a10','#5a8a4a', '#3d6d2d'];
+        for (let i = 0; i < 40; i++) {
+            ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+            ctx.beginPath();
+            const ps = 6+Math.random()*14;
+            ctx.ellipse(Math.random()*size, Math.random()*size, ps, ps*0.7, Math.random()*Math.PI, 0, Math.PI*2);
+            ctx.fill();
+        }
+        ctx.strokeStyle = 'rgba(90,90,80,0.45)'; ctx.lineWidth = 1.5;
+        for (let i = 0; i < 18; i++) { ctx.beginPath(); ctx.moveTo(Math.random()*size, Math.random()*size); ctx.lineTo(Math.random()*size, Math.random()*size); ctx.stroke(); }
         const d = ctx.getImageData(0, 0, size, size);
-        for (let i = 0; i < d.data.length; i += 4) { const n = (Math.random()-0.5)*15; d.data[i]+=n; d.data[i+1]+=n; d.data[i+2]+=n; }
+        for (let i = 0; i < d.data.length; i += 4) { const n = (Math.random()-0.5)*18; d.data[i]+=n; d.data[i+1]+=n; d.data[i+2]+=n; }
         ctx.putImageData(d, 0, 0);
     } else if (type === 'backpack') {
         ctx.fillStyle = '#2a3a1a';
         ctx.fillRect(0, 0, size, size);
         ctx.strokeStyle = '#1a2a0a'; ctx.lineWidth = 2;
         ctx.strokeRect(size*0.1, size*0.1, size*0.8, size*0.8);
-        ctx.strokeStyle = '#1a2a0a'; ctx.lineWidth = 4;
+        ctx.fillStyle = '#0a1508'; ctx.lineWidth = 4;
         ctx.beginPath(); ctx.moveTo(size*0.5, size*0.1); ctx.lineTo(size*0.5, size*0.9); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(size*0.1, size*0.5); ctx.lineTo(size*0.9, size*0.5); ctx.stroke();
         ctx.fillStyle = '#3a4a2a';
-        ctx.fillRect(size*0.15, size*0.15, size*0.3, size*0.35);
-        ctx.fillRect(size*0.55, size*0.15, size*0.3, size*0.35);
-        ctx.fillRect(size*0.15, size*0.55, size*0.3, size*0.3);
-        ctx.fillRect(size*0.55, size*0.55, size*0.3, size*0.3);
+        ctx.fillRect(size*0.15, size*0.15, size*0.3, size*0.3);
+        ctx.fillRect(size*0.55, size*0.15, size*0.3, size*0.3);
+        ctx.fillRect(size*0.15, size*0.55, size*0.3, size*0.25);
+        ctx.fillRect(size*0.55, size*0.55, size*0.3, size*0.25);
+        ctx.strokeStyle = '#4a5a3a'; ctx.lineWidth = 1;
+        ctx.strokeRect(size*0.15, size*0.15, size*0.3, size*0.3);
+        ctx.strokeRect(size*0.55, size*0.15, size*0.3, size*0.3);
         const d = ctx.getImageData(0, 0, size, size);
-        for (let i = 0; i < d.data.length; i += 4) { const n = (Math.random()-0.5)*18; d.data[i]+=n; d.data[i+1]+=n; d.data[i+2]+=n; }
+        for (let i = 0; i < d.data.length; i += 4) { const n = (Math.random()-0.5)*20; d.data[i]+=n; d.data[i+1]+=n; d.data[i+2]+=n; }
         ctx.putImageData(d, 0, 0);
         } else if (type === 'blood') {
             ctx.fillStyle = '#3a0000';
@@ -218,6 +258,107 @@ const _createStalkerTexture = (type) => {
     texture.anisotropy = 4;
     STALKER_TEXTURES[type] = texture;
     return texture;
+};
+
+const _morphStalkerGeo = (box, sx, sy, sz, morphs) => {
+    const pos = box.attributes.position;
+    const hw = box.parameters.width / 2, hh = box.parameters.height / 2, hd = box.parameters.depth / 2;
+    const eps = 0.001;
+    for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+        if (morphs.top && Math.abs(y - hh) < eps) morphs.top(i, x, y, z, pos);
+        if (morphs.bottom && Math.abs(y + hh) < eps) morphs.bottom(i, x, y, z, pos);
+        if (morphs.front && Math.abs(z - hd) < eps) morphs.front(i, x, y, z, pos);
+        if (morphs.back && Math.abs(z + hd) < eps) morphs.back(i, x, y, z, pos);
+        if (morphs.right && Math.abs(x - hw) < eps) morphs.right(i, x, y, z, pos);
+        if (morphs.left && Math.abs(x + hw) < eps) morphs.left(i, x, y, z, pos);
+    }
+    box.computeVertexNormals();
+};
+
+const _createStalkerGeometry = (part) => {
+    let w, h, d, sx, sy, sz, morphs;
+    switch (part) {
+        case 'helmet':
+            w = 0.82; h = 0.37; d = 0.82; sx = 3; sy = 3; sz = 3;
+            morphs = {
+                top: (i,x,y,z,pos) => { const dx=x, dz=z, r=Math.sqrt(dx*dx+dz*dz), maxR=0.42, rise=0.16*Math.max(0,1-r/maxR); pos.setY(i, y+rise); },
+                front: (i,x,y,z,pos) => { pos.setZ(i, z+0.03); },
+                back: (i,x,y,z,pos) => { pos.setZ(i, z+0.01); }
+            };
+            break;
+        case 'head':
+            w = 0.72; h = 0.72; d = 0.72; sx = 2; sy = 2; sz = 2;
+            morphs = {
+                front: (i,x,y,z,pos) => { const crv=0.06*Math.max(0,1-Math.abs(y)/0.36); pos.setZ(i, z+crv); },
+                left: (i,x,y,z,pos) => { pos.setX(i, x+0.015); },
+                right: (i,x,y,z,pos) => { pos.setX(i, x-0.015); }
+            };
+            break;
+        case 'vest':
+            w = 0.82; h = 0.9; d = 0.11; sx = 4; sy = 4; sz = 2;
+            morphs = {
+                front: (i,x,y,z,pos) => { const crv=0.025*Math.min(1,Math.abs(y)/0.45); pos.setZ(i, z+crv); }
+            };
+            break;
+        case 'torso':
+            w = 0.78; h = 0.95; d = 0.52; sx = 3; sy = 3; sz = 2;
+            morphs = {
+                top: (i,x,y,z,pos) => { const s=0.88; pos.setX(i, x*s); },
+                front: (i,x,y,z,pos) => { pos.setZ(i, z+0.015); }
+            };
+            break;
+        case 'backpack':
+            w = 0.48; h = 0.64; d = 0.22; sx = 2; sy = 2; sz = 1;
+            morphs = {
+                top: (i,x,y,z,pos) => { const r=Math.sqrt(x*x+z*z), mx=0.25, rise=0.025*Math.max(0,1-r/mx); pos.setY(i, y+rise); }
+            };
+            break;
+        case 'arm':
+            w = 0.2; h = 0.68; d = 0.2; sx = 2; sy = 4; sz = 2;
+            morphs = {
+                top: (i,x,y,z,pos) => { const yN=(y+0.34)/0.68, s=0.25+0.75*(1-yN); const cw=w*s/2; pos.setX(i, x*s); pos.setZ(i, z*s); },
+                front: (i,x,y,z,pos) => { const yN=(y+0.34)/0.68, crv=0.018*Math.sin(yN*Math.PI); pos.setZ(i, z+crv); }
+            };
+            break;
+        case 'leg':
+            w = 0.2; h = 0.68; d = 0.2; sx = 2; sy = 4; sz = 2;
+            morphs = {
+                top: (i,x,y,z,pos) => { const yN=(y+0.34)/0.68, baseS=1.0, tipS=1.25, s=tipS+(baseS-tipS)*yN; pos.setX(i, x*s/1.15); },
+                front: (i,x,y,z,pos) => { const yN=(y+0.34)/0.68, crv=0.025*Math.sin(yN*Math.PI); pos.setZ(i, z+crv); }
+            };
+            break;
+        case 'knee':
+            w = 0.22; h = 0.18; d = 0.16; sx = 1; sy = 1; sz = 1;
+            morphs = {
+                front: (i,x,y,z,pos) => { pos.setZ(i, z+0.04); }
+            };
+            break;
+        case 'boot':
+            w = 0.24; h = 0.16; d = 0.32; sx = 2; sy = 1; sz = 2;
+            morphs = {
+                front: (i,x,y,z,pos) => { pos.setZ(i, z+0.05); },
+                top: (i,x,y,z,pos) => { pos.setY(i, y+0.008); }
+            };
+            break;
+        case 'pouch':
+            w = 0.2; h = 0.26; d = 0.14; sx = 2; sy = 2; sz = 1;
+            morphs = {
+                front: (i,x,y,z,pos) => { pos.setZ(i, z+0.025); }
+            };
+            break;
+        default:
+            return new THREE.BoxGeometry(w||0.2, h||0.2, d||0.2);
+    }
+    const box = new THREE.BoxGeometry(w, h, d, sx, sy, sz);
+    _morphStalkerGeo(box, sx, sy, sz, morphs);
+    return box;
+};
+
+const STALKER_GEOMETRIES_CACHE = {};
+const _getStalkerGeo = (part) => {
+    if (!STALKER_GEOMETRIES_CACHE[part]) STALKER_GEOMETRIES_CACHE[part] = _createStalkerGeometry(part);
+    return STALKER_GEOMETRIES_CACHE[part];
 };
 
 const STALKER_MATERIALS_CACHE = {};
@@ -717,25 +858,39 @@ export class Zombie {
             spine.position.set(0, 1.1, -0.3);
             group.add(spine);
         } else if (this.variant === 'stalker') {
-            const body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.1, 0.58), STALKER_MATERIALS.camo);
-            body.position.y = 0.92;
-            group.add(body);
+            const torso = new THREE.Mesh(_getStalkerGeo('torso'), STALKER_MATERIALS.camo);
+            torso.position.y = 0.92;
+            group.add(torso);
 
-            const vest = new THREE.Mesh(new THREE.BoxGeometry(0.95, 1.0, 0.12), STALKER_MATERIALS.vest);
-            vest.position.set(0, 0.92, 0.36);
+            const vest = new THREE.Mesh(_getStalkerGeo('vest'), STALKER_MATERIALS.vest);
+            vest.position.set(0, 0.92, 0.32);
             group.add(vest);
 
+            const backpack = new THREE.Mesh(_getStalkerGeo('backpack'), STALKER_MATERIALS.backpack);
+            backpack.position.set(0, 0.98, -0.35);
+            group.add(backpack);
+
+            const strap1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.82, 0.1), STALKER_MATERIALS.vest);
+            strap1.position.set(-0.22, 0.92, 0.28);
+            strap1.rotation.z = 0.18;
+            group.add(strap1);
+            const strap2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.82, 0.1), STALKER_MATERIALS.vest);
+            strap2.position.set(0.22, 0.92, 0.28);
+            strap2.rotation.z = -0.18;
+            group.add(strap2);
+
+            const pouchPositions = [[-0.32, 0.88, 0.42], [-0.08, 1.08, 0.42], [0.12, 0.72, 0.42], [0.32, 0.92, 0.42]];
             for (let i = 0; i < 4; i++) {
-                const pouch = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.3, 0.18), STALKER_MATERIALS.vest);
-                pouch.position.set(-0.4 + i * 0.27, 0.85, 0.44);
+                const pouch = new THREE.Mesh(_getStalkerGeo('pouch'), STALKER_MATERIALS.vest);
+                pouch.position.set(pouchPositions[i][0], pouchPositions[i][1], pouchPositions[i][2]);
                 group.add(pouch);
             }
 
             const headGroup = new THREE.Group();
-            headGroup.position.set(0, 1.7, 0);
+            headGroup.position.set(0, 1.68, 0);
             group.add(headGroup);
 
-            const headMesh = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), STALKER_MATERIALS.gasMask);
+            const headMesh = new THREE.Mesh(_getStalkerGeo('head'), STALKER_MATERIALS.gasMask);
             headGroup.add(headMesh);
 
             const lensGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.08, 12);
@@ -752,15 +907,14 @@ export class Zombie {
             filterMesh.position.set(0.38, -0.1, 0.36);
             headGroup.add(filterMesh);
 
-            const helmet = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.35, 0.8), STALKER_MATERIALS.helmet);
+            const helmet = new THREE.Mesh(_getStalkerGeo('helmet'), STALKER_MATERIALS.helmet);
             helmet.position.set(0, 0.5, 0);
             headGroup.add(helmet);
 
-            const armGeo = new THREE.BoxGeometry(0.22, 0.7, 0.22);
-            const leftArm = new THREE.Mesh(armGeo, STALKER_MATERIALS.camo);
-            const rightArm = new THREE.Mesh(armGeo, STALKER_MATERIALS.camo);
-            leftArm.position.set(-0.54, 1.0, 0.1);
-            rightArm.position.set(0.54, 1.0, 0.1);
+            const leftArm = new THREE.Mesh(_getStalkerGeo('arm'), STALKER_MATERIALS.camo);
+            const rightArm = new THREE.Mesh(_getStalkerGeo('arm'), STALKER_MATERIALS.camo);
+            leftArm.position.set(-0.54, 0.98, 0.1);
+            rightArm.position.set(0.54, 0.98, 0.1);
             leftArm.rotation.x = cfg.armAngle;
             rightArm.rotation.x = cfg.armAngle;
             group.add(leftArm);
@@ -772,32 +926,24 @@ export class Zombie {
             rightGlove.position.set(0.54, 0.62, 0.1);
             group.add(leftGlove, rightGlove);
 
-            const legGeo = new THREE.BoxGeometry(0.22, 0.7, 0.22);
-            const leftLeg = new THREE.Mesh(legGeo, STALKER_MATERIALS.camo);
-            const rightLeg = new THREE.Mesh(legGeo, STALKER_MATERIALS.camo);
+            const leftLeg = new THREE.Mesh(_getStalkerGeo('leg'), STALKER_MATERIALS.camo);
+            const rightLeg = new THREE.Mesh(_getStalkerGeo('leg'), STALKER_MATERIALS.camo);
             leftLeg.position.set(-0.2, 0.25, 0);
             rightLeg.position.set(0.2, 0.25, 0);
             group.add(leftLeg);
             group.add(rightLeg);
 
-            const leftBoot = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.2, 0.36), STALKER_MATERIALS.boot);
-            const rightBoot = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.2, 0.36), STALKER_MATERIALS.boot);
+            const leftBoot = new THREE.Mesh(_getStalkerGeo('boot'), STALKER_MATERIALS.boot);
+            const rightBoot = new THREE.Mesh(_getStalkerGeo('boot'), STALKER_MATERIALS.boot);
             leftBoot.position.set(-0.2, 0.06, 0.06);
             rightBoot.position.set(0.2, 0.06, 0.06);
             group.add(leftBoot, rightBoot);
 
-            const backpack = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.7, 0.28), STALKER_MATERIALS.backpack);
-            backpack.position.set(0, 1.0, -0.38);
-            group.add(backpack);
-
-            const strap1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.8, 0.1), STALKER_MATERIALS.vest);
-            strap1.position.set(-0.2, 0.95, 0.3);
-            strap1.rotation.z = 0.2;
-            group.add(strap1);
-            const strap2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.8, 0.1), STALKER_MATERIALS.vest);
-            strap2.position.set(0.2, 0.95, 0.3);
-            strap2.rotation.z = -0.2;
-            group.add(strap2);
+            const leftKnee = new THREE.Mesh(_getStalkerGeo('knee'), STALKER_MATERIALS.vest);
+            const rightKnee = new THREE.Mesh(_getStalkerGeo('knee'), STALKER_MATERIALS.vest);
+            leftKnee.position.set(-0.18, 0.42, 0.08);
+            rightKnee.position.set(0.18, 0.42, 0.08);
+            group.add(leftKnee, rightKnee);
         }
 
         if (this.variant !== 'crawler' && this.variant !== 'stalker') {
@@ -871,7 +1017,7 @@ export class Zombie {
             };
         }
         if (this.variant === 'stalker') {
-            group.userData.limbs = { leftArm: group.children[7], rightArm: group.children[8], leftLeg: group.children[11], rightLeg: group.children[12] };
+            group.userData.limbs = { leftArm: group.children[10], rightArm: group.children[11], leftLeg: group.children[14], rightLeg: group.children[15] };
         }
         group.userData.detailChildren = [...group.children];
         const lodProxy = new THREE.Mesh(getZombieLodGeometry(), bodyMat);
@@ -901,19 +1047,19 @@ export class Zombie {
         mainGroup.add(bodyGroup);
 
         // Torso
-        const torso = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.1, 0.58), STALKER_MATERIALS.camo);
+        const torso = new THREE.Mesh(_getStalkerGeo('torso'), STALKER_MATERIALS.camo);
         torso.position.set(0, 0.95, -0.3);
         bodyGroup.add(torso);
 
         // Vest
-        const vest = new THREE.Mesh(new THREE.BoxGeometry(0.95, 1.0, 0.12), STALKER_MATERIALS.vest);
+        const vest = new THREE.Mesh(_getStalkerGeo('vest'), STALKER_MATERIALS.vest);
         vest.position.set(0, 0.95, 0.06);
         bodyGroup.add(vest);
 
         // MOLLE pouches
         for (let i = 0; i < 4; i++) {
-            const pouch = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.3, 0.18), STALKER_MATERIALS.vest);
-            pouch.position.set(-0.4 + i * 0.27, 0.85, 0.14);
+            const pouch = new THREE.Mesh(_getStalkerGeo('pouch'), STALKER_MATERIALS.vest);
+            pouch.position.set(-0.32 + i * 0.17, 0.85, 0.17);
             bodyGroup.add(pouch);
         }
 
@@ -923,7 +1069,7 @@ export class Zombie {
         headGroup.rotation.x = 0.3;
         bodyGroup.add(headGroup);
 
-        const headMesh = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), STALKER_MATERIALS.gasMask);
+        const headMesh = new THREE.Mesh(_getStalkerGeo('head'), STALKER_MATERIALS.gasMask);
         headGroup.add(headMesh);
 
         const lensGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.08, 12);
@@ -938,26 +1084,25 @@ export class Zombie {
         filterMesh.rotation.x = Math.PI / 2; filterMesh.position.set(0.38, -0.08, 0.36);
         headGroup.add(filterMesh);
 
-        const helmet = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.35, 0.8), STALKER_MATERIALS.helmet);
+        const helmet = new THREE.Mesh(_getStalkerGeo('helmet'), STALKER_MATERIALS.helmet);
         helmet.position.set(0, 0.5, 0);
         headGroup.add(helmet);
 
         // Arms: right bent behind body supporting weight, left extended forward on ground
-        const armGeo = new THREE.BoxGeometry(0.22, 0.7, 0.22);
-        const upperR = new THREE.Mesh(armGeo, STALKER_MATERIALS.camo);
+        const upperR = new THREE.Mesh(_getStalkerGeo('arm'), STALKER_MATERIALS.camo);
         upperR.position.set(0.54, 0.9, -0.4); upperR.rotation.x = -1.0;
         bodyGroup.add(upperR);
-        const forearmR = new THREE.Mesh(armGeo, STALKER_MATERIALS.camo);
+        const forearmR = new THREE.Mesh(_getStalkerGeo('arm'), STALKER_MATERIALS.camo);
         forearmR.position.set(0.58, 0.35, -0.6); forearmR.rotation.x = 0.6;
         bodyGroup.add(forearmR);
         const handR = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.2, 0.18), STALKER_MATERIALS.glove);
         handR.position.set(0.6, 0.02, -0.8);
         bodyGroup.add(handR);
 
-        const upperL = new THREE.Mesh(armGeo, STALKER_MATERIALS.camo);
+        const upperL = new THREE.Mesh(_getStalkerGeo('arm'), STALKER_MATERIALS.camo);
         upperL.position.set(-0.54, 0.9, -0.4); upperL.rotation.x = 1.2;
         bodyGroup.add(upperL);
-        const forearmL = new THREE.Mesh(armGeo, STALKER_MATERIALS.camo);
+        const forearmL = new THREE.Mesh(_getStalkerGeo('arm'), STALKER_MATERIALS.camo);
         forearmL.position.set(-0.45, 0.35, -0.55); forearmL.rotation.x = 0.7;
         bodyGroup.add(forearmL);
         const handL = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.2, 0.18), STALKER_MATERIALS.glove);
@@ -965,25 +1110,26 @@ export class Zombie {
         bodyGroup.add(handL);
 
         // Hips - direct child of bodyGroup for natural leg pivot
-        const hips = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.28, 0.48), STALKER_MATERIALS.camo);
+        const hips = new THREE.Mesh(_getStalkerGeo('torso'), STALKER_MATERIALS.camo);
         hips.position.set(0, 0.45, -0.3);
         bodyGroup.add(hips);
 
         // Legs: bent at knees, feet flat on ground
-        const legGeo = new THREE.BoxGeometry(0.22, 0.7, 0.22);
         // Left leg hierarchy: hip -> thigh -> knee -> shin -> ankle -> boot
         const thighL = new THREE.Group();
         thighL.position.set(-0.18, 0.45, -0.3);
         thighL.rotation.x = 0.8;
-        const thighMeshL = new THREE.Mesh(legGeo, STALKER_MATERIALS.camo);
+        const thighMeshL = new THREE.Mesh(_getStalkerGeo('leg'), STALKER_MATERIALS.camo);
         thighMeshL.position.set(0, 0, 0); thighL.add(thighMeshL);
+        const kneePadL = new THREE.Mesh(_getStalkerGeo('knee'), STALKER_MATERIALS.vest);
+        kneePadL.position.set(0, -0.16, 0.06); thighL.add(kneePadL);
         const shinL = new THREE.Group();
         shinL.position.set(0, 0.28, 0.28);
         shinL.rotation.x = -0.9;
-        const shinMeshL = new THREE.Mesh(legGeo, STALKER_MATERIALS.camo);
+        const shinMeshL = new THREE.Mesh(_getStalkerGeo('leg'), STALKER_MATERIALS.camo);
         shinL.add(shinMeshL);
-        const bootL = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.2, 0.36), STALKER_MATERIALS.boot);
-        bootL.position.set(0, 0.28, 0.18); bootL.rotation.x = 0.4;
+        const bootL = new THREE.Mesh(_getStalkerGeo('boot'), STALKER_MATERIALS.boot);
+        bootL.position.set(0, 0.2, 0.12); bootL.rotation.x = 0.4;
         shinL.add(bootL);
         thighL.add(shinL);
         bodyGroup.add(thighL);
@@ -992,15 +1138,17 @@ export class Zombie {
         const thighR = new THREE.Group();
         thighR.position.set(0.18, 0.45, -0.3);
         thighR.rotation.x = 0.8;
-        const thighMeshR = new THREE.Mesh(legGeo, STALKER_MATERIALS.camo);
+        const thighMeshR = new THREE.Mesh(_getStalkerGeo('leg'), STALKER_MATERIALS.camo);
         thighMeshR.position.set(0, 0, 0); thighR.add(thighMeshR);
+        const kneePadR = new THREE.Mesh(_getStalkerGeo('knee'), STALKER_MATERIALS.vest);
+        kneePadR.position.set(0, -0.16, 0.06); thighR.add(kneePadR);
         const shinR = new THREE.Group();
         shinR.position.set(0, 0.28, 0.28);
         shinR.rotation.x = -0.9;
-        const shinMeshR = new THREE.Mesh(legGeo, STALKER_MATERIALS.camo);
+        const shinMeshR = new THREE.Mesh(_getStalkerGeo('leg'), STALKER_MATERIALS.camo);
         shinR.add(shinMeshR);
-        const bootR = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.2, 0.36), STALKER_MATERIALS.boot);
-        bootR.position.set(0, 0.28, 0.18); bootR.rotation.x = 0.4;
+        const bootR = new THREE.Mesh(_getStalkerGeo('boot'), STALKER_MATERIALS.boot);
+        bootR.position.set(0, 0.2, 0.12); bootR.rotation.x = 0.4;
         shinR.add(bootR);
         thighR.add(shinR);
         bodyGroup.add(thighR);
@@ -1041,11 +1189,11 @@ export class Zombie {
 
         // Backpack on ground left - lying flat at an angle
         const bpGroup = new THREE.Group();
-        const bpBody = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.45, 0.35), STALKER_MATERIALS.backpack);
+        const bpBody = new THREE.Mesh(_getStalkerGeo('backpack'), STALKER_MATERIALS.backpack);
         bpGroup.add(bpBody);
-        const bpS1 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.06, 0.06), STALKER_MATERIALS.vest);
+        const bpS1 = new THREE.Mesh(_getStalkerGeo('strap'), STALKER_MATERIALS.vest);
         bpS1.position.set(0, 0.25, 0); bpGroup.add(bpS1);
-        const bpS2 = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.45, 0.06), STALKER_MATERIALS.vest);
+        const bpS2 = new THREE.Mesh(_getStalkerGeo('strap'), STALKER_MATERIALS.vest);
         bpS2.position.set(0.22, 0, 0); bpGroup.add(bpS2);
         bpGroup.position.set(-0.9, 0.08, 0.5);
         bpGroup.rotation.y = 1.0;
