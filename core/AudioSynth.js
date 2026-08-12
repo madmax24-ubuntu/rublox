@@ -217,74 +217,15 @@ export class AudioSynth {
 			this.masterSfxGain.gain.value = this.getAudibleVolume(this.sfxVolume);
 			this.loadSamples().catch(() => {});
 			this.bindUnlockHandlers();
-			// Pre-generate bazooka buffers: worker (fast) or sync fallback (Node.js)
-			if (typeof Worker !== "undefined") {
-				const worker = new Worker(
-					new URL("./AudioSynthWorker.js", import.meta.url),
-				);
-				const rate = this.audioContext.sampleRate;
-				const mkBuf = (ch, data) => {
-					const buf = this.audioContext.createBuffer(
-						ch,
-						data.length,
-						rate,
-					);
-					if (ch === 1) {
-						buf.getChannelData(0).set(data);
-					} else {
-						for (let c = 0; c < ch; c++) {
-							buf.getChannelData(c).set(data[c]);
-						}
-					}
-					return buf;
-				};
-				// Await each message sequentially — worker stays alive for all
-				const expected = ["bazookaLaunch", "bazookaExplosion", "impulse"];
-				for (const msgType of expected) {
-					const msgPromise = new Promise((resolve) => {
-						const handler = (e) => {
-							if (e.data?.type === msgType) {
-								worker.onmessage = null;
-								resolve(e.data);
-							}
-						};
-						worker.onmessage = handler;
-					});
-					if (msgType === "bazookaLaunch") {
-						worker.postMessage({
-							type: "bazookaLaunch",
-							params: { rate, dur: 0.72 },
-						});
-					} else if (msgType === "bazookaExplosion") {
-						worker.postMessage({
-							type: "bazookaExplosion",
-							params: { rate, dur: 2.4 },
-						});
-					} else if (msgType === "impulse") {
-						worker.postMessage({
-							type: "impulse",
-							params: { rate, duration: 1.6, decay: 1.8, channels: 2 },
-						});
-					}
-					const result = await msgPromise;
-					if (result.error) {
-						worker.terminate();
-						throw new Error(`Worker error: ${result.error}`);
-					}
-					const { type, data } = result;
-					if (type === "bazookaLaunch") {
-						this.bazookaLaunchBuffer = mkBuf(1, data);
-					} else if (type === "bazookaExplosion") {
-						this.bazookaExplosionBuffer = mkBuf(1, data);
-					} else if (type === "impulse") {
-						this.reverb.buffer = mkBuf(2, data);
-					}
-				}
-				worker.terminate();
-			} else {
-				// No Worker available (Node.js) — generate buffers synchronously
+			// Pre-generate bazooka buffers: worker (fast) or sync fallback
+			const workerUsed = await this._tryWorkerBuffers(
+				this.audioContext.sampleRate,
+			);
+			if (!workerUsed) {
+				// Worker failed or unavailable — sync fallback (always works on Android)
 				this.bazookaLaunchBuffer = this._makeSimpleLaunchBuffer();
 				this.bazookaExplosionBuffer = this._makeSimpleExplosionBuffer();
+				this.reverb.buffer = this.createImpulse(1.6, 1.8);
 			}
 			// Register pre-generated buffers into sampleBuffers so playSample can find them
 			this.sampleBuffers.set(this._bazookaLaunchFallbackPath, this.bazookaLaunchBuffer);
@@ -317,13 +258,24 @@ export class AudioSynth {
 		if (!this.audioContext) return false;
 		if (this.audioContext.state === "running") return true;
 		if (this._unlockInProgress) return this._unlockInProgress;
-		this._unlockInProgress = this.audioContext
-			.resume()
-			.then(() => this.audioContext.state === "running")
-			.catch(() => false)
-			.finally(() => {
+		this._unlockInProgress = (async () => {
+			try {
+				await this.audioContext.resume();
+				// Some Android browsers need extra time after resume()
+				// Retry up to 3 times with 100ms delays
+				for (let attempt = 0; attempt < 3; attempt++) {
+					if (this.audioContext.state === "running") return true;
+					await new Promise((r) => setTimeout(r, 100));
+				}
+				console.warn("[AudioSynth] unlock failed after retries, state:", this.audioContext.state);
+				return this.audioContext.state === "running";
+			} catch (e) {
+				console.warn("[AudioSynth] unlock error:", e.message);
+				return false;
+			} finally {
 				this._unlockInProgress = null;
-			});
+			}
+		})();
 		return this._unlockInProgress;
 	}
 	createImpulse(duration, decay) {
@@ -474,6 +426,54 @@ export class AudioSynth {
 			d[i] = boom + rumble + noise;
 		}
 		return buf;
+	}
+
+	async _tryWorkerBuffers(rate) {
+		if (typeof Worker === "undefined") return false;
+		const timeout = this.isMobileDevice ? 8000 : 15000;
+		const worker = new Worker(new URL("./AudioSynthWorker.js", import.meta.url));
+		const mkBuf = (ch, data) => {
+			const buf = this.audioContext.createBuffer(ch, data.length, rate);
+			if (ch === 1) buf.getChannelData(0).set(data);
+			else for (let c = 0; c < ch; c++) buf.getChannelData(c).set(data[c]);
+			return buf;
+		};
+		const expected = ["bazookaLaunch", "bazookaExplosion", "impulse"];
+		try {
+			for (const msgType of expected) {
+				const msgPromise = new Promise((resolve) => {
+					const handler = (e) => {
+						if (e.data?.type === msgType) {
+							worker.onmessage = null;
+							resolve(e.data);
+						}
+					};
+					worker.onmessage = handler;
+				});
+				const timeoutId = setTimeout(() => resolve({ error: "timeout" }), timeout);
+				if (msgType === "bazookaLaunch")
+					worker.postMessage({ type: "bazookaLaunch", params: { rate, dur: 0.72 } });
+				else if (msgType === "bazookaExplosion")
+					worker.postMessage({ type: "bazookaExplosion", params: { rate, dur: 2.4 } });
+				else if (msgType === "impulse")
+					worker.postMessage({ type: "impulse", params: { rate, duration: 1.6, decay: 1.8, channels: 2 } });
+				const result = await msgPromise;
+				clearTimeout(timeoutId);
+				if (result.error) {
+					worker.terminate();
+					return false;
+				}
+				const { type, data } = result;
+				if (type === "bazookaLaunch") this.bazookaLaunchBuffer = mkBuf(1, data);
+				else if (type === "bazookaExplosion") this.bazookaExplosionBuffer = mkBuf(1, data);
+				else if (type === "impulse") this.reverb.buffer = mkBuf(2, data);
+			}
+			worker.terminate();
+			return true;
+		} catch (_) {
+			worker.terminate();
+			return false;
+		}
 	}
 
 	createRainNoiseBuffer(duration = 2.4) {

@@ -3974,10 +3974,11 @@ window.addEventListener("DOMContentLoaded", () => {
 			if (_startHandled || game.startingGame || game.isStarted) return;
 			_startHandled = true;
 			button.setAttribute("aria-busy", "true");
-			game.audioSynth?.unlock?.().catch(() => {});
-			game.enterFullscreen?.().catch(() => {});
 			try {
 				await game.ready;
+				// Ensure AudioContext is unlocked before game starts (critical on mobile/Android)
+				await game.audioSynth?.unlock?.();
+				game.enterFullscreen?.().catch(() => {});
 				await game.startGame();
 			} catch (err) {
 				console.error("startGame failed:", err);
