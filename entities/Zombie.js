@@ -467,6 +467,9 @@ const STALKER_MATERIALS = {
 
 const STALKER_DETAIL_MAT = new THREE.MeshStandardMaterial({ color: 0x1a1d20, roughness: 0.6, flatShading: true });
 
+// Per-instance material cloner — prevents shared STALKER_MATERIALS mutation
+const _cloneStalkerMat = (source) => source.clone();
+
 const _setWorldTransform = (obj, orig) => {
     obj.matrix.copy(orig.matrixWorld);
     obj.matrix.decompose(obj.position, obj.quaternion, obj.scale);
@@ -600,6 +603,19 @@ export class Zombie {
         this._isCorpsified = false;
         this._canPool = true;
         this._animTime = performance.now() * 0.001;
+        if (this.variant === 'stalker') {
+            this._stalkerMats = {
+                camo: _cloneStalkerMat(STALKER_MATERIALS.camo),
+                vest: _cloneStalkerMat(STALKER_MATERIALS.vest),
+                gasMask: _cloneStalkerMat(STALKER_MATERIALS.gasMask),
+                boot: _cloneStalkerMat(STALKER_MATERIALS.boot),
+                helmet: _cloneStalkerMat(STALKER_MATERIALS.helmet),
+                backpack: _cloneStalkerMat(STALKER_MATERIALS.backpack),
+                lens: STALKER_MATERIALS.lens.clone(),
+                skin: STALKER_MATERIALS.skin.clone(),
+                glove: STALKER_MATERIALS.glove.clone()
+            };
+        }
         this._moanPhase = Math.random() * Math.PI * 2;
         this._roamAngle = Math.random() * Math.PI * 2;
         this._roamTimer = 3 + Math.random() * 5;
@@ -949,30 +965,31 @@ export class Zombie {
             spine.position.set(0, 1.1, -0.3);
             group.add(spine);
         } else if (this.variant === 'stalker') {
-            const torso = new THREE.Mesh(_getStalkerGeo('torso'), STALKER_MATERIALS.camo);
+            const mats = this._stalkerMats;
+            const torso = new THREE.Mesh(_getStalkerGeo('torso'), mats.camo);
             torso.position.y = 0.92;
             group.add(torso);
 
-            const vest = new THREE.Mesh(_getStalkerGeo('vest'), STALKER_MATERIALS.vest);
+            const vest = new THREE.Mesh(_getStalkerGeo('vest'), mats.vest);
             vest.position.set(0, 0.92, 0.32);
             group.add(vest);
 
-            const backpack = new THREE.Mesh(_getStalkerGeo('backpack'), STALKER_MATERIALS.backpack);
+            const backpack = new THREE.Mesh(_getStalkerGeo('backpack'), mats.backpack);
             backpack.position.set(0, 0.98, -0.35);
             group.add(backpack);
 
-            const strap1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.82, 0.1), STALKER_MATERIALS.vest);
+            const strap1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.82, 0.1), mats.vest);
             strap1.position.set(-0.22, 0.92, 0.28);
             strap1.rotation.z = 0.18;
             group.add(strap1);
-            const strap2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.82, 0.1), STALKER_MATERIALS.vest);
+            const strap2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.82, 0.1), mats.vest);
             strap2.position.set(0.22, 0.92, 0.28);
             strap2.rotation.z = -0.18;
             group.add(strap2);
 
             const pouchPositions = [[-0.32, 0.88, 0.42], [-0.08, 1.08, 0.42], [0.12, 0.72, 0.42], [0.32, 0.92, 0.42]];
             for (let i = 0; i < 4; i++) {
-                const pouch = new THREE.Mesh(_getStalkerGeo('pouch'), STALKER_MATERIALS.vest);
+                const pouch = new THREE.Mesh(_getStalkerGeo('pouch'), mats.vest);
                 pouch.position.set(pouchPositions[i][0], pouchPositions[i][1], pouchPositions[i][2]);
                 group.add(pouch);
             }
@@ -981,29 +998,29 @@ export class Zombie {
             headGroup.position.set(0, 1.68, 0);
             group.add(headGroup);
 
-            const headMesh = new THREE.Mesh(_getStalkerGeo('head'), STALKER_MATERIALS.gasMask);
+            const headMesh = new THREE.Mesh(_getStalkerGeo('head'), mats.gasMask);
             headGroup.add(headMesh);
 
             const lensGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.08, 12);
-            const leftLens = new THREE.Mesh(lensGeo, STALKER_MATERIALS.lens);
+            const leftLens = new THREE.Mesh(lensGeo, mats.lens);
             leftLens.rotation.x = Math.PI / 2;
             leftLens.position.set(-0.16, 0.1, 0.36);
-            const rightLens = new THREE.Mesh(lensGeo, STALKER_MATERIALS.lens);
+            const rightLens = new THREE.Mesh(lensGeo, mats.lens);
             rightLens.rotation.x = Math.PI / 2;
             rightLens.position.set(0.16, 0.1, 0.36);
             headGroup.add(leftLens, rightLens);
 
-            const filterMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.28, 10), STALKER_MATERIALS.gasMask);
+            const filterMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.28, 10), mats.gasMask);
             filterMesh.rotation.x = Math.PI / 2;
             filterMesh.position.set(0.38, -0.1, 0.36);
             headGroup.add(filterMesh);
 
-            const helmet = new THREE.Mesh(_getStalkerGeo('helmet'), STALKER_MATERIALS.helmet);
+            const helmet = new THREE.Mesh(_getStalkerGeo('helmet'), mats.helmet);
             helmet.position.set(0, 0.5, 0);
             headGroup.add(helmet);
 
-            const leftArm = new THREE.Mesh(_getStalkerGeo('arm'), STALKER_MATERIALS.camo);
-            const rightArm = new THREE.Mesh(_getStalkerGeo('arm'), STALKER_MATERIALS.camo);
+            const leftArm = new THREE.Mesh(_getStalkerGeo('arm'), mats.camo);
+            const rightArm = new THREE.Mesh(_getStalkerGeo('arm'), mats.camo);
             leftArm.position.set(-0.54, 0.98, 0.1);
             rightArm.position.set(0.54, 0.98, 0.1);
             leftArm.rotation.x = cfg.armAngle;
@@ -1011,27 +1028,27 @@ export class Zombie {
             group.add(leftArm);
             group.add(rightArm);
 
-            const leftGlove = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.2, 0.18), STALKER_MATERIALS.glove);
-            const rightGlove = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.2, 0.18), STALKER_MATERIALS.glove);
+            const leftGlove = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.2, 0.18), mats.glove);
+            const rightGlove = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.2, 0.18), mats.glove);
             leftGlove.position.set(-0.54, 0.62, 0.1);
             rightGlove.position.set(0.54, 0.62, 0.1);
             group.add(leftGlove, rightGlove);
 
-            const leftLeg = new THREE.Mesh(_getStalkerGeo('leg'), STALKER_MATERIALS.camo);
-            const rightLeg = new THREE.Mesh(_getStalkerGeo('leg'), STALKER_MATERIALS.camo);
+            const leftLeg = new THREE.Mesh(_getStalkerGeo('leg'), mats.camo);
+            const rightLeg = new THREE.Mesh(_getStalkerGeo('leg'), mats.camo);
             leftLeg.position.set(-0.2, 0.25, 0);
             rightLeg.position.set(0.2, 0.25, 0);
             group.add(leftLeg);
             group.add(rightLeg);
 
-            const leftBoot = new THREE.Mesh(_getStalkerGeo('boot'), STALKER_MATERIALS.boot);
-            const rightBoot = new THREE.Mesh(_getStalkerGeo('boot'), STALKER_MATERIALS.boot);
+            const leftBoot = new THREE.Mesh(_getStalkerGeo('boot'), mats.boot);
+            const rightBoot = new THREE.Mesh(_getStalkerGeo('boot'), mats.boot);
             leftBoot.position.set(-0.2, 0.06, 0.06);
             rightBoot.position.set(0.2, 0.06, 0.06);
             group.add(leftBoot, rightBoot);
 
-            const leftKnee = new THREE.Mesh(_getStalkerGeo('knee'), STALKER_MATERIALS.vest);
-            const rightKnee = new THREE.Mesh(_getStalkerGeo('knee'), STALKER_MATERIALS.vest);
+            const leftKnee = new THREE.Mesh(_getStalkerGeo('knee'), mats.vest);
+            const rightKnee = new THREE.Mesh(_getStalkerGeo('knee'), mats.vest);
             leftKnee.position.set(-0.18, 0.42, 0.08);
             rightKnee.position.set(0.18, 0.42, 0.08);
             group.add(leftKnee, rightKnee);
@@ -1945,6 +1962,9 @@ export class Zombie {
 
     dispose() {
         this.clearAcidProjectile();
+        // Stalker uses cloned per-instance materials — cannot pool safely
+        if (this.variant === 'stalker') this._canPool = false;
+
         if (this._isCorpsified && this._corpseGroup) {
             if (this._corpseGroup.parent) {
                 this._corpseGroup.parent.remove(this._corpseGroup);
@@ -1967,17 +1987,24 @@ export class Zombie {
             this._corpseGroup = null;
             this._isCorpsified = false;
         } else {
-            // Restore running mesh rotation & limbs for non-stalker variants
-            this.mesh.rotation.set(0, 0, 0);
-            if (this.mesh.userData.limbs) {
-                const limbs = this.mesh.userData.limbs;
-                if (limbs.leftArm) limbs.leftArm.rotation.set(0, 0, 0);
-                if (limbs.rightArm) limbs.rightArm.rotation.set(0, 0, 0);
-                if (limbs.leftLeg) limbs.leftLeg.rotation.set(0, 0, 0);
-                if (limbs.rightLeg) limbs.rightLeg.rotation.set(0, 0, 0);
+            // Dispose cloned stalker materials
+            if (this.variant === 'stalker' && this._stalkerMats) {
+                for (const key in this._stalkerMats) this._stalkerMats[key].dispose();
+                this._stalkerMats = null;
             }
-            const headGroup = this.mesh.children.find(c => c.isGroup && c.position.y > 1.5);
-            if (headGroup) headGroup.rotation.set(0, 0, 0);
+            // Restore running mesh rotation & limbs for non-stalker variants
+            if (this.variant !== 'stalker') {
+                this.mesh.rotation.set(0, 0, 0);
+                if (this.mesh.userData.limbs) {
+                    const limbs = this.mesh.userData.limbs;
+                    if (limbs.leftArm) limbs.leftArm.rotation.set(0, 0, 0);
+                    if (limbs.rightArm) limbs.rightArm.rotation.set(0, 0, 0);
+                    if (limbs.leftLeg) limbs.leftLeg.rotation.set(0, 0, 0);
+                    if (limbs.rightLeg) limbs.rightLeg.rotation.set(0, 0, 0);
+                }
+                const headGroup = this.mesh.children.find(c => c.isGroup && c.position.y > 1.5);
+                if (headGroup) headGroup.rotation.set(0, 0, 0);
+            }
         }
         this.mesh.visible = false;
         this._corpseTimer = 0;
