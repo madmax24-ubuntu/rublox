@@ -8059,6 +8059,7 @@ export class MapGenerator {
 	}
 
 	_addSurvivalTrap(type, x, z) {
+		const groundY = this.raycastGroundY(x, z, 0.01);
 		const group = new THREE.Group();
 		let radius = 1.6;
 		let slow = 0.5;
@@ -8177,11 +8178,11 @@ export class MapGenerator {
 			slow = 0.3;
 			damage = 1;
 		}
-		group.position.set(x, 0.01, z);
+		group.position.set(x, groundY, z);
 		group.userData.mapGenerated = true;
 		group.userData.isTrap = true;
 		group.userData.trapType = type;
-		group.userData.baseY = 0.01;
+		group.userData.baseY = groundY;
 		group.traverse((child) => {
 			if (child.isMesh) child.userData.mapGenerated = true;
 		});
@@ -8196,7 +8197,7 @@ export class MapGenerator {
 						: [5.6, 2.8];
 		this._traps.push({
 			type,
-			position: new THREE.Vector3(x, 0.01, z),
+			position: new THREE.Vector3(x, groundY, z),
 			radius,
 			slow,
 			damage,
