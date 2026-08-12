@@ -115,7 +115,7 @@ export class LootManager {
     getChestPlacementY(x, z) {
         const terrainY = this.mapGenerator.getHeightAt?.(x, z);
         if (!Number.isFinite(terrainY)) return null;
-        return terrainY + 0.02;
+        return terrainY - 0.42;
     }
 
     isChestPlacementClear(x, y, z) {

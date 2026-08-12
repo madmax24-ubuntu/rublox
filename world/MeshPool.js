@@ -317,12 +317,12 @@ export class MeshPool {
         return { geometries: this.geos.size, materials: this.mats.size };
     }
 
-    getMatStd(color, roughness = 0.9, metalness = 0, flatShading = false, transparent = false, opacity = 1, emissive = 0, emissiveIntensity = 0, wall = false) {
+    getMatStd(color, roughness = 0.9, metalness = 0, flatShading = false, transparent = false, opacity = 1, emissive = 0, emissiveIntensity = 0, wall = false, floor = false) {
         const cHex = this._quantizeColor(color);
         const r = Math.round(roughness * 10) / 10;
         const m = Math.round(metalness * 10) / 10;
         const eHex = this._quantizeColor(emissive);
-        const key = `Std_${cHex}_${r}_${m}_${transparent}_${opacity}_${flatShading ? 'F' : 'N'}_${eHex}_${emissiveIntensity}_${wall ? 'W' : 'N'}`;
+        const key = `Std_${cHex}_${r}_${m}_${transparent}_${opacity}_${flatShading ? 'F' : 'N'}_${eHex}_${emissiveIntensity}_${wall ? 'W' : 'N'}_${floor ? 'X' : 'N'}`;
         if (!this.mats.has(key)) {
             const opts = {
                 color: cHex, roughness: r, metalness: m,
@@ -335,7 +335,15 @@ export class MeshPool {
                 opts.side = wall ? THREE.DoubleSide : THREE.FrontSide;
             }
             const mat = new THREE.MeshStandardMaterial(opts);
+            if (floor) {
+                MeshPool.addPolygonOffset(mat, 1, 1);
+            }
             this.mats.set(key, mat);
+        } else {
+            const mat = this.mats.get(key);
+            if (floor) {
+                MeshPool.addPolygonOffset(mat, 1, 1);
+            }
         }
         return this.mats.get(key);
     }
@@ -346,10 +354,15 @@ export class MeshPool {
         const r = Math.round(roughness * 10) / 10;
         const key = `Std_${cHex}_${r}_0_${flatShading ? 'F' : 'N'}_terrain`;
         if (!this.mats.has(key)) {
-            this.mats.set(key, new THREE.MeshStandardMaterial({
+            const terrainMat = new THREE.MeshStandardMaterial({
                 color: cHex, roughness: r, metalness: 0,
                 flatShading: flatShading
-            }));
+            });
+            MeshPool.addPolygonOffset(terrainMat, 2, 1);
+            this.mats.set(key, terrainMat);
+        } else {
+            const terrainMat = this.mats.get(key);
+            MeshPool.addPolygonOffset(terrainMat, 2, 1);
         }
         return this.mats.get(key);
     }

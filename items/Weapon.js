@@ -216,7 +216,7 @@ const WEAPON_BALANCE = {
 	shotgun: {
 		damage: 18,
 		range: 11.5,
-		cooldown: 0.25,
+		cooldown: 1.0,
 		ammo: 36,
 		durability: null,
 		projectileSpeed: 48,
@@ -234,7 +234,7 @@ const WEAPON_BALANCE = {
 	pistol: {
 		damage: 23,
 		range: 62,
-		cooldown: 0.2,
+		cooldown: 0.3,
 		ammo: 90,
 		durability: null,
 		projectileSpeed: 82,
@@ -242,7 +242,7 @@ const WEAPON_BALANCE = {
 	rifle: {
 		damage: 29,
 		range: 96,
-		cooldown: 0.15,
+		cooldown: 0.25,
 		ammo: 120,
 		durability: null,
 		projectileSpeed: 98,
@@ -250,7 +250,7 @@ const WEAPON_BALANCE = {
 	machinegun: {
 		damage: 14,
 		range: 82,
-		cooldown: 0.06,
+		cooldown: 0.15,
 		ammo: 180,
 		durability: null,
 		projectileSpeed: 94,

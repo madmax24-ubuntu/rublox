@@ -1565,6 +1565,7 @@ export class MapGenerator {
 			0,
 			0,
 			true,
+			true,
 		);
 		const windowMat = this.pool.getMatStd(
 			style.window,
@@ -3936,7 +3937,6 @@ export class MapGenerator {
 		const torchCount = 6;
 		for (let i = 0; i < torchCount; i++) {
 			const angle = (i / torchCount) * Math.PI * 2;
-			const height = 4 + (i * (towerHeight - 8)) / torchCount;
 			const tx = towerCX + Math.cos(angle) * (towerRadius - 1.5);
 			const tz = towerCZ + Math.sin(angle) * (towerRadius - 1.5);
 
@@ -3958,7 +3958,7 @@ export class MapGenerator {
 			flame.userData.blinkRate = 2 + Math.random();
 			torch.add(flame);
 
-			torch.position.set(tx, height, tz);
+			torch.position.set(tx, 0.5, tz);
 			torch.userData.mapGenerated = true;
 			this.scene.add(torch);
 		}
@@ -4018,7 +4018,7 @@ export class MapGenerator {
 
 			torch.position.set(
 				x + Math.cos(angle) * 2.5,
-				baseY + 1.5,
+				0.5,
 				z + Math.sin(angle) * 2.5,
 			);
 			torch.userData.mapGenerated = true;
@@ -4288,6 +4288,8 @@ export class MapGenerator {
 			1,
 			0,
 			0,
+			false,
+			true,
 		);
 		const floor = new THREE.Mesh(
 			this.pool.getGeoBox(12, 0.18, length + 1.5),
@@ -4475,6 +4477,8 @@ export class MapGenerator {
 			1,
 			0,
 			0,
+			false,
+			true,
 		);
 		const wallMat = this.pool.getMatStd(
 			0x59636c,
@@ -4684,6 +4688,8 @@ export class MapGenerator {
 			1,
 			0,
 			0,
+			false,
+			true,
 		);
 		const wallMat = this.pool.getMatStd(
 			0x4f5963,
@@ -7365,6 +7371,8 @@ export class MapGenerator {
 			1,
 			0,
 			0,
+			false,
+			true,
 		);
 		const w = 14;
 		const d = 20;
@@ -9248,43 +9256,18 @@ export class MapGenerator {
 	updateTorchAnimation(delta) {
 		const torches = this._cachedTorches;
 		if (!torches?.length) return;
-		const px = this._lastPlayerPos?.x,
-			pz = this._lastPlayerPos?.z;
-		const cullDistSq = px ? 10000 : Infinity;
-		const t2 = performance.now() * 0.001;
 		for (const tc of torches) {
-			if (px) {
-				const dx = tc.position.x - px,
-					dz = tc.position.z - pz;
-				if (dx * dx + dz * dz > cullDistSq) continue;
-			}
-			const flicker =
-				Math.sin(t2 * tc.userData.blinkRate * Math.PI * 2) * 0.5 + 0.5;
-			tc.scale.set(
-				0.8 + flicker * 0.4,
-				0.8 + flicker * 0.4,
-				0.8 + flicker * 0.4,
-			);
-			tc.material.emissiveIntensity = 5.0 + flicker * 8.0;
+			tc.scale.set(0.8, 0.8, 0.8);
+			if (tc.material) tc.material.emissiveIntensity = 5.0;
 		}
 	}
 
 	updateGlowAnimation(delta) {
 		const glows = this._cachedGlows;
 		if (!glows?.length) return;
-		const px = this._lastPlayerPos?.x,
-			pz = this._lastPlayerPos?.z;
-		const cullDistSq = px ? 10000 : Infinity;
-		const t = performance.now() * 0.001;
 		for (const g of glows) {
-			if (px) {
-				const dx = g.position.x - px,
-					dz = g.position.z - pz;
-				if (dx * dx + dz * dz > cullDistSq) continue;
-			}
-			const pulse = Math.sin(t * 2) * 0.3 + 0.7;
-			g.material.opacity = 0.3 + pulse * 0.4;
-			g.scale.setScalar(0.8 + pulse * 0.3);
+			g.material.opacity = 0.3 + 0.4;
+			g.scale.setScalar(0.8 + 0.3);
 		}
 	}
 
