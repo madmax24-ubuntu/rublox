@@ -3013,7 +3013,7 @@ class Game {
 		});
 	}
 
-	canSpawnZombieAt(x, z, radius = 7.5, maximum = 2) {
+	canSpawnZombieAt(x, z, radius = 18, maximum = 1) {
 		let nearby = 0;
 		const radiusSq = radius * radius;
 		for (const zombie of this.zombies) {
@@ -3661,9 +3661,12 @@ class Game {
 		const biomePools = (this.zombieSpawnCandidatesByBiome || []).filter(
 			(pool) => pool.length,
 		);
-		const attempts = Math.min(floorTiles.length, Math.max(24, count * 10));
+		const attempts = Math.min(floorTiles.length, Math.max(24, count * 12));
 		const start = this.zombieSpawnCursor % floorTiles.length;
-		for (let i = 0; i < attempts && spawned < count; i++) {
+
+		// Collect valid spawn points first, then pick randomly for even distribution
+		const validTiles = [];
+		for (let i = 0; i < attempts && validTiles.length < count * 6; i++) {
 			let tile;
 			if (biomePools.length) {
 				const poolIndex = (this.zombieSpawnBiomeCursor + i) % biomePools.length;
@@ -3675,6 +3678,7 @@ class Game {
 			} else {
 				tile = floorTiles[(start + i) % floorTiles.length];
 			}
+			if (!tile) continue;
 			if (!this.isBiomeZombieSpawnPoint(tile.x, tile.z)) continue;
 			if (!this.map.isWalkableAt?.(tile.x, tile.z)) continue;
 			if (!this.canSpawnZombieAt(tile.x, tile.z)) continue;
@@ -3687,7 +3691,28 @@ class Game {
 						0,
 				) ?? 0;
 			const pos = new THREE.Vector3(tile.x, baseY + 1.8, tile.z);
-			if (pos.distanceTo(this.player.position) < (reset ? 20 : 24)) continue;
+			if (pos.distanceTo(this.player.position) < (reset ? 24 : 28)) continue;
+			validTiles.push(tile);
+		}
+
+		// Shuffle valid tiles for random spawn distribution
+		for (let i = validTiles.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			[validTiles[i], validTiles[j]] = [validTiles[j], validTiles[i]];
+		}
+
+		for (const tile of validTiles) {
+			if (spawned >= count) break;
+			if (!this.canSpawnZombieAt(tile.x, tile.z)) continue;
+			const baseY =
+				this.map.raycastGroundY?.(
+					tile.x,
+					tile.z,
+					this.map.getSurfaceHeightAt?.(tile.x, tile.z) ??
+						this.map.getHeightAt?.(tile.x, tile.z) ??
+						0,
+				) ?? 0;
+			const pos = new THREE.Vector3(tile.x, baseY + 1.8, tile.z);
 			const zombie = this.zombiePool.acquire(pos, forcedVariant);
 			zombie.mapRef = this.map;
 			this.zombies.push(zombie);
