@@ -2597,7 +2597,7 @@ export class MapGenerator {
 		if (this.getStructureAtPoint(x, z, 6)) return;
 		const length = 4 + this._rand() * 4;
 		const radius = 0.4 + this._rand() * 0.3;
-		const groundY = this.raycastGroundY(x, z, 0.14);
+		const groundY = this.raycastGroundY(x, z, 0);
 		const geo = this.pool.getGeoCylinder(radius * 0.8, radius, length);
 		const mat = this.pool.getMat(0x5d4037, false);
 		const log = new THREE.Mesh(geo, mat);
