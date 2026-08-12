@@ -1176,7 +1176,7 @@ export class Player {
 			if (source === "zone" && this.audioSynthRef.playZoneDamage) {
 				this.audioSynthRef.playZoneDamage();
 			} else if (source === "radiation") {
-				this.audioSynthRef.playGeigerCounter?.();
+				this.audioSynthRef.startRadiationRain?.();
 			} else if (this.audioSynthRef.playPlayerHurt) {
 				this.audioSynthRef.playPlayerHurt();
 			} else if (this.audioSynthRef.playHurt) {

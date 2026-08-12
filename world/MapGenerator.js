@@ -3,6 +3,7 @@ import { MapGeneratorNode } from "./MapGeneratorNode.js?v=1786192400000";
 import { AABBGrid } from "./AABBGrid.js";
 import { InstancedMeshSystem } from "./InstancedMeshSystem.js";
 import { MeshPool } from "./MeshPool.js";
+import { Zombie } from "../entities/Zombie.js";
 
 // ============================================================================
 // QUADRANT-BASED MAP GENERATOR — Structured hierarchy with logical biome connections
@@ -2596,16 +2597,17 @@ export class MapGenerator {
 		if (this.getStructureAtPoint(x, z, 6)) return;
 		const length = 4 + this._rand() * 4;
 		const radius = 0.4 + this._rand() * 0.3;
+		const groundY = this.raycastGroundY(x, z, 0.14);
 		const geo = this.pool.getGeoCylinder(radius * 0.8, radius, length);
 		const mat = this.pool.getMat(0x5d4037, false);
 		const log = new THREE.Mesh(geo, mat);
-		log.position.set(x, radius, z);
+		log.position.set(x, groundY + radius, z);
 		log.rotation.z = Math.PI / 2;
 		log.rotation.y = this._rand() * Math.PI;
 		log.userData.mapGenerated = true;
 		this.scene.add(log);
 		this.addColliderBox(
-			new THREE.Vector3(x, radius, z),
+			new THREE.Vector3(x, groundY + radius, z),
 			length,
 			radius * 1.4,
 			radius * 1.4,
@@ -6139,6 +6141,20 @@ export class MapGenerator {
 	}
 
 	_addStalkerCorpse(x, z, floorY = 0, parent) {
+	// Exact visual copy of zombie stalker corpse
+	const pos = new THREE.Vector3(x, floorY, z);
+	const zombie = new Zombie(this.scene, 'stalker_corpse_hangar', pos, 'stalker');
+	zombie.isAlive = false;
+	zombie._applyStalkerCorpse?.();
+	const group = zombie._corpseGroup || zombie.mesh;
+	if (group) {
+		group.position.set(x, floorY, z);
+		group.userData.mapGenerated = true;
+		group.userData.isStalkerCorpse = true;
+		(parent || this.scene).add(group);
+	}
+	this.addColliderBox(new THREE.Vector3(x, floorY, z), 3.0, 1.5, 3.0, false);
+	return;
 	// === TEXTURE GENERATION ===
 	function _createCanvasTex(drawFn, w, h, repeat) {
 		let c;

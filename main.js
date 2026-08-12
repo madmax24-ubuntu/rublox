@@ -3783,7 +3783,7 @@ class Game {
 		this.setCenterPlatformOpen(true);
 		try {
 			this.hideStartScreen();
-			this.startTransitionUntil = performance.now() + 3500;
+			this.startTransitionUntil = performance.now() + 500;
 			this.hud.showPause(false);
 			this.isPaused = false;
 
