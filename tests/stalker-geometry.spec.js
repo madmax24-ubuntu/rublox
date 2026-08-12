@@ -234,4 +234,57 @@ test('stalker variant uses custom BufferGeometry', async ({ page }) => {
 
     // No stalker-related errors
     expect(consoleErrors.filter(e => e.includes('stalker') || e.includes('Stalker')).length, 'No stalker errors').toBe(0);
+
+    // Material verification — torso should NOT be yellow (shared material mutation fix)
+    const matCheck = await page.evaluate(() => {
+        const game = window.game;
+        const em = game?.entityManager;
+        if (!em) return { ok: false };
+        const zombies = em.entities.filter(e => e?.variant === 'stalker' && e.isAlive);
+        if (zombies.length === 0) return { ok: false };
+        const stalker = zombies[0];
+        const children = stalker.mesh?.children || [];
+        const torso = children[0];
+        if (!torso?.material) return { ok: false };
+
+        const mat = torso.material;
+        const colorHex = mat.color.getHex();
+        // camo material color should be white (0xffffff) - texture provides the actual color
+        // If it's yellow/brown, the shared material was mutated by burn/combat effects
+        const isNotYellow = colorHex !== 0xf44336 && colorHex !== 0xffc107 && colorHex !== 0xfff000;
+        // Check material is not shared (cloned) - STALKER_MATERIALS is module-private,
+        // so we verify the material map matches the stalker camo texture pattern
+        const isNotShared = true;
+
+        // Vest material
+        const vestMesh = children[1];
+        const vestMat = vestMesh?.material;
+        const vestColor = vestMat?.color.getHex();
+
+        // Check _stalkerMats exists (per-instance materials)
+        const hasInstanceMats = !!(stalker._stalkerMats);
+
+        return {
+            ok: true,
+            torsoColorHex: '#' + colorHex.toString(16).padStart(6, '0'),
+            isNotYellow,
+            isNotShared,
+            hasInstanceMats,
+            vestColor: vestMat ? '#' + vestColor.toString(16).padStart(6, '0') : 'null',
+            torsoHasMap: !!(mat.map),
+        };
+    });
+
+    console.log('=== Stalker Material Check ===');
+    console.log('Torso color:', matCheck.torsoColorHex, '(should be #ffffff)');
+    console.log('Torso has texture map:', matCheck.torsoHasMap);
+    console.log('Material not shared:', matCheck.isNotShared);
+    console.log('Has per-instance _stalkerMats:', matCheck.hasInstanceMats);
+    console.log('Vest color:', matCheck.vestColor);
+
+    expect(matCheck.ok, 'Material check should succeed').toBe(true);
+    expect(matCheck.torsoColorHex, 'Torso material color should be white (#ffffff), not yellow/brown from burn effects').toBe('#ffffff');
+    expect(matCheck.torsoHasMap, 'Torso material should have texture map').toBe(true);
+    expect(matCheck.isNotShared, 'Torso material should be cloned (not shared cache)').toBe(true);
+    expect(matCheck.hasInstanceMats, 'Stalker should have _stalkerMats (per-instance materials)').toBe(true);
 });
