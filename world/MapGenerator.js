@@ -8826,14 +8826,12 @@ export class MapGenerator {
 		// Find the highest walkable surface at this position.
 		// Changed: prefer highest surface (for correct building-floor placement)
 		// instead of closest to fallbackY (which always favoured terrain).
-		const maxSearchY = fallbackY + 3;
 		let highestY = fallbackY;
 		let found = false;
 		for (const col of this.colliders) {
 			if (!col.walkable) continue;
-			if (col.max.y > maxSearchY) continue;
-			// Skip colliders that are below the fallback height (e.g., underground floors)
-			if (col.max.y < fallbackY - 0.5) continue;
+			// Skip colliders that are way below the fallback height (e.g., underground floors)
+			if (col.max.y < fallbackY - 2) continue;
 			if (col.surfaceCircle) {
 				const dx = x - col.surfaceCircle.x;
 				const dz = z - col.surfaceCircle.z;
@@ -8865,7 +8863,7 @@ export class MapGenerator {
 				// Use visualY when available (matches the visual mesh top surface),
 				// otherwise fall back to collider max.y
 				const surfaceY = col.visualY !== undefined ? col.visualY : col.max.y;
-				if (surfaceY > highestY && col.max.y <= maxSearchY) {
+				if (surfaceY > highestY) {
 					highestY = surfaceY;
 					found = true;
 				}

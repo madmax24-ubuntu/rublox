@@ -115,10 +115,11 @@ export class LootManager {
     getChestPlacementY(x, z) {
         // Use raycastGroundY to find the actual walkable surface height
         // (building floors inside structures, terrain outside).
-        // The chest sits ON the surface, so subtract half its height (~0.85/2≈0.42).
+        // The chest model's bottom is at local Y=0 (body bottom at Y=0, lid at Y=0.72).
+        // Group Y = surfaceY so the chest sits directly on the surface.
         const surfaceY = this.mapGenerator.raycastGroundY?.(x, z, 0);
         if (!Number.isFinite(surfaceY)) return null;
-        return surfaceY - 0.42;
+        return surfaceY;
     }
 
     isChestPlacementClear(x, y, z) {
@@ -212,7 +213,7 @@ export class LootManager {
                 const key = keyFor(tile.x, tile.z);
                 if (occupied.has(key)) continue;
                 const y = this.getChestPlacementY(tile.x, tile.z);
-                if (!Number.isFinite(y) || y < -0.1 || y > 0.8) continue;
+                if (!Number.isFinite(y) || y < -2 || y > 30) continue;
                 if (this.mapGenerator.getStructureAtPoint?.(tile.x, tile.z, 3)) continue;
                 if (!this.isHiddenSpawn(tile.x, y, tile.z)) continue;
                 if (!this.isChestPlacementClear(tile.x, y, tile.z)) continue;
@@ -234,7 +235,7 @@ export class LootManager {
             const x = Math.cos(angle) * distance;
             const z = Math.sin(angle) * distance;
             const y = this.getChestPlacementY(x, z);
-            if (!Number.isFinite(y) || y < -0.1 || y > 0.8) continue;
+            if (!Number.isFinite(y) || y < -2 || y > 30) continue;
             if (this.mapGenerator.getStructureAtPoint?.(x, z, 1)) continue;
             if (!this.isHiddenSpawn(x, y, z)) {
                 continue;
@@ -291,7 +292,7 @@ export class LootManager {
                 const key = keyFor(tile.x, tile.z);
                 if (occupied.has(key)) continue;
                 const y = this.getChestPlacementY(tile.x, tile.z);
-                if (!Number.isFinite(y) || y < -0.1 || y > 0.8) continue;
+                if (!Number.isFinite(y) || y < -2 || y > 30) continue;
                 if (this.mapGenerator.getStructureAtPoint?.(tile.x, tile.z, 3)) continue;
                 if (!this.isHiddenSpawn(tile.x, y, tile.z)) continue;
                 if (!this.isChestPlacementClear(tile.x, y, tile.z)) continue;
@@ -319,7 +320,7 @@ export class LootManager {
             const x = Math.cos(angle) * distance;
             const z = Math.sin(angle) * distance;
             const y = this.getChestPlacementY(x, z);
-            if (!Number.isFinite(y) || y < -0.1 || y > 0.8) continue;
+            if (!Number.isFinite(y) || y < -2 || y > 30) continue;
             if (this.mapGenerator.getStructureAtPoint?.(x, z, 1)) continue;
             if (!this.isHiddenSpawn(x, y, z)) {
                 continue;
@@ -441,9 +442,9 @@ export class LootManager {
         glow.position.y = 1.2;
         chestModel.add(glow);
 
-        // FIX: Ensure chest is placed on actual ground — clamp to valid range [0, 3]
-        const MIN_GROUND_HEIGHT = 0.0;
-        const MAX_GROUND_HEIGHT = 3.0;
+        // Clamp to reasonable range for all building heights (towers can be at Y=15+)
+        const MIN_GROUND_HEIGHT = -5;
+        const MAX_GROUND_HEIGHT = 50;
         const clampedY = Math.max(MIN_GROUND_HEIGHT, Math.min(y, MAX_GROUND_HEIGHT));
         chestModel.position.set(x, clampedY, z);
         chestModel.userData.isChest = true;
