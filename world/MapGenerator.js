@@ -2599,7 +2599,7 @@ export class MapGenerator {
 		if (this.getStructureAtPoint(x, z, 6)) return;
 		const length = 4 + this._rand() * 4;
 		const radius = 0.4 + this._rand() * 0.3;
-		const groundY = this.raycastGroundY(x, z, 0.02);
+		const groundY = Math.min(this.raycastGroundY(x, z, 0.02), 0.04);
 		const geo = this.pool.getGeoCylinder(radius * 0.8, radius, length);
 		const mat = this.pool.getMat(0x5d4037, false);
 		const log = new THREE.Mesh(geo, mat);
@@ -2856,7 +2856,7 @@ export class MapGenerator {
 	}
 
 	_addBarrel(x, z, surfaceY = null) {
-		const sy = surfaceY ?? this.raycastGroundY(x, z, 0.02);
+		const sy = surfaceY ?? Math.min(this.raycastGroundY(x, z, 0.02), 0.04);
 		const barrel = new THREE.Group();
 		const barrelMat = this.pool.getMatStd(
 			0x8d6e63,
@@ -6665,7 +6665,7 @@ export class MapGenerator {
 	}
 
 	_addMilitaryCrate(x, z, surfaceY = null) {
-		const sy = surfaceY ?? this.raycastGroundY(x, z, 0.02);
+		const sy = surfaceY ?? Math.min(this.raycastGroundY(x, z, 0.02), 0.04);
 		// Massive military crate — grand scale
 		const size = 2.5 + this._rand() * 1.5;
 		const geo = this.pool.getGeoBox(size, size, size);
@@ -7967,52 +7967,52 @@ export class MapGenerator {
 	// =========================================================================
 	_placeBiomeDecor() {
 		for (const [x, z] of [
-			[-116, -42],
-			[-98, -110],
-			[-50, -98],
-			[-112, -78],
-			[-42, -48],
+			[-116, 42],
+			[-98, 110],
+			[-50, 98],
+			[-112, 78],
+			[-42, 48],
 		])
 			this._addFallenLog(x, z);
 		for (const [x, z] of [
-			[-112, 48],
-			[-92, 108],
-			[-42, 48],
-			[-40, 110],
+			[-112, -48],
+			[-92, -108],
+			[-42, -48],
+			[-40, -110],
 		])
 			this._addGuardPost(x, z);
 		for (const [x, z] of [
-			[44, 46],
-			[72, 40],
-			[104, 50],
-			[46, 100],
-			[100, 98],
-			[76, 110],
+			[44, -46],
+			[72, -40],
+			[104, -50],
+			[46, -100],
+			[100, -98],
+			[76, -110],
 		])
 			this._addIceChunk(x, z);
 		for (const [x, z] of [
-			[-112, -50],
-			[-86, -96],
-			[-50, -112],
-			[-42, -66],
+			[-112, 50],
+			[-86, 96],
+			[-50, 112],
+			[-42, 66],
 		]) {
 			this._addBarrel(x, z);
 			this._registerChestSpot(x + 2.4, z - 1.8, "forest");
 		}
 		for (const [x, z] of [
-			[-106, 62],
-			[-82, 102],
-			[-48, 76],
-			[-40, 114],
+			[-106, -62],
+			[-82, -102],
+			[-48, -76],
+			[-40, -114],
 		]) {
 			this._addMilitaryCrate(x, z);
 			this._registerChestSpot(x + 1.8, z + 1.5, "military");
 		}
 		for (const [x, z] of [
-			[50, 56],
-			[90, 48],
-			[112, 80],
-			[60, 110],
+			[50, -56],
+			[90, -48],
+			[112, -80],
+			[60, -110],
 		]) {
 			this._addIceChunk(x, z);
 			this._registerChestSpot(x - 2.2, z + 1.6, "ice");
@@ -8023,9 +8023,9 @@ export class MapGenerator {
 	_addBiomeSurvivalFeatures() {
 		const definitions = [
 			["snare", -1, -1],
-			["spikes", 1, -1],
-			["mine", -1, 1],
-			["ice", 1, 1],
+			["spikes", -1, -1],
+			["mine", -1, -1],
+			["ice", 1, -1],
 		];
 		const blocked = (x, z) =>
 			this.colliders.some(
@@ -8066,14 +8066,14 @@ export class MapGenerator {
 			0,
 			this.pool.getMatStd(0x51555a, 0.9, 0, true, false, 1, 0, 0),
 		);
-		this._addGuardPost(-58, 60);
-		this._addGuardPost(-102, 92);
-		this._addIceCampfire(66, 92);
-		this._addIceCampfire(108, 110);
+		this._addGuardPost(-58, -60);
+		this._addGuardPost(-102, -92);
+		this._addIceCampfire(66, -92);
+		this._addIceCampfire(108, -110);
 	}
 
 	_addSurvivalTrap(type, x, z) {
-		const groundY = this.raycastGroundY(x, z, 0.02);
+		const groundY = Math.min(this.raycastGroundY(x, z, 0.02), 0.04);
 		const group = new THREE.Group();
 		let radius = 1.6;
 		let slow = 0.5;
@@ -8254,7 +8254,7 @@ export class MapGenerator {
 	}
 
 	_addGuardPost(x, z, surfaceY = null) {
-		const sy = surfaceY ?? this.raycastGroundY(x, z, 0.02);
+		const sy = surfaceY ?? Math.min(this.raycastGroundY(x, z, 0.02), 0.04);
 		const group = new THREE.Group();
 		const postMat = this.pool.getMatStd(
 			0x4c553d,
@@ -8846,7 +8846,8 @@ export class MapGenerator {
 		for (const col of this.colliders) {
 			if (!col.walkable) continue;
 			// Skip colliders that are way below or way above the fallback height
-			if (col.max.y < fallbackY - 2 || col.max.y > fallbackY + 3) continue;
+			if (col.max.y < fallbackY - 2 || col.max.y > fallbackY + 0.5)
+				continue;
 			if (col.surfaceCircle) {
 				const dx = x - col.surfaceCircle.x;
 				const dz = z - col.surfaceCircle.z;

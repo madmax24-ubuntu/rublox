@@ -1243,12 +1243,12 @@ export class AudioSynth {
 		source.playbackRate.value = buffer ? 0.96 : 0.82;
 		const hp = ctx.createBiquadFilter();
 		hp.type = "highpass";
-		hp.frequency.value = 180;
+		hp.frequency.value = 80;
 		const lp = ctx.createBiquadFilter();
 		lp.type = "lowpass";
-		lp.frequency.value = buffer ? 4300 : 2400;
+		lp.frequency.value = buffer ? 1500 : 1200;
 		const gain = ctx.createGain();
-		gain.gain.value = this.isMobileDevice ? 0.16 : 0.2;
+		gain.gain.value = this.isMobileDevice ? 0.01 : 0.02;
 		source.connect(hp);
 		hp.connect(lp);
 		lp.connect(gain);
