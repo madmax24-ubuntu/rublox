@@ -1255,26 +1255,7 @@ export class AudioSynth {
 		gain.connect(this.getCategoryGain("weather"));
 		source.start();
 
-		const radiationTimer = setInterval(() => {
-			const clicks = 1 + ((Math.random() * 4) | 0);
-			for (let i = 0; i < clicks; i++) {
-				setTimeout(
-					() => {
-						if (!this.radiationRainNodes) return;
-						this.playNoiseBurst({
-							duration: 0.014 + Math.random() * 0.012,
-							volume: this.isMobileDevice ? 0.045 : 0.06,
-							highpass: 2300,
-							lowpass: 8800,
-							category: "weather",
-						});
-					},
-					i * (45 + Math.random() * 70),
-				);
-			}
-		}, 520);
-
-		this.radiationRainNodes = { source, hp, lp, gain, radiationTimer };
+		this.radiationRainNodes = { source, hp, lp, gain };
 	}
 
 	stopRadiationRain() {
@@ -1294,8 +1275,6 @@ export class AudioSynth {
 		try {
 			this.radiationRainNodes.gain?.disconnect?.();
 		} catch {}
-		if (this.radiationRainNodes.radiationTimer)
-			clearInterval(this.radiationRainNodes.radiationTimer);
 		this.radiationRainNodes = null;
 	}
 

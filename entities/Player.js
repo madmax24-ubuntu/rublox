@@ -797,9 +797,11 @@ export class Player {
 				// Check for nearby stalker corpse with loot
 				let nearestCorpse = null;
 				let bestCorpseDist = 3.2;
+				const _worldPos = new THREE.Vector3();
 				this.scene.traverse((child) => {
 					if (child.userData?.isStalkerCorpse && child.userData.corpseLoot) {
-						const dist = this.position.distanceTo(child.position);
+						child.getWorldPosition(_worldPos);
+						const dist = this.position.distanceTo(_worldPos);
 						if (dist < bestCorpseDist) {
 							nearestCorpse = child;
 							bestCorpseDist = dist;

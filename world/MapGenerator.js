@@ -2599,7 +2599,7 @@ export class MapGenerator {
 		if (this.getStructureAtPoint(x, z, 6)) return;
 		const length = 4 + this._rand() * 4;
 		const radius = 0.4 + this._rand() * 0.3;
-		const groundY = this.raycastGroundY(x, z, 0);
+		const groundY = this.raycastGroundY(x, z, 0.02);
 		const geo = this.pool.getGeoCylinder(radius * 0.8, radius, length);
 		const mat = this.pool.getMat(0x5d4037, false);
 		const log = new THREE.Mesh(geo, mat);
@@ -8073,7 +8073,7 @@ export class MapGenerator {
 	}
 
 	_addSurvivalTrap(type, x, z) {
-		const groundY = this.raycastGroundY(x, z, 0.01);
+		const groundY = this.raycastGroundY(x, z, 0.02);
 		const group = new THREE.Group();
 		let radius = 1.6;
 		let slow = 0.5;
@@ -8845,8 +8845,8 @@ export class MapGenerator {
 		let found = false;
 		for (const col of this.colliders) {
 			if (!col.walkable) continue;
-			// Skip colliders that are way below the fallback height (e.g., underground floors)
-			if (col.max.y < fallbackY - 2) continue;
+			// Skip colliders that are way below or way above the fallback height
+			if (col.max.y < fallbackY - 2 || col.max.y > fallbackY + 3) continue;
 			if (col.surfaceCircle) {
 				const dx = x - col.surfaceCircle.x;
 				const dz = z - col.surfaceCircle.z;
