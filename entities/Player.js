@@ -1193,8 +1193,7 @@ export class Player {
 		}
 		if (source === "stalker" && this.isAlive) {
 			this.applyRadiation(10, 3.5, attacker);
-			// Geiger counter clicks on stalker hit
-			this.audioSynthRef?.playGeigerCounter?.(0.18, 12);
+			this.audioSynthRef?.playAcidRainHit?.(10);
 		}
 		if (this.audioSynthRef && tookRealDamage) {
 			if (source === "zone" && this.audioSynthRef.playZoneDamage) {

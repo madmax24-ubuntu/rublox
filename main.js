@@ -1890,17 +1890,6 @@ class Game {
 			}
 		}
 		this.hud?.setStormActive?.(!!active, active ? "radiation" : "storm");
-		if (active) {
-			this.audioSynth?.stopWeatherLoop?.();
-			this.audioSynth?.startRadiationRain?.();
-		} else {
-			this.audioSynth?.stopRadiationRain?.();
-			if (this.audioSynth && this.env) {
-				const weather = this.env.getWeatherType?.() || "clear";
-				this.audioSynth.currentWeatherState = "";
-				this.audioSynth.setWeatherState?.(weather);
-			}
-		}
 	}
 
 	updateRadiationRainEffect(delta) {

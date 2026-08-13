@@ -32,8 +32,8 @@ export class AudioSynth {
 		this.ambientTimers = [];
 		this.ambientNodes = null;
 		this.currentBiomeAmbient = null;
-		this.radiationRainNodes = null;
 		this.weatherLoopNodes = null;
+		this.acidRainHitNodes = null;
 		this.weatherTransitionTimer = null;
 		this.currentWeatherState = "clear";
 		this.footstepWeatherFactor = 1;
@@ -1225,57 +1225,51 @@ export class AudioSynth {
 		});
 	}
 
-	startRadiationRain(position = null) {
+	playAcidRainHit(duration = 10) {
 		if (!this.audioContext) {
-			this._ensureLazyInit()?.then(() => this.startRadiationRain(position));
+			this._ensureLazyInit()?.then(() => this.playAcidRainHit(duration));
 			return;
 		}
 		if (this.audioContext.state === "suspended")
 			this.audioContext.resume().catch(() => {});
-		if (this.radiationRainNodes) return;
+		if (this.acidRainHitNodes) {
+			this._stopAcidRainHit();
+		}
 		const ctx = this.audioContext;
 		const rainPath = this.pickSample(this.sampleCatalog.rain);
 		const buffer = rainPath ? this.sampleBuffers.get(rainPath) : null;
+		if (!buffer) return;
 		const source = ctx.createBufferSource();
-		source.buffer = buffer || this.createRainNoiseBuffer();
-		if (!source.buffer) return;
+		source.buffer = buffer;
 		source.loop = true;
-		source.playbackRate.value = buffer ? 0.96 : 0.82;
-		const hp = ctx.createBiquadFilter();
-		hp.type = "highpass";
-		hp.frequency.value = 80;
 		const lp = ctx.createBiquadFilter();
 		lp.type = "lowpass";
-		lp.frequency.value = buffer ? 1500 : 1200;
+		lp.frequency.value = 3000;
 		const gain = ctx.createGain();
-		gain.gain.value = this.isMobileDevice ? 0.01 : 0.02;
-		source.connect(hp);
-		hp.connect(lp);
+		gain.gain.value = this.isMobileDevice ? 0.12 : 0.18;
+		source.connect(lp);
 		lp.connect(gain);
 		gain.connect(this.getCategoryGain("weather"));
 		source.start();
-
-		this.radiationRainNodes = { source, hp, lp, gain };
+		this.acidRainHitNodes = { source, lp, gain, stopTime: ctx.currentTime + duration };
+		setTimeout(() => this._stopAcidRainHit(), duration * 1000);
 	}
 
-	stopRadiationRain() {
-		if (!this.radiationRainNodes) return;
+	_stopAcidRainHit() {
+		if (!this.acidRainHitNodes) return;
 		try {
-			this.radiationRainNodes.source?.stop?.();
+			this.acidRainHitNodes.source?.stop?.();
 		} catch {}
 		try {
-			this.radiationRainNodes.source?.disconnect?.();
+			this.acidRainHitNodes.source?.disconnect?.();
 		} catch {}
 		try {
-			this.radiationRainNodes.hp?.disconnect?.();
+			this.acidRainHitNodes.lp?.disconnect?.();
 		} catch {}
 		try {
-			this.radiationRainNodes.lp?.disconnect?.();
+			this.acidRainHitNodes.gain?.disconnect?.();
 		} catch {}
-		try {
-			this.radiationRainNodes.gain?.disconnect?.();
-		} catch {}
-		this.radiationRainNodes = null;
+		this.acidRainHitNodes = null;
 	}
 
 	playHurt(position = null, emitterKey = "global") {
