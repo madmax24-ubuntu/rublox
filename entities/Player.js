@@ -794,16 +794,36 @@ export class Player {
 					audioSynth.playPickup();
 				}
 			} else {
-				const nearestChest = lootManager.getNearestClosedChest
-					? lootManager.getNearestClosedChest(this.position, 3.2)
-					: lootManager.getChests().find((chest) => {
-							if (chest.userData.isOpen) return false;
-							return this.position.distanceTo(chest.position) < 3;
-						});
+				// Check for nearby stalker corpse with loot
+				let nearestCorpse = null;
+				let bestCorpseDist = 3.2;
+				this.scene.traverse((child) => {
+					if (child.userData?.isStalkerCorpse && child.userData.corpseLoot) {
+						const dist = this.position.distanceTo(child.position);
+						if (dist < bestCorpseDist) {
+							nearestCorpse = child;
+							bestCorpseDist = dist;
+						}
+					}
+				});
 
-				if (nearestChest) {
-					const loot = lootManager.tryOpenChest(nearestChest, this, audioSynth);
-					if (loot) this.pickupLoot(loot);
+				if (nearestCorpse) {
+					this.pickupLoot(nearestCorpse.userData.corpseLoot);
+					nearestCorpse.userData.corpseLoot = null;
+					nearestCorpse.visible = false;
+					audioSynth.playPickup();
+				} else {
+					const nearestChest = lootManager.getNearestClosedChest
+						? lootManager.getNearestClosedChest(this.position, 3.2)
+						: lootManager.getChests().find((chest) => {
+								if (chest.userData.isOpen) return false;
+								return this.position.distanceTo(chest.position) < 3;
+							});
+
+					if (nearestChest) {
+						const loot = lootManager.tryOpenChest(nearestChest, this, audioSynth);
+						if (loot) this.pickupLoot(loot);
+					}
 				}
 			}
 		}
@@ -1171,12 +1191,16 @@ export class Player {
 		}
 		if (source === "stalker" && this.isAlive) {
 			this.applyRadiation(10, 3.5, attacker);
+			// Geiger counter clicks on stalker hit
+			this.audioSynthRef?.playGeigerCounter?.(0.18, 12);
 		}
 		if (this.audioSynthRef && tookRealDamage) {
 			if (source === "zone" && this.audioSynthRef.playZoneDamage) {
 				this.audioSynthRef.playZoneDamage();
-			} else if (source === "radiation") {
-				this.audioSynthRef.startRadiationRain?.();
+			} else if (source === "radiation" && this.audioSynthRef.playPlayerHurt) {
+				this.audioSynthRef.playPlayerHurt();
+			} else if (source === "radiation" && this.audioSynthRef.playHurt) {
+				this.audioSynthRef.playHurt();
 			} else if (this.audioSynthRef.playPlayerHurt) {
 				this.audioSynthRef.playPlayerHurt();
 			} else if (this.audioSynthRef.playHurt) {

@@ -2855,7 +2855,8 @@ export class MapGenerator {
 		this._addBarrel(cx - 2, cz + 3);
 	}
 
-	_addBarrel(x, z) {
+	_addBarrel(x, z, surfaceY = null) {
+		const sy = surfaceY ?? this.raycastGroundY(x, z, 0.02);
 		const barrel = new THREE.Group();
 		const barrelMat = this.pool.getMatStd(
 			0x8d6e63,
@@ -2895,11 +2896,11 @@ export class MapGenerator {
 			barrel.add(band);
 		}
 
-		barrel.position.set(x, 0, z);
+		barrel.position.set(x, sy, z);
 		barrel.userData.mapGenerated = true;
 		barrel.userData.isBarrel = true;
 		this.scene.add(barrel);
-		this.addColliderBox(new THREE.Vector3(x, 0.6, z), 1.3, 1.2, 1.3, false);
+		this.addColliderBox(new THREE.Vector3(x, sy + 0.6, z), 1.3, 1.2, 1.3, false);
 	}
 
 	_addFireflies(startX, startZ, size, cx, cz) {
@@ -4470,7 +4471,8 @@ export class MapGenerator {
 		// Edge trees — dense military perimeter
 	}
 
-	_addMilitaryHangar(x, z, w, d, h) {
+	_addMilitaryHangar(x, z, w, d, h, surfaceY = null) {
+		const sy = surfaceY ?? this.raycastGroundY(x, z, 0.02);
 		const group = new THREE.Group();
 		const floorMat = this.pool.getMatStd(
 			0x34383d,
@@ -4565,7 +4567,7 @@ export class MapGenerator {
 			}
 		}
 		// Set group position BEFORE adding to scene and creating colliders
-		group.position.set(x, 0, z);
+		group.position.set(x, sy, z);
 		group.userData.mapGenerated = true;
 		group.userData.buildingType = "hangar";
 		this.scene.add(group);
@@ -4573,7 +4575,7 @@ export class MapGenerator {
 		// Side walls: overhang 0.5 beyond visual mesh on each side
 		for (const side of [-1, 1]) {
 			this.addColliderBox(
-				new THREE.Vector3(x + (side * w) / 2, h / 2, z),
+				new THREE.Vector3(x + (side * w) / 2, sy + h / 2, z),
 				1.5,
 				h,
 				d + 1.0,
@@ -4585,7 +4587,7 @@ export class MapGenerator {
 		// Door sections
 		if (doorLeftW > 0) {
 			this.addColliderBox(
-				new THREE.Vector3(x - w / 2 + doorLeftW / 2, h / 2, z + d / 2),
+				new THREE.Vector3(x - w / 2 + doorLeftW / 2, sy + h / 2, z + d / 2),
 				doorLeftW + 0.5,
 				h,
 				2.5,
@@ -4596,7 +4598,7 @@ export class MapGenerator {
 		}
 		if (doorRightW > 0) {
 			this.addColliderBox(
-				new THREE.Vector3(x + w / 2 - doorRightW / 2, h / 2, z + d / 2),
+				new THREE.Vector3(x + w / 2 - doorRightW / 2, sy + h / 2, z + d / 2),
 				doorRightW + 0.5,
 				h,
 				2.5,
@@ -4607,7 +4609,7 @@ export class MapGenerator {
 		}
 		if (doorTopH > 0) {
 			this.addColliderBox(
-				new THREE.Vector3(x, doorH + doorTopH / 2, z + d / 2),
+				new THREE.Vector3(x, sy + doorH + doorTopH / 2, z + d / 2),
 				w + 0.5,
 				doorTopH,
 				2.5,
@@ -4618,7 +4620,7 @@ export class MapGenerator {
 		}
 		// Back wall
 		this.addColliderBox(
-			new THREE.Vector3(x, h / 2, z - d / 2),
+			new THREE.Vector3(x, sy + h / 2, z - d / 2),
 			w + 0.5,
 			h,
 			2.5,
@@ -4631,7 +4633,7 @@ export class MapGenerator {
 		for (const cx of [x - w / 2, x + w / 2]) {
 			for (const cz of [z - d / 2, z + d / 2]) {
 				this.addColliderBox(
-					new THREE.Vector3(cx, h / 2, cz),
+					new THREE.Vector3(cx, sy + h / 2, cz),
 					5.0,
 					h,
 					5.0,
@@ -4642,10 +4644,10 @@ export class MapGenerator {
 			}
 		}
 		// Floor collider — walkable surface (isBuildingWall protects from cleanup)
-		this.addColliderBox(new THREE.Vector3(x, 0.15, z), w, 0.3, d, true, false, true);
+		this.addColliderBox(new THREE.Vector3(x, sy + 0.15, z), w, 0.3, d, true, false, true);
 		// Roof collider (isBuildingWall protects from cleanup)
 		this.addColliderBox(
-			new THREE.Vector3(x, h + 0.5, z),
+			new THREE.Vector3(x, sy + h + 0.5, z),
 			w + 1.8,
 			1.8,
 			d + 1.8,
@@ -4656,7 +4658,7 @@ export class MapGenerator {
 		// Front corner colliders — seal gaps between side walls and door sections
 		for (const side of [-1, 1]) {
 			this.addColliderBox(
-				new THREE.Vector3(x + (side * w) / 2, h / 2, z + d / 2),
+				new THREE.Vector3(x + (side * w) / 2, sy + h / 2, z + d / 2),
 				1.2,
 				h,
 				1.2,
@@ -4677,11 +4679,12 @@ export class MapGenerator {
 			this._registerChestSpot(x + ox, z + oz, "hangar", 3);
 		}
 		// Easter egg: Stalker corpse sitting/slumping inside hangar (visible from entrance)
-		this._addStalkerCorpse(w / 2 - 5, d / 2 - 8, 0.3, group);
+		this._addStalkerCorpse(w / 2 - 5, d / 2 - 8, sy + 0.3, group);
 		// Frustum culling remains enabled for hangar group; easter egg meshes have frustumCulled=false individually
 	}
 
-	_addReferenceMilitaryRuin(x, z, w, d) {
+	_addReferenceMilitaryRuin(x, z, w, d, surfaceY = null) {
+		const sy = surfaceY ?? this.raycastGroundY(x, z, 0.02);
 		const group = new THREE.Group();
 		const floorMat = this.pool.getMatStd(
 			0x34383d,
@@ -4726,7 +4729,7 @@ export class MapGenerator {
 			wall.userData.isWall = true;
 			group.add(wall);
 			this.addColliderBox(
-				new THREE.Vector3(x + lx, ly, z + lz),
+				new THREE.Vector3(x + lx, sy + ly, z + lz),
 				sw,
 				sh,
 				sd,
@@ -4754,14 +4757,14 @@ export class MapGenerator {
 			slab.userData.walkable = true;
 			group.add(slab);
 			this.addColliderBox(
-				new THREE.Vector3(x + side * w * 0.27, 6, z),
+				new THREE.Vector3(x + side * w * 0.27, sy + 6, z),
 				slabW,
 				0.35,
 				d * 0.78,
 				false,
 			);
 		}
-		group.position.set(x, 0, z);
+		group.position.set(x, sy, z);
 		group.userData.mapGenerated = true;
 		this.scene.add(group);
 		this._buildings.push({ x, z, w, d, template: { type: "military_ruin" } });
@@ -4853,7 +4856,8 @@ export class MapGenerator {
 		}
 	}
 
-	_addBarbedWireFence(startX, startZ, size) {
+	_addBarbedWireFence(startX, startZ, size, surfaceY = null) {
+		const sy = surfaceY ?? this.raycastGroundY(startX, startZ, 0.02);
 		const postMat = this.pool.getMatStd(
 			0x4a5238,
 			0.9,
@@ -4881,17 +4885,17 @@ export class MapGenerator {
 		const gate = 18;
 		const runs = [
 			[
-				new THREE.Vector3(startX, 0, startZ),
-				new THREE.Vector3(endX - gate, 0, startZ),
+				new THREE.Vector3(startX, sy, startZ),
+				new THREE.Vector3(endX - gate, sy, startZ),
 			],
-			[new THREE.Vector3(startX, 0, endZ), new THREE.Vector3(endX, 0, endZ)],
+			[new THREE.Vector3(startX, sy, endZ), new THREE.Vector3(endX, sy, endZ)],
 			[
-				new THREE.Vector3(startX, 0, startZ),
-				new THREE.Vector3(startX, 0, endZ),
+				new THREE.Vector3(startX, sy, startZ),
+				new THREE.Vector3(startX, sy, endZ),
 			],
 			[
-				new THREE.Vector3(endX, 0, startZ + gate),
-				new THREE.Vector3(endX, 0, endZ),
+				new THREE.Vector3(endX, sy, startZ + gate),
+				new THREE.Vector3(endX, sy, endZ),
 			],
 		];
 		const postPositions = [];
@@ -4906,19 +4910,19 @@ export class MapGenerator {
 				postPositions.push(point);
 			}
 			for (let i = 0; i < points.length - 1; i++) {
-				for (const height of [0.72, 1.42, 2.12]) {
+				for (const height of [sy + 0.72, sy + 1.42, sy + 2.12]) {
 					wireSegments.push([
 						new THREE.Vector3(points[i].x, height, points[i].z),
 						new THREE.Vector3(points[i + 1].x, height, points[i + 1].z),
 					]);
 				}
 				wireSegments.push([
-					new THREE.Vector3(points[i].x, 0.68, points[i].z),
-					new THREE.Vector3(points[i + 1].x, 2.18, points[i + 1].z),
+					new THREE.Vector3(points[i].x, sy + 0.68, points[i].z),
+					new THREE.Vector3(points[i + 1].x, sy + 2.18, points[i + 1].z),
 				]);
 				wireSegments.push([
-					new THREE.Vector3(points[i].x, 2.18, points[i].z),
-					new THREE.Vector3(points[i + 1].x, 0.68, points[i + 1].z),
+					new THREE.Vector3(points[i].x, sy + 2.18, points[i].z),
+					new THREE.Vector3(points[i + 1].x, sy + 0.68, points[i + 1].z),
 				]);
 			}
 		}
@@ -4938,7 +4942,7 @@ export class MapGenerator {
 		for (let i = 0; i < uniquePosts.length; i++) {
 			const p = uniquePosts[i];
 			matrix.compose(
-				new THREE.Vector3(p.x, postH / 2, p.z),
+				new THREE.Vector3(p.x, sy + postH / 2, p.z),
 				quaternion.identity(),
 				scale,
 			);
@@ -4973,21 +4977,21 @@ export class MapGenerator {
 
 		const northLength = size - gate;
 		this.addColliderBox(
-			new THREE.Vector3(startX + northLength / 2, postH / 2, startZ),
+			new THREE.Vector3(startX + northLength / 2, sy + postH / 2, startZ),
 			northLength,
 			postH,
 			0.35,
 			false,
 		);
 		this.addColliderBox(
-			new THREE.Vector3(startX + size / 2, postH / 2, endZ),
+			new THREE.Vector3(startX + size / 2, sy + postH / 2, endZ),
 			size,
 			postH,
 			0.35,
 			false,
 		);
 		this.addColliderBox(
-			new THREE.Vector3(startX, postH / 2, startZ + size / 2),
+			new THREE.Vector3(startX, sy + postH / 2, startZ + size / 2),
 			0.35,
 			postH,
 			size,
@@ -4995,7 +4999,7 @@ export class MapGenerator {
 		);
 		const eastLength = size - gate;
 		this.addColliderBox(
-			new THREE.Vector3(endX, postH / 2, startZ + gate + eastLength / 2),
+			new THREE.Vector3(endX, sy + postH / 2, startZ + gate + eastLength / 2),
 			0.35,
 			postH,
 			eastLength,
@@ -5003,7 +5007,8 @@ export class MapGenerator {
 		);
 	}
 
-	_addCzechHedgehog(x, z) {
+	_addCzechHedgehog(x, z, surfaceY = null) {
+		const sy = surfaceY ?? this.raycastGroundY(x, z, 0.02);
 		const mat = this.pool.getMatStd(0x4a5238, 0.6, 0.4, false, false, 1, 0, 0);
 
 		const hedgehog = new THREE.Group();
@@ -5026,12 +5031,12 @@ export class MapGenerator {
 			hedgehog.add(beam);
 		}
 
-		hedgehog.position.set(x, 0, z);
+		hedgehog.position.set(x, sy, z);
 		hedgehog.userData.mapGenerated = true;
 		this.scene.add(hedgehog);
 
 		this.addColliderBox(
-			new THREE.Vector3(x, beamLen / 2, z),
+			new THREE.Vector3(x, sy + beamLen / 2, z),
 			beamLen,
 			beamLen,
 			beamLen,
@@ -5039,7 +5044,8 @@ export class MapGenerator {
 		);
 	}
 
-	_addDestroyedTank(x, z) {
+	_addDestroyedTank(x, z, surfaceY = null) {
+		const sy = surfaceY ?? this.raycastGroundY(x, z, 0.02);
 		const tank = new THREE.Group();
 		const hullMat = this.pool.getMatStd(
 			0x54624a,
@@ -5127,15 +5133,16 @@ export class MapGenerator {
 		fire.userData.mapGenerated = true;
 		tank.add(fire);
 
-		tank.position.set(x, 0, z);
+		tank.position.set(x, sy, z);
 		tank.rotation.y = this._rand() * Math.PI * 2;
 		tank.userData.mapGenerated = true;
 		this.scene.add(tank);
 
-		this.addColliderBox(new THREE.Vector3(x, 2.8, z), 8, 5.6, 10.5, false);
+		this.addColliderBox(new THREE.Vector3(x, sy + 2.8, z), 8, 5.6, 10.5, false);
 	}
 
-	_addTrench(x, z, length) {
+	_addTrench(x, z, length, surfaceY = null) {
+		const sy = surfaceY ?? this.raycastGroundY(x, z, 0.02);
 		const trenchMat = this.pool.getMatStd(
 			0x3d3528,
 			0.95,
@@ -5150,7 +5157,7 @@ export class MapGenerator {
 		// Дно окопа
 		const bottomGeo = this.pool.getGeoBox(3, 0.1, length);
 		const bottom = new THREE.Mesh(bottomGeo, trenchMat);
-		bottom.position.set(x, 0.15, z);
+		bottom.position.set(x, sy + 0.15, z);
 		bottom.userData.mapGenerated = true;
 		this.scene.add(bottom);
 
@@ -5158,12 +5165,12 @@ export class MapGenerator {
 		for (const side of [-1, 1]) {
 			const wallGeo = this.pool.getGeoBox(0.3, 1, length);
 			const wall = new THREE.Mesh(wallGeo, trenchMat);
-			wall.position.set(x + side * 1.5, 0.5, z);
+			wall.position.set(x + side * 1.5, sy + 0.5, z);
 			wall.userData.mapGenerated = true;
 			wall.userData.isWall = true;
 			this.scene.add(wall);
 			this.addColliderBox(
-				new THREE.Vector3(x + side * 1.5, 0.5, z),
+				new THREE.Vector3(x + side * 1.5, sy + 0.5, z),
 				0.3,
 				1,
 				length,
@@ -5174,19 +5181,19 @@ export class MapGenerator {
 		// Повернутый окоп (перпендикулярно)
 		const bottom2Geo = this.pool.getGeoBox(length, 0.1, 3);
 		const bottom2 = new THREE.Mesh(bottom2Geo, trenchMat);
-		bottom2.position.set(x + length / 2, 0.15, z + length / 2);
+		bottom2.position.set(x + length / 2, sy + 0.15, z + length / 2);
 		bottom2.userData.mapGenerated = true;
 		this.scene.add(bottom2);
 
 		for (const side of [-1, 1]) {
 			const wallGeo = this.pool.getGeoBox(length, 1, 0.3);
 			const wall = new THREE.Mesh(wallGeo, trenchMat);
-			wall.position.set(x + length / 2, 0.5, z + length / 2 + side * 1.5);
+			wall.position.set(x + length / 2, sy + 0.5, z + length / 2 + side * 1.5);
 			wall.userData.mapGenerated = true;
 			wall.userData.isWall = true;
 			this.scene.add(wall);
 			this.addColliderBox(
-				new THREE.Vector3(x + length / 2, 0.5, z + length / 2 + side * 1.5),
+				new THREE.Vector3(x + length / 2, sy + 0.5, z + length / 2 + side * 1.5),
 				length,
 				1,
 				0.3,
@@ -5195,7 +5202,8 @@ export class MapGenerator {
 		}
 	}
 
-	_addSandbagBunker(x, z) {
+	_addSandbagBunker(x, z, surfaceY = null) {
+		const sy = surfaceY ?? this.raycastGroundY(x, z, 0.02);
 		const mat = this.pool.getMatStd(0x9e8e6e, 0.95, 0, true, false, 1, 0, 0);
 
 		const bunker = new THREE.Group();
@@ -5230,13 +5238,13 @@ export class MapGenerator {
 			}
 		}
 
-		bunker.position.set(x, 0, z);
+		bunker.position.set(x, sy, z);
 		bunker.userData.mapGenerated = true;
 		this.scene.add(bunker);
 		this._registerChestSpot(x + bagW * 1.5, z + bagD * 1.5, "military");
 
 		this.addColliderBox(
-			new THREE.Vector3(x, 0.5, z),
+			new THREE.Vector3(x, sy + 0.5, z),
 			4 * bagW,
 			1.2,
 			3 * bagD,
@@ -6060,7 +6068,8 @@ export class MapGenerator {
 		});
 	}
 
-	_addMilitaryTank(x, z) {
+	_addMilitaryTank(x, z, surfaceY = null) {
+		const sy = surfaceY ?? this.raycastGroundY(x, z, 0.02);
 		const tank = new THREE.Group();
 		const hullMat = this.pool.getMatStd(
 			COLORS.militaryTank,
@@ -6134,12 +6143,12 @@ export class MapGenerator {
 			tank.add(track);
 		}
 
-		tank.position.set(x, 0, z);
+		tank.position.set(x, sy, z);
 		tank.rotation.y = this._rand() * Math.PI * 2;
 		tank.userData.mapGenerated = true;
 		this.scene.add(tank);
 
-		this.addColliderBox(new THREE.Vector3(x, 3, z), 8, 6, 12, false);
+		this.addColliderBox(new THREE.Vector3(x, sy + 3, z), 8, 6, 12, false);
 	}
 
 	_addStalkerCorpse(x, z, floorY = 0, parent) {
@@ -6153,6 +6162,7 @@ export class MapGenerator {
 		group.position.set(x, floorY, z);
 		group.userData.mapGenerated = true;
 		group.userData.isStalkerCorpse = true;
+		group.userData.corpseLoot = { type: 'weapon', weaponType: 'bazooka' };
 		(parent || this.scene).add(group);
 	}
 	this.addColliderBox(new THREE.Vector3(x, floorY, z), 3.0, 1.5, 3.0, false);
@@ -6617,18 +6627,19 @@ export class MapGenerator {
 		}
 	}
 
-	_addSandbagBarrier(x, z) {
+	_addSandbagBarrier(x, z, surfaceY = null) {
+		const sy = surfaceY ?? this.raycastGroundY(x, z, 0.02);
 		const mat = this.pool.getMatStd(0x9e9e9e, 0.95, 0, true, false, 1, 0, 0);
 
 		// L-shape sandbag wall
 		for (let i = 0; i < 3; i++) {
 			const bagGeo = this.pool.getGeoBox(0.5, 0.3, 0.35);
 			const bag = new THREE.Mesh(bagGeo, mat);
-			bag.position.set(x + i * 0.55, 0.15, z);
+			bag.position.set(x + i * 0.55, sy + 0.15, z);
 			bag.userData.mapGenerated = true;
 			this.scene.add(bag);
 			this.addColliderBox(
-				new THREE.Vector3(x + i * 0.55, 0.15, z),
+				new THREE.Vector3(x + i * 0.55, sy + 0.15, z),
 				0.5,
 				0.3,
 				0.35,
@@ -6638,11 +6649,11 @@ export class MapGenerator {
 		for (let i = 0; i < 2; i++) {
 			const bagGeo = this.pool.getGeoBox(0.5, 0.3, 0.35);
 			const bag = new THREE.Mesh(bagGeo, mat);
-			bag.position.set(x, 0.15, z + (i + 1) * 0.55);
+			bag.position.set(x, sy + 0.15, z + (i + 1) * 0.55);
 			bag.userData.mapGenerated = true;
 			this.scene.add(bag);
 			this.addColliderBox(
-				new THREE.Vector3(x, 0.15, z + (i + 1) * 0.55),
+				new THREE.Vector3(x, sy + 0.15, z + (i + 1) * 0.55),
 				0.5,
 				0.3,
 				0.35,
@@ -6653,18 +6664,19 @@ export class MapGenerator {
 		// Visual only — no spawn tile
 	}
 
-	_addMilitaryCrate(x, z) {
+	_addMilitaryCrate(x, z, surfaceY = null) {
+		const sy = surfaceY ?? this.raycastGroundY(x, z, 0.02);
 		// Massive military crate — grand scale
 		const size = 2.5 + this._rand() * 1.5;
 		const geo = this.pool.getGeoBox(size, size, size);
 		const mat = this.pool.getMatStd(0x6d4c41, 0.8, 0, true, false, 1, 0, 0);
 		const crate = new THREE.Mesh(geo, mat);
-		crate.position.set(x, size / 2, z);
+		crate.position.set(x, sy + size / 2, z);
 		crate.rotation.y = this._rand() * Math.PI;
 		crate.userData.mapGenerated = true;
 		this.scene.add(crate);
 		this.addColliderBox(
-			new THREE.Vector3(x, size / 2, z),
+			new THREE.Vector3(x, sy + size / 2, z),
 			size,
 			size,
 			size,
@@ -8241,7 +8253,8 @@ export class MapGenerator {
 		}
 	}
 
-	_addGuardPost(x, z) {
+	_addGuardPost(x, z, surfaceY = null) {
+		const sy = surfaceY ?? this.raycastGroundY(x, z, 0.02);
 		const group = new THREE.Group();
 		const postMat = this.pool.getMatStd(
 			0x4c553d,
@@ -8271,7 +8284,7 @@ export class MapGenerator {
 				post.userData.mapGenerated = true;
 				group.add(post);
 				this.addColliderBox(
-					new THREE.Vector3(x + px, 3, z + pz),
+					new THREE.Vector3(x + px, sy + 3, z + pz),
 					0.7,
 					6,
 					0.7,
@@ -8283,7 +8296,7 @@ export class MapGenerator {
 		roof.position.y = 6.3;
 		roof.userData.mapGenerated = true;
 		group.add(roof);
-		group.position.set(x, 0, z);
+		group.position.set(x, sy, z);
 		group.userData.mapGenerated = true;
 		this.scene.add(group);
 	}
@@ -8449,13 +8462,14 @@ export class MapGenerator {
 		}
 	}
 
-	_addIceChunk(x, z) {
+	_addIceChunk(x, z, surfaceY = null) {
+		const sy = surfaceY ?? this.raycastGroundY(x, z, 0.02);
 		const size = 3.2 + this._rand() * 3.4;
 		const height = size * (0.72 + this._rand() * 0.45);
 		const geo = this.pool.getGeoDodecahedron(1);
 		const mat = this.pool.getMatStd(0x9bc9df, 0.62, 0.08, true, false, 1, 0, 0);
 		const chunk = new THREE.Mesh(geo, mat);
-		chunk.position.set(x, height * 0.48, z);
+		chunk.position.set(x, sy + height * 0.48, z);
 		chunk.scale.set(size, height, size * (0.82 + this._rand() * 0.32));
 		chunk.rotation.set(
 			(this._rand() - 0.5) * 0.16,
@@ -8466,7 +8480,7 @@ export class MapGenerator {
 		chunk.userData.isCover = true;
 		this.scene.add(chunk);
 		this.addColliderBox(
-			new THREE.Vector3(x, height * 0.48, z),
+			new THREE.Vector3(x, sy + height * 0.48, z),
 			size * 1.55,
 			height * 0.92,
 			size * 1.55,
@@ -8474,16 +8488,17 @@ export class MapGenerator {
 		);
 	}
 
-	_addBarrel(x, z) {
+	_addBarrel(x, z, surfaceY = null) {
+		const sy = surfaceY ?? this.raycastGroundY(x, z, 0.02);
 		// Massive barrel — grand scale
 		const geo = this.pool.getGeoCylinder(1.2, 1.2, 2.5);
 		const mat = this.pool.getMatStd(0x5d4037, 0.8, 0, false, false, 1, 0, 0);
 		const barrel = new THREE.Mesh(geo, mat);
-		barrel.position.set(x, 1.25, z);
+		barrel.position.set(x, sy + 1.25, z);
 		barrel.userData.mapGenerated = true;
 		barrel.userData.physicsType = "STATIC";
 		this.scene.add(barrel);
-		this.addColliderBox(new THREE.Vector3(x, 1.25, z), 2.5, 2.5, 2.5, false);
+		this.addColliderBox(new THREE.Vector3(x, sy + 1.25, z), 2.5, 2.5, 2.5, false);
 	}
 
 	_addCrate(x, z) {
