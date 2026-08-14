@@ -188,7 +188,6 @@ export class LootManager {
         const spots = this.mapGenerator.getChestSpots?.() || [];
         const occupied = new Set();
         const keyFor = (x, z) => `${Math.round(x / 3)}:${Math.round(z / 3)}`;
-
         if (spots.length > 0) {
             const shuffled = [...spots].sort(() => Math.random() - 0.5);
             const limit = Math.min(chestCount, shuffled.length);
@@ -261,6 +260,12 @@ export class LootManager {
         const spots = this.mapGenerator.getChestSpots?.() || [];
         const occupied = new Set();
         const keyFor = (x, z) => `${Math.round(x / 3)}:${Math.round(z / 3)}`;
+        let generatedSinceYield = 0;
+        const yieldAfterChest = async () => {
+            if (++generatedSinceYield < 4) return;
+            generatedSinceYield = 0;
+            await new Promise(resolve => setTimeout(resolve, 0));
+        };
         console.log(`[LootManager] generateChestsAsync: floorTiles=${floorTiles.length}, spots=${spots.length}, chestCount=${chestCount}`);
 
         if (spots.length > 0) {
@@ -276,10 +281,7 @@ export class LootManager {
                 this.chests.push(chest);
                 occupied.add(keyFor(placement.x, placement.z));
 
-                // Даем браузеру "прододхнуть" каждые 15 сундуков (реже = меньше фризов)
-                if (i > 0 && i % 15 === 0) {
-                    await new Promise(resolve => requestAnimationFrame(resolve));
-                }
+                await yieldAfterChest();
             }
         }
 
@@ -299,9 +301,7 @@ export class LootManager {
                 const chest = this.createChest(tile.x, y, tile.z);
                 this.chests.push(chest);
                 occupied.add(key);
-                if (i > 0 && i % 15 === 0) {
-                    await new Promise(resolve => requestAnimationFrame(resolve));
-                }
+                await yieldAfterChest();
             }
             console.log(`[LootManager] floorTiles path: created ${this.chests.length} chests`);
             if (this.chests.length === 0) {
@@ -333,9 +333,7 @@ export class LootManager {
             this.chests.push(chest);
             occupied.add(key);
             i++;
-            if (i > 0 && i % 15 === 0) {
-                await new Promise(resolve => requestAnimationFrame(resolve));
-            }
+            await yieldAfterChest();
         }
         console.log(`[LootManager] random fallback: created ${this.chests.length} chests`);
     }
