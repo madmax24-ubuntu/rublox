@@ -2388,16 +2388,41 @@ export class BotBrain {
 			bot._huntUntil = 0;
 			bot.patrolTarget = null;
 		}
-		// More aggressive stuck recovery — pick wider targets faster
-		const escape =
+		let escape =
 			this.pickLocalNavigationStep(
 				bot,
 				combatTarget?.position || bot.patrolTarget || bot.target?.position,
 			) || this.pickSpreadTarget(bot, bot._stuckRecoveries >= 2 ? 55 : 30, 90);
+		if (
+			!escape ||
+			bot.position.distanceToSquared(escape) < 16 ||
+			bot.mapRef?.isWalkableAt?.(escape.x, escape.z) === false
+		) {
+			let best = null;
+			let bestScore = -Infinity;
+			const radius = 8 + Math.min(12, bot._stuckRecoveries * 3);
+			for (let i = 0; i < 16; i++) {
+				const angle = ((i + bot.id * 5) % 16) * (Math.PI / 8);
+				const x = bot.position.x + Math.cos(angle) * radius;
+				const z = bot.position.z + Math.sin(angle) * radius;
+				if (bot.mapRef?.isWalkableAt?.(x, z) === false) continue;
+				this._tmpRandomDir.set(x - bot.position.x, 0, z - bot.position.z).normalize();
+				if (bot.isDirectionBlocked?.(this._tmpRandomDir, 4.5)) continue;
+				const crowd = this.countBotsNearPointForSpread(bot, x, z, 5);
+				const score = -crowd * 12 + ((i * 7 + bot.id) % 11);
+				if (score <= bestScore) continue;
+				bestScore = score;
+				best = new THREE.Vector3(x, bot.position.y, z);
+			}
+			escape = best;
+		}
 		if (escape) {
 			bot.patrolTarget = escape.clone?.() || escape;
-			bot._navWaypoint = bot.patrolTarget;
-			bot._navWaypointUntil = now + 2200;
+			bot._navWaypoint = bot.patrolTarget.clone();
+			bot._navWaypointUntil = now + 3200;
+			bot.escapeDir.subVectors(bot.patrolTarget, bot.position).normalize();
+			bot._hasEscapeDir = true;
+			bot.escapeTimer = 1.1;
 		}
 		bot._scatterTargetUntil = now + 4500;
 		bot._elevatedRoute = null;

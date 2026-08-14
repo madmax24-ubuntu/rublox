@@ -1357,7 +1357,9 @@ export class Bot {
             this.navLastTargetKey = null;
             return;
         }
-        const key = `${Math.round(target.x)}:${Math.round(target.z)}`;
+        const key = this.target
+            ? `target:${this.target.id ?? this.target.mesh?.uuid ?? "entity"}`
+            : `patrol:${Math.round(target.x)}:${Math.round(target.z)}`;
         const dist = this.position.distanceTo(target);
         if (this.navLastTargetKey !== key) {
             this.navLastTargetKey = key;
@@ -1371,7 +1373,7 @@ export class Bot {
             return;
         }
         this.navProgressTimer += delta;
-        if (this.navProgressTimer > 1.4) {
+        if (this.navProgressTimer > 0.95) {
             this.isStuck = true;
             this.navProgressTimer = 0;
             this.navLastDistance = dist;
