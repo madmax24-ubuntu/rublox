@@ -4346,7 +4346,7 @@ export class MapGenerator {
 		for (let i = 0; i < 8; i++) {
 			const hx = startX + 10 + this._rand() * (size - 20);
 			const hz = startZ + 10 + this._rand() * (size - 20);
-			this._addCzechHedgehog(hx, hz, 2.5 + this._rand() * 1.5);
+			this._addCzechHedgehog(hx, hz);
 		}
 
 		// Полуразрушенные танки
@@ -5013,8 +5013,8 @@ export class MapGenerator {
 		);
 	}
 
-	_addCzechHedgehog(x, z, surfaceY = null) {
-		const sy = surfaceY ?? this.raycastGroundY(x, z, 0.02);
+	_addCzechHedgehog(x, z) {
+		const sy = this.raycastGroundY(x, z, 0.02);
 		const mat = this.pool.getMatStd(0x4a5238, 0.6, 0.4, false, false, 1, 0, 0);
 
 		const hedgehog = new THREE.Group();
