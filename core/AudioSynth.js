@@ -77,7 +77,7 @@ export class AudioSynth {
 		this.bazookaExplosionBuffer = null;
 		// Fallback audio files (decoded async — no freeze)
 		this._bazookaLaunchFallbackPath = "assets/audio/weapons/bazooka_launch_real.mp3";
-		this._bazookaExplosionFallbackPath = "assets/audio/weapons/bazooka_explosion_real.mp3";
+		this._bazookaExplosionFallbackPath = "assets/audio/weapons/bazooka_explosion_real.mp3?v=2";
 
 		this.sampleCatalog = {
 			ambient: [],
