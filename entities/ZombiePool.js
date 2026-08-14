@@ -19,7 +19,8 @@ export class ZombiePool {
             const variant = this.variantSequence[i % this.variantSequence.length];
             const zombie = this.acquire(origin, variant);
             warmed.push(zombie);
-            await new Promise(resolve => requestAnimationFrame(resolve));
+            if ((i + 1) % 4 === 0)
+                await new Promise(resolve => setTimeout(resolve, 0));
         }
         for (const zombie of warmed) this.release(zombie, true);
     }
