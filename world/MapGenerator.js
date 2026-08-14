@@ -3487,13 +3487,15 @@ export class MapGenerator {
 				new THREE.Vector3(segment.width, wallHeight, segment.depth),
 			);
 			mazeWalls.setMatrixAt(i, matrix);
-			this.addColliderBox(
+			const mazeCollider = this.addColliderBox(
 				new THREE.Vector3(segment.x, wallHeight / 2, segment.z),
 				segment.width,
 				wallHeight,
 				segment.depth,
 				false,
 			);
+			mazeCollider.isBuildingWall = true;
+			mazeCollider.isMazeWall = true;
 		}
 		mazeWalls.instanceMatrix.needsUpdate = true;
 		mazeWalls.computeBoundingSphere();
@@ -3536,7 +3538,7 @@ export class MapGenerator {
 					Math.cos(angle - normalizedExitAngle),
 				),
 			);
-			const isRoofExit = exitDistance < 1.3;
+			const isRoofExit = exitDistance < 0.34;
 			const lowerGap = isDoor ? towerDoorHeight : 0;
 			const upperGap = isRoofExit ? towerRoofExitHeight : 0;
 			const segmentHeight = towerHeight - lowerGap - upperGap;
@@ -3664,7 +3666,11 @@ export class MapGenerator {
 				if (Math.hypot(dx, dz) > roofRadius - 0.4) continue;
 				const u = tangentX * dx + tangentZ * dz;
 				const v = radialX * dx + radialZ * dz;
-				if (u > -7 && u < 3.6 && v > -0.5) continue;
+				if (
+					Math.abs(u) < stepWidth * 0.72 &&
+					Math.abs(v - spiralR) < stepDepth * 0.82
+				)
+					continue;
 				roofCells.push({
 					x: towerCX + dx,
 					z: towerCZ + dz,
@@ -5012,21 +5018,19 @@ export class MapGenerator {
 		const mat = this.pool.getMatStd(0x4a5238, 0.6, 0.4, false, false, 1, 0, 0);
 
 		const hedgehog = new THREE.Group();
-		const beamLen = 2;
-		const beamR = 0.15;
+		const beamLen = 2.6;
+		const beamGeo = this.pool.getGeoBox(beamLen, 0.22, 0.22);
+		const beamAxis = new THREE.Vector3(1, 0, 0);
+		const directions = [
+			new THREE.Vector3(1, 1, 0).normalize(),
+			new THREE.Vector3(0, 1, 1).normalize(),
+			new THREE.Vector3(1, 0, 1).normalize(),
+		];
 
-		// 3 скрещенные балки
-		for (let i = 0; i < 3; i++) {
-			const angle = (i / 3) * Math.PI;
-			const beamGeo = this.pool.getGeoCylinder(beamR, beamR, beamLen);
+		for (let i = 0; i < directions.length; i++) {
 			const beam = new THREE.Mesh(beamGeo, mat);
-			beam.position.set(
-				(Math.cos(angle) * beamLen) / 2,
-				beamLen / 2,
-				(Math.sin(angle) * beamLen) / 2,
-			);
-			beam.rotation.z = Math.PI / 2;
-			beam.rotation.y = angle;
+			beam.position.y = 0.92;
+			beam.quaternion.setFromUnitVectors(beamAxis, directions[i]);
 			beam.userData.mapGenerated = true;
 			hedgehog.add(beam);
 		}
@@ -5036,10 +5040,10 @@ export class MapGenerator {
 		this.scene.add(hedgehog);
 
 		this.addColliderBox(
-			new THREE.Vector3(x, sy + beamLen / 2, z),
-			beamLen,
-			beamLen,
-			beamLen,
+			new THREE.Vector3(x, sy + 0.9, z),
+			2.25,
+			1.8,
+			2.25,
 			false,
 		);
 	}
