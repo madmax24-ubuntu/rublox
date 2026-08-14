@@ -40,7 +40,7 @@ export class LootManager {
         this.claimTTL = 4.0;
         this.lootCount = 0; // counter for test validation
         this.buildChestObstacleIndex();
-        this.generateChestsAsync().then(() => {
+        this.readyPromise = this.generateChestsAsync().then(() => {
             this.validateChestPlacements();
             this.rebuildChestIndex();
             this.chestReady = true;
@@ -184,7 +184,7 @@ export class LootManager {
     generateChests() {
         const floorTiles = this.mapGenerator.getFloorTiles?.() || [];
         const targetByMapSize = Math.floor(Math.max(120, floorTiles.length * (this.isMobile ? 0.08 : 0.1)));
-        const chestCount = Math.max(this.isMobile ? 80 : 110, Math.floor(targetByMapSize * this.lootDensity));
+        const chestCount = Math.max(this.isMobile ? 72 : 92, Math.floor(targetByMapSize * this.lootDensity));
         const spots = this.mapGenerator.getChestSpots?.() || [];
         const occupied = new Set();
         const keyFor = (x, z) => `${Math.round(x / 3)}:${Math.round(z / 3)}`;
@@ -256,13 +256,13 @@ export class LootManager {
     async generateChestsAsync() {
         const floorTiles = this.mapGenerator.getFloorTiles?.() || [];
         const targetByMapSize = Math.floor(Math.max(120, floorTiles.length * (this.isMobile ? 0.08 : 0.1)));
-        const chestCount = Math.max(this.isMobile ? 80 : 110, Math.floor(targetByMapSize * this.lootDensity));
+        const chestCount = Math.max(this.isMobile ? 72 : 92, Math.floor(targetByMapSize * this.lootDensity));
         const spots = this.mapGenerator.getChestSpots?.() || [];
         const occupied = new Set();
         const keyFor = (x, z) => `${Math.round(x / 3)}:${Math.round(z / 3)}`;
         let generatedSinceYield = 0;
         const yieldAfterChest = async () => {
-            if (++generatedSinceYield < 4) return;
+            if (++generatedSinceYield < (this.isMobile ? 2 : 3)) return;
             generatedSinceYield = 0;
             await new Promise(resolve => setTimeout(resolve, 0));
         };

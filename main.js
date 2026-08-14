@@ -487,8 +487,9 @@ class Game {
 				this.physics,
 				this.entityManager,
 			);
-			await this.zombiePool.prewarm(isMobile ? 16 : 24);
+			await this.zombiePool.prewarm(isMobile ? 48 : 66);
 			this.lootManager = new LootManager(this.scene, this.map);
+			await this.lootManager.readyPromise;
 			this.lootEvents = 0; // counter for test validation
 
 			this.player = new Player(this.scene, this.camera, this.input);
@@ -2566,7 +2567,7 @@ class Game {
 				operations++;
 			}
 		}
-		this.spawnBurstCooldown = 0.016;
+		this.spawnBurstCooldown = this.isMobile() ? 0.055 : 0.035;
 	}
 
 	update(delta) {
