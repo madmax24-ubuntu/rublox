@@ -9139,22 +9139,22 @@ export class MapGenerator {
 	}
 
 	updateAllAnimations(delta, playerPos) {
-		// Store player position for distance checks
 		if (playerPos) this._lastPlayerPos = playerPos;
-		// Throttle animation updates to every 0.5s (2x/sec) — subtle visual changes don't need high frequency
 		this._animSkipTimer = (this._animSkipTimer || 0) - delta;
 		if (this._animSkipTimer > 0) return;
-		this._animSkipTimer = 0.5;
-		// Batch all animation updates with distance culling
-		this.updateFountainAnimation(delta);
-		this.updateFireflyAnimation(delta);
-		this.updateCrystalAnimation(delta);
-		this.updateTorchAnimation(delta);
-		this.updateGlowAnimation(delta);
-		this.updateSnowParticles(delta);
-		this.updateWindTurbines(delta);
-		this.updateTrapAnimations();
-		this.updateInteractivePOIs();
+		this._animSkipTimer = 0.06;
+		this._animationBatchIndex = ((this._animationBatchIndex || 0) + 1) % 9;
+		switch (this._animationBatchIndex) {
+			case 0: this.updateFountainAnimation(0.54); break;
+			case 1: this.updateFireflyAnimation(0.54); break;
+			case 2: this.updateCrystalAnimation(0.54); break;
+			case 3: this.updateTorchAnimation(0.54); break;
+			case 4: this.updateGlowAnimation(0.54); break;
+			case 5: this.updateSnowParticles(0.54); break;
+			case 6: this.updateWindTurbines(0.54); break;
+			case 7: this.updateTrapAnimations(); break;
+			case 8: this.updateInteractivePOIs(); break;
+		}
 	}
 
 	updateTrapAnimations() {
