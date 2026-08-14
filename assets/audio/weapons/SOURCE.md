@@ -16,8 +16,8 @@ License: Creative Commons Attribution-ShareAlike 4.0.
 
 Source: https://freesound.org/people/ValhallaProject/sounds/761514/
 
-Bazooka explosion uses "Explosion.wav" by cejordi84.
+Bazooka explosion uses "cannon_boom6.wav" by ReadeOnly.
 
 License: Creative Commons CC0 1.0.
 
-Source: https://freesound.org/people/cejordi84/sounds/232398/
+Source: https://freesound.org/people/ReadeOnly/sounds/186952/

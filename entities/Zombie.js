@@ -1460,7 +1460,6 @@ export class Zombie {
                 this.abilityAnimationTimer = this.variant === 'heavy' ? 0.55 : 0.28;
                 if (audioSynth) {
                     audioSynth.playZombieAttack?.(this.position, { variant: this.variant, emitterKey: this.id });
-                    if (didHit && this.variant !== 'stalker') audioSynth.playGeigerCounter?.();
                     if (this.variant === 'heavy') {
                         audioSynth.playZombieAbility?.(this.position, { variant: 'heavy', emitterKey: this.id });
                     }

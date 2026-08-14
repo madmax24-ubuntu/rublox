@@ -1852,6 +1852,7 @@ class Game {
 
 	setRadiationRainActive(active) {
 		this.radiationRainActive = !!active;
+		this.audioSynth?.setRadiationRainActive?.(!!active);
 		if (active) {
 			this.radiationRainGraceTimer = GAME_CONFIG.events.radiation.graceSeconds;
 			this.radiationRainDamageActive = false;

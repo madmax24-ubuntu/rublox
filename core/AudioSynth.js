@@ -33,7 +33,6 @@ export class AudioSynth {
 		this.ambientNodes = null;
 		this.currentBiomeAmbient = null;
 		this.weatherLoopNodes = null;
-		this.acidRainHitNodes = null;
 		this.weatherTransitionTimer = null;
 		this.currentWeatherState = "clear";
 		this.footstepWeatherFactor = 1;
@@ -157,6 +156,7 @@ export class AudioSynth {
 			],
 			storm: [],
 			rain: ["assets/audio/weather_rain.ogg"],
+			radiation: ["assets/audio/weather_geiger_real.mp3"],
 			music: [],
 		};
 
@@ -847,85 +847,14 @@ export class AudioSynth {
 		noise.stop(now + Math.max(0.03, duration) + 0.03);
 	}
 
-	playGeigerCounter(volume = 0.18, count = 10) {
-		if (!this.audioContext) {
-			this._ensureLazyInit();
-			if (!this.audioContext) return;
-		}
-		if (this.audioContext.state === "suspended") {
-			this.audioContext.resume().catch(() => {});
-		}
-		const ctx = this.audioContext;
-		const now = ctx.currentTime;
-		const gainNode = this.getCategoryGain("sfx");
-
-		// Generate S.T.A.L.K.E.R.-style geiger clicks with crackling rhythm
-		let delayBase = 0;
-		for (let i = 0; i < count; i++) {
-			// Random intervals between clicks (Stalker geiger rhythm)
-			const interval = 40 + Math.random() * 120;
-			if (i > 0 && Math.random() < 0.25) delayBase += 200 + Math.random() * 300; // Occasional pauses
-
-			setTimeout(() => {
-				if (!this.audioContext) return;
-
-				// Sharp click: use oscillator sweep for metallic crackle
-				const osc = ctx.createOscillator();
-				osc.type = "sawtooth";
-				const clickFreq = 2800 + Math.random() * 2200;
-				osc.frequency.setValueAtTime(300, ctx.currentTime);
-				osc.frequency.exponentialRampToValueAtTime(clickFreq, ctx.currentTime + 0.008);
-
-				// Noise component for crackling texture
-				const noise = ctx.createBufferSource();
-				noise.buffer = this.createRainNoiseBuffer(0.035);
-				noise.loop = false;
-
-				// Bandpass filter for crisp click
-				const bp = ctx.createBiquadFilter();
-				bp.type = "bandpass";
-				bp.frequency.value = clickFreq;
-				bp.Q.value = 8 + Math.random() * 6;
-
-				// Click envelope: sharp attack, fast decay
-				const clickGain = ctx.createGain();
-				clickGain.gain.setValueAtTime(0.0001, ctx.currentTime);
-				clickGain.gain.exponentialRampToValueAtTime(volume * 0.9, ctx.currentTime + 0.003);
-				clickGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.025);
-				clickGain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.06);
-
-				// Connect oscillator and noise through filter
-				osc.connect(bp);
-				noise.connect(bp);
-				bp.connect(clickGain);
-				clickGain.connect(gainNode);
-
-				osc.start(ctx.currentTime);
-				osc.stop(ctx.currentTime + 0.07);
-				noise.start(ctx.currentTime);
-				noise.stop(ctx.currentTime + 0.06);
-
-				// Secondary crackle: lower volume, offset timing
-				if (Math.random() > 0.5) {
-					setTimeout(() => {
-						if (!this.audioContext) return;
-						const osc2 = ctx.createOscillator();
-						osc2.type = "square";
-						osc2.frequency.value = clickFreq * 1.2;
-						const clickGain2 = ctx.createGain();
-						clickGain2.gain.setValueAtTime(0.0001, ctx.currentTime);
-						clickGain2.gain.exponentialRampToValueAtTime(volume * 0.15, ctx.currentTime + 0.002);
-						clickGain2.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.03);
-						osc2.connect(clickGain2);
-						clickGain2.connect(gainNode);
-						osc2.start(ctx.currentTime);
-						osc2.stop(ctx.currentTime + 0.04);
-					}, 15 + Math.random() * 25);
-				}
-			}, delayBase + Math.random() * 30);
-
-			delayBase += interval;
-		}
+	playGeigerCounter(volume = 0.14, duration = 1.2) {
+		return this.playSample(this.sampleCatalog.radiation, {
+			volume,
+			category: "sfx",
+			priority: 2,
+			maxDuration: duration,
+			voiceKey: "radiation-pulse",
+		});
 	}
 
 	async playProceduralShot(
@@ -1226,50 +1155,35 @@ export class AudioSynth {
 	}
 
 	playAcidRainHit(duration = 10) {
-		if (!this.audioContext) {
-			this._ensureLazyInit()?.then(() => this.playAcidRainHit(duration));
-			return;
-		}
-		if (this.audioContext.state === "suspended")
-			this.audioContext.resume().catch(() => {});
-		if (this.acidRainHitNodes) {
-			this._stopAcidRainHit();
-		}
-		const ctx = this.audioContext;
-		const rainPath = this.pickSample(this.sampleCatalog.rain);
-		const buffer = rainPath ? this.sampleBuffers.get(rainPath) : null;
-		if (!buffer) return;
-		const source = ctx.createBufferSource();
-		source.buffer = buffer;
-		source.loop = true;
-		const lp = ctx.createBiquadFilter();
-		lp.type = "lowpass";
-		lp.frequency.value = 3000;
-		const gain = ctx.createGain();
-		gain.gain.value = this.isMobileDevice ? 0.12 : 0.18;
-		source.connect(lp);
-		lp.connect(gain);
-		gain.connect(this.getCategoryGain("weather"));
-		source.start();
-		this.acidRainHitNodes = { source, lp, gain, stopTime: ctx.currentTime + duration };
-		setTimeout(() => this._stopAcidRainHit(), duration * 1000);
+		return this.playSample(this.sampleCatalog.radiation, {
+			volume: this.isMobileDevice ? 0.18 : 0.14,
+			category: "sfx",
+			priority: 3,
+			maxDuration: duration,
+			voiceKey: "radiation-exposure",
+		});
 	}
 
-	_stopAcidRainHit() {
-		if (!this.acidRainHitNodes) return;
-		try {
-			this.acidRainHitNodes.source?.stop?.();
-		} catch {}
-		try {
-			this.acidRainHitNodes.source?.disconnect?.();
-		} catch {}
-		try {
-			this.acidRainHitNodes.lp?.disconnect?.();
-		} catch {}
-		try {
-			this.acidRainHitNodes.gain?.disconnect?.();
-		} catch {}
-		this.acidRainHitNodes = null;
+	setRadiationRainActive(active) {
+		if (!active) {
+			this.stopSampleVoice("radiation-rain", 0.25);
+			this.stopSampleVoice("radiation-rainfall", 0.25);
+			return;
+		}
+		this.playSample(this.sampleCatalog.rain, {
+			volume: this.isMobileDevice ? 0.34 : 0.28,
+			category: "weather",
+			priority: 3,
+			loop: true,
+			voiceKey: "radiation-rainfall",
+		});
+		this.playSample(this.sampleCatalog.radiation, {
+			volume: this.isMobileDevice ? 0.13 : 0.1,
+			category: "sfx",
+			priority: 2,
+			loop: true,
+			voiceKey: "radiation-rain",
+		});
 	}
 
 	playHurt(position = null, emitterKey = "global") {
