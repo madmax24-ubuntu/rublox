@@ -1193,7 +1193,6 @@ export class Player {
 		}
 		if (source === "stalker" && this.isAlive) {
 			this.applyRadiation(10, 3.5, attacker);
-			this.audioSynthRef?.playAcidRainHit?.(10);
 		}
 		if (this.audioSynthRef && tookRealDamage) {
 			if (source === "zone" && this.audioSynthRef.playZoneDamage) {
@@ -1366,11 +1365,13 @@ export class Player {
 	}
 
 	applyRadiation(duration = 10, damagePerSecond = 3.5, attacker = null) {
+		const wasActive = this.radTimer > 0;
 		this.radTimer = Math.max(this.radTimer, duration);
 		this.radTickTimer = Math.max(this.radTickTimer, 0.08);
 		this.radDamagePerSecond = Math.max(this.radDamagePerSecond, damagePerSecond);
 		if (attacker) this.radAttacker = attacker;
 		this.hudRef?.setContamActive?.(true);
+		if (!wasActive) this.audioSynthRef?.playAcidRainHit?.(duration);
 	}
 
 	clearRadiation() {
