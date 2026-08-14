@@ -884,6 +884,13 @@ export class BotBrain {
 				) {
 					return STATES.ENGAGE;
 				}
+				if (
+					wellArmed &&
+					ctx.nearestEnemyDist < engageDist * 0.72 &&
+					ctx.crowdNear < 3 &&
+					ctx.hp > 0.42
+				)
+					return STATES.ENGAGE;
 				if (ctx.lootTarget && ctx.nearestEnemyDist > 12) return STATES.LOOT;
 				return STATES.EXPLORE;
 			}
@@ -1350,8 +1357,15 @@ export class BotBrain {
 			const minThreatDist = Math.min(distToEnemy, distToZombie);
 
 			if (distToShelter < 3 && minThreatDist > 30) {
-				// At shelter and threat is far — leave and explore
-				bot.state = STATES.EXPLORE; // FIX: Explicit transition to EXPLORE
+				const now = performance.now();
+				if (!bot._hideUntil) bot._hideUntil = now + 3000 + (bot.id % 5) * 700;
+				if (now < bot._hideUntil) {
+					bot.physics.velocity.x *= 0.35;
+					bot.physics.velocity.z *= 0.35;
+					return;
+				}
+				bot._hideUntil = 0;
+				bot.state = STATES.EXPLORE;
 				bot.patrolTarget = this.pickSpreadTarget(bot, 40, 120);
 				if (bot.patrolTarget)
 					this.steerMove(bot, bot.patrolTarget, bot.physics.speed * 0.95);
@@ -1376,6 +1390,15 @@ export class BotBrain {
 			}
 
 			if (isActuallyHidden && distToShelter >= 3) {
+				if (
+					distToShelter > 5 &&
+					this.followStructureApproach(
+						bot,
+						shelter,
+						`hide:${Math.round(shelter.x)}:${Math.round(shelter.z)}`,
+					)
+				)
+					return;
 				// Not at shelter yet — move towards it
 				bot.patrolTarget = shelter;
 				// При критическом HP боты бегут к укрытию быстрее
@@ -1833,10 +1856,7 @@ export class BotBrain {
 
 	steerMove(bot, target, speed) {
 		if (!bot?.position || !target) return;
-		// Natural speed variation — breathing effect
-		const breathFactor =
-			0.92 + Math.sin(performance.now() * 0.003 + bot.id * 7.3) * 0.08;
-		const effectiveSpeed = speed * breathFactor;
+		const effectiveSpeed = speed;
 		const dir = this._tmpMoveDir.set(
 			target.x - bot.position.x,
 			0,
@@ -1851,12 +1871,12 @@ export class BotBrain {
 		const avoidZ = bot._avoidZ || 0;
 		if (avoidX !== 0 || avoidZ !== 0) {
 			const avoidanceWeight = bot._structureRoute
-				? 0.12
+				? 0.08
 				: bot.state === STATES.ENGAGE
-					? 0.28
+					? 0.2
 					: bot.state === STATES.LOOT
-						? 0.24
-						: 0.58;
+						? 0.16
+						: 0.34;
 			dir.x += avoidX * avoidanceWeight;
 			dir.z += avoidZ * avoidanceWeight;
 			const newLen = Math.hypot(dir.x, dir.z);
@@ -1912,10 +1932,21 @@ export class BotBrain {
 			}
 			if (waypoint) bot.moveTowards(waypoint, finalSpeed * 0.92);
 			else {
-				// Clear velocity to prevent spinning, mark as stuck
-				bot.physics.velocity.x = 0;
-				bot.physics.velocity.z = 0;
-				bot.isStuck = true;
+				const turn = ((bot.id + (bot._stuckRecoveries || 0)) & 1) ? 1 : -1;
+				const sideX = -move.z * turn;
+				const sideZ = move.x * turn;
+				const sideTarget = this._tmpMoveTarget.set(
+					bot.position.x + sideX * 5,
+					bot.position.y,
+					bot.position.z + sideZ * 5,
+				);
+				if (bot.mapRef?.isWalkableAt?.(sideTarget.x, sideTarget.z))
+					bot.moveTowards(sideTarget, finalSpeed * 0.82);
+				else {
+					bot.physics.velocity.x = 0;
+					bot.physics.velocity.z = 0;
+					bot.isStuck = true;
+				}
 			}
 		}
 	}
@@ -2234,28 +2265,42 @@ export class BotBrain {
 	findNearestShelterTarget(bot) {
 		const map = bot.mapRef;
 		if (!map) return null;
+		const now = performance.now();
+		if (bot._shelterTargetCache && now < (bot._shelterTargetCacheUntil || 0))
+			return bot._shelterTargetCache;
 		const houses = map.getHouseSpots?.() || [];
 		const hangars = map.getHangarSpots?.() || [];
-		const all = [...houses, ...hangars];
-		if (!all.length) return null;
 		let best = null;
 		let bestD = Infinity;
-		for (const s of all) {
-			if (!s) continue;
-			const d = Math.hypot(bot.position.x - s.x, bot.position.z - s.z);
-			if (d < bestD) {
-				bestD = d;
-				best = s;
+		for (const list of [houses, hangars]) {
+			for (const s of list) {
+				if (!s) continue;
+				const d = Math.hypot(bot.position.x - s.x, bot.position.z - s.z);
+				if (d < bestD) {
+					bestD = d;
+					best = s;
+				}
 			}
 		}
 		if (!best) return null;
-		this._tmpVec.set(best.x, bot.position.y, best.z);
-		return this._tmpVec;
+		bot._shelterTargetCache = (bot._shelterTargetCache || new THREE.Vector3()).set(
+			best.x,
+			bot.position.y,
+			best.z,
+		);
+		bot._shelterTargetCacheUntil = now + 1800 + (bot.id % 5) * 120;
+		return bot._shelterTargetCache;
 	}
 
 	findNearestCover(bot, threatPos = null) {
 		const map = bot.mapRef;
-		const colliders = map?.getColliders?.() || [];
+		const now = performance.now();
+		if (bot._coverTargetCache && now < (bot._coverTargetCacheUntil || 0))
+			return bot._coverTargetCache;
+		const colliders =
+			map?.getNearbyCollidersForSpawn?.(bot.position, 48) ||
+			map?.getColliders?.() ||
+			[];
 		let best = null;
 		let bestScore = Infinity;
 		for (const c of colliders) {
@@ -2272,10 +2317,17 @@ export class BotBrain {
 			}
 			if (score < bestScore) {
 				bestScore = score;
-				best = this._tmpCoverVec.set(cx, bot.position.y, cz);
+				best = { x: cx, z: cz };
 			}
 		}
-		return best;
+		if (!best) return null;
+		bot._coverTargetCache = (bot._coverTargetCache || new THREE.Vector3()).set(
+			best.x,
+			bot.position.y,
+			best.z,
+		);
+		bot._coverTargetCacheUntil = now + 850 + (bot.id % 4) * 90;
+		return bot._coverTargetCache;
 	}
 
 	countNearbyCombatants(bot, entityManager, radius) {
@@ -2325,7 +2377,7 @@ export class BotBrain {
 		const combatTarget =
 			bot.state === STATES.ENGAGE && bot.target?.isAlive ? bot.target : null;
 		const now = performance.now();
-		if (now - (bot._lastStuckRecoveryAt || 0) > 8000) bot._stuckRecoveries = 0;
+		if (now - (bot._lastStuckRecoveryAt || 0) > 4500) bot._stuckRecoveries = 0;
 		bot._lastStuckRecoveryAt = now;
 		bot._stuckRecoveries = (bot._stuckRecoveries || 0) + 1;
 		if (bot._stuckRecoveries >= 2) {
@@ -2338,18 +2390,16 @@ export class BotBrain {
 		}
 		// More aggressive stuck recovery — pick wider targets faster
 		const escape =
-			bot._stuckRecoveries >= 2
-				? this.pickSpreadTarget(bot, 60, 130)
-				: this.pickLocalNavigationStep(
-						bot,
-						combatTarget?.position || bot.patrolTarget || bot.target?.position,
-					) || this.pickSpreadTarget(bot, 40, 100);
+			this.pickLocalNavigationStep(
+				bot,
+				combatTarget?.position || bot.patrolTarget || bot.target?.position,
+			) || this.pickSpreadTarget(bot, bot._stuckRecoveries >= 2 ? 55 : 30, 90);
 		if (escape) {
 			bot.patrolTarget = escape.clone?.() || escape;
 			bot._navWaypoint = bot.patrolTarget;
-			bot._navWaypointUntil = now + 4000;
+			bot._navWaypointUntil = now + 2200;
 		}
-		bot._scatterTargetUntil = now + 8000;
+		bot._scatterTargetUntil = now + 4500;
 		bot._elevatedRoute = null;
 		bot._structureRoute = null;
 		bot._fsmCtx = null;
