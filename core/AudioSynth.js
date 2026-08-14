@@ -228,8 +228,11 @@ export class AudioSynth {
 				this.reverb.buffer = this.createImpulse(1.6, 1.8);
 			}
 			// Register pre-generated buffers into sampleBuffers so playSample can find them
-			this.sampleBuffers.set(this._bazookaLaunchFallbackPath, this.bazookaLaunchBuffer);
-			this.sampleBuffers.set(this._bazookaExplosionFallbackPath, this.bazookaExplosionBuffer);
+			if (!this.sampleBuffers.has(this._bazookaLaunchFallbackPath))
+				this.sampleBuffers.set(this._bazookaLaunchFallbackPath, this.bazookaLaunchBuffer);
+			if (!this.sampleBuffers.has(this._bazookaExplosionFallbackPath))
+				this.sampleBuffers.set(this._bazookaExplosionFallbackPath, this.bazookaExplosionBuffer);
+			this._ensureBazookaBuffersReady().catch(() => {});
 			return true;
 		} catch (e) {
 			console.warn("Web Audio API not supported");
@@ -360,7 +363,6 @@ export class AudioSynth {
 	async _ensureBazookaBuffersReady() {
 		const ctx = this.audioContext;
 		if (!ctx) return;
-		if (this.bazookaLaunchBuffer && this.bazookaExplosionBuffer) return;
 		if (this._bazookaFallbackReady) {
 			this.setupBazookaFallbackInSampleBuffers();
 			return;
@@ -376,8 +378,8 @@ export class AudioSynth {
 					launchRes.arrayBuffer().then(b => ctx.decodeAudioData(b)),
 					explosionRes.arrayBuffer().then(b => ctx.decodeAudioData(b)),
 				]);
-				if (!this.bazookaLaunchBuffer) this.bazookaLaunchBuffer = launchBuf;
-				if (!this.bazookaExplosionBuffer) this.bazookaExplosionBuffer = explosionBuf;
+				this.bazookaLaunchBuffer = launchBuf;
+				this.bazookaExplosionBuffer = explosionBuf;
 			} catch (e) {
 				// If fetch/decode fails, generate simple procedural buffers as last resort
 				if (!this.bazookaLaunchBuffer) this.bazookaLaunchBuffer = this._makeSimpleLaunchBuffer();
@@ -1669,9 +1671,8 @@ export class AudioSynth {
 
 	async playBazooka(position = null, emitterKey = "global") {
 		await this._ensureLazyInit();
-		if (this.bazookaLaunchBuffer) {
-			this.sampleBuffers.set(this._bazookaLaunchFallbackPath, this.bazookaLaunchBuffer);
-		} else if (!this.sampleBuffers.get(this._bazookaLaunchFallbackPath)) {
+		await this._ensureBazookaBuffersReady();
+		if (!this.sampleBuffers.get(this._bazookaLaunchFallbackPath)) {
 			this.bazookaLaunchBuffer = this._makeSimpleLaunchBuffer();
 			this.sampleBuffers.set(this._bazookaLaunchFallbackPath, this.bazookaLaunchBuffer);
 		}
@@ -1694,9 +1695,8 @@ export class AudioSynth {
 	// Explosion: loud positional burst + heavy reverb. Category "weapon" gets higher base gain.
 	async playProceduralExplosion(position, scale = 1) {
 		await this._ensureLazyInit();
-		if (this.bazookaExplosionBuffer) {
-			this.sampleBuffers.set(this._bazookaExplosionFallbackPath, this.bazookaExplosionBuffer);
-		} else if (!this.sampleBuffers.get(this._bazookaExplosionFallbackPath)) {
+		await this._ensureBazookaBuffersReady();
+		if (!this.sampleBuffers.get(this._bazookaExplosionFallbackPath)) {
 			this.bazookaExplosionBuffer = this._makeSimpleExplosionBuffer();
 			this.sampleBuffers.set(this._bazookaExplosionFallbackPath, this.bazookaExplosionBuffer);
 		}
