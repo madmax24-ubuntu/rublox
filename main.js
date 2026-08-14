@@ -1196,14 +1196,15 @@ class Game {
 			this.eventTimelineIndex = 0;
 			this.activeEvent = { type: null, timer: 0, prevFog: null };
 			this.initialZombieWaveQueued = false;
-			const initialZombieTarget = this.isMobile() ? 44 : 60;
+			const initialZombieTarget = this.isMobile() ? 48 : 66;
 			const initialZombieCount = 6;
 			this.spawnZombies(true, 1.1, 140, initialZombieCount);
+			this.queueZombieBurst(false, 1.1, 140, 1, 1, "stalker");
 			this.queueZombieBurst(
 				false,
 				1.1,
 				140,
-				initialZombieTarget - initialZombieCount,
+				initialZombieTarget - initialZombieCount - 1,
 				2,
 			);
 			this.queuePoiBurst(0.9, this.isMobile() ? 20 : 28, 1);
