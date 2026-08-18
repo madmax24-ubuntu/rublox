@@ -1598,6 +1598,7 @@ export class MapGenerator {
 			walkable = false,
 			collidable = true,
 			navigationPassage = false,
+			stair = false,
 		) => {
 			const mesh = new THREE.Mesh(this.pool.getGeoBox(bw, bh, bd), material);
 			mesh.position.set(bx, by, bz);
@@ -1617,6 +1618,7 @@ export class MapGenerator {
 					wall,
 					walkable,
 					navigationPassage,
+					stair,
 				});
 			return mesh;
 		};
@@ -1649,6 +1651,9 @@ export class MapGenerator {
 				trimMat,
 				false,
 				true,
+				true,
+				false,
+				true,
 			);
 			const upperTop = 4.45 + i * 0.36;
 			addBox(
@@ -1659,6 +1664,9 @@ export class MapGenerator {
 				upperTop - 0.18,
 				-5.2 + i * 0.66,
 				trimMat,
+				false,
+				true,
+				true,
 				false,
 				true,
 			);
@@ -1757,6 +1765,14 @@ export class MapGenerator {
 			);
 			collider.isBiomeResidence = true;
 			collider.navigationPassage = part.navigationPassage;
+			if (part.stair)
+				collider.surfaceOBB = {
+					x: x + part.bx,
+					z: z + part.bz,
+					halfWidth: part.bw * 0.5,
+					halfDepth: part.bd * 0.5,
+					rotation: 0,
+				};
 		}
 		const route = [
 			new THREE.Vector3(x, 0.2, z + d * 0.5 + 2),

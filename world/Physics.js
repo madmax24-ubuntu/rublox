@@ -211,7 +211,7 @@ export class Physics {
 
 			// Ground clamp: entity bottom must be >= surface
 			const entityBottom = pos.y - height;
-			if (entityBottom <= surfaceY) {
+			if (entityBottom <= surfaceY + 0.002) {
 				pos.y = surfaceY + height;
 				entity.physics.onGround = true;
 				vel.y = 0;
@@ -296,8 +296,10 @@ export class Physics {
 			const min = box.min;
 			const max = box.max;
 			if (!min || !max) continue;
-			if (position.x + radius < min.x || position.x - radius > max.x) continue;
-			if (position.z + radius < min.z || position.z - radius > max.z) continue;
+			if (!box.surfaceOBB && !box.surfaceCircle) {
+				if (position.x + radius < min.x || position.x - radius > max.x) continue;
+				if (position.z + radius < min.z || position.z - radius > max.z) continue;
+			}
 			if (position.y + height < min.y - 0.5) continue;
 			if (position.y > max.y + height + 0.5) continue;
 			const stepReach = box.isTowerStair || box.isBiomeEntrance ? 0.78 : 0.65;
@@ -313,10 +315,12 @@ export class Physics {
 				const min = box.min;
 				const max = box.max;
 				if (!min || !max) continue;
-				if (position.x + radius < min.x || position.x - radius > max.x)
-					continue;
-				if (position.z + radius < min.z || position.z - radius > max.z)
-					continue;
+				if (!box.surfaceOBB && !box.surfaceCircle) {
+					if (position.x + radius < min.x || position.x - radius > max.x)
+						continue;
+					if (position.z + radius < min.z || position.z - radius > max.z)
+						continue;
+				}
 				if (position.y + height < min.y - 0.5) continue;
 				if (position.y > max.y + height + 0.5) continue;
 				const stepReach = box.isTowerStair || box.isBiomeEntrance ? 0.78 : 0.65;
@@ -338,7 +342,7 @@ export class Physics {
 			const localX = dx * cos - dz * sin;
 			const localZ = dx * sin + dz * cos;
 			const clearance =
-				radius * (box.isTowerStair || box.isBiomeEntrance ? 0.08 : 0.35);
+				radius * (box.isTowerStair || box.isBiomeEntrance || box.isBiomeResidence ? 0.08 : 0.35);
 			return (
 				Math.abs(localX) <= Math.max(0.02, obb.halfWidth - clearance) &&
 				Math.abs(localZ) <= Math.max(0.02, obb.halfDepth - clearance)
@@ -442,6 +446,7 @@ export class Physics {
 						continue;
 					}
 					if (!onSurface) continue;
+					if (bottom < min.y) continue;
 				}
 
 				// AABB vs point (XZ plane)

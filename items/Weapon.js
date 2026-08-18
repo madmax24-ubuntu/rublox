@@ -200,7 +200,7 @@ const WEAPON_BALANCE = {
 	bow: {
 		damage: 28,
 		range: 20,
-		cooldown: 0.5,
+		cooldown: 0.45,
 		ammo: 48,
 		durability: null,
 		projectileSpeed: 46,
@@ -208,7 +208,7 @@ const WEAPON_BALANCE = {
 	laser: {
 		damage: 24,
 		range: 86,
-		cooldown: 0.08,
+		cooldown: 0.07,
 		ammo: 30,
 		durability: null,
 		projectileSpeed: 62,
@@ -216,7 +216,7 @@ const WEAPON_BALANCE = {
 	shotgun: {
 		damage: 18,
 		range: 11.5,
-		cooldown: 1.0,
+		cooldown: 0.85,
 		ammo: 36,
 		durability: null,
 		projectileSpeed: 48,
@@ -225,7 +225,7 @@ const WEAPON_BALANCE = {
 	flamethrower: {
 		damage: 6.8,
 		range: 13.5,
-		cooldown: 0.08,
+		cooldown: 0.07,
 		ammo: 260,
 		durability: null,
 		projectileSpeed: 16,
@@ -234,7 +234,7 @@ const WEAPON_BALANCE = {
 	pistol: {
 		damage: 23,
 		range: 62,
-		cooldown: 0.3,
+		cooldown: 0.24,
 		ammo: 90,
 		durability: null,
 		projectileSpeed: 82,
@@ -242,7 +242,7 @@ const WEAPON_BALANCE = {
 	rifle: {
 		damage: 29,
 		range: 96,
-		cooldown: 0.25,
+		cooldown: 0.2,
 		ammo: 120,
 		durability: null,
 		projectileSpeed: 98,
@@ -250,7 +250,7 @@ const WEAPON_BALANCE = {
 	machinegun: {
 		damage: 14,
 		range: 82,
-		cooldown: 0.15,
+		cooldown: 0.09,
 		ammo: 180,
 		durability: null,
 		projectileSpeed: 94,
@@ -258,7 +258,7 @@ const WEAPON_BALANCE = {
 	bazooka: {
 		damage: 150,
 		range: 100,
-		cooldown: 2.5,
+		cooldown: 2.0,
 		ammo: null,
 		durability: null,
 		projectileSpeed: 55,
