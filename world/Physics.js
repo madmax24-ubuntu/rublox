@@ -302,7 +302,7 @@ export class Physics {
 			}
 			if (position.y + height < min.y - 0.5) continue;
 			if (position.y > max.y + height + 0.5) continue;
-			const stepReach = box.isTowerStair || box.isBiomeEntrance ? 0.78 : 0.65;
+			const stepReach = box.isTowerStair || box.isBiomeEntrance || box.isBiomeResidence ? 0.78 : 0.65;
 			if (bottom > max.y + 0.5 || max.y > bottom + stepReach) continue;
 			if (maxY === -Infinity || max.y > maxY) maxY = max.y;
 		}
@@ -323,7 +323,7 @@ export class Physics {
 				}
 				if (position.y + height < min.y - 0.5) continue;
 				if (position.y > max.y + height + 0.5) continue;
-				const stepReach = box.isTowerStair || box.isBiomeEntrance ? 0.78 : 0.65;
+				const stepReach = box.isTowerStair || box.isBiomeEntrance || box.isBiomeResidence ? 0.78 : 0.65;
 				if (bottom > max.y + 0.5 || max.y > bottom + stepReach) continue;
 				if (maxY === -Infinity || max.y > maxY) maxY = max.y;
 			}
@@ -404,11 +404,9 @@ export class Physics {
 				if (box.walkable) {
 					if (bottom >= max.y - 0.05) continue;
 					const stepHeight = max.y - bottom;
-					const stepReach =
-						box.isTowerStair || box.isBiomeEntrance ? 0.78 : 0.65;
+					const stepReach = box.isTowerStair || box.isBiomeEntrance || box.isBiomeResidence ? 0.78 : 0.65;
 					const verticalSpeed = entity.physics.velocity?.y || 0;
-					const stairRecovery =
-						(box.isTowerStair || box.isBiomeEntrance) &&
+					const stairRecovery = (box.isTowerStair || box.isBiomeEntrance || box.isBiomeResidence) &&
 						bottom >= max.y - stepReach &&
 						bottom <= max.y + 0.12;
 					const canStep =
