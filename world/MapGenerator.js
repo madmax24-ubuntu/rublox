@@ -1390,7 +1390,8 @@ export class MapGenerator {
 				child.userData?.isBiomeEntrance ||
 				child.userData?.biomeBoundary ||
 				child.userData?.isCornucopia ||
-				child.userData?.isTowerStructure
+				child.userData?.isTowerStructure ||
+				child.userData?.isBiomeResidence
 			)
 				continue;
 			const bounds = new THREE.Box3().setFromObject(child);
@@ -1407,7 +1408,8 @@ export class MapGenerator {
 				collider.isBiomeEntrance ||
 				collider.biomeBoundary ||
 				collider.isCornucopia ||
-				collider.isTowerStructure
+				collider.isTowerStructure ||
+				collider.isBiomeResidence
 		)
 			return true;
 		if (collider.isBuildingWall) {
