@@ -1683,21 +1683,51 @@ export class BotBrain {
 				this.steerMove(bot, this._tmpSideTarget, bot.physics.speed * 0.88);
 			}
 			bot.lookAt(target.position);
-			// Continuous fire — don't miss attacks
+			// Burst fire with ammo conservation
 			if (this.attackCooldown <= 0) {
 				if (bot._reactionReadyAt && nowSec < bot._reactionReadyAt) return;
+				const wType = weapon.type;
+				const ammo = weapon.ammo;
+				// Ammo conservation: switch to melee when critically low
+				if (ammo !== null && ammo > 0) {
+					const meleeThreshold = wType === "shotgun" ? 1 : wType === "pistol" ? 2 : 3;
+					if (ammo <= meleeThreshold && dist > 4) {
+						const meleeItems = bot.inventory?.getItems?.()?.filter(w => w && (w.type === "knife" || w.type === "fists"));
+						if (meleeItems?.length) {
+							const meleeSlot = bot.inventory.getItems().indexOf(meleeItems[0]);
+							if (meleeSlot >= 0 && bot.inventory.selectedSlot !== meleeSlot) {
+								bot.selectSlot(meleeSlot);
+								bot._weaponSwitchCooldown = performance.now() + 800;
+								weapon = bot.currentWeapon || bot.fists;
+							}
+						}
+					}
+					// Hold fire if low ammo and target is far
+					if (ammo <= 5 && dist > (weapon.range || 40) * 0.5) {
+						bot._burstPauseEnd = nowSec + 1.5;
+						return;
+					}
+				}
+				// Burst state tracking
+				const burstSize = wType === "pistol" ? 3 : wType === "rifle" ? 4 : wType === "machinegun" ? 6 : 1;
+				const burstPause = wType === "pistol" ? 0.4 : wType === "rifle" ? 0.5 : wType === "machinegun" ? 0.6 : 0;
+				if (burstSize > 1) {
+					if (nowSec >= (bot._burstPauseEnd || 0)) {
+						bot._burstCount = 0;
+					}
+					if ((bot._burstCount || 0) >= burstSize && burstPause > 0) {
+						bot._burstPauseEnd = nowSec + burstPause + Math.random() * 0.2;
+						return;
+					}
+				}
 				const tv = target.physics?.velocity;
 				const targetSpeed = tv ? Math.hypot(tv.x || 0, tv.z || 0) : 0;
-				const distNorm = Math.max(
-					0,
-					Math.min(1, dist / Math.max(8, weapon.range || 40)),
-				);
+				const distNorm = Math.max(0, Math.min(1, dist / Math.max(8, weapon.range || 40)));
 				const moveNorm = Math.max(0, Math.min(1, targetSpeed / 9));
-				const accuracyFactor = 0.7 + agg * 0.25;
-				bot._dynamicAimError =
-					(0.008 + distNorm * 0.025 + moveNorm * 0.03) * (1.0 - agg * 0.1);
+				bot._dynamicAimError = (0.008 + distNorm * 0.025 + moveNorm * 0.03) * (1.0 - agg * 0.1);
 				bot.attack(target, entityManager);
 				bot.applyWeaponRecoil();
+				if (burstSize > 1) bot._burstCount = (bot._burstCount || 0) + 1;
 				this.attackCooldown = Math.max(0.04, (weapon.cooldown || 0.2) * 0.55);
 			}
 			return;
