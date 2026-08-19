@@ -1,4 +1,4 @@
-﻿import * as THREE from "three";
+import * as THREE from "three";
 import { CameraController } from "./core/CameraController.js";
 import { yieldScheduler } from "./core/YieldScheduler.js";
 
