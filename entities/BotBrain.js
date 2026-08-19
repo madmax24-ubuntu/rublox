@@ -1,4 +1,4 @@
-import * as THREE from "three";
+﻿import * as THREE from "three";
 
 const STATES = {
 	IDLE: "idle",
@@ -1320,7 +1320,7 @@ export class BotBrain {
 					Math.sin(angle) * (27 + 5 * pushDir),
                         );
                 }
-                bot.patrolTarget.copy(scatterTarget);
+                if (bot.patrolTarget) bot.patrolTarget.copy(scatterTarget);
                 bot._scatterTargetUntil = now + 5600 + (bot.id % 7) * 310;
 			// Move at natural speed during scatter — no frantic sprinting
 			const scatterSpeed = ctx.inPreLootPhase
@@ -1779,8 +1779,8 @@ export class BotBrain {
 			bot.physics.velocity.z = 0;
                 const escape = this.pickSpreadTarget(bot, 20, 50);
                 if (escape) {
-                        bot.patrolTarget.copy(escape);
-                        bot._navWaypoint.copy(escape);
+                        if (bot.patrolTarget) bot.patrolTarget.copy(escape);
+                        if (bot._navWaypoint) bot._navWaypoint.copy(escape);
                 }
 		}
 	}
@@ -2598,8 +2598,8 @@ export class BotBrain {
 			escape = best;
 		}
         if (escape) {
-            bot.patrolTarget.copy(escape);
-            bot._navWaypoint.copy(bot.patrolTarget);
+            if (bot.patrolTarget) bot.patrolTarget.copy(escape);
+            if (bot._navWaypoint) bot._navWaypoint.copy(bot.patrolTarget);
             bot._navWaypointUntil = now + 3200;
 			bot.escapeDir.subVectors(bot.patrolTarget, bot.position).normalize();
 			bot._hasEscapeDir = true;
