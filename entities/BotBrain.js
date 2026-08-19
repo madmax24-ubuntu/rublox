@@ -673,9 +673,13 @@ export class BotBrain {
 				nearestEnemyDist = retaliationDist;
 			}
 		} else {
-			bot._retaliationTarget = null;
+		bot._retaliationTarget = null;
 			bot._retaliateUntil = 0;
 		}
+
+		const targetFloorDiff = nearestEnemy
+			? Math.abs(nearestEnemy.position.y - bot.position.y)
+			: 0;
 
 		return {
 			now,
@@ -685,6 +689,7 @@ export class BotBrain {
 			zoneDistance,
 			nearestEnemy,
 			nearestEnemyDist,
+			targetFloorDiff,
 			nearestZombie,
 			nearestZombieDist,
 			heardShot,
@@ -1631,9 +1636,16 @@ export class BotBrain {
 		}
 		bot._reactionTargetKey = null;
 		bot._reactionReadyAt = 0;
+		if (ctx.targetFloorDiff > 2.5 && dist > range) {
+			if (this.followElevatedRoute(bot, ctx, nowSec)) {
+				return;
+			}
+			if (this.followStructureApproach(bot, target.position, `elevated:${this.getObjectKey(target)}`)) {
+				return;
+			}
+		}
 		bot.patrolTarget = target.position;
 
-		// Aggressive approach: move fast toward combat target
 		const approachMult = dist > 30 ? 1.35 : dist > 15 ? 1.5 : 1.65;
 		const cauMod = 1 - (cau - 0.5) * 0.2;
 		this.steerMove(
@@ -1984,7 +1996,7 @@ export class BotBrain {
 			bestScore = score;
 			best = tile;
 		}
-		return best ? this._tmpCoverVec.set(best.x, bot.position.y, best.z) : null;
+		return best ? this._tmpCoverVec.set(best.x, best.y ?? bot.position.y, best.z) : null;
 	}
 
 	pickCombatTarget(bot, ctx, entityManager) {
