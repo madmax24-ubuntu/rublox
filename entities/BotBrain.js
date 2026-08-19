@@ -62,6 +62,8 @@ export class BotBrain {
         this._cand2 = {};
         this._cand3 = {};
         this._meleeItems = [];
+        this._tmpStuckEscape = new THREE.Vector3();
+        this._cachedCtx = {};
 	this.baseVisionRange = 144;
 		this.fov = 178 * (Math.PI / 180);
 		this.hearingRange = 64;
@@ -96,6 +98,7 @@ export class BotBrain {
 		this.attackCooldown = Math.max(0, this.attackCooldown - delta);
 		this.retargetCooldown = Math.max(0, this.retargetCooldown - delta);
 
+		bot._cachedItems = bot.inventory?.items || [];
 		this.ensureBestWeaponEquipped(bot);
 		this.handleStuck(bot);
 
@@ -1618,16 +1621,16 @@ export class BotBrain {
 			dist < 3 &&
 			weapon.type !== "fists" &&
 			weapon.type !== "knife" &&
-                        bot.inventory?.getItems?.()
+                        bot._cachedItems?.length
                 ) {
-                        const items = bot.inventory.getItems();
+                        const items = bot._cachedItems;
                         this._meleeItems.length = 0;
                         for (const w of items) {
                                 if (w && (w.type === "knife" || w.type === "fists")) this._meleeItems.push(w);
                         }
                         const meleeItems = this._meleeItems;
                         if (meleeItems.length && (weapon.ammo === null || weapon.ammo <= 3)) {
-				const meleeSlot = bot.inventory.getItems().indexOf(meleeItems[0]);
+				const meleeSlot = bot._cachedItems.indexOf(meleeItems[0]);
 				if (meleeSlot >= 0 && bot.inventory.selectedSlot !== meleeSlot) {
 					bot.selectSlot(meleeSlot);
 					bot._weaponSwitchCooldown = performance.now() + 800;
@@ -1699,13 +1702,13 @@ export class BotBrain {
 				if (ammo !== null && ammo > 0) {
 					const meleeThreshold = wType === "shotgun" ? 1 : wType === "pistol" ? 2 : 3;
                         if (ammo <= meleeThreshold && dist > 4) {
-                                const items2 = bot.inventory?.getItems?.();
+                                const items2 = bot._cachedItems;
                                 this._meleeItems.length = 0;
                                 for (const w of items2) {
                                         if (w && (w.type === "knife" || w.type === "fists")) this._meleeItems.push(w);
                                 }
                                if (this._meleeItems.length) {
-							const meleeSlot = bot.inventory.getItems().indexOf(this._meleeItems[0]);
+							const meleeSlot = bot._cachedItems.indexOf(this._meleeItems[0]);
 							if (meleeSlot >= 0 && bot.inventory.selectedSlot !== meleeSlot) {
 								bot.selectSlot(meleeSlot);
 								bot._weaponSwitchCooldown = performance.now() + 800;
@@ -2027,7 +2030,7 @@ export class BotBrain {
 		const isCautious =
 			bot.state === STATES.HIDE ||
 			(bot.state === STATES.EXPLORE &&
-				bot.inventory?.getItems?.().length < 2) ||
+				bot._cachedItems?.length < 2) ||
 			cau > 0.7;
 		const finalSpeed = isCautious
 			? effectiveSpeed * (0.96 + (1 - cau) * 0.04)
@@ -2386,7 +2389,7 @@ export class BotBrain {
 		)
 			return;
 
-		const items = bot.inventory?.getItems?.() || [];
+		const items = bot._cachedItems || [];
 		let bestSlot = -1;
 		let bestScore = 0;
 		for (let i = 0; i < items.length; i++) {
@@ -2413,7 +2416,7 @@ export class BotBrain {
 	}
 
 	getGearScore(bot) {
-		const items = bot.inventory?.getItems?.() || [];
+		const items = bot._cachedItems || [];
 		let score = 0;
 		for (const w of items) {
 			if (!w) continue;
@@ -2428,13 +2431,15 @@ export class BotBrain {
 	}
 
 	isCombatReady(bot) {
-		const items = bot.inventory?.getItems?.() || [];
-		const ranged = items.some(
-			(item) =>
-				item &&
-				(WEAPON_PRIORITY[item.type] || 0) >= 4 &&
-				(item.ammo === null || item.ammo > 0),
-		);
+		const items = bot._cachedItems || [];
+		let ranged = false;
+		for (let i = 0; i < items.length; i++) {
+			const item = items[i];
+			if (item && (WEAPON_PRIORITY[item.type] || 0) >= 4 && (item.ammo === null || item.ammo > 0)) {
+				ranged = true;
+				break;
+			}
+		}
 		return ranged && this.getGearScore(bot) >= 0.22;
 	}
 
