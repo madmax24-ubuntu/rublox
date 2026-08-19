@@ -132,129 +132,25 @@ export class BotBrain {
 						: 0.34 + ((bot.id * 0.007) % 0.13);
 			}
 		} else {
-			// Refresh earlyGamePhase on cached context so actEngage / actExplore see current phase
 			ctx.earlyGamePhase = earlyGamePhase;
 			ctx.inPreLootPhase = inPreLootPhase;
-			ctx.outsideZone = ctx.zone?.isInsideZone
-				? !ctx.zone.isInsideZone(bot.position)
-				: false;
-			ctx.zoneDistance = ctx.zone?.getDistanceFromZone
-				? ctx.zone.getDistanceFromZone(bot.position)
-				: 0;
-			ctx.sheltered = bot.mapRef?.isShelteredFromRain?.(bot.position) || false;
-			// FIX: Cache nearby query with 250ms TTL to reduce getNearbyEntities calls (reduces micro-stutters)
-			const nearCacheAge = (bot._nearbyCacheTime || 0) + 0.25 - now / 1000;
-			let cachedNearby = null;
-			if (nearCacheAge > 0) {
-				cachedNearby = bot._cachedNearby;
-			} else {
-				cachedNearby = this.getNearbySnapshot(bot, entityManager, 72);
-				bot._cachedNearby = cachedNearby;
-				bot._nearbyCacheTime = now / 1000;
+			if (ctx.zone) {
+				ctx.outsideZone = !ctx.zone.isInsideZone(bot.position);
+				ctx.zoneDistance = ctx.zone.getDistanceFromZone(bot.position);
 			}
-			if (inPreLootPhase) {
+			if (bot.state === STATES.ENGAGE && ctx.nearestEnemy?.isAlive === false) {
+				bot.state = STATES.EXPLORE;
+				this.releaseCombatReservation(bot);
 				ctx.nearestEnemy = null;
 				ctx.nearestEnemyDist = Infinity;
-				ctx.nearestZombie = null;
-				ctx.nearestZombieDist = Infinity;
-				ctx.allyCount = 0;
-				ctx.nearestAlly = null;
-				ctx.nearestAllyDist = Infinity;
-				for (const ent of cachedNearby) {
-					if (!ent?.isAlive || ent === bot) continue;
-					if (ent.constructor?.name === "Zombie") {
-						const d = bot.position.distanceTo(ent.position);
-						if (d < ctx.nearestZombieDist) {
-							ctx.nearestZombie = ent;
-							ctx.nearestZombieDist = d;
-						}
-					}
-					if (ent.constructor?.name === "Bot") {
-						const d = bot.position.distanceTo(ent.position);
-						if (d < 64) {
-							ctx.allyCount++;
-							if (d < ctx.nearestAllyDist) {
-								ctx.nearestAlly = ent;
-								ctx.nearestAllyDist = d;
-							}
-						}
-					}
-				}
-			} else {
-				// During non-early-game, refresh BOTH enemies AND zombies — bots should see ALL threats
-				ctx.nearestEnemy = null;
-				ctx.nearestEnemyDist = Infinity;
-				ctx.nearestZombie = null;
-				ctx.nearestZombieDist = Infinity;
-				for (const ent of cachedNearby) {
-					if (!ent?.isAlive || ent === bot) continue;
-					const type = ent.constructor?.name;
-					if (type === "Player" || type === "Bot") {
-						const d = bot.position.distanceTo(ent.position);
-						if (d < ctx.nearestEnemyDist) {
-							ctx.nearestEnemy = ent;
-							ctx.nearestEnemyDist = d;
-						}
-					}
-					if (type === "Zombie") {
-						const d = bot.position.distanceTo(ent.position);
-						if (d < ctx.nearestZombieDist) {
-							ctx.nearestZombie = ent;
-							ctx.nearestZombieDist = d;
-						}
-					}
-					// Ally awareness: track nearby bots
-					if (type === "Bot") {
-						const d = bot.position.distanceTo(ent.position);
-						if (d < 64) {
-							if (d < ctx.nearestAllyDist) {
-								ctx.nearestAlly = ent;
-								ctx.nearestAllyDist = d;
-							}
-							ctx.allyCount++;
-						}
-					}
-				}
 			}
-			// FIX: Never let stale heardShot persist — reset during early game
-			if (inPreLootPhase) {
-				ctx.heardShot = false;
-			}
-			if (!ctx.shelterTarget) {
-				ctx.shelterTarget = this.findNearestShelterTarget(bot);
-			}
-			// FIX: Clear stale lootTarget — chest may be opened or bot may have moved far away
-			if (ctx.lootTarget) {
+			if (bot.state === STATES.LOOT && ctx.lootTarget) {
 				const chest = ctx.lootTarget;
-				const dist = bot.position.distanceTo(chest.position);
-				const isOpen = chest.userData?.isOpen || chest._isOpen;
-				if (isOpen || dist > 80) {
+				if (chest.userData?.isOpen || chest._isOpen || bot.position.distanceTo(chest.position) > 80) {
 					ctx.lootTarget = null;
 					this.releaseLootReservation(bot);
 				}
 			}
-			// FIX: Validate current state against cached context — prevents bots stuck in wrong state
-			const currentState = bot.state;
-			if (
-				currentState === STATES.HIDE &&
-				!ctx.nearestEnemy &&
-				!ctx.nearestZombie
-			) {
-				// No enemies nearby — no need to hide
-				bot.state = STATES.EXPLORE;
-			} else if (
-				currentState === STATES.ENGAGE &&
-				!ctx.nearestEnemy &&
-				!ctx.nearestZombie
-			) {
-				// No enemies to fight — switch to explore
-				bot.state = STATES.EXPLORE;
-				this.releaseCombatReservation(bot);
-			} else if (currentState === STATES.LOOT && !ctx.lootTarget) {
-				// No loot to gather — switch to explore
-				bot.state = STATES.EXPLORE;
-			}
-		}
 
 		if (inPreLootPhase || gameState === "spawn") {
 			ctx.inPreLootPhase = true;
