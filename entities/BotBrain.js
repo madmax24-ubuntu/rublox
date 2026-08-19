@@ -54,9 +54,13 @@ export class BotBrain {
 		this._tmpRandomDir = new THREE.Vector3();
 		this._tmpSide = new THREE.Vector3();
 		this._tmpSideTarget = new THREE.Vector3();
-		this._tmpCoverVec = new THREE.Vector3();
-		this._tmpSpreadVec = new THREE.Vector3();
-		this.baseVisionRange = 144;
+	this._tmpCoverVec = new THREE.Vector3();
+	this._tmpSpreadVec = new THREE.Vector3();
+	this._candidates = [];
+	this._cand1 = {};
+	this._cand2 = {};
+	this._cand3 = {};
+	this.baseVisionRange = 144;
 		this.fov = 178 * (Math.PI / 180);
 		this.hearingRange = 64;
 		this.shotHearingRange = 120;
@@ -2138,21 +2142,31 @@ export class BotBrain {
 		if (isRetaliationTargetEnemy) {
 			return retaliationTarget;
 		}
-		const candidates = [];
+		const cands = this._candidates;
+		cands.length = 0;
+		let hasZombie = false, hasEnemy = false;
 		if (ctx.nearestZombie?.isAlive) {
-			candidates.push({ target: ctx.nearestZombie, dist: ctx.nearestZombieDist });
+			this._cand1.target = ctx.nearestZombie;
+			this._cand1.dist = ctx.nearestZombieDist;
+			cands.push(this._cand1);
+			hasZombie = true;
 		}
 		if (ctx.nearestEnemy?.isAlive) {
-			candidates.push({ target: ctx.nearestEnemy, dist: ctx.nearestEnemyDist });
+			this._cand2.target = ctx.nearestEnemy;
+			this._cand2.dist = ctx.nearestEnemyDist;
+			cands.push(this._cand2);
+			hasEnemy = true;
 		}
-		if (ctx.huntTarget?.isAlive && !candidates.some(c => c.target === ctx.huntTarget)) {
-			const hd = bot.position.distanceTo(ctx.huntTarget.position);
-			candidates.push({ target: ctx.huntTarget, dist: hd });
+		if (ctx.huntTarget?.isAlive && ctx.huntTarget !== ctx.nearestZombie && ctx.huntTarget !== ctx.nearestEnemy) {
+			this._cand3.target = ctx.huntTarget;
+			this._cand3.dist = bot.position.distanceTo(ctx.huntTarget.position);
+			cands.push(this._cand3);
 		}
-		if (candidates.length === 0) return null;
+		if (cands.length === 0) return null;
 		let best = null;
 		let bestScore = -Infinity;
-		for (const c of candidates) {
+		for (let i = 0; i < cands.length; i++) {
+			const c = cands[i];
 			const s = this.scoreTarget(c.target, c.dist, bot, ctx, entityManager);
 			if (s > bestScore) {
 				bestScore = s;
