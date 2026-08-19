@@ -103,19 +103,25 @@ export class BotBrain {
 		);
 		let ctx = bot._fsmCtx;
 		if (!ctx || this.decisionCooldown <= 0 || phaseChanged) {
-			ctx = this.collectContext(bot, entityManager, lootManager, gameState);
-			ctx.earlyGamePhase = earlyGamePhase;
-			bot._fsmCtx = ctx;
-			bot._lastPhase = earlyGamePhase;
-			const nextState = this.pickState(bot, ctx);
-			bot.state = nextState;
-			if (nextState !== STATES.LOOT && nextState !== STATES.EXPLORE)
-				this.releaseLootReservation(bot);
-			if (nextState !== STATES.ENGAGE) this.releaseCombatReservation(bot);
-			this.decisionCooldown =
-				nextState === STATES.ENGAGE
-					? 0.2 + ((bot.id * 0.007) % 0.08)
-					: 0.34 + ((bot.id * 0.007) % 0.13);
+			const currentFps = bot.scene?.userData?.fps || 60;
+			const skipFactor = currentFps >= 50 ? 1 : currentFps >= 35 ? 2 : currentFps >= 25 ? 3 : 4;
+			if (skipFactor > 1 && (Number(bot.id) % skipFactor) !== 0 && !phaseChanged) {
+				this.decisionCooldown = Math.max(this.decisionCooldown, 0.15);
+			} else {
+				ctx = this.collectContext(bot, entityManager, lootManager, gameState);
+				ctx.earlyGamePhase = earlyGamePhase;
+				bot._fsmCtx = ctx;
+				bot._lastPhase = earlyGamePhase;
+				const nextState = this.pickState(bot, ctx);
+				bot.state = nextState;
+				if (nextState !== STATES.LOOT && nextState !== STATES.EXPLORE)
+					this.releaseLootReservation(bot);
+				if (nextState !== STATES.ENGAGE) this.releaseCombatReservation(bot);
+				this.decisionCooldown =
+					nextState === STATES.ENGAGE
+						? 0.2 + ((bot.id * 0.007) % 0.08)
+						: 0.34 + ((bot.id * 0.007) % 0.13);
+			}
 		} else {
 			// Refresh earlyGamePhase on cached context so actEngage / actExplore see current phase
 			ctx.earlyGamePhase = earlyGamePhase;

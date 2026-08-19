@@ -68,6 +68,7 @@ export class GameLoop {
             const fps = Math.round(this._fpsFrameCount / this._fpsAccumulator);
             this.fpsSamples.push(fps);
             this.game.hud?.updateFpsDisplay?.(fps);
+            this.game.scene?.userData && (this.game.scene.userData.fps = fps);
             this._fpsFrameCount = 0;
             this._fpsAccumulator = 0;
         }
