@@ -2075,6 +2075,28 @@ export class BotBrain {
 		return best ? this._tmpCoverVec.set(best.x, best.y ?? bot.position.y, best.z) : null;
 	}
 
+	scoreTarget(target, dist, bot, ctx, entityManager) {
+		if (!target?.isAlive) return -Infinity;
+		const tw = target.currentWeapon;
+		const wp = WEAPON_PRIORITY[tw?.type] ?? 1;
+		const hp = target.physics?.health ?? 1;
+		const threat = (wp * 20 + hp * 10) / (dist + 5);
+		let score = threat;
+		if (ctx.nearestAlly && ctx.nearestAllyDist < 30) {
+			const allyTarget = ctx.nearestAlly.target;
+			if (allyTarget && allyTarget === target) {
+				score *= 0.7;
+			}
+		}
+		const attackers = this.countAttackers(entityManager, target, bot);
+		if (attackers > 2) score *= 0.8;
+		if (attackers > 4) score *= 0.6;
+		const type = target.constructor?.name;
+		if (type === "Zombie") score *= 0.6;
+		if (type === "Player") score *= 1.3;
+		return score;
+	}
+
 	pickCombatTarget(bot, ctx, entityManager) {
 		const agg = Math.max(0.55, bot.personality?.aggression ?? 0.5);
 		// FIX: Don't retaliate against survivors during early game — only zombies are enemies
@@ -2086,16 +2108,28 @@ export class BotBrain {
 		if (isRetaliationTargetEnemy) {
 			return retaliationTarget;
 		}
-		if (ctx.nearestZombie && ctx.nearestZombieDist < 18)
-			return ctx.nearestZombie;
-		if (
-			ctx.nearestZombie &&
-			ctx.nearestZombieDist < 60 &&
-			(!ctx.nearestEnemy ||
-				ctx.nearestZombieDist <= ctx.nearestEnemyDist * 0.82)
-		)
-			return ctx.nearestZombie;
-		const t = ctx.nearestEnemy?.isAlive ? ctx.nearestEnemy : ctx.huntTarget;
+		const candidates = [];
+		if (ctx.nearestZombie?.isAlive) {
+			candidates.push({ target: ctx.nearestZombie, dist: ctx.nearestZombieDist });
+		}
+		if (ctx.nearestEnemy?.isAlive) {
+			candidates.push({ target: ctx.nearestEnemy, dist: ctx.nearestEnemyDist });
+		}
+		if (ctx.huntTarget?.isAlive && !candidates.some(c => c.target === ctx.huntTarget)) {
+			const hd = bot.position.distanceTo(ctx.huntTarget.position);
+			candidates.push({ target: ctx.huntTarget, dist: hd });
+		}
+		if (candidates.length === 0) return null;
+		let best = null;
+		let bestScore = -Infinity;
+		for (const c of candidates) {
+			const s = this.scoreTarget(c.target, c.dist, bot, ctx, entityManager);
+			if (s > bestScore) {
+				bestScore = s;
+				best = c.target;
+			}
+		}
+		const t = best;
 		if (!t?.isAlive) return null;
 		const retaliating =
 			bot._retaliationTarget === t &&
