@@ -2496,9 +2496,9 @@ export class BotBrain {
 		}
         if (escape) {
             if (bot.patrolTarget) bot.patrolTarget.copy(escape);
-            if (bot._navWaypoint) bot._navWaypoint.copy(bot.patrolTarget);
+            if (bot._navWaypoint) bot._navWaypoint.copy(bot.patrolTarget || escape);
             bot._navWaypointUntil = now + 3200;
-			bot.escapeDir.subVectors(bot.patrolTarget, bot.position).normalize();
+			bot.escapeDir.subVectors(bot.patrolTarget || escape, bot.position).normalize();
 			bot._hasEscapeDir = true;
 			bot.escapeTimer = 1.1;
 		}
