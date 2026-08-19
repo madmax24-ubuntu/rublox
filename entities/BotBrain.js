@@ -148,13 +148,27 @@ export class BotBrain {
 				ctx.nearestEnemyDist = Infinity;
 				ctx.nearestZombie = null;
 				ctx.nearestZombieDist = Infinity;
+				ctx.allyCount = 0;
+				ctx.nearestAlly = null;
+				ctx.nearestAllyDist = Infinity;
 				for (const ent of cachedNearby) {
 					if (!ent?.isAlive || ent === bot) continue;
-					if (ent.constructor?.name !== "Zombie") continue;
-					const d = bot.position.distanceTo(ent.position);
-					if (d < ctx.nearestZombieDist) {
-						ctx.nearestZombie = ent;
-						ctx.nearestZombieDist = d;
+					if (ent.constructor?.name === "Zombie") {
+						const d = bot.position.distanceTo(ent.position);
+						if (d < ctx.nearestZombieDist) {
+							ctx.nearestZombie = ent;
+							ctx.nearestZombieDist = d;
+						}
+					}
+					if (ent.constructor?.name === "Bot") {
+						const d = bot.position.distanceTo(ent.position);
+						if (d < 64) {
+							ctx.allyCount++;
+							if (d < ctx.nearestAllyDist) {
+								ctx.nearestAlly = ent;
+								ctx.nearestAllyDist = d;
+							}
+						}
 					}
 				}
 			} else {
@@ -178,6 +192,17 @@ export class BotBrain {
 						if (d < ctx.nearestZombieDist) {
 							ctx.nearestZombie = ent;
 							ctx.nearestZombieDist = d;
+						}
+					}
+					// Ally awareness: track nearby bots
+					if (type === "Bot") {
+						const d = bot.position.distanceTo(ent.position);
+						if (d < 64) {
+							if (d < ctx.nearestAllyDist) {
+								ctx.nearestAlly = ent;
+								ctx.nearestAllyDist = d;
+							}
+							ctx.allyCount++;
 						}
 					}
 				}
@@ -625,6 +650,27 @@ export class BotBrain {
 		bot._avoidX = avoidX;
 		bot._avoidZ = avoidZ;
 
+		// Ally awareness: count nearby bots and find the closest one
+		let nearestAlly = null;
+		let nearestAllyDist = Infinity;
+		let allyCount = 0;
+		const allyRadiusSq = 64 * 64;
+		for (const ent of nearby) {
+			if (!ent?.isAlive || ent === bot) continue;
+			if (ent.constructor?.name !== 'Bot') continue;
+			const dx = ent.position.x - bot.position.x;
+			const dz = ent.position.z - bot.position.z;
+			const dSq = dx * dx + dz * dz;
+			if (dSq < allyRadiusSq) {
+				allyCount++;
+				const d = Math.sqrt(dSq);
+				if (d < nearestAllyDist) {
+					nearestAllyDist = d;
+					nearestAlly = ent;
+				}
+			}
+		}
+
 		// Memory-based avoidance: steer away from recently looted areas and enemy encounters
 		const memoryAgeLimit = 120000; // 2 minutes — forget after that
 		if (now >= (bot._nextMemoryCleanupAt || 0)) {
@@ -710,6 +756,9 @@ export class BotBrain {
 			combatReady,
 			huntTarget,
 			closeCombatRadius,
+			allyCount,
+			nearestAlly,
+			nearestAllyDist,
 			survivorCount: Number(bot.scene?.userData?.aliveSurvivorCount) || 100,
 			gameState,
 		};
@@ -1275,7 +1324,16 @@ export class BotBrain {
 			this.steerMove(bot, scatterTarget, bot.physics.speed * scatterSpeed);
 		} else {
 			if (!bot.patrolTarget || bot.position.distanceTo(bot.patrolTarget) < 5) {
-				bot.patrolTarget = this.pickSpreadTarget(bot, 40, 120);
+				let target = this.pickSpreadTarget(bot, 40, 120);
+				// Ally attraction: bias patrol toward nearby allies during exploration
+				if (ctx.nearestAlly && ctx.nearestAllyDist < 50 && target) {
+					const dx = ctx.nearestAlly.position.x - bot.position.x;
+					const dz = ctx.nearestAlly.position.z - bot.position.z;
+					const allyWeight = Math.max(0, (50 - ctx.nearestAllyDist) / 50) * 0.35;
+					target.x += dx * allyWeight;
+					target.z += dz * allyWeight;
+				}
+				bot.patrolTarget = target;
 			}
 			if (bot.patrolTarget) {
 				// Avoid laser ring
@@ -1609,6 +1667,11 @@ export class BotBrain {
 			this._tmpSide
 				.set(-to.z, 0, to.x)
 				.multiplyScalar(strafeDir * strafeRadius);
+			// Coordinated flanking: if allies attack the same target, spread to different sides
+			if (ctx.nearestAlly && ctx.nearestAllyDist < 30) {
+				const allySide = ctx.nearestAlly.position.x - target.position.x > 0 ? -1 : 1;
+				this._tmpSide.multiplyScalar(allySide * 0.6 + 0.4);
+			}
 			this._tmpSideTarget.set(
 				bot.position.x + this._tmpSide.x,
 				0,
