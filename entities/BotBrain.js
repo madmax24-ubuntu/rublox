@@ -151,6 +151,7 @@ export class BotBrain {
 					this.releaseLootReservation(bot);
 				}
 			}
+		}
 
 		if (inPreLootPhase || gameState === "spawn") {
 			ctx.inPreLootPhase = true;
