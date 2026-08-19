@@ -53,13 +53,15 @@ export class BotBrain {
 		this._tmpEnemyDir = new THREE.Vector3();
 		this._tmpRandomDir = new THREE.Vector3();
 		this._tmpSide = new THREE.Vector3();
-		this._tmpSideTarget = new THREE.Vector3();
-	this._tmpCoverVec = new THREE.Vector3();
-	this._tmpSpreadVec = new THREE.Vector3();
-	this._candidates = [];
-	this._cand1 = {};
-	this._cand2 = {};
-	this._cand3 = {};
+        this._tmpSideTarget = new THREE.Vector3();
+        this._tmpCoverVec = new THREE.Vector3();
+        this._tmpSpreadVec = new THREE.Vector3();
+        this._spreadResult = new THREE.Vector3();
+        this._candidates = [];
+        this._cand1 = {};
+        this._cand2 = {};
+        this._cand3 = {};
+        this._meleeItems = [];
 	this.baseVisionRange = 144;
 		this.fov = 178 * (Math.PI / 180);
 		this.hearingRange = 64;
@@ -1226,11 +1228,9 @@ export class BotBrain {
 				);
 				return;
 			}
-			// Pick a target far away — avoid ALL nearby bots, not just the nearest enemy
-			const entityManager = bot.entityManagerRef;
-			const nearby = entityManager?.getNearbyEntities
-				? entityManager.getNearbyEntities(bot.position, 30)
-				: [];
+                // Pick a target far away — avoid ALL nearby bots, not just the nearest enemy
+                const entityManager = bot.entityManagerRef;
+                const nearby = bot._cachedNearby || [];
 
 			// Compute average direction of nearby entities
 			let avgX = 0,
@@ -1265,14 +1265,14 @@ export class BotBrain {
 					0.001,
 					Math.hypot(combinedX, combinedZ),
 				);
-				const dist = ctx.earlyGamePhase
-					? 44 + Math.random() * 28
-					: 32 + Math.random() * 24;
-				scatterTarget = new THREE.Vector3(
-					bot.position.x + (combinedX / combinedLength) * dist,
-					bot.position.y,
-					bot.position.z + (combinedZ / combinedLength) * dist,
-				);
+                        const dist = ctx.earlyGamePhase
+                                ? 44 + Math.random() * 28
+                                : 32 + Math.random() * 24;
+                        scatterTarget = this._spreadResult.set(
+                                bot.position.x + (combinedX / combinedLength) * dist,
+                                bot.position.y,
+                                bot.position.z + (combinedZ / combinedLength) * dist,
+                        );
 			} else if (ctx.nearestEnemy) {
 				const dir = this._tmpVec
 					.set(
@@ -1315,10 +1315,10 @@ export class BotBrain {
 					Math.cos(angle) * (27 + 5 * pushDir),
 					scatterTarget.y,
 					Math.sin(angle) * (27 + 5 * pushDir),
-				);
-			}
-			bot.patrolTarget = scatterTarget.clone();
-			bot._scatterTargetUntil = now + 5600 + (bot.id % 7) * 310;
+                        );
+                }
+                bot.patrolTarget.copy(scatterTarget);
+                bot._scatterTargetUntil = now + 5600 + (bot.id % 7) * 310;
 			// Move at natural speed during scatter — no frantic sprinting
 			const scatterSpeed = ctx.inPreLootPhase
 				? 1.1
@@ -1618,12 +1618,15 @@ export class BotBrain {
 			dist < 3 &&
 			weapon.type !== "fists" &&
 			weapon.type !== "knife" &&
-			bot.inventory?.getItems?.()
-		) {
-			const meleeItems = bot.inventory
-				.getItems()
-				.filter((w) => w && (w.type === "knife" || w.type === "fists"));
-			if (meleeItems.length && (weapon.ammo === null || weapon.ammo <= 3)) {
+                        bot.inventory?.getItems?.()
+                ) {
+                        const items = bot.inventory.getItems();
+                        this._meleeItems.length = 0;
+                        for (const w of items) {
+                                if (w && (w.type === "knife" || w.type === "fists")) this._meleeItems.push(w);
+                        }
+                        const meleeItems = this._meleeItems;
+                        if (meleeItems.length && (weapon.ammo === null || weapon.ammo <= 3)) {
 				const meleeSlot = bot.inventory.getItems().indexOf(meleeItems[0]);
 				if (meleeSlot >= 0 && bot.inventory.selectedSlot !== meleeSlot) {
 					bot.selectSlot(meleeSlot);
@@ -1695,10 +1698,14 @@ export class BotBrain {
 				// Ammo conservation: switch to melee when critically low
 				if (ammo !== null && ammo > 0) {
 					const meleeThreshold = wType === "shotgun" ? 1 : wType === "pistol" ? 2 : 3;
-					if (ammo <= meleeThreshold && dist > 4) {
-						const meleeItems = bot.inventory?.getItems?.()?.filter(w => w && (w.type === "knife" || w.type === "fists"));
-						if (meleeItems?.length) {
-							const meleeSlot = bot.inventory.getItems().indexOf(meleeItems[0]);
+                        if (ammo <= meleeThreshold && dist > 4) {
+                                const items2 = bot.inventory?.getItems?.();
+                                this._meleeItems.length = 0;
+                                for (const w of items2) {
+                                        if (w && (w.type === "knife" || w.type === "fists")) this._meleeItems.push(w);
+                                }
+                               if (this._meleeItems.length) {
+							const meleeSlot = bot.inventory.getItems().indexOf(this._meleeItems[0]);
 							if (meleeSlot >= 0 && bot.inventory.selectedSlot !== meleeSlot) {
 								bot.selectSlot(meleeSlot);
 								bot._weaponSwitchCooldown = performance.now() + 800;
@@ -1767,11 +1774,11 @@ export class BotBrain {
 		if (bot.isStuck) {
 			bot.physics.velocity.x = 0;
 			bot.physics.velocity.z = 0;
-			const escape = this.pickSpreadTarget(bot, 20, 50);
-			if (escape) {
-				bot.patrolTarget = escape.clone();
-				bot._navWaypoint = escape.clone();
-			}
+                const escape = this.pickSpreadTarget(bot, 20, 50);
+                if (escape) {
+                        bot.patrolTarget.copy(escape);
+                        bot._navWaypoint.copy(escape);
+                }
 		}
 	}
 
@@ -2324,19 +2331,22 @@ export class BotBrain {
 				);
 				if (dist < 15 || dist > 180) continue; // Wider range
 				if (!map.isWalkableAt?.(tile.x, tile.z)) continue;
-				if (Math.abs(tile.x) > 150 || Math.abs(tile.z) > 150) continue;
-				return this._tmpSpreadVec.set(tile.x, 0, tile.z).clone();
-			}
-			// Absolute fallback: random direction
-			const angle = Math.random() * Math.PI * 2;
-			const radius = 20 + Math.random() * 30;
-			return this._tmpSpreadVec.set(
-				bot.position.x + Math.cos(angle) * radius,
-				0,
-				bot.position.z + Math.sin(angle) * radius,
-			);
-		}
-		return best.clone();
+                        if (Math.abs(tile.x) > 150 || Math.abs(tile.z) > 150) continue;
+                        this._spreadResult.copy(this._tmpSpreadVec.set(tile.x, 0, tile.z));
+                        return this._spreadResult;
+                }
+                // Absolute fallback: random direction
+                const angle = Math.random() * Math.PI * 2;
+                const radius = 20 + Math.random() * 30;
+                this._spreadResult.set(
+                        bot.position.x + Math.cos(angle) * radius,
+                        0,
+                        bot.position.z + Math.sin(angle) * radius,
+                );
+                return this._spreadResult;
+        }
+        this._spreadResult.copy(best);
+        return this._spreadResult;
 	}
 
 	isInAssignedBiome(bot, point) {
@@ -2582,10 +2592,10 @@ export class BotBrain {
 			}
 			escape = best;
 		}
-		if (escape) {
-			bot.patrolTarget = escape.clone?.() || escape;
-			bot._navWaypoint = bot.patrolTarget.clone();
-			bot._navWaypointUntil = now + 3200;
+        if (escape) {
+            bot.patrolTarget.copy(escape);
+            bot._navWaypoint.copy(bot.patrolTarget);
+            bot._navWaypointUntil = now + 3200;
 			bot.escapeDir.subVectors(bot.patrolTarget, bot.position).normalize();
 			bot._hasEscapeDir = true;
 			bot.escapeTimer = 1.1;

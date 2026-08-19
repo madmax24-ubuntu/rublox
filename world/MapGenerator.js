@@ -153,8 +153,8 @@ export class MapGenerator {
 		this._placeCoverObjects();
 		this._placeBiomeDecor();
 		this._pruneOutsidePlayableBounds();
-		this._ensureBiomeLootDensity(24);
-		this._reduceBiomeLootDensity(0.4);
+        this._ensureBiomeLootDensity(24);
+        this._reduceBiomeLootDensity(0.2);
 		this._clearCentralBiomeIntrusions();
 
 		this._placeBiomeBoundaries();
@@ -1407,20 +1407,34 @@ export class MapGenerator {
 				collider.isBiomeEntrance ||
 				collider.biomeBoundary ||
 				collider.isCornucopia ||
-				collider.isTowerStructure ||
-				collider.isBuildingWall
-			)
-				return true;
-			const x = (collider.min.x + collider.max.x) * 0.5;
-			const z = (collider.min.z + collider.max.z) * 0.5;
-			const padding = Math.min(
-				8,
-				Math.hypot(
-					collider.max.x - collider.min.x,
-					collider.max.z - collider.min.z,
-				) * 0.5,
-			);
-			return !corridorHit(x, z, padding);
+				collider.isTowerStructure
+		)
+			return true;
+		if (collider.isBuildingWall) {
+			if (collider.isMazeWall) {
+				const x = (collider.min.x + collider.max.x) * 0.5;
+				const z = (collider.min.z + collider.max.z) * 0.5;
+				const padding = Math.min(
+					8,
+					Math.hypot(
+						collider.max.x - collider.min.x,
+						collider.max.z - collider.min.z,
+					) * 0.5,
+				);
+				return !corridorHit(x, z, padding);
+			}
+			return true;
+		}
+		const x = (collider.min.x + collider.max.x) * 0.5;
+		const z = (collider.min.z + collider.max.z) * 0.5;
+		const padding = Math.min(
+			8,
+			Math.hypot(
+				collider.max.x - collider.min.x,
+				collider.max.z - collider.min.z,
+			) * 0.5,
+		);
+		return !corridorHit(x, z, padding);
 		});
 		this._chestSpots = this._chestSpots.filter(
 			(spot) => !corridorHit(spot.x, spot.z, 1.5),
@@ -9413,3 +9427,7 @@ export class MapGenerator {
 		return result;
 	}
 }
+
+
+
+
