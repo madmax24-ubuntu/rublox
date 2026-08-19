@@ -1780,6 +1780,8 @@ export class MapGenerator {
 				part.walkable,
 			);
 			collider.isBiomeResidence = true;
+			// Door zone for residence entrance collision check
+			collider.doorZone = { x, z: z + d * 0.5, halfWidth: 1.5, halfDepth: 1.0 };
 			collider.navigationPassage = part.navigationPassage;
 			if (part.stair)
 				collider.surfaceOBB = {
@@ -9429,6 +9431,8 @@ export class MapGenerator {
 		return result;
 	}
 }
+
+
 
 
 

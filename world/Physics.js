@@ -403,6 +403,25 @@ export class Physics {
 				if (bottom > max.y + 0.3) continue;
 				if (topY < min.y - 0.3) continue;
 
+				// Skip residence wall colliders if entity is in door zone
+				if (box.isBiomeResidence && !box.walkable && box.doorZone) {
+					const dz = box.doorZone;
+					const inDoorZone = (
+						pos.x >= dz.x - dz.halfWidth &&
+						pos.x <= dz.x + dz.halfWidth &&
+						pos.z >= dz.z - dz.halfDepth &&
+						pos.z <= dz.z + dz.halfDepth
+					);
+					if (inDoorZone) continue;
+				}
+
+				// Skip tower stair colliders if entity is outside the tower
+				if (box.isTowerStair && box.towerInterior) {
+					const ti = box.towerInterior;
+					const distToTower = Math.sqrt((pos.x - ti.x) ** 2 + (pos.z - ti.z) ** 2);
+					if (distToTower > ti.radius + 0.5) continue;
+				}
+
 				if (box.walkable) {
 					if (bottom >= max.y - 0.05) continue;
 					const stepHeight = max.y - bottom;
