@@ -1593,14 +1593,13 @@ export class BotBrain {
 				bot._strafeDir = bot._strafeDir ? -bot._strafeDir : (bot.id % 3) - 1;
 				// Ensure strafe direction is never 0 — always move
 				if (bot._strafeDir === 0) bot._strafeDir = bot.id % 2 === 0 ? 1 : -1;
-				bot._strafeUntil = nowSec + 3.0 + (bot.id % 4) * 0.25;
+				bot._strafeUntil = nowSec + (agg > 0.6 ? 2 : 3.5) + (bot.id % 4) * 0.25;
 			}
 			const strafeDir = bot._strafeDir || 1;
 			const to = this._tmpVec
 				.subVectors(target.position, bot.position)
 				.normalize();
-			// Larger strafe arcs for better positioning
-			const strafeRadius = 4.5 + (bot.id % 4) * 0.4;
+			const strafeRadius = agg > 0.6 ? 6 + (bot.id % 4) * 0.6 : 3 + (bot.id % 4) * 0.3;
 			this._tmpSide
 				.set(-to.z, 0, to.x)
 				.multiplyScalar(strafeDir * strafeRadius);
@@ -1646,8 +1645,16 @@ export class BotBrain {
 		}
 		bot.patrolTarget = target.position;
 
+		const flankRadius = agg > 0.6 ? 6 + (bot.id % 4) * 0.6 : 3 + (bot.id % 4) * 0.3;
 		const approachMult = dist > 30 ? 1.35 : dist > 15 ? 1.5 : 1.65;
-		const cauMod = 1 - (cau - 0.5) * 0.2;
+		const cauMod = cau > 0.6 ? 0.85 : 1 - (cau - 0.5) * 0.2;
+		if (cau > 0.65 && dist < 14) {
+			const cover = this.findNearestCover(bot, target.position);
+			if (cover && bot.position.distanceTo(cover) < 20) {
+				this.steerMove(bot, cover, bot.physics.speed * 0.9);
+				return;
+			}
+		}
 		this.steerMove(
 			bot,
 			target.position,
