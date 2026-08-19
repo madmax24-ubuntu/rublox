@@ -23,6 +23,8 @@ export class EntityManager {
 		this._impactGeoCache = new Map();
 		this._tmpVecG = new THREE.Vector3();
 		this._rocketSmokeGeo = new THREE.SphereGeometry(0.12, 4, 3);
+		this._smokeMat = new THREE.MeshBasicMaterial({ color: 0x888888, transparent: true, opacity: 0.4, depthWrite: false });
+		this._smokePool = [];
 	}
 
 	addEntity(entity) {
@@ -103,13 +105,8 @@ export class EntityManager {
 				proj._smokeTimer += delta;
 				if (proj._smokeTimer >= 0.12 && proj.smokeTrails.length < 8) {
 					proj._smokeTimer = 0;
-					const smokeMat = new THREE.MeshBasicMaterial({
-						color: 0x888888,
-						transparent: true,
-						opacity: 0.4,
-						depthWrite: false,
-					});
-					const smoke = new THREE.Mesh(this._rocketSmokeGeo, smokeMat);
+					const smoke = this._smokePool.pop() || new THREE.Mesh(this._rocketSmokeGeo, this._smokeMat.clone());
+					smoke.material.opacity = 0.4;
 					smoke.position.copy(proj.mesh.position);
 					smoke.scale.setScalar(0.3);
 					smoke.userData.smokeLife = 1.5;
@@ -127,7 +124,7 @@ export class EntityManager {
 					smoke.scale.addScalar(delta * 0.3);
 					if (smoke.userData.smokeLife <= 0) {
 						this.scene.remove(smoke);
-						smoke.material.dispose();
+						this._smokePool.push(smoke);
 						proj.smokeTrails.splice(j, 1);
 					}
 				}
@@ -492,7 +489,7 @@ export class EntityManager {
 		if (proj.smokeTrails) {
 			for (const smoke of proj.smokeTrails) {
 				this.scene.remove(smoke);
-				smoke.material.dispose();
+				this._smokePool.push(smoke);
 			}
 			proj.smokeTrails.length = 0;
 		}

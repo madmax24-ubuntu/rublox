@@ -1,4 +1,4 @@
-import * as THREE from "../node_modules/three/build/three.module.js";
+﻿import * as THREE from "../node_modules/three/build/three.module.js";
 
 export class Physics {
 	constructor(scene, mapGenerator) {
@@ -381,11 +381,12 @@ export class Physics {
 		const pos = entity.position;
 		const bottom = pos.y - (entity.physics?.height || 1.7);
 		const pushDistSq = (baseRadius + 0.5) * (baseRadius + 0.5);
+		const topY = pos.y + (entity.physics?.height || 1.7) * 0.15;
 		const maxPushPerStep = 0.5;
-		const nearby = this.getNearbyColliders(pos, baseRadius + 2.0);
+		const nearby = this.getNearbyColliders(pos, baseRadius + 0.5);
 		if (!nearby.length) return;
 		const hasBuildingWall = nearby.some((b) => b.isBuildingWall);
-		const maxPasses = hasBuildingWall ? 6 : 2;
+		const maxPasses = hasBuildingWall ? 3 : 2;
 		let pushed = false;
 		for (let pass = 0; pass < maxPasses; pass++) {
 			pushed = false;
@@ -400,6 +401,7 @@ export class Physics {
 				// Y overlap check
 				if (pos.y < min.y - 0.3) continue;
 				if (bottom > max.y + 0.3) continue;
+				if (topY < min.y - 0.3) continue;
 
 				if (box.walkable) {
 					if (bottom >= max.y - 0.05) continue;
