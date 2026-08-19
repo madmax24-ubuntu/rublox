@@ -1286,9 +1286,17 @@ export class Bot {
         if (distance > attackRange) return null;
 
         if (weapon.type === 'laser' || weapon.type === 'bow' || weapon.type === 'shotgun' || weapon.type === 'flamethrower' || weapon.type === 'pistol' || weapon.type === 'rifle' || weapon.type === 'machinegun') {
-            const direction = this._tmpDirection
-                .subVectors(target.position, this.position)
-                .normalize();
+            const toTarget = this._tmpDirection
+                .subVectors(target.position, this.position);
+            const tv = target.physics?.velocity;
+            if (tv && distance > 4) {
+                const bulletSpeed = weapon.projectileSpeed || 30;
+                const timeToHit = toTarget.length() / bulletSpeed;
+                const lead = Math.min(timeToHit, 0.3);
+                toTarget.x += (tv.x || 0) * lead;
+                toTarget.z += (tv.z || 0) * lead;
+            }
+            const direction = toTarget.normalize();
             const aimErr = Math.max(0, this._dynamicAimError || 0);
             if (aimErr > 0.0001) {
                 this._tmpErr.set(
