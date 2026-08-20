@@ -538,7 +538,7 @@ class Game {
 			};
 			this.centerBlastVfx = null;
 			this.laserGraceTimer = 0;
-			this.minimapTimer = 0.18; // Start at max interval to avoid immediate update on first frame
+		this.minimapTimer = 0.25; // Start at max interval to avoid immediate update on first frame
 			this.noBugCheckTimer = 0;
 			this.poiZombieSeeded = false;
 			this.isPaused = false;
@@ -3315,7 +3315,7 @@ class Game {
 				bots: botPoints,
 				zombies: zombiePoints,
 			});
-			this.minimapTimer = this.isMobile() ? 0.25 : 0.18;
+			this.minimapTimer = this.isMobile() ? 0.35 : 0.25;
 		}
 	}
 
