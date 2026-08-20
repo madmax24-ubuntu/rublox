@@ -191,12 +191,13 @@ export class MapGenerator {
 		// Phase 10: Spawn pads (filtered, no duplicates)
 		this._buildSpawnPads();
 
-		// Phase 11: InstancedMesh optimization — convert repeated meshes to InstancedMesh
-		const totalBefore = this._meshes.length;
-		const instResult = this._optimizeInstancing(2);
-		console.log(
-			`[MapGenerator] InstancedMesh: ${instResult.replaced} meshes merged into ${instResult.instancedMeshes.length} InstancedMesh (total before: ${totalBefore}, after: ${this._meshes.length})`,
-		);
+       // Phase 11: InstancedMesh optimization — convert repeated meshes to InstancedMesh
+       const totalBefore = this._meshes.length;
+        // minCount=5: groups with <5 instances use regular Mesh (cheaper than InstancedMesh overhead)
+        const instResult = this._optimizeInstancing(5);
+       console.log(
+           `[MapGenerator] InstancedMesh: ${instResult.replaced} meshes merged into ${instResult.instancedMeshes.length} InstancedMesh (total before: ${totalBefore}, after: ${this._meshes.length})`,
+       );
 
 		// Phase 12: Finalize
 		this._logProgress(0.95);

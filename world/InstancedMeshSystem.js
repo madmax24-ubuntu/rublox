@@ -61,7 +61,8 @@ export class InstancedMeshSystem {
             const instanced = new THREE.InstancedMesh(geo, mat, entries.length);
             instanced.userData.mapGenerated = true;
             instanced.userData.instanced = true;
-            instanced.frustumCulled = false;
+            // Enable frustum culling — GPU filters objects outside camera view
+            instanced.frustumCulled = true;
             if (entries[0].userData?.walkable) instanced.userData.walkable = true;
             if (entries[0].userData?.isWall) instanced.userData.isWall = true;
             if (entries[0].userData?.isCornucopia) instanced.userData.isCornucopia = true;
