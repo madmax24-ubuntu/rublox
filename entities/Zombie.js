@@ -476,8 +476,65 @@ const STALKER_MATERIALS = {
 
 const STALKER_DETAIL_MAT = new THREE.MeshStandardMaterial({ color: 0x1a1d20, roughness: 0.6, flatShading: true });
 
-// Per-instance material cloner — prevents shared STALKER_MATERIALS mutation
-const _cloneStalkerMat = (source) => source.clone();
+// Stalker materials shared directly for draw call batching
+
+// === Zombie Geometry Cache ===
+const ZOMBIE_GEOS = {};
+const _getZombieGeo = (type, ...params) => {
+    const key = type + "|" + params.join(",");
+    if (!ZOMBIE_GEOS[key]) {
+        if (type === "box") ZOMBIE_GEOS[key] = new THREE.BoxGeometry(...params);
+        else if (type === "cone") ZOMBIE_GEOS[key] = new THREE.ConeGeometry(params[0], params[1], params[2] || 5);
+        else if (type === "cyl") ZOMBIE_GEOS[key] = new THREE.CylinderGeometry(params[0], params[1], params[2], params[3] || 8);
+        else if (type === "dodeca") ZOMBIE_GEOS[key] = new THREE.DodecahedronGeometry(params[0], params[1] || 0);
+        else if (type === "icosa") ZOMBIE_GEOS[key] = new THREE.IcosahedronGeometry(params[0], params[1] || 0);
+    }
+    return ZOMBIE_GEOS[key];
+};
+
+// === Universal Shared Materials (identical across all variants) ===
+const GRIME_MAT = new THREE.MeshStandardMaterial({ color: 0x2e3b2e, roughness: 0.95, flatShading: true });
+const ARMOR_MAT = new THREE.MeshStandardMaterial({ color: 0x263238, roughness: 0.6, metalness: 0.2, flatShading: true });
+const CLAW_MAT = new THREE.MeshStandardMaterial({ color: 0x0e0e0e, roughness: 0.5, metalness: 0.4, flatShading: true });
+const HORN_MAT = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.35, metalness: 0.2, flatShading: true });
+const SPIKES_MAT = new THREE.MeshStandardMaterial({ color: 0x263238, roughness: 0.5, flatShading: true });
+const BOOT_MAT = new THREE.MeshStandardMaterial({ color: 0x17191b, roughness: 0.92, flatShading: true });
+const MASK_MAT = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.4, flatShading: true });
+
+// === Variant-Specific Material Cache ===
+const ZOMBIE_MATERIALS = {};
+const _getZombieMat = (variant, type) => {
+    const key = variant + "." + type;
+    if (!ZOMBIE_MATERIALS[key]) {
+        const cfg = VARIANT_CONFIG[variant];
+        if (!cfg) return null;
+        if (type === "body") {
+            const tex = ZOMBIE_TEXTURES["zombie_" + variant] || _createZombieTexture(variant, cfg.bodyColor);
+            ZOMBIE_MATERIALS[key] = new THREE.MeshStandardMaterial({
+                color: cfg.bodyColor, map: tex, emissive: cfg.bodyColor, emissiveIntensity: 0.25, roughness: 0.75, flatShading: true
+            });
+        } else if (type === "head") {
+            const tex = ZOMBIE_TEXTURES["zombie_" + variant] || _createZombieTexture(variant, cfg.headColor);
+            ZOMBIE_MATERIALS[key] = new THREE.MeshStandardMaterial({
+                color: cfg.headColor, map: tex, emissive: cfg.headColor, emissiveIntensity: 0.2, roughness: 0.75, flatShading: true
+            });
+        } else if (type === "glow") {
+            ZOMBIE_MATERIALS[key] = new THREE.MeshStandardMaterial({
+                color: cfg.glowColor, emissive: cfg.glowColor,
+                emissiveIntensity: cfg.glowIntensity, roughness: 0.2, flatShading: true
+            });
+        } else if (type === "eye") {
+            ZOMBIE_MATERIALS[key] = new THREE.MeshStandardMaterial({
+                color: cfg.eyeColor, emissive: cfg.eyeColor, emissiveIntensity: 2.4
+            });
+        } else if (type === "detail") {
+            ZOMBIE_MATERIALS[key] = new THREE.MeshStandardMaterial({
+                color: cfg.detailColor, roughness: 0.72, flatShading: true
+            });
+        }
+    }
+    return ZOMBIE_MATERIALS[key];
+};
 
 const _setWorldTransform = (obj, orig) => {
     obj.matrix.copy(orig.matrixWorld);
@@ -612,17 +669,17 @@ export class Zombie {
         this._isCorpsified = false;
         this._canPool = true;
         this._animTime = performance.now() * 0.001;
-        if (this.variant === 'stalker') {
-            this._stalkerMats = {
-                camo: _cloneStalkerMat(STALKER_MATERIALS.camo),
-                vest: _cloneStalkerMat(STALKER_MATERIALS.vest),
-                gasMask: _cloneStalkerMat(STALKER_MATERIALS.gasMask),
-                boot: _cloneStalkerMat(STALKER_MATERIALS.boot),
-                helmet: _cloneStalkerMat(STALKER_MATERIALS.helmet),
-                backpack: _cloneStalkerMat(STALKER_MATERIALS.backpack),
-                lens: STALKER_MATERIALS.lens.clone(),
-                skin: STALKER_MATERIALS.skin.clone(),
-                glove: STALKER_MATERIALS.glove.clone()
+       if (this.variant === 'stalker') {
+           this._stalkerMats = {
+                camo: STALKER_MATERIALS.camo,
+                vest: STALKER_MATERIALS.vest,
+                gasMask: STALKER_MATERIALS.gasMask,
+                boot: STALKER_MATERIALS.boot,
+                helmet: STALKER_MATERIALS.helmet,
+                backpack: STALKER_MATERIALS.backpack,
+                lens: STALKER_MATERIALS.lens,
+                skin: STALKER_MATERIALS.skin,
+                glove: STALKER_MATERIALS.glove
             };
         }
         this._moanPhase = Math.random() * Math.PI * 2;
@@ -646,64 +703,47 @@ export class Zombie {
         this.scene.add(this.mesh);
     }
 
-    createMesh() {
-        const group = new THREE.Group();
-        const cfg = VARIANT_CONFIG[this.variant];
+   createMesh() {
+       const group = new THREE.Group();
+       const cfg = VARIANT_CONFIG[this.variant];
 
-        const bodyTex = _createZombieTexture(this.variant, cfg.bodyColor);
-        const bodyMat = new THREE.MeshStandardMaterial({
-            color: cfg.bodyColor, map: bodyTex, emissive: cfg.bodyColor, emissiveIntensity: 0.25, roughness: 0.75, flatShading: true
-        });
-        const headTex = _createZombieTexture(this.variant, cfg.headColor);
-        const headMat = new THREE.MeshStandardMaterial({
-            color: cfg.headColor, map: headTex, emissive: cfg.headColor, emissiveIntensity: 0.2, roughness: 0.75, flatShading: true
-        });
-        const grimeMat = new THREE.MeshStandardMaterial({
-            color: 0x2e3b2e, roughness: 0.95, flatShading: true
-        });
-        const armorMat = new THREE.MeshStandardMaterial({
-            color: 0x263238, roughness: 0.6, metalness: 0.2, flatShading: true
-        });
-        const glowMat = new THREE.MeshStandardMaterial({
-            color: cfg.glowColor, emissive: cfg.glowColor,
-            emissiveIntensity: cfg.glowIntensity, roughness: 0.2, flatShading: true
-        });
-        const eyeMat = new THREE.MeshStandardMaterial({
-            color: cfg.eyeColor, emissive: cfg.eyeColor, emissiveIntensity: 2.4
-        });
-        const detailMat = new THREE.MeshStandardMaterial({
-            color: cfg.detailColor, roughness: 0.72, flatShading: true
-        });
+        const bodyMat = _getZombieMat(this.variant, "body");
+        const headMat = _getZombieMat(this.variant, "head");
+        const grimeMat = GRIME_MAT;
+        const armorMat = ARMOR_MAT;
+        const glowMat = _getZombieMat(this.variant, "glow");
+        const eyeMat = _getZombieMat(this.variant, "eye");
+        const detailMat = _getZombieMat(this.variant, "detail");
 
-        if (this.variant === 'runner') {
-            const leanBody = new THREE.BoxGeometry(0.85, 1.0, 0.55);
+       if (this.variant === 'runner') {
+            const leanBody = _getZombieGeo("box", 0.85, 1.0, 0.55);
             const body = new THREE.Mesh(leanBody, bodyMat);
             body.position.set(0.05, 0.85, 0.1);
             body.rotation.x = -0.15;
             group.add(body);
 
-            const head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.6), headMat);
+            const head = new THREE.Mesh(_getZombieGeo("box", 0.6, 0.6, 0.6), headMat);
             head.position.set(0.1, 1.6, 0.25);
             head.rotation.x = -0.2;
             group.add(head);
 
-            const maskMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.4, flatShading: true });
-            const mask = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.35, 0.25), maskMat);
+            const mask = new THREE.Mesh(_getZombieGeo("box", 0.55, 0.35, 0.25), MASK_MAT);
             mask.position.set(0.12, 1.55, 0.5);
             group.add(mask);
 
-            const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.04), eyeMat);
-            const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.04), eyeMat);
+            const eyeGeo = _getZombieGeo("box", 0.08, 0.08, 0.04);
+            const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+            const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
             eyeL.position.set(0.05, 1.62, 0.55);
             eyeR.position.set(0.18, 1.62, 0.55);
             group.add(eyeL);
             group.add(eyeR);
 
-            const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, 0.08), grimeMat);
+            const jaw = new THREE.Mesh(_getZombieGeo("box", 0.3, 0.12, 0.08), grimeMat);
             jaw.position.set(0.1, 1.45, 0.52);
             group.add(jaw);
 
-            const armGeo = new THREE.BoxGeometry(0.18, 0.65, 0.18);
+            const armGeo = _getZombieGeo("box", 0.18, 0.65, 0.18);
             const leftArm = new THREE.Mesh(armGeo, bodyMat);
             const rightArm = new THREE.Mesh(armGeo, bodyMat);
             leftArm.position.set(-0.48, 0.9, 0.2);
@@ -713,10 +753,9 @@ export class Zombie {
             group.add(leftArm);
             group.add(rightArm);
 
-            const clawGeo = new THREE.ConeGeometry(0.07, cfg.clawLength, 5);
-            const clawMat = new THREE.MeshStandardMaterial({ color: 0x0e0e0e, roughness: 0.5, metalness: 0.4, flatShading: true });
-            const leftClaw = new THREE.Mesh(clawGeo, clawMat);
-            const rightClaw = new THREE.Mesh(clawGeo, clawMat);
+            const clawGeo = _getZombieGeo("cone", 0.07, cfg.clawLength, 5);
+            const leftClaw = new THREE.Mesh(clawGeo, CLAW_MAT);
+            const rightClaw = new THREE.Mesh(clawGeo, CLAW_MAT);
             leftClaw.position.set(-0.48, 0.6, 0.45);
             rightClaw.position.set(0.58, 0.6, 0.45);
             leftClaw.rotation.x = Math.PI / 2;
@@ -724,7 +763,7 @@ export class Zombie {
             group.add(leftClaw);
             group.add(rightClaw);
 
-            const legGeo = new THREE.BoxGeometry(0.18, 0.65, 0.18);
+            const legGeo = _getZombieGeo("box", 0.18, 0.65, 0.18);
             const leftLeg = new THREE.Mesh(legGeo, bodyMat);
             const rightLeg = new THREE.Mesh(legGeo, bodyMat);
             leftLeg.position.set(-0.18, 0.25, 0);
@@ -732,42 +771,42 @@ export class Zombie {
             group.add(leftLeg);
             group.add(rightLeg);
 
-            const spine = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.8, 0.1), glowMat);
+            const spine = new THREE.Mesh(_getZombieGeo("box", 0.1, 0.8, 0.1), glowMat);
             spine.position.set(0, 0.9, -0.25);
             group.add(spine);
 
-        } else if (this.variant === 'heavy') {
-            const thickBody = new THREE.BoxGeometry(1.1, 1.3, 0.8);
+       } else if (this.variant === 'heavy') {
+            const thickBody = _getZombieGeo("box", 1.1, 1.3, 0.8);
             const body = new THREE.Mesh(thickBody, bodyMat);
             body.position.y = 1.0;
             group.add(body);
 
             const armorPlate = new THREE.Mesh(
-                new THREE.BoxGeometry(1.15, 0.2, 0.85),
+                _getZombieGeo("box", 1.15, 0.2, 0.85),
                 armorMat
             );
             armorPlate.position.set(0, 1.55, 0);
             group.add(armorPlate);
 
-            const head = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), headMat);
+            const head = new THREE.Mesh(_getZombieGeo("box", 0.8, 0.8, 0.8), headMat);
             head.position.y = 1.85;
             group.add(head);
 
-            const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.05), eyeMat);
-            const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.05), eyeMat);
+            const eyeGeo = _getZombieGeo("box", 0.12, 0.12, 0.05);
+            const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+            const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
             eyeL.position.set(-0.18, 1.9, 0.4);
             eyeR.position.set(0.18, 1.9, 0.4);
             group.add(eyeL);
             group.add(eyeR);
 
-            const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.18, 0.1), grimeMat);
+            const jaw = new THREE.Mesh(_getZombieGeo("box", 0.4, 0.18, 0.1), grimeMat);
             jaw.position.set(0, 1.65, 0.4);
             group.add(jaw);
 
-            const hornMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.35, metalness: 0.2, flatShading: true });
-            const hornGeo = new THREE.ConeGeometry(0.1, 0.35, 6);
-            const leftHorn = new THREE.Mesh(hornGeo, hornMat);
-            const rightHorn = new THREE.Mesh(hornGeo, hornMat);
+            const hornGeo = _getZombieGeo("cone", 0.1, 0.35, 6);
+            const leftHorn = new THREE.Mesh(hornGeo, HORN_MAT);
+            const rightHorn = new THREE.Mesh(hornGeo, HORN_MAT);
             leftHorn.position.set(-0.3, 2.25, 0);
             rightHorn.position.set(0.3, 2.25, 0);
             leftHorn.rotation.z = Math.PI / 2;
@@ -775,7 +814,7 @@ export class Zombie {
             group.add(leftHorn);
             group.add(rightHorn);
 
-            const armGeo = new THREE.BoxGeometry(0.25, 0.8, 0.25);
+            const armGeo = _getZombieGeo("box", 0.25, 0.8, 0.25);
             const leftArm = new THREE.Mesh(armGeo, bodyMat);
             const rightArm = new THREE.Mesh(armGeo, bodyMat);
             leftArm.position.set(-0.65, 1.0, 0.15);
@@ -785,10 +824,9 @@ export class Zombie {
             group.add(leftArm);
             group.add(rightArm);
 
-            const clawGeo = new THREE.ConeGeometry(0.09, cfg.clawLength, 5);
-            const clawMat = new THREE.MeshStandardMaterial({ color: 0x0e0e0e, roughness: 0.5, metalness: 0.4, flatShading: true });
-            const leftClaw = new THREE.Mesh(clawGeo, clawMat);
-            const rightClaw = new THREE.Mesh(clawGeo, clawMat);
+            const clawGeo = _getZombieGeo("cone", 0.09, cfg.clawLength, 5);
+            const leftClaw = new THREE.Mesh(clawGeo, CLAW_MAT);
+            const rightClaw = new THREE.Mesh(clawGeo, CLAW_MAT);
             leftClaw.position.set(-0.65, 0.65, 0.4);
             rightClaw.position.set(0.65, 0.65, 0.4);
             leftClaw.rotation.x = Math.PI / 2;
@@ -796,7 +834,7 @@ export class Zombie {
             group.add(leftClaw);
             group.add(rightClaw);
 
-            const legGeo = new THREE.BoxGeometry(0.25, 0.75, 0.25);
+            const legGeo = _getZombieGeo("box", 0.25, 0.75, 0.25);
             const leftLeg = new THREE.Mesh(legGeo, bodyMat);
             const rightLeg = new THREE.Mesh(legGeo, bodyMat);
             leftLeg.position.set(-0.25, 0.3, 0);
@@ -805,43 +843,42 @@ export class Zombie {
             group.add(rightLeg);
 
             const backpack = new THREE.Mesh(
-                new THREE.BoxGeometry(0.6, 0.75, 0.3),
+                _getZombieGeo("box", 0.6, 0.75, 0.3),
                 armorMat
             );
             backpack.position.set(0, 1.1, -0.45);
             group.add(backpack);
 
-            const spine = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.9, 0.12), glowMat);
+            const spine = new THREE.Mesh(_getZombieGeo("box", 0.12, 0.9, 0.12), glowMat);
             spine.position.set(0, 1.1, -0.35);
             group.add(spine);
 
-            const spikesGeo = new THREE.ConeGeometry(0.07, 0.22, 5);
-            const spikesMat = new THREE.MeshStandardMaterial({ color: 0x263238, roughness: 0.5, flatShading: true });
+            const spikesGeo = _getZombieGeo("cone", 0.07, 0.22, 5);
             for (let i = 0; i < 6; i++) {
-                const spike = new THREE.Mesh(spikesGeo, spikesMat);
+                const spike = new THREE.Mesh(spikesGeo, SPIKES_MAT);
                 spike.position.set(-0.35 + i * 0.15, 1.4, -0.5);
                 spike.rotation.x = -Math.PI / 2;
                 group.add(spike);
             }
 
-        } else if (this.variant === 'crawler') {
-            const body = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.55, 1.15), bodyMat);
+       } else if (this.variant === 'crawler') {
+            const body = new THREE.Mesh(_getZombieGeo("box", 0.78, 0.55, 1.15), bodyMat);
             body.position.set(0, 0.58, 0.12);
             body.rotation.x = -0.08;
             group.add(body);
 
-            const head = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.52, 0.66), headMat);
+            const head = new THREE.Mesh(_getZombieGeo("box", 0.62, 0.52, 0.66), headMat);
             head.position.set(0, 0.68, 0.82);
             head.rotation.x = -0.28;
             group.add(head);
 
             for (const x of [-0.16, 0.16]) {
-                const eye = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.08, 0.04), eyeMat);
+                const eye = new THREE.Mesh(_getZombieGeo("box", 0.09, 0.08, 0.04), eyeMat);
                 eye.position.set(x, 0.76, 1.16);
                 group.add(eye);
             }
 
-            const limbGeo = new THREE.BoxGeometry(0.17, 0.62, 0.17);
+            const limbGeo = _getZombieGeo("box", 0.17, 0.62, 0.17);
             const limbs = [
                 [-0.47, 0.36, 0.48, -1.25],
                 [0.47, 0.36, 0.48, -1.25],
@@ -855,30 +892,30 @@ export class Zombie {
                 group.add(limb);
             }
 
-            const ridgeGeo = new THREE.ConeGeometry(0.08, 0.3, 5);
+            const ridgeGeo = _getZombieGeo("cone", 0.08, 0.3, 5);
             for (let i = 0; i < 5; i++) {
                 const ridge = new THREE.Mesh(ridgeGeo, glowMat);
                 ridge.position.set(0, 0.9, -0.3 + i * 0.22);
                 ridge.rotation.x = -Math.PI / 2;
                 group.add(ridge);
             }
-        } else if (this.variant === 'toxic') {
-            const body = new THREE.Mesh(new THREE.BoxGeometry(0.95, 1.2, 0.68), bodyMat);
+       } else if (this.variant === 'toxic') {
+            const body = new THREE.Mesh(_getZombieGeo("box", 0.95, 1.2, 0.68), bodyMat);
             body.position.set(0, 0.95, 0);
             body.rotation.z = 0.08;
             group.add(body);
 
-            const head = new THREE.Mesh(new THREE.DodecahedronGeometry(0.46, 0), headMat);
+            const head = new THREE.Mesh(_getZombieGeo("dodeca", 0.46, 0), headMat);
             head.position.set(0.12, 1.82, 0.08);
             group.add(head);
 
             for (const x of [-0.13, 0.17]) {
-                const eye = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.06), eyeMat);
+                const eye = new THREE.Mesh(_getZombieGeo("box", 0.1, 0.1, 0.06), eyeMat);
                 eye.position.set(x, 1.87, 0.48);
                 group.add(eye);
             }
 
-            const armGeo = new THREE.BoxGeometry(0.22, 0.76, 0.22);
+            const armGeo = _getZombieGeo("box", 0.22, 0.76, 0.22);
             const leftArm = new THREE.Mesh(armGeo, bodyMat);
             const rightArm = new THREE.Mesh(armGeo, bodyMat);
             leftArm.position.set(-0.58, 1.02, 0.12);
@@ -887,53 +924,53 @@ export class Zombie {
             rightArm.rotation.x = -0.92;
             group.add(leftArm, rightArm);
 
-            const legGeo = new THREE.BoxGeometry(0.23, 0.72, 0.23);
+            const legGeo = _getZombieGeo("box", 0.23, 0.72, 0.23);
             const leftLeg = new THREE.Mesh(legGeo, grimeMat);
             const rightLeg = new THREE.Mesh(legGeo, grimeMat);
             leftLeg.position.set(-0.23, 0.28, 0);
             rightLeg.position.set(0.23, 0.28, 0);
             group.add(leftLeg, rightLeg);
 
-            for (const [x, y, z, s] of [[-0.42, 1.28, -0.34, 0.3], [0.38, 1.02, -0.4, 0.38], [0.06, 1.5, -0.38, 0.24]]) {
-                const sac = new THREE.Mesh(new THREE.IcosahedronGeometry(s, 1), glowMat);
+           for (const [x, y, z, s] of [[-0.42, 1.28, -0.34, 0.3], [0.38, 1.02, -0.4, 0.38], [0.06, 1.5, -0.38, 0.24]]) {
+                const sac = new THREE.Mesh(_getZombieGeo("icosa", s, 1), glowMat);
                 sac.position.set(x, y, z);
                 group.add(sac);
             }
         } else if (this.variant === 'normal') {
-            const body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.1, 0.6), bodyMat);
+            const body = new THREE.Mesh(_getZombieGeo("box", 0.9, 1.1, 0.6), bodyMat);
             body.position.y = 0.9;
             group.add(body);
 
-            const rib = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.4, 0.08), grimeMat);
+            const rib = new THREE.Mesh(_getZombieGeo("box", 0.7, 0.4, 0.08), grimeMat);
             rib.position.set(0, 0.95, 0.34);
             group.add(rib);
 
             const shoulderPlate = new THREE.Mesh(
-                new THREE.BoxGeometry(1.05, 0.18, 0.6),
+                _getZombieGeo("box", 1.05, 0.18, 0.6),
                 armorMat
             );
             shoulderPlate.position.set(0, 1.5, 0);
             group.add(shoulderPlate);
 
-            const head = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), headMat);
+            const head = new THREE.Mesh(_getZombieGeo("box", 0.7, 0.7, 0.7), headMat);
             head.position.y = 1.7;
             group.add(head);
 
-            const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.05), eyeMat);
-            const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.05), eyeMat);
+            const eyeGeo = _getZombieGeo("box", 0.1, 0.1, 0.05);
+            const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+            const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
             eyeL.position.set(-0.14, 1.75, 0.35);
             eyeR.position.set(0.14, 1.75, 0.35);
             group.add(eyeL);
             group.add(eyeR);
 
-            const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.14, 0.08), grimeMat);
+            const jaw = new THREE.Mesh(_getZombieGeo("box", 0.34, 0.14, 0.08), grimeMat);
             jaw.position.set(0, 1.56, 0.36);
             group.add(jaw);
 
-            const hornMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.35, metalness: 0.2, flatShading: true });
-            const hornGeo = new THREE.ConeGeometry(0.09, 0.28, 6);
-            const leftHorn = new THREE.Mesh(hornGeo, hornMat);
-            const rightHorn = new THREE.Mesh(hornGeo, hornMat);
+            const hornGeo = _getZombieGeo("cone", 0.09, 0.28, 6);
+            const leftHorn = new THREE.Mesh(hornGeo, HORN_MAT);
+            const rightHorn = new THREE.Mesh(hornGeo, HORN_MAT);
             leftHorn.position.set(-0.24, 2.05, 0);
             rightHorn.position.set(0.24, 2.05, 0);
             leftHorn.rotation.z = Math.PI / 2;
@@ -941,7 +978,7 @@ export class Zombie {
             group.add(leftHorn);
             group.add(rightHorn);
 
-            const armGeo = new THREE.BoxGeometry(0.2, 0.7, 0.2);
+            const armGeo = _getZombieGeo("box", 0.2, 0.7, 0.2);
             const leftArm = new THREE.Mesh(armGeo, bodyMat);
             const rightArm = new THREE.Mesh(armGeo, bodyMat);
             leftArm.position.set(-0.52, 1.0, 0.12);
@@ -951,7 +988,7 @@ export class Zombie {
             group.add(leftArm);
             group.add(rightArm);
 
-            const legGeo = new THREE.BoxGeometry(0.2, 0.7, 0.2);
+            const legGeo = _getZombieGeo("box", 0.2, 0.7, 0.2);
             const leftLeg = new THREE.Mesh(legGeo, bodyMat);
             const rightLeg = new THREE.Mesh(legGeo, bodyMat);
             leftLeg.position.set(-0.2, 0.25, 0);
@@ -959,10 +996,9 @@ export class Zombie {
             group.add(leftLeg);
             group.add(rightLeg);
 
-            const clawGeo = new THREE.ConeGeometry(0.08, cfg.clawLength, 6);
-            const clawMat = new THREE.MeshStandardMaterial({ color: 0x0e0e0e, roughness: 0.5, metalness: 0.4, flatShading: true });
-            const leftClaw = new THREE.Mesh(clawGeo, clawMat);
-            const rightClaw = new THREE.Mesh(clawGeo, clawMat);
+            const clawGeo = _getZombieGeo("cone", 0.08, cfg.clawLength, 6);
+            const leftClaw = new THREE.Mesh(clawGeo, CLAW_MAT);
+            const rightClaw = new THREE.Mesh(clawGeo, CLAW_MAT);
             leftClaw.position.set(-0.52, 0.7, 0.34);
             rightClaw.position.set(0.52, 0.7, 0.34);
             leftClaw.rotation.x = Math.PI / 2;
@@ -970,7 +1006,7 @@ export class Zombie {
             group.add(leftClaw);
             group.add(rightClaw);
 
-            const spine = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.9, 0.12), glowMat);
+            const spine = new THREE.Mesh(_getZombieGeo("box", 0.12, 0.9, 0.12), glowMat);
             spine.position.set(0, 1.1, -0.3);
             group.add(spine);
         } else if (this.variant === 'stalker') {
@@ -985,13 +1021,13 @@ export class Zombie {
 
             const backpack = new THREE.Mesh(_getStalkerGeo('backpack'), mats.backpack);
             backpack.position.set(0, 0.98, -0.35);
-            group.add(backpack);
+           group.add(backpack);
 
-            const strap1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.82, 0.1), mats.vest);
+            const strap1 = new THREE.Mesh(_getZombieGeo("box", 0.1, 0.82, 0.1), mats.vest);
             strap1.position.set(-0.22, 0.92, 0.28);
             strap1.rotation.z = 0.18;
             group.add(strap1);
-            const strap2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.82, 0.1), mats.vest);
+            const strap2 = new THREE.Mesh(_getZombieGeo("box", 0.1, 0.82, 0.1), mats.vest);
             strap2.position.set(0.22, 0.92, 0.28);
             strap2.rotation.z = -0.18;
             group.add(strap2);
@@ -1010,7 +1046,7 @@ export class Zombie {
             const headMesh = new THREE.Mesh(_getStalkerGeo('head'), mats.gasMask);
             headGroup.add(headMesh);
 
-            const lensGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.08, 12);
+            const lensGeo = _getZombieGeo("cyl", 0.12, 0.12, 0.08, 12);
             const leftLens = new THREE.Mesh(lensGeo, mats.lens);
             leftLens.rotation.x = Math.PI / 2;
             leftLens.position.set(-0.16, 0.1, 0.36);
@@ -1019,7 +1055,7 @@ export class Zombie {
             rightLens.position.set(0.16, 0.1, 0.36);
             headGroup.add(leftLens, rightLens);
 
-            const filterMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.28, 10), mats.gasMask);
+            const filterMesh = new THREE.Mesh(_getZombieGeo("cyl", 0.14, 0.14, 0.28, 10), mats.gasMask);
             filterMesh.rotation.x = Math.PI / 2;
             filterMesh.position.set(0.38, -0.1, 0.36);
             headGroup.add(filterMesh);
@@ -1037,8 +1073,9 @@ export class Zombie {
             group.add(leftArm);
             group.add(rightArm);
 
-            const leftGlove = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.2, 0.18), mats.glove);
-            const rightGlove = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.2, 0.18), mats.glove);
+            const gloveGeo = _getZombieGeo("box", 0.18, 0.2, 0.18);
+            const leftGlove = new THREE.Mesh(gloveGeo, mats.glove);
+            const rightGlove = new THREE.Mesh(gloveGeo, mats.glove);
             leftGlove.position.set(-0.54, 0.62, 0.1);
             rightGlove.position.set(0.54, 0.62, 0.1);
             group.add(leftGlove, rightGlove);
@@ -1063,30 +1100,30 @@ export class Zombie {
             group.add(leftKnee, rightKnee);
         }
 
-        if (this.variant !== 'crawler' && this.variant !== 'stalker') {
-            const chestWidth = this.variant === 'heavy' ? 0.82 : 0.58;
-            const chestY = this.variant === 'heavy' ? 1.02 : 0.92;
-            const chestZ = this.variant === 'heavy' ? 0.43 : 0.34;
-            const chest = new THREE.Mesh(new THREE.BoxGeometry(chestWidth, 0.48, 0.08), detailMat);
+       if (this.variant !== 'crawler' && this.variant !== 'stalker') {
+           const chestWidth = this.variant === 'heavy' ? 0.82 : 0.58;
+           const chestY = this.variant === 'heavy' ? 1.02 : 0.92;
+           const chestZ = this.variant === 'heavy' ? 0.43 : 0.34;
+            const chestGeo = _getZombieGeo("box", chestWidth, 0.48, 0.08);
+            const chest = new THREE.Mesh(chestGeo, detailMat);
             chest.position.set(0, chestY, chestZ);
             group.add(chest);
-            const bootMat = new THREE.MeshStandardMaterial({ color: 0x17191b, roughness: 0.92, flatShading: true });
             for (const x of [-0.22, 0.22]) {
-                const boot = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.22, 0.38), bootMat);
+                const boot = new THREE.Mesh(_getZombieGeo("box", 0.26, 0.22, 0.38), BOOT_MAT);
                 boot.position.set(x, 0.08, 0.08);
                 group.add(boot);
             }
         } else {
-            const ribs = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.12, 0.78), STALKER_DETAIL_MAT);
+            const ribs = new THREE.Mesh(_getZombieGeo("box", 0.56, 0.12, 0.78), STALKER_DETAIL_MAT);
             ribs.position.set(0, 0.65, 0.18);
             group.add(ribs);
         }
         if (this.variant === 'toxic') {
-            const respirator = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.28, 0.22), detailMat);
+            const respirator = new THREE.Mesh(_getZombieGeo("box", 0.38, 0.28, 0.22), detailMat);
             respirator.position.set(0.12, 1.72, 0.42);
             group.add(respirator);
             for (const x of [-0.22, 0.22]) {
-                const filter = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.16, 8), glowMat);
+                const filter = new THREE.Mesh(_getZombieGeo("cyl", 0.1, 0.1, 0.16, 8), glowMat);
                 filter.rotation.z = Math.PI / 2;
                 filter.position.set(x + 0.12, 1.68, 0.43);
                 group.add(filter);
@@ -1094,7 +1131,7 @@ export class Zombie {
         }
         if (this.variant === 'normal' && this.variant !== 'stalker') {
             for (const x of [-0.23, 0, 0.23]) {
-                const rib = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.08, 0.12), detailMat);
+                const rib = new THREE.Mesh(_getZombieGeo("box", 0.16, 0.08, 0.12), detailMat);
                 rib.position.set(x, 1.02, 0.38);
                 group.add(rib);
             }
@@ -1995,11 +2032,8 @@ export class Zombie {
             this._corpseGroup = null;
             this._isCorpsified = false;
         } else {
-            // Dispose cloned stalker materials
-            if (this.variant === 'stalker' && this._stalkerMats) {
-                for (const key in this._stalkerMats) this._stalkerMats[key].dispose();
-                this._stalkerMats = null;
-            }
+            // Stalker uses shared materials — no disposal needed
+            this._stalkerMats = null;
             // Restore running mesh rotation & limbs for non-stalker variants
             if (this.variant !== 'stalker') {
                 this.mesh.rotation.set(0, 0, 0);
