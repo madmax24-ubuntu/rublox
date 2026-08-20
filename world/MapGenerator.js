@@ -193,8 +193,7 @@ export class MapGenerator {
 
        // Phase 11: InstancedMesh optimization — convert repeated meshes to InstancedMesh
        const totalBefore = this._meshes.length;
-        // minCount=5: groups with <5 instances use regular Mesh (cheaper than InstancedMesh overhead)
-        const instResult = this._optimizeInstancing(5);
+        const instResult = this._optimizeInstancing(2);
        console.log(
            `[MapGenerator] InstancedMesh: ${instResult.replaced} meshes merged into ${instResult.instancedMeshes.length} InstancedMesh (total before: ${totalBefore}, after: ${this._meshes.length})`,
        );
