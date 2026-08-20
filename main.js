@@ -390,8 +390,8 @@ class Game {
 			this.perkKeyLatch = false;
 			this.pauseKeyLatch = false;
 			this.menuKeyLatch = { w: false, s: false, e: false };
-			this.hudStatsTimer = 0.08; // Start at max interval to avoid immediate update on first frame
-			this.hudInventoryTimer = 0.1; // Start at max interval to avoid immediate update on first frame
+			this.hudStatsTimer = 0.2; // Start at max interval to avoid immediate update on first frame
+			this.hudInventoryTimer = 0.15; // Start at max interval to avoid immediate update on first frame
 			this.lastInventorySignature = "";
 			this.lastCountdownSecond = null;
 			this.noteCooldown = 0;
@@ -3138,7 +3138,7 @@ class Game {
             this.hud.updateArmor(this.player.armor, this.player.maxArmor);
             this.hud.updatePlayersCount(aliveCount);
             this.hud.updateAmmo(this.player.currentWeapon || this.player.fists);
-            this.hudStatsTimer = this.isMobile() ? 0.2 : 0.12;
+            this.hudStatsTimer = this.isMobile() ? 0.3 : 0.2;
         }
 		if (this.isMobile()) {
 			this.hud.updateJoystick?.(this.input.joystick);
@@ -3281,7 +3281,7 @@ class Game {
 				this.hud.updateInventory(this._hudInvTypes, inv.selectedSlot);
 				this.lastInventorySignature = sig;
 			}
-			this.hudInventoryTimer = this.isMobile() ? 0.18 : 0.1;
+			this.hudInventoryTimer = this.isMobile() ? 0.25 : 0.15;
 		}
 	}
 

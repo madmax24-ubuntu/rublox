@@ -1,7 +1,10 @@
 export class HUD {
+    static ICON_MAP = { knife: 'KNF', bow: 'BOW', laser: 'LAS', shotgun: 'SG', flamethrower: 'FIRE', pistol: 'PST', rifle: 'RIF', machinegun: 'MG', bazooka: 'BAZ' };
+    static AMMO_NAME_MAP = { knife: 'Нож', bow: 'Лук', laser: 'Лазер', shotgun: 'Дробовик', flamethrower: 'Огнемёт', pistol: 'Пистолет', rifle: 'Винтовка', machinegun: 'Пулемет', bazooka: 'Базука' };
     constructor() {
         this.perkPanelLocked = false;
         this._el = {};
+        this._lastState = { healthPercent: -1, armorPercent: -1, playersCount: -1, ammoText: '', selectedSlot: -1, slotTypes: [] };
         this.perkOptions = [
             { value: 'quickHands', label: 'Быстрые руки', desc: 'Сильно ускоряет атаки и использование оружия ближнего боя.' },
             { value: 'silentStep', label: 'Тихий шаг', desc: 'Почти убирает шум шагов и делает тебя заметно тише.' },
@@ -1371,6 +1374,8 @@ export class HUD {
         const healthFill = this._el.healthFill;
         if (!healthFill) return;
         const percent = (health / maxHealth) * 100;
+        if (this._lastState.healthPercent === percent) return;
+        this._lastState.healthPercent = percent;
         healthFill.style.width = `${percent}%`;
     }
 
@@ -1378,11 +1383,15 @@ export class HUD {
         const armorFill = this._el.armorFill;
         if (!armorFill) return;
         const percent = (armor / maxArmor) * 100;
+        if (this._lastState.armorPercent === percent) return;
+        this._lastState.armorPercent = percent;
         armorFill.style.width = `${percent}%`;
     }
 
     updatePlayersCount(count) {
         const playersCount = this._el.playersCount;
+        if (this._lastState.playersCount === count) return;
+        this._lastState.playersCount = count;
         playersCount.textContent = `\u0418\u0433\u0440\u043e\u043a\u043e\u0432: ${count}`;
     }
 
@@ -1422,11 +1431,23 @@ export class HUD {
     }
 
     updateInventory(items, selectedSlot) {
-        const ICON_MAP = { knife: 'KNF', bow: 'BOW', laser: 'LAS', shotgun: 'SG', flamethrower: 'FIRE', pistol: 'PST', rifle: 'RIF', machinegun: 'MG', bazooka: 'BAZ' };
         for (let i = 0; i < 10; i++) {
             const slot = this._el['slot' + i];
             if (!slot) continue;
             const item = items[i];
+            const type = item ? ((typeof item === 'string') ? item : (item?.type || '')) : null;
+            const prevType = this._lastState.slotTypes[i];
+            // Skip slot if type and selected state unchanged
+            if (prevType === type && this._lastState.selectedSlot === selectedSlot) {
+                if (i === selectedSlot) {
+                    slot.style.border = '3px solid #ffb300';
+                    slot.style.boxShadow = '0 0 10px rgba(255, 179, 0, 0.5)';
+                } else {
+                    slot.style.boxShadow = 'none';
+                }
+                continue;
+            }
+            this._lastState.slotTypes[i] = type;
             if (item) {
                 slot.style.background = 'rgba(255, 255, 255, 0.2)';
                 slot.style.border = '2px solid rgba(255, 255, 255, 0.8)';
@@ -1438,8 +1459,7 @@ export class HUD {
                     slot.appendChild(icon);
                     this._el['slotIcon' + i] = icon;
                 }
-                const type = (typeof item === `string`) ? item : (item?.type || ``);
-                const label = ICON_MAP[type] || type;
+                const label = HUD.ICON_MAP[type] || type;
                 icon.textContent = label || ``;
                 icon.style.display = `block`;
             } else {
@@ -1457,6 +1477,7 @@ export class HUD {
             } else {
                 slot.style.boxShadow = 'none';
             }
+            this._lastState.selectedSlot = selectedSlot;
         }
     }
 
@@ -1743,32 +1764,18 @@ export class HUD {
         const ammoInfo = this._el.ammoInfo;
         if (!ammoInfo) return;
         if (!weapon || weapon.type === 'fists') {
+            const newText = '';
+            if (this._lastState.ammoText === newText) return;
+            this._lastState.ammoText = newText;
             ammoInfo.textContent = '';
             return;
         }
-        const nameMap = { knife: 'Нож', bow: 'Лук', laser: 'Лазер', shotgun: 'Дробовик', flamethrower: 'Огнемёт', pistol: 'Пистолет', rifle: 'Винтовка', machinegun: 'Пулемет', bazooka: 'Базука' };
-        const name = nameMap[weapon.type] || weapon.type;
-        if (weapon.type === 'knife') {
-            ammoInfo.textContent = `${name}: ${weapon.durability ?? 0}`;
-        } else if (weapon.type === 'bow') {
-            ammoInfo.textContent = `${name}: ${weapon.ammo ?? 0}`;
-        } else if (weapon.type === 'laser') {
-            ammoInfo.textContent = `${name}: ${weapon.ammo ?? 0}`;
-        } else if (weapon.type === 'shotgun') {
-            ammoInfo.textContent = `${name}: ${weapon.ammo ?? 0}`;
-        } else if (weapon.type === 'flamethrower') {
-            ammoInfo.textContent = `${name}: ${weapon.ammo ?? 0}`;
-        } else if (weapon.type === 'pistol') {
-            ammoInfo.textContent = `${name}: ${weapon.ammo ?? 0}`;
-        } else if (weapon.type === 'rifle') {
-            ammoInfo.textContent = `${name}: ${weapon.ammo ?? 0}`;
-        } else if (weapon.type === 'machinegun') {
-            ammoInfo.textContent = `${name}: ${weapon.ammo ?? 0}`;
-        } else if (weapon.type === 'bazooka') {
-            ammoInfo.textContent = `${name}: ${weapon.ammo ?? 0}`;
-        } else {
-            ammoInfo.textContent = '';
-        }
+        const name = HUD.AMMO_NAME_MAP[weapon.type] || weapon.type;
+        const val = weapon.type === 'knife' ? (weapon.durability ?? 0) : (weapon.ammo ?? 0);
+        const newText = `${name}: ${val}`;
+        if (this._lastState.ammoText === newText) return;
+        this._lastState.ammoText = newText;
+        ammoInfo.textContent = newText;
     }
 
     updateMinimap(data = {}) {
