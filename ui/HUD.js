@@ -1,6 +1,7 @@
 export class HUD {
     constructor() {
         this.perkPanelLocked = false;
+        this._el = {};
         this.perkOptions = [
             { value: 'quickHands', label: 'Быстрые руки', desc: 'Сильно ускоряет атаки и использование оружия ближнего боя.' },
             { value: 'silentStep', label: 'Тихий шаг', desc: 'Почти убирает шум шагов и делает тебя заметно тише.' },
@@ -342,6 +343,7 @@ export class HUD {
             `;
             slotNumber.textContent = this.getSlotDisplayNumber(i);
             slot.appendChild(slotNumber);
+            this._el['slotIcon' + i] = null;
 
             slot.addEventListener('click', () => {
                 document.dispatchEvent(new CustomEvent('selectSlot', { detail: i }));
@@ -1007,6 +1009,60 @@ export class HUD {
         `;
         document.head.appendChild(style);
 
+
+        // Cache DOM elements for hot-path access (avoids getElementById in update loop)
+        this._el.visionOverlay = visionOverlay;
+        this._el.lootFeed = lootFeed;
+        this._el.killReward = killReward;
+        this._el.killRewardPanel = killRewardPanel;
+        this._el.playersCount = playersCount;
+        this._el.zoneInfo = zoneInfo;
+        this._el.perkInfo = perkInfo;
+        this._el.healthFill = healthFill;
+        this._el.healthText = healthText;
+        this._el.armorFill = armorFill;
+        this._el.armorText = armorText;
+        this._el.crosshair = crosshair;
+        this._el.hitMarker = hitMarker;
+        this._el.gameMessage = gameMessage;
+        this._el.quickCommand = quickCommand;
+        this._el.loreNote = loreNote;
+        this._el.invulnerabilityTimer = invulnerabilityTimer;
+        this._el.gameOverlay = gameOverlay;
+        this._el.stormOverlay = stormOverlay;
+        this._el.contamOverlay = contamOverlay;
+        this._el.countdown = countdown;
+        this._el.fpsDisplay = fpsEl;
+        for (let si = 0; si < 10; si++) this._el['slot' + si] = document.getElementById('slot' + si);
+        this._el.perkButton = document.getElementById('perkButton');
+        this._el.perkPanel = document.getElementById('perkPanel');
+        this._el.perkBackdrop = document.getElementById('perkBackdrop');
+        this._el.scoreboard = document.getElementById('scoreboard');
+        this._el.scoreboardBody = document.getElementById('scoreboardBody');
+        this._el.pauseOverlay = document.getElementById('pauseOverlay');
+        this._el.pauseResume = document.getElementById('pauseResume');
+        this._el.pauseEdit = document.getElementById('pauseEdit');
+        this._el.pauseResetSettings = document.getElementById('pauseResetSettings');
+        this._el.pauseMusicVolume = document.getElementById('pauseMusicVolume');
+        this._el.pauseSfxVolume = document.getElementById('pauseSfxVolume');
+        this._el.pauseSensitivity = document.getElementById('pauseSensitivity');
+        this._el.pauseHint = document.getElementById('pauseHint');
+        this._el.keybindList = document.getElementById('keybindList');
+        this._el.ammoInfo = document.getElementById('ammoInfo');
+        this._el.gameOverTitle = document.getElementById('gameOverTitle');
+        this._el.gameOverMessage = document.getElementById('gameOverMessage');
+        this._el.perkMobileTitle = document.getElementById('perkMobileTitle');
+        this._el.perkMobileDesc = document.getElementById('perkMobileDesc');
+        this._el.perkMobileIndex = document.getElementById('perkMobileIndex');
+        this._el.perkPrev = document.getElementById('perkPrev');
+        this._el.perkNext = document.getElementById('perkNext');
+        this._el.perkSelectMobile = document.getElementById('perkSelectMobile');
+        this._el.touchStick = document.getElementById('touchStick');
+        this._el.touchArea = document.getElementById('touchArea');
+        this._el.touchKnob = document.getElementById('touchKnob');
+        this._el.touchJump = document.getElementById('touchJump');
+        this._el.touchAttack = document.getElementById('touchAttack');
+        this._el.touchInteract = document.getElementById('touchInteract');
         this.bindPauseUI();
         this.bindSettingsUI();
         this.initKeybindUI();
@@ -1019,8 +1075,8 @@ export class HUD {
         if (this.root) this.root.style.display = 'block';
         // Show touch controls only on mobile
         if (this._isMobile) {
-            const stick = document.getElementById('touchStick');
-            const area = document.getElementById('touchArea');
+            const stick = this._el.touchStick;
+            const area = this._el.touchArea;
             if (stick) stick.style.display = 'block';
             if (area) area.style.display = 'block';
         }
@@ -1029,16 +1085,16 @@ export class HUD {
     hide() {
         if (this.root) this.root.style.display = 'none';
         // Hide touch controls
-        const stick = document.getElementById('touchStick');
-        const area = document.getElementById('touchArea');
+        const stick = this._el.touchStick;
+        const area = this._el.touchArea;
         if (stick) stick.style.display = 'none';
         if (area) area.style.display = 'none';
     }
 
     updateJoystick(joystick) {
         if (!joystick || !this._isMobile) return;
-        const stick = document.getElementById('touchStick');
-        const knob = document.getElementById('touchKnob');
+        const stick = this._el.touchStick;
+        const knob = this._el.touchKnob;
         if (!stick || !knob) return;
         if (joystick.active) {
             stick.style.display = 'block';
@@ -1056,9 +1112,9 @@ export class HUD {
     }
 
     bindPauseUI() {
-        const resume = document.getElementById('pauseResume');
-        const edit = document.getElementById('pauseEdit');
-        const reset = document.getElementById('pauseResetSettings');
+        const resume = this._el.pauseResume;
+        const edit = this._el.pauseEdit;
+        const reset = this._el.pauseResetSettings;
         if (resume) {
             resume.addEventListener('click', () => {
                 document.dispatchEvent(new CustomEvent('togglePause'));
@@ -1089,9 +1145,9 @@ export class HUD {
     }
 
     bindSettingsUI() {
-        const music = document.getElementById('pauseMusicVolume');
-        const sfx = document.getElementById('pauseSfxVolume');
-        const sensitivity = document.getElementById('pauseSensitivity');
+        const music = this._el.pauseMusicVolume;
+        const sfx = this._el.pauseSfxVolume;
+        const sensitivity = this._el.pauseSensitivity;
         const emitAudio = () => {
             document.dispatchEvent(new CustomEvent('setAudioSettings', {
                 detail: {
@@ -1118,7 +1174,7 @@ export class HUD {
     }
 
     showPause(show) {
-        const overlay = document.getElementById('pauseOverlay');
+        const overlay = this._el.pauseOverlay;
         if (!overlay) return;
         overlay.style.display = show ? 'flex' : 'none';
         if (!show) this.toggleEditControls(false);
@@ -1129,7 +1185,7 @@ export class HUD {
         const enabled = force !== null ? force : !root.classList.contains('edit-controls');
         if (enabled) root.classList.add('edit-controls');
         else root.classList.remove('edit-controls');
-        const hint = document.getElementById('pauseHint');
+        const hint = this._el.pauseHint;
         if (hint) hint.style.display = enabled ? 'block' : 'none';
     }
 
@@ -1140,7 +1196,7 @@ export class HUD {
             try {
                 const data = JSON.parse(saved);
                 ids.forEach((id) => {
-                    const el = document.getElementById(id);
+                    const el = this._el[id] || document.getElementById(id);
                     if (!el || !data[id]) return;
                     el.style.left = `${data[id].x}px`;
                     el.style.top = `${data[id].y}px`;
@@ -1153,7 +1209,7 @@ export class HUD {
         const saveLayout = () => {
             const data = {};
             ids.forEach((id) => {
-                const el = document.getElementById(id);
+                const el = this._el[id] || document.getElementById(id);
                 if (!el) return;
                 const rect = el.getBoundingClientRect();
                 data[id] = { x: rect.left, y: rect.top };
@@ -1200,7 +1256,7 @@ export class HUD {
     }
 
     initKeybindUI() {
-        const list = document.getElementById('keybindList');
+        const list = this._el.keybindList;
         if (!list) return;
                 this.keybindActions = [
             { id: 'KeyW', label: 'Вперёд' },
@@ -1217,7 +1273,7 @@ export class HUD {
     }
 
     renderKeybinds() {
-        const list = document.getElementById('keybindList');
+        const list = this._el.keybindList;
         if (!list || !this.keybindActions) return;
         list.innerHTML = '';
         const binds = this.getStoredKeybinds();
@@ -1312,26 +1368,26 @@ export class HUD {
     }
 
     updateHealth(health, maxHealth) {
-        const healthFill = document.getElementById('healthFill');
+        const healthFill = this._el.healthFill;
         if (!healthFill) return;
         const percent = (health / maxHealth) * 100;
         healthFill.style.width = `${percent}%`;
     }
 
     updateArmor(armor, maxArmor) {
-        const armorFill = document.getElementById('armorFill');
+        const armorFill = this._el.armorFill;
         if (!armorFill) return;
         const percent = (armor / maxArmor) * 100;
         armorFill.style.width = `${percent}%`;
     }
 
     updatePlayersCount(count) {
-        const playersCount = document.getElementById('playersCount');
+        const playersCount = this._el.playersCount;
         playersCount.textContent = `\u0418\u0433\u0440\u043e\u043a\u043e\u0432: ${count}`;
     }
 
     updateZoneInfo(text, isDangerous = false) {
-        const zoneInfo = document.getElementById('zoneInfo');
+        const zoneInfo = this._el.zoneInfo;
         zoneInfo.textContent = `\u0417\u043e\u043d\u0430: ${text}`;
         zoneInfo.style.background = isDangerous
             ? 'rgba(255, 82, 82, 0.85)'
@@ -1343,9 +1399,9 @@ export class HUD {
     }
 
     setPerk(label) {
-        const perkInfo = document.getElementById('perkInfo');
+        const perkInfo = this._el.perkInfo;
         if (perkInfo) perkInfo.textContent = `\u041f\u0435\u0440\u043a: ${label}`;
-        const perkButton = document.getElementById('perkButton');
+        const perkButton = this._el.perkButton;
         if (perkButton) {
             if (label && label !== '-') {
                 perkButton.style.display = 'none';
@@ -1357,50 +1413,41 @@ export class HUD {
     }
 
     setSettingsValues(settings = {}) {
-        const music = document.getElementById('pauseMusicVolume');
-        const sfx = document.getElementById('pauseSfxVolume');
-        const sensitivity = document.getElementById('pauseSensitivity');
+        const music = this._el.pauseMusicVolume;
+        const sfx = this._el.pauseSfxVolume;
+        const sensitivity = this._el.pauseSensitivity;
         if (music && settings.musicVolume !== undefined) music.value = String(settings.musicVolume);
         if (sfx && settings.sfxVolume !== undefined) sfx.value = String(settings.sfxVolume);
         if (sensitivity && settings.lookSensitivity !== undefined) sensitivity.value = String(settings.lookSensitivity);
     }
 
     updateInventory(items, selectedSlot) {
+        const ICON_MAP = { knife: 'KNF', bow: 'BOW', laser: 'LAS', shotgun: 'SG', flamethrower: 'FIRE', pistol: 'PST', rifle: 'RIF', machinegun: 'MG', bazooka: 'BAZ' };
         for (let i = 0; i < 10; i++) {
-            const slot = document.getElementById(`slot${i}`);
+            const slot = this._el['slot' + i];
+            if (!slot) continue;
             const item = items[i];
-
             if (item) {
                 slot.style.background = 'rgba(255, 255, 255, 0.2)';
                 slot.style.border = '2px solid rgba(255, 255, 255, 0.8)';
-
-                const icon = slot.querySelector('.weapon-icon') || document.createElement('div');
-                icon.className = 'weapon-icon';
-                icon.style.cssText = `
-                    font-size: 12px;
-                    font-weight: 800;
-                    color: #ffffff;
-                `;
-
-                if (item.type === 'knife') icon.textContent = 'KNF';
-                else if (item.type === 'bow') icon.textContent = 'BOW';
-                else if (item.type === 'laser') icon.textContent = 'LAS';
-                else if (item.type === 'shotgun') icon.textContent = 'SG';
-                else if (item.type === 'flamethrower') icon.textContent = 'FIRE';
-                else if (item.type === 'pistol') icon.textContent = 'PST';
-                else if (item.type === 'rifle') icon.textContent = 'RIF';
-                else if (item.type === 'machinegun') icon.textContent = 'MG';
-                else if (item.type === 'bazooka') icon.textContent = 'BAZ';
-                if (!slot.querySelector('.weapon-icon')) {
+                let icon = this._el['slotIcon' + i];
+                if (!icon) {
+                    icon = document.createElement('div');
+                    icon.className = 'weapon-icon';
+                    icon.style.cssText = 'font-size: 12px; font-weight: 800; color: #ffffff;';
                     slot.appendChild(icon);
+                    this._el['slotIcon' + i] = icon;
                 }
+                icon.textContent = ICON_MAP[item.type] || item.type;
             } else {
                 slot.style.background = 'rgba(255, 255, 255, 0.1)';
                 slot.style.border = '2px solid rgba(255, 255, 255, 0.25)';
-                const icon = slot.querySelector('.weapon-icon');
-                if (icon) icon.remove();
+                const oldIcon = this._el['slotIcon' + i];
+                if (oldIcon) {
+                    oldIcon.remove();
+                    this._el['slotIcon' + i] = null;
+                }
             }
-
             if (i === selectedSlot) {
                 slot.style.border = '3px solid #ffb300';
                 slot.style.boxShadow = '0 0 10px rgba(255, 179, 0, 0.5)';
@@ -1411,15 +1458,15 @@ export class HUD {
     }
 
     showInvulnerabilityTimer(seconds) {
-        const timer = document.getElementById('invulnerabilityTimer');
+        const timer = this._el.invulnerabilityTimer;
         timer.textContent = seconds > 0 ? Math.ceil(seconds) : '';
         timer.style.display = seconds > 0 ? 'block' : 'none';
     }
 
     showGameOver(message) {
-        const overlay = document.getElementById('gameOverlay');
-        const title = document.getElementById('gameOverTitle');
-        const msg = document.getElementById('gameOverMessage');
+        const overlay = this._el.gameOverlay;
+        const title = this._el.gameOverTitle;
+        const msg = this._el.gameOverMessage;
         if (title) title.textContent = 'Игра окончена';
         if (msg) msg.textContent = message || '';
         overlay.style.display = 'flex';
@@ -1427,23 +1474,23 @@ export class HUD {
     }
 
     hideGameOver() {
-        const overlay = document.getElementById('gameOverlay');
+        const overlay = this._el.gameOverlay;
         overlay.style.display = 'none';
     }
 
     showCountdown(seconds) {
-        const countdown = document.getElementById('countdown');
+        const countdown = this._el.countdown;
         countdown.textContent = seconds;
         countdown.style.display = 'block';
     }
 
     hideCountdown() {
-        const countdown = document.getElementById('countdown');
+        const countdown = this._el.countdown;
         countdown.style.display = 'none';
     }
 
     updateFpsDisplay(fps) {
-        const fpsEl = document.getElementById('fpsDisplay');
+        const fpsEl = this._el.fpsDisplay;
         if (fpsEl) {
             fpsEl.textContent = `${fps} FPS`;
             if (fps >= 50) fpsEl.style.color = '#0f0';
@@ -1453,7 +1500,7 @@ export class HUD {
     }
 
     showGameMessage(message) {
-        const gameMessage = document.getElementById('gameMessage');
+        const gameMessage = this._el.gameMessage;
         gameMessage.textContent = message;
         gameMessage.style.display = 'block';
         gameMessage.style.animation = 'pulse 1.5s infinite';
@@ -1465,7 +1512,7 @@ export class HUD {
     }
 
     showQuickCommand(message) {
-        const quick = document.getElementById('quickCommand');
+        const quick = this._el.quickCommand;
         if (!quick) return;
         quick.textContent = message;
         quick.style.display = 'block';
@@ -1476,7 +1523,7 @@ export class HUD {
     }
 
     showLoreNote(text) {
-        const note = document.getElementById('loreNote');
+        const note = this._el.loreNote;
         if (!note) return;
         note.textContent = text;
         note.style.display = 'block';
@@ -1487,7 +1534,7 @@ export class HUD {
     }
 
     showLootNotification(text) {
-        const feed = document.getElementById('lootFeed');
+        const feed = this._el.lootFeed;
         if (!feed || !text) return;
 
         const item = document.createElement('div');
@@ -1572,7 +1619,7 @@ export class HUD {
     }
 
     setVisionIntensity(intensity = 0) {
-        const overlay = document.getElementById('visionOverlay');
+        const overlay = this._el.visionOverlay;
         if (!overlay) return;
         overlay.style.opacity = `${Math.max(0, Math.min(0.85, intensity))}`;
     }
@@ -1593,9 +1640,9 @@ export class HUD {
     }
 
     setPerkSelectionEnabled(enabled) {
-        const perkButton = document.getElementById('perkButton');
-        const perkPanel = document.getElementById('perkPanel');
-        const perkBackdrop = document.getElementById('perkBackdrop');
+        const perkButton = this._el.perkButton;
+        const perkPanel = this._el.perkPanel;
+        const perkBackdrop = this._el.perkBackdrop;
         if (perkButton) {
             perkButton.style.display = enabled ? 'block' : 'none';
         }
@@ -1609,15 +1656,15 @@ export class HUD {
 
     setPerkPanelLock(locked) {
         this.perkPanelLocked = !!locked;
-        const perkButton = document.getElementById('perkButton');
+        const perkButton = this._el.perkButton;
         if (perkButton) {
             perkButton.style.opacity = this.perkPanelLocked ? '0.95' : '1';
         }
     }
 
     togglePerkPanel(force) {
-        const panel = document.getElementById('perkPanel');
-        const backdrop = document.getElementById('perkBackdrop');
+        const panel = this._el.perkPanel;
+        const backdrop = this._el.perkBackdrop;
         if (!panel || !backdrop) return;
         const currentlyOpen = panel.style.display === 'block';
         if (this.perkPanelLocked && force !== true && force !== false && currentlyOpen) return;
@@ -1644,9 +1691,9 @@ export class HUD {
         const safeIndex = ((index % count) + count) % count;
         if (!this.perkButtons || !this.perkButtons.length) {
             this.perkMenuIndex = safeIndex;
-            const title = document.getElementById('perkMobileTitle');
-            const desc = document.getElementById('perkMobileDesc');
-            const idx = document.getElementById('perkMobileIndex');
+            const title = this._el.perkMobileTitle;
+            const desc = this._el.perkMobileDesc;
+            const idx = this._el.perkMobileIndex;
             const option = this.perkOptions[safeIndex];
             if (title) title.textContent = option?.label || '';
             if (desc) desc.textContent = option?.desc || '';
@@ -1663,7 +1710,7 @@ export class HUD {
             }
         });
         this.perkMenuIndex = safeIndex;
-        const panel = document.getElementById('perkPanel');
+        const panel = this._el.perkPanel;
         const selected = this.perkButtons[safeIndex];
         if (panel && selected) {
             const itemTop = selected.offsetTop;
@@ -1690,7 +1737,7 @@ export class HUD {
     }
 
     updateAmmo(weapon) {
-        const ammoInfo = document.getElementById('ammoInfo');
+        const ammoInfo = this._el.ammoInfo;
         if (!ammoInfo) return;
         if (!weapon || weapon.type === 'fists') {
             ammoInfo.textContent = '';

@@ -3273,10 +3273,12 @@ class Game {
 				sig += (items[i] ? items[i].type : "-") + ",";
 			}
 			if (sig !== this.lastInventorySignature) {
-				const inventoryItems = items.map((item) =>
-					item ? { type: item.type } : null,
-				);
-				this.hud.updateInventory(inventoryItems, inv.selectedSlot);
+				// Reuse cached array — no new objects per call
+				if (!this._hudInvTypes) this._hudInvTypes = new Array(10);
+				for (let i = 0; i < items.length; i++) {
+					this._hudInvTypes[i] = items[i] ? items[i].type : null;
+				}
+				this.hud.updateInventory(this._hudInvTypes, inv.selectedSlot);
 				this.lastInventorySignature = sig;
 			}
 			this.hudInventoryTimer = this.isMobile() ? 0.18 : 0.1;
