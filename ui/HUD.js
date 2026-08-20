@@ -1438,7 +1438,10 @@ export class HUD {
                     slot.appendChild(icon);
                     this._el['slotIcon' + i] = icon;
                 }
-                icon.textContent = ICON_MAP[item.type] || item.type;
+                const type = (typeof item === `string`) ? item : (item?.type || ``);
+                const label = ICON_MAP[type] || type;
+                icon.textContent = label || ``;
+                icon.style.display = `block`;
             } else {
                 slot.style.background = 'rgba(255, 255, 255, 0.1)';
                 slot.style.border = '2px solid rgba(255, 255, 255, 0.25)';
@@ -1841,3 +1844,4 @@ export class HUD {
         }
     }
 }
+
