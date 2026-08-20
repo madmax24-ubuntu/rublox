@@ -137,6 +137,10 @@ export class InstancedMeshSystem {
 
         for (const entry of this._instancedMeshes) {
             const { mesh, positions, matrices, count, grid } = entry;
+            // Skip CPU culling for tiny InstancedMesh - GPU frustum culling handles them.
+            // For count < 5, the CPU overhead of grid-based culling outweighs the benefit.
+            if (count < 5) continue;
+
             const maxCount = count || positions.length / 3;
             const visibleIndices = entry._visBuf || (entry._visBuf = new Uint32Array(Math.max(4096, maxCount * 2)));
             const seen = entry._seen || (entry._seen = new Set());
