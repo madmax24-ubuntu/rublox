@@ -117,7 +117,7 @@ export class BotBrain {
 			if (skipFactor > 1 && (Number(bot.id) % skipFactor) !== 0 && !phaseChanged) {
 				this.decisionCooldown = Math.max(this.decisionCooldown, 0.15);
 			} else {
-				ctx = this.collectContext(bot, entityManager, lootManager, gameState);
+				ctx = this.collectContext(bot, entityManager, lootManager, gameState, bot._fsmCtx);
 				ctx.earlyGamePhase = earlyGamePhase;
 				bot._fsmCtx = ctx;
 				bot._lastPhase = earlyGamePhase;
@@ -354,7 +354,8 @@ export class BotBrain {
 		this.actIdle(bot, ctx);
 	}
 
-	collectContext(bot, entityManager, lootManager, gameState) {
+	collectContext(bot, entityManager, lootManager, gameState, ctx) {
+		if (!ctx) ctx = {};
 		const now = performance.now();
 		const phaseGear = this.getGearScore(bot);
 		const inPreLootPhase = !!(bot.noCombatUntil && now < bot.noCombatUntil);
@@ -639,7 +640,8 @@ export class BotBrain {
 			? Math.abs(nearestEnemy.position.y - bot.position.y)
 			: 0;
 
-		return {
+		if (!ctx) ctx = {};
+		Object.assign(ctx, {
 			now,
 			hp,
 			zone,
@@ -667,7 +669,8 @@ export class BotBrain {
 			nearestAllyDist,
 			survivorCount: Number(bot.scene?.userData?.aliveSurvivorCount) || 100,
 			gameState,
-		};
+		});
+		return ctx;
 	}
 
 	hasLoS(bot, target, entityManager) {
