@@ -1592,7 +1592,7 @@ export class HUD {
     }
 
     showHitMarker() {
-        const hit = document.getElementById('hitMarker');
+        const hit = this._el.hitMarker;
         if (!hit) return;
         hit.style.opacity = '1';
         clearTimeout(this.hitTimer);
@@ -1602,7 +1602,7 @@ export class HUD {
     }
 
     setStormActive(active, type = 'storm') {
-        const storm = document.getElementById('stormOverlay');
+        const storm = this._el.stormOverlay;
         if (!storm) return;
         if (type === 'radiation') {
             storm.style.background = 'radial-gradient(circle at 30% 30%, rgba(120, 255, 160, 0.18), rgba(12, 30, 18, 0.58))';
@@ -1613,7 +1613,7 @@ export class HUD {
     }
 
     setContamActive(active) {
-        const contam = document.getElementById('contamOverlay');
+        const contam = this._el.contamOverlay;
         if (!contam) return;
         contam.style.opacity = active ? '1' : '0';
     }
@@ -1625,15 +1625,15 @@ export class HUD {
     }
 
     showScoreboard(lines = []) {
-        const board = document.getElementById('scoreboard');
-        const body = document.getElementById('scoreboardBody');
+        const board = this._el.scoreboard;
+        const body = this._el.scoreboardBody;
         if (!board || !body) return;
         body.innerHTML = lines.map(line => `<div>${line}</div>`).join('');
         board.style.display = 'block';
     }
 
     hideScoreboard() {
-        const board = document.getElementById('scoreboard');
+        const board = this._el.scoreboard;
         if (board) {
             board.style.display = 'none';
         }
