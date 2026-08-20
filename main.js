@@ -3133,13 +3133,13 @@ class Game {
 	_updateHUDStats(delta, aliveCount) {
 		this.scene.userData.aliveSurvivorCount = aliveCount;
 		this.hudStatsTimer -= delta;
-		if (this.hudStatsTimer <= 0) {
-			this.hud.updateHealth(this.player.health, this.player.maxHealth);
-			this.hud.updateArmor(this.player.armor, this.player.maxArmor);
-			this.hud.updatePlayersCount(aliveCount);
-			this.hud.updateAmmo(this.player.currentWeapon || this.player.fists);
-			this.hudStatsTimer = this.isMobile() ? 0.15 : 0.08;
-		}
+        if (this.hudStatsTimer <= 0) {
+            this.hud.updateHealth(this.player.health, this.player.maxHealth);
+            this.hud.updateArmor(this.player.armor, this.player.maxArmor);
+            this.hud.updatePlayersCount(aliveCount);
+            this.hud.updateAmmo(this.player.currentWeapon || this.player.fists);
+            this.hudStatsTimer = this.isMobile() ? 0.2 : 0.12;
+        }
 		if (this.isMobile()) {
 			this.hud.updateJoystick?.(this.input.joystick);
 		}
