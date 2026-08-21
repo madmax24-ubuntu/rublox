@@ -1439,12 +1439,13 @@ export class HUD {
             // Skip slot if type and selected state unchanged
             if (prevType === type && this._lastState.selectedSlot === selectedSlot) {
                 if (i === selectedSlot) {
-                    slot.style.border = '3px solid #ffb300';
-                    slot.style.boxShadow = '0 0 10px rgba(255, 179, 0, 0.5)';
-                } else {
-                    slot.style.boxShadow = 'none';
-                }
-                continue;
+               slot.style.border = '3px solid #ffb300';
+               slot.style.boxShadow = '0 0 10px rgba(255, 179, 0, 0.5)';
+           } else {
+                slot.style.border = '2px solid rgba(255, 255, 255, 0.8)';
+               slot.style.boxShadow = 'none';
+           }
+           continue;
             }
             if (item) {
                 this._lastState.slotTypes[i] = type;
@@ -1851,4 +1852,4 @@ export class HUD {
         }
     }
 }
-
+
