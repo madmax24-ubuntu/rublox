@@ -1,4 +1,4 @@
-import * as THREE from "../node_modules/three/build/three.module.js";
+﻿import * as THREE from "../node_modules/three/build/three.module.js";
 
 export class Physics {
 	constructor(scene, mapGenerator) {
@@ -154,6 +154,8 @@ export class Physics {
 								bottom < box.max.y &&
 								pos.y > box.min.y
 							) {
+						// Skip colliders whose source mesh was removed from scene
+						if (box.source && !box.source.parent) continue;
 								insideNonWalkable = true;
 								break;
 							}
@@ -291,6 +293,8 @@ export class Physics {
 		let maxY = -Infinity;
 		for (const box of nearby) {
 			if (box.enabled === false || !box.walkable) continue;
+				// Skip colliders whose source mesh was removed from scene
+				if (box.source && !box.source.parent) continue;
 			if (!this._containsWalkableSurface(box, position.x, position.z, radius))
 				continue;
 			const min = box.min;
@@ -309,6 +313,8 @@ export class Physics {
 
 		if (maxY === -Infinity && !this.colliderGrid.size) {
 			for (const box of this.colliders) {
+				// Skip colliders whose source mesh was removed from scene
+				if (box.source && !box.source.parent) continue;
 				if (box.enabled === false || !box.walkable) continue;
 				if (!this._containsWalkableSurface(box, position.x, position.z, radius))
 					continue;
@@ -392,6 +398,8 @@ export class Physics {
 			pushed = false;
 
 			for (const box of nearby) {
+				// Skip colliders whose source mesh was removed from scene (e.g. replaced by InstancedMesh)
+				if (box.source && !box.source.parent) continue;
 				if (box.enabled === false) continue;
 
 				const min = box.min;
@@ -524,6 +532,8 @@ export class Physics {
 					bestDz = 0;
 
 				for (const box of nearby) {
+					// Skip colliders whose source mesh was removed from scene
+					if (box.source && !box.source.parent) continue;
 					if (!box.enabled || box.walkable) continue;
 					const min = box.min,
 						max = box.max;
