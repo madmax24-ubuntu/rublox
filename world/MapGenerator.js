@@ -3514,6 +3514,13 @@ export class MapGenerator {
 			segments.length,
 		);
 		const matrix = new THREE.Matrix4();
+		mazeWalls.instanceMatrix.needsUpdate = true;
+		mazeWalls.computeBoundingSphere();
+		mazeWalls.frustumCulled = false;
+		mazeWalls.userData.mapGenerated = true;
+		mazeWalls.userData.isMazeWalls = true;
+		mazeWalls.userData.isWall = true;
+		this.scene.add(mazeWalls);
 		for (let i = 0; i < segments.length; i++) {
 			const segment = segments[i];
 			matrix.compose(
@@ -3528,17 +3535,12 @@ export class MapGenerator {
 				wallHeight,
 				segment.depth,
 				false,
+				false,
+				true,
 			);
 			mazeCollider.isBuildingWall = true;
 			mazeCollider.isMazeWall = true;
 		}
-		mazeWalls.instanceMatrix.needsUpdate = true;
-		mazeWalls.computeBoundingSphere();
-		mazeWalls.frustumCulled = false;
-		mazeWalls.userData.mapGenerated = true;
-		mazeWalls.userData.isMazeWalls = true;
-		mazeWalls.userData.isWall = true;
-		this.scene.add(mazeWalls);
 
 		// Central tall tower with spiral staircase
 		const towerCX = clearingCX;
