@@ -1377,7 +1377,7 @@ export class Bot {
         for (let probeDistance = Math.min(1.1, maxDistance); probeDistance <= maxDistance + 0.01; probeDistance += 1.1) {
             this._tmpProbe.copy(this.position).addScaledVector(dir, probeDistance);
                 // Skip colliders whose source mesh was removed from scene
-                if (box.source && !box.source.parent) continue;
+                if (box.source && (!box.source.parent || box.source.userData?._instancedRemoved)) continue;
             for (const box of nearby) {
                 if (box.enabled === false || box.walkable) continue;
                 if (top < box.min.y + 0.05 || bottom > box.max.y - 0.1) continue;
@@ -1401,7 +1401,7 @@ export class Bot {
         const nearby = this.physicsRef.getNearbyColliders(this._tmpProbe2, 2.6);
         for (const box of nearby) {
                 // Skip colliders whose source mesh was removed from scene
-                if (box.source && !box.source.parent) continue;
+                if (box.source && (!box.source.parent || box.source.userData?._instancedRemoved)) continue;
             if (box.enabled === false) continue;
             if (box.walkable) continue;
             if (top < box.min.y + 0.05 || bottom > box.max.y - 0.1) continue;

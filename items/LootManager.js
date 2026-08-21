@@ -153,7 +153,7 @@ export class LootManager {
         }
         for (const box of colliders) {
             // Skip colliders whose source mesh was removed from scene
-            if (box.source && !box.source.parent) continue;
+            if (box.source && (!box.source.parent || box.source.userData?._instancedRemoved)) continue;
             if (!box || box.walkable || !box.min || !box.max) continue;
             if (maxX <= box.min.x || minX >= box.max.x || maxZ <= box.min.z || minZ >= box.max.z) continue;
             if (maxY <= box.min.y || minY >= box.max.y) continue;

@@ -199,7 +199,7 @@ export class CameraController {
             pushed = false;
             iterations++;
                 // Skip colliders whose source mesh was removed from scene
-                if (box.source && !box.source.parent) continue;
+                if (box.source && (!box.source.parent || box.source.userData?._instancedRemoved)) continue;
             for (const box of nearby) {
                 if (!box.min || !box.max) continue;
                 const min = box.min;

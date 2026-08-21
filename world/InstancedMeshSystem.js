@@ -1,4 +1,4 @@
-import * as THREE from "three";
+﻿import * as THREE from "three";
 import { MeshPool } from "./MeshPool.js";
 
 export class InstancedMeshSystem {
@@ -43,6 +43,8 @@ export class InstancedMeshSystem {
         let replaced = 0;
         const instancedMeshes = [];
         let skippedTooFew = 0;
+        // Track which Groups had all their meshes removed -> mark for collider skip
+        const _affectedGroups = new Map(); // Group -> { removed, total }
 
         for (const [key, group] of this._grouped) {
             if (group.entries.length < minCount) { skippedTooFew++; continue; }
@@ -88,6 +90,22 @@ export class InstancedMeshSystem {
                     parent.remove(m);
                 }
                 replaced++;
+                
+                // Track parent Group: if all meshes removed, mark it for collider skip
+                if (parent && parent.isGroup) {
+                    if (!_affectedGroups.has(parent)) {
+                        // Count total meshes in this Group before removal
+                        let totalMeshes = 0;
+                        parent.traverse(child => { if (child.isMesh) totalMeshes++; });
+                        _affectedGroups.set(parent, { removed: 0, total: totalMeshes });
+                    }
+                    const info = _affectedGroups.get(parent);
+                    info.removed++;
+                    // If all meshes in this Group were removed, mark it
+                    if (info.removed >= info.total) {
+                        parent.userData._instancedRemoved = true;
+                    }
+                }
             }
 
             scene.add(instanced);
@@ -105,6 +123,8 @@ export class InstancedMeshSystem {
 
         console.log(`[InstancedMesh] Groups: ${this._grouped.size}, Replaced: ${replaced}, Skipped(<${minCount}): ${skippedTooFew}`);
         this._grouped.clear();
+        // Clean up tracking map
+        _affectedGroups.clear();
         return { replaced, instancedMeshes };
     }
 
@@ -206,7 +226,7 @@ export class InstancedMeshSystem {
             (obj.userData.isCornucopia && !obj.userData.isSpawnPlatform)) { skipReasons.aniInt++; return; }
         const geoKey = this.pool.geoKey(obj.geometry) || `uuid:${obj.geometry.uuid}`;
         if (!geoKey) { skipReasons.noGeoKey++; return; }
-        const matKey = this.pool.matKey(obj.material) || (Array.isArray(obj.material) ? null : `uuid:${obj.material.uuid}`);
+        const matKey = this.pool.matKey(obj.material) || (Array.isArray(mesh.material) ? null : `uuid:${obj.material.uuid}`);
         if (!matKey) { skipReasons.noMatKey++; return; }
         out.push(obj);
     }

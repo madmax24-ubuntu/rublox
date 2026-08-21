@@ -155,7 +155,7 @@ export class Physics {
 								pos.y > box.min.y
 							) {
 						// Skip colliders whose source mesh was removed from scene
-						if (box.source && !box.source.parent) continue;
+						if (box.source && (!box.source.parent || box.source.userData?._instancedRemoved)) continue;
 								insideNonWalkable = true;
 								break;
 							}
@@ -294,7 +294,7 @@ export class Physics {
 		for (const box of nearby) {
 			if (box.enabled === false || !box.walkable) continue;
 				// Skip colliders whose source mesh was removed from scene
-				if (box.source && !box.source.parent) continue;
+				if (box.source && (!box.source.parent || box.source.userData?._instancedRemoved)) continue;
 			if (!this._containsWalkableSurface(box, position.x, position.z, radius))
 				continue;
 			const min = box.min;
@@ -314,7 +314,7 @@ export class Physics {
 		if (maxY === -Infinity && !this.colliderGrid.size) {
 			for (const box of this.colliders) {
 				// Skip colliders whose source mesh was removed from scene
-				if (box.source && !box.source.parent) continue;
+				if (box.source && (!box.source.parent || box.source.userData?._instancedRemoved)) continue;
 				if (box.enabled === false || !box.walkable) continue;
 				if (!this._containsWalkableSurface(box, position.x, position.z, radius))
 					continue;
@@ -399,7 +399,7 @@ export class Physics {
 
 			for (const box of nearby) {
 				// Skip colliders whose source mesh was removed from scene (e.g. replaced by InstancedMesh)
-				if (box.source && !box.source.parent) continue;
+				if (box.source && (!box.source.parent || box.source.userData?._instancedRemoved)) continue;
 				if (box.enabled === false) continue;
 
 				const min = box.min;
@@ -533,7 +533,7 @@ export class Physics {
 
 				for (const box of nearby) {
 					// Skip colliders whose source mesh was removed from scene
-					if (box.source && !box.source.parent) continue;
+					if (box.source && (!box.source.parent || box.source.userData?._instancedRemoved)) continue;
 					if (!box.enabled || box.walkable) continue;
 					const min = box.min,
 						max = box.max;
@@ -573,7 +573,7 @@ export class Physics {
 		const cellSize = this.colliderGridCellSize;
 		for (const box of this.colliders) {
 			// Skip colliders whose source mesh was removed from scene
-			if (box.source && !box.source.parent) continue;
+			if (box.source && (!box.source.parent || box.source.userData?._instancedRemoved)) continue;
 			if (!box) continue;
 
 			let min, max;
@@ -637,7 +637,7 @@ export class Physics {
 				if (!bucket) continue;
 				for (let i = 0; i < bucket.length; i++) {
 					// Skip colliders whose source mesh was removed from scene
-					if (box.source && !box.source.parent) continue;
+					if (box.source && (!box.source.parent || box.source.userData?._instancedRemoved)) continue;
 					const box = bucket[i];
 					if (box._qStamp === stamp) continue;
 					box._qStamp = stamp;

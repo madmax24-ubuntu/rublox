@@ -8763,7 +8763,7 @@ export class MapGenerator {
 		const cellSize = this.colliderGridCellSize;
 		for (const box of this.colliders) {
 			// Skip colliders whose source mesh was removed from scene
-			if (box.source && !box.source.parent) continue;
+			if (box.source && (!box.source.parent || box.source.userData?._instancedRemoved)) continue;
 			if (!box || !box.min || !box.max) continue;
 			const minX = Math.floor(box.min.x / cellSize);
 			const maxX = Math.floor(box.max.x / cellSize);

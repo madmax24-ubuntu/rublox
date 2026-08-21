@@ -306,7 +306,7 @@ export class EntityManager {
 		);
 		for (const box of nearby) {
 			// Skip colliders whose source mesh was removed from scene
-			if (box.source && !box.source.parent) continue;
+			if (box.source && (!box.source.parent || box.source.userData?._instancedRemoved)) continue;
 			if (box.enabled === false) continue;
 			// Bazooka hits ALL colliders (no walkable filter), others ignore walkable ground
 			if (box.walkable && projectile.type !== "bazooka") continue;
@@ -332,7 +332,7 @@ export class EntityManager {
 		);
 		for (const box of nearby) {
 			// Skip colliders whose source mesh was removed from scene
-			if (box.source && !box.source.parent) continue;
+			if (box.source && (!box.source.parent || box.source.userData?._instancedRemoved)) continue;
 			if (box.enabled === false) continue;
 			if (ignoreWalkable && box.walkable) continue;
 			if (this.segmentIntersectsBox(p0, p1, box)) {
