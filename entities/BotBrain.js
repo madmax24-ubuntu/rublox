@@ -2384,10 +2384,10 @@ export class BotBrain {
 			[];
 		let best = null;
 		let bestScore = Infinity;
-			// Skip colliders whose source mesh was removed from scene
-			if (c.source && !c.source.parent) continue;
 		for (const c of colliders) {
 			if (!c || c.enabled === false || c.walkable) continue;
+			// Skip colliders whose source mesh was removed from scene
+			if (c.source && !c.source.parent) continue;
 			const cx = (c.min.x + c.max.x) * 0.5;
 			const cz = (c.min.z + c.max.z) * 0.5;
 			if (!map?.isWalkableAt?.(cx, cz)) continue;
