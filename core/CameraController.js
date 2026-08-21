@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 
 export class CameraController {
     constructor(scene, camera, domElement, physics) {
@@ -198,6 +198,8 @@ export class CameraController {
         while (pushed && iterations < 4) {
             pushed = false;
             iterations++;
+                // Skip colliders whose source mesh was removed from scene
+                if (box.source && !box.source.parent) continue;
             for (const box of nearby) {
                 if (!box.min || !box.max) continue;
                 const min = box.min;
