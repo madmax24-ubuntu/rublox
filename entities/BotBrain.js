@@ -1,4 +1,4 @@
-import * as THREE from "three";
+﻿import * as THREE from "three";
 
 const STATES = {
 	IDLE: "idle",
@@ -2384,6 +2384,8 @@ export class BotBrain {
 			[];
 		let best = null;
 		let bestScore = Infinity;
+			// Skip colliders whose source mesh was removed from scene
+			if (c.source && !c.source.parent) continue;
 		for (const c of colliders) {
 			if (!c || c.enabled === false || c.walkable) continue;
 			const cx = (c.min.x + c.max.x) * 0.5;
