@@ -1,4 +1,4 @@
-﻿import * as THREE from 'three';
+import * as THREE from 'three';
 import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 import { Inventory } from '../items/Inventory.js';
 import { Weapon } from '../items/Weapon.js';
@@ -1378,7 +1378,7 @@ export class Bot {
             this._tmpProbe.copy(this.position).addScaledVector(dir, probeDistance);
             for (const box of nearby) {
                 // Skip colliders whose source mesh was removed from scene
-                if (box.source && (!box.source.parent || box.source.userData?._instancedRemoved)) continue;
+                if (box.source && (!box.source.parent)) continue;
                 if (box.enabled === false || box.walkable) continue;
                 if (top < box.min.y + 0.05 || bottom > box.max.y - 0.1) continue;
                 if (this._tmpProbe.x < box.min.x - 0.45 || this._tmpProbe.x > box.max.x + 0.45) continue;
@@ -1401,7 +1401,7 @@ export class Bot {
         const nearby = this.physicsRef.getNearbyColliders(this._tmpProbe2, 2.6);
         for (const box of nearby) {
                 // Skip colliders whose source mesh was removed from scene
-                if (box.source && (!box.source.parent || box.source.userData?._instancedRemoved)) continue;
+                if (box.source && (!box.source.parent)) continue;
             if (box.enabled === false) continue;
             if (box.walkable) continue;
             if (top < box.min.y + 0.05 || bottom > box.max.y - 0.1) continue;

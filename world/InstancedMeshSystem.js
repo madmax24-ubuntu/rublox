@@ -1,4 +1,4 @@
-﻿import * as THREE from "three";
+import * as THREE from "three";
 import { MeshPool } from "./MeshPool.js";
 
 export class InstancedMeshSystem {
@@ -103,7 +103,7 @@ export class InstancedMeshSystem {
                     info.removed++;
                     // If all meshes in this Group were removed, mark it
                     if (info.removed >= info.total) {
-                        parent.userData._instancedRemoved = true;
+                        // source Group emptied by InstancedMesh - colliders still valid
                     }
                 }
             }

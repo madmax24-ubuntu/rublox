@@ -1,4 +1,4 @@
-﻿import * as THREE from "three";
+import * as THREE from "three";
 import { MapGeneratorNode } from "./MapGeneratorNode.js?v=1786192400000";
 import { AABBGrid } from "./AABBGrid.js";
 import { InstancedMeshSystem } from "./InstancedMeshSystem.js";
@@ -8763,7 +8763,7 @@ export class MapGenerator {
 		const cellSize = this.colliderGridCellSize;
 		for (const box of this.colliders) {
 			// Skip colliders whose source mesh was removed from scene
-			if (box.source && (!box.source.parent || box.source.userData?._instancedRemoved)) continue;
+			if (box.source && (!box.source.parent)) continue;
 			if (!box || !box.min || !box.max) continue;
 			const minX = Math.floor(box.min.x / cellSize);
 			const maxX = Math.floor(box.max.x / cellSize);
