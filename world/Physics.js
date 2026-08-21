@@ -637,8 +637,8 @@ export class Physics {
 				if (!bucket) continue;
 				for (let i = 0; i < bucket.length; i++) {
 					// Skip colliders whose source mesh was removed from scene
-					if (box.source && (!box.source.parent || box.source.userData?._instancedRemoved)) continue;
 					const box = bucket[i];
+					if (box.source && (!box.source.parent || box.source.userData?._instancedRemoved)) continue;
 					if (box._qStamp === stamp) continue;
 					box._qStamp = stamp;
 					results.push(box);
