@@ -304,9 +304,9 @@ export class EntityManager {
 			probe,
 			Math.max(3, length * 0.8 + 1.2),
 		);
+		for (const box of nearby) {
 			// Skip colliders whose source mesh was removed from scene
 			if (box.source && !box.source.parent) continue;
-		for (const box of nearby) {
 			if (box.enabled === false) continue;
 			// Bazooka hits ALL colliders (no walkable filter), others ignore walkable ground
 			if (box.walkable && projectile.type !== "bazooka") continue;
