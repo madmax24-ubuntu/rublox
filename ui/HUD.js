@@ -1012,7 +1012,6 @@ export class HUD {
         `;
         document.head.appendChild(style);
 
-
         // Cache DOM elements for hot-path access (avoids getElementById in update loop)
         this._el.visionOverlay = visionOverlay;
         this._el.lootFeed = lootFeed;
@@ -1447,8 +1446,8 @@ export class HUD {
                 }
                 continue;
             }
-            this._lastState.slotTypes[i] = type;
             if (item) {
+                this._lastState.slotTypes[i] = type;
                 slot.style.background = 'rgba(255, 255, 255, 0.2)';
                 slot.style.border = '2px solid rgba(255, 255, 255, 0.8)';
                 let icon = this._el['slotIcon' + i];
@@ -1469,6 +1468,7 @@ export class HUD {
                 if (oldIcon) {
                     oldIcon.remove();
                     this._el['slotIcon' + i] = null;
+                    this._lastState.slotTypes[i] = null;
                 }
             }
             if (i === selectedSlot) {
@@ -1477,8 +1477,8 @@ export class HUD {
             } else {
                 slot.style.boxShadow = 'none';
             }
-            this._lastState.selectedSlot = selectedSlot;
         }
+        this._lastState.selectedSlot = selectedSlot;
     }
 
     showInvulnerabilityTimer(seconds) {
@@ -1851,4 +1851,4 @@ export class HUD {
         }
     }
 }
-
+
