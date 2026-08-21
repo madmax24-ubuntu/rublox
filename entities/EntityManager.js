@@ -1,4 +1,4 @@
-import * as THREE from "three";
+﻿import * as THREE from "three";
 
 export class EntityManager {
 	constructor(scene) {
@@ -304,6 +304,8 @@ export class EntityManager {
 			probe,
 			Math.max(3, length * 0.8 + 1.2),
 		);
+			// Skip colliders whose source mesh was removed from scene
+			if (box.source && !box.source.parent) continue;
 		for (const box of nearby) {
 			if (box.enabled === false) continue;
 			// Bazooka hits ALL colliders (no walkable filter), others ignore walkable ground
@@ -329,6 +331,8 @@ export class EntityManager {
 			Math.max(2.5, length * 0.5 + 1.0),
 		);
 		for (const box of nearby) {
+			// Skip colliders whose source mesh was removed from scene
+			if (box.source && !box.source.parent) continue;
 			if (box.enabled === false) continue;
 			if (ignoreWalkable && box.walkable) continue;
 			if (this.segmentIntersectsBox(p0, p1, box)) {
