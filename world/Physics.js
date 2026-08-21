@@ -636,6 +636,8 @@ export class Physics {
 				const bucket = this.colliderGrid.get(key);
 				if (!bucket) continue;
 				for (let i = 0; i < bucket.length; i++) {
+					// Skip colliders whose source mesh was removed from scene
+					if (box.source && !box.source.parent) continue;
 					const box = bucket[i];
 					if (box._qStamp === stamp) continue;
 					box._qStamp = stamp;
