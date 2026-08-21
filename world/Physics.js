@@ -572,6 +572,8 @@ export class Physics {
 		this.colliderGrid.clear();
 		const cellSize = this.colliderGridCellSize;
 		for (const box of this.colliders) {
+			// Skip colliders whose source mesh was removed from scene
+			if (box.source && !box.source.parent) continue;
 			if (!box) continue;
 
 			let min, max;
