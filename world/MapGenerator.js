@@ -3776,10 +3776,9 @@ export class MapGenerator {
 		const tangentX = -radialZ;
 		const tangentZ = radialX;
 		// Hatch position — where the spiral staircase exits onto the roof
-		// Place hatch closer to center so player exits from top step directly into opening
-		const hatchR = spiralR * 0.5;
-		const hatchX = towerCX + Math.cos(exitAngle) * hatchR;
-		const hatchZ = towerCZ + Math.sin(exitAngle) * hatchR;
+		// Place hatch at the same radius as the top step so player exits directly into opening
+		const hatchX = towerCX + Math.cos(exitAngle) * spiralR;
+		const hatchZ = towerCZ + Math.sin(exitAngle) * spiralR;
 		for (let dx = -6; dx <= 6; dx += roofCellSize) {
 			for (let dz = -6; dz <= 6; dz += roofCellSize) {
 				if (Math.hypot(dx, dz) > roofRadius - 0.4) continue;
