@@ -970,7 +970,7 @@ export class MapGenerator {
 			this.scene.add(mesh);
 			const c = Math.abs(Math.cos(rotation));
 			const s = Math.abs(Math.sin(rotation));
-			this.addColliderBox(
+			const collider = this.addColliderBox(
 				new THREE.Vector3(x, wallH / 2, z),
 				w * c + d * s,
 				wallH,
@@ -978,6 +978,12 @@ export class MapGenerator {
 				false,
 				true,
 			);
+			// Disable collider if wall is in a biome entrance corridor
+			const radial = Math.sqrt(x * x + z * z);
+			const lateral = Math.abs(x * (z / radial) - z * (x / radial)) || 0;
+			if (radial >= 46 && radial <= 86 && lateral <= 9) {
+				collider.enabled = false;
+			}
 		};
 		const addGate = (x, z, w, d, rotation = 0) => {
 			const gate = new THREE.Mesh(
