@@ -3782,7 +3782,7 @@ export class MapGenerator {
 			for (let dz = -6; dz <= 6; dz += roofCellSize) {
 				if (Math.hypot(dx, dz) > roofRadius - 0.4) continue;
 				// Skip the cell at the hatch opening
-				if (Math.hypot(towerCX + dx - hatchX, towerCZ + dz - hatchZ) < roofCellSize) continue;
+				if (Math.hypot(towerCX + dx - hatchX, towerCZ + dz - hatchZ) < roofCellSize * 1.8) continue;
 				roofCells.push({
 					x: towerCX + dx,
 					z: towerCZ + dz,
