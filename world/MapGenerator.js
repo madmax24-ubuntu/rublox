@@ -3713,7 +3713,7 @@ export class MapGenerator {
 		const stepH = towerHeight / totalSteps;
 		const spiralR = towerRadius - 2;
 		const stepWidth = 3.5;
-		const stepDepth = 1.9;
+		const stepDepth = 3.0;
 		const stepGeo = this.pool.getGeoBox(stepWidth, stepH, stepDepth);
 		const towerSteps = new THREE.InstancedMesh(stepGeo, darkMat, totalSteps);
 		const stepMatrix = new THREE.Matrix4();
@@ -3788,19 +3788,19 @@ export class MapGenerator {
 			}
 		}
 		const roofTiles = new THREE.InstancedMesh(
-			this.pool.getGeoBox(roofCellSize, 1, roofCellSize),
+			this.pool.getGeoBox(roofCellSize, 2, roofCellSize),
 			darkMat,
 			roofCells.length,
 		);
 		const roofMatrix = new THREE.Matrix4();
 		for (let i = 0; i < roofCells.length; i++) {
 			const cell = roofCells[i];
-			roofMatrix.makeTranslation(cell.x, topY + 0.5, cell.z);
+			roofMatrix.makeTranslation(cell.x, topY - 1.0, cell.z);
 			roofTiles.setMatrixAt(i, roofMatrix);
 			const collider = this.addColliderBox(
-				new THREE.Vector3(cell.x, topY + 0.5, cell.z),
+				new THREE.Vector3(cell.x, topY - 1.0, cell.z),
 				roofCellSize,
-				1,
+				2,
 				roofCellSize,
 				true,
 			);
@@ -3842,18 +3842,18 @@ export class MapGenerator {
 		towerRoute.push(
 			new THREE.Vector3(
 				towerCX + Math.cos(exitAngle) * spiralR,
-				topY + 0.5,
+				topY,
 				towerCZ + Math.sin(exitAngle) * spiralR,
 			),
 		);
 		towerRoute.push(
 			new THREE.Vector3(
 				towerCX + radialX * 4.8 + tangentX * 5,
-				topY + 0.6,
+				topY,
 				towerCZ + radialZ * 4.8 + tangentZ * 5,
 			),
 		);
-		towerRoute.push(new THREE.Vector3(towerCX, topY + 0.6, towerCZ));
+		towerRoute.push(new THREE.Vector3(towerCX, topY, towerCZ));
 		this._elevatedRoutes.push(towerRoute);
 		this._buildings.push({
 			x: towerCX,
