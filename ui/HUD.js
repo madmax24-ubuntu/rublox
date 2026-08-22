@@ -1019,6 +1019,7 @@ export class HUD {
         this._el.loreNote = loreNote;
         this._el.invulnerabilityTimer = invulnerabilityTimer;
         this._el.gameOverlay = gameOverlay;
+        this._el.gameOverStats = document.getElementById('gameOverStats');
         this._el.stormOverlay = stormOverlay;
         this._el.contamOverlay = contamOverlay;
         this._el.countdown = countdown;
@@ -1476,12 +1477,28 @@ export class HUD {
         timer.style.display = seconds > 0 ? 'block' : 'none';
     }
 
-    showGameOver(message) {
+    showGameOver(message, stats) {
         const overlay = this._el.gameOverlay;
         const title = this._el.gameOverTitle;
         const msg = this._el.gameOverMessage;
+        const statsEl = this._el.gameOverStats;
         if (title) title.textContent = 'Игра окончена';
         if (msg) msg.textContent = message || '';
+        if (statsEl) {
+            if (stats) {
+                const lines = [];
+                lines.push(`Место: ${stats.place} · Убийства: ${stats.kills}`);
+                if (stats.record && stats.record.best) {
+                    lines.push(`Рекорд: ${stats.record.best.place}-е место · ${stats.record.best.kills} убийств`);
+                    if (stats.record.newRecord && (stats.record.newRecord.place || stats.record.newRecord.kills)) {
+                        lines.push('Новый рекорд!');
+                    }
+                }
+                statsEl.textContent = lines.join(' · ');
+            } else {
+                statsEl.textContent = '';
+            }
+        }
         overlay.style.display = 'flex';
         overlay.style.pointerEvents = 'auto';
     }

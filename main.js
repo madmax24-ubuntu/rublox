@@ -248,6 +248,8 @@ class Game {
 	}
 
 	onAppHidden() {
+		// Requirement 1.3: звук должен останавливаться при потере фокуса
+		this.audioSynth?.suspendAudio?.();
 		this.input?.clearInputState?.();
 		this.gameLoop?.resetDelta?.();
 		this.lastVisibilityHiddenAt = performance.now();
@@ -266,6 +268,7 @@ class Game {
 	}
 
 	onAppVisible(reason = "resume") {
+		this.audioSynth?.resumeAudio?.();
 		this.gameLoop?.resetDelta?.();
 		this.applyRendererSizing();
 		if (loadingOverlay && loadingOverlay.style.display !== "none") {
@@ -359,6 +362,7 @@ class Game {
 
 			this.input = new InputController({
 				domElement: this.renderer.domElement,
+				isMobile,
 			});
 			this.input.attachListeners();
 			this.audioSynth = new AudioSynth();
@@ -639,6 +643,13 @@ class Game {
 
 			document.addEventListener("togglePause", () => {
 				this.setPaused(!this.isPaused);
+			});
+			// Во время паузы update() не вызывается, поэтому M для возобновления
+			// обрабатываем напрямую на document (isPaused — единственный случай).
+			document.addEventListener("keydown", (e) => {
+				if (this.isPaused && this.input?.isKeyPressed?.("KeyM")) {
+					this.setPaused(false);
+				}
 			});
 
 			document.addEventListener("rebindKey", (e) => {
@@ -1742,7 +1753,79 @@ class Game {
 		this.gameState = "ended";
 		this.setRadiationRainActive(false);
 		this.hud.hideScoreboard?.();
-		this.hud.showGameOver(message);
+		const aliveCount = this.entityManager.getAliveSurvivors?.() || [];
+		const place = this.player?.isAlive ? 1 : aliveCount.length + 1;
+		const kills = this.player?.stats?.kills || 0;
+		const record = this.saveBestStats(place, kills);
+		this.hud.showGameOver(message, { place, kills, record });
+		// Requirement 1.12: показать sticky-баннер в неактивном состоянии (экран поражения)
+		this.yandex?.showBanner?.();
+	}
+
+	// Requirement 2.6: игра сохраняет рекорды
+	loadBestStats() {
+		try {
+			const raw = localStorage.getItem("mazearena_best");
+			const data = raw ? JSON.parse(raw) : null;
+			return data && typeof data === "object" ? data : null;
+		} catch (_) {
+			return null;
+		}
+	}
+
+	saveBestStats(place, kills) {
+		try {
+			const key = "mazearena_best";
+			const prev = this.loadBestStats() || {};
+			const best = {
+				place: typeof prev.place === "number" ? prev.place : Infinity,
+				kills: typeof prev.kills === "number" ? prev.kills : 0,
+				wins: typeof prev.wins === "number" ? prev.wins : 0,
+				games: typeof prev.games === "number" ? prev.games : 0,
+			};
+			best.games += 1;
+			const newRecord = { place: false, kills: false };
+			if (place < best.place) {
+				best.place = place;
+				newRecord.place = true;
+			}
+			if (kills > best.kills) {
+				best.kills = kills;
+				newRecord.kills = true;
+			}
+			if (place === 1) best.wins += 1;
+			localStorage.setItem(key, JSON.stringify(best));
+			return { best, newRecord };
+		} catch (_) {
+			return null;
+		}
+	}
+
+	// Requirement 1.19: пауза/возобновление по событиям платформы (SDK)
+	platformPause() {
+		if (this.startingGame) return;
+		this.audioSynth?.suspendAudio?.();
+		if (this.isStarted && !this.isPaused) {
+			this.autoPausedByVisibility = true;
+			this.setPaused(true);
+		}
+	}
+
+	platformResume() {
+		this.audioSynth?.resumeAudio?.();
+		if (this.isStarted && this.isPaused && this.autoPausedByVisibility) {
+			this.setPaused(false);
+		}
+	}
+
+	showStartRecord() {
+		const best = this.loadBestStats();
+		const els = document.querySelectorAll(".start-record");
+		const text =
+			best && best.place
+				? `Рекорд: ${best.place}-е место · ${best.kills || 0} убийств · Побед: ${best.wins || 0}`
+				: "";
+		els.forEach((el) => (el.textContent = text));
 	}
 
 	updateAchievements(aliveCount) {
@@ -3845,6 +3928,8 @@ class Game {
 				} catch (e) {}
 			}, 50);
 			this.yandex?.gameplayStart?.();
+			// Requirement 1.12: скрыть sticky-баннер во время геймплея, чтобы не перекрывать HUD
+			this.yandex?.hideBanner?.();
 
 			this.perkMenuOpen = !this.perkLocked;
 			this.perkSelectionRequired = !this.perkLocked;
@@ -3895,11 +3980,19 @@ window.addEventListener("DOMContentLoaded", () => {
 	const yandex = new YandexBridge();
 	const game = new Game(yandex);
 	window.game = game;
+	// Requirement 1.19: платформа может ставить игру на паузу/возобновлять
+	yandex.onPlatformPause = () => game.platformPause();
+	yandex.onPlatformResume = () => game.platformResume();
 	const yandexReady = yandex.init().catch((err) => {
 		console.warn("Yandex init fallback:", err);
 		return yandex;
 	});
-	Promise.all([game.ready, yandexReady]).then(() => yandex.signalReady());
+	Promise.all([game.ready, yandexReady]).then(() => {
+		game.showStartRecord();
+		yandex.signalReady();
+		// Requirement 1.12: монетизация — sticky-баннер через BannerAPI
+		yandex.showBanner();
+	});
 	if (game.isMobile()) {
 		document.body.classList.add("mobile");
 		game.updateOrientationUI();

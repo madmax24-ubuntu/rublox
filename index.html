@@ -105,6 +105,19 @@
             margin-bottom: 2rem;
             color: #ccc;
         }
+        #gameOverStats {
+            font-size: 1rem;
+            margin: -1.2rem 0 2rem;
+            color: #ffd166;
+            text-shadow: 0 0 12px rgba(255, 209, 102, 0.4);
+        }
+        .start-record {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #ffd166;
+            text-shadow: 0 0 10px rgba(255, 209, 102, 0.35);
+            min-height: 18px;
+        }
         #restartBtn {
             padding: 14px 40px;
             font-size: 1.2rem;
@@ -1071,6 +1084,7 @@
     <div id="gameOverlay">
         <h2 id="gameOverTitle">Игра окончена</h2>
         <p id="gameOverMessage"></p>
+        <p id="gameOverStats"></p>
         <button id="restartBtn" onclick="location.reload()">🔄 Заново</button>
     </div>
     <div id="startScreen">
@@ -1096,6 +1110,7 @@
                 <p>Выживание до последнего. Рандомная карта, лут из сундуков и перки прямо в бою.</p>
                 <button id="startButtonDesktop" class="start-btn">Начать игру</button>
                 <div class="start-footer">Быстрый матч · Рандомная карта · Перки в бою</div>
+                <div class="start-record" id="startRecord"></div>
                 <div class="controls-info">
                     <div class="control-row"><span class="control-key">WASD</span><span class="control-desc">движение</span></div>
                     <div class="control-row"><span class="control-key">Мышь</span><span class="control-desc">обзор</span></div>
@@ -1118,6 +1133,7 @@
                     <h1 class="mobile-title">RUBO ARENA</h1>
                     <div class="mobile-subtitle">Голодные игры</div>
                     <p class="mobile-desc">Выживание до последнего. Рандомная карта, лут из сундуков, перки в бою.</p>
+                    <div class="start-record" id="startRecordMobile"></div>
                     <button id="startButtonMobile" class="mobile-start-btn">▶ Начать бой</button>
                 </div>
                 <div class="mobile-footer">

@@ -283,6 +283,18 @@ export class AudioSynth {
 		})();
 		return this._unlockInProgress;
 	}
+	// Requirement 1.3: stop all sound when the game loses focus.
+	// Suspend the AudioContext entirely (music + SFX stop instantly).
+	suspendAudio() {
+		if (this.audioContext && this.audioContext.state === "running") {
+			this.audioContext.suspend().catch(() => {});
+		}
+	}
+	resumeAudio() {
+		if (this.audioContext && this.audioContext.state !== "running") {
+			this.audioContext.resume().catch(() => {});
+		}
+	}
 	createImpulse(duration, decay) {
 		const ctx = this.audioContext;
 		const rate = ctx.sampleRate;

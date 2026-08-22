@@ -57,6 +57,9 @@ export class YandexBridge {
         this.lang = 'ru';
         this.initialized = false;
         this.readySent = false;
+        // Callbacks wired by the game (see main.js)
+        this.onPlatformPause = null;
+        this.onPlatformResume = null;
     }
 
     normalizeLang(raw) {
@@ -233,6 +236,7 @@ export class YandexBridge {
                     || this.getLangFromUrl()
                     || navigator.language
                 );
+                this.bindPlatformEvents();
             } else {
                 this.lang = this.normalizeLang(this.getLangFromUrl() || navigator.language || 'ru');
             }
@@ -244,6 +248,37 @@ export class YandexBridge {
         this.applyLocalization();
         this.initialized = true;
         return this;
+    }
+
+    // Requirement 1.19: handle ysdk.on('game_api_pause' / 'game_api_resume')
+    bindPlatformEvents() {
+        const ysdk = this.ysdk;
+        if (!ysdk || typeof ysdk.on !== 'function') return;
+        try {
+            ysdk.on('game_api_pause', () => {
+                try {
+                    this.onPlatformPause?.();
+                } catch (_) {}
+            });
+            ysdk.on('game_api_resume', () => {
+                try {
+                    this.onPlatformResume?.();
+                } catch (_) {}
+            });
+        } catch (_) {}
+    }
+
+    // Requirement 1.12: monetization via sticky banner (BannerAPI)
+    showBanner() {
+        try {
+            this.ysdk?.features?.BannerAPI?.showBanner?.();
+        } catch (_) {}
+    }
+
+    hideBanner() {
+        try {
+            this.ysdk?.features?.BannerAPI?.hideBanner?.();
+        } catch (_) {}
     }
 
     gameplayStart() {
