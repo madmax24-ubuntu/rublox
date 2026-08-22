@@ -32,9 +32,18 @@ console.log('[devtools-bridge] Starting headless browser at:', proxyUrl);
   process.on('SIGTERM', shutdown);
 
   try {
-    await page.goto(proxyUrl, { waitUntil: 'networkidle', timeout: 15000 });
+   await page.goto(proxyUrl, { waitUntil: 'networkidle', timeout: 15000 });
     console.log('[devtools-bridge] Page loaded, bridge connected.');
-    console.log('[devtools-bridge] Waiting for connection...');
+
+    // Stop the render loop to save CPU in headless mode.
+    await page.evaluate(() => {
+      if (window.__game && window.__game.gameLoop) {
+        window.__game.gameLoop.stop();
+      }
+    });
+    console.log('[devtools-bridge] Render loop paused (CPU saved).');
+
+   console.log('[devtools-bridge] Waiting for connection...');
 
     // Wait a bit for the bridge script to inject and connect
     await new Promise((r) => setTimeout(r, 3000));

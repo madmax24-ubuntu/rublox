@@ -575,6 +575,8 @@ class Game {
 
 			this.gameLoop = new GameLoop(this);
 			this.gameLoop.start();
+			// Expose on window for devtools bridge to pause rendering
+			window.__game = this;
 			this.applyRoundMode("hybrid");
 			this.applyUserSettings(this.loadUserSettings());
 			this.hud.setPerkSelectionEnabled(true);
