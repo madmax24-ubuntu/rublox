@@ -3778,6 +3778,10 @@ class Game {
 		this.startAttemptAt = performance.now();
 		this.setCenterPlatformOpen(true);
 		try {
+			// Show loading overlay before hiding start screen (visible on mobile during init)
+			if (loadingOverlay) loadingOverlay.style.display = "flex";
+			setLoadingProgress(0);
+			if (loadingText) loadingText.textContent = "Подготовка...";
 			this.hideStartScreen();
 			this.startTransitionUntil = performance.now() + 500;
 			this.hud.showPause(false);
@@ -3795,6 +3799,8 @@ class Game {
 			await new Promise((resolve) => requestAnimationFrame(() => resolve()));
 
 			if (this.isMobile()) {
+				if (loadingText) loadingText.textContent = 'Полноэкранный режим...';
+				setLoadingProgress(0.1);
 				// Important: do not block game start on fullscreen promises (some mobile browsers keep them pending).
 				this.enterFullscreen().catch(() => {});
 				this.lockOrientation().catch(() => {});
@@ -3843,6 +3849,8 @@ class Game {
 				this.hud.showGameMessage("Выберите перк перед стартом матча");
 			}
 			this.hud.showCountdown(this.countdownTime);
+			if (loadingText) loadingText.textContent = 'Запуск...';
+			setLoadingProgress(0.9);
 
 			this.applyRendererSizing();
 			this.recoverViewState("start");
