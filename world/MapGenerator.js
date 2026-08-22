@@ -1008,7 +1008,8 @@ export class MapGenerator {
 		const ringRadius = 64;
 		const ringSegments = 40;
 		const segmentLength = (Math.PI * 2 * ringRadius) / ringSegments + 0.8;
-		const gateIndices = new Set([4, 5, 6, 14, 15, 16, 24, 25, 26, 34, 35, 36]);
+		// Include axis crossings (i=0,10,20,30) to prevent walls blocking biome passages
+		const gateIndices = new Set([0, 4, 5, 6, 10, 14, 15, 16, 20, 24, 25, 26, 30, 34, 35, 36]);
 		for (let i = 0; i < ringSegments; i++) {
 			const angle = (i / ringSegments) * Math.PI * 2;
 			const x = Math.cos(angle) * ringRadius;
