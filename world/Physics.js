@@ -1,4 +1,4 @@
-import * as THREE from "../node_modules/three/build/three.module.js";
+﻿import * as THREE from "../node_modules/three/build/three.module.js";
 
 export class Physics {
 	constructor(scene, mapGenerator) {
@@ -348,7 +348,7 @@ export class Physics {
 			const localX = dx * cos - dz * sin;
 			const localZ = dx * sin + dz * cos;
 			const clearance =
-				radius * (box.isTowerStair || box.isBiomeEntrance || box.isBiomeResidence ? 0.08 : 0.35);
+				radius * (box.isTowerStair || box.isBiomeEntrance || box.isBiomeResidence ? 0 : 0.35);
 			return (
 				Math.abs(localX) <= Math.max(0.02, obb.halfWidth - clearance) &&
 				Math.abs(localZ) <= Math.max(0.02, obb.halfDepth - clearance)
@@ -660,3 +660,4 @@ export class Physics {
 		return this._getSurfaceHeight(position, height);
 	}
 }
+

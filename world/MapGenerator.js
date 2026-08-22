@@ -1,4 +1,4 @@
-import * as THREE from "three";
+﻿import * as THREE from "three";
 import { MapGeneratorNode } from "./MapGeneratorNode.js?v=1786192400000";
 import { AABBGrid } from "./AABBGrid.js";
 import { InstancedMeshSystem } from "./InstancedMeshSystem.js";
@@ -3636,8 +3636,8 @@ export class MapGenerator {
 					towerWallSegments,
 			) % towerWallSegments;
 		const towerDoorHeight = 3.4;
-		const totalSteps = 120;
-		const angleStep = 0.17;
+		const totalSteps = 60;
+		const angleStep = 0.25;
 		const exitAngle = (totalSteps - 1) * angleStep;
 		const normalizedExitAngle =
 			((exitAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
@@ -3723,7 +3723,7 @@ export class MapGenerator {
 
 		for (let i = 0; i < totalSteps; i++) {
 			const angle = i * angleStep;
-			const stepY = i * stepH + stepH * 0.5 + 0.5;
+			const stepY = i * stepH + stepH * 0.5;
 
 			const sx = towerCX + Math.cos(angle) * spiralR;
 			const sz = towerCZ + Math.sin(angle) * spiralR;
@@ -9516,6 +9516,9 @@ export class MapGenerator {
 		return result;
 	}
 }
+
+
+
 
 
 
