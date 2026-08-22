@@ -3784,8 +3784,8 @@ export class MapGenerator {
 				const u = tangentX * dx + tangentZ * dz;
 				const v = radialX * dx + radialZ * dz;
 				if (
-					Math.abs(u) < stepWidth * 0.72 &&
-					Math.abs(v - towerRadius) < 0.8
+					Math.abs(u) < stepWidth * 0.55 &&
+					Math.abs(v - (towerRadius - 1)) < 1.5
 				)
 					continue;
 				roofCells.push({
@@ -3795,7 +3795,7 @@ export class MapGenerator {
 			}
 		}
 		const roofTiles = new THREE.InstancedMesh(
-			this.pool.getGeoBox(roofCellSize, 0.5, roofCellSize),
+			this.pool.getGeoBox(roofCellSize, 1, roofCellSize),
 			darkMat,
 			roofCells.length,
 		);
@@ -3807,7 +3807,7 @@ export class MapGenerator {
 			const collider = this.addColliderBox(
 				new THREE.Vector3(cell.x, topY - 0.25, cell.z),
 				roofCellSize,
-				0.5,
+				1,
 				roofCellSize,
 				true,
 			);
@@ -9516,6 +9516,10 @@ export class MapGenerator {
 		return result;
 	}
 }
+
+
+
+
 
 
 
