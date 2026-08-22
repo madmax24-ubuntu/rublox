@@ -193,7 +193,7 @@ export class MapGenerator {
 
        // Phase 11: InstancedMesh optimization — convert repeated meshes to InstancedMesh
        const totalBefore = this._meshes.length;
-        const instResult = this._optimizeInstancing(5);
+        const instResult = this._optimizeInstancing(2);
        console.log(
            `[MapGenerator] InstancedMesh: ${instResult.replaced} meshes merged into ${instResult.instancedMeshes.length} InstancedMesh (total before: ${totalBefore}, after: ${this._meshes.length})`,
        );
@@ -1424,21 +1424,25 @@ export class MapGenerator {
 				collider.isBiomeResidence
 		)
 			return true;
-		if (collider.isBuildingWall) {
-			if (collider.isMazeWall) {
-				const x = (collider.min.x + collider.max.x) * 0.5;
-				const z = (collider.min.z + collider.max.z) * 0.5;
-				const padding = Math.min(
-					8,
-					Math.hypot(
-						collider.max.x - collider.min.x,
-						collider.max.z - collider.min.z,
-					) * 0.5,
-				);
-				return !corridorHit(x, z, padding);
-			}
-			return true;
-		}
+        if (collider.isBuildingWall) {
+            if (collider.isMazeWall) {
+                const x = (collider.min.x + collider.max.x) * 0.5;
+                const z = (collider.min.z + collider.max.z) * 0.5;
+                const padding = Math.min(
+                    8,
+                    Math.hypot(
+                        collider.max.x - collider.min.x,
+                        collider.max.z - collider.min.z,
+                    ) * 0.5,
+                );
+                // Disable collider instead of removing to keep wall/collider count in sync
+                if (corridorHit(x, z, padding)) {
+                    collider.enabled = false;
+                }
+                return true;
+            }
+            return true;
+        }
 		const x = (collider.min.x + collider.max.x) * 0.5;
 		const z = (collider.min.z + collider.max.z) * 0.5;
 		const padding = Math.min(
