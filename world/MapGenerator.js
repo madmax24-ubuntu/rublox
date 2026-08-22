@@ -3756,8 +3756,8 @@ export class MapGenerator {
 			stairCollider.surfaceOBB = {
 				x: sx,
 				z: sz,
-				halfWidth: stepWidth * 0.5 - 0.08,
-				halfDepth: stepDepth * 0.5 - 0.08,
+				halfWidth: stepWidth * 0.5 - 0.02,
+				halfDepth: stepDepth * 0.5 - 0.02,
 				rotation,
 			};
 		}
@@ -3785,7 +3785,7 @@ export class MapGenerator {
 				const v = radialX * dx + radialZ * dz;
 				if (
 					Math.abs(u) < stepWidth * 0.72 &&
-					Math.abs(v - spiralR) < stepDepth * 0.82
+					Math.abs(v - (towerRadius - 1)) < stepDepth * 0.92
 				)
 					continue;
 				roofCells.push({
