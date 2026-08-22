@@ -3802,10 +3802,10 @@ export class MapGenerator {
 		const roofMatrix = new THREE.Matrix4();
 		for (let i = 0; i < roofCells.length; i++) {
 			const cell = roofCells[i];
-			roofMatrix.makeTranslation(cell.x, topY + 0.25, cell.z);
+			roofMatrix.makeTranslation(cell.x, topY - 2.5, cell.z);
 			roofTiles.setMatrixAt(i, roofMatrix);
 			const collider = this.addColliderBox(
-				new THREE.Vector3(cell.x, topY + 0.25, cell.z),
+				new THREE.Vector3(cell.x, topY - 2.5, cell.z),
 				roofCellSize,
 				0.5,
 				roofCellSize,
