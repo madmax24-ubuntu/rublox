@@ -3775,7 +3775,9 @@ class Game {
 		// Show loading overlay immediately when user clicks start
 		this.startingGame = true;
 		if (loadingOverlay) loadingOverlay.style.display = "flex";
-		setLoadingProgress(0);
+		// Never move the bar backwards: the click handler may already have
+		// animated it while waiting for initialization.
+		if (setLoadingProgress._current < 0.05) setLoadingProgress(0.05);
 		if (loadingText) loadingText.textContent = "Загрузка...";
 		if (!this.initialized) {
 			if (loadingText) loadingText.textContent = "Генерация карты...";
@@ -3802,9 +3804,9 @@ class Game {
 			this.applyRoundMode("hybrid");
 			await new Promise((resolve) => requestAnimationFrame(() => resolve()));
 
-			if (this.isMobile()) {
+		if (this.isMobile()) {
 				if (loadingText) loadingText.textContent = 'Полноэкранный режим...';
-				setLoadingProgress(0.1);
+				setLoadingProgress(Math.max(0.1, setLoadingProgress._current));
 				// Important: do not block game start on fullscreen promises (some mobile browsers keep them pending).
 				this.enterFullscreen().catch(() => {});
 				this.lockOrientation().catch(() => {});
@@ -3982,14 +3984,38 @@ window.addEventListener("DOMContentLoaded", () => {
 			if (_startHandled || game.startingGame || game.isStarted) return;
 			_startHandled = true;
 			button.setAttribute("aria-busy", "true");
+			// Show the loading bar immediately, BEFORE waiting for init.
+			// Otherwise long map generation runs behind a frozen start
+			// screen and the game looks unresponsive.
+			game.startingGame = true;
+			setLoadingProgress._current = 0;
+			setLoadingProgress(0.05);
+			if (loadingText) loadingText.textContent = "Загрузка...";
+			if (loadingOverlay) loadingOverlay.style.display = "flex";
+			// Keep the bar alive while we wait for initialization
+			const waitTimer = setInterval(() => {
+				if (setLoadingProgress._current < 0.45) {
+					smoothSetProgress(0.004, "Генерация карты...");
+				}
+			}, 120);
 			try {
 				await game.ready;
-				// Ensure AudioContext is unlocked before game starts (critical on mobile/Android)
-				await game.audioSynth?.unlock?.();
+				clearInterval(waitTimer);
+				// Ensure AudioContext is unlocked before game starts (critical on mobile/Android).
+				// Never block the start indefinitely if the context refuses to resume.
+				await Promise.race([
+					game.audioSynth?.unlock?.() ?? Promise.resolve(),
+					new Promise((r) => setTimeout(r, 1500)),
+				]);
 				game.enterFullscreen?.().catch(() => {});
 				await game.startGame();
 			} catch (err) {
+				clearInterval(waitTimer);
 				console.error("startGame failed:", err);
+				if (!game.isStarted) {
+					game.startingGame = false;
+					if (loadingOverlay) loadingOverlay.style.display = "none";
+				}
 			} finally {
 				button.removeAttribute("aria-busy");
 				if (!game.isStarted) _startHandled = false;
