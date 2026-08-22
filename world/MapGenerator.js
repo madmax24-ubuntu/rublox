@@ -3781,13 +3781,6 @@ export class MapGenerator {
 		for (let dx = -6; dx <= 6; dx += roofCellSize) {
 			for (let dz = -6; dz <= 6; dz += roofCellSize) {
 				if (Math.hypot(dx, dz) > roofRadius - 0.4) continue;
-				const u = tangentX * dx + tangentZ * dz;
-				const v = radialX * dx + radialZ * dz;
-				if (
-					Math.abs(u) < stepWidth * 0.55 &&
-					Math.abs(v - (towerRadius - 1)) < 1.5
-				)
-					continue;
 				roofCells.push({
 					x: towerCX + dx,
 					z: towerCZ + dz,
@@ -3802,10 +3795,10 @@ export class MapGenerator {
 		const roofMatrix = new THREE.Matrix4();
 		for (let i = 0; i < roofCells.length; i++) {
 			const cell = roofCells[i];
-			roofMatrix.makeTranslation(cell.x, topY - 0.25, cell.z);
+			roofMatrix.makeTranslation(cell.x, topY + 0.5, cell.z);
 			roofTiles.setMatrixAt(i, roofMatrix);
 			const collider = this.addColliderBox(
-				new THREE.Vector3(cell.x, topY - 0.25, cell.z),
+				new THREE.Vector3(cell.x, topY + 0.5, cell.z),
 				roofCellSize,
 				1,
 				roofCellSize,
