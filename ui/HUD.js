@@ -1483,7 +1483,7 @@ export class HUD {
         if (title) title.textContent = 'Игра окончена';
         if (msg) msg.textContent = message || '';
         overlay.style.display = 'flex';
-        overlay.style.pointerEvents = 'none';
+        overlay.style.pointerEvents = 'auto';
     }
 
     hideGameOver() {
