@@ -180,6 +180,7 @@ export class MapGenerator {
 		this._removeDetachedColliderSources();
 		this._removeUnsupportedWalkableColliders();
 		this._removeGroundCollisionArtifacts();
+		this._syncMazeWallInstancedMesh();
 
 		// Phase 9.8: Map perimeter walls (glass/blue like reference)
 		this._generatePerimeterWalls();
@@ -326,6 +327,72 @@ export class MapGenerator {
 			outside(poi.position || poi),
 		);
 		this._traps = this._traps.filter((trap) => outside(trap.position));
+	}
+
+	/**
+	 * Sync maze walls InstancedMesh with colliders.
+	 * Ensures every visible maze wall instance has a matching collider so walls
+	 * cannot be walked through. After _clearCentralBiomeIntrusions removes maze
+	 * wall colliders, the InstancedMesh may still hold instances for those walls,
+	 * leaving them visually present but passable. This method recreates the
+	 * missing colliders from the instance matrices.
+	 */
+	_syncMazeWallInstancedMesh() {
+		let mazeWalls = null;
+		for (const child of this.scene.children) {
+			if (child.isInstancedMesh && child.userData?.isMazeWalls) {
+				mazeWalls = child;
+				break;
+			}
+		}
+		if (!mazeWalls) return;
+
+		const mazeColliders = this.colliders.filter((c) => c.isMazeWall);
+		const mat = new THREE.Matrix4();
+		const pos = new THREE.Vector3();
+		const quat = new THREE.Quaternion();
+		const scale = new THREE.Vector3();
+		mazeWalls.updateMatrixWorld(true);
+
+		let added = 0;
+		for (let i = 0; i < mazeWalls.count; i++) {
+			mazeWalls.getMatrixAt(i, mat);
+			mat.decompose(pos, quat, scale);
+			const worldPos = pos.clone().applyMatrix4(mazeWalls.matrixWorld);
+
+			// Check if there's already a collider for this instance
+			const hasCollider = mazeColliders.some((c) => {
+				const cx = (c.min.x + c.max.x) * 0.5;
+				const cz = (c.min.z + c.max.z) * 0.5;
+				return (
+					Math.abs(cx - worldPos.x) < 1.5 &&
+					Math.abs(cz - worldPos.z) < 1.5
+				);
+			});
+
+			if (!hasCollider) {
+				const collider = this.addColliderBox(
+					worldPos,
+					scale.x,
+					scale.y,
+					scale.z,
+					false,
+					false,
+					true,
+				);
+				collider.isBuildingWall = true;
+				collider.isMazeWall = true;
+				collider.source = mazeWalls;
+				mazeColliders.push(collider);
+				added++;
+			}
+		}
+
+		if (added > 0) {
+			console.log(
+				`[MapGenerator] Synced maze walls: added ${added} missing colliders`,
+			);
+		}
 	}
 
 	_removeStripeArtifacts() {

@@ -114,7 +114,7 @@ export class BotBrain {
 		if (!ctx || this.decisionCooldown <= 0 || phaseChanged) {
 			const currentFps = bot.scene?.userData?.fps || 60;
 			const skipFactor = currentFps >= 50 ? 1 : currentFps >= 35 ? 2 : currentFps >= 25 ? 3 : 4;
-			if (skipFactor > 1 && (Number(bot.id) % skipFactor) !== 0 && !phaseChanged) {
+			if (skipFactor > 1 && (Number(bot.id) % skipFactor) !== 0 && !phaseChanged && ctx) {
 				this.decisionCooldown = Math.max(this.decisionCooldown, 0.15);
 			} else {
 				ctx = this.collectContext(bot, entityManager, lootManager, gameState, bot._fsmCtx);

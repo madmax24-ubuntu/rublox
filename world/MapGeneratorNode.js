@@ -4,7 +4,7 @@ import * as THREE from 'three';
 const PLATFORM_RADIUS = 55;
 const PLATFORM_HEIGHT = 2;
 const PLATFORM_TOP_Y = PLATFORM_HEIGHT; // y=2 is the walkable surface
-const SPAWN_PAD_COUNT = 100;
+const SPAWN_PAD_COUNT = 101;
 const SPAWN_PAD_RADIUS = 46;
 const SPAWN_PAD_TOP_Y = PLATFORM_TOP_Y + 0.405;
 
