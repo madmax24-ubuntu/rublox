@@ -198,11 +198,6 @@ export class MapGenerator {
            `[MapGenerator] InstancedMesh: ${instResult.replaced} meshes merged into ${instResult.instancedMeshes.length} InstancedMesh (total before: ${totalBefore}, after: ${this._meshes.length})`,
        );
 
-		// Phase 11.5: Clear biome intrusions AFTER InstancedMesh optimization
-		this._clearCentralBiomeIntrusions();
-		this._removeDetachedColliderSources();
-		this._removeOrphanedColliders();
-
 		// Phase 12: Finalize
 		this._logProgress(0.95);
 		this.aabbGrid = new AABBGrid(2.0);
@@ -300,8 +295,6 @@ export class MapGenerator {
 		this.colliders = this.colliders.filter((collider) => {
 			// Maze walls that intrude into central biome must be removed
 			if (collider.isMazeWall && intrudes(collider)) return false;
-			// Remove orphaned colliders from InstancedMesh optimization
-			if (collider.source && !this._isAttachedToScene(collider.source)) return false;
 			if (
 				collider.isTerrain ||
 				collider.isCornucopia ||
@@ -401,42 +394,6 @@ export class MapGenerator {
 			(collider) =>
 				!collider.source || this._isAttachedToScene(collider.source),
 		);
-	}
-
-	/** Remove colliders that have no corresponding visual object in the scene */
-	_removeOrphanedColliders() {
-		const box = new THREE.Box3();
-		const colliderBox = new THREE.Box3();
-		const tmpMat = new THREE.Matrix4();
-		const visualBounds = [];
-		
-		// Collect bounds of all visual objects
-		this.scene.traverse((obj) => {
-			if (!obj.userData?.mapGenerated) return;
-			if (obj.isInstancedMesh) {
-				obj.geometry.computeBoundingBox();
-				obj.updateMatrixWorld(true);
-				for (let i = 0; i < obj.count; i++) {
-					obj.getMatrixAt(i, tmpMat);
-					box.copy(obj.geometry.boundingBox).applyMatrix4(obj.matrixWorld);
-					visualBounds.push(box.clone());
-				}
-			} else if (obj.isMesh || obj.isGroup) {
-				box.setFromObject(obj);
-				if (!box.isEmpty()) visualBounds.push(box.clone());
-			}
-		});
-		
-		// Filter colliders: keep only those that overlap with visual bounds
-		this.colliders = this.colliders.filter((collider) => {
-			// Check if collider overlaps with any visual bound
-			colliderBox.min.set(collider.min.x, collider.min.y, collider.min.z);
-			colliderBox.max.set(collider.max.x, collider.max.y, collider.max.z);
-			for (const vb of visualBounds) {
-				if (colliderBox.intersectsBox(vb)) return true;
-			}
-			return false;
-		});
 	}
 
 	_removeUnsupportedWalkableColliders() {
@@ -1065,8 +1022,11 @@ export class MapGenerator {
 		}
 		const dividerStart = ringRadius - 10;
 		const dividerEnd = HALF + wallT;
-		const gateGap = 14;
-		const gateMid = (dividerStart + dividerEnd) * 0.5;
+		// Align gate gap with biome entrance corridors (radial 48-82, width ~14)
+		const corridorMid = (48 + 82) * 0.5;
+		const corridorWidth = 82 - 48 + 4; // +4 for padding
+		const gateGap = corridorWidth;
+		const gateMid = corridorMid;
 		for (const sign of [-1, 1]) {
 			const halfGap = gateGap * 0.5;
 			const seg1End = gateMid - halfGap;
