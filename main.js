@@ -58,11 +58,8 @@ THREE.DefaultLoadingManager.onProgress = (_, loaded, total) => {
 
 THREE.DefaultLoadingManager.onLoad = () => {
 	setLoadingProgress(1);
-	if (loadingOverlay) {
-		setTimeout(() => {
-			loadingOverlay.style.display = "none";
-		}, 300);
-	}
+	// Don't hide overlay here - map generation still runs on mobile
+	// Hide it after initializeGame completes
 };
 
 import { MapGenerator } from "./world/MapGenerator.js?v=2";
@@ -107,6 +104,8 @@ class Game {
 		this.ready = this.initializeGame()
 			.then(() => {
 				this.initialized = true;
+				// Hide loading overlay after init completes
+				if (loadingOverlay) loadingOverlay.style.display = "none";
 				document.dispatchEvent(new CustomEvent("gameReady"));
 				return this;
 			})
@@ -3771,17 +3770,20 @@ class Game {
 	}
 
 	async startGame() {
-		if (!this.initialized) await this.ready;
+		// Show loading overlay immediately when user clicks start
+		if (loadingOverlay) loadingOverlay.style.display = "flex";
+		setLoadingProgress(0);
+		if (loadingText) loadingText.textContent = "Загрузка...";
+		if (!this.initialized) {
+			if (loadingText) loadingText.textContent = "Генерация карты...";
+			await this.ready;
+		}
 		if (this.isStarted) return;
 		this.isStarted = true;
 		this.startingGame = true;
 		this.startAttemptAt = performance.now();
 		this.setCenterPlatformOpen(true);
 		try {
-			// Show loading overlay before hiding start screen (visible on mobile during init)
-			if (loadingOverlay) loadingOverlay.style.display = "flex";
-			setLoadingProgress(0);
-			if (loadingText) loadingText.textContent = "Подготовка...";
 			this.hideStartScreen();
 			this.startTransitionUntil = performance.now() + 500;
 			this.hud.showPause(false);
