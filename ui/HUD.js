@@ -374,19 +374,7 @@ export class HUD {
         `;
         hud.appendChild(invulnerabilityTimer);
 
-        const gameOverlay = document.createElement('div');
-        gameOverlay.id = 'gameOverlay';
-        gameOverlay.style.cssText = `
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: ${px(40)}px;
-            font-weight: 800;
-            text-shadow: 4px 4px 8px rgba(0,0,0,0.8);
-            display: none;
-        `;
-        hud.appendChild(gameOverlay);
+        const gameOverlay = document.getElementById('gameOverlay');
 
         const stormOverlay = document.createElement('div');
         stormOverlay.id = 'stormOverlay';
