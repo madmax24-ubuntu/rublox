@@ -41,5 +41,3 @@ fix_*.cjs
 # Reference images
 reference.png
 
-# Server files
-server.js
