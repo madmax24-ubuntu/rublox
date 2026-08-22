@@ -1,37 +1,28 @@
-﻿# threejs_devtools MCP — Headless Bridge
+﻿# threejs_devtools MCP — Bridge
 
-Скрипт `devtools-bridge.mjs` запускает headless-браузер (Playwright + Chromium), который открывает proxy-URL MCP и держит bridge-соединение открытым. Это позволяет использовать инструменты threejs_devtools без ручного открытия браузера.
-
-## Установка зависимостей
-
-```bash
-npm install playwright
-npx playwright install chromium
-```
+Скрипт `devtools-bridge.cjs` открывает proxy-URL MCP в вашем браузере (Firefox) и держит процесс alive, чтобы вкладка не закрывалась.
 
 ## Быстрый запуск
 
 1. Узнай proxy URL через `mcp__threejs_devtools_mcp__bridge_status`
-2. Запусти: `node scripts/devtools-bridge.mjs http://localhost:<port>`
+2. Запусти: `node scripts/devtools-bridge.cjs http://localhost:<port>`
 3. Проверь подключение: `mcp__threejs_devtools_mcp__bridge_status` → должно быть "Bridge: connected"
 
 ## Пример
 
 ```bash
-node scripts/devtools-bridge.mjs http://localhost:18706
+node scripts/devtools-bridge.cjs http://localhost:9222
 ```
 
-Скрипт работает в фоне, периодически проверяет соединение и автоматически перезагружает страницу при разрыве.
+Скрипт открывает страницу в Firefox и держит процесс alive.
 
 ## Остановка
 
-Нажмите `Ctrl+C` в терминале, где запущен скрипт.
+Нажмите `Ctrl+C` в терминале или закройте вкладку в браузере.
 
 ## Важно
 
 - Proxy URL **меняется** между сессиями MCP. Перед каждым запуском получайте актуальный URL через `bridge_status`.
 - Dev-сервер (`npm run dev`) должен быть запущен на порту 3001.
-- Скрипт держит браузер открытым — не закрывайте терминал, пока используете devtools.
-- **Headless-браузер сильно грузит CPU** (Three.js рендерит сцену на каждом кадре).
-- Рекомендуется открывать proxy URL в обычном браузере вместо headless-скрипта.
-- Если используете headless — скрипт автоматически ставит рендеринг на паузу после загрузки.
+- Не закрывайте вкладку в браузере, пока используете devtools.
+- После перезапуска сервера или MCP нужно перезапустить bridge (новый proxy URL).
