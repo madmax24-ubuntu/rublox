@@ -240,9 +240,10 @@ export class InstancedMeshSystem {
     }
 
     _getBiomeKey(mesh) {
-        const pos = mesh.position || mesh.getWorldPosition(new THREE.Vector3());
-        const x = pos.x;
-        const z = pos.z;
+        const worldPos = new THREE.Vector3();
+        mesh.getWorldPosition(worldPos);
+        const x = worldPos.x;
+        const z = worldPos.z;
         const dist = Math.sqrt(x * x + z * z);
         
         // Central zone
