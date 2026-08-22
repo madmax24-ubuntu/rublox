@@ -33,7 +33,9 @@ export class InstancedMeshSystem {
             if (!matKey) { skipped++; continue; }
 
             const semanticKey = mesh.userData?.isCornucopia ? 'cornucopia' : mesh.userData?.isWall ? 'wall' : (mesh.userData?.walkable ? 'walkable' : 'visual');
-            const groupKey = `${geoKey}__${matKey}__${semanticKey}`;
+            // CRITICAL: include biome in group key to prevent mixing objects from different biomes
+            const biomeKey = this._getBiomeKey(mesh);
+            const groupKey = `${geoKey}__${matKey}__${semanticKey}__${biomeKey}`;
             if (!this._grouped.has(groupKey)) {
                 this._grouped.set(groupKey, { geoKey, matKey, entries: [] });
             }
@@ -235,6 +237,24 @@ export class InstancedMeshSystem {
         const clone = mat.clone();
         clone.uuid = THREE.MathUtils.generateUUID();
         return clone;
+    }
+
+    _getBiomeKey(mesh) {
+        const pos = mesh.position || mesh.getWorldPosition(new THREE.Vector3());
+        const x = pos.x;
+        const z = pos.z;
+        const dist = Math.sqrt(x * x + z * z);
+        
+        // Central zone
+        if (dist < 48) return 'center';
+        
+        // Quadrants
+        if (x > 0 && z < 0) return 'stone';
+        if (x > 0 && z > 0) return 'ice';
+        if (x < 0 && z < 0) return 'forest';
+        if (x < 0 && z > 0) return 'military';
+        
+        return 'other';
     }
 
     dispose() {
