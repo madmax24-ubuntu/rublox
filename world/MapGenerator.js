@@ -8103,12 +8103,12 @@ export class MapGenerator {
 		])
 			this._addGuardPost(x, z);
 		for (const [x, z] of [
-			[44, -46],
-			[72, -40],
-			[104, -50],
-			[46, -100],
-			[100, -98],
-			[76, -110],
+			[44, 46],
+			[72, 40],
+			[104, 50],
+			[46, 100],
+			[100, 98],
+			[76, 110],
 		])
 			this._addIceChunk(x, z);
 		for (const [x, z] of [
@@ -8130,10 +8130,10 @@ export class MapGenerator {
 			this._registerChestSpot(x + 1.8, z + 1.5, "military");
 		}
 		for (const [x, z] of [
-			[50, -56],
-			[90, -48],
-			[112, -80],
-			[60, -110],
+			[50, 56],
+			[90, 48],
+			[112, 80],
+			[60, 110],
 		]) {
 			this._addIceChunk(x, z);
 			this._registerChestSpot(x - 2.2, z + 1.6, "ice");
@@ -8146,7 +8146,7 @@ export class MapGenerator {
 			["snare", -1, -1],
 			["spikes", -1, -1],
 			["mine", -1, -1],
-			["ice", 1, -1],
+			["ice", 1, 1],
 		];
 		const blocked = (x, z) =>
 			this.colliders.some(
@@ -8189,8 +8189,8 @@ export class MapGenerator {
 		);
 		this._addGuardPost(-58, -60);
 		this._addGuardPost(-102, -92);
-		this._addIceCampfire(66, -92);
-		this._addIceCampfire(108, -110);
+		this._addIceCampfire(66, 92);
+		this._addIceCampfire(108, 110);
 	}
 
 	_addSurvivalTrap(type, x, z) {
