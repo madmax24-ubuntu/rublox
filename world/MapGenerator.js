@@ -977,13 +977,9 @@ export class MapGenerator {
 				w * s + d * c,
 				false,
 				true,
-			);
-			// Disable collider if wall is in a biome entrance corridor
-			const radial = Math.sqrt(x * x + z * z);
-			const lateral = Math.abs(x * (z / radial) - z * (x / radial)) || 0;
-			if (radial >= 46 && radial <= 86 && lateral <= 9) {
-				collider.enabled = false;
-			}
+         );
+			// biomeBoundary colliders kept enabled - ring walls must block movement.
+			// _clearBiomeEntranceCorridors preserves biomeBoundary colliders.
 		};
 		const addGate = (x, z, w, d, rotation = 0) => {
 			const gate = new THREE.Mesh(
@@ -1029,9 +1025,10 @@ export class MapGenerator {
 		}
 		const dividerStart = ringRadius - 10;
 		const dividerEnd = HALF + wallT;
-		// Align gate gap with biome entrance corridors (radial 48-82, width ~14)
-		const corridorMid = (48 + 82) * 0.5;
-		const corridorWidth = 82 - 48 + 4; // +4 for padding
+		// Align gate gap with biome entrance corridors (radial 49-82, width ~13)
+		// Start at 49 to avoid gate colliders overlapping spawn pads at radius 46
+		const corridorMid = (49 + 82) * 0.5;
+		const corridorWidth = 82 - 49 + 4; // +4 for padding
 		const gateGap = corridorWidth;
 		const gateMid = corridorMid;
 		for (const sign of [-1, 1]) {
@@ -1386,7 +1383,7 @@ export class MapGenerator {
 				const radial = (x * sx + z * sz) / Math.SQRT2;
 				const lateral = Math.abs((x * sz - z * sx) / Math.SQRT2);
 				return (
-					radial >= 48 - padding &&
+					radial >= 49 - padding &&
 					radial <= 82 + padding &&
 					lateral <= 7 + padding
 				);
