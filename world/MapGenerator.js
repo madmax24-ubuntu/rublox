@@ -3641,7 +3641,6 @@ export class MapGenerator {
 		const exitAngle = (totalSteps - 1) * angleStep;
 		const normalizedExitAngle =
 			((exitAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-		const towerRoofExitHeight = 4.2;
 		for (let i = 0; i < towerWallSegments; i++) {
 			const angle = (i / towerWallSegments) * Math.PI * 2;
 			const segmentLength =
@@ -3655,10 +3654,8 @@ export class MapGenerator {
 					Math.cos(angle - normalizedExitAngle),
 				),
 			);
-			const isRoofExit = exitDistance < 0.34;
 			const lowerGap = isDoor ? towerDoorHeight : 0;
-			const upperGap = isRoofExit ? towerRoofExitHeight : 0;
-			const segmentHeight = towerHeight - lowerGap - upperGap;
+			const segmentHeight = towerHeight - lowerGap;
 			const segmentY = lowerGap + segmentHeight / 2;
 			const segment = new THREE.Mesh(
 				this.pool.getGeoBox(0.8, segmentHeight, segmentLength),
@@ -3778,9 +3775,14 @@ export class MapGenerator {
 		const radialZ = Math.sin(exitAngle);
 		const tangentX = -radialZ;
 		const tangentZ = radialX;
+		// Hatch position — where the spiral staircase exits onto the roof
+		const hatchX = towerCX + Math.cos(exitAngle) * spiralR;
+		const hatchZ = towerCZ + Math.sin(exitAngle) * spiralR;
 		for (let dx = -6; dx <= 6; dx += roofCellSize) {
 			for (let dz = -6; dz <= 6; dz += roofCellSize) {
 				if (Math.hypot(dx, dz) > roofRadius - 0.4) continue;
+				// Skip the cell at the hatch opening
+				if (Math.hypot(towerCX + dx - hatchX, towerCZ + dz - hatchZ) < roofCellSize) continue;
 				roofCells.push({
 					x: towerCX + dx,
 					z: towerCZ + dz,
