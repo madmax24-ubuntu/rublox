@@ -104,8 +104,10 @@ class Game {
 		this.ready = this.initializeGame()
 			.then(() => {
 				this.initialized = true;
-				// Hide loading overlay after init completes
-				if (loadingOverlay) loadingOverlay.style.display = "none";
+				// Only hide overlay if startGame hasn't shown it yet
+				if (!this.startingGame && loadingOverlay) {
+					loadingOverlay.style.display = "none";
+				}
 				document.dispatchEvent(new CustomEvent("gameReady"));
 				return this;
 			})
@@ -3771,6 +3773,7 @@ class Game {
 
 	async startGame() {
 		// Show loading overlay immediately when user clicks start
+		this.startingGame = true;
 		if (loadingOverlay) loadingOverlay.style.display = "flex";
 		setLoadingProgress(0);
 		if (loadingText) loadingText.textContent = "Загрузка...";
@@ -3780,7 +3783,6 @@ class Game {
 		}
 		if (this.isStarted) return;
 		this.isStarted = true;
-		this.startingGame = true;
 		this.startAttemptAt = performance.now();
 		this.setCenterPlatformOpen(true);
 		try {
