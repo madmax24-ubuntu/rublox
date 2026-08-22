@@ -65,7 +65,7 @@ THREE.DefaultLoadingManager.onLoad = () => {
 	}
 };
 
-import { MapGenerator } from "./world/MapGenerator.js";
+import { MapGenerator } from "./world/MapGenerator.js?v=2";
 import { Environment } from "./world/Environment.js";
 import { Physics } from "./world/Physics.js";
 import { Zone } from "./world/Zone.js";
