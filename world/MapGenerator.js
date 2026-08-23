@@ -2065,7 +2065,40 @@ export class MapGenerator {
 		}
 
 		// Второй этаж - пол с проёмом для лестницы
-		// Floor removed to allow free passage to roof
+		const floor2LeftW = w - stairW - 0.8;
+		const floor2FrontD = Math.max(0.6, d / 2 - stairStartZ);
+		const stairEndZ = stairStartZ - stairD;
+		const floor2BackD = Math.max(0.6, stairEndZ + d / 2);
+		const floor2YL = storyH + 0.15;
+
+		const floor2LeftGeo = this.pool.getGeoBox(floor2LeftW, 0.3, d);
+		const floor2Left = new THREE.Mesh(floor2LeftGeo, woodMat);
+		floor2Left.position.set(-w / 2 + floor2LeftW / 2, floor2YL, 0);
+		floor2Left.userData.mapGenerated = true;
+		floor2Left.userData.walkable = true;
+		cabin.add(floor2Left);
+
+		this.addColliderBox(
+			new THREE.Vector3(x - w / 2 + floor2LeftW / 2, floor2YL, z),
+			floor2LeftW,
+			0.3,
+			d,
+			true,
+		);
+		this.addColliderBox(
+			new THREE.Vector3(x + stairX, floor2YL, z + d / 2 - floor2FrontD / 2),
+			stairW,
+			0.3,
+			floor2FrontD,
+			true,
+		);
+		this.addColliderBox(
+			new THREE.Vector3(x + stairX, floor2YL, z - d / 2 + floor2BackD / 2),
+			stairW,
+			0.3,
+			floor2BackD,
+			true,
+		);
 
 		// Стены второго этажа
 
