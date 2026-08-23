@@ -1730,8 +1730,6 @@ export class MapGenerator {
 		addBox(w, wallH, wallT, 0, wallH * 0.5, -d * 0.5, wallMat, true);
 		addBox(wallT, wallH, d, -w * 0.5, wallH * 0.5, 0, wallMat, true);
 		addBox(wallT, wallH, d, w * 0.5, wallH * 0.5, 0, wallMat, true);
-		addBox(7.5, wallH, wallT, -5.25, wallH * 0.5, d * 0.5, wallMat, true);
-		addBox(7.5, wallH, wallT, 5.25, wallH * 0.5, d * 0.5, wallMat, true);
 
 		const stairCount = 12;
 		for (let i = 0; i < stairCount; i++) {
