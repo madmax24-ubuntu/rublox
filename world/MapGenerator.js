@@ -1756,11 +1756,11 @@ export class MapGenerator {
 		// Второй этаж - частичный пол с отверстием для левой лестницы
 		addBox(12, 0.3, d, 2.5, 4.15, 0, floorMat, false, true);
 		addBox(5.4, 0.3, 3.4, -5.5, 4.15, -1.4, floorMat, false, true);
-		// Крыша с проёмом для выхода на крышу (x 3.5..7, z 0.33..3.5)
-		// Крыша с проёмом для выхода на крышу (x 3.5..9, z 0.15..3.7) — крыша выступает за стены
-		addBox(12.5, 0.3, d, -2.75, 8.4, 0, roofMat, false, true);
-		addBox(2, 0.3, 7.0, 8, 8.4, -3.5, roofMat, false, true);
-		addBox(2, 0.3, 3.2, 8, 8.4, 5.4, roofMat, false, true);
+		// Крыша с проёмом для выхода на крышу (x 5..8, z 1..3)
+		// Крыша с проёмом для выхода на крышу (x 5..8, z 1..3)
+		addBox(12, 0.3, d, -1, 8.4, 0, roofMat, false, true);
+		addBox(2, 0.3, 8, 9, 8.4, -3, roofMat, false, true);
+		addBox(2, 0.3, 4, 9, 8.4, 5, roofMat, false, true);
 
 		addBox(w, wallH, wallT, 0, wallH * 0.5, -d * 0.5, wallMat, true);
 		addBox(wallT, wallH, d, -w * 0.5, wallH * 0.5, 0, wallMat, true);
