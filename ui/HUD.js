@@ -1,20 +1,152 @@
+export const HUD_STRINGS = {
+    ru: {
+        weapons: { knife: 'Нож', bow: 'Лук', laser: 'Лазер', shotgun: 'Дробовик', flamethrower: 'Огнемёт', pistol: 'Пистолет', rifle: 'Винтовка', machinegun: 'Пулемет', bazooka: 'Базука' },
+        perkOptions: {
+            quickHands: { label: 'Быстрые руки', desc: 'Сильно ускоряет атаки и использование оружия ближнего боя.' },
+            silentStep: { label: 'Тихий шаг', desc: 'Почти убирает шум шагов и делает тебя заметно тише.' },
+            moreAmmo: { label: 'Больше патронов', desc: 'Сильно увеличивает запас патронов и прочность оружия.' },
+            fastRun: { label: 'Быстрый бег', desc: 'Заметно повышает скорость перемещения весь матч.' },
+            thickSkin: { label: 'Плотная кожа', desc: 'Снижает входящий урон и дает больше шансов выжить.' },
+            steadyAim: { label: 'Стабильный прицел', desc: 'Сильно режет отдачу и упрощает стрельбу.' },
+            autoFire: { label: 'AUTO FIRE', desc: 'Автоматически стреляет по цели, когда прицел наведен на врага.' }
+        },
+        killRewardHint: 'Выберите одну награду за серию убийств',
+        pauseKeyInfo: 'M - ПАУЗА',
+        pauseTitle: 'Пауза',
+        pauseControls: 'WASD - движение · Мышь - обзор · E - взаимодействие · Space - прыжок · ЛКМ - атака · M - пауза',
+        music: 'Музыка',
+        effects: 'Эффекты',
+        sensitivity: 'Чувствительность',
+        keybindsHint: 'Управление (кликни, чтобы переназначить)',
+        resume: 'Продолжить',
+        editButtons: 'Настроить кнопки',
+        resetSettings: 'Сбросить настройки',
+        pauseHint: 'Перетащи кнопки управления, чтобы расположить их удобнее.',
+        perkButton: 'ПЕРК ДО СТАРТА',
+        perkTitle: 'Выбор перка',
+        perkDesc: 'Перк выбирается один раз перед матчем и действует весь раунд.',
+        perkPrev: 'Назад',
+        perkNext: 'Вперёд',
+        perkSelect: 'Выбрать перк',
+        scoreboardTitle: 'Итоги раунда',
+        keybinds: { KeyW: 'Вперёд', KeyS: 'Назад', KeyA: 'Влево', KeyD: 'Вправо', Space: 'Прыжок', KeyE: 'Взаимодействие', MouseLeft: 'Атака', KeyP: 'Меню перков' },
+        gameOverTitle: 'Игра окончена',
+        gameOverPlace: (place, kills) => `Место: ${place} · Убийства: ${kills}`,
+        gameOverRecord: (place, kills) => `Рекорд: ${place}-е место · ${kills} убийств`,
+        newRecord: 'Новый рекорд!',
+        killRewardTitle: (kills) => `Серия: ${kills} убийств`,
+        killRewardButton: (kills) => `Награда за ${kills} убийств`,
+        perkLabel: (label) => `Перк: ${label}`
+    },
+    en: {
+        weapons: { knife: 'Knife', bow: 'Bow', laser: 'Laser', shotgun: 'Shotgun', flamethrower: 'Flamethrower', pistol: 'Pistol', rifle: 'Rifle', machinegun: 'MG', bazooka: 'Bazooka' },
+        perkOptions: {
+            quickHands: { label: 'Quick Hands', desc: 'Greatly speeds up attacks and melee weapon usage.' },
+            silentStep: { label: 'Silent Step', desc: 'Almost removes footstep noise and makes you much quieter.' },
+            moreAmmo: { label: 'More Ammo', desc: 'Greatly increases ammo reserve and weapon durability.' },
+            fastRun: { label: 'Fast Run', desc: 'Noticeably increases movement speed for the whole match.' },
+            thickSkin: { label: 'Thick Skin', desc: 'Reduces incoming damage and improves your chances to survive.' },
+            steadyAim: { label: 'Steady Aim', desc: 'Greatly reduces recoil and makes shooting easier.' },
+            autoFire: { label: 'AUTO FIRE', desc: 'Automatically fires at the target when the aim is on an enemy.' }
+        },
+        killRewardHint: 'Choose one reward for your kill streak',
+        pauseKeyInfo: 'M - PAUSE',
+        pauseTitle: 'Pause',
+        pauseControls: 'WASD - move · Mouse - look · E - interact · Space - jump · LMB - attack · M - pause',
+        music: 'Music',
+        effects: 'Effects',
+        sensitivity: 'Sensitivity',
+        keybindsHint: 'Controls (click to rebind)',
+        resume: 'Resume',
+        editButtons: 'Edit buttons',
+        resetSettings: 'Reset settings',
+        pauseHint: 'Drag the control buttons to place them where you like.',
+        perkButton: 'PRE-MATCH PERK',
+        perkTitle: 'Perk selection',
+        perkDesc: 'The perk is chosen once before the match and lasts the whole round.',
+        perkPrev: 'Back',
+        perkNext: 'Next',
+        perkSelect: 'Select perk',
+        scoreboardTitle: 'Round results',
+        keybinds: { KeyW: 'Forward', KeyS: 'Back', KeyA: 'Left', KeyD: 'Right', Space: 'Jump', KeyE: 'Interact', MouseLeft: 'Attack', KeyP: 'Perk menu' },
+        gameOverTitle: 'Game Over',
+        gameOverPlace: (place, kills) => `Place: ${place} · Kills: ${kills}`,
+        gameOverRecord: (place, kills) => `Record: ${place}th place · ${kills} kills`,
+        newRecord: 'New record!',
+        killRewardTitle: (kills) => `Streak: ${kills} kills`,
+        killRewardButton: (kills) => `Reward for ${kills} kills`,
+        perkLabel: (label) => `Perk: ${label}`
+    }
+};
+
 export class HUD {
     static ICON_MAP = { knife: 'KNF', bow: 'BOW', laser: 'LAS', shotgun: 'SG', flamethrower: 'FIRE', pistol: 'PST', rifle: 'RIF', machinegun: 'MG', bazooka: 'BAZ' };
-    static AMMO_NAME_MAP = { knife: 'Нож', bow: 'Лук', laser: 'Лазер', shotgun: 'Дробовик', flamethrower: 'Огнемёт', pistol: 'Пистолет', rifle: 'Винтовка', machinegun: 'Пулемет', bazooka: 'Базука' };
+    static AMMO_NAME_MAP = HUD_STRINGS.ru.weapons;
     constructor() {
         this.perkPanelLocked = false;
         this._el = {};
         this._lastState = { healthPercent: -1, armorPercent: -1, playersCount: -1, ammoText: '', selectedSlot: -1, slotTypes: [] };
-        this.perkOptions = [
-            { value: 'quickHands', label: 'Быстрые руки', desc: 'Сильно ускоряет атаки и использование оружия ближнего боя.' },
-            { value: 'silentStep', label: 'Тихий шаг', desc: 'Почти убирает шум шагов и делает тебя заметно тише.' },
-            { value: 'moreAmmo', label: 'Больше патронов', desc: 'Сильно увеличивает запас патронов и прочность оружия.' },
-            { value: 'fastRun', label: 'Быстрый бег', desc: 'Заметно повышает скорость перемещения весь матч.' },
-            { value: 'thickSkin', label: 'Плотная кожа', desc: 'Снижает входящий урон и дает больше шансов выжить.' },
-            { value: 'steadyAim', label: 'Стабильный прицел', desc: 'Сильно режет отдачу и упрощает стрельбу.' },
-            { value: 'autoFire', label: 'AUTO FIRE', desc: 'Автоматически стреляет по цели, когда прицел наведен на врага.' }
-        ];
+        this.lang = 'ru';
+        this.t = HUD_STRINGS.ru;
+        this.perkOptions = Object.keys(HUD_STRINGS.ru.perkOptions).map((value) => ({
+            value,
+            label: HUD_STRINGS.ru.perkOptions[value].label,
+            desc: HUD_STRINGS.ru.perkOptions[value].desc
+        }));
         this.createHUD();
+    }
+
+    setLang(lang) {
+        const next = HUD_STRINGS[lang] ? lang : 'ru';
+        if (next === this.lang) return;
+        this.lang = next;
+        this.t = HUD_STRINGS[next];
+        this.applyStaticStrings();
+    }
+
+    applyStaticStrings() {
+        const t = this.t;
+        const set = (id, text) => {
+            const el = this.root ? this.root.querySelector('#' + id) : null;
+            if (el && typeof text === 'string') el.textContent = text;
+        };
+        set('pauseKeyInfo', t.pauseKeyInfo);
+        set('killRewardHint', t.killRewardHint);
+        set('pauseTitleText', t.pauseTitle);
+        set('pauseControlsText', t.pauseControls);
+        set('pauseMusicLabel', t.music);
+        set('pauseSfxLabel', t.effects);
+        set('pauseSensLabel', t.sensitivity);
+        set('keybindsHintText', t.keybindsHint);
+        set('pauseResume', t.resume);
+        set('pauseEdit', t.editButtons);
+        set('pauseResetSettings', t.resetSettings);
+        set('pauseHint', t.pauseHint);
+        set('perkButton', t.perkButton);
+        set('perkTitle', t.perkTitle);
+        set('perkDesc', t.perkDesc);
+        set('perkPrev', t.perkPrev);
+        set('perkNext', t.perkNext);
+        set('perkSelectMobile', t.perkSelect);
+        set('scoreboardTitle', t.scoreboardTitle);
+        this.perkOptions.forEach((opt) => {
+            const src = t.perkOptions[opt.value];
+            if (src) {
+                opt.label = src.label;
+                opt.desc = src.desc;
+            }
+        });
+        this.perkButtons?.forEach((btn) => {
+            const opt = this.perkOptions.find((o) => o.value === btn.getAttribute('data-perk'));
+            if (opt) btn.textContent = opt.label;
+        });
+        if (this.keybindActions) {
+            this.keybindActions.forEach((item) => {
+                const label = t.keybinds[item.id];
+                if (label) item.label = label;
+            });
+            this.renderKeybinds();
+        }
     }
 
     getSlotDisplayNumber(slotIndex) {
@@ -118,7 +250,7 @@ export class HUD {
         killRewardPanel.innerHTML = `
             <div style="width:min(440px,88vw);padding:22px;border:2px solid #ffc21c;border-radius:18px;background:#101d27;box-shadow:0 18px 60px rgba(0,0,0,.55)">
                 <div id="killRewardTitle" style="font-size:24px;font-weight:900;color:#ffc21c;margin-bottom:8px"></div>
-                <div style="font-size:14px;color:#d4e0e8;margin-bottom:16px">Выберите одну награду за серию убийств</div>
+                <div id="killRewardHint" style="font-size:14px;color:#d4e0e8;margin-bottom:16px">${this.t.killRewardHint}</div>
                 <div id="killRewardOptions" style="display:grid;gap:10px"></div>
             </div>
         `;
@@ -585,7 +717,7 @@ export class HUD {
 
         const pauseKeyInfo = document.createElement('div');
         pauseKeyInfo.id = 'pauseKeyInfo';
-        pauseKeyInfo.textContent = 'M - ПАУЗА';
+        pauseKeyInfo.textContent = this.t.pauseKeyInfo;
         pauseKeyInfo.style.cssText = `
             position: absolute;
             top: ${px(18)}px;
@@ -624,35 +756,35 @@ export class HUD {
                 padding:${px(16)}px ${px(18)}px;
                 color:#fff;
                 font-weight:700;">
-                <div style="font-size:${px(20)}px;margin-bottom:${px(10)}px;">Пауза</div>
-                <div style="font-size:${px(12)}px;opacity:0.8;margin-bottom:${px(12)}px;">
-                    WASD - движение · Мышь - обзор · E - взаимодействие · Space - прыжок · ЛКМ - атака · M - пауза
+                <div id="pauseTitleText" style="font-size:${px(20)}px;margin-bottom:${px(10)}px;">${this.t.pauseTitle}</div>
+                <div id="pauseControlsText" style="font-size:${px(12)}px;opacity:0.8;margin-bottom:${px(12)}px;">
+                    ${this.t.pauseControls}
                 </div>
                 <div style="display:grid;gap:${px(8)}px;margin-bottom:${px(12)}px;">
                     <label style="display:grid;gap:${px(4)}px;font-size:${px(12)}px;">
-                        <span>Музыка</span>
+                        <span id="pauseMusicLabel">${this.t.music}</span>
                         <input id="pauseMusicVolume" type="range" min="0" max="0.4" step="0.01" value="0.14">
                     </label>
                     <label style="display:grid;gap:${px(4)}px;font-size:${px(12)}px;">
-                        <span>Эффекты</span>
+                        <span id="pauseSfxLabel">${this.t.effects}</span>
                         <input id="pauseSfxVolume" type="range" min="0" max="1" step="0.01" value="0.48">
                     </label>
                     <label style="display:grid;gap:${px(4)}px;font-size:${px(12)}px;">
-                        <span>Чувствительность</span>
+                        <span id="pauseSensLabel">${this.t.sensitivity}</span>
                         <input id="pauseSensitivity" type="range" min="0.5" max="2.4" step="0.05" value="1">
                     </label>
                 </div>
                 <div id="keybindSection" style="display:${isMobile ? 'none' : 'block'};margin-bottom:${px(10)}px;">
-                    <div style="font-size:${px(12)}px;opacity:0.8;margin-bottom:${px(6)}px;">Управление (кликни, чтобы переназначить)</div>
+                    <div id="keybindsHintText" style="font-size:${px(12)}px;opacity:0.8;margin-bottom:${px(6)}px;">${this.t.keybindsHint}</div>
                     <div id="keybindList" style="display:grid;gap:${px(6)}px;"></div>
                 </div>
                 <div style="display:flex;gap:${px(8)}px;flex-wrap:wrap;">
-                    <button id="pauseResume" class="perk-btn" style="flex:1;">Продолжить</button>
-                    <button id="pauseEdit" class="perk-btn" style="flex:1;display:${isMobile ? 'block' : 'none'};">Настроить кнопки</button>
-                    <button id="pauseResetSettings" class="perk-btn" style="flex:1;">Сбросить настройки</button>
+                    <button id="pauseResume" class="perk-btn" style="flex:1;">${this.t.resume}</button>
+                    <button id="pauseEdit" class="perk-btn" style="flex:1;display:${isMobile ? 'block' : 'none'};">${this.t.editButtons}</button>
+                    <button id="pauseResetSettings" class="perk-btn" style="flex:1;">${this.t.resetSettings}</button>
                 </div>
                 <div id="pauseHint" style="margin-top:${px(10)}px;font-size:${px(11)}px;opacity:0.7;display:${isMobile ? 'block' : 'none'};">
-                    Перетащи кнопки управления, чтобы расположить их удобнее.
+                    ${this.t.pauseHint}
                 </div>
             </div>
         `;
@@ -678,7 +810,7 @@ export class HUD {
 
         const perkButton = document.createElement('div');
         perkButton.id = 'perkButton';
-        perkButton.textContent = 'ПЕРК ДО СТАРТА';
+        perkButton.textContent = this.t.perkButton;
         perkButton.style.cssText = `
             position: absolute;
             bottom: ${px(isMobile ? 320 : 210)}px;
@@ -758,12 +890,12 @@ export class HUD {
         // Build perk buttons ONCE — never overwrite innerHTML or handlers will be lost.
         const perkTitle = document.createElement('div');
         perkTitle.style.cssText = `font-size:${px(18)}px;font-weight:900;margin-bottom:${px(6)}px;color:#ffffff;text-shadow:0 2px 4px rgba(0,0,0,0.75);`;
-        perkTitle.textContent = 'Выбор перка';
+        perkTitle.textContent = this.t.perkTitle;
         perkPanel.appendChild(perkTitle);
 
         const perkDesc = document.createElement('div');
         perkDesc.style.cssText = `font-size:${px(11)}px;color:#cbd7e1;line-height:1.35;margin-bottom:${px(10)}px;text-shadow:0 1px 3px rgba(0,0,0,0.7);`;
-        perkDesc.textContent = 'Перк выбирается один раз перед матчем и действует весь раунд.';
+        perkDesc.textContent = this.t.perkDesc;
         perkPanel.appendChild(perkDesc);
 
         this.perkButtons = [];
@@ -834,7 +966,7 @@ export class HUD {
             const perkPrev = document.createElement('div');
             perkPrev.id = 'perkPrev';
             perkPrev.className = 'perk-btn';
-            perkPrev.textContent = 'Назад';
+            perkPrev.textContent = this.t.perkPrev;
             perkPrev.style.cssText = `
                 width: 100%; margin: 0; padding: ${px(10)}px;
                 border-radius: ${px(8)}px; border: 1px solid rgba(255, 255, 255, 0.12);
@@ -846,7 +978,7 @@ export class HUD {
             const perkNext = document.createElement('div');
             perkNext.id = 'perkNext';
             perkNext.className = 'perk-btn';
-            perkNext.textContent = 'Вперёд';
+            perkNext.textContent = this.t.perkNext;
             perkNext.style.cssText = `
                 width: 100%; margin: 0; padding: ${px(10)}px;
                 border-radius: ${px(8)}px; border: 1px solid rgba(255, 255, 255, 0.12);
@@ -858,7 +990,7 @@ export class HUD {
             const perkSelectMobile = document.createElement('div');
             perkSelectMobile.id = 'perkSelectMobile';
             perkSelectMobile.className = 'perk-btn';
-            perkSelectMobile.textContent = 'Выбрать перк';
+            perkSelectMobile.textContent = this.t.perkSelect;
             perkSelectMobile.style.cssText = `
                 width: 100%; margin: 0; padding: ${px(10)}px;
                 border-radius: ${px(8)}px; border: 1px solid rgba(255, 255, 255, 0.12);
@@ -986,7 +1118,7 @@ export class HUD {
             z-index: 1200;
         `;
         scoreboard.innerHTML = `
-            <div style="font-size:${px(22)}px;font-weight:800;margin-bottom:${px(8)}px;">Итоги раунда</div>
+            <div id="scoreboardTitle" style="font-size:${px(22)}px;font-weight:800;margin-bottom:${px(8)}px;">${this.t.scoreboardTitle}</div>
             <div id="scoreboardBody" style="display:grid;gap:${px(6)}px;font-size:${px(14)}px;"></div>
         `;
         hud.appendChild(scoreboard);
@@ -1249,16 +1381,7 @@ export class HUD {
     initKeybindUI() {
         const list = this._el.keybindList;
         if (!list) return;
-                this.keybindActions = [
-            { id: 'KeyW', label: 'Вперёд' },
-            { id: 'KeyS', label: 'Назад' },
-            { id: 'KeyA', label: 'Влево' },
-            { id: 'KeyD', label: 'Вправо' },
-            { id: 'Space', label: 'Прыжок' },
-            { id: 'KeyE', label: 'Взаимодействие' },
-            { id: 'MouseLeft', label: 'Атака' },
-            { id: 'KeyP', label: 'Меню перков' }
-        ];
+        this.keybindActions = Object.keys(this.t.keybinds).map((id) => ({ id, label: this.t.keybinds[id] }));
         this.renderKeybinds();
         this.bindRebindListeners();
     }
@@ -1397,14 +1520,14 @@ export class HUD {
 
     setPerk(label) {
         const perkInfo = this._el.perkInfo;
-        if (perkInfo) perkInfo.textContent = `\u041f\u0435\u0440\u043a: ${label}`;
+        if (perkInfo) perkInfo.textContent = this.t.perkLabel(label);
         const perkButton = this._el.perkButton;
         if (perkButton) {
             if (label && label !== '-') {
                 perkButton.style.display = 'none';
             } else {
                 perkButton.style.display = 'block';
-                perkButton.textContent = 'ПЕРК ДО СТАРТА';
+                perkButton.textContent = this.t.perkButton;
             }
         }
     }
@@ -1482,16 +1605,16 @@ export class HUD {
         const title = this._el.gameOverTitle;
         const msg = this._el.gameOverMessage;
         const statsEl = this._el.gameOverStats;
-        if (title) title.textContent = 'Игра окончена';
+        if (title) title.textContent = this.t.gameOverTitle;
         if (msg) msg.textContent = message || '';
         if (statsEl) {
             if (stats) {
                 const lines = [];
-                lines.push(`Место: ${stats.place} · Убийства: ${stats.kills}`);
+                lines.push(this.t.gameOverPlace(stats.place, stats.kills));
                 if (stats.record && stats.record.best) {
-                    lines.push(`Рекорд: ${stats.record.best.place}-е место · ${stats.record.best.kills} убийств`);
+                    lines.push(this.t.gameOverRecord(stats.record.best.place, stats.record.best.kills));
                     if (stats.record.newRecord && (stats.record.newRecord.place || stats.record.newRecord.kills)) {
-                        lines.push('Новый рекорд!');
+                        lines.push(this.t.newRecord);
                     }
                 }
                 statsEl.textContent = lines.join(' · ');
@@ -1599,10 +1722,10 @@ export class HUD {
     showKillReward(kills, options, onSelect) {
         if (!this.killRewardButton || !this.killRewardPanel || !options?.length) return;
         this.killRewardButton.style.display = 'block';
-        this.killRewardButton.title = `Награда за ${kills} убийств`;
+        this.killRewardButton.title = this.t.killRewardButton(kills);
         const title = this.killRewardPanel.querySelector('#killRewardTitle');
         const list = this.killRewardPanel.querySelector('#killRewardOptions');
-        title.textContent = `Серия: ${kills} убийств`;
+        title.textContent = this.t.killRewardTitle(kills);
         list.replaceChildren();
         for (const option of options) {
             const button = document.createElement('button');
@@ -1776,7 +1899,7 @@ export class HUD {
             ammoInfo.textContent = '';
             return;
         }
-        const name = HUD.AMMO_NAME_MAP[weapon.type] || weapon.type;
+        const name = this.t.weapons[weapon.type] || weapon.type;
         const val = weapon.type === 'knife' ? (weapon.durability ?? 0) : (weapon.ammo ?? 0);
         const newText = `${name}: ${val}`;
         if (this._lastState.ammoText === newText) return;

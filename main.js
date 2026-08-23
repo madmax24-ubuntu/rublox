@@ -3991,6 +3991,8 @@ window.addEventListener("DOMContentLoaded", () => {
 		return yandex;
 	});
 	Promise.all([game.ready, yandexReady]).then(() => {
+		// Requirement 2.14: применяем язык платформы к HUD
+		game.hud?.setLang?.(yandex.lang || "ru");
 		game.showStartRecord();
 		yandex.signalReady();
 		// Requirement 1.12: монетизация — sticky-баннер через BannerAPI
