@@ -225,6 +225,10 @@ export class InstancedMeshSystem {
             obj.userData.gameplayBoundary || obj.userData.isTowerStructure ||
             obj.userData.dynamic || obj.userData.isChest ||
             obj.userData.easterEgg ||
+            // Biome entrance stairs: keep as individual meshes so their
+            // collider sources stay attached to the scene (Physics skips
+            // colliders whose source mesh was removed by instancing).
+            obj.userData.isBiomeEntrance ||
             (obj.userData.isCornucopia && !obj.userData.isSpawnPlatform)) { skipReasons.aniInt++; return; }
         const geoKey = this.pool.geoKey(obj.geometry) || `uuid:${obj.geometry.uuid}`;
         if (!geoKey) { skipReasons.noGeoKey++; return; }
