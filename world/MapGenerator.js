@@ -1768,7 +1768,6 @@ export class MapGenerator {
 		// Передняя стена: сегменты по бокам от двери + участок над дверью
 		addBox(7, wallH, wallT, -5.5, wallH * 0.5, d * 0.5, wallMat, true);
 		addBox(7, wallH, wallT, 5.5, wallH * 0.5, d * 0.5, wallMat, true);
-		addBox(4, 5.2, wallT, 0, 5.8, d * 0.5, wallMat, true, false, true, true);
 
 		const stairCount = 12;
 		for (let i = 0; i < stairCount; i++) {
@@ -2008,11 +2007,6 @@ export class MapGenerator {
 			storyH,
 			wallThick,
 		);
-		const frontWallTop = this.pool.getGeoBox(
-			w,
-			storyH - doorH - 0.5,
-			wallThick,
-		);
 
 		const fwl = new THREE.Mesh(frontWallLeft, wallMat);
 		fwl.position.set(-w / 4 + doorW / 2 + 0.25, storyH / 2 + 0.3, d / 2);
@@ -2025,12 +2019,6 @@ export class MapGenerator {
 		fwr.userData.mapGenerated = true;
 		fwr.userData.isWall = true;
 		cabin.add(fwr);
-
-		const fwt = new THREE.Mesh(frontWallTop, wallMat);
-		fwt.position.set(0, doorH + (storyH - doorH - 0.5) / 2 + 0.3, d / 2);
-		fwt.userData.mapGenerated = true;
-		fwt.userData.isWall = true;
-		cabin.add(fwt);
 
 		// Задняя стена
 		const backGeo = this.pool.getGeoBox(w, storyH, wallThick);
@@ -2362,15 +2350,6 @@ export class MapGenerator {
 		fwR.userData.mapGenerated = true;
 		fwR.userData.isWall = true;
 		hut.add(fwR);
-
-		const fwT = new THREE.Mesh(
-			this.pool.getGeoBox(w, h - dh - 0.3, wt),
-			wallMat,
-		);
-		fwT.position.set(0, dh + (h - dh - 0.3) / 2 + 0.3, d / 2);
-		fwT.userData.mapGenerated = true;
-		fwT.userData.isWall = true;
-		hut.add(fwT);
 
 		// Back wall
 		const bw = new THREE.Mesh(this.pool.getGeoBox(w, h, wt), wallMat);
@@ -3313,16 +3292,6 @@ export class MapGenerator {
 			fr.userData.mapGenerated = true;
 			fr.userData.isWall = true;
 			cabin.add(fr);
-		}
-		if (frontTopH > 0) {
-			const ft = new THREE.Mesh(
-				this.pool.getGeoBox(w, frontTopH, wallThick),
-				wallMat,
-			);
-			ft.position.set(0, doorH + frontTopH / 2, d / 2);
-			ft.userData.mapGenerated = true;
-			ft.userData.isWall = true;
-			cabin.add(ft);
 		}
 		const door = new THREE.Mesh(
 			this.pool.getGeoBox(doorW, doorH, 0.1),
