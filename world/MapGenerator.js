@@ -2078,20 +2078,6 @@ export class MapGenerator {
 		floor2Left.userData.walkable = true;
 		cabin.add(floor2Left);
 
-		const floor2RightGeo = this.pool.getGeoBox(stairW, 0.3, floor2FrontD);
-		const floor2RightF = new THREE.Mesh(floor2RightGeo, woodMat);
-		floor2RightF.position.set(stairX, floor2YL, d / 2 - floor2FrontD / 2);
-		floor2RightF.userData.mapGenerated = true;
-		floor2RightF.userData.walkable = true;
-		cabin.add(floor2RightF);
-
-		const floor2RightBGeo = this.pool.getGeoBox(stairW, 0.3, floor2BackD);
-		const floor2RightB = new THREE.Mesh(floor2RightBGeo, woodMat);
-		floor2RightB.position.set(stairX, floor2YL, -d / 2 + floor2BackD / 2);
-		floor2RightB.userData.mapGenerated = true;
-		floor2RightB.userData.walkable = true;
-		cabin.add(floor2RightB);
-
 		this.addColliderBox(
 			new THREE.Vector3(x - w / 2 + floor2LeftW / 2, floor2YL, z),
 			floor2LeftW,
