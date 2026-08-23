@@ -93,12 +93,12 @@ export class MapGenerator {
 		this._floorTiles = [];
 		this._navigationTiles = [];
 		this._elevatedRoutes = [];
-		this._spawnTiles = [];
-		this._meshes = [];
-		this._cullDistance = Infinity;
-		this._cullDistanceMobile = Infinity;
-		this._lastAddedMapObject = null;
-		this.pool = new MeshPool();
+	this._spawnTiles = [];
+	this._meshes = [];
+	this._cullDistance = Infinity;
+	this._cullDistanceMobile = Infinity;
+	this._lastAddedMapObject = null;
+	this.pool = new MeshPool();
 		const _origAdd = this.scene.add.bind(this.scene);
 		this.scene.add = (obj) => {
 			// Only track map-generated MESHES and GROUPS for culling (not InstancedMesh — created after generation)
@@ -9283,7 +9283,8 @@ export class MapGenerator {
 		if (playerPos) this._lastPlayerPos = playerPos;
 		this._animSkipTimer = (this._animSkipTimer || 0) - delta;
 		if (this._animSkipTimer > 0) return;
-		this._animSkipTimer = 0.06;
+		const skip = this.isMobile ? 0.12 : 0.06;
+		this._animSkipTimer = skip;
 		this._animationBatchIndex = ((this._animationBatchIndex || 0) + 1) % 9;
 		switch (this._animationBatchIndex) {
 			case 0: this.updateFountainAnimation(0.54); break;
