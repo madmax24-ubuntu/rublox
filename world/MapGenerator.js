@@ -2126,11 +2126,6 @@ export class MapGenerator {
 
 		// Передняя стена второго этажа
 		const front2Geo = this.pool.getGeoBox(w, storyH, wallThick);
-		const front2 = new THREE.Mesh(front2Geo, wallMat);
-		front2.position.set(0, storyH + storyH / 2 + 0.3, d / 2);
-		front2.userData.mapGenerated = true;
-		front2.userData.isWall = true;
-		cabin.add(front2);
 
 		// Задняя стена второго этажа
 		const back2 = new THREE.Mesh(front2Geo, wallMat);
