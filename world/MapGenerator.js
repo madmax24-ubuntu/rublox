@@ -1721,11 +1721,11 @@ export class MapGenerator {
 
 		addBox(w, 0.3, d, 0, -0.01, 0, floorMat, false, true);
 		addBox(12, 0.3, d, 2.5, 4.15, 0, floorMat, false, true);
-		addBox(3.2, 0.3, 3.4, -4.9, 4.15, -1.4, floorMat, false, true);
-		addBox(13.1, 0.3, d, -2.45, 8.35, 0, roofMat, false, true);
-		addBox(0.3, 0.3, d, 8.85, 8.35, 0, roofMat, false, true);
-		addBox(4.6, 0.3, 3.6, 6.4, 8.35, -5.2, roofMat, false, true);
-		addBox(4.6, 0.3, 2.4, 6.4, 8.35, 5.8, roofMat, false, true);
+		// Второй этаж - расширенный, чтобы полностью опирать верхнюю ступень левой лестницы
+		addBox(5.4, 0.3, 3.4, -5.5, 4.15, -1.4, floorMat, false, true);
+		// Крыша цельная (без отверстия) - верх правой лестницы упирается в крышу,
+		// через дыру в крыше игрок падал
+		addBox(w, 0.3, d, 0, 8.35, 0, roofMat, false, true);
 
 		addBox(w, wallH, wallT, 0, wallH * 0.5, -d * 0.5, wallMat, true);
 		addBox(wallT, wallH, d, -w * 0.5, wallH * 0.5, 0, wallMat, true);
@@ -3775,15 +3775,34 @@ export class MapGenerator {
 		const radialZ = Math.sin(exitAngle);
 		const tangentX = -radialZ;
 		const tangentZ = radialX;
-		// Hatch position — where the spiral staircase exits onto the roof
-		// Place hatch at the same radius as the top step so player exits directly into opening
-		const hatchX = towerCX + Math.cos(exitAngle) * spiralR;
-		const hatchZ = towerCZ + Math.sin(exitAngle) * spiralR;
+		// Exit passage — remove roof cells above the last ~5m of the spiral
+		// staircase (last 10 steps) so the player can climb the top steps
+		// without their head hitting the roof, then exit onto the remaining roof.
+		const exitStepsCount = 10;
+		const exitHeadRadius = 0.7;
+		const exitPath = [];
+		for (let i = totalSteps - exitStepsCount; i < totalSteps; i++) {
+			const a = i * angleStep;
+			exitPath.push({
+				x: towerCX + Math.cos(a) * spiralR,
+				z: towerCZ + Math.sin(a) * spiralR,
+			});
+		}
+		const inExitPassage = (cx, cz) => {
+			for (const p of exitPath) {
+				if (
+					Math.abs(cx - p.x) <= roofCellSize * 0.5 + exitHeadRadius &&
+					Math.abs(cz - p.z) <= roofCellSize * 0.5 + exitHeadRadius
+				)
+					return true;
+			}
+			return false;
+		};
 		for (let dx = -6; dx <= 6; dx += roofCellSize) {
 			for (let dz = -6; dz <= 6; dz += roofCellSize) {
 				if (Math.hypot(dx, dz) > roofRadius - 0.4) continue;
-				// Skip the cell at the hatch opening
-				if (Math.hypot(towerCX + dx - hatchX, towerCZ + dz - hatchZ) < roofCellSize * 1.8) continue;
+				// Skip cells above the exit passage (last ~5m of spiral staircase)
+				if (inExitPassage(towerCX + dx, towerCZ + dz)) continue;
 				roofCells.push({
 					x: towerCX + dx,
 					z: towerCZ + dz,
