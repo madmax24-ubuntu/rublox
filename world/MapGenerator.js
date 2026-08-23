@@ -1723,9 +1723,10 @@ export class MapGenerator {
 		addBox(12, 0.3, d, 2.5, 4.15, 0, floorMat, false, true);
 		// Второй этаж - расширенный, чтобы полностью опирать верхнюю ступень левой лестницы
 		addBox(5.4, 0.3, 3.4, -5.5, 4.15, -1.4, floorMat, false, true);
-		// Крыша с отверстием для лестниц
-		addBox(6.4, 0.3, d, -5.8, 7.5, 0, roofMat, false, true);
-		addBox(6.4, 0.3, d, 5.8, 7.5, 0, roofMat, false, true);
+		// Крыша с отверстиями для лестниц (левая и правая)
+		addBox(1.0, 0.3, d, -8.5, 7.5, 0, roofMat, false, true);
+		addBox(9.6, 0.3, d, 0, 7.5, 0, roofMat, false, true);
+		addBox(1.0, 0.3, d, 8.5, 7.5, 0, roofMat, false, true);
 
 		addBox(w, wallH, wallT, 0, wallH * 0.5, -d * 0.5, wallMat, true);
 		addBox(wallT, wallH, d, -w * 0.5, wallH * 0.5, 0, wallMat, true);
