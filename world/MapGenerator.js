@@ -1568,6 +1568,39 @@ export class MapGenerator {
 				collider.min.z > maxZ
 			);
 		});
+		// Maze walls are a single InstancedMesh: remove the instances that intersect
+		// the footprint so they neither pierce the house nor block its staircases.
+		// (Their colliders were filtered above; dropping the instances also stops
+		// _syncMazeWallInstancedMesh from re-adding colliders for them.)
+		for (const child of [...this.scene.children]) {
+			if (!child.isInstancedMesh || !child.userData?.isMazeWalls) continue;
+			const m4 = new THREE.Matrix4();
+			const p = new THREE.Vector3();
+			const q = new THREE.Quaternion();
+			const s = new THREE.Vector3();
+			const keep = [];
+			for (let i = 0; i < child.count; i++) {
+				child.getMatrixAt(i, m4);
+				m4.decompose(p, q, s);
+				const hw = s.x * 0.5;
+				const hd = s.z * 0.5;
+				const intersects =
+					p.x + hw > minX &&
+					p.x - hw < maxX &&
+					p.z + hd > minZ &&
+					p.z - hd < maxZ;
+				if (!intersects) keep.push(i);
+			}
+			if (keep.length < child.count) {
+				for (let i = 0; i < keep.length; i++) {
+					child.getMatrixAt(keep[i], m4);
+					child.setMatrixAt(i, m4);
+				}
+				child.count = keep.length;
+				child.instanceMatrix.needsUpdate = true;
+				child.computeBoundingSphere();
+			}
+		}
 		this._buildings = this._buildings.filter(
 			(building) =>
 				Math.abs(building.x - x) > width || Math.abs(building.z - z) > depth,
@@ -1720,17 +1753,20 @@ export class MapGenerator {
 		};
 
 		addBox(w, 0.3, d, 0, -0.01, 0, floorMat, false, true);
-		addBox(12, 0.3, d, 2.5, 4.15, 0, floorMat, false, true);
-		// Второй этаж - расширенный, чтобы полностью опирать верхнюю ступень левой лестницы
-		addBox(5.4, 0.3, 3.4, -5.5, 4.15, -1.4, floorMat, false, true);
-		// Крыша с отверстиями для лестниц (левая и правая)
-		addBox(1.0, 0.3, d, -8.5, 7.5, 0, roofMat, false, true);
-		addBox(9.6, 0.3, d, 0, 7.5, 0, roofMat, false, true);
-		addBox(1.0, 0.3, d, 8.5, 7.5, 0, roofMat, false, true);
+		// Второй этаж - полный пол
+		addBox(w, 0.3, d, 0, 4.15, 0, floorMat, false, true);
+		// Крыша на уровне стен (верх 8.55) с проёмом над верхней частью правой лестницы
+		addBox(13.8, 0.3, d, -2.1, 8.4, 0, roofMat, false, true);
+		addBox(4.2, 0.3, 7.33, 6.9, 8.4, -3.335, roofMat, false, true);
+		addBox(4.2, 0.3, 4.53, 6.9, 8.4, 4.735, roofMat, false, true);
 
 		addBox(w, wallH, wallT, 0, wallH * 0.5, -d * 0.5, wallMat, true);
 		addBox(wallT, wallH, d, -w * 0.5, wallH * 0.5, 0, wallMat, true);
 		addBox(wallT, wallH, d, w * 0.5, wallH * 0.5, 0, wallMat, true);
+		// Передняя стена: сегменты по бокам от двери + участок над дверью
+		addBox(7.5, wallH, wallT, -5.25, wallH * 0.5, d * 0.5, wallMat, true);
+		addBox(7.5, wallH, wallT, 5.25, wallH * 0.5, d * 0.5, wallMat, true);
+		addBox(3, 5.2, wallT, 0, 5.8, d * 0.5, wallMat, true, false, true, true);
 
 		const stairCount = 12;
 		for (let i = 0; i < stairCount; i++) {
@@ -1766,35 +1802,35 @@ export class MapGenerator {
 			);
 		}
 
-		// Trim boxes removed to allow roof access
-		// for (const side of [-1, 1]) {
-		// 	addBox(
-		// 		w,
-		// 		0.8,
-		// 		0.35,
-		// 		0,
-		// 		8.8,
-		// 		side * (d * 0.5 - 0.18),
-		// 		trimMat,
-		// 		true,
-		// 		false,
-		// 		true,
-		// 		true,
-		// 	);
-		// 	addBox(
-		// 		0.35,
-		// 		0.8,
-		// 		d,
-		// 		side * (w * 0.5 - 0.18),
-		// 		8.8,
-		// 		0,
-		// 		trimMat,
-		// 		true,
-		// 		false,
-		// 		true,
-		// 		true,
-		// 	);
-		// }
+		// Карниз по периметру крыши
+		for (const side of [-1, 1]) {
+			addBox(
+				w,
+				0.8,
+				0.35,
+				0,
+				8.8,
+				side * (d * 0.5 - 0.18),
+				trimMat,
+				true,
+				false,
+				true,
+				true,
+			);
+			addBox(
+				0.35,
+				0.8,
+				d,
+				side * (w * 0.5 - 0.18),
+				8.8,
+				0,
+				trimMat,
+				true,
+				false,
+				true,
+				true,
+			);
+		}
 
 		for (const wx of [-5.5, 0, 5.5]) {
 			addBox(
@@ -2102,11 +2138,31 @@ export class MapGenerator {
 		);
 
 		// Стены второго этажа
+		for (const side of [-1, 1]) {
+			const side2 = new THREE.Mesh(
+				this.pool.getGeoBox(wallThick, storyH, d),
+				wallMat,
+			);
+			side2.position.set((side * w) / 2, storyH + storyH / 2 + 0.3, 0);
+			side2.userData.mapGenerated = true;
+			side2.userData.isWall = true;
+			cabin.add(side2);
+		}
 
 		// Передняя стена второго этажа
 		const front2Geo = this.pool.getGeoBox(w, storyH, wallThick);
+		const front2 = new THREE.Mesh(front2Geo, wallMat);
+		front2.position.set(0, storyH + storyH / 2 + 0.3, d / 2);
+		front2.userData.mapGenerated = true;
+		front2.userData.isWall = true;
+		cabin.add(front2);
 
 		// Задняя стена второго этажа
+		const back2 = new THREE.Mesh(front2Geo, wallMat);
+		back2.position.set(0, storyH + storyH / 2 + 0.3, -d / 2);
+		back2.userData.mapGenerated = true;
+		back2.userData.isWall = true;
+		cabin.add(back2);
 
 		// Окна второго этажа
 		for (const side of [-1, 1]) {
