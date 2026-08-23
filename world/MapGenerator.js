@@ -1754,9 +1754,9 @@ export class MapGenerator {
 
 		addBox(w, 0.3, d, 0, -0.01, 0, floorMat, false, true);
 		// Второй этаж - частичный пол с отверстием для левой лестницы
+		// Второй этаж - частичный пол с отверстием для левой лестницы (x=-6.4)
 		addBox(12, 0.3, d, 2.5, 4.15, 0, floorMat, false, true);
 		addBox(5.4, 0.3, 3.4, -5.5, 4.15, -1.4, floorMat, false, true);
-		// Крыша с проёмом для выхода на крышу (x 5..8, z 1..3)
 		// Крыша с проёмом для выхода на крышу (x 5..8, z 1..3)
 		addBox(12, 0.3, d, -1, 8.4, 0, roofMat, false, true);
 		addBox(2, 0.3, 8, 9, 8.4, -3, roofMat, false, true);
@@ -1766,9 +1766,9 @@ export class MapGenerator {
 		addBox(wallT, wallH, d, -w * 0.5, wallH * 0.5, 0, wallMat, true);
 		addBox(wallT, wallH, d, w * 0.5, wallH * 0.5, 0, wallMat, true);
 		// Передняя стена: сегменты по бокам от двери + участок над дверью
-		addBox(7.5, wallH, wallT, -5.25, wallH * 0.5, d * 0.5, wallMat, true);
-		addBox(7.5, wallH, wallT, 5.25, wallH * 0.5, d * 0.5, wallMat, true);
-		addBox(3, 5.2, wallT, 0, 5.8, d * 0.5, wallMat, true, false, true, true);
+		addBox(7, wallH, wallT, -5.5, wallH * 0.5, d * 0.5, wallMat, true);
+		addBox(7, wallH, wallT, 5.5, wallH * 0.5, d * 0.5, wallMat, true);
+		addBox(4, 5.2, wallT, 0, 5.8, d * 0.5, wallMat, true, false, true, true);
 
 		const stairCount = 12;
 		for (let i = 0; i < stairCount; i++) {
