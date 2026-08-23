@@ -1766,34 +1766,35 @@ export class MapGenerator {
 			);
 		}
 
-		for (const side of [-1, 1]) {
-			addBox(
-				w,
-				0.8,
-				0.35,
-				0,
-				8.8,
-				side * (d * 0.5 - 0.18),
-				trimMat,
-				true,
-				false,
-				true,
-				true,
-			);
-			addBox(
-				0.35,
-				0.8,
-				d,
-				side * (w * 0.5 - 0.18),
-				8.8,
-				0,
-				trimMat,
-				true,
-				false,
-				true,
-				true,
-			);
-		}
+		// Trim boxes removed to allow roof access
+		// for (const side of [-1, 1]) {
+		// 	addBox(
+		// 		w,
+		// 		0.8,
+		// 		0.35,
+		// 		0,
+		// 		8.8,
+		// 		side * (d * 0.5 - 0.18),
+		// 		trimMat,
+		// 		true,
+		// 		false,
+		// 		true,
+		// 		true,
+		// 	);
+		// 	addBox(
+		// 		0.35,
+		// 		0.8,
+		// 		d,
+		// 		side * (w * 0.5 - 0.18),
+		// 		8.8,
+		// 		0,
+		// 		trimMat,
+		// 		true,
+		// 		false,
+		// 		true,
+		// 		true,
+		// 	);
+		// }
 
 		for (const wx of [-5.5, 0, 5.5]) {
 			addBox(
