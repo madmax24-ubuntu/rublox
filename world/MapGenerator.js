@@ -3779,7 +3779,7 @@ export class MapGenerator {
 		// staircase (last 10 steps) so the player can climb the top steps
 		// without their head hitting the roof, then exit onto the remaining roof.
 		const exitStepsCount = 10;
-		const exitHeadRadius = 0.3;
+		const exitHeadRadius = 2.0;
 		const exitPath = [];
 		for (let i = totalSteps - exitStepsCount; i < totalSteps; i++) {
 			const a = i * angleStep;
@@ -3789,11 +3789,19 @@ export class MapGenerator {
 			});
 		}
 		const inExitPassage = (cx, cz) => {
-			for (const p of exitPath) {
-				if (
-					Math.hypot(cx - p.x, cz - p.z) <= roofCellSize * 0.5 + exitHeadRadius
-				)
-					return true;
+			const threshold = roofCellSize * 0.5 + exitHeadRadius;
+			for (let i = 0; i < exitPath.length - 1; i++) {
+				const a = exitPath[i];
+				const b = exitPath[i + 1];
+				const dx = b.x - a.x;
+				const dz = b.z - a.z;
+				const len2 = dx*dx + dz*dz;
+				if (len2 === 0) continue;
+				let t = ((cx - a.x)*dx + (cz - a.z)*dz) / len2;
+				t = Math.max(0, Math.min(1, t));
+				const projX = a.x + t*dx;
+				const projZ = a.z + t*dz;
+				if (Math.hypot(cx - projX, cz - projZ) <= threshold) return true;
 			}
 			return false;
 		};
@@ -9530,7 +9538,6 @@ export class MapGenerator {
 		return result;
 	}
 }
-
 
 
 
