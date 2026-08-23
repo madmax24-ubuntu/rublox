@@ -3779,7 +3779,7 @@ export class MapGenerator {
 		// staircase (last 10 steps) so the player can climb the top steps
 		// without their head hitting the roof, then exit onto the remaining roof.
 		const exitStepsCount = 10;
-		const exitHeadRadius = 2.0;
+		const exitHeadRadius = 0.3;
 		const exitPath = [];
 		for (let i = totalSteps - exitStepsCount; i < totalSteps; i++) {
 			const a = i * angleStep;
