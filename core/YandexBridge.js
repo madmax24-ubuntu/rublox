@@ -268,16 +268,34 @@ export class YandexBridge {
         } catch (_) {}
     }
 
-    // Requirement 1.12: monetization via sticky banner (BannerAPI)
+    // Requirement 1.12 / 4.6.1: monetization via sticky banner.
+    // Current SDK API: ysdk.adv.showBannerAdv()/hideBannerAdv()
+    // (fallback to legacy ysdk.features.BannerAPI for older SDK builds).
     showBanner() {
+        const ysdk = this.ysdk;
+        if (!ysdk) return;
         try {
-            this.ysdk?.features?.BannerAPI?.showBanner?.();
+            if (typeof ysdk.adv?.showBannerAdv === 'function') {
+                ysdk.adv.showBannerAdv();
+                return;
+            }
+        } catch (_) {}
+        try {
+            ysdk.features?.BannerAPI?.showBanner?.();
         } catch (_) {}
     }
 
     hideBanner() {
+        const ysdk = this.ysdk;
+        if (!ysdk) return;
         try {
-            this.ysdk?.features?.BannerAPI?.hideBanner?.();
+            if (typeof ysdk.adv?.hideBannerAdv === 'function') {
+                ysdk.adv.hideBannerAdv();
+                return;
+            }
+        } catch (_) {}
+        try {
+            ysdk.features?.BannerAPI?.hideBanner?.();
         } catch (_) {}
     }
 

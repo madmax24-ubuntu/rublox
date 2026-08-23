@@ -553,11 +553,12 @@ class Game {
 			this.countdownTime = GAME_CONFIG.round.countdownSeconds;
 			this.countdownTimer = this.countdownTime;
 			this.lastCountdownSecond = null;
+			this.spawnTime = GAME_CONFIG.round.preFightInvulnerableSeconds;
 			// Test mode: keep countdown long enough for tests to verify spawn positions
 			if (window.__kilo_test__) {
 				this.countdownTimer = 5;
+				this.spawnTime = 3;
 			}
-			this.spawnTime = GAME_CONFIG.round.preFightInvulnerableSeconds;
 			this.spawnTimer = this.spawnTime;
 			this.weaponPrewarmQueue = [
 				"bow",
@@ -1758,6 +1759,8 @@ class Game {
 		const kills = this.player?.stats?.kills || 0;
 		const record = this.saveBestStats(place, kills);
 		this.hud.showGameOver(message, { place, kills, record });
+		// Requirement 1.19.3: GameplayAPI.stop() при завершении игрового процесса (победа/поражение)
+		this.yandex?.gameplayStop?.();
 		// Requirement 1.12: показать sticky-баннер в неактивном состоянии (экран поражения)
 		this.yandex?.showBanner?.();
 	}
