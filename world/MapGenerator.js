@@ -1725,7 +1725,8 @@ export class MapGenerator {
 		addBox(5.4, 0.3, 3.4, -5.5, 4.15, -1.4, floorMat, false, true);
 		// Крыша цельная (без отверстия) - верх правой лестницы упирается в крышу,
 		// через дыру в крыше игрок падал
-		addBox(w, 0.3, d, 0, 7.5, 0, roofMat, false, true);
+		// Roof removed to allow roof access
+		// addBox(w, 0.3, d, 0, 7.5, 0, roofMat, false, true);
 
 		addBox(w, wallH, wallT, 0, wallH * 0.5, -d * 0.5, wallMat, true);
 		addBox(wallT, wallH, d, -w * 0.5, wallH * 0.5, 0, wallMat, true);
