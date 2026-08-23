@@ -1720,9 +1720,9 @@ export class MapGenerator {
 		};
 
 		addBox(w, 0.3, d, 0, -0.01, 0, floorMat, false, true);
-		addBox(12, 0.3, d, 2.5, 4.15, 0, floorMat, false, true);
-		// Второй этаж - расширенный, чтобы полностью опирать верхнюю ступень левой лестницы
-		addBox(5.4, 0.3, 3.4, -5.5, 4.15, -1.4, floorMat, false, true);
+		// Второй этаж - пол удалён для свободного доступа на крышу
+		// addBox(12, 0.3, d, 2.5, 4.15, 0, floorMat, false, true);
+		// addBox(5.4, 0.3, 3.4, -5.5, 4.15, -1.4, floorMat, false, true);
 		// Крыша цельная (без отверстия) - верх правой лестницы упирается в крышу,
 		// через дыру в крыше игрок падал
 		// Roof removed to allow roof access
@@ -2065,40 +2065,7 @@ export class MapGenerator {
 		}
 
 		// Второй этаж - пол с проёмом для лестницы
-		const floor2LeftW = w - stairW - 0.8;
-		const floor2FrontD = Math.max(0.6, d / 2 - stairStartZ);
-		const stairEndZ = stairStartZ - stairD;
-		const floor2BackD = Math.max(0.6, stairEndZ + d / 2);
-		const floor2YL = storyH + 0.15;
-
-		const floor2LeftGeo = this.pool.getGeoBox(floor2LeftW, 0.3, d);
-		const floor2Left = new THREE.Mesh(floor2LeftGeo, woodMat);
-		floor2Left.position.set(-w / 2 + floor2LeftW / 2, floor2YL, 0);
-		floor2Left.userData.mapGenerated = true;
-		floor2Left.userData.walkable = true;
-		cabin.add(floor2Left);
-
-		this.addColliderBox(
-			new THREE.Vector3(x - w / 2 + floor2LeftW / 2, floor2YL, z),
-			floor2LeftW,
-			0.3,
-			d,
-			true,
-		);
-		this.addColliderBox(
-			new THREE.Vector3(x + stairX, floor2YL, z + d / 2 - floor2FrontD / 2),
-			stairW,
-			0.3,
-			floor2FrontD,
-			true,
-		);
-		this.addColliderBox(
-			new THREE.Vector3(x + stairX, floor2YL, z - d / 2 + floor2BackD / 2),
-			stairW,
-			0.3,
-			floor2BackD,
-			true,
-		);
+		// Floor removed to allow free passage to roof
 
 		// Стены второго этажа
 
@@ -3745,7 +3712,7 @@ export class MapGenerator {
 		// staircase (last 10 steps) so the player can climb the top steps
 		// without their head hitting the roof, then exit onto the remaining roof.
 		const exitStepsCount = 10;
-		const exitHeadRadius = 0.2;
+		const exitHeadRadius = 0.5;
 		const exitPath = [];
 		for (let i = totalSteps - exitStepsCount; i < totalSteps; i++) {
 			const a = i * angleStep;
