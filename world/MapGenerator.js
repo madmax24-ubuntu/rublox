@@ -2115,14 +2115,6 @@ export class MapGenerator {
 		);
 
 		// Стены второго этажа
-		for (const side of [-1, 1]) {
-			const sideGeo = this.pool.getGeoBox(wallThick, storyH, d);
-			const sideWall = new THREE.Mesh(sideGeo, wallMat);
-			sideWall.position.set((side * w) / 2, storyH + storyH / 2 + 0.3, 0);
-			sideWall.userData.mapGenerated = true;
-			sideWall.userData.isWall = true;
-			cabin.add(sideWall);
-		}
 
 		// Передняя стена второго этажа
 		const front2Geo = this.pool.getGeoBox(w, storyH, wallThick);
