@@ -1753,12 +1753,12 @@ export class MapGenerator {
 		};
 
 		addBox(w, 0.3, d, 0, -0.01, 0, floorMat, false, true);
-		// Второй этаж — перекрытие с проёмом z -3..0 над левой лестницей.
-		// Боковые блоки уже, проём шире по X. Пол сзади и спереди — сплошной.
-		addBox(w - 2 * wallT, 0.3, 4, 0, 4.15, -5.5, floorMat, false, true);
-		addBox(w - 2 * wallT, 0.3, 7, 0, 4.15, 3.5, floorMat, false, true);
-		addBox(3, 0.3, 3, -7.5, 4.15, -1.5, floorMat, false, true);
-		addBox(9, 0.3, 3, 4.5, 4.15, -1.5, floorMat, false, true);
+		// Второй этаж — перекрытие с проёмом z -4..-1, x -8..-4 над левой лестницей.
+		// Лестница L выходит на z=-2.06, x=-6.4. Проём покрывает верхние шаги.
+		addBox(w - 2 * wallT, 0.3, 3, 0, 4.15, -5, floorMat, false, true);
+		addBox(w - 2 * wallT, 0.3, 8, 0, 4.15, 3, floorMat, false, true);
+		addBox(1, 0.3, 3, -8.5, 4.15, -2.5, floorMat, false, true);
+		addBox(13, 0.3, 3, 2.5, 4.15, -2.5, floorMat, false, true);
 		// Крыша — проём над правой лестницей (R0..R11): x 5..8, z -5.5..3.0.
 		// Из 2 этажа виден выход на крышу.
 		addBox(13.5, 0.3, d, -1.75, 8.4, 0, roofMat, false, true);
