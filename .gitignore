@@ -14,31 +14,16 @@ conversations/
 
 # Yandex build
 yandex-game/
+yandex-game.zip
 
 # Test results and screenshots
 test-results/
 screenshots/
 .zipverify/
 
-# Test and diagnostic files
+# Test files
 tests/
-playwright.config.js
-pw-*.config.js
 
-# Debug/diagnostic logs
+# Logs
 *.log
-dev.log
-diag-*.log
-test-run*.log
-
-# Temporary fix scripts
-_fix*.cjs
-_fix*.py
-_fix*.js
-_add*.cjs
-fix_*.js
-fix_*.cjs
-
-# Reference images
-reference.png
 
