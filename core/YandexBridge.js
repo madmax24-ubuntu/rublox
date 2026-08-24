@@ -78,20 +78,6 @@ export class YandexBridge {
         }
     }
 
-    shouldUseSdkRuntime() {
-        try {
-            if (window.YandexGamesSDKEnvironment) return true;
-            const params = new URLSearchParams(window.location.search || '');
-            if (params.get('yandex') === '1' || params.get('yg') === '1') return true;
-            const parentDiffers = !!(window.parent && window.parent !== window);
-            const ref = String(document.referrer || '').toLowerCase();
-            const fromYandexRef = /yandex|ya\.ru|yandexgames/.test(ref);
-            return parentDiffers && fromYandexRef;
-        } catch (_) {
-            return false;
-        }
-    }
-
     loadSdkScript() {
         if (window.YaGames?.init) return Promise.resolve(true);
         return new Promise((resolve) => {
@@ -226,11 +212,14 @@ export class YandexBridge {
         this.lang = this.getLangFromUrl();
 
         try {
-            if (this.shouldUseSdkRuntime()) {
-                await this.loadSdkScript();
-            }
-            if (window.YaGames?.init && this.shouldUseSdkRuntime()) {
+            // Requirement 1.19: SDK инициализируется строго по документации.
+            // Тег <script src="/sdk.js"> уже в <head>, поэтому здесь просто
+            // дожидаемся его загрузки и всегда вызываем YaGames.init(), если
+            // глобальный объект YaGames доступен (на сервере Яндекса он будет).
+            await this.loadSdkScript();
+            if (window.YaGames?.init) {
                 this.ysdk = await window.YaGames.init();
+                // Requirement 2.14: автоопределение языка при запуске.
                 this.lang = this.normalizeLang(
                     this.ysdk?.environment?.i18n?.lang
                     || this.getLangFromUrl()
