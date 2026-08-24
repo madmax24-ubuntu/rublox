@@ -18,6 +18,7 @@ yandex-game/
 # Test results and screenshots
 test-results/
 screenshots/
+.zipverify/
 
 # Test and diagnostic files
 tests/

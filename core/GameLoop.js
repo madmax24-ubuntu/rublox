@@ -14,6 +14,28 @@ export class GameLoop {
         this._accumulator = 0;
         this._boundAnimate = () => this.animate();
         this._frameHandle = 0;
+        // Throttling for headless/automation: software WebGL (SwiftShader) at
+        // 60 FPS overloads the CPU. In headless we render ~10 FPS, which is
+        // enough for devtools inspection and screenshots.
+        // Override with ?fps=N in the URL (0 disables throttling).
+        this._throttleMs = this._detectThrottleMs();
+        this._lastFrameAt = 0;
+    }
+
+    _detectThrottleMs() {
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const fps = Number(params.get('fps'));
+            if (Number.isFinite(fps) && fps > 0 && fps < 60) {
+                return Math.round(1000 / fps);
+            }
+        } catch (_) {
+            // no window/location (tests) — fall through
+        }
+        const isHeadless =
+            typeof navigator !== 'undefined' &&
+            /headless/i.test(navigator.userAgent || '');
+        return isHeadless ? 100 : 0;
     }
 
     start() {
@@ -41,6 +63,16 @@ export class GameLoop {
 
     animate() {
         if (!this.isRunning) return;
+
+        // Skip frames outside the throttle interval (headless / ?fps=N).
+        if (this._throttleMs > 0) {
+            const now = performance.now();
+            if (now - this._lastFrameAt < this._throttleMs) {
+                this._frameHandle = requestAnimationFrame(this._boundAnimate);
+                return;
+            }
+            this._lastFrameAt = now;
+        }
 
         // Do not advance simulation when the tab/app is hidden.
         // In headless mode, document.hidden is always true, so check for it.

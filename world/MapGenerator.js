@@ -1764,6 +1764,9 @@ export class MapGenerator {
 		addBox(3, 0.3, 4, 6.5, 8.4, 5, roofMat, false, true);
 		addBox(2, 0.3, 8, 9, 8.4, -3, roofMat, false, true);
 		addBox(2, 0.3, 4, 9, 8.4, 5, roofMat, false, true);
+		// Мост в проёме крыши: закрывает зазор между верхним шагом R11 (z 2.47)
+		// и краем крыши (z 3.0), чтобы выход на крышу был плавным (top 8.55).
+		addBox(3, 0.3, 0.7, 6.5, 8.4, 2.75, roofMat, false, true);
 
 		addBox(w, wallH, wallT, 0, wallH * 0.5, -d * 0.5, wallMat, true);
 		addBox(wallT, wallH, d, -w * 0.5, wallH * 0.5, 0, wallMat, true);
