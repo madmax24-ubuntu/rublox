@@ -1753,12 +1753,12 @@ export class MapGenerator {
 		};
 
 		addBox(w, 0.3, d, 0, -0.01, 0, floorMat, false, true);
-		// Второй этаж — перекрытие с проёмом z -4..-1, x -8..-4 над левой лестницей.
-		// Лестница L выходит на z=-2.06, x=-6.4. Проём покрывает верхние шаги.
-		addBox(w - 2 * wallT, 0.3, 3, 0, 4.15, -5, floorMat, false, true);
-		addBox(w - 2 * wallT, 0.3, 8, 0, 4.15, 3, floorMat, false, true);
-		addBox(1, 0.3, 3, -8.5, 4.15, -2.5, floorMat, false, true);
-		addBox(13, 0.3, 3, 2.5, 4.15, -2.5, floorMat, false, true);
+		// Второй этаж — проём z -5..0, x -8.5..-3.5 (5×5) над левой лестницей.
+		// Лестница L: x=-6.4, z 5.2..-2.06. Проём шире лестницы, виден из 1 этажа.
+		addBox(w - 2 * wallT, 0.3, 2, 0, 4.15, -6, floorMat, false, true);
+		addBox(w - 2 * wallT, 0.3, 7, 0, 4.15, 3.5, floorMat, false, true);
+		addBox(0.5, 0.3, 5, -8.75, 4.15, -2.5, floorMat, false, true);
+		addBox(12.5, 0.3, 5, 2.75, 4.15, -2.5, floorMat, false, true);
 		// Крыша — проём над правой лестницей (R0..R11): x 5..8, z -5.5..3.0.
 		// Из 2 этажа виден выход на крышу.
 		addBox(13.5, 0.3, d, -1.75, 8.4, 0, roofMat, false, true);
@@ -3777,41 +3777,13 @@ export class MapGenerator {
 		const radialZ = Math.sin(exitAngle);
 		const tangentX = -radialZ;
 		const tangentZ = radialX;
-		// Exit passage — remove roof cells above the last ~5m of the spiral
-		// staircase (last 10 steps) so the player can climb the top steps
-		// without their head hitting the roof, then exit onto the remaining roof.
-		const exitStepsCount = 10;
-		const exitHeadRadius = 0.5;
-		const exitPath = [];
-		for (let i = totalSteps - exitStepsCount; i < totalSteps; i++) {
-			const a = i * angleStep;
-			exitPath.push({
-				x: towerCX + Math.cos(a) * spiralR,
-				z: towerCZ + Math.sin(a) * spiralR,
-			});
-		}
-		const inExitPassage = (cx, cz) => {
-			const threshold = roofCellSize * 0.5 + exitHeadRadius;
-			for (let i = 0; i < exitPath.length - 1; i++) {
-				const a = exitPath[i];
-				const b = exitPath[i + 1];
-				const dx = b.x - a.x;
-				const dz = b.z - a.z;
-				const len2 = dx*dx + dz*dz;
-				if (len2 === 0) continue;
-				let t = ((cx - a.x)*dx + (cz - a.z)*dz) / len2;
-				t = Math.max(0, Math.min(1, t));
-				const projX = a.x + t*dx;
-				const projZ = a.z + t*dz;
-				if (Math.hypot(cx - projX, cz - projZ) <= threshold) return true;
-			}
-			return false;
-		};
 		for (let dx = -6; dx <= 6; dx += roofCellSize) {
 			for (let dz = -6; dz <= 6; dz += roofCellSize) {
 				if (Math.hypot(dx, dz) > roofRadius - 0.4) continue;
-				// Skip cells above the exit passage (last ~5m of spiral staircase)
-				if (inExitPassage(towerCX + dx, towerCZ + dz)) continue;
+				// Solid roof: keep every cell so the player cannot fall through.
+				// The spiral's top step is flush with the roof top (y=topY), so the
+				// player climbs out and steps onto the roof without head clearance
+				// issues (head stays above the roof top on the final steps).
 				roofCells.push({
 					x: towerCX + dx,
 					z: towerCZ + dz,
