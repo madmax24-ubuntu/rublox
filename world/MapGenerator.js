@@ -1754,9 +1754,9 @@ export class MapGenerator {
 
 		addBox(w, 0.3, d, 0, -0.01, 0, floorMat, false, true);
 		addBox(w - 2 * wallT, 0.3, 1.2, 0, 4.15, -6.4, floorMat, false, true);
-		addBox(w - 2 * wallT, 0.3, 5.8, 0, 4.15, 4.1, floorMat, false, true);
-		addBox(0.5, 0.3, 7, -8.75, 4.15, -2.3, floorMat, false, true);
-		addBox(11.7, 0.3, 7, 2.65, 4.15, -2.3, floorMat, false, true);
+		addBox(w - 2 * wallT, 0.3, 4, 0, 4.15, 5, floorMat, false, true);
+		addBox(0.5, 0.3, 8.8, -8.75, 4.15, -1.4, floorMat, false, true);
+		addBox(11.5, 0.3, 8.8, 2.75, 4.15, -1.4, floorMat, false, true);
 		// Крыша — проём над правой лестницей (R0..R11): x 5..8, z -5.5..3.0.
 		// Из 2 этажа виден выход на крышу.
 		addBox(13.5, 0.3, d, -1.75, 8.4, 0, roofMat, false, true);
@@ -3776,7 +3776,7 @@ export class MapGenerator {
 		const tangentX = -radialZ;
 		const tangentZ = radialX;
 		const roofExitPath = [];
-		for (let i = totalSteps - 8; i < totalSteps; i++) {
+		for (let i = totalSteps - 10; i < totalSteps; i++) {
 			const angle = i * angleStep;
 			roofExitPath.push({
 				x: Math.cos(angle) * spiralR,
@@ -3788,7 +3788,7 @@ export class MapGenerator {
 				if (Math.hypot(dx, dz) > roofRadius - 0.4) continue;
 				if (
 					roofExitPath.some(
-						(point) => Math.hypot(dx - point.x, dz - point.z) < 2.4,
+						(point) => Math.hypot(dx - point.x, dz - point.z) < 3.4,
 					)
 				)
 					continue;
