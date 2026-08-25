@@ -1757,6 +1757,7 @@ export class MapGenerator {
 		addBox(w - 2 * wallT, 0.3, 4, 0, 4.15, 5, floorMat, false, true);
 		addBox(0.5, 0.3, 8.8, -8.75, 4.15, -1.4, floorMat, false, true);
 		addBox(11.5, 0.3, 8.8, 2.75, 4.15, -1.4, floorMat, false, true);
+		addBox(5.5, 0.3, 3.35, -5.75, 4.15, -4.125, floorMat, false, true);
 		// Крыша — проём над правой лестницей (R0..R11): x 5..8, z -5.5..3.0.
 		// Из 2 этажа виден выход на крышу.
 		addBox(13.5, 0.3, d, -1.75, 8.4, 0, roofMat, false, true);
@@ -1764,9 +1765,7 @@ export class MapGenerator {
 		addBox(3, 0.3, 4, 6.5, 8.4, 5, roofMat, false, true);
 		addBox(2, 0.3, 8, 9, 8.4, -3, roofMat, false, true);
 		addBox(2, 0.3, 4, 9, 8.4, 5, roofMat, false, true);
-		// Мост в проёме крыши: закрывает зазор между верхним шагом R11 (z 2.47)
-		// и краем крыши (z 3.0), чтобы выход на крышу был плавным (top 8.55).
-		addBox(3, 0.3, 0.7, 6.5, 8.4, 2.75, roofMat, false, true);
+		addBox(4, 0.3, 1.2, 6.5, 8.4, 2.9, roofMat, false, true);
 
 		addBox(w, wallH, wallT, 0, wallH * 0.5, -d * 0.5, wallMat, true);
 		addBox(wallT, wallH, d, -w * 0.5, wallH * 0.5, 0, wallMat, true);
@@ -3775,6 +3774,8 @@ export class MapGenerator {
 		const radialZ = Math.sin(exitAngle);
 		const tangentX = -radialZ;
 		const tangentZ = radialX;
+		const roofLandingX = radialX * 5.2 + tangentX * 2.2;
+		const roofLandingZ = radialZ * 5.2 + tangentZ * 2.2;
 		const roofExitPath = [];
 		for (let i = totalSteps - 10; i < totalSteps; i++) {
 			const angle = i * angleStep;
@@ -3788,7 +3789,7 @@ export class MapGenerator {
 				if (Math.hypot(dx, dz) > roofRadius - 0.4) continue;
 				if (
 					roofExitPath.some(
-						(point) => Math.hypot(dx - point.x, dz - point.z) < 3.4,
+						(point) => Math.hypot(dx - point.x, dz - point.z) < 2.4,
 					)
 				)
 					continue;
@@ -3824,6 +3825,41 @@ export class MapGenerator {
 		roofTiles.userData.walkable = true;
 		roofTiles.userData.isTowerStructure = true;
 		this.scene.add(roofTiles);
+		const landingWidth = 4;
+		const landingDepth = 3.2;
+		const landingRotation = -exitAngle + Math.PI / 2;
+		const roofLanding = new THREE.Mesh(
+			this.pool.getGeoBox(landingWidth, 0.3, landingDepth),
+			darkMat,
+		);
+		roofLanding.position.set(
+			towerCX + roofLandingX,
+			topY - 0.12,
+			towerCZ + roofLandingZ,
+		);
+		roofLanding.rotation.y = landingRotation;
+		roofLanding.userData.mapGenerated = true;
+		roofLanding.userData.walkable = true;
+		roofLanding.userData.isTowerStructure = true;
+		roofLanding.frustumCulled = false;
+		this.scene.add(roofLanding);
+		const landingCos = Math.abs(Math.cos(landingRotation));
+		const landingSin = Math.abs(Math.sin(landingRotation));
+		const landingCollider = this.addColliderBox(
+			roofLanding.position,
+			landingWidth * landingCos + landingDepth * landingSin,
+			0.3,
+			landingWidth * landingSin + landingDepth * landingCos,
+			true,
+		);
+		landingCollider.isTowerStructure = true;
+		landingCollider.surfaceOBB = {
+			x: roofLanding.position.x,
+			z: roofLanding.position.z,
+			halfWidth: landingWidth * 0.5,
+			halfDepth: landingDepth * 0.5,
+			rotation: landingRotation,
+		};
 		const towerRoute = [];
 		const doorAngle = (towerDoorIndex / towerWallSegments) * Math.PI * 2;
 		towerRoute.push(
