@@ -348,7 +348,13 @@ export class Physics {
 			const localX = dx * cos - dz * sin;
 			const localZ = dx * sin + dz * cos;
 			const clearance =
-				radius * (box.isTowerStair || box.isBiomeEntrance || box.isBiomeResidence ? 0 : 0.35);
+				radius *
+				(box.isTowerStair ||
+				box.isTowerRoof ||
+				box.isBiomeEntrance ||
+				box.isBiomeResidence
+					? 0
+					: 0.35);
 			return (
 				Math.abs(localX) <= Math.max(0.02, obb.halfWidth - clearance) &&
 				Math.abs(localZ) <= Math.max(0.02, obb.halfDepth - clearance)
@@ -361,10 +367,13 @@ export class Physics {
 			if (!min || !max) return false;
 			const preciseEdge =
 				box.isTowerStair ||
+				box.isTowerRoof ||
 				box.isBiomeEntrance ||
 				box.isBiomeResidence ||
 				box.isSpawnPlatform;
-			const clearance = radius * (preciseEdge ? 0.08 : 0.35);
+			const clearance = box.isTowerRoof
+				? 0
+				: radius * (preciseEdge ? 0.08 : 0.35);
 			return (
 				x >= min.x + clearance &&
 				x <= max.x - clearance &&

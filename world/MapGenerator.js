@@ -3817,6 +3817,7 @@ export class MapGenerator {
 				true,
 			);
 			collider.isTowerStructure = true;
+			collider.isTowerRoof = true;
 		}
 		roofTiles.instanceMatrix.needsUpdate = true;
 		roofTiles.computeBoundingSphere();
@@ -3853,6 +3854,7 @@ export class MapGenerator {
 			true,
 		);
 		landingCollider.isTowerStructure = true;
+		landingCollider.isTowerRoof = true;
 		landingCollider.surfaceOBB = {
 			x: roofLanding.position.x,
 			z: roofLanding.position.z,
