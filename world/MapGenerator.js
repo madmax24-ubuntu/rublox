@@ -1753,12 +1753,10 @@ export class MapGenerator {
 		};
 
 		addBox(w, 0.3, d, 0, -0.01, 0, floorMat, false, true);
-		// Второй этаж — проём z -5..0, x -8.5..-3.5 (5×5) над левой лестницей.
-		// Лестница L: x=-6.4, z 5.2..-2.06. Проём шире лестницы, виден из 1 этажа.
-		addBox(w - 2 * wallT, 0.3, 2, 0, 4.15, -6, floorMat, false, true);
-		addBox(w - 2 * wallT, 0.3, 7, 0, 4.15, 3.5, floorMat, false, true);
-		addBox(0.5, 0.3, 5, -8.75, 4.15, -2.5, floorMat, false, true);
-		addBox(12.5, 0.3, 5, 2.75, 4.15, -2.5, floorMat, false, true);
+		addBox(w - 2 * wallT, 0.3, 1.2, 0, 4.15, -6.4, floorMat, false, true);
+		addBox(w - 2 * wallT, 0.3, 5.8, 0, 4.15, 4.1, floorMat, false, true);
+		addBox(0.5, 0.3, 7, -8.75, 4.15, -2.3, floorMat, false, true);
+		addBox(11.7, 0.3, 7, 2.65, 4.15, -2.3, floorMat, false, true);
 		// Крыша — проём над правой лестницей (R0..R11): x 5..8, z -5.5..3.0.
 		// Из 2 этажа виден выход на крышу.
 		addBox(13.5, 0.3, d, -1.75, 8.4, 0, roofMat, false, true);
@@ -3777,14 +3775,21 @@ export class MapGenerator {
 		const radialZ = Math.sin(exitAngle);
 		const tangentX = -radialZ;
 		const tangentZ = radialX;
+		const roofExitPath = [];
+		for (let i = totalSteps - 8; i < totalSteps; i++) {
+			const angle = i * angleStep;
+			roofExitPath.push({
+				x: Math.cos(angle) * spiralR,
+				z: Math.sin(angle) * spiralR,
+			});
+		}
 		for (let dx = -6; dx <= 6; dx += roofCellSize) {
 			for (let dz = -6; dz <= 6; dz += roofCellSize) {
 				if (Math.hypot(dx, dz) > roofRadius - 0.4) continue;
 				if (
-					Math.hypot(
-						dx - radialX * spiralR,
-						dz - radialZ * spiralR,
-					) < 2.35
+					roofExitPath.some(
+						(point) => Math.hypot(dx - point.x, dz - point.z) < 2.4,
+					)
 				)
 					continue;
 				roofCells.push({
