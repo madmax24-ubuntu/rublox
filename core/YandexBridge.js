@@ -219,8 +219,10 @@ export class YandexBridge {
                 if (window.YaGames?.init) this.ysdk = await window.YaGames.init();
             }
             if (this.ysdk) {
+                const sdkLang = this.ysdk.environment.i18n.lang;
                 this.lang = this.normalizeLang(
-                    this.ysdk?.environment?.i18n?.lang
+                    window.yandexGamesLanguage
+                    || sdkLang
                     || this.getLangFromUrl()
                     || navigator.language
                 );
