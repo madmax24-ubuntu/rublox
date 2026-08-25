@@ -88,6 +88,7 @@ class Game {
 		this.isStarted = false;
 		this.startingGame = false;
 		this.adInProgress = false;
+		this.platformPaused = false;
 		this.rewardedReviveUsed = false;
 		this._constructorRan = true;
 		this.nextSpawnIndex = 0;
@@ -270,7 +271,6 @@ class Game {
 	}
 
 	onAppVisible(reason = "resume") {
-		this.audioSynth?.resumeAudio?.();
 		this.gameLoop?.resetDelta?.();
 		this.applyRendererSizing();
 		if (loadingOverlay && loadingOverlay.style.display !== "none") {
@@ -291,6 +291,9 @@ class Game {
 			this.isStarted
 		) {
 			this.setPaused(false);
+		}
+		if (!this.platformPaused && !this.adInProgress && this.isStarted && !this.isPaused) {
+			this.audioSynth?.resumeAudio?.();
 		}
 		if (this.map?.updatePropVisibility && this.player?.position) {
 			this.map.updatePropVisibility(this.player.position);
@@ -732,7 +735,7 @@ class Game {
 		this.hud.showPause(this.isPaused && !this.killRewardActive);
 		this.input?.clearInputState?.();
 		if (this.isPaused) this.yandex?.gameplayStop?.();
-		else this.yandex?.gameplayStart?.();
+		else if (!this.platformPaused && !this.adInProgress) this.yandex?.gameplayStart?.();
 		if (!this.isMobile()) {
 			document.body.style.cursor = this.isPaused ? "auto" : "none";
 			if (this.renderer?.domElement) {
@@ -1790,7 +1793,6 @@ class Game {
 		this.yandex.hideBanner();
 		this.audioSynth?.suspendAudio?.();
 		const result = await this.yandex.showRewardedVideo();
-		this.audioSynth?.resumeAudio?.();
 		this.adInProgress = false;
 		if (!result.rewarded) {
 			if (button) button.disabled = false;
@@ -1824,6 +1826,7 @@ class Game {
 		this.hud.updateArmor?.(player.armor, player.maxArmor);
 		this.yandex.hideBanner();
 		this.yandex.gameplayStart();
+		if (!this.platformPaused) this.audioSynth?.resumeAudio?.();
 		this.gameLoop?.resetDelta?.();
 		if (!this.isMobile()) this.cameraController?.lock?.();
 	}
@@ -1879,8 +1882,9 @@ class Game {
 
 	// Requirement 1.19: пауза/возобновление по событиям платформы (SDK)
 	platformPause() {
-		if (this.startingGame) return;
+		this.platformPaused = true;
 		this.audioSynth?.suspendAudio?.();
+		if (this.startingGame) return;
 		if (this.isStarted && !this.isPaused) {
 			this.autoPausedByVisibility = true;
 			this.setPaused(true);
@@ -1888,10 +1892,12 @@ class Game {
 	}
 
 	platformResume() {
-		this.audioSynth?.resumeAudio?.();
+		this.platformPaused = false;
+		if (this.adInProgress || !this.isStarted || this.gameState === "ended") return;
 		if (this.isStarted && this.isPaused && this.autoPausedByVisibility) {
 			this.setPaused(false);
 		}
+		if (!this.isPaused) this.audioSynth?.resumeAudio?.();
 	}
 
 	showStartRecord() {
