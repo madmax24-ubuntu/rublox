@@ -31,7 +31,7 @@ await copy('node_modules/three/examples/jsm/utils/BufferGeometryUtils.js', 'node
 
 const indexPath = path.join(target, 'index.html');
 let html = await readFile(indexPath, 'utf8');
-html = html.replace('</head>', '    <script async src="/sdk.js" data-yg-sdk="1" onload="this.dataset.loaded=\'1\'" onerror="this.dataset.failed=\'1\'"></script>\n</head>');
+html = html.replace('<head>', '<head>\n    <script src="/sdk.js"></script>\n    <script>window.yandexGamesSdkPromise = YaGames.init();</script>');
 html = html.replace(/<script type="module" src="\.\/main\.js[^\"]*"><\/script>/i, '<script>window.__ARENA_BUILD_MODE = \'single\';</script>\n    <script type="module" src="./main.js"></script>');
 await writeFile(indexPath, html, 'utf8');
 

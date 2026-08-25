@@ -212,14 +212,13 @@ export class YandexBridge {
         this.lang = this.getLangFromUrl();
 
         try {
-            // Requirement 1.19: SDK инициализируется строго по документации.
-            // Тег <script src="/sdk.js"> уже в <head>, поэтому здесь просто
-            // дожидаемся его загрузки и всегда вызываем YaGames.init(), если
-            // глобальный объект YaGames доступен (на сервере Яндекса он будет).
-            await this.loadSdkScript();
-            if (window.YaGames?.init) {
-                this.ysdk = await window.YaGames.init();
-                // Requirement 2.14: автоопределение языка при запуске.
+            if (window.yandexGamesSdkPromise) {
+                this.ysdk = await window.yandexGamesSdkPromise;
+            } else {
+                await this.loadSdkScript();
+                if (window.YaGames?.init) this.ysdk = await window.YaGames.init();
+            }
+            if (this.ysdk) {
                 this.lang = this.normalizeLang(
                     this.ysdk?.environment?.i18n?.lang
                     || this.getLangFromUrl()
