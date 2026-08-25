@@ -1883,14 +1883,14 @@ export class MapGenerator {
 		}
 
 		if (biome === "forest") {
-			addBox(1.4, 2.4, 1.4, 5.8, 9.55, -3.8, trimMat, true, false, true, true);
+			addBox(1.4, 2.4, 1.4, -5.8, 9.55, -3.8, trimMat, true, false, true, true);
 		} else if (biome === "maze") {
 			for (const cx of [-7.5, -2.5, 2.5, 7.5])
 				addBox(1.2, 1.2, 1.2, cx, 9.4, -6.3, trimMat, true, false, true, true);
 		} else if (biome === "military") {
 			addBox(5.5, 1.2, 3.2, 3.5, 9.05, -3.5, trimMat, true, false, true, true);
 		} else {
-			for (const sx of [-5, 0, 5])
+			for (const sx of [-6, -2, 2])
 				addBox(1.1, 2.4, 1.1, sx, 9.55, -4.8, roofMat, true, false, true, true);
 		}
 
@@ -3780,10 +3780,13 @@ export class MapGenerator {
 		for (let dx = -6; dx <= 6; dx += roofCellSize) {
 			for (let dz = -6; dz <= 6; dz += roofCellSize) {
 				if (Math.hypot(dx, dz) > roofRadius - 0.4) continue;
-				// Solid roof: keep every cell so the player cannot fall through.
-				// The spiral's top step is flush with the roof top (y=topY), so the
-				// player climbs out and steps onto the roof without head clearance
-				// issues (head stays above the roof top on the final steps).
+				if (
+					Math.hypot(
+						dx - radialX * spiralR,
+						dz - radialZ * spiralR,
+					) < 2.35
+				)
+					continue;
 				roofCells.push({
 					x: towerCX + dx,
 					z: towerCZ + dz,
