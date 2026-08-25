@@ -31,6 +31,7 @@ export const HUD_STRINGS = {
         scoreboardTitle: 'Итоги раунда',
         keybinds: { KeyW: 'Вперёд', KeyS: 'Назад', KeyA: 'Влево', KeyD: 'Вправо', Space: 'Прыжок', KeyE: 'Взаимодействие', MouseLeft: 'Атака', KeyP: 'Меню перков' },
         gameOverTitle: 'Игра окончена',
+        reviveAd: '▶ Посмотреть рекламу и продолжить',
         gameOverPlace: (place, kills) => `Место: ${place} · Убийства: ${kills}`,
         gameOverRecord: (place, kills) => `Рекорд: ${place}-е место · ${kills} убийств`,
         newRecord: 'Новый рекорд!',
@@ -70,6 +71,7 @@ export const HUD_STRINGS = {
         scoreboardTitle: 'Round results',
         keybinds: { KeyW: 'Forward', KeyS: 'Back', KeyA: 'Left', KeyD: 'Right', Space: 'Jump', KeyE: 'Interact', MouseLeft: 'Attack', KeyP: 'Perk menu' },
         gameOverTitle: 'Game Over',
+        reviveAd: '▶ Watch an ad and continue',
         gameOverPlace: (place, kills) => `Place: ${place} · Kills: ${kills}`,
         gameOverRecord: (place, kills) => `Record: ${place}th place · ${kills} kills`,
         newRecord: 'New record!',
@@ -1152,6 +1154,7 @@ export class HUD {
         this._el.invulnerabilityTimer = invulnerabilityTimer;
         this._el.gameOverlay = gameOverlay;
         this._el.gameOverStats = document.getElementById('gameOverStats');
+        this._el.reviveAdBtn = document.getElementById('reviveAdBtn');
         this._el.stormOverlay = stormOverlay;
         this._el.contamOverlay = contamOverlay;
         this._el.countdown = countdown;
@@ -1621,6 +1624,11 @@ export class HUD {
             } else {
                 statsEl.textContent = '';
             }
+        }
+        if (this._el.reviveAdBtn) {
+            this._el.reviveAdBtn.textContent = this.t.reviveAd;
+            this._el.reviveAdBtn.style.display = stats?.canRevive ? 'block' : 'none';
+            this._el.reviveAdBtn.disabled = false;
         }
         overlay.style.display = 'flex';
         overlay.style.pointerEvents = 'auto';

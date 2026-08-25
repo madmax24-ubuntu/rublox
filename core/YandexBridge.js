@@ -288,6 +288,60 @@ export class YandexBridge {
         } catch (_) {}
     }
 
+    canShowRewarded() {
+        return typeof this.ysdk?.adv?.showRewardedVideo === 'function';
+    }
+
+    showRewardedVideo() {
+        const adv = this.ysdk?.adv;
+        if (typeof adv?.showRewardedVideo !== 'function') {
+            return Promise.resolve({ shown: false, rewarded: false });
+        }
+        return new Promise((resolve) => {
+            let rewarded = false;
+            let settled = false;
+            const finish = (shown) => {
+                if (settled) return;
+                settled = true;
+                resolve({ shown: Boolean(shown), rewarded });
+            };
+            try {
+                adv.showRewardedVideo({
+                    callbacks: {
+                        onRewarded: () => { rewarded = true; },
+                        onClose: (shown) => finish(shown),
+                        onError: () => finish(false),
+                    },
+                });
+            } catch (_) {
+                finish(false);
+            }
+        });
+    }
+
+    showFullscreenAdv() {
+        const adv = this.ysdk?.adv;
+        if (typeof adv?.showFullscreenAdv !== 'function') return Promise.resolve(false);
+        return new Promise((resolve) => {
+            let settled = false;
+            const finish = (shown) => {
+                if (settled) return;
+                settled = true;
+                resolve(Boolean(shown));
+            };
+            try {
+                adv.showFullscreenAdv({
+                    callbacks: {
+                        onClose: (shown) => finish(shown),
+                        onError: () => finish(false),
+                    },
+                });
+            } catch (_) {
+                finish(false);
+            }
+        });
+    }
+
     gameplayStart() {
         try {
             this.ysdk?.features?.GameplayAPI?.start?.();

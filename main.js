@@ -87,6 +87,8 @@ class Game {
 		this.yandex = yandexBridge || new YandexBridge();
 		this.isStarted = false;
 		this.startingGame = false;
+		this.adInProgress = false;
+		this.rewardedReviveUsed = false;
 		this._constructorRan = true;
 		this.nextSpawnIndex = 0;
 		this.mobileMode =
@@ -1758,11 +1760,82 @@ class Game {
 		const place = this.player?.isAlive ? 1 : aliveCount.length + 1;
 		const kills = this.player?.stats?.kills || 0;
 		const record = this.saveBestStats(place, kills);
-		this.hud.showGameOver(message, { place, kills, record });
+		this.hud.showGameOver(message, {
+			place,
+			kills,
+			record,
+			canRevive:
+				!this.player?.isAlive &&
+				!this.rewardedReviveUsed &&
+				this.yandex?.canShowRewarded?.(),
+		});
 		// Requirement 1.19.3: GameplayAPI.stop() при завершении игрового процесса (победа/поражение)
 		this.yandex?.gameplayStop?.();
 		// Requirement 1.12: показать sticky-баннер в неактивном состоянии (экран поражения)
 		this.yandex?.showBanner?.();
+	}
+
+	async reviveWithRewardedAd() {
+		if (
+			this.adInProgress ||
+			this.rewardedReviveUsed ||
+			this.player?.isAlive ||
+			!this.yandex?.canShowRewarded?.()
+		)
+			return;
+		this.adInProgress = true;
+		const button = document.getElementById("reviveAdBtn");
+		if (button) button.disabled = true;
+		this.yandex.gameplayStop();
+		this.yandex.hideBanner();
+		this.audioSynth?.suspendAudio?.();
+		const result = await this.yandex.showRewardedVideo();
+		this.audioSynth?.resumeAudio?.();
+		this.adInProgress = false;
+		if (!result.rewarded) {
+			if (button) button.disabled = false;
+			this.yandex.showBanner();
+			return;
+		}
+		this.rewardedReviveUsed = true;
+		const player = this.player;
+		const surface = this.map?.getSurfaceHeightAt?.(player.position.x, player.position.z) ?? 0;
+		player.position.y = surface + player.physics.height;
+		player.health = Math.max(50, player.maxHealth * 0.5);
+		player.armor = Math.max(player.armor, 25);
+		player.isAlive = true;
+		player.isFrozen = false;
+		player.physics.velocity.set(0, 0, 0);
+		player.mesh.position.copy(player.position);
+		player.mesh.rotation.set(0, player.rotation.y, 0);
+		player.clearBurning?.();
+		player.clearRadiation?.();
+		if (!player.infiniteHealth) {
+			player.setInvulnerable(true);
+			setTimeout(() => {
+				if (!player.infiniteHealth) player.setInvulnerable(false);
+			}, 4000);
+		}
+		this.roundFinished = false;
+		this.gameState = "playing";
+		this.deathHandled = false;
+		this.hud.hideGameOver();
+		this.hud.updateHealth?.(player.health, player.maxHealth);
+		this.hud.updateArmor?.(player.armor, player.maxArmor);
+		this.yandex.hideBanner();
+		this.yandex.gameplayStart();
+		this.gameLoop?.resetDelta?.();
+		if (!this.isMobile()) this.cameraController?.lock?.();
+	}
+
+	async restartWithFullscreenAd() {
+		if (this.adInProgress) return;
+		this.adInProgress = true;
+		this.yandex?.gameplayStop?.();
+		this.yandex?.hideBanner?.();
+		this.audioSynth?.suspendAudio?.();
+		await this.yandex?.showFullscreenAdv?.();
+		window.location.reload();
 	}
 
 	// Requirement 2.6: игра сохраняет рекорды
@@ -3989,6 +4062,12 @@ window.addEventListener("DOMContentLoaded", () => {
 	const yandexReady = yandex.init().catch((err) => {
 		console.warn("Yandex init fallback:", err);
 		return yandex;
+	});
+	document.getElementById("reviveAdBtn")?.addEventListener("click", () => {
+		game.reviveWithRewardedAd();
+	});
+	document.getElementById("restartBtn")?.addEventListener("click", () => {
+		game.restartWithFullscreenAd();
 	});
 	Promise.all([game.ready, yandexReady]).then(() => {
 		// Requirement 2.14: применяем язык платформы к HUD
