@@ -286,6 +286,8 @@ class Game {
 		this.rainUpdateAccumulator = 0;
 		if (
 			this.isMobile() &&
+			!this.platformPaused &&
+			!this.adInProgress &&
 			this.autoPausedByVisibility &&
 			this.isPaused &&
 			this.isStarted
@@ -1825,7 +1827,11 @@ class Game {
 		this.hud.updateHealth?.(player.health, player.maxHealth);
 		this.hud.updateArmor?.(player.armor, player.maxArmor);
 		this.yandex.hideBanner();
-		this.yandex.gameplayStart();
+		if (this.isPaused && this.autoPausedByVisibility && !this.platformPaused) {
+			this.setPaused(false);
+		} else if (!this.platformPaused) {
+			this.yandex.gameplayStart();
+		}
 		if (!this.platformPaused) this.audioSynth?.resumeAudio?.();
 		this.gameLoop?.resetDelta?.();
 		if (!this.isMobile()) this.cameraController?.lock?.();
