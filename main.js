@@ -107,10 +107,6 @@ class Game {
 		this.ready = this.initializeGame()
 			.then(() => {
 				this.initialized = true;
-				// Only hide overlay if startGame hasn't shown it yet
-				if (!this.startingGame && loadingOverlay) {
-					loadingOverlay.style.display = "none";
-				}
 				document.dispatchEvent(new CustomEvent("gameReady"));
 				return this;
 			})
@@ -273,9 +269,6 @@ class Game {
 	onAppVisible(reason = "resume") {
 		this.gameLoop?.resetDelta?.();
 		this.applyRendererSizing();
-		if (loadingOverlay && loadingOverlay.style.display !== "none") {
-			loadingOverlay.style.display = "none";
-		}
 		if (this.isMobile()) {
 			setTimeout(() => this.applyRendererSizing(), 120);
 			setTimeout(() => this.applyRendererSizing(), 320);
@@ -4065,6 +4058,17 @@ class Game {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
+	const startButtons = [
+		document.getElementById("startButtonDesktop"),
+		document.getElementById("startButtonMobile"),
+		document.getElementById("startButtonMobileLandscape"),
+		document.getElementById("startButton"),
+	].filter(Boolean);
+	startButtons.forEach((button) => {
+		button.disabled = true;
+		button.setAttribute("aria-disabled", "true");
+	});
+	if (loadingOverlay) loadingOverlay.style.display = "flex";
 	const yandex = new YandexBridge();
 	const game = new Game(yandex);
 	window.game = game;
@@ -4085,7 +4089,12 @@ window.addEventListener("DOMContentLoaded", () => {
 		// Requirement 2.14: применяем язык платформы к HUD
 		game.hud?.setLang?.(yandex.lang || "ru");
 		game.showStartRecord();
+		if (loadingOverlay) loadingOverlay.style.display = "none";
 		yandex.signalReady();
+		startButtons.forEach((button) => {
+			button.disabled = false;
+			button.removeAttribute("aria-disabled");
+		});
 		// Requirement 1.12: монетизация — sticky-баннер через BannerAPI
 		yandex.showBanner();
 	});
@@ -4216,8 +4225,5 @@ window.addEventListener("DOMContentLoaded", () => {
 		button.addEventListener("touchend", handleStart, { passive: false });
 	};
 
-	bindStartButton(document.getElementById("startButtonDesktop"));
-	bindStartButton(document.getElementById("startButtonMobile"));
-	bindStartButton(document.getElementById("startButtonMobileLandscape"));
-	bindStartButton(document.getElementById("startButton"));
+	startButtons.forEach(bindStartButton);
 });

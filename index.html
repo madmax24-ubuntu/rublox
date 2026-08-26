@@ -418,7 +418,7 @@
             position: fixed;
             inset: 0;
             background: rgba(10, 20, 30, 0.92);
-            display: none;
+            display: flex;
             align-items: center;
             justify-content: center;
             z-index: 10001;
@@ -1122,7 +1122,7 @@
                 <h1 class="start-title">Rubo Arena: Голодные игры</h1>
                 <div class="start-subtitle">Выживание до последнего</div>
                 <p>Выживание до последнего. Рандомная карта, лут из сундуков и перки прямо в бою.</p>
-                <button id="startButtonDesktop" class="start-btn">Начать игру</button>
+                <button id="startButtonDesktop" class="start-btn" disabled aria-disabled="true">Начать игру</button>
                 <div class="start-footer">Быстрый матч · Рандомная карта · Перки в бою</div>
                 <div class="start-record" id="startRecord"></div>
                 <div class="controls-info">
@@ -1148,7 +1148,7 @@
                     <div class="mobile-subtitle">Голодные игры</div>
                     <p class="mobile-desc">Выживание до последнего. Рандомная карта, лут из сундуков, перки в бою.</p>
                     <div class="start-record" id="startRecordMobile"></div>
-                    <button id="startButtonMobile" class="mobile-start-btn">▶ Начать бой</button>
+                    <button id="startButtonMobile" class="mobile-start-btn" disabled aria-disabled="true">▶ Начать бой</button>
                 </div>
                 <div class="mobile-footer">
                     <div class="mobile-footer-label">Управление</div>
@@ -1204,7 +1204,7 @@
                         </div>
                     </div>
                     <div class="mobile-landscape-instructions">Левый стик: движение · Правая сторона: обзор · Кнопки: Прыжок / Удар / E</div>
-                    <button id="startButtonMobileLandscape" class="mobile-start-btn-landscape">▶ Начать бой</button>
+                    <button id="startButtonMobileLandscape" class="mobile-start-btn-landscape" disabled aria-disabled="true">▶ Начать бой</button>
                 </div>
             </div>
         </div>
