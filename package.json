@@ -6,10 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js",
-    "build:yandex": "node scripts/prepare-yandex-builds.mjs",
-    "build:yandex-game": "node scripts/prepare-yandex-game.mjs",
-    "release:yandex": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-yandex-release.ps1"
+    "dev": "nodemon server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
