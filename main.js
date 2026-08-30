@@ -4057,7 +4057,7 @@ class Game {
 	}
 }
 
-window.addEventListener("DOMContentLoaded", () => {
+window.addEventListener("DOMContentLoaded", async () => {
 	const startButtons = [
 		document.getElementById("startButtonDesktop"),
 		document.getElementById("startButtonMobile"),
@@ -4070,33 +4070,31 @@ window.addEventListener("DOMContentLoaded", () => {
 	});
 	if (loadingOverlay) loadingOverlay.style.display = "flex";
 	const yandex = new YandexBridge();
+	await yandex.init().catch((err) => {
+		console.warn("Yandex init fallback:", err);
+		return yandex;
+	});
+	if (loadingOverlay) loadingOverlay.style.display = "none";
+	yandex.signalReady();
+	startButtons.forEach((button) => {
+		button.disabled = false;
+		button.removeAttribute("aria-disabled");
+	});
+	yandex.showBanner();
 	const game = new Game(yandex);
 	window.game = game;
 	// Requirement 1.19: платформа может ставить игру на паузу/возобновлять
 	yandex.onPlatformPause = () => game.platformPause();
 	yandex.onPlatformResume = () => game.platformResume();
-	const yandexReady = yandex.init().catch((err) => {
-		console.warn("Yandex init fallback:", err);
-		return yandex;
-	});
 	document.getElementById("reviveAdBtn")?.addEventListener("click", () => {
 		game.reviveWithRewardedAd();
 	});
 	document.getElementById("restartBtn")?.addEventListener("click", () => {
 		game.restartWithFullscreenAd();
 	});
-	Promise.all([game.ready, yandexReady]).then(() => {
-		// Requirement 2.14: применяем язык платформы к HUD
+	game.ready.then(() => {
 		game.hud?.setLang?.(yandex.lang || "ru");
 		game.showStartRecord();
-		if (loadingOverlay) loadingOverlay.style.display = "none";
-		yandex.signalReady();
-		startButtons.forEach((button) => {
-			button.disabled = false;
-			button.removeAttribute("aria-disabled");
-		});
-		// Requirement 1.12: монетизация — sticky-баннер через BannerAPI
-		yandex.showBanner();
 	});
 	if (game.isMobile()) {
 		document.body.classList.add("mobile");
