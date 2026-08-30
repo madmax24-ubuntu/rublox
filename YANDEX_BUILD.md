@@ -13,7 +13,7 @@
 npm run release:yandex
 ```
 
-Скрипт создаёт папку `yandex-game`, проверяет JavaScript, SDK, порядок Game Ready, стартовые кнопки и структуру архива, затем создаёт `yandex-game.zip` и выводит SHA-256.
+Скрипт создаёт папку `yandex-game`, добавляет уникальную версию к `main.js`, проверяет JavaScript, SDK, ранний вызов Game Ready, стартовые кнопки и структуру архива, затем создаёт `yandex-game.zip` и выводит SHA-256.
 
 В Консоль Яндекс Игр загружается только `yandex-game.zip`. Архив содержит `index.html` в корне и не добавляется в Git.
 

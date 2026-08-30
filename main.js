@@ -4074,8 +4074,13 @@ window.addEventListener("DOMContentLoaded", async () => {
 		console.warn("Yandex init fallback:", err);
 		return yandex;
 	});
-	if (loadingOverlay) loadingOverlay.style.display = "none";
-	yandex.signalReady();
+	if (window.yandexGameReadyPromise) {
+		await window.yandexGameReadyPromise;
+		yandex.readySent = true;
+	} else {
+		if (loadingOverlay) loadingOverlay.style.display = "none";
+		yandex.signalReady();
+	}
 	startButtons.forEach((button) => {
 		button.disabled = false;
 		button.removeAttribute("aria-disabled");

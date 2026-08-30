@@ -1,4 +1,5 @@
 import { cp, mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 
 const root = process.cwd();
@@ -31,6 +32,10 @@ await copy('node_modules/three/examples/jsm/utils/BufferGeometryUtils.js', 'node
 
 const indexPath = path.join(target, 'index.html');
 let html = await readFile(indexPath, 'utf8');
+const buildId = createHash('sha256')
+  .update(await readFile(path.join(root, 'main.js')))
+  .digest('hex')
+  .slice(0, 12);
 html = html.replace('<head>', `<head>
     <script src="/sdk.js"></script>
     <script>
@@ -38,8 +43,20 @@ html = html.replace('<head>', `<head>
             window.yandexGamesLanguage = ysdk.environment.i18n.lang;
             return ysdk;
         });
+        window.yandexGameReadyPromise = new Promise(function (resolve) {
+            document.addEventListener('DOMContentLoaded', function () {
+                window.yandexGamesSdkPromise.then(function (ysdk) {
+                    var overlay = document.getElementById('loadingOverlay');
+                    if (overlay) overlay.style.display = 'none';
+                    ysdk.features.LoadingAPI?.ready();
+                    window.yandexGameReadySent = true;
+                    resolve(ysdk);
+                });
+            }, { once: true });
+        });
     </script>`);
-html = html.replace(/<script type="module" src="\.\/main\.js[^\"]*"><\/script>/i, '<script>window.__ARENA_BUILD_MODE = \'single\';</script>\n    <script type="module" src="./main.js"></script>');
+html = html.replace(/<meta name="build-version" content="[^"]*">/i, `<meta name="build-version" content="${buildId}">`);
+html = html.replace(/<script type="module" src="\.\/main\.js[^\"]*"><\/script>/i, `<script>window.__ARENA_BUILD_MODE = 'single';</script>\n    <script type="module" src="./main.js?v=${buildId}"></script>`);
 await writeFile(indexPath, html, 'utf8');
 
 const files = await walk(target);
@@ -50,4 +67,4 @@ if (indexFiles.length !== 1) throw new Error(`Expected one root index.html, foun
 let bytes = 0;
 for (const file of files) bytes += (await stat(file.absolute)).size;
 if (bytes > 100 * 1024 * 1024) throw new Error(`Uncompressed build exceeds 100 MB: ${(bytes / 1024 / 1024).toFixed(2)} MB`);
-console.log(`yandex-game ready: ${files.length} files, ${(bytes / 1024 / 1024).toFixed(2)} MB`);
+console.log(`yandex-game ready: ${files.length} files, ${(bytes / 1024 / 1024).toFixed(2)} MB, build ${buildId}`);
