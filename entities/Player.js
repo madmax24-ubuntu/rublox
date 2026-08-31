@@ -1102,7 +1102,7 @@ export class Player {
 			);
 			const restored = Math.max(0, Math.round(this.health - beforeHp));
 			if (restored > 0) {
-				feedParts.push(`Аптечка: +${restored} HP`);
+				feedParts.push(`Аптечка: +${restored} здоровья`);
 			}
 		}
 		if (loot.bonusAmmo) {

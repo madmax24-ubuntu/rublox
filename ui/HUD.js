@@ -1658,7 +1658,7 @@ export class HUD {
     updateFpsDisplay(fps) {
         const fpsEl = this._el.fpsDisplay;
         if (fpsEl) {
-            fpsEl.textContent = `${fps} FPS`;
+            fpsEl.textContent = `${fps} К/С`;
             if (fps >= 50) fpsEl.style.color = '#0f0';
             else if (fps >= 30) fpsEl.style.color = '#ff0';
             else fpsEl.style.color = '#f00';
