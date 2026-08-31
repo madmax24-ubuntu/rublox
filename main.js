@@ -1460,12 +1460,12 @@ class Game {
 
 		this.hud.setRoundMode(
 			this.roundMode === "hybrid"
-				? "Hybrid"
+				? "Смешанный"
 				: this.roundMode === "nightmare"
-					? "Nightmare"
+					? "Кошмар"
 					: this.roundMode === "stealth"
-						? "Stealth"
-						: "Classic",
+						? "Скрытный"
+						: "Классический",
 		);
 
 		this.lootManager.setLootDensity(this.modeConfig.lootDensity);

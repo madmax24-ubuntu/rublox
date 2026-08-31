@@ -8,12 +8,12 @@ export const HUD_STRINGS = {
             fastRun: { label: 'Быстрый бег', desc: 'Заметно повышает скорость перемещения весь матч.' },
             thickSkin: { label: 'Плотная кожа', desc: 'Снижает входящий урон и дает больше шансов выжить.' },
             steadyAim: { label: 'Стабильный прицел', desc: 'Сильно режет отдачу и упрощает стрельбу.' },
-            autoFire: { label: 'AUTO FIRE', desc: 'Автоматически стреляет по цели, когда прицел наведен на врага.' }
+            autoFire: { label: 'Автострельба', desc: 'Автоматически стреляет по цели, когда прицел наведен на врага.' }
         },
         killRewardHint: 'Выберите одну награду за серию убийств',
         pauseKeyInfo: 'M - ПАУЗА',
         pauseTitle: 'Пауза',
-        pauseControls: 'WASD - движение · Мышь - обзор · E - взаимодействие · Space - прыжок · ЛКМ - атака · M - пауза',
+        pauseControls: 'WASD - движение · Мышь - обзор · E - взаимодействие · Пробел - прыжок · ЛКМ - атака · M - пауза',
         music: 'Музыка',
         effects: 'Эффекты',
         sensitivity: 'Чувствительность',
@@ -82,7 +82,10 @@ export const HUD_STRINGS = {
 };
 
 export class HUD {
-    static ICON_MAP = { knife: 'KNF', bow: 'BOW', laser: 'LAS', shotgun: 'SG', flamethrower: 'FIRE', pistol: 'PST', rifle: 'RIF', machinegun: 'MG', bazooka: 'BAZ' };
+    static ICON_MAP = {
+        ru: { knife: 'НОЖ', bow: 'ЛУК', laser: 'ЛАЗ', shotgun: 'ДРБ', flamethrower: 'ОГН', pistol: 'ПСТ', rifle: 'ВНТ', machinegun: 'ПЛМ', bazooka: 'БАЗ' },
+        en: { knife: 'KNF', bow: 'BOW', laser: 'LAS', shotgun: 'SG', flamethrower: 'FIRE', pistol: 'PST', rifle: 'RIF', machinegun: 'MG', bazooka: 'BAZ' }
+    };
     static AMMO_NAME_MAP = HUD_STRINGS.ru.weapons;
     constructor() {
         this.perkPanelLocked = false;
@@ -103,6 +106,8 @@ export class HUD {
         if (next === this.lang) return;
         this.lang = next;
         this.t = HUD_STRINGS[next];
+        this._lastState.slotTypes = [];
+        this._lastState.ammoText = '';
         this.applyStaticStrings();
     }
 
@@ -1436,9 +1441,9 @@ export class HUD {
     }
 
     formatKeyLabel(code) {
-        if (code === 'MouseLeft') return 'LMB';
-        if (code === 'MouseRight') return 'RMB';
-        if (code === 'Space') return 'SPACE';
+        if (code === 'MouseLeft') return this.lang === 'ru' ? 'ЛКМ' : 'LMB';
+        if (code === 'MouseRight') return this.lang === 'ru' ? 'ПКМ' : 'RMB';
+        if (code === 'Space') return this.lang === 'ru' ? 'ПРОБЕЛ' : 'SPACE';
         if (code.startsWith('Key')) return code.replace('Key', '');
         if (code.startsWith('Digit')) return code.replace('Digit', '');
         return code;
@@ -1574,7 +1579,7 @@ export class HUD {
                     slot.appendChild(icon);
                     this._el['slotIcon' + i] = icon;
                 }
-                const label = HUD.ICON_MAP[type] || type;
+                const label = HUD.ICON_MAP[this.lang]?.[type] || this.t.weapons[type] || type;
                 icon.textContent = label || ``;
                 icon.style.display = `block`;
             } else {
