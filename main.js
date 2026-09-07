@@ -1703,8 +1703,8 @@ class Game {
 					e === this.player
 						? "\u0418\u0433\u0440\u043e\u043a"
 						: e.constructor?.name === "Bot"
-							? `NPC #${e.id}`
-							: "NPC",
+							? `\u0411\u043e\u0442 #${e.id}`
+							: "\u0411\u043e\u0442",
 				stats: e.stats,
 			}));
 		if (!stats.length) return;
@@ -1717,9 +1717,9 @@ class Game {
 		)[0];
 		const topLoot = [...stats].sort((a, b) => b.stats.loot - a.stats.loot)[0];
 		const lines = [
-			`\u2b50 MVP \u0443\u0440\u043e\u043d: <strong>${topDamage.name}</strong> (${Math.round(topDamage.stats.damage)})`,
-			`\ud83d\udd2a MVP \u0443\u0431\u0438\u0439\u0441\u0442\u0432\u0430: <strong>${topKills.name}</strong> (${topKills.stats.kills})`,
-			`\ud83c\udf81 MVP \u043b\u0443\u0442: <strong>${topLoot.name}</strong> (${topLoot.stats.loot})`,
+			`\u2b50 \u041b\u0443\u0447\u0448\u0438\u0439 \u043f\u043e \u0443\u0440\u043e\u043d\u0443: <strong>${topDamage.name}</strong> (${Math.round(topDamage.stats.damage)})`,
+			`\ud83d\udd2a \u041b\u0443\u0447\u0448\u0438\u0439 \u043f\u043e \u0443\u0431\u0438\u0439\u0441\u0442\u0432\u0430\u043c: <strong>${topKills.name}</strong> (${topKills.stats.kills})`,
+			`\ud83c\udf81 \u041b\u0443\u0447\u0448\u0438\u0439 \u043f\u043e \u043b\u0443\u0442\u0443: <strong>${topLoot.name}</strong> (${topLoot.stats.loot})`,
 		];
 		this.hud.showScoreboard(lines);
 	}
