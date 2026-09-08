@@ -729,6 +729,7 @@ class Game {
 		}
 		this.hud.showPause(this.isPaused && !this.killRewardActive);
 		this.input?.clearInputState?.();
+		this.cameraController?.clearMouseInput?.();
 		if (this.isPaused) this.yandex?.gameplayStop?.();
 		else if (!this.platformPaused && !this.adInProgress) this.yandex?.gameplayStart?.();
 		if (!this.isMobile()) {

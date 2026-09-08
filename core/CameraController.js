@@ -36,11 +36,7 @@ export class CameraController {
         if (!isMobile) {
             this.domElement.tabIndex = 0;
             this._onMouseMove = (e) => {
-                if (
-                    !this.isLocked &&
-                    document.activeElement !== this.domElement &&
-                    e.target !== this.domElement
-                ) return;
+                if (document.hidden) return;
                 this._mouseDx += e.movementX || 0;
                 this._mouseDy += e.movementY || 0;
             };
@@ -247,8 +243,7 @@ export class CameraController {
             console.log('[CameraController] playerPos=' + playerPos.toArray().map(v=>v.toFixed(2)).join(',') + ' targetY=' + targetY.toFixed(2) + ' camPos=' + this.camera.position.toArray().map(v=>v.toFixed(2)).join(','));
         }
 
-        const hasMouseLook = this._mouseDx !== 0 || this._mouseDy !== 0;
-        if (this.isLocked || hasMouseLook) {
+        if (!this.isMobile) {
             const sensitivity = 0.002;
             this._yaw -= this._mouseDx * sensitivity;
             this._pitch -= this._mouseDy * sensitivity;
@@ -311,6 +306,11 @@ export class CameraController {
     getWorldDirection(target) {
         target.set(0, 0, -1).applyQuaternion(this.camera.quaternion);
         return target;
+    }
+
+    clearMouseInput() {
+        this._mouseDx = 0;
+        this._mouseDy = 0;
     }
 
     lock() {
