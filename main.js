@@ -4085,20 +4085,35 @@ window.addEventListener("DOMContentLoaded", async () => {
 		console.warn("Yandex init fallback:", err);
 		return yandex;
 	});
-	if (window.yandexGameReadyPromise) {
-		await window.yandexGameReadyPromise;
-		yandex.readySent = true;
-	} else {
+	let game;
+	if (window.__ARENA_BUILD_MODE === "single") {
+		game = new Game(yandex);
+		window.game = game;
+		await game.ready;
 		if (loadingOverlay) loadingOverlay.style.display = "none";
+		startButtons.forEach((button) => {
+			button.disabled = false;
+			button.removeAttribute("aria-disabled");
+		});
 		yandex.signalReady();
+	} else {
+		if (window.yandexGameReadyPromise) {
+			await window.yandexGameReadyPromise;
+			yandex.readySent = true;
+		} else {
+			if (loadingOverlay) loadingOverlay.style.display = "none";
+			yandex.signalReady();
+		}
+		startButtons.forEach((button) => {
+			button.disabled = false;
+			button.removeAttribute("aria-disabled");
+		});
 	}
-	startButtons.forEach((button) => {
-		button.disabled = false;
-		button.removeAttribute("aria-disabled");
-	});
 	yandex.showBanner();
-	const game = new Game(yandex);
-	window.game = game;
+	if (!game) {
+		game = new Game(yandex);
+		window.game = game;
+	}
 	// Requirement 1.19: платформа может ставить игру на паузу/возобновлять
 	yandex.onPlatformPause = () => game.platformPause();
 	yandex.onPlatformResume = () => game.platformResume();
