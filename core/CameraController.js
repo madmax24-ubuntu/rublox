@@ -14,6 +14,7 @@ export class CameraController {
         this._pitch = 0;
         this._maxPitch = THREE.MathUtils.degToRad(85);
         this._lookSensitivityMultiplier = 1;
+        this._resumeBlend = 0;
         this.isMobile = false;
     }
 
@@ -50,11 +51,11 @@ export class CameraController {
             this.camera.quaternion.setFromEuler(this.rotation);
         }
 
-        this.camera.position.set(
-            playerPos.x,
-            targetY,
-            playerPos.z
-        );
+        const cameraY = this._resumeBlend > 0
+            ? THREE.MathUtils.lerp(this.camera.position.y, targetY, Math.min(1, _delta / 0.12))
+            : targetY;
+        this.camera.position.set(playerPos.x, cameraY, playerPos.z);
+        this._resumeBlend = Math.max(0, this._resumeBlend - _delta);
     }
 
     getWorldDirection(target) {
@@ -64,6 +65,14 @@ export class CameraController {
 
     setLookSensitivityMultiplier(value) {
         this._lookSensitivityMultiplier = Math.max(0.5, Math.min(2.4, Number(value) || 1));
+    }
+
+    pause() {
+        this._resumeBlend = 0;
+    }
+
+    resume() {
+        this._resumeBlend = 0.12;
     }
 
     lock() {

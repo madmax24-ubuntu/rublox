@@ -1247,14 +1247,21 @@ export class HUD {
         const edit = this._el.pauseEdit;
         const reset = this._el.pauseResetSettings;
         if (resume) {
-            resume.addEventListener('click', () => {
-                document.dispatchEvent(new CustomEvent('togglePause'));
-            });
-            resume.addEventListener('touchstart', (e) => {
+            let pointerResumeHandled = false;
+            const resumeGame = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                pointerResumeHandled = e.type === 'pointerdown';
                 document.dispatchEvent(new CustomEvent('togglePause'));
-            }, { passive: false });
+            };
+            resume.addEventListener('pointerdown', resumeGame, { passive: false });
+            resume.addEventListener('click', (e) => {
+                if (pointerResumeHandled) {
+                    pointerResumeHandled = false;
+                    return;
+                }
+                resumeGame(e);
+            });
         }
         if (edit) {
             edit.addEventListener('click', () => this.toggleEditControls());

@@ -718,10 +718,6 @@ class Game {
 	setPaused(value) {
 		const needsFullscreen =
 			!value && this.isStarted && !document.fullscreenElement;
-		if (needsFullscreen) {
-			this.enterFullscreen().catch(() => {});
-			if (this.isMobile()) this.lockOrientation();
-		}
 		this.isPaused = value;
 		if (!this.isPaused) {
 			this.autoPausedByVisibility = false;
@@ -740,9 +736,12 @@ class Game {
 			if (
 				this.isPaused &&
 				document.pointerLockElement === this.cameraController.domElement
-			)
+			) {
+				this.cameraController.pause?.();
 				this.cameraController.unlock();
+			}
 			if (!this.isPaused) {
+				this.cameraController.resume?.();
 				const relockCamera = () => {
 					if (this.isPaused) return;
 					this.renderer.domElement.style.pointerEvents = "auto";
@@ -752,6 +751,10 @@ class Game {
 				};
 				relockCamera();
 			}
+		}
+		if (needsFullscreen) {
+			this.enterFullscreen().catch(() => {});
+			if (this.isMobile()) this.lockOrientation();
 		}
 		if (!this.isPaused) {
 			this.gameLoop?.resetDelta?.();
