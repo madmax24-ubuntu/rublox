@@ -4090,12 +4090,6 @@ window.addEventListener("DOMContentLoaded", async () => {
 		game = new Game(yandex);
 		window.game = game;
 		await game.ready;
-		if (loadingOverlay) loadingOverlay.style.display = "none";
-		startButtons.forEach((button) => {
-			button.disabled = false;
-			button.removeAttribute("aria-disabled");
-		});
-		yandex.signalReady();
 	} else {
 		if (window.yandexGameReadyPromise) {
 			await window.yandexGameReadyPromise;
@@ -4256,4 +4250,12 @@ window.addEventListener("DOMContentLoaded", async () => {
 	};
 
 	startButtons.forEach(bindStartButton);
+	if (window.__ARENA_BUILD_MODE === "single") {
+		if (loadingOverlay) loadingOverlay.style.display = "none";
+		yandex.signalReady();
+		startButtons.forEach((button) => {
+			button.disabled = false;
+			button.removeAttribute("aria-disabled");
+		});
+	}
 });
