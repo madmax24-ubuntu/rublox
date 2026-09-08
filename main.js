@@ -2139,6 +2139,7 @@ class Game {
 				entity.physics?.velocity?.set?.(0, 0, 0);
 				return;
 			}
+			if (entity === this.player) return;
 			p.x = Math.max(-maxAbs, Math.min(maxAbs, p.x));
 			p.z = Math.max(-maxAbs, Math.min(maxAbs, p.z));
 			const surface =
