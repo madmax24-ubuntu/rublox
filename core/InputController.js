@@ -159,11 +159,7 @@ export class InputController {
 
     _attachDesktopListeners() {
         this._onMouseMove = (e) => {
-            if (
-                document.pointerLockElement !== this._domElement &&
-                document.activeElement !== this._domElement &&
-                e.target !== this._domElement
-            ) return;
+            if (document.pointerLockElement !== this._domElement) return;
             const dx = Number.isFinite(e.movementX) ? e.movementX : 0;
             const dy = Number.isFinite(e.movementY) ? e.movementY : 0;
             this._lookDx += Math.max(-500, Math.min(500, dx));

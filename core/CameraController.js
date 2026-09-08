@@ -7,6 +7,7 @@ export class CameraController {
         this.domElement = domElement;
         this.physics = physics;
         this.rotation = new THREE.Euler(0, 0, 0, 'YXZ');
+        this.camera.rotation.order = 'YXZ';
         this.fov = 75;
         this.isLocked = false;
         this._shakeOffset = new THREE.Vector3(0, 0, 0);
@@ -36,14 +37,8 @@ export class CameraController {
         }
     }
 
-    update(delta, input, playerPos, frozen = false) {
+    update(_delta, input, playerPos, _frozen = false) {
         const targetY = playerPos.y + (this.isMobile ? 0.55 : 0.15);
-        const hasShake = this._shakeOffset.lengthSq() > 0;
-        // Debug log
-        if (this._updateCount === undefined) this._updateCount = 0;
-        if (++this._updateCount % 300 === 0) {
-            console.log('[CameraController] playerPos=' + playerPos.toArray().map(v=>v.toFixed(2)).join(',') + ' targetY=' + targetY.toFixed(2) + ' camPos=' + this.camera.position.toArray().map(v=>v.toFixed(2)).join(','));
-        }
 
         const look = input.getLookDelta();
         if (look.x !== 0 || look.y !== 0) {
@@ -54,9 +49,6 @@ export class CameraController {
             if (this._pitch < -this._maxPitch) this._pitch = -this._maxPitch;
             this.rotation.set(this._pitch, this._yaw, 0, 'YXZ');
             this.camera.quaternion.setFromEuler(this.rotation);
-            if (this._updateCount % 600 === 0) {
-                console.log('[Cam] pitch=' + (this._pitch * 180 / Math.PI).toFixed(1) + '° yaw=' + (this._yaw * 180 / Math.PI).toFixed(1) + '°');
-            }
         }
 
         this.camera.position.set(

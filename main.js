@@ -4194,6 +4194,8 @@ window.addEventListener("DOMContentLoaded", async () => {
 			if (event?.cancelable) event.preventDefault();
 			if (_startHandled || game.startingGame || game.isStarted) return;
 			_startHandled = true;
+			const fullscreenRequest = game.enterFullscreen?.();
+			if (game.isMobile()) game.lockOrientation?.().catch?.(() => {});
 			button.setAttribute("aria-busy", "true");
 			// Show the loading bar immediately, BEFORE waiting for init.
 			// Otherwise long map generation runs behind a frozen start
@@ -4218,7 +4220,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 					game.audioSynth?.unlock?.() ?? Promise.resolve(),
 					new Promise((r) => setTimeout(r, 1500)),
 				]);
-				game.enterFullscreen?.().catch(() => {});
+				fullscreenRequest?.catch?.(() => {});
 				await game.startGame();
 			} catch (err) {
 				clearInterval(waitTimer);
