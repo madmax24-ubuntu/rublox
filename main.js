@@ -4090,6 +4090,8 @@ window.addEventListener("DOMContentLoaded", async () => {
 		game = new Game(yandex);
 		window.game = game;
 		await game.ready;
+		game.hud?.setLang?.(yandex.lang || "ru");
+		game.showStartRecord();
 	} else {
 		if (window.yandexGameReadyPromise) {
 			await window.yandexGameReadyPromise;
@@ -4103,7 +4105,6 @@ window.addEventListener("DOMContentLoaded", async () => {
 			button.removeAttribute("aria-disabled");
 		});
 	}
-	yandex.showBanner();
 	if (!game) {
 		game = new Game(yandex);
 		window.game = game;
@@ -4117,10 +4118,12 @@ window.addEventListener("DOMContentLoaded", async () => {
 	document.getElementById("restartBtn")?.addEventListener("click", () => {
 		game.restartWithFullscreenAd();
 	});
-	game.ready.then(() => {
-		game.hud?.setLang?.(yandex.lang || "ru");
-		game.showStartRecord();
-	});
+	if (window.__ARENA_BUILD_MODE !== "single") {
+		game.ready.then(() => {
+			game.hud?.setLang?.(yandex.lang || "ru");
+			game.showStartRecord();
+		});
+	}
 	if (game.isMobile()) {
 		document.body.classList.add("mobile");
 		game.updateOrientationUI();
@@ -4257,5 +4260,6 @@ window.addEventListener("DOMContentLoaded", async () => {
 			button.disabled = false;
 			button.removeAttribute("aria-disabled");
 		});
+		yandex.showBanner();
 	}
 });
