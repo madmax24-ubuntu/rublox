@@ -36,7 +36,11 @@ export class CameraController {
         if (!isMobile) {
             this.domElement.tabIndex = 0;
             this._onMouseMove = (e) => {
-                if (!this.isLocked && e.target !== this.domElement) return;
+                if (
+                    !this.isLocked &&
+                    document.activeElement !== this.domElement &&
+                    e.target !== this.domElement
+                ) return;
                 this._mouseDx += e.movementX || 0;
                 this._mouseDy += e.movementY || 0;
             };
