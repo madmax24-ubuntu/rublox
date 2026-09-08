@@ -30,6 +30,8 @@ export class InputController {
         this._lookDx = 0;
         this._lookDy = 0;
         this._skipNextMouseMove = false;
+        this._ignoreMouseUntil = 0;
+        this._ignoreMouseEvents = 0;
         this._lookDeltaObj = { x: 0, y: 0 };
         this._wheelSteps = 0;
     }
@@ -163,6 +165,12 @@ export class InputController {
             if (document.pointerLockElement !== this._domElement) return;
             if (this._skipNextMouseMove) {
                 this._skipNextMouseMove = false;
+                this._ignoreMouseUntil = performance.now() + 120;
+                this._ignoreMouseEvents = 2;
+                return;
+            }
+            if (this._ignoreMouseEvents > 0 || performance.now() < this._ignoreMouseUntil) {
+                this._ignoreMouseEvents = Math.max(0, this._ignoreMouseEvents - 1);
                 return;
             }
             const dx = Number.isFinite(e.movementX) ? e.movementX : 0;
@@ -188,6 +196,8 @@ export class InputController {
             this.pointerLocked = document.pointerLockElement === this._domElement;
             this.resetLook();
             this._skipNextMouseMove = this.pointerLocked;
+            this._ignoreMouseUntil = this.pointerLocked ? performance.now() + 120 : 0;
+            this._ignoreMouseEvents = this.pointerLocked ? 2 : 0;
         };
         document.addEventListener('pointerlockchange', this._onLockChange);
 

@@ -718,9 +718,8 @@ class Game {
 	setPaused(value) {
 		const needsFullscreen =
 			!value && this.isStarted && !document.fullscreenElement;
-		let fullscreenRequest = null;
 		if (needsFullscreen) {
-			fullscreenRequest = this.enterFullscreen();
+			this.enterFullscreen().catch(() => {});
 			if (this.isMobile()) this.lockOrientation();
 		}
 		this.isPaused = value;
@@ -752,8 +751,6 @@ class Game {
 						this.cameraController.lock();
 				};
 				relockCamera();
-				if (fullscreenRequest?.then)
-					fullscreenRequest.then(relockCamera).catch(() => {});
 			}
 		}
 		if (!this.isPaused) {
