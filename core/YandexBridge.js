@@ -64,8 +64,8 @@ export class YandexBridge {
 
     normalizeLang(raw) {
         const lang = String(raw || 'ru').toLowerCase();
-        if (lang.startsWith('ru')) return 'ru';
-        return 'en';
+        const supported = ['ru'];
+        return supported.find((code) => lang === code || lang.startsWith(`${code}-`)) || supported[0];
     }
 
     getLangFromUrl() {
