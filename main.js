@@ -729,7 +729,6 @@ class Game {
 		}
 		this.hud.showPause(this.isPaused && !this.killRewardActive);
 		this.input?.clearInputState?.();
-		this.cameraController?.clearMouseInput?.();
 		if (this.isPaused) this.yandex?.gameplayStop?.();
 		else if (!this.platformPaused && !this.adInProgress) this.yandex?.gameplayStart?.();
 		if (!this.isMobile()) {
@@ -747,17 +746,11 @@ class Game {
 			if (!this.isPaused) {
 				const relockCamera = () => {
 					if (this.isPaused) return;
+					this.renderer.domElement.style.pointerEvents = "auto";
 					this.renderer?.domElement?.focus?.({ preventScroll: true });
 					if (document.pointerLockElement !== this.cameraController.domElement)
 						this.cameraController.lock();
 				};
-				if (needsFullscreen) {
-					const onFullscreenChange = () => {
-						if (document.fullscreenElement) relockCamera();
-						document.removeEventListener("fullscreenchange", onFullscreenChange);
-					};
-					document.addEventListener("fullscreenchange", onFullscreenChange);
-				}
 				relockCamera();
 				if (fullscreenRequest?.then)
 					fullscreenRequest.then(relockCamera).catch(() => {});
@@ -765,7 +758,6 @@ class Game {
 		}
 		if (!this.isPaused) {
 			this.gameLoop?.resetDelta?.();
-			setTimeout(() => this.recoverViewState("post-unpause"), 40);
 		}
 	}
 
@@ -1561,6 +1553,7 @@ class Game {
 		this.audioSynth?.setMusicVolume?.(safe.musicVolume);
 		this.audioSynth?.setSfxVolume?.(safe.sfxVolume);
 		this.player?.setLookSensitivityMultiplier?.(safe.lookSensitivity);
+		this.cameraController?.setLookSensitivityMultiplier?.(safe.lookSensitivity);
 		this.hud?.setSettingsValues?.(safe);
 	}
 

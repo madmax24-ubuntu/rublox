@@ -20,8 +20,7 @@ export class CameraController {
         this._yaw = 0;
         this._pitch = 0;
         this._maxPitch = THREE.MathUtils.degToRad(85);
-        this._mouseDx = 0;
-        this._mouseDy = 0;
+        this._lookSensitivityMultiplier = 1;
         this._cameraRadius = 0.15;
         this._tmpVec1 = new THREE.Vector3();
         this._tmpVec2 = new THREE.Vector3();
@@ -35,13 +34,6 @@ export class CameraController {
         this.scene.add(this.camera);
         if (!isMobile) {
             this.domElement.tabIndex = 0;
-            this._onMouseMove = (e) => {
-                if (document.hidden) return;
-                this._mouseDx += e.movementX || 0;
-                this._mouseDy += e.movementY || 0;
-            };
-            document.addEventListener('mousemove', this._onMouseMove);
-
             this._onLockChange = () => {
                 const wasLocked = this.isLocked;
                 this.isLocked = document.pointerLockElement === this.domElement;
@@ -243,10 +235,11 @@ export class CameraController {
             console.log('[CameraController] playerPos=' + playerPos.toArray().map(v=>v.toFixed(2)).join(',') + ' targetY=' + targetY.toFixed(2) + ' camPos=' + this.camera.position.toArray().map(v=>v.toFixed(2)).join(','));
         }
 
-        if (!this.isMobile) {
-            const sensitivity = 0.002;
-            this._yaw -= this._mouseDx * sensitivity;
-            this._pitch -= this._mouseDy * sensitivity;
+        const look = input.getLookDelta();
+        if (look.x !== 0 || look.y !== 0) {
+            const sensitivity = (this.isMobile ? 0.0052 : 0.002) * this._lookSensitivityMultiplier;
+            this._yaw -= look.x * sensitivity;
+            this._pitch -= look.y * sensitivity;
             if (this._pitch > this._maxPitch) this._pitch = this._maxPitch;
             if (this._pitch < -this._maxPitch) this._pitch = -this._maxPitch;
             this.rotation.set(this._pitch, this._yaw, 0, 'YXZ');
@@ -254,21 +247,7 @@ export class CameraController {
             if (this._updateCount % 600 === 0) {
                 console.log('[Cam] pitch=' + (this._pitch * 180 / Math.PI).toFixed(1) + '° yaw=' + (this._yaw * 180 / Math.PI).toFixed(1) + '°');
             }
-        } else {
-            const look = input.getLookDelta();
-            if (look.x !== 0 || look.y !== 0) {
-                const sensitivity = input.isMobile ? 0.0052 : 0.0042;
-                this._yaw -= look.x * sensitivity;
-                this._pitch -= look.y * sensitivity;
-                if (this._pitch > this._maxPitch) this._pitch = this._maxPitch;
-                if (this._pitch < -this._maxPitch) this._pitch = -this._maxPitch;
-                this.rotation.set(this._pitch, this._yaw, 0, 'YXZ');
-                this.camera.quaternion.setFromEuler(this.rotation);
-            }
         }
-
-        this._mouseDx = 0;
-        this._mouseDy = 0;
 
         const dx = playerPos.x - this._lastPos.x;
         const dy = targetY - this._lastPos.y;
@@ -308,9 +287,8 @@ export class CameraController {
         return target;
     }
 
-    clearMouseInput() {
-        this._mouseDx = 0;
-        this._mouseDy = 0;
+    setLookSensitivityMultiplier(value) {
+        this._lookSensitivityMultiplier = Math.max(0.5, Math.min(2.4, Number(value) || 1));
     }
 
     lock() {

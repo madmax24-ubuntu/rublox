@@ -160,12 +160,14 @@ export class InputController {
     _attachDesktopListeners() {
         this._onMouseMove = (e) => {
             if (
-                !this.pointerLocked &&
+                document.pointerLockElement !== this._domElement &&
                 document.activeElement !== this._domElement &&
                 e.target !== this._domElement
             ) return;
-            this._lookDx += e.movementX || 0;
-            this._lookDy += e.movementY || 0;
+            const dx = Number.isFinite(e.movementX) ? e.movementX : 0;
+            const dy = Number.isFinite(e.movementY) ? e.movementY : 0;
+            this._lookDx += Math.max(-500, Math.min(500, dx));
+            this._lookDy += Math.max(-500, Math.min(500, dy));
         };
         document.addEventListener('mousemove', this._onMouseMove);
 
