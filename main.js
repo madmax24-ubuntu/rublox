@@ -580,7 +580,6 @@ class Game {
 			this.chestRespawnTimer = 55;
 
 			this.gameLoop = new GameLoop(this);
-			this.gameLoop.start();
 			// Expose on window for devtools bridge to pause rendering
 			window.__game = this;
 			this.applyRoundMode("hybrid");
@@ -4122,6 +4121,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 		game.ready.then(() => {
 			game.hud?.setLang?.(yandex.lang || "ru");
 			game.showStartRecord();
+			game.gameLoop?.start();
 		});
 	}
 	if (game.isMobile()) {
@@ -4256,6 +4256,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 	if (window.__ARENA_BUILD_MODE === "single") {
 		if (loadingOverlay) loadingOverlay.style.display = "none";
 		yandex.signalReady();
+		game.gameLoop?.start();
 		startButtons.forEach((button) => {
 			button.disabled = false;
 			button.removeAttribute("aria-disabled");
