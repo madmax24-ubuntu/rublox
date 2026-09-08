@@ -740,10 +740,18 @@ class Game {
 		if (this.cameraController && !this.isMobile()) {
 			if (this.isPaused && this.cameraController.isLocked)
 				this.cameraController.unlock();
-			if (!this.isPaused && !this.cameraController.isLocked) {
-				if (fullscreenRequest)
-					fullscreenRequest.finally(() => this.cameraController.lock());
-				else this.cameraController.lock();
+			if (!this.isPaused) {
+				const relockCamera = () => {
+					if (
+						!this.isPaused &&
+						document.pointerLockElement !== this.cameraController.domElement
+					)
+						this.cameraController.lock();
+				};
+				relockCamera();
+				if (fullscreenRequest?.then) fullscreenRequest.then(relockCamera).catch(() => {});
+				requestAnimationFrame(relockCamera);
+				setTimeout(relockCamera, 120);
 			}
 		}
 		if (!this.isPaused) {
