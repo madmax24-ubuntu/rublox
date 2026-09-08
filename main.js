@@ -4084,30 +4084,11 @@ window.addEventListener("DOMContentLoaded", async () => {
 		console.warn("Yandex init fallback:", err);
 		return yandex;
 	});
-	let game;
-	if (window.__ARENA_BUILD_MODE === "single") {
-		game = new Game(yandex);
-		window.game = game;
-		await game.ready;
-		game.hud?.setLang?.(yandex.lang || "ru");
-		game.showStartRecord();
-	} else {
-		if (window.yandexGameReadyPromise) {
-			await window.yandexGameReadyPromise;
-			yandex.readySent = true;
-		} else {
-			if (loadingOverlay) loadingOverlay.style.display = "none";
-			yandex.signalReady();
-		}
-		startButtons.forEach((button) => {
-			button.disabled = false;
-			button.removeAttribute("aria-disabled");
-		});
-	}
-	if (!game) {
-		game = new Game(yandex);
-		window.game = game;
-	}
+	const game = new Game(yandex);
+	window.game = game;
+	await game.ready;
+	game.hud?.setLang?.(yandex.lang || "ru");
+	game.showStartRecord();
 	// Requirement 1.19: платформа может ставить игру на паузу/возобновлять
 	yandex.onPlatformPause = () => game.platformPause();
 	yandex.onPlatformResume = () => game.platformResume();
@@ -4117,13 +4098,6 @@ window.addEventListener("DOMContentLoaded", async () => {
 	document.getElementById("restartBtn")?.addEventListener("click", () => {
 		game.restartWithFullscreenAd();
 	});
-	if (window.__ARENA_BUILD_MODE !== "single") {
-		game.ready.then(() => {
-			game.hud?.setLang?.(yandex.lang || "ru");
-			game.showStartRecord();
-			game.gameLoop?.start();
-		});
-	}
 	if (game.isMobile()) {
 		document.body.classList.add("mobile");
 		game.updateOrientationUI();
@@ -4253,14 +4227,12 @@ window.addEventListener("DOMContentLoaded", async () => {
 	};
 
 	startButtons.forEach(bindStartButton);
-	if (window.__ARENA_BUILD_MODE === "single") {
-		if (loadingOverlay) loadingOverlay.style.display = "none";
-		yandex.signalReady();
-		game.gameLoop?.start();
-		startButtons.forEach((button) => {
-			button.disabled = false;
-			button.removeAttribute("aria-disabled");
-		});
-		yandex.showBanner();
-	}
+	if (loadingOverlay) loadingOverlay.style.display = "none";
+	yandex.signalReady();
+	game.gameLoop?.start();
+	startButtons.forEach((button) => {
+		button.disabled = false;
+		button.removeAttribute("aria-disabled");
+	});
+	yandex.showBanner();
 });
