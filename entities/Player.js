@@ -104,9 +104,6 @@ export class Player {
 		this.damageTakenMultiplier = 0.55;
 		this.stats = { damage: 0, kills: 0, loot: 0 };
 		this.hudRef = null;
-		this.cameraShakeTime = 0;
-		this.cameraShakeDuration = 0.12;
-		this.cameraShakeStrength = 0.035;
 		this.trailCooldown = 0;
 		this.burnTimer = 0;
 		this.burnTickTimer = 0;
@@ -528,20 +525,6 @@ export class Player {
 		this.mesh.position.y = this.position.y - (this.physics.height - 0.15);
 		this.mesh.rotation.y = this.rotation.y;
 		this.animateLimbs();
-
-		// Camera shake — передаём напрямую в CameraController, НЕ меняем позицию игрока
-		if (this.cameraShakeTime > 0) {
-			const t = this.cameraShakeTime / this.cameraShakeDuration;
-			const strength = this.cameraShakeStrength * t;
-			controls.setShakeOffset(
-				(Math.random() - 0.5) * strength,
-				(Math.random() - 0.5) * strength,
-				(Math.random() - 0.5) * strength,
-			);
-			this.cameraShakeTime = Math.max(0, this.cameraShakeTime - delta);
-		} else {
-			controls.clearShake();
-		}
 
 		const isFirstPersonRaw =
 			(controls && controls.isLocked) || this.input.isMobile;
@@ -1225,7 +1208,6 @@ export class Player {
 		if (this.hudRef?.showHitMarker) {
 			this.hudRef.showHitMarker();
 		}
-		this.cameraShakeTime = this.cameraShakeDuration;
 	}
 
 	setHUD(hud) {

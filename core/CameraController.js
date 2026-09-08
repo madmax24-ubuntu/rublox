@@ -10,7 +10,6 @@ export class CameraController {
         this.camera.rotation.order = 'YXZ';
         this.fov = 75;
         this.isLocked = false;
-        this._shakeOffset = new THREE.Vector3(0, 0, 0);
         this._yaw = 0;
         this._pitch = 0;
         this._maxPitch = THREE.MathUtils.degToRad(85);
@@ -52,20 +51,10 @@ export class CameraController {
         }
 
         this.camera.position.set(
-            playerPos.x + this._shakeOffset.x,
-            targetY + this._shakeOffset.y,
-            playerPos.z + this._shakeOffset.z
+            playerPos.x,
+            targetY,
+            playerPos.z
         );
-    }
-
-    setShakeOffset(x, y, z) {
-        this._shakeOffset.set(x, y, z);
-    }
-
-    clearShake() {
-        if (this._shakeOffset.lengthSq() > 0) {
-            this._shakeOffset.set(0, 0, 0);
-        }
     }
 
     getWorldDirection(target) {
