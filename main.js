@@ -738,20 +738,28 @@ class Game {
 			}
 		}
 		if (this.cameraController && !this.isMobile()) {
-			if (this.isPaused && this.cameraController.isLocked)
+			if (
+				this.isPaused &&
+				document.pointerLockElement === this.cameraController.domElement
+			)
 				this.cameraController.unlock();
 			if (!this.isPaused) {
 				const relockCamera = () => {
-					if (
-						!this.isPaused &&
-						document.pointerLockElement !== this.cameraController.domElement
-					)
+					if (this.isPaused) return;
+					this.renderer?.domElement?.focus?.({ preventScroll: true });
+					if (document.pointerLockElement !== this.cameraController.domElement)
 						this.cameraController.lock();
 				};
+				if (needsFullscreen) {
+					const onFullscreenChange = () => {
+						if (document.fullscreenElement) relockCamera();
+						document.removeEventListener("fullscreenchange", onFullscreenChange);
+					};
+					document.addEventListener("fullscreenchange", onFullscreenChange);
+				}
 				relockCamera();
-				if (fullscreenRequest?.then) fullscreenRequest.then(relockCamera).catch(() => {});
-				requestAnimationFrame(relockCamera);
-				setTimeout(relockCamera, 120);
+				if (fullscreenRequest?.then)
+					fullscreenRequest.then(relockCamera).catch(() => {});
 			}
 		}
 		if (!this.isPaused) {

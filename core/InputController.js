@@ -159,7 +159,11 @@ export class InputController {
 
     _attachDesktopListeners() {
         this._onMouseMove = (e) => {
-            if (!this.pointerLocked && document.activeElement !== this._domElement) return;
+            if (
+                !this.pointerLocked &&
+                document.activeElement !== this._domElement &&
+                e.target !== this._domElement
+            ) return;
             this._lookDx += e.movementX || 0;
             this._lookDy += e.movementY || 0;
         };

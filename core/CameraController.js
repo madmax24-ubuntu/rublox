@@ -19,7 +19,7 @@ export class CameraController {
         this._tmpAxisX = new THREE.Vector3(1, 0, 0);
         this._yaw = 0;
         this._pitch = 0;
-        this._maxPitch = Math.PI / 2.4;
+        this._maxPitch = THREE.MathUtils.degToRad(85);
         this._mouseDx = 0;
         this._mouseDy = 0;
         this._cameraRadius = 0.15;
@@ -243,7 +243,8 @@ export class CameraController {
             console.log('[CameraController] playerPos=' + playerPos.toArray().map(v=>v.toFixed(2)).join(',') + ' targetY=' + targetY.toFixed(2) + ' camPos=' + this.camera.position.toArray().map(v=>v.toFixed(2)).join(','));
         }
 
-        if (this.isLocked) {
+        const hasMouseLook = this._mouseDx !== 0 || this._mouseDy !== 0;
+        if (this.isLocked || hasMouseLook) {
             const sensitivity = 0.002;
             this._yaw -= this._mouseDx * sensitivity;
             this._pitch -= this._mouseDy * sensitivity;
