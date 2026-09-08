@@ -4235,7 +4235,6 @@ window.addEventListener("DOMContentLoaded", async () => {
 			}
 		};
 
-		button.addEventListener("pointerup", handleStart);
 		button.addEventListener("click", handleStart);
 		button.addEventListener("touchend", handleStart, { passive: false });
 	};

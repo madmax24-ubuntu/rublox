@@ -29,6 +29,7 @@ export class InputController {
         this._sanitizeReservedBindings();
         this._lookDx = 0;
         this._lookDy = 0;
+        this._skipNextMouseMove = false;
         this._lookDeltaObj = { x: 0, y: 0 };
         this._wheelSteps = 0;
     }
@@ -160,6 +161,10 @@ export class InputController {
     _attachDesktopListeners() {
         this._onMouseMove = (e) => {
             if (document.pointerLockElement !== this._domElement) return;
+            if (this._skipNextMouseMove) {
+                this._skipNextMouseMove = false;
+                return;
+            }
             const dx = Number.isFinite(e.movementX) ? e.movementX : 0;
             const dy = Number.isFinite(e.movementY) ? e.movementY : 0;
             this._lookDx += Math.max(-500, Math.min(500, dx));
@@ -181,6 +186,8 @@ export class InputController {
 
         this._onLockChange = () => {
             this.pointerLocked = document.pointerLockElement === this._domElement;
+            this.resetLook();
+            this._skipNextMouseMove = this.pointerLocked;
         };
         document.addEventListener('pointerlockchange', this._onLockChange);
 
